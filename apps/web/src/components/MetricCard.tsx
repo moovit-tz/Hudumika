@@ -1,0 +1,200 @@
+import React from 'react';
+import { Icon, IconName } from './Icon.js';
+
+/* ── Deterministic sparkline data generator ── */
+export function spark(seed: number, len = 15, trend: 'up' | 'down' | 'flat' = 'up'): number[] {
+  return Array.from({ length: len }, (_, i) => {
+    const noise = (Math.sin(seed * 7.3 + i * 2.1) * 0.5 + 0.5) * 0.35;
+    const base =
+      trend === 'up'   ? 0.3 + (i / (len - 1)) * 0.65 :
+      trend === 'down' ? 0.95 - (i / (len - 1)) * 0.6 : 0.55;
+    return Math.max(0.08, Math.min(1, base + noise));
+  });
+}
+
+/* ── Smooth catmull-rom → cubic bezier path ── */
+function smoothLinePath(pts: [number, number][], tension = 0.3): string {
+  if (pts.length < 2) return '';
+  const d: string[] = [`M${pts[0][0].toFixed(2)},${pts[0][1].toFixed(2)}`];
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const cp1x = p1[0] + (p2[0] - p0[0]) * tension;
+    const cp1y = p1[1] + (p2[1] - p0[1]) * tension;
+    const cp2x = p2[0] - (p3[0] - p1[0]) * tension;
+    const cp2y = p2[1] - (p3[1] - p1[1]) * tension;
+    d.push(`C${cp1x.toFixed(2)},${cp1y.toFixed(2)},${cp2x.toFixed(2)},${cp2y.toFixed(2)},${p2[0].toFixed(2)},${p2[1].toFixed(2)}`);
+  }
+  return d.join(' ');
+}
+
+/* ── Area Sparkline ── */
+export function AreaSparkline({
+  data, color = 'var(--teal)', id,
+}: { data: number[]; color: string; id: string }) {
+  const W = 120, H = 44, py = 4, px = 2;
+  const max = Math.max(...data, 0.01);
+  const pts: [number, number][] = data.map((v, i) => [
+    px + (i / (data.length - 1)) * (W - px * 2),
+    py + (1 - v / max) * (H - py * 2),
+  ]);
+  const linePath = smoothLinePath(pts);
+  const areaPath = `${linePath} L${pts[pts.length - 1][0].toFixed(2)},${H} L${pts[0][0].toFixed(2)},${H} Z`;
+  const last = pts[pts.length - 1];
+  const gradId = `sg-${id}`;
+
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="mc-sparkline-svg">
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={color} stopOpacity="0.28" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.02" />
+        </linearGradient>
+      </defs>
+      <path d={areaPath} fill={`url(#${gradId})`} />
+      <path d={linePath} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={last[0]} cy={last[1]} r="4.5" fill="var(--white)" stroke={color} strokeWidth="2" />
+      <circle cx={last[0]} cy={last[1]} r="2" fill={color} />
+    </svg>
+  );
+}
+
+/* ── MiniBar — kept for direct usage in FinanceDashboard ── */
+export function MiniBar({
+  bars, color = 'var(--teal)', highlight = 'var(--teal)',
+}: { bars: number[]; color?: string; highlight?: string }) {
+  const max = Math.max(...bars);
+  const w = 6, gap = 3, h = 48;
+  const totalW = bars.length * (w + gap) - gap;
+  return (
+    <svg width={totalW} height={h} viewBox={`0 0 ${totalW} ${h}`} className="mc-minibar-svg">
+      {bars.map((v, i) => {
+        const barH = Math.max(4, (v / max) * h);
+        const isLast = i === bars.length - 1;
+        return (
+          <rect key={i}
+            x={i * (w + gap)} y={h - barH} width={w} height={barH}
+            rx={2} fill={isLast ? highlight : color} opacity={isLast ? 1 : 0.32}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
+/* ── Trend pill badge ── */
+export function Trend({ val, invert = false }: { val: number; invert?: boolean }) {
+  const up = invert ? val < 0 : val >= 0;
+  return (
+    <span className="mc-trend" data-up={String(up)}>
+      <Icon name={up ? 'arrowUp' : 'arrowDown'} size={10} strokeWidth={2.5}
+        color={up ? '#16a34a' : '#dc2626'} duotone={false} />
+      {Math.abs(val).toFixed(1)}%
+    </span>
+  );
+}
+
+/* ── MetricCard ── */
+export interface MetricCardProps {
+  title: string;
+  value: string;
+  trend: number;
+  sub1Label?: string;
+  sub1Value?: string;
+  sub2Label?: string;
+  sub2Value?: string;
+  bars: number[];
+  barColor: string;
+  barHighlight: string;
+  invertTrend?: boolean;
+  icon?: IconName;
+}
+
+function resolveColor(c: string): string {
+  const MAP: Record<string, string> = {
+    'var(--teal)':   '#e8461a',
+    'var(--blue)':   '#2563eb',
+    'var(--green)':  '#16a34a',
+    'var(--red)':    '#dc2626',
+    'var(--gold)':   '#d97706',
+    'var(--purple)': '#7c3aed',
+  };
+  return MAP[c] ?? c;
+}
+
+const COLOR_ICON: Record<string, { icon: IconName; colorKey: string }> = {
+  'var(--teal)':   { icon: 'trendingUp',   colorKey: 'teal'    },
+  'var(--blue)':   { icon: 'barChart2',     colorKey: 'blue'    },
+  'var(--green)':  { icon: 'checkCircle',   colorKey: 'green'   },
+  'var(--red)':    { icon: 'alertTriangle', colorKey: 'red'     },
+  'var(--gold)':   { icon: 'zap',           colorKey: 'gold'    },
+  'var(--purple)': { icon: 'pieChart',      colorKey: 'purple'  },
+};
+
+let _sparkId = 0;
+
+export function MetricCard({
+  title, value, trend,
+  sub1Label = 'THIS MONTH', sub1Value,
+  sub2Label = 'THIS WEEK',  sub2Value,
+  bars, barColor, barHighlight, invertTrend = false,
+  icon,
+}: MetricCardProps) {
+  const sparkId = React.useRef(`mc${++_sparkId}`).current;
+  const color    = resolveColor(barHighlight);
+  const cfg      = COLOR_ICON[barHighlight] ?? { icon: 'barChart' as IconName, colorKey: 'default' };
+  const iconName: IconName = icon ?? cfg.icon;
+
+  return (
+    <div className="mc-card">
+      <div className="mc-head">
+        <div className="mc-head-left">
+          <div className="mc-icon-badge" data-color={cfg.colorKey}>
+            <Icon name={iconName} size={18} color={color} strokeWidth={1.75} />
+          </div>
+          <span className="mc-title">{title}</span>
+        </div>
+        <span className="mc-dots">
+          <Icon name="moreVertical" size={15} strokeWidth={1.75} duotone={false} />
+        </span>
+      </div>
+
+      <div className="mc-value-row">
+        <span className="mc-value">{value}</span>
+        {trend !== 0 && <Trend val={trend} invert={invertTrend} />}
+      </div>
+
+      {(sub1Value || sub2Value) && (
+        <div className="mc-sub-row">
+          {sub1Value && (
+            <div>
+              <div className="mc-sub-label">{sub1Label}</div>
+              <div className="mc-sub-value">{sub1Value}</div>
+            </div>
+          )}
+          {sub2Value && (
+            <div>
+              <div className="mc-sub-label">{sub2Label}</div>
+              <div className="mc-sub-value">{sub2Value}</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="mc-spark-wrap">
+        <AreaSparkline data={bars} color={color} id={sparkId} />
+      </div>
+    </div>
+  );
+}
+
+/* ── MetricsRow ── */
+export function MetricsRow({ cards }: { cards: MetricCardProps[] }) {
+  return (
+    <div className="mc-row" data-cols={cards.length}>
+      {cards.map(c => <MetricCard key={c.title} {...c} />)}
+    </div>
+  );
+}

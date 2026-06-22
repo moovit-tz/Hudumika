@@ -1,0 +1,32 @@
+export const userData = {
+    id: 1,
+    avatarBg: "purple",
+    name: "Abu Bin Ishtiyak",
+    displayName: "Ishtiak",
+    dob: "10 Aug, 1980",
+    role: "Customer",
+    checked: false,
+    email: "info@softnio.com",
+    balance: "35040.34",
+    phone: "818474958",
+    emailStatus: "success",
+    kycStatus: "success",
+    lastLogin: "10 Feb 2020",
+    status: "Active",
+    address: "2337 Kildeer Drive",
+    state: "Kentucky",
+    country: "Canada",
+    designation: "UI/UX Designer",
+    projects: "213",
+    performed: "87.5",
+    tasks: "587",
+  };
+
+export const countryOptions = [
+  { value: "Canada", label: "Canada" },
+  { value: "USA", label: "USA" },
+  { value: "India", label: "India" },
+  { value: "Bangladesh", label: "Bangladesh" },
+  { value: "France", label: "France" },
+  { value: "England", label: "England" },
+];

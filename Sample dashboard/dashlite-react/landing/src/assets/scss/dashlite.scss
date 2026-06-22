@@ -1,0 +1,24 @@
+// Included Global Variables and Functions
+@import "dashlite_variables";
+
+// Included Fonts
+/** 01. FONTS */
+@import "core/fonts/roboto";
+@import "core/fonts/nunito";
+
+// Included Bootstarp
+@import "extend/bootstrap/variables";
+@import "extend/bootstrap/bootstrap";
+@import "extend/bootstrap/extend";
+
+// Include Other Vendors
+@import "vendors/bundle";
+
+// Include Core Dashlite Style
+@import "core/style";
+
+// Include stickybar preview
+@import "core/preview"; 
+
+/*! END @iO */
+////////////////////////// END STYLESHEET ////////////////////////////

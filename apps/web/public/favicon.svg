@@ -1,0 +1,14 @@
+<svg viewBox="0 0 210 100" width="210" height="100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="lm">
+      <rect width="210" height="100" fill="white" />
+      <rect x="26" y="21" width="76" height="58" rx="29" fill="black" />
+    </mask>
+    <mask id="rm">
+      <rect width="210" height="100" fill="white" />
+      <rect x="108" y="21" width="76" height="58" rx="29" fill="black" />
+    </mask>
+  </defs>
+  <rect x="5" y="5" width="130" height="90" rx="45" fill="#E8714E" mask="url(#lm)" />
+  <rect x="75" y="5" width="130" height="90" rx="45" fill="#C94428" mask="url(#rm)" />
+</svg>

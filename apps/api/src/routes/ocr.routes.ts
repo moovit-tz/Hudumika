@@ -1,0 +1,234 @@
+import type { FastifyInstance } from 'fastify';
+import Anthropic from '@anthropic-ai/sdk';
+
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+const SYSTEM_PROMPT = `You are a freight / customs document OCR specialist. Extract structured data from shipping and customs documents.
+
+Supported document types:
+- BL: Bill of Lading
+- INVOICE: Commercial Invoice
+- PACKING_LIST: Packing List
+- AWB: Air Waybill
+- TANSAD: Tanzania Revenue Authority Assessment Document (TRA / TANCIS customs declaration, often headed "TANSAD" or "UNITED REPUBLIC OF TANZANIA — CUSTOMS AND EXCISE DEPARTMENT")
+- CERTIFICATE: Certificate of Origin or other certificates
+- OTHER: Any other document
+
+Return ONLY valid JSON matching this exact schema — no markdown, no explanation:
+{
+  "doc_type": "BL | INVOICE | PACKING_LIST | AWB | TANSAD | CERTIFICATE | OTHER",
+  "confidence": 0.0-1.0,
+  "overview": {
+    "bl_number": "",
+    "tansad_number": "",
+    "declaration_type": "",
+    "processing_office": "",
+    "vessel": "",
+    "voyage": "",
+    "origin_port": "",
+    "dest_port": "",
+    "goods_desc": "",
+    "eta": "YYYY-MM-DD or ''",
+    "free_time_end": "YYYY-MM-DD or ''",
+    "container_number": "",
+    "container_size": "20GP | 40GP | 40HC | 45HC | 20RF | 40RF | ''",
+    "seal_number": "",
+    "gross_weight_kg": "",
+    "net_weight_kg": "",
+    "cbm": "",
+    "packages": "",
+    "package_type": ""
+  },
+  "parties": {
+    "shipper_name": "",
+    "shipper_address": "",
+    "shipper_country": "",
+    "consignee_name": "",
+    "consignee_address": "",
+    "consignee_country": "",
+    "consignee_tin": "",
+    "notify_name": "",
+    "notify_address": "",
+    "declarant_name": "",
+    "declarant_tin": "",
+    "declarant_address": ""
+  },
+  "financial": {
+    "invoice_number": "",
+    "invoice_date": "YYYY-MM-DD or ''",
+    "invoice_value_usd": "",
+    "customs_value_tzs": "",
+    "currency": "USD | EUR | GBP | TZS | ''",
+    "incoterms": "CIF | FOB | CFR | EXW | DDP | ''",
+    "freight_usd": "",
+    "insurance_usd": "",
+    "exchange_rate": "",
+    "total_imp_duty_tzs": "",
+    "total_vat_tzs": "",
+    "total_excise_tzs": "",
+    "total_levy_tzs": "",
+    "total_tax_tzs": ""
+  },
+  "hs_lines": [
+    {
+      "item_number": "",
+      "hs_code": "",
+      "description": "",
+      "origin_country": "",
+      "quantity": "",
+      "unit": "",
+      "gross_weight_kg": "",
+      "net_weight_kg": "",
+      "value_usd": "",
+      "customs_value_tzs": "",
+      "imp_duty_tzs": "",
+      "vat_tzs": "",
+      "excise_tzs": "",
+      "levy_tzs": ""
+    }
+  ],
+  "flags": []
+}
+
+Rules:
+- Use empty string "" for any field you cannot extract with reasonable confidence
+- "flags" is an array of short strings for anything unusual (e.g. "HAZMAT", "REFRIGERATED", "TAX_EXEMPTION", "UPLIFT", "PENALTY", "DANGEROUS_GOODS")
+- Dates must be YYYY-MM-DD format
+- All monetary values should be numeric strings without currency symbols or commas
+- hs_lines may have 0 or more entries depending on document type
+- For TANSAD documents: tansad_number is the declaration reference (e.g. "TZNG261406947"), declaration_type is the regime code (e.g. "IM4"), processing_office is the customs station (e.g. "TZNG NAMANGA"); extract all tax lines per HS item (IMP=import duty, CPF=customs processing fee, RDL=railway development levy, VAT=value added tax)
+- For TANSAD documents: shipper is the exporter, consignee is the importer/taxpayer, declarant is the clearing agent
+`;
+
+export async function ocrRoutes(fastify: FastifyInstance) {
+  fastify.addHook('preHandler', fastify.authenticate);
+
+  /**
+   * POST /v1/ocr/scan
+   * Body: { image_base64: string, media_type: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' }
+   * Returns structured OCR extraction from Claude vision
+   */
+  fastify.post('/scan', async (request, reply) => {
+    const { image_base64, media_type = 'image/jpeg' } = request.body as {
+      image_base64: string;
+      media_type?: string;
+    };
+
+    if (!image_base64) {
+      return reply.status(400).send({ error: 'image_base64 is required' });
+    }
+
+    if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'your-anthropic-api-key') {
+      // Return simulated OCR result for demo/dev environments without a real key
+      return {
+        success: true,
+        simulated: true,
+        result: buildSimulatedResult(),
+      };
+    }
+
+    try {
+      const msg = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2048,
+        system: SYSTEM_PROMPT,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: media_type as any,
+                  data: image_base64,
+                },
+              },
+              {
+                type: 'text',
+                text: 'Identify the document type, then extract all available data from this document and return only the JSON. If this is a TANSAD or TRA Assessment Document, set doc_type to "TANSAD" and extract all tax/duty lines per HS item.',
+              },
+            ],
+          },
+        ],
+      });
+
+      const raw = msg.content[0]?.type === 'text' ? msg.content[0].text.trim() : '{}';
+      // Strip any accidental markdown fences
+      const clean = raw.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim();
+      const result = JSON.parse(clean);
+
+      return { success: true, simulated: false, result };
+    } catch (err: any) {
+      fastify.log.error(err, 'OCR scan failed');
+      return reply.status(500).send({ error: err.message || 'OCR scan failed' });
+    }
+  });
+}
+
+function buildSimulatedResult() {
+  return {
+    doc_type: 'BL',
+    confidence: 0.94,
+    overview: {
+      bl_number: 'MEDU' + Math.floor(1000000 + Math.random() * 9000000),
+      vessel: 'MSC ANTHEA',
+      voyage: '425E',
+      origin_port: 'Port of Shanghai',
+      dest_port: 'Port of Dar es Salaam',
+      goods_desc: 'General Merchandise — Electronic Components (500 CTNs)',
+      eta: new Date(Date.now() + 21 * 86400000).toISOString().slice(0, 10),
+      free_time_end: new Date(Date.now() + 28 * 86400000).toISOString().slice(0, 10),
+      container_number: 'MSCU' + Math.floor(1000000 + Math.random() * 9000000),
+      container_size: '40HC',
+      seal_number: 'SL' + Math.floor(100000 + Math.random() * 900000),
+      gross_weight_kg: '18240',
+      cbm: '67.5',
+      packages: '500',
+      package_type: 'CTN',
+    },
+    parties: {
+      shipper_name: 'Shenzhen Trade Logistics Co., Ltd.',
+      shipper_address: 'Unit 12, Longhua Industrial Park, Shenzhen, China 518131',
+      shipper_country: 'CN',
+      consignee_name: 'East Africa General Traders Ltd',
+      consignee_address: 'Plot 45, Nyerere Road, Dar es Salaam, Tanzania',
+      consignee_country: 'TZ',
+      notify_name: 'East Africa General Traders Ltd',
+      notify_address: 'Plot 45, Nyerere Road, Dar es Salaam, Tanzania',
+    },
+    financial: {
+      invoice_number: 'INV-2026-' + Math.floor(10000 + Math.random() * 90000),
+      invoice_date: new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10),
+      invoice_value_usd: '48500',
+      currency: 'USD',
+      incoterms: 'CIF',
+      freight_usd: '3200',
+      insurance_usd: '485',
+      exchange_rate: '2560',
+    },
+    hs_lines: [
+      {
+        hs_code: '8471.30.00',
+        description: 'Portable automatic data processing machines',
+        origin_country: 'CN',
+        quantity: '300',
+        unit: 'PCS',
+        gross_weight_kg: '9000',
+        net_weight_kg: '8400',
+        value_usd: '36000',
+      },
+      {
+        hs_code: '8517.62.00',
+        description: 'Apparatus for reception of voice/data',
+        origin_country: 'CN',
+        quantity: '200',
+        unit: 'PCS',
+        gross_weight_kg: '9240',
+        net_weight_kg: '8640',
+        value_usd: '12500',
+      },
+    ],
+    flags: [],
+  };
+}

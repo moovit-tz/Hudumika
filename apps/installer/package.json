@@ -1,0 +1,13 @@
+{
+  "name": "clearos-installer",
+  "version": "1.0.0",
+  "description": "ClearOS Web Installer",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "fastify": "^4.26.2",
+    "pg": "^8.11.5"
+  }
+}

@@ -1,0 +1,1178 @@
+﻿import React, { useState, useMemo, useEffect } from 'react';
+import { useIsMobile } from '../hooks/useIsMobile.js';
+import { MetricsRow, spark } from '../components/MetricCard.js';
+import { Icon } from '../components/Icon.js';
+import { getCompany } from '../data/companyStore.js';
+import { useCurrency } from '../hooks/useCurrency.js';
+import { apiFetch } from '../lib/api.js';
+import { PageHeader } from '../components/PageHeader.js';
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+type BillStatus = 'DRAFT'|'POSTED'|'PARTIAL'|'PAID'|'OVERDUE'|'VOID';
+type RecurFreq  = 'WEEKLY'|'MONTHLY'|'QUARTERLY'|'ANNUAL';
+type RecurState = 'ACTIVE'|'PAUSED'|'ENDED';
+type BillCat    = 'FREIGHT'|'CUSTOMS'|'PORT'|'TRANSPORT'|'WAREHOUSE'|'INSURANCE'|'PROFESSIONAL'|'UTILITIES'|'OTHER';
+
+interface BillLine {
+  _key: string; description: string; category: BillCat;
+  qty: number; unit_price: number; tax_rate: number;
+}
+
+interface Bill {
+  id: string; bill_number: string; supplier_id: string; supplier_name: string;
+  bill_date: string; due_date: string; status: BillStatus; currency: string;
+  subtotal: number; tax_amount: number; total: number; paid_amount: number;
+  lines: BillLine[]; po_number?: string; shipment_ref?: string; notes?: string;
+  recurring_id?: string; created_at: string;
+}
+
+interface RecurringBill {
+  id: string; name: string; supplier_id: string; supplier_name: string;
+  frequency: RecurFreq; currency: string; amount: number; tax_rate: number;
+  category: BillCat; description: string; payment_terms: string;
+  next_due: string; end_date?: string; state: RecurState;
+  bills_generated: number; total_spend: number; created_at: string;
+}
+
+interface Payment {
+  id: string; bill_id: string; amount: number; currency: string;
+  date: string; method: string; reference: string; note?: string;
+}
+
+// form shapes
+interface BillForm {
+  supplier_id: string; bill_date: string; due_date: string;
+  currency: string; po_number: string; shipment_ref: string; notes: string;
+  lines: BillLine[];
+}
+interface RecurForm {
+  name: string; supplier_id: string; frequency: RecurFreq; currency: string;
+  amount: number; tax_rate: number; category: BillCat; description: string;
+  payment_terms: string; next_due: string; end_date: string;
+}
+
+// ── Config ─────────────────────────────────────────────────────────────────────
+
+const STATUS_CFG: Record<BillStatus, { label: string; color: string; bg: string }> = {
+  DRAFT:   { label: 'Draft',    color: 'var(--ink3)',  bg: 'var(--bg)'       },
+  POSTED:  { label: 'Posted',   color: 'var(--blue)',  bg: 'var(--blue-l)'   },
+  PARTIAL: { label: 'Partial',  color: 'var(--gold)',  bg: 'var(--gold-l)'   },
+  PAID:    { label: 'Paid',     color: 'var(--green)', bg: 'var(--green-l)'  },
+  OVERDUE: { label: 'Overdue',  color: 'var(--red)',   bg: 'var(--red-l)'    },
+  VOID:    { label: 'Void',     color: 'var(--ink3)',  bg: 'var(--bg)',       },
+};
+
+const CAT_CFG: Record<BillCat, { label: string; color: string }> = {
+  FREIGHT:      { label: 'Freight',        color: 'var(--blue)'   },
+  CUSTOMS:      { label: 'Customs',        color: 'var(--navy)'   },
+  PORT:         { label: 'Port Charges',   color: 'var(--orange)' },
+  TRANSPORT:    { label: 'Transport',      color: 'var(--gold)'   },
+  WAREHOUSE:    { label: 'Warehouse',      color: 'var(--green)'  },
+  INSURANCE:    { label: 'Insurance',      color: '#6e40c9'       },
+  PROFESSIONAL: { label: 'Professional',   color: 'var(--teal)'   },
+  UTILITIES:    { label: 'Utilities',      color: 'var(--ink2)'   },
+  OTHER:        { label: 'Other',          color: 'var(--ink3)'   },
+};
+
+const FREQ_CFG: Record<RecurFreq, { label: string; color: string; bg: string }> = {
+  WEEKLY:    { label: 'Weekly',    color: 'var(--red)',    bg: 'var(--red-l)'   },
+  MONTHLY:   { label: 'Monthly',   color: 'var(--blue)',   bg: 'var(--blue-l)'  },
+  QUARTERLY: { label: 'Quarterly', color: 'var(--teal)',   bg: 'var(--teal-l)'  },
+  ANNUAL:    { label: 'Annual',    color: 'var(--green)',  bg: 'var(--green-l)' },
+};
+
+const PAYMENT_METHODS = ['Bank Transfer','Cash','Mobile Money','Cheque','Credit Card','RTGS'];
+const CURRENCIES = ['USD','TZS','EUR','GBP','KES'];
+const ALL_CATS = Object.keys(CAT_CFG) as BillCat[];
+const ALL_FREQS = Object.keys(FREQ_CFG) as RecurFreq[];
+
+const SUPPLIER_MAP: Record<string, { name: string; email: string; terms: string; currency: string }> = {
+  'sup-001': { name: 'Maersk Line Tanzania',           email: 'thomas.andersen@maersk.co.tz',    terms: 'Net 30',  currency: 'USD' },
+  'sup-002': { name: 'Tanzania Ports Authority (TPA)', email: 'operations@tpa.go.tz',            terms: 'Advance', currency: 'TZS' },
+  'sup-003': { name: 'M&G Customs Clearance Ltd',      email: 'm.gulamali@mgcustoms.co.tz',      terms: 'Net 15',  currency: 'TZS' },
+  'sup-004': { name: 'Dar Transport Solutions Ltd',    email: 'b.msomi@dartransport.co.tz',      terms: 'COD',     currency: 'TZS' },
+  'sup-005': { name: 'Port Bonded Warehouses Ltd',     email: 'y.rashidi@pbwl.co.tz',            terms: 'Net 30',  currency: 'USD' },
+  'sup-006': { name: 'DHL Global Forwarding Tanzania', email: 'anita.patel@dhl.co.tz',           terms: 'Net 45',  currency: 'USD' },
+  'sup-007': { name: 'UAP Old Mutual Cargo Insurance', email: 's.ochieng@uapoldmutual.co.tz',   terms: 'Net 30',  currency: 'USD' },
+  'sup-008': { name: 'Freight Link Consolidators',     email: 'j.hassan@freightlink.co.tz',      terms: 'Advance', currency: 'USD' },
+};
+
+// ── API Mapping ────────────────────────────────────────────────────────────────
+
+function mapApiBill(d: any): Bill {
+  return {
+    id: d.id, bill_number: d.bill_number,
+    supplier_id: d.supplier_id || '', supplier_name: d.supplier_name || '',
+    bill_date: d.bill_date ? String(d.bill_date).split('T')[0] : '',
+    due_date: d.due_date ? String(d.due_date).split('T')[0] : '',
+    status: (d.status || 'DRAFT') as BillStatus,
+    currency: d.currency || 'USD',
+    subtotal: Number(d.subtotal) || 0, tax_amount: Number(d.tax_amount) || 0,
+    total: Number(d.total) || 0, paid_amount: Number(d.paid_amount) || 0,
+    po_number: d.po_number || undefined, shipment_ref: d.shipment_ref || undefined,
+    notes: d.notes || undefined, recurring_id: d.recurring_id || undefined,
+    lines: Array.isArray(d.lines) ? d.lines.map((l: any) => ({
+      _key: l.id || String(Math.random()), description: l.description || '',
+      category: (l.category || 'OTHER') as BillCat,
+      qty: Number(l.qty), unit_price: Number(l.unit_price), tax_rate: Number(l.tax_rate),
+    })) : [],
+    created_at: d.created_at || new Date().toISOString(),
+  };
+}
+
+function mapApiRecurring(d: any): RecurringBill {
+  return {
+    id: d.id, name: d.name || '', supplier_id: d.supplier_id || '',
+    supplier_name: d.supplier_name || '', frequency: (d.frequency || 'MONTHLY') as RecurFreq,
+    currency: d.currency || 'USD', amount: Number(d.amount) || 0,
+    tax_rate: Number(d.tax_rate) || 0, category: (d.category || 'OTHER') as BillCat,
+    description: d.description || '', payment_terms: d.payment_terms || '',
+    next_due: d.next_due ? String(d.next_due).split('T')[0] : '',
+    end_date: d.end_date ? String(d.end_date).split('T')[0] : undefined,
+    state: (d.state || 'ACTIVE') as RecurState,
+    bills_generated: Number(d.bills_generated) || 0, total_spend: Number(d.total_spend) || 0,
+    created_at: d.created_at || new Date().toISOString(),
+  };
+}
+
+// ── Mock Data ──────────────────────────────────────────────────────────────────
+
+export const MOCK_BILLS: Bill[] = [
+  {
+    id:'bill-001', bill_number:'BILL-2026-001', supplier_id:'sup-001', supplier_name:'Maersk Line Tanzania',
+    bill_date:'2026-01-10', due_date:'2026-02-09', status:'PAID', currency:'USD',
+    subtotal:1800, tax_amount:0, total:1800, paid_amount:1800, po_number:'PO-2026-001', shipment_ref:'CLR-2026-0001',
+    lines:[
+      { _key:'l1', description:'Terminal Handling Charge (THC) — 20ft FCL ×2', category:'PORT', qty:2, unit_price:750, tax_rate:0 },
+      { _key:'l2', description:'Bill of Lading Processing Fee', category:'CUSTOMS', qty:1, unit_price:60, tax_rate:0 },
+      { _key:'l3', description:'Documentation Handling', category:'PROFESSIONAL', qty:1, unit_price:240, tax_rate:0 },
+    ],
+    notes:'THC charges for 2 × 20ft containers discharged Dar es Salaam port.',
+    created_at:'2026-01-10T08:00:00Z',
+  },
+  {
+    id:'bill-002', bill_number:'BILL-2026-002', supplier_id:'sup-003', supplier_name:'M&G Customs Clearance Ltd',
+    bill_date:'2026-01-13', due_date:'2026-01-28', status:'PAID', currency:'TZS',
+    subtotal:420000, tax_amount:75600, total:495600, paid_amount:495600, po_number:'PO-2026-002', shipment_ref:'CLR-2026-0001',
+    lines:[
+      { _key:'l1', description:'Customs Clearance & Entry Filing', category:'CUSTOMS', qty:1, unit_price:350000, tax_rate:18 },
+      { _key:'l2', description:'Documentation Set — BL, Packing List, CoO', category:'CUSTOMS', qty:1, unit_price:70000, tax_rate:18 },
+    ],
+    notes:'Clearance services for CLR-2026-0001. TANCIS entry CE-2026-001.',
+    created_at:'2026-01-13T08:00:00Z',
+  },
+  {
+    id:'bill-003', bill_number:'BILL-2026-003', supplier_id:'sup-002', supplier_name:'Tanzania Ports Authority (TPA)',
+    bill_date:'2026-02-01', due_date:'2026-02-01', status:'OVERDUE', currency:'TZS',
+    subtotal:1745000, tax_amount:0, total:1745000, paid_amount:0, po_number:'PO-2026-005', shipment_ref:'CLR-2026-0002',
+    lines:[
+      { _key:'l1', description:'Container THC — 20ft FCL ×3', category:'PORT', qty:3, unit_price:350000, tax_rate:0 },
+      { _key:'l2', description:'Port Entry Permit — Heavy Cargo', category:'PORT', qty:1, unit_price:180000, tax_rate:0 },
+      { _key:'l3', description:'Port Scanning (X-Ray) Fee', category:'PORT', qty:3, unit_price:38333, tax_rate:0 },
+    ],
+    notes:'Payment was due on arrival date. Dispute raised on THC overcharge (tkt-004). HOLD pending resolution.',
+    created_at:'2026-02-01T08:00:00Z',
+  },
+  {
+    id:'bill-004', bill_number:'BILL-2026-004', supplier_id:'sup-006', supplier_name:'DHL Global Forwarding Tanzania',
+    bill_date:'2026-05-15', due_date:'2026-06-29', status:'PARTIAL', currency:'USD',
+    subtotal:4900, tax_amount:0, total:4900, paid_amount:2000, po_number:'PO-2026-004', shipment_ref:'CLR-2026-0004',
+    lines:[
+      { _key:'l1', description:'Air Freight — JNIA to NBO (850kg CW)', category:'FREIGHT', qty:850, unit_price:4.5, tax_rate:0 },
+      { _key:'l2', description:'Airport Handling & Documentation', category:'PROFESSIONAL', qty:1, unit_price:280, tax_rate:0 },
+      { _key:'l3', description:'Dangerous Goods DG Surcharge', category:'FREIGHT', qty:1, unit_price:395, tax_rate:0 },
+      { _key:'l4', description:'Fuel Surcharge (FSC)', category:'FREIGHT', qty:850, unit_price:0.3, tax_rate:0 },
+    ],
+    notes:'Air cargo CLR-2026-0004. Partial payment of $2,000 received 30 May. Balance due 29 Jun.',
+    created_at:'2026-05-15T08:00:00Z',
+  },
+  {
+    id:'bill-005', bill_number:'BILL-2026-005', supplier_id:'sup-007', supplier_name:'UAP Old Mutual Cargo Insurance',
+    bill_date:'2026-02-01', due_date:'2026-03-03', status:'PAID', currency:'USD',
+    subtotal:480, tax_amount:86.4, total:566.4, paid_amount:566.4, po_number:'PO-2026-007', shipment_ref:'CLR-2026-0002',
+    lines:[
+      { _key:'l1', description:'Marine Cargo Insurance — Open Cover Policy MAP-2026-0019', category:'INSURANCE', qty:1, unit_price:480, tax_rate:18 },
+    ],
+    notes:'Policy covers all sea freight shipments Feb–Apr 2026.',
+    created_at:'2026-02-01T08:00:00Z',
+  },
+  {
+    id:'bill-006', bill_number:'BILL-2026-006', supplier_id:'sup-005', supplier_name:'Port Bonded Warehouses Ltd',
+    bill_date:'2026-01-20', due_date:'2026-02-19', status:'PAID', currency:'USD',
+    subtotal:125, tax_amount:22.5, total:147.5, paid_amount:147.5, po_number:'PO-2026-006', shipment_ref:'CLR-2026-0001',
+    lines:[
+      { _key:'l1', description:'Bonded Storage — 5 days × $25/day', category:'WAREHOUSE', qty:5, unit_price:25, tax_rate:18 },
+    ],
+    created_at:'2026-01-20T08:00:00Z',
+  },
+  {
+    id:'bill-007', bill_number:'BILL-2026-007', supplier_id:'sup-004', supplier_name:'Dar Transport Solutions Ltd',
+    bill_date:'2026-03-14', due_date:'2026-03-14', status:'POSTED', currency:'TZS',
+    subtotal:280000, tax_amount:50400, total:330400, paid_amount:0, po_number:'PO-2026-003', shipment_ref:'CLR-2026-0003',
+    lines:[
+      { _key:'l1', description:'Inland Transport — Dar port to Mikocheni ICD', category:'TRANSPORT', qty:1, unit_price:280000, tax_rate:18 },
+    ],
+    notes:'COD — driver collected but payment not yet confirmed.',
+    created_at:'2026-03-14T08:00:00Z',
+  },
+  {
+    id:'bill-008', bill_number:'BILL-2026-008', supplier_id:'sup-003', supplier_name:'M&G Customs Clearance Ltd',
+    bill_date:'2026-02-08', due_date:'2026-02-23', status:'PAID', currency:'TZS',
+    subtotal:890000, tax_amount:160200, total:1050200, paid_amount:1050200, po_number:'PO-2026-008', shipment_ref:'CLR-2026-0002',
+    lines:[
+      { _key:'l1', description:'Customs Duty — TANSAD TD-2026-047', category:'CUSTOMS', qty:1, unit_price:750000, tax_rate:18 },
+      { _key:'l2', description:'Amendment Filing Fee', category:'CUSTOMS', qty:1, unit_price:140000, tax_rate:18 },
+    ],
+    notes:'Duty payment for CLR-2026-0002. TANSAD amended after HS code correction.',
+    created_at:'2026-02-08T08:00:00Z',
+  },
+  {
+    id:'bill-009', bill_number:'BILL-2026-009', supplier_id:'sup-002', supplier_name:'Tanzania Ports Authority (TPA)',
+    bill_date:'2026-03-05', due_date:'2026-03-05', status:'PAID', currency:'TZS',
+    subtotal:115000, tax_amount:0, total:115000, paid_amount:115000, shipment_ref:'CLR-2026-0003',
+    lines:[
+      { _key:'l1', description:'X-Ray Scanning Fee — 3 containers', category:'PORT', qty:3, unit_price:38333, tax_rate:0 },
+    ],
+    created_at:'2026-03-05T08:00:00Z',
+  },
+  {
+    id:'bill-010', bill_number:'BILL-2026-010', supplier_id:'sup-001', supplier_name:'Maersk Line Tanzania',
+    bill_date:'2026-06-01', due_date:'2026-07-01', status:'DRAFT', currency:'USD',
+    subtotal:2400, tax_amount:0, total:2400, paid_amount:0,
+    lines:[
+      { _key:'l1', description:'Sea Freight — 40ft HC FCL (CNTR: MSCU9401822)', category:'FREIGHT', qty:1, unit_price:2000, tax_rate:0 },
+      { _key:'l2', description:'Bunker Adjustment Factor (BAF)', category:'FREIGHT', qty:1, unit_price:280, tax_rate:0 },
+      { _key:'l3', description:'Peak Season Surcharge (PSS)', category:'FREIGHT', qty:1, unit_price:120, tax_rate:0 },
+    ],
+    notes:'Draft bill for upcoming shipment. Awaiting BL confirmation.',
+    created_at:'2026-06-01T08:00:00Z',
+  },
+  {
+    id:'bill-011', bill_number:'BILL-2026-011', supplier_id:'sup-003', supplier_name:'M&G Customs Clearance Ltd',
+    bill_date:'2026-06-01', due_date:'2026-06-16', status:'POSTED', currency:'TZS',
+    subtotal:80000, tax_amount:14400, total:94400, paid_amount:0, recurring_id:'rec-001',
+    lines:[
+      { _key:'l1', description:'Monthly Retainer — Customs Clearance Services (June 2026)', category:'CUSTOMS', qty:1, unit_price:80000, tax_rate:18 },
+    ],
+    notes:'Monthly retainer under contract MGC-2026-RET-002.',
+    created_at:'2026-06-01T08:00:00Z',
+  },
+  {
+    id:'bill-012', bill_number:'BILL-2026-012', supplier_id:'sup-006', supplier_name:'DHL Global Forwarding Tanzania',
+    bill_date:'2026-06-15', due_date:'2026-07-30', status:'POSTED', currency:'USD',
+    subtotal:500, tax_amount:0, total:500, paid_amount:0, recurring_id:'rec-002',
+    lines:[
+      { _key:'l1', description:'Monthly Forwarding & Handling Fee (June 2026)', category:'FREIGHT', qty:1, unit_price:500, tax_rate:0 },
+    ],
+    created_at:'2026-06-15T08:00:00Z',
+  },
+];
+
+export const MOCK_RECURRING: RecurringBill[] = [
+  { id:'rec-001', name:'M&G Monthly Customs Retainer', supplier_id:'sup-003', supplier_name:'M&G Customs Clearance Ltd', frequency:'MONTHLY', currency:'TZS', amount:80000, tax_rate:18, category:'CUSTOMS', description:'Monthly retainer for all customs entry filings and clearance services.', payment_terms:'Net 15', next_due:'2026-07-01', state:'ACTIVE', bills_generated:6, total_spend:480000, created_at:'2026-01-01T00:00:00Z' },
+  { id:'rec-002', name:'DHL Monthly Handling Fee', supplier_id:'sup-006', supplier_name:'DHL Global Forwarding Tanzania', frequency:'MONTHLY', currency:'USD', amount:500, tax_rate:0, category:'FREIGHT', description:'Fixed monthly forwarding and handling fee per MOU DHL-2026-MOU-003.', payment_terms:'Net 45', next_due:'2026-07-15', state:'ACTIVE', bills_generated:3, total_spend:1500, created_at:'2026-04-01T00:00:00Z' },
+  { id:'rec-003', name:'Bonded Warehouse Monthly Storage', supplier_id:'sup-005', supplier_name:'Port Bonded Warehouses Ltd', frequency:'MONTHLY', currency:'USD', amount:250, tax_rate:18, category:'WAREHOUSE', description:'Monthly bonded storage access fee for general cargo allocation.', payment_terms:'Net 30', next_due:'2026-07-01', state:'ACTIVE', bills_generated:6, total_spend:1500, created_at:'2026-01-01T00:00:00Z' },
+  { id:'rec-004', name:'Annual Compliance & KYC Renewal', supplier_id:'sup-003', supplier_name:'M&G Customs Clearance Ltd', frequency:'ANNUAL', currency:'USD', amount:1500, tax_rate:18, category:'PROFESSIONAL', description:'Annual TISCAN license and compliance renewal management fee.', payment_terms:'Net 30', next_due:'2027-01-01', end_date:'2028-01-01', state:'ACTIVE', bills_generated:1, total_spend:1500, created_at:'2026-01-01T00:00:00Z' },
+];
+
+const MOCK_PAYMENTS: Payment[] = [
+  { id:'pay-001', bill_id:'bill-001', amount:1800,    currency:'USD', date:'2026-01-25', method:'Bank Transfer', reference:'TRX-CRDB-20260125-001', note:'Full payment — wire transfer' },
+  { id:'pay-002', bill_id:'bill-002', amount:495600,  currency:'TZS', date:'2026-01-28', method:'Bank Transfer', reference:'TRX-NMB-20260128-002' },
+  { id:'pay-003', bill_id:'bill-004', amount:2000,    currency:'USD', date:'2026-05-30', method:'Bank Transfer', reference:'TRX-CITI-20260530-003', note:'Partial — balance due 29 Jun 2026' },
+  { id:'pay-004', bill_id:'bill-005', amount:566.4,   currency:'USD', date:'2026-02-10', method:'Bank Transfer', reference:'TRX-NMB-20260210-004' },
+  { id:'pay-005', bill_id:'bill-006', amount:147.5,   currency:'USD', date:'2026-01-28', method:'Bank Transfer', reference:'TRX-SC-20260128-005' },
+  { id:'pay-006', bill_id:'bill-008', amount:1050200, currency:'TZS', date:'2026-02-15', method:'Bank Transfer', reference:'TRX-NMB-20260215-006' },
+  { id:'pay-007', bill_id:'bill-009', amount:115000,  currency:'TZS', date:'2026-03-12', method:'Bank Transfer', reference:'TRX-NMB-20260312-007' },
+];
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function fmt(n: number, cur = 'USD') {
+  try { return new Intl.NumberFormat('en-US', { style:'currency', currency: cur, maximumFractionDigits: cur === 'TZS' ? 0 : 2, minimumFractionDigits: 0 }).format(n); }
+  catch { return `${cur} ${n.toFixed(2)}`; }
+}
+function fmtDate(d?: string | null) { if (!d) return '—'; return new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); }
+function genId()  { return 'bill-' + Math.random().toString(36).slice(2, 9); }
+function genNum(bills: Bill[]) { return `BILL-${new Date().getFullYear()}-${String(bills.length + 1).padStart(3, '0')}`; }
+function lineTotal(l: BillLine) { return l.qty * l.unit_price * (1 + l.tax_rate / 100); }
+function calcTotals(lines: BillLine[]) {
+  const subtotal   = lines.reduce((a, l) => a + l.qty * l.unit_price, 0);
+  const tax_amount = lines.reduce((a, l) => a + l.qty * l.unit_price * l.tax_rate / 100, 0);
+  return { subtotal, tax_amount, total: subtotal + tax_amount };
+}
+function isOverdue(b: Bill) { return (b.status === 'POSTED' || b.status === 'PARTIAL') && new Date(b.due_date) < new Date(); }
+function daysOverdue(due: string) { return Math.floor((Date.now() - new Date(due).getTime()) / 86400000); }
+function newKey() { return Math.random().toString(36).slice(2, 9); }
+function advanceDate(d: string, freq: RecurFreq) {
+  const dt = new Date(d);
+  if (freq === 'WEEKLY')    dt.setDate(dt.getDate() + 7);
+  if (freq === 'MONTHLY')   dt.setMonth(dt.getMonth() + 1);
+  if (freq === 'QUARTERLY') dt.setMonth(dt.getMonth() + 3);
+  if (freq === 'ANNUAL')    dt.setFullYear(dt.getFullYear() + 1);
+  return dt.toISOString().split('T')[0];
+}
+
+// ── StatusBadge ────────────────────────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: BillStatus }) {
+  const c = STATUS_CFG[status];
+  return <span style={{ display:'inline-flex', alignItems:'center', gap:4, padding:'2px 9px', borderRadius: 9, fontSize:11, fontWeight:700, background:c.bg, color:c.color, whiteSpace:'nowrap' }}><span style={{ width:5, height:5, borderRadius:'50%', background:c.color, flexShrink:0 }} />{c.label}</span>;
+}
+
+function FreqBadge({ freq }: { freq: RecurFreq }) {
+  const c = FREQ_CFG[freq];
+  return <span style={{ padding:'2px 9px', borderRadius: 9, fontSize:11, fontWeight:700, background:c.bg, color:c.color }}>{c.label}</span>;
+}
+
+// ── Pay Modal ──────────────────────────────────────────────────────────────────
+
+function PayModal({ bill, onPay, onClose }: {
+  bill: Bill;
+  onPay: (amount: number, date: string, method: string, ref: string, note: string) => void;
+  onClose: () => void;
+}) {
+  const { fmt } = useCurrency();
+  const balance = bill.total - bill.paid_amount;
+  const [amount, setAmount]   = useState(balance);
+  const [date, setDate]       = useState(new Date().toISOString().split('T')[0]);
+  const [method, setMethod]   = useState('Bank Transfer');
+  const [ref, setRef]         = useState('');
+  const [note, setNote]       = useState('');
+  const inp: React.CSSProperties = { width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 9, fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const, color:'var(--ink)', fontFamily:'inherit' };
+  const lbl: React.CSSProperties = { fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 };
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <div style={{ background:'var(--white)', borderRadius: 9, padding:28, width:440, boxShadow:'0 24px 64px rgba(0,0,0,0.22)' }}>
+        <div style={{ fontSize:16, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Record Payment</div>
+        <div style={{ fontSize:13, color:'var(--ink3)', marginBottom:20 }}>{bill.bill_number} · Balance: <strong>{fmt(balance, bill.currency)}</strong></div>
+        <div style={{ marginBottom:14 }}>
+          <label style={lbl}>Payment Amount *</label>
+          <div style={{ position:'relative' }}>
+            <span style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', fontSize:12, fontWeight:700, color:'var(--ink3)' }}>{bill.currency}</span>
+            <input type="number" title="Amount" value={amount} min={0.01} step={0.01} max={balance}
+              onChange={e => setAmount(parseFloat(e.target.value) || 0)}
+              style={{ ...inp, paddingLeft: bill.currency.length * 8 + 12 }} />
+          </div>
+          {amount > balance && <div style={{ fontSize:11.5, color:'var(--red)', marginTop:4 }}>Amount exceeds outstanding balance ({fmt(balance, bill.currency)})</div>}
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+          <div><label style={lbl}>Payment Date *</label><input type="date" title="Date" value={date} onChange={e => setDate(e.target.value)} style={inp} /></div>
+          <div><label style={lbl}>Method</label><select title="Method" value={method} onChange={e => setMethod(e.target.value)} style={inp}>{PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
+        </div>
+        <div style={{ marginBottom:14 }}><label style={lbl}>Reference / Transaction ID</label><input type="text" title="Reference" placeholder="e.g. TRX-CRDB-20260625-001" value={ref} onChange={e => setRef(e.target.value)} style={{ ...inp, fontFamily:'var(--mono)', fontSize:12 }} /></div>
+        <div style={{ marginBottom:20 }}><label style={lbl}>Note (optional)</label><input type="text" title="Note" placeholder="Payment note…" value={note} onChange={e => setNote(e.target.value)} style={inp} /></div>
+        <div style={{ background:'var(--teal-l)', borderRadius:9, padding:'11px 14px', marginBottom:20, display:'flex', justifyContent:'space-between', fontSize:13 }}>
+          <span style={{ color:'var(--ink2)' }}>After this payment</span>
+          <span style={{ fontWeight:800, color: amount >= balance ? 'var(--green)' : 'var(--gold)' }}>{amount >= balance ? '✓ Fully Paid' : `${fmt(balance - amount, bill.currency)} remaining`}</span>
+        </div>
+        <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+          <button type="button" title="Cancel" onClick={onClose} style={{ padding:'8px 18px', border:'1px solid var(--border)', borderRadius: 9, background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)' }}>Cancel</button>
+          <button type="button" title="Confirm payment" disabled={amount <= 0 || amount > balance} onClick={() => onPay(amount, date, method, ref, note)}
+            style={{ padding:'8px 20px', border:'none', borderRadius: 9, background: amount > 0 && amount <= balance ? 'var(--teal)' : 'var(--border)', color:'#fff', cursor: amount > 0 && amount <= balance ? 'pointer' : 'default', fontWeight:700, fontSize:13 }}>
+            Confirm Payment
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Bill Form (create / edit) ──────────────────────────────────────────────────
+
+function BillFormView({ initial, allBills, onSave, onClose }: {
+  initial?: Bill; allBills: Bill[];
+  onSave: (f: BillForm) => void; onClose: () => void;
+}) {
+  const { fmt } = useCurrency();
+  const [f, setF] = useState<BillForm>({
+    supplier_id:  initial?.supplier_id  ?? '',
+    bill_date:    initial?.bill_date    ?? new Date().toISOString().split('T')[0],
+    due_date:     initial?.due_date     ?? '',
+    currency:     initial?.currency     ?? getCompany().currency,
+    po_number:    initial?.po_number    ?? '',
+    shipment_ref: initial?.shipment_ref ?? '',
+    notes:        initial?.notes        ?? '',
+    lines:        initial?.lines.length ? initial.lines : [{ _key:newKey(), description:'', category:'OTHER', qty:1, unit_price:0, tax_rate:0 }],
+  });
+
+  function setField<K extends keyof BillForm>(k: K, v: BillForm[K]) {
+    setF(p => {
+      const n = { ...p, [k]: v };
+      if (k === 'supplier_id') {
+        const sup = SUPPLIER_MAP[v as string];
+        if (sup && !initial) { n.currency = sup.currency ?? getCompany().currency; }
+      }
+      return n;
+    });
+  }
+  function updateLine(key: string, field: keyof BillLine, val: BillLine[keyof BillLine]) {
+    setF(p => ({ ...p, lines: p.lines.map(l => l._key === key ? { ...l, [field]: val } : l) }));
+  }
+  function addLine()    { setF(p => ({ ...p, lines: [...p.lines, { _key:newKey(), description:'', category:'OTHER', qty:1, unit_price:0, tax_rate:0 }] })); }
+  function removeLine(k:string) { setF(p => ({ ...p, lines: p.lines.filter(l => l._key !== k) })); }
+
+  const totals = calcTotals(f.lines);
+  const inp: React.CSSProperties = { width:'100%', padding:'8px 11px', border:'1px solid var(--border)', borderRadius:7, fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const, color:'var(--ink)', fontFamily:'inherit' };
+  const lbl: React.CSSProperties = { fontSize:11.5, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:4 };
+  const sec: React.CSSProperties = { fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:10 };
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.3)', zIndex:400 }} />
+      <div style={{ position:'fixed', top:0, right:0, bottom:0, width:620, background:'var(--white)', zIndex:401, display:'flex', flexDirection:'column', boxShadow:'-8px 0 40px rgba(0,0,0,0.15)' }}>
+        <div style={{ padding:'18px 24px', borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <div>
+            <div style={{ fontWeight:800, fontSize:15, color:'var(--ink)' }}>{initial ? `Edit ${initial.bill_number}` : 'New Bill'}</div>
+            <div style={{ fontSize:12, color:'var(--ink3)', marginTop:2 }}>Supplier bill with line items</div>
+          </div>
+          <button type="button" title="Close" onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', display:'flex', padding:4 }}><Icon name="x" size={18} /></button>
+        </div>
+        <div style={{ flex:1, overflowY:'auto', padding:'18px 24px' }}>
+          <div style={{ ...sec, marginTop:0 }}>Bill Details</div>
+          <div style={{ marginBottom:12 }}>
+            <label style={lbl}>Supplier *</label>
+            <select title="Supplier" value={f.supplier_id} onChange={e => setField('supplier_id', e.target.value)} style={inp}>
+              <option value="">— Select supplier —</option>
+              {Object.entries(SUPPLIER_MAP).map(([id, s]) => <option key={id} value={id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+            <div><label style={lbl}>Bill Date *</label><input type="date" title="Bill date" value={f.bill_date} onChange={e => setField('bill_date', e.target.value)} style={inp} /></div>
+            <div><label style={lbl}>Due Date *</label><input type="date" title="Due date" value={f.due_date} onChange={e => setField('due_date', e.target.value)} style={inp} /></div>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginBottom:16 }}>
+            <div>
+                <label style={lbl}>Currency {f.currency === getCompany().currency && <span style={{ fontWeight:400, color:'var(--teal)', fontSize:10.5 }}>· company default</span>}</label>
+                <select title="Currency" value={f.currency} onChange={e => setField('currency', e.target.value)} style={inp}>{CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+              </div>
+            <div><label style={lbl}>PO Reference</label><input type="text" title="PO number" placeholder="PO-2026-..." value={f.po_number} onChange={e => setField('po_number', e.target.value)} style={{ ...inp, fontFamily:'var(--mono)', fontSize:12 }} /></div>
+            <div><label style={lbl}>Shipment Ref</label><input type="text" title="Shipment ref" placeholder="CLR-2026-..." value={f.shipment_ref} onChange={e => setField('shipment_ref', e.target.value)} style={{ ...inp, fontFamily:'var(--mono)', fontSize:12 }} /></div>
+          </div>
+
+          <div style={sec}>Line Items</div>
+          <div style={{ border:'1px solid var(--border)', borderRadius: 9, overflow:'hidden', marginBottom:14 }}>
+            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12.5 }}>
+              <thead>
+                <tr style={{ background:'var(--bg)' }}>
+                  {['Description','Category','Qty','Unit Price','Tax %','Total',''].map(h => (
+                    <th key={h} style={{ padding:'8px 10px', textAlign:'left', fontWeight:700, color:'var(--ink3)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.03em', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {f.lines.map((ln, i) => (
+                  <tr key={ln._key} style={{ borderBottom: i < f.lines.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    <td style={{ padding:'7px 10px', minWidth:200 }}>
+                      <input type="text" title="Description" placeholder="Service description…" value={ln.description} onChange={e => updateLine(ln._key, 'description', e.target.value)}
+                        style={{ width:'100%', padding:'6px 8px', border:'1px solid var(--border)', borderRadius:6, fontSize:12, outline:'none', boxSizing:'border-box' as const }} />
+                    </td>
+                    <td style={{ padding:'7px 8px' }}>
+                      <select title="Category" value={ln.category} onChange={e => updateLine(ln._key, 'category', e.target.value as BillCat)}
+                        style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:6, fontSize:11.5, outline:'none', cursor:'pointer', background:'var(--white)' }}>
+                        {ALL_CATS.map(c => <option key={c} value={c}>{CAT_CFG[c].label}</option>)}
+                      </select>
+                    </td>
+                    <td style={{ padding:'7px 6px' }}>
+                      <input type="number" title="Qty" value={ln.qty} min={1} step={1} onChange={e => updateLine(ln._key, 'qty', parseFloat(e.target.value)||1)}
+                        style={{ width:60, padding:'6px 8px', border:'1px solid var(--border)', borderRadius:6, fontSize:12, outline:'none', textAlign:'right' }} />
+                    </td>
+                    <td style={{ padding:'7px 6px' }}>
+                      <input type="number" title="Unit price" value={ln.unit_price} min={0} step={0.01} onChange={e => updateLine(ln._key, 'unit_price', parseFloat(e.target.value)||0)}
+                        style={{ width:90, padding:'6px 8px', border:'1px solid var(--border)', borderRadius:6, fontSize:12, outline:'none', textAlign:'right' }} />
+                    </td>
+                    <td style={{ padding:'7px 6px' }}>
+                      <input type="number" title="Tax rate" value={ln.tax_rate} min={0} max={100} step={1} onChange={e => updateLine(ln._key, 'tax_rate', parseFloat(e.target.value)||0)}
+                        style={{ width:55, padding:'6px 8px', border:'1px solid var(--border)', borderRadius:6, fontSize:12, outline:'none', textAlign:'right' }} />
+                    </td>
+                    <td style={{ padding:'7px 10px', fontWeight:700, fontSize:12, textAlign:'right', whiteSpace:'nowrap', color:'var(--ink)' }}>{fmt(lineTotal(ln), f.currency)}</td>
+                    <td style={{ padding:'7px 6px' }}>
+                      <button type="button" title="Remove line" onClick={() => removeLine(ln._key)} disabled={f.lines.length === 1}
+                        style={{ background:'none', border:'none', cursor: f.lines.length === 1 ? 'default' : 'pointer', color: f.lines.length === 1 ? 'var(--border)' : 'var(--red)', display:'flex', padding:4 }}>
+                        <Icon name="x" size={13} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ padding:'10px 12px', borderTop:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <button type="button" title="Add line item" onClick={addLine}
+                style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 12px', border:'1px dashed var(--border)', borderRadius:6, background:'none', cursor:'pointer', fontWeight:600, fontSize:12, color:'var(--teal)' }}>
+                <Icon name="plus" size={12} /> Add Line
+              </button>
+              <div style={{ textAlign:'right', fontSize:13 }}>
+                <div style={{ color:'var(--ink3)', marginBottom:2 }}>Subtotal: <strong style={{ color:'var(--ink)' }}>{fmt(totals.subtotal, f.currency)}</strong></div>
+                <div style={{ color:'var(--ink3)', marginBottom:2 }}>Tax: <strong style={{ color:'var(--ink)' }}>{fmt(totals.tax_amount, f.currency)}</strong></div>
+                <div style={{ fontSize:15, fontWeight:800, color:'var(--teal)' }}>Total: {fmt(totals.total, f.currency)}</div>
+              </div>
+            </div>
+          </div>
+
+          <div><label style={lbl}>Notes</label><textarea title="Notes" placeholder="Payment terms, references, or other notes…" value={f.notes} onChange={e => setField('notes', e.target.value)} rows={3} style={{ ...inp, resize:'vertical' }} /></div>
+        </div>
+        <div style={{ padding:'14px 24px', borderTop:'1px solid var(--border)', display:'flex', gap:8, justifyContent:'flex-end' }}>
+          <button type="button" title="Cancel" onClick={onClose} style={{ padding:'8px 18px', border:'1px solid var(--border)', borderRadius: 9, background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)' }}>Cancel</button>
+          <button type="button" title="Save as draft" onClick={() => { if (!f.supplier_id || !f.due_date) { alert('Supplier and due date are required.'); return; } onSave(f); }}
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 20px', border:'none', borderRadius: 9, background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13 }}>
+            <Icon name="save" size={13} /> {initial ? 'Update Bill' : 'Save Bill'}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Recurring Bill Form ────────────────────────────────────────────────────────
+
+function RecurFormView({ initial, onSave, onClose }: {
+  initial?: RecurringBill; onSave: (f: RecurForm) => void; onClose: () => void;
+}) {
+  const { fmt } = useCurrency();
+  const [f, setF] = useState<RecurForm>({
+    name:          initial?.name          ?? '',
+    supplier_id:   initial?.supplier_id   ?? '',
+    frequency:     initial?.frequency     ?? 'MONTHLY',
+    currency:      initial?.currency      ?? getCompany().currency,
+    amount:        initial?.amount        ?? 0,
+    tax_rate:      initial?.tax_rate      ?? 0,
+    category:      initial?.category      ?? 'OTHER',
+    description:   initial?.description   ?? '',
+    payment_terms: initial?.payment_terms ?? 'Net 30',
+    next_due:      initial?.next_due      ?? '',
+    end_date:      initial?.end_date      ?? '',
+  });
+  const set = <K extends keyof RecurForm>(k: K, v: RecurForm[K]) => setF(p => ({ ...p, [k]: v }));
+  const inp: React.CSSProperties = { width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 9, fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const, color:'var(--ink)', fontFamily:'inherit' };
+  const lbl: React.CSSProperties = { fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 };
+  const total = f.amount * (1 + f.tax_rate / 100);
+  return (
+    <>
+      <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.3)', zIndex:400 }} />
+      <div style={{ position:'fixed', top:0, right:0, bottom:0, width:480, background:'var(--white)', zIndex:401, display:'flex', flexDirection:'column', boxShadow:'-8px 0 40px rgba(0,0,0,0.14)' }}>
+        <div style={{ padding:'18px 22px', borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+          <div>
+            <div style={{ fontWeight:800, fontSize:15, color:'var(--ink)' }}>{initial ? 'Edit Recurring Bill' : 'New Recurring Bill'}</div>
+            <div style={{ fontSize:12, color:'var(--ink3)', marginTop:2 }}>Auto-generates bills on schedule</div>
+          </div>
+          <button type="button" title="Close" onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', display:'flex', padding:4 }}><Icon name="x" size={18} /></button>
+        </div>
+        <div style={{ flex:1, overflowY:'auto', padding:'18px 22px' }}>
+          <div style={{ marginBottom:14 }}><label style={lbl}>Template Name *</label><input type="text" title="Name" placeholder="e.g. Monthly Retainer" value={f.name} onChange={e => set('name', e.target.value)} style={inp} /></div>
+          <div style={{ marginBottom:14 }}><label style={lbl}>Supplier *</label><select title="Supplier" value={f.supplier_id} onChange={e => set('supplier_id', e.target.value)} style={inp}><option value="">— Select supplier —</option>{Object.entries(SUPPLIER_MAP).map(([id, s]) => <option key={id} value={id}>{s.name}</option>)}</select></div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+            <div><label style={lbl}>Frequency</label><select title="Frequency" value={f.frequency} onChange={e => set('frequency', e.target.value as RecurFreq)} style={inp}>{ALL_FREQS.map(fr => <option key={fr} value={fr}>{FREQ_CFG[fr].label}</option>)}</select></div>
+            <div><label style={lbl}>Category</label><select title="Category" value={f.category} onChange={e => set('category', e.target.value as BillCat)} style={inp}>{ALL_CATS.map(c => <option key={c} value={c}>{CAT_CFG[c].label}</option>)}</select></div>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gap:12, marginBottom:14 }}>
+            <div><label style={lbl}>Amount</label><input type="number" title="Amount" value={f.amount} min={0} step={0.01} onChange={e => set('amount', parseFloat(e.target.value)||0)} style={inp} /></div>
+            <div>
+                <label style={lbl}>Currency {f.currency === getCompany().currency && <span style={{ fontWeight:400, color:'var(--teal)', fontSize:10.5 }}>· company default</span>}</label>
+                <select title="Currency" value={f.currency} onChange={e => set('currency', e.target.value)} style={inp}>{CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+              </div>
+            <div><label style={lbl}>Tax %</label><input type="number" title="Tax rate" value={f.tax_rate} min={0} max={100} step={1} onChange={e => set('tax_rate', parseFloat(e.target.value)||0)} style={inp} /></div>
+          </div>
+          <div style={{ marginBottom:14 }}><label style={lbl}>Description</label><textarea title="Description" placeholder="Description of the recurring charge…" value={f.description} onChange={e => set('description', e.target.value)} rows={2} style={{ ...inp, resize:'vertical' }} /></div>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+            <div><label style={lbl}>First / Next Due Date</label><input type="date" title="Next due" value={f.next_due} onChange={e => set('next_due', e.target.value)} style={inp} /></div>
+            <div><label style={lbl}>End Date (optional)</label><input type="date" title="End date" value={f.end_date} onChange={e => set('end_date', e.target.value)} style={inp} /></div>
+          </div>
+          <div style={{ marginBottom:14 }}><label style={lbl}>Payment Terms</label><select title="Payment terms" value={f.payment_terms} onChange={e => set('payment_terms', e.target.value)} style={inp}>{['Net 15','Net 30','Net 45','Net 60','COD','Advance'].map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+          <div style={{ background:'var(--teal-l)', borderRadius: 9, padding:'14px 16px' }}>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--teal)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8 }}>Preview</div>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <div><div style={{ fontWeight:700, color:'var(--ink)', fontSize:13 }}>{f.name || 'Template Name'}</div><div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{f.supplier_id ? SUPPLIER_MAP[f.supplier_id]?.name : '—'} · {FREQ_CFG[f.frequency].label}</div></div>
+              <div style={{ textAlign:'right' }}><div style={{ fontWeight:800, fontSize:16, color:'var(--teal)' }}>{fmt(total, f.currency)}</div><div style={{ fontSize:11, color:'var(--ink3)' }}>per period</div></div>
+            </div>
+          </div>
+        </div>
+        <div style={{ padding:'14px 22px', borderTop:'1px solid var(--border)', display:'flex', gap:8, justifyContent:'flex-end' }}>
+          <button type="button" title="Cancel" onClick={onClose} style={{ padding:'8px 18px', border:'1px solid var(--border)', borderRadius: 9, background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)' }}>Cancel</button>
+          <button type="button" title="Save recurring" onClick={() => { if (!f.name||!f.supplier_id||!f.next_due) { alert('Name, supplier and next due date are required.'); return; } onSave(f); }}
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 20px', border:'none', borderRadius: 9, background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13 }}>
+            <Icon name="save" size={13} /> {initial ? 'Update' : 'Create'}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Detail View ────────────────────────────────────────────────────────────────
+
+function DetailView({ bill, payments, onBack, onEdit, onPay, onPost, onVoid, isMobile = false }: {
+  bill: Bill; payments: Payment[];
+  onBack: () => void; onEdit: () => void;
+  onPay: () => void; onPost: () => void; onVoid: () => void; isMobile?: boolean;
+}) {
+  const { fmt } = useCurrency();
+  const myPmts = payments.filter(p => p.bill_id === bill.id);
+  const balance = bill.total - bill.paid_amount;
+  const over = isOverdue(bill);
+
+  return (
+    <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column' }}>
+      <div style={{ padding:'18px 32px', borderBottom:'1px solid var(--border)', background:'var(--white)' }}>
+        <button type="button" title="Back" onClick={onBack} style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', fontSize:13, fontWeight:600, marginBottom:14, padding:0 }}>
+          <Icon name="arrowLeft" size={14} /> All Bills
+        </button>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
+          <div>
+            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:4 }}>
+              <span style={{ fontFamily:'var(--mono)', fontSize:18, fontWeight:800, color:'var(--teal)' }}>{bill.bill_number}</span>
+              <StatusBadge status={bill.status} />
+              {bill.recurring_id && <span style={{ fontSize:11, fontWeight:700, color:'#6e40c9', background:'#f3eeff', padding:'2px 8px', borderRadius: 9 }}>Recurring</span>}
+            </div>
+            <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:2 }}>{bill.supplier_name}</div>
+            <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Billed {fmtDate(bill.bill_date)} · Due {fmtDate(bill.due_date)}{over ? ` — ${daysOverdue(bill.due_date)} days overdue` : ''}</div>
+          </div>
+          <div style={{ display:'flex', gap:8 }}>
+            {bill.status === 'DRAFT' && <button type="button" title="Post bill" onClick={onPost} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 14px', border:'1px solid var(--blue)', borderRadius: 9, background:'var(--blue-l)', color:'var(--blue)', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="send" size={13} /> Post</button>}
+            {(bill.status === 'POSTED'||bill.status === 'PARTIAL'||bill.status === 'OVERDUE') && <button type="button" title="Record payment" onClick={onPay} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 14px', border:'none', borderRadius: 9, background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="dollarSign" size={13} /> Pay</button>}
+            <button type="button" title="Edit bill" onClick={onEdit} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 14px', border:'1px solid var(--border)', borderRadius: 9, background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13 }}><Icon name="edit" size={13} /> Edit</button>
+            <button type="button" title="Print bill" onClick={() => window.print()} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 14px', border:'1px solid var(--border)', borderRadius: 9, background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13 }}><Icon name="printer" size={13} /></button>
+            {bill.status !== 'VOID' && bill.status !== 'PAID' && <button type="button" title="Void bill" onClick={onVoid} style={{ padding:'8px 10px', border:'1px solid rgba(239,68,68,0.2)', borderRadius: 9, background:'rgba(239,68,68,0.04)', color:'var(--red)', cursor:'pointer', fontWeight:600, fontSize:13 }}>Void</button>}
+          </div>
+        </div>
+        {over && <div style={{ marginTop:12, padding:'10px 14px', background:'var(--red-l)', borderRadius: 9, fontSize:12.5, fontWeight:600, color:'var(--red)' }}>⚠ Payment overdue by {daysOverdue(bill.due_date)} days. Balance: {fmt(balance, bill.currency)}</div>}
+      </div>
+
+      <div style={{ flex:1, display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', overflow:'hidden' }}>
+        {/* Left */}
+        <div style={{ overflowY:'auto', padding:'22px 28px', borderRight:'1px solid var(--border)' }}>
+          {/* Line items */}
+          <div style={{ marginBottom:24 }}>
+            <div style={{ fontSize:12, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:12 }}>Line Items</div>
+            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:13 }}>
+              <thead><tr style={{ background:'var(--bg)' }}>
+                {['Description','Category','Qty','Unit Price','Tax','Total'].map(h => (
+                  <th key={h} style={{ padding:'9px 12px', textAlign: h === 'Total' ? 'right' : 'left', fontWeight:700, color:'var(--ink2)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.03em', borderBottom:'1px solid var(--border)' }}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {bill.lines.map(l => (
+                  <tr key={l._key} style={{ borderBottom:'1px solid var(--border)' }}>
+                    <td style={{ padding:'10px 12px', fontWeight:600 }}>{l.description}</td>
+                    <td style={{ padding:'10px 12px' }}><span style={{ fontSize:11, fontWeight:700, color:CAT_CFG[l.category].color }}>{CAT_CFG[l.category].label}</span></td>
+                    <td style={{ padding:'10px 12px', textAlign:'center', color:'var(--ink2)' }}>{l.qty}</td>
+                    <td style={{ padding:'10px 12px', textAlign:'right', color:'var(--ink2)' }}>{fmt(l.unit_price, bill.currency)}</td>
+                    <td style={{ padding:'10px 12px', textAlign:'center', color:'var(--ink3)', fontSize:12 }}>{l.tax_rate > 0 ? `${l.tax_rate}%` : '—'}</td>
+                    <td style={{ padding:'10px 12px', textAlign:'right', fontWeight:700 }}>{fmt(lineTotal(l), bill.currency)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ background:'var(--bg)', padding:'12px 16px', display:'flex', flexDirection:'column', gap:5, alignItems:'flex-end', borderTop:'2px solid var(--border)' }}>
+              <div style={{ fontSize:13, color:'var(--ink2)' }}>Subtotal: <strong style={{ color:'var(--ink)', minWidth:100, display:'inline-block', textAlign:'right' }}>{fmt(bill.subtotal, bill.currency)}</strong></div>
+              <div style={{ fontSize:13, color:'var(--ink2)' }}>Tax: <strong style={{ color:'var(--ink)', minWidth:100, display:'inline-block', textAlign:'right' }}>{fmt(bill.tax_amount, bill.currency)}</strong></div>
+              <div style={{ fontSize:16, fontWeight:800, color:'var(--ink)' }}>Total: <span style={{ minWidth:100, display:'inline-block', textAlign:'right', color:'var(--teal)' }}>{fmt(bill.total, bill.currency)}</span></div>
+              {bill.paid_amount > 0 && <div style={{ fontSize:13, color:'var(--green)' }}>Paid: <strong style={{ minWidth:100, display:'inline-block', textAlign:'right' }}>{fmt(bill.paid_amount, bill.currency)}</strong></div>}
+              {balance > 0 && <div style={{ fontSize:14, fontWeight:800, color: over ? 'var(--red)' : 'var(--gold)' }}>Balance Due: <span style={{ minWidth:100, display:'inline-block', textAlign:'right' }}>{fmt(balance, bill.currency)}</span></div>}
+            </div>
+          </div>
+
+          {/* Payment History */}
+          <div>
+            <div style={{ fontSize:12, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:12 }}>Payment History</div>
+            {myPmts.length === 0 ? (
+              <div style={{ padding:'24px', textAlign:'center', background:'var(--bg)', borderRadius: 9, fontSize:13, color:'var(--ink3)' }}>No payments recorded yet.</div>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
+                {myPmts.map((p, i) => (
+                  <div key={p.id} style={{ display:'flex', gap:14, paddingBottom:14, position:'relative' }}>
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'center', flexShrink:0 }}>
+                      <div style={{ width:32, height:32, borderRadius:'50%', background:'var(--green-l)', display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name="checkCircle" size={16} color="var(--green)" /></div>
+                      {i < myPmts.length - 1 && <div style={{ width:2, flex:1, background:'var(--border)', marginTop:4 }} />}
+                    </div>
+                    <div style={{ flex:1, paddingTop:4 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', marginBottom:2 }}>
+                        <span style={{ fontWeight:700, fontSize:14, color:'var(--green)' }}>{fmt(p.amount, p.currency)}</span>
+                        <span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(p.date)}</span>
+                      </div>
+                      <div style={{ fontSize:12.5, color:'var(--ink2)' }}>{p.method}</div>
+                      <div style={{ fontFamily:'var(--mono)', fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{p.reference}</div>
+                      {p.note && <div style={{ fontSize:12, color:'var(--ink3)', marginTop:2, fontStyle:'italic' }}>{p.note}</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {bill.notes && <div style={{ marginTop:18, padding:'13px 15px', background:'var(--bg)', borderRadius:9, fontSize:13, color:'var(--ink2)', lineHeight:1.6 }}><strong style={{ color:'var(--ink)' }}>Notes:</strong> {bill.notes}</div>}
+        </div>
+
+        {/* Right sidebar */}
+        <div style={{ overflowY:'auto', padding:'22px 20px' }}>
+          <div style={{ background:'var(--bg)', borderRadius: 9, padding:'16px', marginBottom:14 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:12 }}>Bill Summary</div>
+            {[
+              { l:'Supplier',   v: bill.supplier_name },
+              { l:'Bill Date',  v: fmtDate(bill.bill_date) },
+              { l:'Due Date',   v: <span style={{ color: over ? 'var(--red)' : 'inherit' }}>{fmtDate(bill.due_date)}</span> },
+              { l:'Currency',   v: bill.currency },
+              { l:'PO Ref',     v: bill.po_number ? <span style={{ fontFamily:'var(--mono)', fontSize:12 }}>{bill.po_number}</span> : '—' },
+              { l:'Shipment',   v: bill.shipment_ref ? <span style={{ fontFamily:'var(--mono)', fontSize:12, color:'var(--blue)' }}>{bill.shipment_ref}</span> : '—' },
+            ].map(r => (
+              <div key={r.l} style={{ display:'flex', justifyContent:'space-between', fontSize:12.5, marginBottom:8 }}>
+                <span style={{ color:'var(--ink3)' }}>{r.l}</span>
+                <span style={{ fontWeight:600, color:'var(--ink)', textAlign:'right', maxWidth:'55%' }}>{r.v}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ background: over ? 'var(--red-l)' : balance === 0 ? 'var(--green-l)' : 'var(--gold-l)', borderRadius: 9, padding:'16px', textAlign:'center' }}>
+            <div style={{ fontSize:11, fontWeight:700, color: over ? 'var(--red)' : balance === 0 ? 'var(--green)' : 'var(--gold)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:6 }}>{balance === 0 ? 'Fully Paid' : over ? 'OVERDUE' : 'Balance Due'}</div>
+            <div style={{ fontSize:26, fontWeight:900, color: over ? 'var(--red)' : balance === 0 ? 'var(--green)' : 'var(--ink)', letterSpacing:'-0.5px' }}>{fmt(balance, bill.currency)}</div>
+            <div style={{ fontSize:12, color:'var(--ink3)', marginTop:4 }}>of {fmt(bill.total, bill.currency)} total</div>
+          </div>
+          {bill.supplier_id && (
+            <div style={{ marginTop:14, padding:'12px 14px', border:'1px solid var(--border)', borderRadius: 9 }}>
+              <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8 }}>Supplier</div>
+              <div style={{ fontWeight:700, fontSize:13, color:'var(--ink)', marginBottom:3 }}>{SUPPLIER_MAP[bill.supplier_id]?.name}</div>
+              <div style={{ fontSize:12, color:'var(--teal)' }}>{SUPPLIER_MAP[bill.supplier_id]?.email}</div>
+              <div style={{ fontSize:12, color:'var(--ink3)', marginTop:2 }}>Terms: {SUPPLIER_MAP[bill.supplier_id]?.terms}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Recurring Tab ──────────────────────────────────────────────────────────────
+
+function RecurringTab({ recurring, onEdit, onToggle, onGenerate, onDelete, isMobile = false }: {
+  recurring: RecurringBill[];
+  onEdit: (r: RecurringBill) => void;
+  onToggle: (r: RecurringBill) => void;
+  onGenerate: (r: RecurringBill) => void;
+  onDelete: (r: RecurringBill) => void;
+  isMobile?: boolean;
+}) {
+  const totalMonthly = recurring.filter(r => r.frequency === 'MONTHLY' && r.state === 'ACTIVE').reduce((a,r) => a + r.amount * (1 + r.tax_rate/100), 0);
+
+  return (
+    <div>
+      {/* Recurring summary cards */}
+      <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap:14, marginBottom:20 }}>
+        {[
+          { label:'Active Recurring', value:String(recurring.filter(r => r.state==='ACTIVE').length), color:'var(--teal)', bg:'var(--teal-l)', icon:'refresh' as const },
+          { label:'Monthly Commitment', value:`$${totalMonthly.toFixed(0)}`, color:'var(--blue)', bg:'var(--blue-l)', icon:'dollarSign' as const },
+          { label:'Bills Generated', value:String(recurring.reduce((a,r) => a+r.bills_generated,0)), color:'var(--green)', bg:'var(--green-l)', icon:'receipt' as const },
+        ].map(c => (
+          <div key={c.label} style={{ background:c.bg, borderRadius: 9, padding:'16px 18px', display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ width:36, height:36, borderRadius: 9, background:c.color, display:'flex', alignItems:'center', justifyContent:'center' }}><Icon name={c.icon} size={16} color="#fff" /></div>
+            <div><div style={{ fontWeight:800, fontSize:20, color:c.color }}>{c.value}</div><div style={{ fontSize:12, color:'var(--ink3)', marginTop:1 }}>{c.label}</div></div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', overflow:'hidden' }}>
+        {recurring.length === 0 ? (
+          <div style={{ padding:'60px 20px', textAlign:'center' }}>
+            <Icon name="refresh" size={40} color="var(--border)" />
+            <div style={{ marginTop:12, fontSize:14, fontWeight:600, color:'var(--ink3)' }}>No recurring bills set up yet</div>
+          </div>
+        ) : (
+          <div className="rtbl-wrap"><table className="rtbl">
+            <thead><tr style={{ background:'var(--bg)' }}>
+              {['Template','Supplier','Frequency','Amount','Category','Next Due','Bills','State',''].map(h => (
+                <th key={h} style={{ padding:'10px 14px', textAlign:'left', fontWeight:700, color:'var(--ink2)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.03em', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap' }}>{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {recurring.map(r => {
+                const total = r.amount * (1 + r.tax_rate / 100);
+                const dueD  = new Date(r.next_due);
+                const dueSoon = dueD.getTime() - Date.now() < 14 * 86400000;
+                return (
+                  <tr key={r.id} style={{ borderBottom:'1px solid var(--border)', opacity: r.state === 'PAUSED' ? 0.55 : 1 }}>
+                    <td style={{ padding:'12px 14px' }}><div style={{ fontWeight:700, color:'var(--ink)' }}>{r.name}</div><div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{r.description.length > 50 ? r.description.slice(0,50)+'…' : r.description}</div></td>
+                    <td style={{ padding:'12px 14px', fontSize:13, color:'var(--ink2)' }}>{r.supplier_name}</td>
+                    <td style={{ padding:'12px 14px' }}><FreqBadge freq={r.frequency} /></td>
+                    <td style={{ padding:'12px 14px', fontWeight:700 }}>{fmt(total, r.currency)}</td>
+                    <td style={{ padding:'12px 14px' }}><span style={{ fontSize:11, fontWeight:700, color:CAT_CFG[r.category].color }}>{CAT_CFG[r.category].label}</span></td>
+                    <td style={{ padding:'12px 14px', color: dueSoon && r.state==='ACTIVE' ? 'var(--gold)' : 'var(--ink2)', fontWeight: dueSoon ? 700 : 400 }}>{fmtDate(r.next_due)}{dueSoon && r.state==='ACTIVE' && <span style={{ fontSize:10, display:'block', color:'var(--gold)' }}>Due soon</span>}</td>
+                    <td style={{ padding:'12px 14px', textAlign:'center', fontWeight:700, color:'var(--ink2)' }}>{r.bills_generated}</td>
+                    <td style={{ padding:'12px 14px' }}><span style={{ padding:'2px 9px', borderRadius: 9, fontSize:11, fontWeight:700, background: r.state==='ACTIVE'?'var(--green-l)':r.state==='PAUSED'?'var(--gold-l)':'var(--bg)', color: r.state==='ACTIVE'?'var(--green)':r.state==='PAUSED'?'var(--gold)':'var(--ink3)' }}>{r.state}</span></td>
+                    <td style={{ padding:'12px 10px' }}>
+                      <div style={{ display:'flex', gap:2 }}>
+                        <button type="button" title="Generate bill now" onClick={() => onGenerate(r)} disabled={r.state !== 'ACTIVE'}
+                          style={{ background:'none', border:'none', cursor: r.state==='ACTIVE'?'pointer':'default', color: r.state==='ACTIVE'?'var(--teal)':'var(--border)', padding:5, borderRadius:5, display:'flex' }}>
+                          <Icon name="zap" size={14} />
+                        </button>
+                        <button type="button" title="Edit recurring" onClick={() => onEdit(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:5, display:'flex' }}><Icon name="edit" size={14} /></button>
+                        <button type="button" title={r.state==='ACTIVE'?'Pause':'Resume'} onClick={() => onToggle(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--gold)', padding:5, borderRadius:5, display:'flex' }}><Icon name={r.state==='ACTIVE' ? 'pause' : 'chevronRight'} size={14} /></button>
+                        <button type="button" title="Delete recurring" onClick={() => onDelete(r)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--red)', padding:5, borderRadius:5, display:'flex' }}><Icon name="trash" size={14} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table></div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ─────────────────────────────────────────────────────────────
+
+type MainTab  = 'bills'|'recurring';
+type AppView  = 'list'|'detail'|'form';
+
+export const Bills: React.FC = () => {
+  const isMobile = useIsMobile();
+  const { fmt } = useCurrency();
+  const [bills, setBills]           = useState<Bill[]>(MOCK_BILLS);
+  const [recurring, setRecurring]   = useState<RecurringBill[]>(MOCK_RECURRING);
+  const [payments, setPayments]     = useState<Payment[]>(MOCK_PAYMENTS);
+  const [tab, setTab]               = useState<MainTab>('bills');
+  const [view, setView]             = useState<AppView>('list');
+  const [selected, setSelected]     = useState<Bill | null>(null);
+  const [formBill, setFormBill]     = useState<Bill | null>(null);
+  const [formRecur, setFormRecur]   = useState<RecurringBill | null>(null);
+  const [showBillForm, setShowBillForm]   = useState(false);
+  const [showRecurForm, setShowRecurForm] = useState(false);
+  const [payTarget, setPayTarget]   = useState<Bill | null>(null);
+  const [search, setSearch]         = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL'|BillStatus>('ALL');
+  const [supFilter, setSupFilter]   = useState('ALL');
+  const [sortBy, setSortBy]         = useState<'bill_date'|'due_date'|'total'|'supplier'>('due_date');
+  const [sortDir, setSortDir]       = useState<'asc'|'desc'>('asc');
+  const [voidTarget, setVoidTarget] = useState<Bill | null>(null);
+
+  // Load from API on mount
+  useEffect(() => {
+    apiFetch('/v1/bills')
+      .then((d: any) => { if (Array.isArray(d) && d.length > 0) setBills(d.map(mapApiBill)); })
+      .catch(() => {});
+    apiFetch('/v1/bills/recurring')
+      .then((d: any) => { if (Array.isArray(d) && d.length > 0) setRecurring(d.map(mapApiRecurring)); })
+      .catch(() => {});
+  }, []);
+  useEffect(() => {
+    function handler(e: Event) {
+      if ((e as CustomEvent).detail?.section === 'bills') { setShowBillForm(true); setFormBill(null); }
+    }
+    window.addEventListener('fin:new-doc', handler);
+    return () => window.removeEventListener('fin:new-doc', handler);
+  }, []);
+
+  // computed status for display (inject OVERDUE dynamically)
+  const effectiveBills = useMemo(() => bills.map(b => isOverdue(b) ? { ...b, status: 'OVERDUE' as BillStatus } : b), [bills]);
+
+  const displayed = useMemo(() => effectiveBills
+    .filter(b => {
+      if (statusFilter !== 'ALL' && b.status !== statusFilter) return false;
+      if (supFilter !== 'ALL' && b.supplier_id !== supFilter) return false;
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        return b.bill_number.toLowerCase().includes(q) || b.supplier_name.toLowerCase().includes(q) || (b.shipment_ref||'').toLowerCase().includes(q) || (b.po_number||'').toLowerCase().includes(q);
+      }
+      return true;
+    })
+    .sort((a,b) => {
+      let cmp = 0;
+      if (sortBy==='bill_date') cmp = a.bill_date.localeCompare(b.bill_date);
+      if (sortBy==='due_date')  cmp = a.due_date.localeCompare(b.due_date);
+      if (sortBy==='total')     cmp = a.total - b.total;
+      if (sortBy==='supplier')  cmp = a.supplier_name.localeCompare(b.supplier_name);
+      return sortDir === 'asc' ? cmp : -cmp;
+    }), [effectiveBills, statusFilter, supFilter, search, sortBy, sortDir]);
+
+  function toggleSort(col: typeof sortBy) {
+    if (sortBy === col) setSortDir(d => d==='asc'?'desc':'asc');
+    else { setSortBy(col); setSortDir('asc'); }
+  }
+  function SortIco({ col }: { col: typeof sortBy }) {
+    if (sortBy !== col) return null;
+    return <Icon name={sortDir==='asc'?'arrowUp':'arrowDown'} size={10} color="var(--teal)" />;
+  }
+
+  // ── CRUD ────────────────────────────────────────────────────────────────────
+
+  function handleSaveBill(f: BillForm) {
+    const t = calcTotals(f.lines);
+    const now = new Date().toISOString();
+    const isEdit = !!formBill;
+    if (isEdit) {
+      setBills(p => p.map(b => b.id === formBill!.id ? { ...b, ...f, ...t } : b));
+      if (selected?.id === formBill!.id) setSelected({ ...selected, ...f, ...t });
+    } else {
+      const nb: Bill = { id:genId(), bill_number:genNum(bills), ...f, ...t, supplier_name: SUPPLIER_MAP[f.supplier_id]?.name ?? f.supplier_id, paid_amount:0, status:'DRAFT', created_at:now };
+      setBills(p => [nb, ...p]);
+    }
+    setShowBillForm(false); setFormBill(null);
+    const payload = {
+      supplier_id: f.supplier_id, supplier_name: SUPPLIER_MAP[f.supplier_id]?.name || f.supplier_id,
+      bill_date: f.bill_date, due_date: f.due_date, currency: f.currency,
+      po_number: f.po_number || null, shipment_ref: f.shipment_ref || null, notes: f.notes || null,
+      items: f.lines.map((l, i) => ({ description: l.description, category: l.category, qty: l.qty, unit_price: l.unit_price, tax_rate: l.tax_rate, sort_order: i })),
+    };
+    apiFetch(isEdit ? `/v1/bills/${formBill!.id}` : '/v1/bills', {
+      method: isEdit ? 'PATCH' : 'POST', body: JSON.stringify(payload),
+    }).then(() => apiFetch('/v1/bills'))
+      .then((d: any) => { if (Array.isArray(d)) setBills(d.map(mapApiBill)); })
+      .catch(() => {});
+  }
+
+  function handleSaveRecur(f: RecurForm) {
+    const now = new Date().toISOString();
+    const isEdit = !!formRecur;
+    if (isEdit) {
+      setRecurring(p => p.map(r => r.id === formRecur!.id ? { ...r, ...f } : r));
+    } else {
+      const nr: RecurringBill = { id:'rec-'+genId(), ...f, supplier_name: SUPPLIER_MAP[f.supplier_id]?.name ?? f.supplier_id, state:'ACTIVE', bills_generated:0, total_spend:0, created_at:now };
+      setRecurring(p => [nr, ...p]);
+    }
+    setShowRecurForm(false); setFormRecur(null);
+    const payload = { ...f, supplier_name: SUPPLIER_MAP[f.supplier_id]?.name || f.supplier_id };
+    apiFetch(isEdit ? `/v1/bills/recurring/${formRecur!.id}` : '/v1/bills/recurring', {
+      method: isEdit ? 'PATCH' : 'POST', body: JSON.stringify(payload),
+    }).then(() => apiFetch('/v1/bills/recurring'))
+      .then((d: any) => { if (Array.isArray(d)) setRecurring(d.map(mapApiRecurring)); })
+      .catch(() => {});
+  }
+
+  function handlePost(bill: Bill) {
+    setBills(p => p.map(b => b.id === bill.id ? { ...b, status:'POSTED' } : b));
+    if (selected?.id === bill.id) setSelected({ ...selected, status:'POSTED' });
+    apiFetch(`/v1/bills/${bill.id}`, { method:'PATCH', body:JSON.stringify({ status:'POSTED' }) }).catch(() => {});
+  }
+
+  function handleVoid(bill: Bill) {
+    setBills(p => p.map(b => b.id === bill.id ? { ...b, status:'VOID' } : b));
+    if (selected?.id === bill.id) setSelected({ ...selected, status:'VOID' });
+    setVoidTarget(null);
+    apiFetch(`/v1/bills/${bill.id}`, { method:'PATCH', body:JSON.stringify({ status:'VOID' }) }).catch(() => {});
+  }
+
+  function handlePay(bill: Bill, amount: number, date: string, method: string, ref: string, note: string) {
+    const newPaid = bill.paid_amount + amount;
+    const newStatus: BillStatus = newPaid >= bill.total ? 'PAID' : 'PARTIAL';
+    const pid = 'pay-' + genId();
+    setPayments(p => [...p, { id:pid, bill_id:bill.id, amount, currency:bill.currency, date, method, reference:ref, note }]);
+    setBills(p => p.map(b => b.id === bill.id ? { ...b, paid_amount:newPaid, status:newStatus } : b));
+    if (selected?.id === bill.id) setSelected({ ...selected, paid_amount:newPaid, status:newStatus });
+    setPayTarget(null);
+    apiFetch(`/v1/bills/${bill.id}/payment`, {
+      method: 'POST', body: JSON.stringify({ amount, currency: bill.currency, payment_date: date, method, reference: ref, note }),
+    }).then(() => apiFetch('/v1/bills'))
+      .then((d: any) => { if (Array.isArray(d)) setBills(d.map(mapApiBill)); })
+      .catch(() => {});
+  }
+
+  function handleGenerate(r: RecurringBill) {
+    const nb: Bill = {
+      id:genId(), bill_number:genNum(bills), supplier_id:r.supplier_id, supplier_name:r.supplier_name,
+      bill_date:r.next_due, due_date: advanceDate(r.next_due, r.frequency === 'MONTHLY' ? 'MONTHLY' : r.frequency).split('T')[0],
+      status:'POSTED', currency:r.currency,
+      subtotal:r.amount, tax_amount:r.amount*r.tax_rate/100, total:r.amount*(1+r.tax_rate/100), paid_amount:0,
+      lines:[{ _key:newKey(), description:`${r.name} — ${fmtDate(r.next_due)}`, category:r.category, qty:1, unit_price:r.amount, tax_rate:r.tax_rate }],
+      recurring_id:r.id, notes:`Generated from recurring template "${r.name}".`, created_at:new Date().toISOString(),
+    };
+    setBills(p => [nb, ...p]);
+    setRecurring(p => p.map(x => x.id === r.id ? { ...x, next_due:advanceDate(r.next_due, r.frequency), bills_generated:x.bills_generated+1, total_spend:x.total_spend+nb.total } : x));
+  }
+
+  // ── Metrics ─────────────────────────────────────────────────────────────────
+
+  const totalBills   = bills.length;
+  const unpaidBills  = effectiveBills.filter(b => b.status === 'POSTED' || b.status === 'PARTIAL' || b.status === 'OVERDUE');
+  const overdueBills = effectiveBills.filter(b => b.status === 'OVERDUE');
+  const paidThisMonth= effectiveBills.filter(b => b.status === 'PAID' && b.bill_date.startsWith('2026-06'));
+  const outstanding  = unpaidBills.reduce((a,b) => a + (b.total - b.paid_amount), 0);
+  const overdueAmt   = overdueBills.reduce((a,b) => a + (b.total - b.paid_amount), 0);
+
+  const thS: React.CSSProperties = { padding:'10px 14px', textAlign:'left', fontWeight:700, color:'var(--ink2)', fontSize:11, textTransform:'uppercase', letterSpacing:'0.03em', borderBottom:'1px solid var(--border)', whiteSpace:'nowrap', cursor:'pointer', userSelect:'none' };
+
+  const uniqueSups = Array.from(new Set(bills.map(b => b.supplier_id)));
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
+      {/* Modals */}
+      {payTarget && (
+        <PayModal bill={payTarget} onClose={() => setPayTarget(null)}
+          onPay={(a,d,m,r,n) => handlePay(payTarget, a, d, m, r, n)} />
+      )}
+      {voidTarget && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div style={{ background:'var(--white)', borderRadius: 9, padding:28, width:400 }}>
+            <div style={{ fontSize:16, fontWeight:700, marginBottom:8 }}>Void Bill</div>
+            <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:20 }}>Void <strong>{voidTarget.bill_number}</strong>? This cannot be undone. Payments already recorded will remain.</div>
+            <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+              <button type="button" title="Cancel" onClick={() => setVoidTarget(null)} style={{ padding:'8px 18px', border:'1px solid var(--border)', borderRadius: 9, background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)' }}>Cancel</button>
+              <button type="button" title="Confirm void" onClick={() => handleVoid(voidTarget)} style={{ padding:'8px 18px', border:'none', borderRadius: 9, background:'var(--red)', color:'#fff', cursor:'pointer', fontWeight:600, fontSize:13 }}>Void Bill</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {showBillForm && (
+        <BillFormView initial={formBill ?? undefined} allBills={bills} onSave={handleSaveBill} onClose={() => { setShowBillForm(false); setFormBill(null); }} />
+      )}
+      {showRecurForm && (
+        <RecurFormView initial={formRecur ?? undefined} onSave={handleSaveRecur} onClose={() => { setShowRecurForm(false); setFormRecur(null); }} />
+      )}
+
+      {/* Detail view */}
+      {view === 'detail' && selected ? (
+        <DetailView
+          bill={{ ...selected, status: isOverdue(selected) ? 'OVERDUE' : selected.status }}
+          payments={payments}
+          onBack={() => { setView('list'); setSelected(null); }}
+          onEdit={() => { setFormBill(selected); setShowBillForm(true); }}
+          onPay={() => setPayTarget(selected)}
+          onPost={() => handlePost(selected)}
+          onVoid={() => setVoidTarget(selected)}
+          isMobile={isMobile}
+        />
+      ) : (
+        <div style={{ flex:1, overflowY:'auto', padding: isMobile ? '16px' : '24px 32px' }}>
+          <PageHeader
+            crumbs={['Finance', 'Bills']}
+            titlePlain="Supplier"
+            titleEm="bills"
+            subtitle="Supplier invoices, payment tracking and recurring billing schedules."
+          />
+
+          {/* Metrics */}
+          <MetricsRow cards={[
+            { title:'Total Bills', value:String(totalBills), trend:0, sub1Label:'DRAFT', sub1Value:String(bills.filter(b=>b.status==='DRAFT').length), sub2Label:'PAID', sub2Value:String(bills.filter(b=>b.status==='PAID').length), bars:spark(5,15,'flat'), barColor:'var(--blue-l)', barHighlight:'var(--blue)' },
+            { title:'Outstanding', value:`$${(outstanding/1000).toFixed(1)}K`, trend:0, sub1Label:'BILLS', sub1Value:String(unpaidBills.length), sub2Label:'PARTIAL', sub2Value:String(bills.filter(b=>b.status==='PARTIAL').length), bars:spark(8,15,'up'), barColor:'var(--gold-l)', barHighlight:'var(--gold)' },
+            { title:'Overdue', value:String(overdueBills.length), trend:0, sub1Label:'AMOUNT', sub1Value:`$${(overdueAmt/1000).toFixed(1)}K`, sub2Label:'AVG DAYS', sub2Value:overdueBills.length ? String(Math.round(overdueBills.reduce((a,b)=>a+daysOverdue(b.due_date),0)/overdueBills.length)) : '0', bars:spark(11,15,'flat'), barColor:'var(--red-l)', barHighlight:'var(--red)' },
+          ]} />
+
+          {/* Main Tabs */}
+          <div style={{ display:'flex', borderBottom:'1px solid var(--border)', marginBottom:18 }}>
+            {([{k:'bills',l:'Bills'},{k:'recurring',l:`Recurring (${recurring.length})`}] as {k:MainTab;l:string}[]).map(t => (
+              <button key={t.k} type="button" title={t.l} onClick={() => setTab(t.k)}
+                style={{ padding:'9px 18px', border:'none', borderBottom:`2px solid ${tab===t.k?'var(--teal)':'transparent'}`, background:'none', cursor:'pointer', fontWeight:700, fontSize:14, color:tab===t.k?'var(--teal)':'var(--ink3)' }}>
+                {t.l}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'recurring' ? (
+            <RecurringTab
+              recurring={recurring}
+              onEdit={r => { setFormRecur(r); setShowRecurForm(true); }}
+              onToggle={r => {
+                const newState = r.state === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
+                setRecurring(p => p.map(x => x.id===r.id ? { ...x, state:newState } : x));
+                apiFetch(`/v1/bills/recurring/${r.id}`, { method:'PATCH', body:JSON.stringify({ state:newState }) }).catch(() => {});
+              }}
+              onGenerate={handleGenerate}
+              onDelete={r => {
+                setRecurring(p => p.filter(x => x.id!==r.id));
+                apiFetch(`/v1/bills/recurring/${r.id}`, { method:'DELETE' }).catch(() => {});
+              }}
+              isMobile={isMobile}
+            />
+          ) : (
+            <>
+              {/* Filter bar */}
+              <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:14, flexWrap:'wrap' }}>
+                <div style={{ display:'flex', gap:3, background:'var(--bg)', padding:3, borderRadius:9, flexWrap:'wrap' }}>
+                  {(['ALL','DRAFT','POSTED','PARTIAL','OVERDUE','PAID','VOID'] as const).map(s => (
+                    <button key={s} type="button" title={`Status: ${s}`} onClick={() => setStatusFilter(s)}
+                      style={{ padding:'5px 11px', fontSize:12, fontWeight:600, border:'none', borderRadius:7, cursor:'pointer', background:statusFilter===s?'var(--white)':'transparent', color:statusFilter===s?'var(--ink)':'var(--ink3)', boxShadow:statusFilter===s?'0 1px 4px rgba(0,0,0,0.08)':'none' }}>
+                      {s === 'ALL' ? 'All' : STATUS_CFG[s]?.label ?? s}
+                    </button>
+                  ))}
+                </div>
+                <select title="Filter by supplier" value={supFilter} onChange={e => setSupFilter(e.target.value)}
+                  style={{ padding:'7px 11px', border:'1px solid var(--border)', borderRadius: 9, fontSize:12.5, outline:'none', background:'var(--white)', cursor:'pointer', color:'var(--ink)' }}>
+                  <option value="ALL">All Suppliers</option>
+                  {uniqueSups.map(id => <option key={id} value={id}>{SUPPLIER_MAP[id]?.name ?? id}</option>)}
+                </select>
+                <div style={{ position:'relative', marginLeft:'auto' }}>
+                  <Icon name="search" size={14} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--ink3)' } as React.CSSProperties} />
+                  <input type="text" title="Search bills" placeholder="Search bill # or supplier…" value={search} onChange={e => setSearch(e.target.value)}
+                    style={{ paddingLeft:32, paddingRight:12, paddingTop:8, paddingBottom:8, border:'1px solid var(--border)', borderRadius: 9, fontSize:13, outline:'none', width:240, boxSizing:'border-box' as const }} />
+                </div>
+              </div>
+
+              {/* Bills Table */}
+              <div style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', overflow:'hidden' }}>
+                {displayed.length === 0 ? (
+                  <div style={{ padding:'60px 20px', textAlign:'center' }}>
+                    <Icon name="receipt" size={40} color="var(--border)" />
+                    <div style={{ marginTop:12, fontSize:14, fontWeight:600, color:'var(--ink3)' }}>No bills found</div>
+                    <div style={{ fontSize:13, color:'var(--ink3)', marginTop:6, marginBottom:20 }}>Adjust filters or create a new bill.</div>
+                    <button type="button" title="New bill" onClick={() => setShowBillForm(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'9px 20px', border:'none', borderRadius: 9, background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:600, fontSize:13 }}><Icon name="plus" size={13} /> New Bill</button>
+                  </div>
+                ) : (
+                  <>
+                  <div className="rtbl-wrap">
+                    <table className="rtbl">
+                      <thead>
+                        <tr style={{ background:'var(--bg)' }}>
+                          <th style={{ ...thS, cursor:'default' }}>Bill #</th>
+                          <th style={{ ...thS }} onClick={() => toggleSort('supplier')}>Supplier <SortIco col="supplier" /></th>
+                          <th style={{ ...thS }} onClick={() => toggleSort('bill_date')}>Billed <SortIco col="bill_date" /></th>
+                          <th style={{ ...thS }} onClick={() => toggleSort('due_date')}>Due <SortIco col="due_date" /></th>
+                          <th style={{ ...thS, textAlign:'right' }} onClick={() => toggleSort('total')}>Total <SortIco col="total" /></th>
+                          <th style={{ ...thS, textAlign:'right' }}>Paid</th>
+                          <th style={{ ...thS, textAlign:'right' }}>Balance</th>
+                          <th style={{ ...thS, cursor:'default' }}>Ref</th>
+                          <th style={{ ...thS, cursor:'default' }}>Status</th>
+                          <th style={{ ...thS, cursor:'default' }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {displayed.map(b => {
+                          const bal = b.total - b.paid_amount;
+                          const over = b.status === 'OVERDUE';
+                          return (
+                            <tr key={b.id}
+                              onClick={() => { setSelected(bills.find(x => x.id===b.id) ?? null); setView('detail'); }}
+                              style={{ borderBottom:'1px solid var(--border)', cursor:'pointer', transition:'background 0.1s', background: over && bal>0 ? 'rgba(239,68,68,0.02)' : '' }}
+                              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                              onMouseLeave={e => (e.currentTarget.style.background = over && bal>0 ? 'rgba(239,68,68,0.02)' : '')}>
+                              <td style={{ padding:'11px 14px' }}>
+                                <div style={{ fontFamily:'var(--mono)', fontSize:12, fontWeight:700, color:'var(--teal)' }}>{b.bill_number}</div>
+                                {b.recurring_id && <div style={{ fontSize:10, color:'#6e40c9', fontWeight:600, marginTop:2 }}>↻ Recurring</div>}
+                              </td>
+                              <td style={{ padding:'11px 14px' }}>
+                                <div style={{ fontWeight:600, color:'var(--ink)' }}>{b.supplier_name}</div>
+                                {b.po_number && <div style={{ fontSize:11, fontFamily:'var(--mono)', color:'var(--ink3)', marginTop:1 }}>{b.po_number}</div>}
+                              </td>
+                              <td style={{ padding:'11px 14px', color:'var(--ink2)', fontSize:12.5 }}>{fmtDate(b.bill_date)}</td>
+                              <td style={{ padding:'11px 14px', color: over ? 'var(--red)' : 'var(--ink2)', fontWeight: over ? 700 : 400, fontSize:12.5 }}>
+                                {fmtDate(b.due_date)}
+                                {over && <div style={{ fontSize:10, color:'var(--red)', fontWeight:600 }}>{daysOverdue(b.due_date)}d late</div>}
+                              </td>
+                              <td style={{ padding:'11px 14px', textAlign:'right', fontWeight:700 }}>{fmt(b.total, b.currency)}</td>
+                              <td style={{ padding:'11px 14px', textAlign:'right', color:'var(--green)', fontWeight: b.paid_amount>0 ? 700 : 400 }}>{b.paid_amount > 0 ? fmt(b.paid_amount, b.currency) : '—'}</td>
+                              <td style={{ padding:'11px 14px', textAlign:'right', fontWeight: bal>0 ? 700 : 400, color: bal>0 ? (over ? 'var(--red)' : 'var(--ink)') : 'var(--ink3)' }}>{bal > 0 ? fmt(bal, b.currency) : '—'}</td>
+                              <td style={{ padding:'11px 14px', fontFamily:'var(--mono)', fontSize:11.5, color:'var(--blue)' }}>{b.shipment_ref || '—'}</td>
+                              <td style={{ padding:'11px 14px' }}><StatusBadge status={b.status} /></td>
+                              <td style={{ padding:'11px 10px' }} onClick={e => e.stopPropagation()}>
+                                <div style={{ display:'flex', gap:2 }}>
+                                  <button type="button" title="View bill" onClick={() => { setSelected(bills.find(x=>x.id===b.id)??null); setView('detail'); }} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:5, display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')}><Icon name="eye" size={14} /></button>
+                                  {(b.status==='POSTED'||b.status==='PARTIAL'||b.status==='OVERDUE') && <button type="button" title="Pay" onClick={() => setPayTarget(bills.find(x=>x.id===b.id)??null)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--teal)', padding:5, borderRadius:5, display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--teal-l)')} onMouseLeave={e=>(e.currentTarget.style.background='none')}><Icon name="dollarSign" size={14} /></button>}
+                                  <button type="button" title="Edit" onClick={() => { setFormBill(bills.find(x=>x.id===b.id)??null); setShowBillForm(true); }} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:5, borderRadius:5, display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--bg)')} onMouseLeave={e=>(e.currentTarget.style.background='none')}><Icon name="edit" size={14} /></button>
+                                  {b.status!=='PAID'&&b.status!=='VOID' && <button type="button" title="Void" onClick={() => setVoidTarget(bills.find(x=>x.id===b.id)??null)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--red)', padding:5, borderRadius:5, display:'flex' }} onMouseEnter={e=>(e.currentTarget.style.background='var(--red-l)')} onMouseLeave={e=>(e.currentTarget.style.background='none')}><Icon name="xCircle" size={14} /></button>}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div style={{ padding:'10px 16px', borderTop:'1px solid var(--border)', fontSize:12, color:'var(--ink3)', display:'flex', justifyContent:'space-between' }}>
+                    <span>Showing {displayed.length} of {bills.length} bills</span>
+                    <span>{overdueBills.length} overdue · {unpaidBills.length} outstanding</span>
+                  </div>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};

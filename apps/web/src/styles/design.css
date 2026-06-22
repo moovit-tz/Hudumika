@@ -1,0 +1,5 @@
+/* Legacy aliases only — all real styles live in index.css */
+:root {
+  --color-primary: var(--teal);
+  --radius: var(--r);
+}

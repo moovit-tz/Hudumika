@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClearOS — Solution Architecture Breakdown</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --ink:#0d1117;
+  --ink2:#3a3f48;
+  --ink3:#7a8190;
+  --bg:#f8f7f4;
+  --white:#ffffff;
+  --border:#e4e2dc;
+  --border2:#ccc9bf;
+  --teal:#0b7264;
+  --teal-l:#e3f4f1;
+  --teal-mid:#6cbdb2;
+  --navy:#0e1f3d;
+  --navy2:#1a3260;
+  --gold:#b57d0a;
+  --gold-l:#fef3d8;
+  --red:#bf3422;
+  --red-l:#fdf0ed;
+  --green:#14693b;
+  --green-l:#eaf7f0;
+  --purple:#5b3ea8;
+  --purple-l:#f1eeff;
+  --blue:#1849a9;
+  --blue-l:#eef3ff;
+  --r:10px;
+  --shadow-sm:0 1px 4px rgba(0,0,0,0.07);
+  --shadow:0 4px 20px rgba(0,0,0,0.08);
+  --shadow-lg:0 12px 48px rgba(0,0,0,0.11);
+}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.65}
+a{color:var(--teal);text-decoration:none}
+code{font-family:'JetBrains Mono',monospace;font-size:12.5px;background:rgba(0,0,0,0.05);padding:2px 6px;border-radius:4px}
+
+/* ── LAYOUT ── */
+.shell{display:grid;grid-template-columns:240px 1fr;min-height:100vh;max-width:1360px;margin:0 auto}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  background:var(--navy);
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+  display:flex;flex-direction:column;
+}
+.sidebar::-webkit-scrollbar{width:3px}
+.sidebar::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1)}
+.sb-brand{padding:28px 22px 24px;border-bottom:1px solid rgba(255,255,255,0.08)}
+.sb-logo{
+  width:36px;height:36px;background:var(--teal);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#fff;
+  margin-bottom:12px;
+}
+.sb-title{font-size:17px;font-weight:700;color:#fff;letter-spacing:-0.4px;line-height:1.2}
+.sb-sub{font-size:11.5px;color:rgba(255,255,255,0.4);margin-top:4px;letter-spacing:0.02em}
+.sb-nav{padding:16px 0;flex:1}
+.sb-group{margin-bottom:6px}
+.sb-group-label{
+  font-size:9.5px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;
+  color:rgba(255,255,255,0.3);padding:8px 22px 4px;font-family:'JetBrains Mono',monospace;
+}
+.sb-link{
+  display:flex;align-items:center;gap:8px;padding:8px 22px;
+  font-size:13px;color:rgba(255,255,255,0.55);font-weight:500;
+  cursor:pointer;transition:all 0.12s;border-left:2px solid transparent;
+  text-decoration:none;
+}
+.sb-link:hover{color:rgba(255,255,255,0.9);background:rgba(255,255,255,0.05)}
+.sb-link.on{color:#fff;background:rgba(11,114,100,0.25);border-left-color:var(--teal-mid)}
+.sb-link .num{
+  margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;
+  padding:1px 5px;background:rgba(255,255,255,0.1);border-radius:4px;color:rgba(255,255,255,0.4);
+}
+.sb-footer{padding:18px 22px;border-top:1px solid rgba(255,255,255,0.08)}
+.sb-date{font-size:11px;color:rgba(255,255,255,0.3);font-family:'JetBrains Mono',monospace}
+.sb-version{font-size:11px;color:rgba(255,255,255,0.5);margin-top:2px}
+
+/* ── MAIN ── */
+.main{min-width:0;overflow:hidden}
+.page{display:none;padding:52px 60px 80px;max-width:860px}
+.page.on{display:block}
+
+/* ── HERO ── */
+.hero{
+  background:var(--navy);color:#fff;
+  padding:60px;margin-bottom:0;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;top:-40px;right:-60px;
+  width:340px;height:340px;border-radius:50%;
+  background:radial-gradient(circle,rgba(11,114,100,0.3) 0%,transparent 70%);
+}
+.hero::after{
+  content:'';position:absolute;bottom:-60px;left:40px;
+  width:200px;height:200px;border-radius:50%;
+  background:radial-gradient(circle,rgba(26,50,96,0.8) 0%,transparent 70%);
+}
+.hero-label{
+  font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;
+  color:var(--teal-mid);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:16px;
+}
+.hero-title{font-family:'DM Serif Display',serif;font-size:48px;line-height:1.08;letter-spacing:-1px;margin-bottom:18px;position:relative;z-index:1}
+.hero-title em{color:var(--teal-mid);font-style:italic}
+.hero-desc{font-size:16px;color:rgba(255,255,255,0.65);line-height:1.7;max-width:520px;margin-bottom:28px;position:relative;z-index:1}
+.hero-pills{display:flex;flex-wrap:wrap;gap:8px;position:relative;z-index:1}
+.hero-pill{
+  padding:6px 14px;border-radius:20px;font-size:12.5px;font-weight:500;
+  background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.75);border:1px solid rgba(255,255,255,0.1);
+}
+
+/* ── SECTION TITLES ── */
+.page-header{margin-bottom:40px;padding-bottom:24px;border-bottom:1px solid var(--border)}
+.page-tag{
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:500;
+  letter-spacing:0.08em;text-transform:uppercase;color:var(--teal);margin-bottom:10px;
+}
+.page-title{font-family:'DM Serif Display',serif;font-size:36px;letter-spacing:-0.6px;color:var(--ink);line-height:1.15}
+.page-desc{font-size:15px;color:var(--ink2);margin-top:12px;line-height:1.7;max-width:600px}
+
+h2{font-family:'DM Serif Display',serif;font-size:22px;color:var(--ink);margin:36px 0 14px;letter-spacing:-0.3px}
+h3{font-size:14px;font-weight:700;color:var(--ink2);margin:28px 0 10px;text-transform:uppercase;letter-spacing:0.04em;font-family:'JetBrains Mono',monospace}
+p{margin-bottom:14px;color:var(--ink2)}
+
+/* ── CARDS ── */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:24px;box-shadow:var(--shadow-sm)}
+.card+.card{margin-top:12px}
+.card-grid{display:grid;gap:12px}
+.card-grid-2{grid-template-columns:1fr 1fr}
+.card-grid-3{grid-template-columns:1fr 1fr 1fr}
+
+/* ── KPIS ── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+.kpi-box{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:18px 20px}
+.kpi-num{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:600;line-height:1;margin-bottom:4px}
+.kpi-num.teal{color:var(--teal)}.kpi-num.navy{color:var(--navy)}.kpi-num.gold{color:var(--gold)}.kpi-num.green{color:var(--green)}
+.kpi-label{font-size:12px;color:var(--ink3);font-weight:500}
+
+/* ── STATUS BADGE ── */
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:12px;font-size:12px;font-weight:600}
+.badge-teal{background:var(--teal-l);color:var(--teal)}
+.badge-gold{background:var(--gold-l);color:var(--gold)}
+.badge-red{background:var(--red-l);color:var(--red)}
+.badge-green{background:var(--green-l);color:var(--green)}
+.badge-blue{background:var(--blue-l);color:var(--blue)}
+.badge-purple{background:var(--purple-l);color:var(--purple)}
+
+/* ── ARCH DIAGRAM ── */
+.arch-wrap{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:28px;margin:20px 0;overflow-x:auto}
+.arch-wrap svg{min-width:640px}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+.tbl th{font-size:11px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink3);padding:10px 14px;border-bottom:2px solid var(--border);text-align:left;font-family:'JetBrains Mono',monospace}
+.tbl td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--ink2);vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:#fafaf8}
+.tbl-wrap{background:var(--white);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;overflow-x:auto;margin:16px 0;-webkit-overflow-scrolling:touch}
+
+/* ── FLOW STEPS ── */
+.flow-steps{display:flex;flex-direction:column;gap:0;margin:16px 0}
+.fs-item{display:flex;gap:16px;align-items:flex-start}
+.fs-line{display:flex;flex-direction:column;align-items:center}
+.fs-dot{width:28px;height:28px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;font-family:'JetBrains Mono',monospace}
+.fs-dot.teal{background:var(--teal)}
+.fs-dot.gold{background:var(--gold)}
+.fs-connector{width:2px;background:var(--border2);flex:1;min-height:20px;margin:3px 0}
+.fs-body{padding:2px 0 24px}
+.fs-title{font-size:14.5px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.fs-desc{font-size:13.5px;color:var(--ink2);line-height:1.6}
+
+/* ── CODE BLOCK ── */
+.code-blk{background:#0d1117;border-radius:var(--r);overflow:hidden;margin:14px 0}
+.cb-head{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.cb-lang{font-family:'JetBrains Mono',monospace;font-size:10px;background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);padding:2px 7px;border-radius:4px}
+.cb-file{font-size:11.5px;color:rgba(255,255,255,0.35);font-family:'JetBrains Mono',monospace;flex:1}
+.cb-copy{font-size:11px;color:rgba(255,255,255,0.3);cursor:pointer;padding:2px 8px;border-radius:4px;border:1px solid rgba(255,255,255,0.1);font-family:'JetBrains Mono',monospace}
+.cb-copy:hover{color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.05)}
+.cb-pre{padding:16px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#b3b9c4;line-height:1.6;overflow-x:auto}
+.cb-pre .cmt{color:#4d5566;font-style:italic}
+.cb-pre .key{color:#7aa3d8}
+.cb-pre .str{color:#9ecf8e}
+.cb-pre .val{color:#e0c97a}
+
+/* ── PORTAL PREVIEW ── */
+.portal-preview{border-radius:var(--r);overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow-lg);margin:20px 0}
+.pp-bar{background:var(--navy2);padding:10px 16px;display:flex;align-items:center;gap:10px}
+.pp-dots{display:flex;gap:5px}
+.pp-dot{width:9px;height:9px;border-radius:50%}
+.pp-url{background:rgba(255,255,255,0.08);border-radius:4px;padding:4px 12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:rgba(255,255,255,0.4);flex:1;text-align:center}
+
+/* ── PERSONA CARD ── */
+.persona-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:20px 22px;display:flex;gap:16px;align-items:flex-start}
+.persona-ava{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#fff;flex-shrink:0}
+.persona-name{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:2px}
+.persona-role{font-size:12px;color:var(--ink3);margin-bottom:8px}
+.persona-needs{font-size:13.5px;color:var(--ink2);line-height:1.6}
+
+/* ── RISK TABLE ── */
+.risk-row td:first-child{font-weight:600;color:var(--ink)}
+.risk-high{background:var(--red-l)!important}
+.risk-med{background:var(--gold-l)!important}
+.risk-low{background:var(--green-l)!important}
+
+/* ── TIMELINE ── */
+.timeline{position:relative;padding-left:28px;margin:16px 0}
+.timeline::before{content:'';position:absolute;left:6px;top:4px;bottom:4px;width:2px;background:var(--border2)}
+.tl-item{position:relative;margin-bottom:28px}
+.tl-dot{position:absolute;left:-26px;top:4px;width:14px;height:14px;border-radius:50%;background:var(--white);border:2px solid var(--teal);flex-shrink:0}
+.tl-dot.done{background:var(--teal)}
+.tl-phase{font-size:11px;font-weight:600;color:var(--teal);text-transform:uppercase;letter-spacing:0.05em;font-family:'JetBrains Mono',monospace;margin-bottom:3px}
+.tl-title{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:5px}
+.tl-desc{font-size:13.5px;color:var(--ink2);line-height:1.6}
+.tl-duration{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:11px;padding:2px 8px;background:var(--teal-l);color:var(--teal);border-radius:4px;margin-top:6px}
+
+/* ── SCREEN MOCK ── */
+.screen{background:#f0f0ed;border:1px solid var(--border2);border-radius:8px;overflow:hidden;margin:12px 0}
+.screen-bar{background:var(--navy);padding:8px 12px;display:flex;align-items:center;justify-content:space-between}
+.screen-dots{display:flex;gap:4px}
+.screen-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.2)}
+.screen-title{font-size:11px;font-weight:600;color:rgba(255,255,255,0.7)}
+.screen-body{padding:14px}
+
+/* ── MOBILE TOP BAR ── */
+.mobile-topbar{
+  display:none;
+  position:fixed;top:0;left:0;right:0;z-index:300;
+  background:var(--navy);
+  height:56px;align-items:center;justify-content:space-between;
+  padding:0 16px;
+  box-shadow:0 2px 12px rgba(0,0,0,0.18);
+}
+.mobile-brand{display:flex;align-items:center;gap:10px}
+.mobile-logo{width:30px;height:30px;background:var(--teal);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;color:#fff}
+.mobile-title{font-size:15px;font-weight:700;color:#fff;letter-spacing:-0.3px}
+.hamburger{width:38px;height:38px;border:none;background:rgba(255,255,255,0.1);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:5px;padding:10px}
+.hamburger span{display:block;width:18px;height:2px;background:#fff;border-radius:2px;transition:all 0.22s}
+.hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.hamburger.open span:nth-child(2){opacity:0;transform:scaleX(0)}
+.hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+
+/* ── MOBILE DRAWER ── */
+.mobile-drawer{
+  display:none;
+  position:fixed;top:56px;left:0;right:0;bottom:0;z-index:200;
+  background:var(--navy);
+  overflow-y:auto;
+  transform:translateX(-100%);
+  transition:transform 0.28s cubic-bezier(0.4,0,0.2,1);
+}
+.mobile-drawer.open{transform:translateX(0)}
+.drawer-overlay{
+  display:none;
+  position:fixed;inset:0;z-index:150;
+  background:rgba(0,0,0,0.5);
+  opacity:0;transition:opacity 0.25s;
+}
+.drawer-overlay.open{opacity:1}
+
+/* ── CURRENT SECTION INDICATOR (mobile) ── */
+.section-crumb{
+  display:none;
+  background:var(--teal-l);
+  border-bottom:1px solid rgba(11,114,100,0.2);
+  padding:10px 16px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;font-weight:600;color:var(--teal);
+  letter-spacing:0.06em;text-transform:uppercase;
+}
+
+/* ── PRINT ── */
+@media print{
+  .sidebar,.mobile-topbar,.section-crumb{display:none}
+  .shell{grid-template-columns:1fr}
+  .page{display:block!important;padding:20px}
+  body{background:#fff}
+}
+
+/* ── TABLET (≤1024px) ── */
+@media(max-width:1024px){
+  .shell{grid-template-columns:200px 1fr}
+  .page{padding:40px 36px 80px}
+  .hero{padding:44px 36px}
+  .hero-title{font-size:40px}
+}
+
+/* ── MOBILE (≤768px) ── */
+@media(max-width:768px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .mobile-topbar{display:flex}
+  .mobile-drawer{display:block}
+  .drawer-overlay{display:block}
+  .section-crumb{display:block;position:sticky;top:56px;z-index:90}
+  .main{padding-top:56px}
+  .page{padding:20px 16px 80px;max-width:100%}
+  .hero{padding:28px 20px 32px;margin:0}
+  .hero-title{font-size:32px;letter-spacing:-0.5px}
+  .hero-desc{font-size:14px;margin-bottom:20px}
+  .hero-pills{gap:6px}
+  .hero-pill{font-size:11.5px;padding:5px 11px}
+  .page-title{font-size:27px}
+  .page-desc{font-size:14px}
+  .page-header{margin-bottom:28px;padding-bottom:18px}
+  h2{font-size:20px;margin:28px 0 12px}
+  .kpi-row{grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+  .kpi-box{padding:14px 16px}
+  .kpi-num{font-size:24px}
+  .card-grid-2,.card-grid-3{grid-template-columns:1fr}
+  .card{padding:16px 18px}
+  .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tbl{min-width:480px;font-size:12.5px}
+  .tbl th,.tbl td{padding:9px 11px}
+  .arch-wrap{padding:16px;overflow-x:auto}
+  .arch-wrap svg{min-width:560px}
+  .cb-pre{font-size:11.5px;padding:12px}
+  .cb-file{display:none}
+  .persona-card{flex-direction:column;gap:10px;padding:16px}
+  .persona-ava{width:38px;height:38px;font-size:14px}
+  .timeline{padding-left:22px}
+  .flow-steps{gap:0}
+  .fs-body{padding-bottom:18px}
+  .fs-title{font-size:14px}
+  .fs-desc{font-size:13px}
+}
+
+/* ── SMALL PHONES (≤400px) ── */
+@media(max-width:400px){
+  .kpi-row{grid-template-columns:1fr 1fr}
+  .page{padding:16px 12px 72px}
+  .hero{padding:22px 14px 26px}
+  .hero-title{font-size:27px}
+  .page-title{font-size:23px}
+  h2{font-size:18px}
+}
+</style>
+</head>
+<body>
+
+<!-- ── MOBILE TOP BAR ── -->
+<div class="mobile-topbar">
+  <div class="mobile-brand">
+    <div class="mobile-logo">CO</div>
+    <div class="mobile-title">ClearOS</div>
+  </div>
+  <button class="hamburger" id="hamburger" aria-label="Open navigation" onclick="toggleDrawer()">
+    <span></span><span></span><span></span>
+  </button>
+</div>
+
+<!-- ── DRAWER OVERLAY ── -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+
+<!-- ── MOBILE DRAWER ── -->
+<nav class="mobile-drawer" id="mobileDrawer">
+  <div class="sb-nav" style="padding:12px 0 24px">
+    <div class="sb-group">
+      <div class="sb-group-label">Overview</div>
+      <a class="sb-link" onclick="show('overview')">&#127919; Executive Summary</a>
+      <a class="sb-link" onclick="show('problem')">&#9889; Problem Statement</a>
+      <a class="sb-link" onclick="show('personas')">&#128101; Users &amp; Personas</a>
+    </div>
+    <div class="sb-group">
+      <div class="sb-group-label">Product</div>
+      <a class="sb-link" onclick="show('portals')">&#128241; Portal Breakdown</a>
+      <a class="sb-link" onclick="show('features')">&#9989; Feature Matrix</a>
+      <a class="sb-link" onclick="show('workflows')">&#128260; Core Workflows</a>
+    </div>
+    <div class="sb-group">
+      <div class="sb-group-label">Engineering</div>
+      <a class="sb-link" onclick="show('architecture')">&#127959; System Architecture</a>
+      <a class="sb-link" onclick="show('datamodel')">&#128451; Data Model</a>
+      <a class="sb-link" onclick="show('api')">&#128268; API Design</a>
+      <a class="sb-link" onclick="show('techstack')">&#9881; Tech Stack</a>
+    </div>
+    <div class="sb-group">
+      <div class="sb-group-label">Delivery</div>
+      <a class="sb-link" onclick="show('roadmap')">&#128506; Roadmap &amp; Phases</a>
+      <a class="sb-link" onclick="show('risks')">&#128680; Risks &amp; Mitigations</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ── SECTION CRUMB ── -->
+<div class="section-crumb" id="sectionCrumb">01 — Executive Summary</div>
+
+<div class="shell">
+
+<!-- ───── SIDEBAR ───── -->
+<nav class="sidebar">
+  <div class="sb-brand">
+    <div class="sb-logo">CO</div>
+    <div class="sb-title">ClearOS</div>
+    <div class="sb-sub">Solution Architecture · v1.0</div>
+  </div>
+  <div class="sb-nav">
+    <div class="sb-group">
+      <div class="sb-group-label">Overview</div>
+      <a class="sb-link on" onclick="show('overview')">🎯 Executive Summary</a>
+      <a class="sb-link" onclick="show('problem')">⚡ Problem Statement</a>
+      <a class="sb-link" onclick="show('personas')">👥 Users & Personas</a>
+    </div>
+    <div class="sb-group">
+      <div class="sb-group-label">Product</div>
+      <a class="sb-link" onclick="show('portals')">📱 Portal Breakdown</a>
+      <a class="sb-link" onclick="show('features')">✅ Feature Matrix</a>
+      <a class="sb-link" onclick="show('workflows')">🔄 Core Workflows</a>
+    </div>
+    <div class="sb-group">
+      <div class="sb-group-label">Engineering</div>
+      <a class="sb-link" onclick="show('architecture')">🏗 System Architecture</a>
+      <a class="sb-link" onclick="show('datamodel')">🗃 Data Model</a>
+      <a class="sb-link" onclick="show('api')">🔌 API Design</a>
+      <a class="sb-link" onclick="show('techstack')">⚙️ Tech Stack</a>
+    </div>
+    <div class="sb-group">
+      <div class="sb-group-label">Delivery</div>
+      <a class="sb-link" onclick="show('roadmap')">🗺 Roadmap & Phases</a>
+      <a class="sb-link" onclick="show('risks')">🚨 Risks & Mitigations</a>
+    </div>
+  </div>
+  <div class="sb-footer">
+    <div class="sb-date">Prepared June 2025</div>
+    <div class="sb-version">ClearOS Freight Portal — v1.0 Spec</div>
+  </div>
+</nav>
+
+<!-- ───── PAGES ───── -->
+<div class="main">
+
+<!-- ============================================================ -->
+<!-- 01. EXECUTIVE SUMMARY -->
+<!-- ============================================================ -->
+<div id="pg-overview" class="page on">
+  <div class="hero">
+    <div class="hero-label">Solution Architecture Breakdown</div>
+    <div class="hero-title">ClearOS<br><em>Freight Portal</em></div>
+    <div class="hero-desc">A two-sided mobile-first web platform connecting freight-forwarding officers to their import/export customers — replacing WhatsApp threads and email chains with a structured, real-time operations hub.</div>
+    <div class="hero-pills">
+      <span class="hero-pill">Mobile-first PWA</span>
+      <span class="hero-pill">Multi-tenant SaaS</span>
+      <span class="hero-pill">WhatsApp Integration</span>
+      <span class="hero-pill">Customs Clearance</span>
+      <span class="hero-pill">Tanzania Market</span>
+    </div>
+  </div>
+
+  <div class="page" style="display:block;padding-top:40px">
+
+    <div class="kpi-row">
+      <div class="kpi-box">
+        <div class="kpi-num teal">2</div>
+        <div class="kpi-label">Distinct portals (Ops + Customer)</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-num navy">5</div>
+        <div class="kpi-label">Role types in the system</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-num gold">14</div>
+        <div class="kpi-label">Workflow statuses tracked</div>
+      </div>
+      <div class="kpi-box">
+        <div class="kpi-num green">V1</div>
+        <div class="kpi-label">8-week delivery target</div>
+      </div>
+    </div>
+
+    <h2>What We're Building</h2>
+    <p>ClearOS is an operational platform for freight-forwarding companies — specifically built for the Tanzania market. It eliminates the friction of managing imports and exports through WhatsApp groups, email attachments, and spreadsheets.</p>
+    <p>The system has two faces: an <strong>Operations Board</strong> for officers and managers, and a <strong>Customer Portal</strong> for importers to track their shipments, upload documents, and communicate with their assigned officer.</p>
+
+    <div class="card-grid card-grid-2" style="margin:20px 0 28px">
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;color:var(--teal);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em">📱 Ops Board (Officers)</div>
+        <p style="font-size:13.5px;margin-bottom:0">Desktop-first internal command centre. Officers see all active cases grouped by customer, triage urgent actions, update statuses and communicate — all in one view. No more switching between WhatsApp, email and spreadsheets.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.05em">📦 Customer Portal (Importers)</div>
+        <p style="font-size:13.5px;margin-bottom:0">Mobile-first interface. Customers see exactly where their shipments are, what documents are needed, what it'll cost, and can message their officer directly. Designed for use on a phone in a warehouse or port.</p>
+      </div>
+    </div>
+
+    <h2>Why This Matters</h2>
+    <div class="flow-steps">
+      <div class="fs-item">
+        <div class="fs-line"><div class="fs-dot teal">1</div><div class="fs-connector"></div></div>
+        <div class="fs-body">
+          <div class="fs-title">Reduce missed actions</div>
+          <div class="fs-desc">Document expiry reminders, permit requests, and payment nudges are automated — officers no longer chase customers manually. The system flags when a case is blocked and who needs to act.</div>
+        </div>
+      </div>
+      <div class="fs-item">
+        <div class="fs-line"><div class="fs-dot teal">2</div><div class="fs-connector"></div></div>
+        <div class="fs-body">
+          <div class="fs-title">Customer trust via transparency</div>
+          <div class="fs-desc">Customers no longer need to chase their officer for updates. The portal shows a live journey bar, document checklist, and invoice breakdown at all times. Repeat business increases with visibility.</div>
+        </div>
+      </div>
+      <div class="fs-item">
+        <div class="fs-line"><div class="fs-dot teal">3</div><div class="fs-connector"></div></div>
+        <div class="fs-body">
+          <div class="fs-title">Operational leverage</div>
+          <div class="fs-desc">One officer can manage 40+ active cases simultaneously. The risk-scoring engine auto-surfaces what needs attention. Managers see revenue pipeline, aging invoices, and team performance from one dashboard.</div>
+        </div>
+      </div>
+      <div class="fs-item">
+        <div class="fs-line"><div class="fs-dot gold">4</div></div>
+        <div class="fs-body">
+          <div class="fs-title">Multi-tenant from day one</div>
+          <div class="fs-desc">The architecture supports multiple freight companies on a single codebase. Each company gets their own data silo, custom branding, and user accounts. SaaS pricing unlocks once V1 is proven.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 02. PROBLEM STATEMENT -->
+<!-- ============================================================ -->
+<div id="pg-problem" class="page">
+  <div class="page-header">
+    <div class="page-tag">02 — Problem</div>
+    <div class="page-title">What's broken today</div>
+    <div class="page-desc">The current way freight-forwarding companies manage customer communication in Tanzania creates four critical failure points.</div>
+  </div>
+
+  <div class="card-grid" style="gap:14px">
+    <div class="card" style="border-left:4px solid var(--red)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div style="font-size:16px;font-weight:700;color:var(--ink)">Fragmented communication</div>
+        <span class="badge badge-red">Critical</span>
+      </div>
+      <p style="margin:0;font-size:13.5px">Customer updates are scattered across WhatsApp, email, and phone. Officers cannot see a unified thread per shipment. Critical messages get buried. Customers receive inconsistent responses depending on which officer they reach.</p>
+    </div>
+    <div class="card" style="border-left:4px solid var(--red)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div style="font-size:16px;font-weight:700;color:var(--ink)">No customer visibility</div>
+        <span class="badge badge-red">Critical</span>
+      </div>
+      <p style="margin:0;font-size:13.5px">Customers have zero insight into their shipment status unless they call or WhatsApp their officer. This creates high inbound call volume, officer frustration, and customer anxiety — especially when shipments are delayed at customs.</p>
+    </div>
+    <div class="card" style="border-left:4px solid var(--gold)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div style="font-size:16px;font-weight:700;color:var(--ink)">Manual document tracking</div>
+        <span class="badge badge-gold">High</span>
+      </div>
+      <p style="margin:0;font-size:13.5px">Documents such as Bills of Lading, TMDA permits, and C36 forms are tracked via spreadsheets or memory. When a required document is missing, officers may not know until customs flags it — costing storage fees and delays.</p>
+    </div>
+    <div class="card" style="border-left:4px solid var(--gold)">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+        <div style="font-size:16px;font-weight:700;color:var(--ink)">Revenue leakage</div>
+        <span class="badge badge-gold">High</span>
+      </div>
+      <p style="margin:0;font-size:13.5px">Invoices are generated manually and late. Storage charges are not tracked systematically. Some shipments are delivered without final invoicing. Finance has no real-time view of outstanding receivables or billing status per case.</p>
+    </div>
+  </div>
+
+  <h2>Current vs Future State</h2>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>Area</th><th>Today (Broken)</th><th>With ClearOS</th></tr></thead>
+      <tbody>
+        <tr><td>Customer updates</td><td>WhatsApp / phone calls ad hoc</td><td>Self-serve portal, proactive push notifications</td></tr>
+        <tr><td>Document management</td><td>Email attachments, spreadsheet tracker</td><td>Centralised checklist, upload portal, status per doc</td></tr>
+        <tr><td>Shipment status</td><td>Known only to the assigned officer</td><td>Visible to customer in real time, synced with officer notes</td></tr>
+        <tr><td>Officer workload</td><td>Reactive to inbound messages all day</td><td>Risk-scored queue; system tells you what needs action</td></tr>
+        <tr><td>Invoicing</td><td>Manual, often late or missed</td><td>Auto-generated at delivery, payment tracked per case</td></tr>
+        <tr><td>Management reporting</td><td>Ad hoc, no central data</td><td>Dashboard: cases by status, revenue, aging receivables</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 03. PERSONAS -->
+<!-- ============================================================ -->
+<div id="pg-personas" class="page">
+  <div class="page-header">
+    <div class="page-tag">03 — Users</div>
+    <div class="page-title">Who uses ClearOS</div>
+    <div class="page-desc">Five distinct roles, two portals. System-level access controls enforce what each role sees and can do.</div>
+  </div>
+
+  <h2>Internal Users — Operations Board</h2>
+  <div class="card-grid" style="gap:12px;margin-bottom:28px">
+    <div class="persona-card">
+      <div class="persona-ava" style="background:var(--navy)">AD</div>
+      <div>
+        <div class="persona-name">Admin / Owner</div>
+        <div class="persona-role">Full system access</div>
+        <div class="persona-needs">Configures the platform: creates user accounts, sets workflow rules, manages billing. Sees all customers and all cases. Has override ability on any case. Manages multi-tenant settings if applicable.</div>
+      </div>
+    </div>
+    <div class="persona-card">
+      <div class="persona-ava" style="background:var(--teal)">MG</div>
+      <div>
+        <div class="persona-name">Manager</div>
+        <div class="persona-role">Read + supervise; no case editing</div>
+        <div class="persona-needs">Reviews analytics dashboard, monitors team performance, approves high-value invoices, and escalates issues. Does not handle individual shipment cases but sees all of them. Primary consumer of reporting.</div>
+      </div>
+    </div>
+    <div class="persona-card">
+      <div class="persona-ava" style="background:var(--blue)">OF</div>
+      <div>
+        <div class="persona-name">Operations Officer</div>
+        <div class="persona-role">Full case management on assigned cases</div>
+        <div class="persona-needs">Primary daily user. Updates shipment statuses, communicates with customers, uploads/requests documents, processes customs entries, and triggers notifications. May be assigned a portfolio of 20–50 active customers.</div>
+      </div>
+    </div>
+    <div class="persona-card">
+      <div class="persona-ava" style="background:var(--gold)">FN</div>
+      <div>
+        <div class="persona-name">Finance Officer</div>
+        <div class="persona-role">Invoice & payments only</div>
+        <div class="persona-needs">Generates and finalises invoices, records payments, manages outstanding balances, and runs finance reports. No operational case management. Sees costs and revenue across all cases but cannot change statuses.</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>External Users — Customer Portal</h2>
+  <div class="card-grid" style="gap:12px">
+    <div class="persona-card">
+      <div class="persona-ava" style="background:var(--purple)">CU</div>
+      <div>
+        <div class="persona-name">Customer / Importer</div>
+        <div class="persona-role">Self-serve portal access (mobile-first)</div>
+        <div class="persona-needs">Business owner or procurement manager at an importing company. Uses the portal on a phone — often from a port, warehouse, or office. Needs to: check shipment progress, upload missing documents, see upcoming invoices, and message their officer. Comfort with technology varies; UI must be very simple.</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>RBAC Permission Matrix</h2>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>Capability</th><th>Admin</th><th>Manager</th><th>Officer</th><th>Finance</th><th>Customer</th></tr></thead>
+      <tbody>
+        <tr><td>View all cases</td><td>✅</td><td>✅</td><td>Own only</td><td>✅</td><td>Own only</td></tr>
+        <tr><td>Update case status</td><td>✅</td><td>—</td><td>✅</td><td>—</td><td>—</td></tr>
+        <tr><td>Send officer messages</td><td>✅</td><td>—</td><td>✅</td><td>—</td><td>✅</td></tr>
+        <tr><td>Upload documents</td><td>✅</td><td>—</td><td>✅</td><td>—</td><td>✅</td></tr>
+        <tr><td>Generate invoices</td><td>✅</td><td>—</td><td>—</td><td>✅</td><td>—</td></tr>
+        <tr><td>View analytics</td><td>✅</td><td>✅</td><td>—</td><td>Finance only</td><td>—</td></tr>
+        <tr><td>Create users / configure</td><td>✅</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 04. PORTALS -->
+<!-- ============================================================ -->
+<div id="pg-portals" class="page">
+  <div class="page-header">
+    <div class="page-tag">04 — Product</div>
+    <div class="page-title">Portal breakdown</div>
+    <div class="page-desc">Two React applications sharing a common API and component library, optimised for their respective devices and workflows.</div>
+  </div>
+
+  <h2>Portal 1 — Customer Mobile App</h2>
+  <p>Accessible at <code>app.clearos.co/customer</code>. Optimised for 375–480px viewports. PWA-installable. Designed around the Msomi Freight visual language: navy topbar, warm cream background, status-coded shipment cards.</p>
+
+  <div class="card-grid card-grid-2" style="margin:16px 0 24px">
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Shipment list view</div>
+      <div class="flow-steps" style="gap:0">
+        <div class="fs-item"><div class="fs-line"><div class="fs-dot teal" style="width:22px;height:22px;font-size:10px">→</div><div class="fs-connector" style="min-height:12px"></div></div><div class="fs-body" style="padding-bottom:12px"><div class="fs-desc">Summary pills: total active, action needed, delivered count</div></div></div>
+        <div class="fs-item"><div class="fs-line"><div class="fs-dot teal" style="width:22px;height:22px;font-size:10px">→</div><div class="fs-connector" style="min-height:12px"></div></div><div class="fs-body" style="padding-bottom:12px"><div class="fs-desc">Segment tabs: Active · Action Needed · Delivered · Invoices</div></div></div>
+        <div class="fs-item"><div class="fs-line"><div class="fs-dot teal" style="width:22px;height:22px;font-size:10px">→</div><div class="fs-connector" style="min-height:12px"></div></div><div class="fs-body" style="padding-bottom:12px"><div class="fs-desc">Action-needed banner auto-surfaces when customer must act</div></div></div>
+        <div class="fs-item"><div class="fs-line"><div class="fs-dot teal" style="width:22px;height:22px;font-size:10px">→</div></div><div class="fs-body"><div class="fs-desc">Colour-coded shipment cards: transit (teal), action (gold), delivered (green), delayed (red)</div></div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:10px">Shipment detail sheet</div>
+      <div class="flow-steps" style="gap:0">
+        <div class="fs-item"><div class="fs-line"><div class="fs-dot" style="width:22px;height:22px;font-size:10px">→</div><div class="fs-connector" style="min-height:12px"></div></div><div class="fs-body" style="padding-bottom:12px"><div class="fs-desc"><strong>Journey tab:</strong> Live progress bar across 6 milestones with timeline</div></div></div>
+        <div class="fs-item"><div class="fs-line"><div class="fs-dot" style="width:22px;height:22px;font-size:10px">→</div><div class="fs-connector" style="min-height:12px"></div></div><div class="fs-body" style="padding-bottom:12px"><div class="fs-desc"><strong>Updates tab:</strong> Chronological feed of all officer updates with channel badge (WhatsApp / Email)</div></div></div>
+        <div class="fs-item"><div class="fs-line"><div class="fs-dot" style="width:22px;height:22px;font-size:10px">→</div><div class="fs-connector" style="min-height:12px"></div></div><div class="fs-body" style="padding-bottom:12px"><div class="fs-desc"><strong>Documents tab:</strong> Per-document status with upload/download CTAs for missing docs</div></div></div>
+        <div class="fs-item"><div class="fs-line"><div class="fs-dot" style="width:22px;height:22px;font-size:10px">→</div></div><div class="fs-body"><div class="fs-desc"><strong>Invoice tab:</strong> Estimated then final invoice with TZS line items</div></div></div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Portal 2 — Operations Command Board</h2>
+  <p>Accessible at <code>app.clearos.co/ops</code>. Desktop-first (1280px+). Officers see all customers in a grouped, filterable list. A slide-in detail panel provides full case management without leaving the list view.</p>
+
+  <div class="card-grid card-grid-3" style="margin:16px 0 24px">
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">KPI bar</div>
+      <p style="font-size:13px;margin:0">Live counters: total active, action needed today, overdue docs, pending invoices. Color-coded urgency. Click any KPI to filter the list.</p>
+    </div>
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Case list</div>
+      <p style="font-size:13px;margin:0">Grouped by customer. Collapse/expand per customer. Each row shows shipment ref, status badge, risk flag, assigned officer, and next action due. Sortable and searchable.</p>
+    </div>
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px">Detail panel</div>
+      <p style="font-size:13px;margin:0">Slide-in from right. Three tabs: Timeline (status history + chat), Costs (per-line invoice builder), Documents. Officers can update status and send messages from here.</p>
+    </div>
+  </div>
+
+  <h2>Shared UX Patterns</h2>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>Pattern</th><th>Implementation</th><th>Used in</th></tr></thead>
+      <tbody>
+        <tr><td>Status colour system</td><td>Teal=in transit, Gold=action needed, Green=delivered, Red=delayed, Grey=pending</td><td>Both portals</td></tr>
+        <tr><td>Journey milestones</td><td>6 stages: Docs received → Customs lodged → Duty paid → Customs released → In transit → Delivered</td><td>Customer portal</td></tr>
+        <tr><td>Document checklist</td><td>Required docs per shipment type; status: received / pending / missing. Upload in-place</td><td>Both portals</td></tr>
+        <tr><td>Update feed</td><td>Chronological entries with officer name, timestamp, channel, and message body</td><td>Both portals</td></tr>
+        <tr><td>Risk flag</td><td>Auto-computed: docs overdue, no update in 48h, customs hold, storage accumulating</td><td>Ops board</td></tr>
+        <tr><td>Notification routing</td><td>Officer-to-customer via WhatsApp or Email; system events via push (PWA) or SMS</td><td>Both portals</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 05. FEATURES -->
+<!-- ============================================================ -->
+<div id="pg-features" class="page">
+  <div class="page-header">
+    <div class="page-tag">05 — Features</div>
+    <div class="page-title">Feature matrix</div>
+    <div class="page-desc">V1 scope is focused on core clearance workflow. V2 adds analytics and automation layers.</div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>Feature</th><th>Description</th><th>Portal</th><th>V1</th><th>V2</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Shipment case management</strong></td><td>Create, update, assign, and close shipment cases with 14 status stages</td><td>Ops</td><td><span class="badge badge-green">✓ V1</span></td><td>—</td></tr>
+        <tr><td><strong>Customer shipment view</strong></td><td>Mobile portal showing active, action-needed, and historical shipments</td><td>Customer</td><td><span class="badge badge-green">✓ V1</span></td><td>—</td></tr>
+        <tr><td><strong>Document checklist</strong></td><td>Per-case required doc list; upload, download, and status per document</td><td>Both</td><td><span class="badge badge-green">✓ V1</span></td><td>—</td></tr>
+        <tr><td><strong>Update feed & messaging</strong></td><td>Structured update log with channel badges; customer reply bar</td><td>Both</td><td><span class="badge badge-green">✓ V1</span></td><td>—</td></tr>
+        <tr><td><strong>Invoice builder</strong></td><td>Line-item invoice per case; estimated → actual; PDF export</td><td>Ops/Finance</td><td><span class="badge badge-green">✓ V1</span></td><td>—</td></tr>
+        <tr><td><strong>WhatsApp integration</strong></td><td>Send/receive WhatsApp messages from within the ops board (Meta Cloud API)</td><td>Ops</td><td><span class="badge badge-green">✓ V1</span></td><td>—</td></tr>
+        <tr><td><strong>RBAC & auth</strong></td><td>5 roles; JWT; customer portal login via phone+OTP</td><td>Both</td><td><span class="badge badge-green">✓ V1</span></td><td>—</td></tr>
+        <tr><td><strong>Notification matrix</strong></td><td>Rule-based notifications: docs due, no update 48h, duty paid, delivered</td><td>Both</td><td><span class="badge badge-green">✓ V1</span></td><td>—</td></tr>
+        <tr><td><strong>KPI dashboard</strong></td><td>Live totals bar: active cases, action needed, revenue pipeline</td><td>Ops</td><td><span class="badge badge-green">✓ V1</span></td><td>—</td></tr>
+        <tr><td><strong>Risk scoring engine</strong></td><td>Auto-flags cases: docs overdue, no update 48h, customs hold, storage accruing</td><td>Ops</td><td>Partial</td><td><span class="badge badge-blue">✓ V2</span></td></tr>
+        <tr><td><strong>Analytics & reporting</strong></td><td>Manager dashboard: cases by status, team performance, revenue trends</td><td>Ops</td><td>—</td><td><span class="badge badge-blue">✓ V2</span></td></tr>
+        <tr><td><strong>TRA duty calculation</strong></td><td>Auto-estimate import duty based on HS code, CIF value, and TRA rates</td><td>Ops</td><td>—</td><td><span class="badge badge-blue">✓ V2</span></td></tr>
+        <tr><td><strong>Multi-tenant billing</strong></td><td>Separate tenants with custom branding; SaaS subscription management</td><td>Admin</td><td>—</td><td><span class="badge badge-blue">✓ V2</span></td></tr>
+        <tr><td><strong>Customer mobile app (native)</strong></td><td>React Native wrap of customer portal for App Store / Play Store</td><td>Customer</td><td>—</td><td><span class="badge badge-blue">✓ V2</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 06. WORKFLOWS -->
+<!-- ============================================================ -->
+<div id="pg-workflows" class="page">
+  <div class="page-header">
+    <div class="page-tag">06 — Workflows</div>
+    <div class="page-title">Core workflows</div>
+    <div class="page-desc">The platform orchestrates three main workflows: the shipment clearance lifecycle, the document collection loop, and the invoice-to-payment cycle.</div>
+  </div>
+
+  <h2>1. Shipment Clearance Lifecycle</h2>
+  <p>Every import case moves through 6 milestone stages. Each stage transition triggers notifications to the customer and updates the journey bar in the customer portal.</p>
+
+  <div class="arch-wrap">
+    <svg viewBox="0 0 720 100" style="width:100%;min-width:500px">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#6cbdb2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+      <!-- Stages -->
+      <g transform="translate(0,0)">
+        <!-- Stage backgrounds -->
+        <rect x="10" y="30" width="94" height="40" rx="6" fill="#0b7264" opacity="0.12" stroke="#0b7264" stroke-width="0.8"/>
+        <rect x="122" y="30" width="94" height="40" rx="6" fill="#0b7264" opacity="0.12" stroke="#0b7264" stroke-width="0.8"/>
+        <rect x="234" y="30" width="94" height="40" rx="6" fill="#0b7264" opacity="0.12" stroke="#0b7264" stroke-width="0.8"/>
+        <rect x="346" y="30" width="94" height="40" rx="6" fill="#0b7264" opacity="0.12" stroke="#0b7264" stroke-width="0.8"/>
+        <rect x="458" y="30" width="94" height="40" rx="6" fill="#0b7264" opacity="0.12" stroke="#0b7264" stroke-width="0.8"/>
+        <rect x="570" y="30" width="110" height="40" rx="6" fill="#14693b" opacity="0.15" stroke="#14693b" stroke-width="0.8"/>
+        <!-- Arrows -->
+        <line x1="104" y1="50" x2="120" y2="50" stroke="#6cbdb2" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="216" y1="50" x2="232" y2="50" stroke="#6cbdb2" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="328" y1="50" x2="344" y2="50" stroke="#6cbdb2" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="440" y1="50" x2="456" y2="50" stroke="#6cbdb2" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="552" y1="50" x2="568" y2="50" stroke="#6cbdb2" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <!-- Labels -->
+        <text x="57" y="47" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10.5" fill="#0b7264" font-weight="600">Docs</text>
+        <text x="57" y="60" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="#0b7264">received</text>
+        <text x="169" y="47" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10.5" fill="#0b7264" font-weight="600">Customs</text>
+        <text x="169" y="60" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="#0b7264">lodged</text>
+        <text x="281" y="47" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10.5" fill="#0b7264" font-weight="600">Duty</text>
+        <text x="281" y="60" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="#0b7264">paid</text>
+        <text x="393" y="47" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10.5" fill="#0b7264" font-weight="600">Customs</text>
+        <text x="393" y="60" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="#0b7264">released</text>
+        <text x="505" y="47" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10.5" fill="#0b7264" font-weight="600">In</text>
+        <text x="505" y="60" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="#0b7264">transit</text>
+        <text x="625" y="47" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10.5" fill="#14693b" font-weight="600">Delivered</text>
+        <text x="625" y="60" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="#14693b">✓ Complete</text>
+      </g>
+    </svg>
+  </div>
+
+  <h3>Status codes within each stage</h3>
+  <p>Each milestone can hold one of several sub-statuses (e.g. "Customs lodged" → "Awaiting permit" or "Under examination"). Officers update status from the detail panel. Each change logs an entry to the update feed and may trigger a customer notification.</p>
+
+  <h2>2. Document Collection Loop</h2>
+  <div class="flow-steps" style="margin-top:16px">
+    <div class="fs-item"><div class="fs-line"><div class="fs-dot teal">1</div><div class="fs-connector"></div></div><div class="fs-body"><div class="fs-title">Case created → document checklist generated</div><div class="fs-desc">System knows which documents are required based on shipment type (sea / air / land) and goods category (general, regulated, controlled). A checklist is pre-populated at case creation.</div></div></div>
+    <div class="fs-item"><div class="fs-line"><div class="fs-dot teal">2</div><div class="fs-connector"></div></div><div class="fs-body"><div class="fs-title">Officer flags missing documents</div><div class="fs-desc">As documents arrive, the officer marks them received. Any document not received by a configurable deadline triggers an automatic reminder to the customer via WhatsApp/email.</div></div></div>
+    <div class="fs-item"><div class="fs-line"><div class="fs-dot teal">3</div><div class="fs-connector"></div></div><div class="fs-body"><div class="fs-title">Customer uploads via portal</div><div class="fs-desc">The "Action Needed" banner in the customer portal surfaces exactly which documents are missing with a one-tap upload button. Files are stored in MinIO (S3-compatible), secured per tenant.</div></div></div>
+    <div class="fs-item"><div class="fs-line"><div class="fs-dot gold">4</div></div><div class="fs-body"><div class="fs-title">Officer receives upload notification</div><div class="fs-desc">On successful upload, the officer gets a real-time notification on the ops board. The document row updates automatically. If a TMDA or other regulatory permit, the system flags it for officer verification before marking it valid.</div></div></div>
+  </div>
+
+  <h2>3. Invoice-to-Payment Cycle</h2>
+  <div class="flow-steps" style="margin-top:16px">
+    <div class="fs-item"><div class="fs-line"><div class="fs-dot teal">1</div><div class="fs-connector"></div></div><div class="fs-body"><div class="fs-title">Estimated invoice shown early</div><div class="fs-desc">As soon as a case is opened, an estimated cost breakdown is visible to the customer. Line items include: clearance service, transport, agency & handling, and placeholder for storage (TBD). This sets expectations and reduces billing disputes.</div></div></div>
+    <div class="fs-item"><div class="fs-line"><div class="fs-dot teal">2</div><div class="fs-connector"></div></div><div class="fs-body"><div class="fs-title">Finance officer finalises invoice at delivery</div><div class="fs-desc">Once the shipment is delivered, Finance finalises the invoice — adding storage charges and confirming transport costs. A PDF is generated and sent to the customer via email. Government duties (TRA) are shown separately.</div></div></div>
+    <div class="fs-item"><div class="fs-line"><div class="fs-dot gold">3</div></div><div class="fs-body"><div class="fs-title">Payment recorded; case closed</div><div class="fs-desc">Finance records the payment (bank transfer, M-Pesa, etc.). The case moves to "Closed". Outstanding invoices appear in the manager's aging receivables dashboard.</div></div></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 07. ARCHITECTURE -->
+<!-- ============================================================ -->
+<div id="pg-architecture" class="page">
+  <div class="page-header">
+    <div class="page-tag">07 — Engineering</div>
+    <div class="page-title">System architecture</div>
+    <div class="page-desc">A standard three-tier web architecture with a monorepo, typed API, background job queue, and cloud storage. No exotic infrastructure — deployable on a single VPS for V1.</div>
+  </div>
+
+  <div class="arch-wrap">
+    <svg viewBox="0 0 700 440" style="width:100%;min-width:540px">
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- CLIENT TIER -->
+      <rect x="20" y="20" width="660" height="90" rx="10" fill="#0e1f3d" opacity="0.06" stroke="#0e1f3d" stroke-width="0.5" stroke-dasharray="4 3"/>
+      <text x="36" y="38" font-family="JetBrains Mono,monospace" font-size="9" fill="#0e1f3d" opacity="0.5" font-weight="600" letter-spacing="0.06em">CLIENT TIER</text>
+      <!-- Ops App -->
+      <rect x="50" y="48" width="180" height="48" rx="8" fill="#0e1f3d" opacity="0.9"/>
+      <text x="140" y="69" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="12" fill="#fff" font-weight="600">Ops Board</text>
+      <text x="140" y="84" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="rgba(255,255,255,0.5)">React · Vite · Port 5173</text>
+      <!-- Customer App -->
+      <rect x="260" y="48" width="180" height="48" rx="8" fill="#0b7264"/>
+      <text x="350" y="69" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="12" fill="#fff" font-weight="600">Customer Portal</text>
+      <text x="350" y="84" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="rgba(255,255,255,0.5)">React PWA · Port 5174</text>
+      <!-- WhatsApp -->
+      <rect x="470" y="48" width="180" height="48" rx="8" fill="#14693b" opacity="0.85"/>
+      <text x="560" y="69" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="12" fill="#fff" font-weight="600">WhatsApp / Email</text>
+      <text x="560" y="84" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="rgba(255,255,255,0.5)">Meta Cloud API + SMTP</text>
+
+      <!-- Arrows down -->
+      <line x1="140" y1="96" x2="140" y2="158" stroke="#0e1f3d" stroke-width="1" stroke-opacity="0.25" marker-end="url(#arr2)"/>
+      <line x1="350" y1="96" x2="350" y2="158" stroke="#0b7264" stroke-width="1" stroke-opacity="0.35" marker-end="url(#arr2)"/>
+      <line x1="560" y1="96" x2="560" y2="158" stroke="#14693b" stroke-width="1" stroke-opacity="0.3" marker-end="url(#arr2)"/>
+
+      <!-- API TIER -->
+      <rect x="20" y="150" width="660" height="100" rx="10" fill="#1a3260" opacity="0.06" stroke="#1a3260" stroke-width="0.5" stroke-dasharray="4 3"/>
+      <text x="36" y="168" font-family="JetBrains Mono,monospace" font-size="9" fill="#1a3260" opacity="0.5" font-weight="600" letter-spacing="0.06em">API TIER</text>
+      <!-- Fastify -->
+      <rect x="50" y="175" width="160" height="56" rx="8" fill="#1849a9" opacity="0.9"/>
+      <text x="130" y="199" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="12" fill="#fff" font-weight="600">REST API</text>
+      <text x="130" y="214" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="rgba(255,255,255,0.55)">Fastify · Node.js · Port 3000</text>
+      <!-- Auth -->
+      <rect x="232" y="175" width="130" height="56" rx="8" fill="#5b3ea8" opacity="0.9"/>
+      <text x="297" y="199" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="12" fill="#fff" font-weight="600">Auth</text>
+      <text x="297" y="214" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="rgba(255,255,255,0.55)">JWT + bcrypt RBAC</text>
+      <!-- Queue -->
+      <rect x="384" y="175" width="130" height="56" rx="8" fill="#b57d0a" opacity="0.9"/>
+      <text x="449" y="199" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="12" fill="#fff" font-weight="600">Job Queue</text>
+      <text x="449" y="214" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="rgba(255,255,255,0.55)">BullMQ + Redis</text>
+      <!-- WS -->
+      <rect x="536" y="175" width="130" height="56" rx="8" fill="#0b7264" opacity="0.85"/>
+      <text x="601" y="199" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="12" fill="#fff" font-weight="600">WebSocket</text>
+      <text x="601" y="214" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="rgba(255,255,255,0.55)">Real-time updates</text>
+
+      <!-- Arrows down -->
+      <line x1="130" y1="231" x2="130" y2="308" stroke="#1849a9" stroke-width="1" stroke-opacity="0.3" marker-end="url(#arr2)"/>
+      <line x1="297" y1="231" x2="297" y2="308" stroke="#5b3ea8" stroke-width="1" stroke-opacity="0.3" marker-end="url(#arr2)"/>
+      <line x1="449" y1="231" x2="449" y2="308" stroke="#b57d0a" stroke-width="1" stroke-opacity="0.3" marker-end="url(#arr2)"/>
+      <line x1="601" y1="231" x2="601" y2="308" stroke="#0b7264" stroke-width="1" stroke-opacity="0.3" marker-end="url(#arr2)"/>
+
+      <!-- DATA TIER -->
+      <rect x="20" y="300" width="660" height="120" rx="10" fill="#14693b" opacity="0.05" stroke="#14693b" stroke-width="0.5" stroke-dasharray="4 3"/>
+      <text x="36" y="318" font-family="JetBrains Mono,monospace" font-size="9" fill="#14693b" opacity="0.5" font-weight="600" letter-spacing="0.06em">DATA TIER</text>
+      <!-- Postgres -->
+      <rect x="50" y="325" width="155" height="70" rx="8" fill="#fff" stroke="#e4e2dc" stroke-width="0.8"/>
+      <text x="127" y="352" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="13" fill="#0d1117" font-weight="700">PostgreSQL</text>
+      <text x="127" y="368" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="#7a8190">Primary DB · Row-level security</text>
+      <text x="127" y="382" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#0b7264">Kysely / Drizzle ORM</text>
+      <!-- Redis -->
+      <rect x="230" y="325" width="155" height="70" rx="8" fill="#fff" stroke="#e4e2dc" stroke-width="0.8"/>
+      <text x="307" y="352" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="13" fill="#0d1117" font-weight="700">Redis</text>
+      <text x="307" y="368" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="#7a8190">Queue backend · Session cache</text>
+      <text x="307" y="382" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#0b7264">BullMQ jobs</text>
+      <!-- MinIO -->
+      <rect x="410" y="325" width="155" height="70" rx="8" fill="#fff" stroke="#e4e2dc" stroke-width="0.8"/>
+      <text x="487" y="352" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="13" fill="#0d1117" font-weight="700">MinIO</text>
+      <text x="487" y="368" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="#7a8190">Document object storage</text>
+      <text x="487" y="382" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#0b7264">S3-compatible · Per-tenant</text>
+      <!-- Nginx -->
+      <rect x="590" y="325" width="80" height="70" rx="8" fill="#fff" stroke="#e4e2dc" stroke-width="0.8"/>
+      <text x="630" y="352" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="11" fill="#0d1117" font-weight="700">Nginx</text>
+      <text x="630" y="368" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="#7a8190">Reverse</text>
+      <text x="630" y="381" text-anchor="middle" font-family="DM Sans,sans-serif" font-size="10" fill="#7a8190">proxy</text>
+
+      <!-- Legend -->
+      <text x="36" y="430" font-family="DM Sans,sans-serif" font-size="11" fill="#7a8190">All three tiers run in Docker containers via docker-compose. Single-server deployment for V1.</text>
+    </svg>
+  </div>
+
+  <h3>Monorepo structure</h3>
+  <div class="code-blk">
+    <div class="cb-head"><span class="cb-lang">text</span><span class="cb-file">clearos/ project layout</span><span class="cb-copy" onclick="copyCode(this)">copy</span></div>
+    <div class="cb-pre">clearos/
+├── apps/
+│   ├── api/                  <span class="cmt"># Fastify REST API · Port 3000</span>
+│   │   └── src/
+│   │       ├── routes/       <span class="cmt"># shipments, customers, auth, docs, finance</span>
+│   │       ├── services/     <span class="cmt"># ShipmentService, WorkflowService, FinanceService</span>
+│   │       ├── integrations/ <span class="cmt"># whatsapp.webhook, email, minio, notifications</span>
+│   │       ├── jobs/         <span class="cmt"># reminder.job, risk-scan.job, invoice.job</span>
+│   │       └── db/           <span class="cmt"># migrations, seed, kysely client</span>
+│   ├── web/                  <span class="cmt"># React Ops Board · Port 5173</span>
+│   │   └── src/
+│   │       ├── pages/        <span class="cmt"># CommandCenter, Analytics, Settings</span>
+│   │       ├── components/   <span class="cmt"># CustomerGroup, ShipmentRow, DetailPanel</span>
+│   │       └── hooks/        <span class="cmt"># useShipments, useWebSocket, useRisk</span>
+│   └── customer/             <span class="cmt"># React Customer Portal · Port 5174</span>
+│       └── src/
+│           ├── pages/        <span class="cmt"># MyShipments, ActionNeeded, Invoices</span>
+│           └── components/   <span class="cmt"># JourneyBar, UpdatesFeed, DocList, InvoiceView</span>
+├── packages/
+│   ├── types/                <span class="cmt"># Shared TypeScript types (ShipmentCase, User, etc)</span>
+│   └── ui/                   <span class="cmt"># Shared component primitives</span>
+└── docker-compose.yml        <span class="cmt"># PostgreSQL · Redis · MinIO</span></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 08. DATA MODEL -->
+<!-- ============================================================ -->
+<div id="pg-datamodel" class="page">
+  <div class="page-header">
+    <div class="page-tag">08 — Engineering</div>
+    <div class="page-title">Data model</div>
+    <div class="page-desc">PostgreSQL with row-level security per tenant. Core tables below; foreign keys enforced at DB level. ORM: Kysely for type-safe SQL.</div>
+  </div>
+
+  <div class="card-grid card-grid-2" style="margin-bottom:20px">
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;font-family:'JetBrains Mono',monospace">tenants</div>
+      <div style="font-size:13px;color:var(--ink2);line-height:1.7"><code>id</code> · <code>name</code> · <code>slug</code><br><code>wa_phone_id</code> · <code>wa_token</code><br><code>smtp_config</code> (encrypted)<br><code>created_at</code> · <code>active</code></div>
+    </div>
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;font-family:'JetBrains Mono',monospace">users</div>
+      <div style="font-size:13px;color:var(--ink2);line-height:1.7"><code>id</code> · <code>tenant_id</code> · <code>email</code><br><code>password_hash</code> · <code>role</code><br><code>name</code> · <code>phone</code><br><code>created_at</code> · <code>active</code></div>
+    </div>
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;font-family:'JetBrains Mono',monospace">customers</div>
+      <div style="font-size:13px;color:var(--ink2);line-height:1.7"><code>id</code> · <code>tenant_id</code><br><code>company_name</code> · <code>contact_name</code><br><code>phone</code> · <code>email</code><br><code>wa_number</code> · <code>assigned_officer_id</code></div>
+    </div>
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;font-family:'JetBrains Mono',monospace">shipment_cases (core)</div>
+      <div style="font-size:13px;color:var(--ink2);line-height:1.7"><code>id</code> · <code>tenant_id</code> · <code>ref</code><br><code>customer_id</code> · <code>officer_id</code><br><code>status</code> · <code>milestone</code><br><code>risk_score</code> · <code>shipment_type</code><br><code>origin</code> · <code>destination</code><br><code>carrier</code> · <code>bl_number</code><br><code>cargo_desc</code> · <code>cif_value_usd</code></div>
+    </div>
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;font-family:'JetBrains Mono',monospace">case_documents</div>
+      <div style="font-size:13px;color:var(--ink2);line-height:1.7"><code>id</code> · <code>case_id</code><br><code>doc_type</code> · <code>status</code><br><code>storage_key</code> (MinIO path)<br><code>uploaded_by</code> · <code>verified_at</code><br><code>due_date</code></div>
+    </div>
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;font-family:'JetBrains Mono',monospace">case_updates</div>
+      <div style="font-size:13px;color:var(--ink2);line-height:1.7"><code>id</code> · <code>case_id</code><br><code>author_id</code> · <code>author_type</code><br><code>content</code> · <code>channel</code><br><code>direction</code> (inbound/outbound)<br><code>created_at</code></div>
+    </div>
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;font-family:'JetBrains Mono',monospace">invoices</div>
+      <div style="font-size:13px;color:var(--ink2);line-height:1.7"><code>id</code> · <code>case_id</code><br><code>status</code> (estimated/final/paid)<br><code>currency</code> · <code>total_amount</code><br><code>due_date</code> · <code>paid_at</code><br><code>pdf_key</code> (MinIO path)</div>
+    </div>
+    <div class="card">
+      <div style="font-size:12px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:12px;font-family:'JetBrains Mono',monospace">invoice_lines</div>
+      <div style="font-size:13px;color:var(--ink2);line-height:1.7"><code>id</code> · <code>invoice_id</code><br><code>description</code> · <code>amount</code><br><code>line_type</code> (service / storage / govt_duty)</div>
+    </div>
+  </div>
+
+  <h3>Shipment status enum</h3>
+  <div class="code-blk">
+    <div class="cb-head"><span class="cb-lang">sql</span><span class="cb-file">shipment_status enum</span><span class="cb-copy" onclick="copyCode(this)">copy</span></div>
+    <div class="cb-pre"><span class="key">CREATE TYPE</span> shipment_status <span class="key">AS ENUM</span> (
+  <span class="str">'pending_docs'</span>,        <span class="cmt">-- Awaiting initial documents from customer</span>
+  <span class="str">'docs_received'</span>,       <span class="cmt">-- Documents received, case opened</span>
+  <span class="str">'docs_query'</span>,          <span class="cmt">-- Officer has raised a query on documents</span>
+  <span class="str">'customs_lodging'</span>,     <span class="cmt">-- Entry being prepared for lodgement</span>
+  <span class="str">'customs_lodged'</span>,      <span class="cmt">-- Entry submitted to TRA customs</span>
+  <span class="str">'awaiting_permit'</span>,     <span class="cmt">-- Waiting for regulatory permit (TMDA, TFDA, etc)</span>
+  <span class="str">'under_examination'</span>,   <span class="cmt">-- Customs physical exam requested</span>
+  <span class="str">'duty_assessment'</span>,     <span class="cmt">-- Duty amount assessed, awaiting payment</span>
+  <span class="str">'duty_paid'</span>,           <span class="cmt">-- Duty paid to TRA</span>
+  <span class="str">'customs_released'</span>,    <span class="cmt">-- Release order issued by customs</span>
+  <span class="str">'in_transit'</span>,          <span class="cmt">-- Goods en route to customer</span>
+  <span class="str">'delivered'</span>,           <span class="cmt">-- Goods delivered to customer</span>
+  <span class="str">'invoiced'</span>,            <span class="cmt">-- Final invoice sent</span>
+  <span class="str">'closed'</span>               <span class="cmt">-- Payment received; case closed</span>
+);</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 09. API DESIGN -->
+<!-- ============================================================ -->
+<div id="pg-api" class="page">
+  <div class="page-header">
+    <div class="page-tag">09 — Engineering</div>
+    <div class="page-title">API design</div>
+    <div class="page-desc">RESTful JSON API. All endpoints under <code>/api/v1</code>. JWT Bearer token authentication. Tenant ID derived from JWT claims — no URL parameter needed.</div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>Method</th><th>Endpoint</th><th>Description</th><th>Roles</th></tr></thead>
+      <tbody>
+        <tr><td><span class="badge badge-blue">POST</span></td><td><code>/auth/login</code></td><td>Email + password login; returns JWT</td><td>All</td></tr>
+        <tr><td><span class="badge badge-blue">POST</span></td><td><code>/auth/customer-otp</code></td><td>Phone OTP login for customers</td><td>Customer</td></tr>
+        <tr><td colspan="4" style="background:var(--bg);font-size:11px;font-weight:700;color:var(--ink3);font-family:'JetBrains Mono',monospace;letter-spacing:0.05em">SHIPMENT CASES</td></tr>
+        <tr><td><span class="badge badge-teal">GET</span></td><td><code>/cases</code></td><td>List cases (filtered by role scope)</td><td>Officer, Manager, Admin</td></tr>
+        <tr><td><span class="badge badge-blue">POST</span></td><td><code>/cases</code></td><td>Create new shipment case</td><td>Officer, Admin</td></tr>
+        <tr><td><span class="badge badge-teal">GET</span></td><td><code>/cases/:id</code></td><td>Get full case detail</td><td>Officer, Customer (own)</td></tr>
+        <tr><td><span class="badge badge-gold">PATCH</span></td><td><code>/cases/:id/status</code></td><td>Update status + log update entry</td><td>Officer, Admin</td></tr>
+        <tr><td><span class="badge badge-teal">GET</span></td><td><code>/cases/:id/updates</code></td><td>Get update feed for case</td><td>Officer, Customer (own)</td></tr>
+        <tr><td><span class="badge badge-blue">POST</span></td><td><code>/cases/:id/updates</code></td><td>Post message to update feed</td><td>Officer, Customer (own)</td></tr>
+        <tr><td colspan="4" style="background:var(--bg);font-size:11px;font-weight:700;color:var(--ink3);font-family:'JetBrains Mono',monospace;letter-spacing:0.05em">DOCUMENTS</td></tr>
+        <tr><td><span class="badge badge-teal">GET</span></td><td><code>/cases/:id/documents</code></td><td>List all documents for case</td><td>Officer, Customer (own)</td></tr>
+        <tr><td><span class="badge badge-blue">POST</span></td><td><code>/cases/:id/documents/upload</code></td><td>Upload document (multipart); stores in MinIO</td><td>Officer, Customer</td></tr>
+        <tr><td><span class="badge badge-teal">GET</span></td><td><code>/cases/:id/documents/:docId/download</code></td><td>Signed URL for document download</td><td>Officer, Customer (own)</td></tr>
+        <tr><td colspan="4" style="background:var(--bg);font-size:11px;font-weight:700;color:var(--ink3);font-family:'JetBrains Mono',monospace;letter-spacing:0.05em">INVOICES & FINANCE</td></tr>
+        <tr><td><span class="badge badge-teal">GET</span></td><td><code>/cases/:id/invoice</code></td><td>Get invoice (estimated or final)</td><td>Officer, Finance, Customer (own)</td></tr>
+        <tr><td><span class="badge badge-blue">POST</span></td><td><code>/cases/:id/invoice/finalise</code></td><td>Finalise invoice and generate PDF</td><td>Finance, Admin</td></tr>
+        <tr><td><span class="badge badge-gold">PATCH</span></td><td><code>/cases/:id/invoice/pay</code></td><td>Record payment received</td><td>Finance, Admin</td></tr>
+        <tr><td colspan="4" style="background:var(--bg);font-size:11px;font-weight:700;color:var(--ink3);font-family:'JetBrains Mono',monospace;letter-spacing:0.05em">NOTIFICATIONS</td></tr>
+        <tr><td><span class="badge badge-blue">POST</span></td><td><code>/webhooks/whatsapp</code></td><td>Receive inbound WhatsApp messages (Meta webhook)</td><td>System</td></tr>
+        <tr><td><span class="badge badge-teal">GET</span></td><td><code>/customers/:id/cases</code></td><td>Customer-scoped case list for portal home screen</td><td>Customer</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>WebSocket events</h3>
+  <div class="code-blk">
+    <div class="cb-head"><span class="cb-lang">typescript</span><span class="cb-file">WebSocket event types</span><span class="cb-copy" onclick="copyCode(this)">copy</span></div>
+    <div class="cb-pre"><span class="cmt">// Server → Client events</span>
+<span class="key">type</span> ServerEvent =
+  | { <span class="str">type</span>: <span class="val">'case.status_changed'</span>; caseId: string; status: ShipmentStatus }
+  | { <span class="str">type</span>: <span class="val">'case.update_posted'</span>; caseId: string; update: CaseUpdate }
+  | { <span class="str">type</span>: <span class="val">'case.document_uploaded'</span>; caseId: string; document: CaseDocument }
+  | { <span class="str">type</span>: <span class="val">'case.risk_changed'</span>; caseId: string; riskScore: number }
+  | { <span class="str">type</span>: <span class="val">'invoice.finalised'</span>; caseId: string; invoiceId: string };</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 10. TECH STACK -->
+<!-- ============================================================ -->
+<div id="pg-techstack" class="page">
+  <div class="page-header">
+    <div class="page-tag">10 — Engineering</div>
+    <div class="page-title">Tech stack</div>
+    <div class="page-desc">Proven, boring technology. Every choice prioritises developer velocity, operational simplicity, and the ability to run on affordable East African cloud infrastructure.</div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>Layer</th><th>Technology</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><strong>API server</strong></td><td><span class="badge badge-blue">Fastify</span> + Node.js</td><td>Fastest Node.js HTTP framework. Built-in schema validation via Zod. TypeScript-native.</td></tr>
+        <tr><td><strong>Frontend</strong></td><td><span class="badge badge-blue">React 18</span> + Vite</td><td>Component model matches the nested UI. Vite gives sub-second HMR. Both portals share the same stack.</td></tr>
+        <tr><td><strong>Database</strong></td><td><span class="badge badge-teal">PostgreSQL 16</span></td><td>ACID transactions, row-level security for multi-tenant isolation. JSONB for flexible shipment metadata.</td></tr>
+        <tr><td><strong>ORM</strong></td><td><span class="badge badge-teal">Kysely</span> or Drizzle</td><td>Type-safe SQL without ORM magic. Avoids N+1 traps common with Prisma. Full query control.</td></tr>
+        <tr><td><strong>Job queue</strong></td><td><span class="badge badge-gold">BullMQ</span> + Redis</td><td>Durable retryable jobs for reminders, risk scans, and notification delivery. Redis already needed for sessions.</td></tr>
+        <tr><td><strong>Document storage</strong></td><td><span class="badge badge-teal">MinIO</span> (S3-compatible)</td><td>Self-hosted object storage. No S3 egress costs. Per-tenant bucket isolation. Signed URLs for secure download.</td></tr>
+        <tr><td><strong>WhatsApp</strong></td><td><span class="badge badge-green">Meta Cloud API</span></td><td>Free tier: 1,000 conversations/month. Required for scale beyond 200 customers. Webhook-based inbound.</td></tr>
+        <tr><td><strong>Auth</strong></td><td><span class="badge badge-purple">JWT + bcrypt</span></td><td>No third-party dependency. RBAC enforced in middleware. Customer OTP via SMS/WhatsApp.</td></tr>
+        <tr><td><strong>Real-time</strong></td><td><span class="badge badge-navy" style="background:var(--teal-l);color:var(--teal)">WebSockets</span></td><td>Server-sent events from Fastify. Ops board updates live without polling.</td></tr>
+        <tr><td><strong>DevOps</strong></td><td><span class="badge badge-teal">Docker Compose</span></td><td>Single-command local dev. Same config deploys to production on any Linux VPS.</td></tr>
+        <tr><td><strong>Hosting (V1)</strong></td><td>Single Ubuntu VPS</td><td>Hetzner (Frankfurt or Helsinki). 8 vCPU / 16GB RAM handles 10,000+ active cases. ~€30/month.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Day 1 bootstrap</h3>
+  <div class="code-blk">
+    <div class="cb-head"><span class="cb-lang">bash</span><span class="cb-file">First-time project setup</span><span class="cb-copy" onclick="copyCode(this)">copy</span></div>
+    <div class="cb-pre"><span class="cmt"># Clone monorepo</span>
+git clone https://github.com/your-org/clearos && cd clearos
+
+<span class="cmt"># Install all workspaces</span>
+npm install   <span class="cmt"># apps/api, apps/web, apps/customer, packages/*</span>
+
+<span class="cmt"># Start local services</span>
+docker-compose up -d
+<span class="cmt"># → PostgreSQL :5432  Redis :6379  MinIO :9000</span>
+
+<span class="cmt"># Run DB migrations + seed</span>
+npm run db:migrate     <span class="cmt"># creates all tables + RLS policies</span>
+npm run db:seed        <span class="cmt"># 1 tenant + 5 customers + 50 shipments</span>
+
+<span class="cmt"># Start dev servers (all in parallel)</span>
+npm run dev
+<span class="cmt"># → API      :3000   (Fastify)</span>
+<span class="cmt"># → Ops Board :5173   (Vite/React)</span>
+<span class="cmt"># → Customer  :5174   (Vite/React PWA)</span>
+
+<span class="cmt"># Test WhatsApp webhook locally (optional)</span>
+npx ngrok http 3000    <span class="cmt"># then register URL in Meta dashboard</span></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 11. ROADMAP -->
+<!-- ============================================================ -->
+<div id="pg-roadmap" class="page">
+  <div class="page-header">
+    <div class="page-tag">11 — Delivery</div>
+    <div class="page-title">Roadmap & phases</div>
+    <div class="page-desc">V1 targets 8 weeks for a live system with one pilot customer. V2 adds intelligence and scale. V3 opens the platform.</div>
+  </div>
+
+  <h2>Phase 1 — Foundation (Weeks 1–3)</h2>
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-dot done"></div>
+      <div class="tl-phase">Week 1</div>
+      <div class="tl-title">Project setup & data model</div>
+      <div class="tl-desc">Monorepo scaffolding, Docker Compose stack, PostgreSQL schema with all core tables, migrations, seed data. Auth system with RBAC. Basic Fastify routes for cases and customers.</div>
+      <span class="tl-duration">5 days</span>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-phase">Week 2</div>
+      <div class="tl-title">Ops board — case list & detail panel</div>
+      <div class="tl-desc">React ops board with left nav, KPI bar, customer-grouped case list, status filter chips, and slide-in detail panel. Timeline tab functional. Status updates save to DB.</div>
+      <span class="tl-duration">5 days</span>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-phase">Week 3</div>
+      <div class="tl-title">Customer portal — shipment list & detail sheet</div>
+      <div class="tl-desc">Full mobile customer portal. Shipment cards, segment tabs, journey bar, update feed, document checklist with upload, estimated invoice view. PWA manifest and offline shell.</div>
+      <span class="tl-duration">5 days</span>
+    </div>
+  </div>
+
+  <h2>Phase 2 — Communications & Finance (Weeks 4–6)</h2>
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-phase">Week 4</div>
+      <div class="tl-title">WhatsApp & email integration</div>
+      <div class="tl-desc">Meta Cloud API webhook setup. Inbound message routing to case update feed. Officer can reply via WhatsApp from ops board. Email send for formal notifications. BullMQ notification queue.</div>
+      <span class="tl-duration">5 days</span>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-phase">Week 5</div>
+      <div class="tl-title">Document management & MinIO storage</div>
+      <div class="tl-desc">MinIO setup, per-tenant bucket policies. Upload endpoint with virus scan hook. Signed download URLs with expiry. Document verification flow for regulated permits. Missing-doc reminder job.</div>
+      <span class="tl-duration">5 days</span>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-phase">Week 6</div>
+      <div class="tl-title">Invoice builder & Finance portal</div>
+      <div class="tl-desc">Finance role view. Invoice line-item builder. PDF generation (Puppeteer). Payment recording. Outstanding receivables list. Government duty separation. Invoice send to customer via email.</div>
+      <span class="tl-duration">5 days</span>
+    </div>
+  </div>
+
+  <h2>Phase 3 — Polish & Pilot (Weeks 7–8)</h2>
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-phase">Week 7</div>
+      <div class="tl-title">Real-time, notifications & risk scoring</div>
+      <div class="tl-desc">WebSocket integration for live ops board updates. Push notification plumbing for customer portal. Basic risk-score computation: docs overdue, no update 48h, customs hold. Ops board risk flag column.</div>
+      <span class="tl-duration">5 days</span>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-phase">Week 8</div>
+      <div class="tl-title">Pilot onboarding, QA & hardening</div>
+      <div class="tl-desc">Onboard first pilot customer. Load test. Security audit (input validation, IDOR checks, rate limiting). Fix pilot feedback. Deploy to production VPS. Hand over to operations team with runbook.</div>
+      <span class="tl-duration">5 days</span>
+    </div>
+  </div>
+
+  <h2>V2 — Intelligence Layer (Months 3–5)</h2>
+  <div class="card-grid card-grid-2" style="margin-top:16px">
+    <div class="card"><strong>Advanced analytics</strong><p style="font-size:13px;margin-top:6px">Manager dashboard with case throughput, officer performance, revenue trends, duty forecasting.</p></div>
+    <div class="card"><strong>TRA duty calculator</strong><p style="font-size:13px;margin-top:6px">Auto-estimate import duty from HS code + CIF value using TRA tariff schedule. Show customer before customs.</p></div>
+    <div class="card"><strong>AI case summarisation</strong><p style="font-size:13px;margin-top:6px">Auto-generate case summary from update feed. Officer can generate "customer status email" in one click.</p></div>
+    <div class="card"><strong>Multi-tenant billing</strong><p style="font-size:13px;margin-top:6px">SaaS plan management. Per-tenant customisation. Stripe integration for subscription billing.</p></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- 12. RISKS -->
+<!-- ============================================================ -->
+<div id="pg-risks" class="page">
+  <div class="page-header">
+    <div class="page-tag">12 — Delivery</div>
+    <div class="page-title">Risks & mitigations</div>
+    <div class="page-desc">Key risks identified across technical, operational, and market dimensions. Each has a specific mitigation plan.</div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead><tr><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation</th></tr></thead>
+      <tbody class="risk-rows">
+        <tr>
+          <td><strong>WhatsApp API approval delay</strong><br><span style="font-size:12px;color:var(--ink3)">Meta takes 1–4 weeks to approve business accounts</span></td>
+          <td><span class="badge badge-gold">Medium</span></td>
+          <td><span class="badge badge-red">High</span></td>
+          <td>Apply for Meta Business verification in week 1 in parallel. Build email-only fallback. WhatsApp feature is additive; core workflow works without it.</td>
+        </tr>
+        <tr>
+          <td><strong>Customer adoption friction</strong><br><span style="font-size:12px;color:var(--ink3)">Some customers prefer WhatsApp calls; portal may feel unfamiliar</span></td>
+          <td><span class="badge badge-gold">Medium</span></td>
+          <td><span class="badge badge-gold">Medium</span></td>
+          <td>Pilot with 1–2 tech-comfortable customers first. Officer can use portal on their behalf. WhatsApp integration means customers still get updates in WhatsApp even if they never open the portal.</td>
+        </tr>
+        <tr>
+          <td><strong>Scope creep in V1</strong><br><span style="font-size:12px;color:var(--ink3)">Stakeholders request features beyond 8-week scope</span></td>
+          <td><span class="badge badge-red">High</span></td>
+          <td><span class="badge badge-gold">Medium</span></td>
+          <td>Feature matrix (see Section 05) is the contract. New requests go to V2 backlog. Weekly demo keeps stakeholders engaged without derailing delivery.</td>
+        </tr>
+        <tr>
+          <td><strong>Network reliability in Tanzania</strong><br><span style="font-size:12px;color:var(--ink3)">Intermittent 3G/4G; customer portal must work offline</span></td>
+          <td><span class="badge badge-gold">Medium</span></td>
+          <td><span class="badge badge-gold">Medium</span></td>
+          <td>PWA service worker caches the shell and last-fetched shipment data. Offline state shown clearly. No actions that silently fail — queue locally and sync when reconnected.</td>
+        </tr>
+        <tr>
+          <td><strong>Data security & GDPR/PDPA</strong><br><span style="font-size:12px;color:var(--ink3)">Customs data is sensitive; multi-tenant data leakage risk</span></td>
+          <td><span class="badge badge-teal">Low</span></td>
+          <td><span class="badge badge-red">High</span></td>
+          <td>PostgreSQL row-level security per tenant. JWT never crosses tenants. MinIO per-tenant buckets. Week 8 includes a formal security audit checklist: IDOR, input validation, rate limiting, signed URLs.</td>
+        </tr>
+        <tr>
+          <td><strong>Single-server infrastructure</strong><br><span style="font-size:12px;color:var(--ink3)">V1 single VPS is a single point of failure</span></td>
+          <td><span class="badge badge-teal">Low</span></td>
+          <td><span class="badge badge-gold">Medium</span></td>
+          <td>Daily automated DB backups to separate location. Docker Compose with named volumes. Recovery runbook in repo. V2 moves to managed Postgres + object storage for resilience.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>Definition of Done — V1</h2>
+  <div class="card" style="margin-top:16px">
+    <div class="card-grid card-grid-2" style="gap:10px">
+      <div style="display:flex;gap:8px;align-items:flex-start"><span style="color:var(--green);font-size:14px;flex-shrink:0">✓</span><span style="font-size:13.5px;color:var(--ink2)">An officer can create a shipment case, assign it to a customer, and update its status through all 14 stages.</span></div>
+      <div style="display:flex;gap:8px;align-items:flex-start"><span style="color:var(--green);font-size:14px;flex-shrink:0">✓</span><span style="font-size:13.5px;color:var(--ink2)">A customer can log in on mobile, see their shipments, view documents, upload a missing permit, and read officer updates.</span></div>
+      <div style="display:flex;gap:8px;align-items:flex-start"><span style="color:var(--green);font-size:14px;flex-shrink:0">✓</span><span style="font-size:13.5px;color:var(--ink2)">Officer-to-customer WhatsApp messages are sent from the ops board and appear in the customer's WhatsApp.</span></div>
+      <div style="display:flex;gap:8px;align-items:flex-start"><span style="color:var(--green);font-size:14px;flex-shrink:0">✓</span><span style="font-size:13.5px;color:var(--ink2)">Finance can generate a final invoice, export a PDF, and mark it as paid.</span></div>
+      <div style="display:flex;gap:8px;align-items:flex-start"><span style="color:var(--green);font-size:14px;flex-shrink:0">✓</span><span style="font-size:13.5px;color:var(--ink2)">Automatic reminders fire when documents are overdue or no case update has been posted in 48 hours.</span></div>
+      <div style="display:flex;gap:8px;align-items:flex-start"><span style="color:var(--green);font-size:14px;flex-shrink:0">✓</span><span style="font-size:13.5px;color:var(--ink2)">The platform is deployed on a production server with HTTPS, daily backups, and a basic monitoring alert.</span></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+const PAGE_LABELS = {
+  overview:'01 — Executive Summary',
+  problem:'02 — Problem Statement',
+  personas:'03 — Users & Personas',
+  portals:'04 — Portal Breakdown',
+  features:'05 — Feature Matrix',
+  workflows:'06 — Core Workflows',
+  architecture:'07 — System Architecture',
+  datamodel:'08 — Data Model',
+  api:'09 — API Design',
+  techstack:'10 — Tech Stack',
+  roadmap:'11 — Roadmap & Phases',
+  risks:'12 — Risks & Mitigations'
+};
+
+function show(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.sb-link').forEach(l => l.classList.remove('on'));
+  const pg = document.getElementById('pg-' + id);
+  if (pg) {
+    pg.classList.add('on');
+    // Scroll main content area to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  // Mark active in both sidebars
+  document.querySelectorAll('.sb-link').forEach(l => {
+    if (l.getAttribute('onclick') && l.getAttribute('onclick').includes("'" + id + "'")) {
+      l.classList.add('on');
+    }
+  });
+  // Update crumb
+  const crumb = document.getElementById('sectionCrumb');
+  if (crumb) crumb.textContent = PAGE_LABELS[id] || id;
+  // Close drawer on mobile after selection
+  closeDrawer();
+}
+
+function toggleDrawer() {
+  const drawer = document.getElementById('mobileDrawer');
+  const overlay = document.getElementById('drawerOverlay');
+  const btn = document.getElementById('hamburger');
+  const isOpen = drawer.classList.contains('open');
+  if (isOpen) {
+    closeDrawer();
+  } else {
+    drawer.classList.add('open');
+    overlay.classList.add('open');
+    btn.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeDrawer() {
+  const drawer = document.getElementById('mobileDrawer');
+  const overlay = document.getElementById('drawerOverlay');
+  const btn = document.getElementById('hamburger');
+  drawer.classList.remove('open');
+  overlay.classList.remove('open');
+  btn.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-blk').querySelector('.cb-pre');
+  if (!pre) return;
+  navigator.clipboard && navigator.clipboard.writeText(pre.innerText).then(() => {
+    btn.textContent = 'copied!';
+    setTimeout(() => btn.textContent = 'copy', 1500);
+  });
+}
+
+// Close drawer on Escape key
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+
+// Set initial active state
+document.querySelectorAll('.sb-link').forEach(l => {
+  if (l.getAttribute('onclick') && l.getAttribute('onclick').includes("'overview'")) {
+    l.classList.add('on');
+  }
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:codebucks.in)",
+      "Bash(npx eslint *)",
+      "WebFetch(domain:demos.pixinvent.com)",
+      "WebFetch(domain:keenthemes.com)"
+    ]
+  }
+}
