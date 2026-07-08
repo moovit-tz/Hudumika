@@ -1,9 +1,14 @@
+import { requireAppEnabled } from '../middleware/appGate.js';
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { GLService } from '../services/gl.service.js';
+import { AccountingIntegrationService } from '../services/accounting-integration.service.js';
+import { TRAService } from '../services/tra.service.js';
 
 export async function billRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', requireAppEnabled('finops'));
 
   // ── Stats ─────────────────────────────────────────────────────────────────
 
@@ -124,7 +129,6 @@ export async function billRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = request.body as any;
     return withTenant(user.tenant_id, async (trx) => {
-      // Compute totals from lines
       const items: any[] = Array.isArray(body.items) ? body.items : [];
       let subtotal = 0;
       let tax_amount = 0;
@@ -169,6 +173,28 @@ export async function billRoutes(fastify: FastifyInstance) {
           }))
         ).execute();
       }
+
+      if (bill.status === 'POSTED' && total > 0) {
+        await GLService.post(user.tenant_id, {
+          entryDate: bill.bill_date ? new Date(bill.bill_date).toISOString() : new Date().toISOString(),
+          description: `Supplier bill: ${bill.bill_number}`,
+          reference: bill.bill_number,
+          sourceModule: 'AP',
+          sourceId: bill.id,
+          createdBy: user.sub,
+          lines: [
+            { accountCode: '5000', debit: subtotal, credit: 0, description: 'Port & Customs Charges' },
+            { accountCode: '2000', debit: 0, credit: total, description: 'Accounts Payable' },
+            ...(tax_amount > 0 ? [{ accountCode: '2200', debit: tax_amount, credit: 0, description: 'VAT Input Tax' }] : []),
+          ],
+        });
+      }
+
+      // Trigger accounting integration sync in background
+      if (bill.status === 'POSTED') {
+        AccountingIntegrationService.syncBill(user.tenant_id, bill.id).catch(console.error);
+      }
+
       return reply.status(201).send(bill);
     });
   });
@@ -201,7 +227,6 @@ export async function billRoutes(fastify: FastifyInstance) {
         if (body[f] !== undefined) updates[f] = body[f];
       }
 
-      // Recompute totals if lines provided
       if (Array.isArray(body.items)) {
         const items: any[] = body.items;
         let subtotal = 0;
@@ -233,7 +258,46 @@ export async function billRoutes(fastify: FastifyInstance) {
       }
 
       await trx.updateTable('supplier_bills').set(updates).where('id', '=', id).execute();
-      const bill = await trx.selectFrom('supplier_bills').selectAll().where('id', '=', id).executeTakeFirst();
+      const bill = await trx.selectFrom('supplier_bills').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
+
+      if (bill.status === 'POSTED') {
+        const alreadyPosted = await trx
+          .selectFrom('journal_entries')
+          .select('id')
+          .where('tenant_id', '=', user.tenant_id)
+          .where('source_module', '=', 'AP')
+          .where('source_id', '=', id)
+          .where('description', 'like', 'Supplier bill%')
+          .executeTakeFirst();
+
+        if (!alreadyPosted) {
+          const totalVal = Number(bill.total) || 0;
+          const subtotalVal = Number(bill.subtotal) || 0;
+          const taxVal = Number(bill.tax_amount) || 0;
+
+          if (totalVal > 0) {
+            await GLService.post(user.tenant_id, {
+              entryDate: bill.bill_date ? new Date(bill.bill_date).toISOString() : new Date().toISOString(),
+              description: `Supplier bill: ${bill.bill_number}`,
+              reference: bill.bill_number,
+              sourceModule: 'AP',
+              sourceId: bill.id,
+              createdBy: user.sub,
+              lines: [
+                { accountCode: '5000', debit: subtotalVal, credit: 0, description: 'Port & Customs Charges' },
+                { accountCode: '2000', debit: 0, credit: totalVal, description: 'Accounts Payable' },
+                ...(taxVal > 0 ? [{ accountCode: '2200', debit: taxVal, credit: 0, description: 'VAT Input Tax' }] : []),
+              ],
+            });
+          }
+        }
+      }
+
+      // Trigger accounting integration sync in background
+      if (bill.status === 'POSTED') {
+        AccountingIntegrationService.syncBill(user.tenant_id, bill.id).catch(console.error);
+      }
+
       return bill;
     });
   });
@@ -282,7 +346,60 @@ export async function billRoutes(fastify: FastifyInstance) {
       else newStatus = 'POSTED';
 
       await trx.updateTable('supplier_bills').set({ paid_amount: totalPaid, status: newStatus, updated_at: new Date() }).where('id', '=', id).execute();
+
+      // Post payment to GL
+      await GLService.post(user.tenant_id, {
+        entryDate: payment_date ? new Date(payment_date).toISOString() : new Date().toISOString(),
+        description: `Bill payment: ${bill.bill_number}`,
+        reference: bill.bill_number,
+        sourceModule: 'AP',
+        sourceId: bill.id,
+        createdBy: user.sub,
+        lines: [
+          { accountCode: '2000', debit: Number(amount), credit: 0, description: 'Clear AP' },
+          { accountCode: '1010', debit: 0, credit: Number(amount), description: 'Cash paid' },
+        ],
+      });
+
+      // Trigger accounting integration payment sync in background
+      AccountingIntegrationService.syncPayment(user.tenant_id, id, 'BILL').catch(console.error);
+
       return { success: true, paid_amount: totalPaid, status: newStatus };
     });
+  });
+
+  // ── POST /v1/bills/:id/verify-efd ─────────────────────────────────────────
+  // Verify a supplier EFD/VFD receipt number against the TRA portal.
+  // Optionally saves the receipt number on the bill.
+  fastify.post('/:id/verify-efd', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+    const user = request.user as any;
+    const { id } = request.params as { id: string };
+    const { efd_receipt_number } = request.body as any;
+
+    if (!efd_receipt_number) {
+      return reply.status(400).send({ error: 'efd_receipt_number is required' });
+    }
+
+    // Verify with TRA
+    const verifyResult = await TRAService.verifyEFDReceipt(efd_receipt_number);
+
+    // Save to DB regardless of verification (user might want to track the receipt number)
+    await db.updateTable('supplier_bills').set({
+      efd_receipt_number,
+      efd_verified: verifyResult.verified ?? false,
+      efd_verified_at: verifyResult.verified ? new Date() : null,
+      efd_verification_data: verifyResult.data ?? null,
+      updated_at: new Date(),
+    }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+
+    return {
+      success: true,
+      efd_receipt_number,
+      verified: verifyResult.verified,
+      verifyUrl: `https://verify.tra.go.tz/efdmsRctVerify/${efd_receipt_number}`,
+      message: verifyResult.verified
+        ? '✅ Receipt verified with TRA'
+        : '⚠️ Receipt not found or could not be verified. Please check the number and try again.',
+    };
   });
 }

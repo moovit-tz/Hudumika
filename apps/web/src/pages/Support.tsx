@@ -1,15 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
+import { Customer360Sidebar, CustomerContext } from '../components/Customer360Sidebar.js';
+import '../pages/Bliss.css';
 
 /* ── Types ── */
 type ChannelId = 'inapp' | 'email' | 'whatsapp' | 'sms' | 'note';
 type StatusKey  = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
-type PriorityKey = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
-type StatusFilter = 'all' | StatusKey;
+type PriorityKey = 'LOW' | 'NORMAL' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 interface SysCustomer {
   id: string; name: string; email?: string; phone?: string;
@@ -24,7 +26,12 @@ interface Ticket {
   assigned_to?: string; created_at: string; updated_at?: string;
   messages?: Message[]; message_count?: number;
   tags?: string[]; related_shipments?: string[];
+  customerContext?: CustomerContext;
+  group_id?: string | null; group_name?: string | null; group_color?: string | null;
 }
+
+interface SupportGroup { id: string; name: string; color: string; ticket_count?: number; }
+interface SupportView { id: string; name: string; filters: Record<string, any>; }
 
 interface Message {
   id: string; content: string; author_name: string;
@@ -35,6 +42,7 @@ interface Message {
 const PRIORITY_CFG: Record<PriorityKey, { bg: string; color: string; label: string }> = {
   URGENT: { bg: 'var(--red-l)',   color: 'var(--red)',   label: 'Urgent' },
   HIGH:   { bg: 'var(--gold-l)', color: 'var(--gold)',  label: 'High'   },
+  NORMAL: { bg: 'var(--blue-l)', color: 'var(--blue)',  label: 'Normal' },
   MEDIUM: { bg: 'var(--blue-l)', color: 'var(--blue)',  label: 'Medium' },
   LOW:    { bg: 'var(--bg)',     color: 'var(--ink2)',  label: 'Low'    },
 };
@@ -54,10 +62,8 @@ const CHANNEL_CFG: Record<ChannelId, { label: string; icon: IconName; color: str
   note:     { label: 'Note',     icon: 'fileText',   color: '#92400e',     bg: '#fefce8',       border: '#92400e',     btnLabel: 'Save Note'         },
 };
 
-const CHANNEL_LIST: ChannelId[] = ['inapp', 'email', 'whatsapp', 'sms', 'note'];
 const CATEGORIES = ['Clearance Delay', 'Document Issue', 'Demurrage Dispute', 'Duty Assessment', 'System Error', 'General Query', 'Complaint'];
 const OFFICERS   = ['Amina Hassan', 'John Mwangi', 'Fatuma Ally', 'Peter Kimani', 'Grace Osei'];
-const PAGE_SIZES = [5, 10, 20, 25, 50];
 const STATUS_ORDER: Record<StatusKey, number> = { OPEN: 0, IN_PROGRESS: 1, RESOLVED: 2, CLOSED: 3 };
 
 type MsgFilter = 'all' | 'whatsapp' | 'email' | 'note' | 'autosent' | 'sms';
@@ -80,519 +86,567 @@ function sortTickets(a: Ticket, b: Ticket) {
 const AVATAR_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#1a7f37','#9a6700','#cf222e','#d05c30','#0e7490'];
 const initials    = (n: string) => n.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
 const avatarColor = (n: string) => AVATAR_COLORS[n.charCodeAt(0) % AVATAR_COLORS.length];
-const fmtDate     = (d: string) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-
 const relTime = (d: string) => {
-  const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000);
+  if (!d) return '—';
+  const parsed = new Date(d);
+  if (isNaN(parsed.getTime())) return '—';
+  const s = Math.floor((Date.now() - parsed.getTime()) / 1000);
+  if (s < 0)      return 'Just now';
   if (s < 60)     return 'Just now';
   if (s < 3600)   return `${Math.floor(s / 60)}m`;
   if (s < 86400)  return `${Math.floor(s / 3600)}h`;
   if (s < 172800) return 'Yesterday';
   if (s < 604800) return `${Math.floor(s / 86400)}d`;
-  return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  return parsed.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
 };
 
 /* ── Atom components ── */
 function Av({ name, size = 28 }: { name: string; size?: number }) {
-  return (
-    <div style={{ width: size, height: size, borderRadius: '50%', background: avatarColor(name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.34, fontWeight: 700, flexShrink: 0, fontFamily: 'var(--font)', letterSpacing: '0.03em' }}>
-      {initials(name)}
-    </div>
-  );
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    ref.current.style.setProperty('--av-size', `${size}px`);
+    ref.current.style.setProperty('--av-bg', avatarColor(name));
+    ref.current.style.setProperty('--av-fs', `${Math.round(size * 0.34)}px`);
+  }, [size, name]);
+  return <div ref={ref} className="spt-av">{initials(name)}</div>;
 }
 
 function PBadge({ p }: { p: string }) {
   const c = PRIORITY_CFG[p as PriorityKey] ?? PRIORITY_CFG.LOW;
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 20, background: c.bg, color: c.color, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>
-      <span style={{ width: 5, height: 5, borderRadius: '50%', background: c.color, flexShrink: 0 }} />{c.label}
+    <span className="spt-pri-badge" data-p={p}>
+      <span className="spt-pri-dot" />{c.label}
     </span>
   );
 }
 
 function SBadge({ s }: { s: string }) {
   const c = STATUS_CFG[s as StatusKey] ?? STATUS_CFG.OPEN;
-  return <span style={{ padding: '2px 8px', borderRadius: 20, background: c.bg, color: c.color, fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap' }}>{c.label}</span>;
+  return <span className="spt-sbadge" data-s={s}>{c.label}</span>;
 }
 
 function ChPill({ ch }: { ch: ChannelId }) {
   const c = CHANNEL_CFG[ch] ?? CHANNEL_CFG.inapp;
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 9, background: c.bg, color: c.color, fontSize: 10, fontWeight: 700 }}>
+    <span className="spt-ch-pill-sm" data-ch={ch}>
       <Icon name={c.icon} size={9} strokeWidth={2} />{c.label}
     </span>
   );
 }
 
 /* ══════════════════════════════════════════
-   FULL-WIDTH TICKET ROW
-══════════════════════════════════════════ */
-function TicketRow({ ticket, onSelect }: { ticket: Ticket; onSelect: () => void }) {
-  const priCfg = PRIORITY_CFG[ticket.priority];
-  const isUnread = ticket.status === 'OPEN';
-
-  return (
-    <div
-      onClick={onSelect}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 14,
-        padding: '13px 16px',
-        background: 'var(--white)',
-        border: '1px solid var(--border)',
-        borderLeft: `3px solid ${priCfg.color}`,
-        borderRadius: 9, marginBottom: 6,
-        cursor: 'pointer',
-        transition: 'box-shadow 0.15s, transform 0.1s',
-      }}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--shadow)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}
-    >
-      <div style={{ position: 'relative', flexShrink: 0 }}>
-        <Av name={ticket.customer} size={38} />
-        {isUnread && <span style={{ position: 'absolute', top: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: 'var(--red)', border: '2px solid var(--white)' }} />}
-      </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13.5, fontWeight: isUnread ? 700 : 600, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 3 }}>{ticket.subject}</div>
-        <div style={{ fontSize: 12, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          <span style={{ fontWeight: 600, color: 'var(--ink2)' }}>{ticket.customer}</span>
-          {ticket.description && ` · ${ticket.description.slice(0, 90)}`}
-        </div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-        <SBadge s={ticket.status} />
-        <PBadge p={ticket.priority} />
-        <span style={{ fontSize: 11, color: 'var(--ink3)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ticket.category}</span>
-        {ticket.assigned_to && <Av name={ticket.assigned_to} size={22} />}
-        {(ticket.message_count ?? 0) > 0 && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'var(--ink3)' }}>
-            <Icon name="message" size={11} strokeWidth={1.75} />{ticket.message_count}
-          </span>
-        )}
-        <span style={{ fontSize: 11, color: 'var(--ink3)', minWidth: 30, textAlign: 'right' }}>{relTime(ticket.updated_at || ticket.created_at)}</span>
-      </div>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════
-   PAGINATION BAR
-══════════════════════════════════════════ */
-function PaginationBar({ page, totalPages, total, pageSize, setPage, setPageSize }: {
-  page: number; totalPages: number; total: number;
-  pageSize: number; setPage: (p: number) => void; setPageSize: (n: number) => void;
-}) {
-  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const to   = Math.min(page * pageSize, total);
-
-  const start = Math.max(1, Math.min(page - 2, totalPages - 4));
-  const end   = Math.min(totalPages, start + 4);
-  const pages: number[] = [];
-  for (let i = start; i <= end; i++) pages.push(i);
-
-  const btn = (label: React.ReactNode, onClick: () => void, active = false, disabled = false) => (
-    <button
-      key={String(label)} type="button" onClick={onClick} disabled={disabled}
-      style={{ minWidth: 30, height: 30, padding: '0 7px', border: `1.5px solid ${active ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 7, background: active ? 'var(--teal)' : 'var(--white)', color: active ? '#fff' : disabled ? 'var(--ink3)' : 'var(--ink)', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.4 : 1, fontSize: 12, fontWeight: active ? 700 : 500, fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-    >{label}</button>
-  );
-
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 20px', borderTop: '1px solid var(--border)', background: 'var(--white)', flexShrink: 0 }}>
-      <span style={{ fontSize: 12, color: 'var(--ink3)', minWidth: 160 }}>
-        {total === 0 ? 'No tickets' : `Showing ${from}–${to} of ${total} ticket${total !== 1 ? 's' : ''}`}
-      </span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        {btn('«', () => setPage(1), false, page === 1)}
-        {btn('‹', () => setPage(page - 1), false, page === 1)}
-        {pages.map(p => btn(p, () => setPage(p), p === page))}
-        {btn('›', () => setPage(page + 1), false, page >= totalPages)}
-        {btn('»', () => setPage(totalPages), false, page >= totalPages)}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 160, justifyContent: 'flex-end' }}>
-        <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Per page:</span>
-        <select title="Tickets per page" value={pageSize}
-          onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
-          style={{ padding: '4px 8px', border: '1.5px solid var(--border)', borderRadius: 7, fontSize: 12, fontFamily: 'var(--font)', background: 'var(--white)', cursor: 'pointer' }}>
-          {PAGE_SIZES.map(n => <option key={n} value={n}>{n}</option>)}
-        </select>
-      </div>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════
-   FULL-WIDTH TICKET LIST (no selection)
-══════════════════════════════════════════ */
-function FullTicketList({ tickets, filter, setFilter, search, setSearch, onSelect, onNew, page, setPage, pageSize, setPageSize }: {
-  tickets: Ticket[];
-  filter: StatusFilter; setFilter: (f: StatusFilter) => void;
-  search: string; setSearch: (s: string) => void;
-  onSelect: (t: Ticket) => void; onNew: () => void;
-  page: number; setPage: (p: number) => void;
-  pageSize: number; setPageSize: (n: number) => void;
-}) {
-  const cnt = (k: StatusFilter) => k === 'all' ? tickets.length : tickets.filter(t => t.status === k).length;
-
-  const filtered = tickets.filter(t => {
-    if (filter !== 'all' && t.status !== filter) return false;
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return t.subject.toLowerCase().includes(q) || t.customer.toLowerCase().includes(q) || t.ref.toLowerCase().includes(q);
-  }).sort(sortTickets);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-  const safePage   = Math.min(page, totalPages);
-  const paged      = filtered.slice((safePage - 1) * pageSize, safePage * pageSize);
-
-  const TABS: { key: StatusFilter; label: string }[] = [
-    { key: 'all', label: 'All' }, { key: 'OPEN', label: 'Open' },
-    { key: 'IN_PROGRESS', label: 'Active' }, { key: 'RESOLVED', label: 'Resolved' },
-    { key: 'CLOSED', label: 'Closed' },
-  ];
-
-  const metrics = [
-    { label: 'Total',    value: tickets.length,              color: 'var(--ink)',  bg: 'var(--bg)'      },
-    { label: 'Open',     value: cnt('OPEN'),                  color: 'var(--red)',  bg: 'var(--red-l)'   },
-    { label: 'Active',   value: cnt('IN_PROGRESS'),           color: 'var(--gold)', bg: 'var(--gold-l)'  },
-    { label: 'Resolved', value: cnt('RESOLVED'),              color: 'var(--green)',bg: 'var(--green-l)' },
-    { label: 'Closed',   value: cnt('CLOSED'),                color: 'var(--ink3)', bg: 'var(--bg)'      },
-  ];
-
-  return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-      {/* Metrics / header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 20px', background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 6 }}>
-          <Icon name="headphones" size={18} strokeWidth={2} style={{ color: 'var(--teal)' } as React.CSSProperties} />
-          <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--navy)' }}>Support</span>
-        </div>
-        {metrics.map(m => (
-          <div key={m.label} style={{ display: 'flex', alignItems: 'baseline', gap: 6, padding: '6px 14px', borderRadius: 9, background: m.bg, border: `1px solid ${m.color}22` }}>
-            <span style={{ fontSize: 20, fontWeight: 800, color: m.color, lineHeight: 1 }}>{m.value}</span>
-            <span style={{ fontSize: 11.5, color: m.color, fontWeight: 600 }}>{m.label}</span>
-          </div>
-        ))}
-        <div style={{ marginLeft: 'auto' }}>
-          <button type="button" onClick={onNew}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', background: 'var(--teal)', border: 'none', borderRadius: 9, cursor: 'pointer', color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)' }}>
-            <Icon name="plus" size={13} strokeWidth={2.5} /> New Ticket
-          </button>
-        </div>
-      </div>
-
-      {/* Filter bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 20px', background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', borderRadius: 8, overflow: 'hidden', border: '1.5px solid var(--border)', flexShrink: 0 }}>
-          {TABS.map((tab, i) => {
-            const active = filter === tab.key;
-            const count  = cnt(tab.key);
-            return (
-              <button key={tab.key} type="button" onClick={() => { setFilter(tab.key); setPage(1); }}
-                style={{ padding: '6px 12px', border: 'none', borderRight: i < TABS.length - 1 ? '1px solid var(--border)' : 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font)', background: active ? 'var(--teal)' : 'var(--white)', color: active ? '#fff' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 5, whiteSpace: 'nowrap' }}>
-                {tab.label}
-                {count > 0 && <span style={{ fontSize: 10, padding: '0 5px', borderRadius: 9, background: active ? 'rgba(255,255,255,0.25)' : 'var(--bg)', color: active ? '#fff' : 'var(--ink3)', fontWeight: 700 }}>{count}</span>}
-              </button>
-            );
-          })}
-        </div>
-        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
-          <Icon name="search" size={13} strokeWidth={1.75} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' } as React.CSSProperties} />
-          <input value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-            placeholder="Search by subject, customer or ref…"
-            style={{ width: '100%', padding: '7px 28px 7px 30px', border: '1.5px solid var(--border)', borderRadius: 9, fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)', boxSizing: 'border-box' as const, outline: 'none' }} />
-          {search && <button type="button" onClick={() => { setSearch(''); setPage(1); }} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 15, padding: 0, lineHeight: 1 }}>×</button>}
-        </div>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: 'var(--ink3)', flexShrink: 0 }}>
-          <Icon name="zap" size={11} strokeWidth={2} /> Unread first
-        </span>
-      </div>
-
-      {/* Ticket rows */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 20px' }}>
-        {paged.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink3)' }}>
-            <Icon name="headphones" size={32} strokeWidth={1.25} style={{ display: 'block', margin: '0 auto 10px', opacity: 0.3 } as React.CSSProperties} />
-            <div style={{ fontSize: 14 }}>No tickets found</div>
-          </div>
-        ) : paged.map(t => <TicketRow key={t.id} ticket={t} onSelect={() => onSelect(t)} />)}
-      </div>
-
-      {/* Pagination */}
-      <PaginationBar page={safePage} totalPages={totalPages} total={filtered.length}
-        pageSize={pageSize} setPage={setPage} setPageSize={setPageSize} />
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════
-   COL 1 — Conversation list (3-col mode)
+   COL 1 — Conversation list
 ══════════════════════════════════════════ */
 const CONV_PAGE_SIZE = 8;
 
-function ConvList({ tickets, selected, onSelect, onBack, onNew, search, setSearch, filter, setFilter }: {
+type InboxFilter = 'inbox' | 'unassigned' | 'closed' | 'all';
+type FilterSel =
+  | { kind: 'fixed'; key: InboxFilter }
+  | { kind: 'group'; id: string }
+  | { kind: 'view'; id: string };
+type ViewMode = 'list' | 'table';
+type SortKey = 'customer' | 'status' | 'assigned_to' | 'group_name' | 'updated_at';
+
+function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateGroup, onCreateView, onDeleteView, isDesktop }: {
   tickets: Ticket[]; selected: Ticket | null;
-  onSelect: (t: Ticket) => void; onBack: () => void; onNew: () => void;
-  search: string; setSearch: (s: string) => void;
-  filter: StatusFilter; setFilter: (f: StatusFilter) => void;
+  onSelect: (t: Ticket) => void; onNew: () => void;
+  groups: SupportGroup[]; views: SupportView[];
+  onCreateGroup: (name: string) => void;
+  onCreateView: (name: string, filters: Record<string, any>) => void;
+  onDeleteView: (id: string) => void;
+  isDesktop?: boolean;
 }) {
   const [convPage, setConvPage] = useState(1);
-  const cnt = (k: StatusFilter) => k === 'all' ? tickets.length : tickets.filter(t => t.status === k).length;
+  const [sel, setSel]           = useState<FilterSel>({ kind: 'fixed', key: 'unassigned' });
+  const [viewMode, setViewMode] = useState<ViewMode>(() => (localStorage.getItem('bliss_tix_view') as ViewMode) || 'list');
+  const [sortKey, setSortKey]   = useState<SortKey>('updated_at');
+  const [sortDir, setSortDir]   = useState<'asc' | 'desc'>('desc');
+  const [newGroupOpen, setNewGroupOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newViewOpen, setNewViewOpen]   = useState(false);
+  const [newViewName, setNewViewName]   = useState('');
+  const [newViewCategory, setNewViewCategory] = useState(CATEGORIES[0]);
+
+  useEffect(() => { localStorage.setItem('bliss_tix_view', viewMode); }, [viewMode]);
+
+  const inboxCount = (k: InboxFilter) => {
+    if (k === 'inbox')      return tickets.filter(t => t.status === 'IN_PROGRESS').length;
+    if (k === 'unassigned') return tickets.filter(t => !t.assigned_to).length;
+    if (k === 'closed')     return tickets.filter(t => t.status === 'CLOSED').length;
+    return tickets.length;
+  };
 
   const visible = tickets.filter(t => {
-    if (filter !== 'all' && t.status !== filter) return false;
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return t.subject.toLowerCase().includes(q) || t.customer.toLowerCase().includes(q) || t.ref.toLowerCase().includes(q);
-  }).sort(sortTickets);
+    if (sel.kind === 'fixed') {
+      return sel.key === 'all'        ? true :
+        sel.key === 'inbox'      ? t.status === 'IN_PROGRESS' :
+        sel.key === 'unassigned' ? !t.assigned_to :
+        t.status === 'CLOSED';
+    }
+    if (sel.kind === 'group') return t.group_id === sel.id;
+    const view = views.find(v => v.id === sel.id);
+    if (!view) return true;
+    const f = view.filters || {};
+    if (f.category && t.category !== f.category) return false;
+    if (f.status && t.status !== f.status) return false;
+    if (f.priority && t.priority !== f.priority) return false;
+    return true;
+  }).sort((a, b) => {
+    if (viewMode !== 'table') return sortTickets(a, b);
+    let av: string, bv: string;
+    switch (sortKey) {
+      case 'customer':     av = a.customer; bv = b.customer; break;
+      case 'status':       av = a.status; bv = b.status; break;
+      case 'assigned_to':  av = a.assigned_to || ''; bv = b.assigned_to || ''; break;
+      case 'group_name':   av = a.group_name || ''; bv = b.group_name || ''; break;
+      default:              av = a.updated_at || a.created_at; bv = b.updated_at || b.created_at;
+    }
+    const cmp = av.localeCompare(bv);
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
 
   const totalConvPages = Math.max(1, Math.ceil(visible.length / CONV_PAGE_SIZE));
   const safePage = Math.min(convPage, totalConvPages);
   const paged = visible.slice((safePage - 1) * CONV_PAGE_SIZE, safePage * CONV_PAGE_SIZE);
 
-  useEffect(() => { setConvPage(1); }, [filter, search]);
+  useEffect(() => { setConvPage(1); }, [sel]);
 
-  const TABS: { key: StatusFilter; label: string }[] = [
-    { key: 'all', label: 'All' }, { key: 'OPEN', label: 'Open' },
-    { key: 'IN_PROGRESS', label: 'Active' }, { key: 'RESOLVED', label: 'Resolved' },
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
+  };
+
+  const INBOX_ITEMS: { key: InboxFilter; label: string; icon: IconName }[] = [
+    { key: 'inbox',      label: 'Your inbox',  icon: 'mail'      },
+    { key: 'unassigned', label: 'Unassigned',  icon: 'users'     },
+    { key: 'closed',     label: 'Closed',      icon: 'checkCircle' },
+    { key: 'all',        label: 'All',         icon: 'list'      },
   ];
 
-  return (
-    <div style={{ width: 300, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border)', background: 'var(--white)', flexShrink: 0, overflow: 'hidden' }}>
+  const activeFilterName = sel.kind === 'fixed' ? INBOX_ITEMS.find(i => i.key === sel.key)?.label :
+    (sel.kind === 'group' ? groups.find(g => g.id === sel.id)?.name : views.find(v => v.id === sel.id)?.name) || 'Inbox';
 
-      {/* Header */}
-      <div style={{ padding: '10px 14px 8px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-          <button type="button" onClick={onBack}
-            style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font)', padding: '2px 0' }}>
-            <Icon name="arrowLeft" size={13} strokeWidth={2.5} /> All Tickets
+  const navContent = (
+    <div className="spt-inbox-nav-pane">
+      <div className="spt-conv-hdr">
+        <span className="spt-conv-title">Inbox</span>
+        <div className="spt-conv-hdr-actions">
+          <button type="button" className="spt-icon-btn spt-icon-btn--primary" title="New ticket" onClick={onNew}>
+            <Icon name="plus" size={14} strokeWidth={2.5} />
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 10.5, padding: '1px 7px', borderRadius: 9, background: 'var(--teal-l)', color: 'var(--teal)', fontWeight: 700 }}>{tickets.length}</span>
-            <button type="button" onClick={onNew} title="New ticket" style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--teal)', border: 'none', borderRadius: 7, cursor: 'pointer', color: '#fff' }}>
-              <Icon name="plus" size={13} strokeWidth={2.5} />
+        </div>
+      </div>
+
+      <div className="spt-nav-scroll">
+        <nav className="spt-inbox-nav">
+          {INBOX_ITEMS.map(item => {
+            const count  = inboxCount(item.key);
+            const active = sel.kind === 'fixed' && sel.key === item.key;
+            return (
+              <button key={item.key} type="button"
+                className={`spt-inbox-item${active ? ' spt-inbox-item--active' : ''}`}
+                onClick={() => setSel({ kind: 'fixed', key: item.key })}>
+                <Icon name={item.icon} size={14} strokeWidth={active ? 2.2 : 1.75} />
+                <span className="spt-inbox-label">{item.label}</span>
+                {count > 0 && <span className={`spt-inbox-count${active ? ' spt-inbox-count--active' : ''}`}>{count}</span>}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="spt-nav-section">
+          <div className="spt-nav-section-hdr">
+            <span>Views</span>
+            <button type="button" className="spt-nav-add" title="New view" onClick={() => setNewViewOpen(o => !o)}>
+              <Icon name="plus" size={11} strokeWidth={2.5} />
             </button>
           </div>
-        </div>
-        <div style={{ position: 'relative' }}>
-          <Icon name="search" size={13} strokeWidth={1.75} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
-            style={{ width: '100%', padding: '6px 26px 6px 28px', border: '1.5px solid var(--border)', borderRadius: 9, fontSize: 12, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--bg)', boxSizing: 'border-box' as const, outline: 'none' }} />
-          {search && <button type="button" onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 14, padding: 0 }}>×</button>}
-        </div>
-      </div>
-
-      {/* Status tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', flexShrink: 0, padding: '0 4px' }}>
-        {TABS.map(tab => {
-          const active = filter === tab.key;
-          const count  = cnt(tab.key);
-          return (
-            <button key={tab.key} type="button" onClick={() => setFilter(tab.key)}
-              style={{ padding: '7px 8px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, fontFamily: 'var(--font)', color: active ? 'var(--teal)' : 'var(--ink3)', borderBottom: active ? '2px solid var(--teal)' : '2px solid transparent', marginBottom: -1, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 4 }}>
-              {tab.label}
-              {count > 0 && <span style={{ fontSize: 10, padding: '0 4px', borderRadius: 9, background: active ? 'var(--teal-l)' : 'var(--bg)', color: active ? 'var(--teal)' : 'var(--ink3)', fontWeight: 700 }}>{count}</span>}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* List */}
-      <div style={{ flex: 1, overflowY: 'auto' }}>
-        {paged.length === 0 && (
-          <div style={{ padding: '36px 16px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No conversations found</div>
-        )}
-        {paged.map(t => {
-          const isSel  = selected?.id === t.id;
-          const priCfg = PRIORITY_CFG[t.priority];
-          const urgHigh= t.priority === 'URGENT' || t.priority === 'HIGH';
-          const lastMsg= t.messages?.[t.messages.length - 1];
-          return (
-            <div key={t.id} onClick={() => onSelect(t)}
-              style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', cursor: 'pointer', background: isSel ? 'var(--teal-l)' : 'var(--white)', borderLeft: `3px solid ${urgHigh ? priCfg.color : isSel ? 'var(--teal)' : 'transparent'}`, transition: 'background 0.1s' }}
-              onMouseEnter={e => { if (!isSel) e.currentTarget.style.background = 'var(--bg)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = isSel ? 'var(--teal-l)' : 'var(--white)'; }}
-            >
-              <div style={{ display: 'flex', gap: 9 }}>
-                <Av name={t.customer} size={32} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: isSel ? 'var(--teal)' : 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 130 }}>{t.customer}</span>
-                    <span style={{ fontSize: 10, color: 'var(--ink3)', flexShrink: 0 }}>{relTime(t.updated_at || t.created_at)}</span>
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 3 }}>{t.subject}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 4 }}>
-                    {lastMsg ? `${lastMsg.author_type === 'OFFICER' ? '↳ ' : ''}${lastMsg.content}` : t.description?.slice(0, 55) ?? '—'}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <SBadge s={t.status} />
-                    {lastMsg?.channel && <ChPill ch={lastMsg.channel as ChannelId} />}
-                    {(t.message_count ?? 0) > 0 && (
-                      <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 3, fontSize: 10, color: 'var(--ink3)' }}>
-                        <Icon name="message" size={10} strokeWidth={1.75} />{t.message_count}
-                      </span>
-                    )}
-                  </div>
-                </div>
+          {newViewOpen && (
+            <div className="spt-nav-new-form">
+              <input className="input-field" placeholder="View name" value={newViewName} onChange={e => setNewViewName(e.target.value)} />
+              <select className="input-field" title="View category" value={newViewCategory} onChange={e => setNewViewCategory(e.target.value)}>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <div className="spt-nav-new-actions">
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNewViewOpen(false)}>Cancel</button>
+                <button type="button" className="btn btn-primary btn-sm" disabled={!newViewName.trim()} onClick={() => {
+                  onCreateView(newViewName.trim(), { category: newViewCategory });
+                  setNewViewName(''); setNewViewOpen(false);
+                }}>Save</button>
               </div>
             </div>
-          );
-        })}
+          )}
+          <nav className="spt-inbox-nav">
+            {views.map(v => {
+              const active = sel.kind === 'view' && sel.id === v.id;
+              return (
+                <button key={v.id} type="button"
+                  className={`spt-inbox-item${active ? ' spt-inbox-item--active' : ''}`}
+                  onClick={() => setSel({ kind: 'view', id: v.id })}>
+                  <Icon name="filter" size={13} strokeWidth={active ? 2.2 : 1.75} />
+                  <span className="spt-inbox-label">{v.name}</span>
+                  <span className="spt-nav-item-remove" onClick={e => { e.stopPropagation(); onDeleteView(v.id); if (active) setSel({ kind: 'fixed', key: 'all' }); }}>
+                    <Icon name="x" size={11} strokeWidth={2} />
+                  </span>
+                </button>
+              );
+            })}
+            {views.length === 0 && !newViewOpen && <div className="spt-nav-empty">No saved views yet</div>}
+          </nav>
+        </div>
+
+        <div className="spt-nav-section">
+          <div className="spt-nav-section-hdr">
+            <span>Groups</span>
+            <button type="button" className="spt-nav-add" title="New group" onClick={() => setNewGroupOpen(o => !o)}>
+              <Icon name="plus" size={11} strokeWidth={2.5} />
+            </button>
+          </div>
+          {newGroupOpen && (
+            <div className="spt-nav-new-form">
+              <input className="input-field" placeholder="Group name" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} />
+              <div className="spt-nav-new-actions">
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNewGroupOpen(false)}>Cancel</button>
+                <button type="button" className="btn btn-primary btn-sm" disabled={!newGroupName.trim()} onClick={() => {
+                  onCreateGroup(newGroupName.trim());
+                  setNewGroupName(''); setNewGroupOpen(false);
+                }}>Save</button>
+              </div>
+            </div>
+          )}
+          <nav className="spt-inbox-nav">
+            {groups.map(g => {
+              const active = sel.kind === 'group' && sel.id === g.id;
+              return (
+                <button key={g.id} type="button"
+                  className={`spt-inbox-item${active ? ' spt-inbox-item--active' : ''}`}
+                  onClick={() => setSel({ kind: 'group', id: g.id })}>
+                  <span className="spt-group-dot" data-color={g.color} />
+                  <span className="spt-inbox-label">{g.name}</span>
+                  {!!g.ticket_count && <span className={`spt-inbox-count${active ? ' spt-inbox-count--active' : ''}`}>{g.ticket_count}</span>}
+                </button>
+              );
+            })}
+            {groups.length === 0 && !newGroupOpen && <div className="spt-nav-empty">No groups yet</div>}
+          </nav>
+        </div>
+      </div>
+    </div>
+  );
+
+  const listContent = (
+    <div className="spt-tix-list-pane">
+      <div className="spt-tix-list-hdr">
+        <span className="spt-tix-list-title">
+          <Icon name={sel.kind === 'fixed' ? 'inbox' : (sel.kind === 'group' ? 'users' : 'filter')} size={16} strokeWidth={2} />
+          {activeFilterName}
+        </span>
+        <div className="spt-view-toggle">
+          <button type="button" title="List view" className={viewMode === 'list' ? 'active' : ''} onClick={() => setViewMode('list')}>
+            <Icon name="menu" size={13} strokeWidth={1.75} />
+          </button>
+          <button type="button" title="Table view" className={viewMode === 'table' ? 'active' : ''} onClick={() => setViewMode('table')}>
+            <Icon name="grid" size={13} strokeWidth={1.75} />
+          </button>
+        </div>
       </div>
 
-      {/* Compact pagination footer */}
+      {viewMode === 'list' ? (
+        <div className="spt-conv-rows">
+          {paged.length === 0 && (
+            <div className="spt-conv-empty">No conversations found</div>
+          )}
+          {paged.map(t => {
+            const isSel   = selected?.id === t.id;
+            const urgHigh = t.priority === 'URGENT' || t.priority === 'HIGH';
+            const lastMsg = t.messages?.[t.messages.length - 1];
+            const preview = lastMsg ? lastMsg.content : (t.description?.slice(0, 60) ?? '');
+            const accentCls = urgHigh
+              ? (t.priority === 'URGENT' ? ' spt-conv-row--urgent' : ' spt-conv-row--high')
+              : '';
+            return (
+              <div key={t.id}
+                className={`spt-conv-row${isSel ? ' spt-conv-row--active' : ''}${accentCls}`}
+                onClick={() => onSelect(t)}>
+                <div className="spt-conv-row-av">
+                  <Av name={t.customer} size={34} />
+                  {t.status === 'OPEN' && <span className="spt-conv-unread-dot" />}
+                </div>
+                <div className="spt-conv-row-body">
+                  <div className="spt-conv-row-top">
+                    <span className="spt-conv-row-name">{t.customer}</span>
+                    <span className="spt-conv-row-time">{relTime(t.updated_at || t.created_at)}</span>
+                  </div>
+                  <div className="spt-conv-row-subject">{t.subject}</div>
+                  <div className="spt-conv-row-preview">{preview}</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="spt-tix-table-wrap">
+          <table className="spt-tix-table">
+            <thead>
+              <tr>
+                <th />
+                <SortTh label="Status"   k="status"      sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortTh label="Customer" k="customer"     sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <th>Summary</th>
+                <SortTh label="Assignee" k="assigned_to"  sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortTh label="Group"    k="group_name"   sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+                <SortTh label="Updated"  k="updated_at"   sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
+              </tr>
+            </thead>
+            <tbody>
+              {paged.length === 0 && (
+                <tr><td colSpan={7} className="spt-conv-empty">No conversations found</td></tr>
+              )}
+              {paged.map(t => {
+                const isSel = selected?.id === t.id;
+                return (
+                  <tr key={t.id} className={isSel ? 'spt-tix-row--active' : ''} onClick={() => onSelect(t)}>
+                    <td><Av name={t.customer} size={26} /></td>
+                    <td><SBadge s={t.status} /></td>
+                    <td className="spt-tix-td-customer">{t.customer}</td>
+                    <td className="spt-tix-td-summary">
+                      {(t.tags || []).slice(0, 2).map(tag => <span key={tag} className="spt-tag spt-tag-sm">{tag}</span>)}
+                      <span className="spt-tix-subject">{t.subject}</span>
+                    </td>
+                    <td>{t.assigned_to || <span className="spt-tix-muted">Unassigned</span>}</td>
+                    <td>{t.group_name
+                      ? <span className="spt-group-pill"><span className="spt-group-dot" data-color={t.group_color || 'teal'} />{t.group_name}</span>
+                      : <span className="spt-tix-muted">—</span>}</td>
+                    <td className="spt-tix-muted">{relTime(t.updated_at || t.created_at)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {totalConvPages > 1 && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 10px', borderTop: '1px solid var(--border)', background: 'var(--white)', flexShrink: 0 }}>
-          <button type="button" disabled={safePage <= 1} onClick={() => setConvPage(p => p - 1)}
-            style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--white)', color: safePage <= 1 ? 'var(--ink3)' : 'var(--ink)', cursor: safePage <= 1 ? 'not-allowed' : 'pointer', opacity: safePage <= 1 ? 0.4 : 1, fontSize: 11, fontWeight: 600, fontFamily: 'var(--font)' }}>
-            <Icon name="arrowLeft" size={11} strokeWidth={2} /> Prev
+        <div className="spt-conv-pager">
+          <button type="button" disabled={safePage <= 1} onClick={() => setConvPage(p => p - 1)} title="Previous page">
+            <Icon name="arrowLeft" size={11} strokeWidth={2} />
           </button>
-          <span style={{ fontSize: 11, color: 'var(--ink3)' }}>
-            {safePage} / {totalConvPages}
-            <span style={{ marginLeft: 4, color: 'var(--ink3)', fontWeight: 400 }}>({visible.length})</span>
-          </span>
-          <button type="button" disabled={safePage >= totalConvPages} onClick={() => setConvPage(p => p + 1)}
-            style={{ display: 'flex', alignItems: 'center', gap: 3, padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--white)', color: safePage >= totalConvPages ? 'var(--ink3)' : 'var(--ink)', cursor: safePage >= totalConvPages ? 'not-allowed' : 'pointer', opacity: safePage >= totalConvPages ? 0.4 : 1, fontSize: 11, fontWeight: 600, fontFamily: 'var(--font)' }}>
-            Next <Icon name="arrowRight" size={11} strokeWidth={2} />
+          <span>{safePage} / {totalConvPages}</span>
+          <button type="button" disabled={safePage >= totalConvPages} onClick={() => setConvPage(p => p + 1)} title="Next page">
+            <Icon name="arrowRight" size={11} strokeWidth={2} />
           </button>
         </div>
       )}
     </div>
+  );
+
+  if (isDesktop) {
+    return (
+      <>
+        <Panel defaultSize={15} minSize={10} maxSize={20} className="spt-inbox-nav-panel">
+          {navContent}
+        </Panel>
+        <PanelResizeHandle className="spt-resize-handle" />
+        <Panel defaultSize={viewMode === 'table' ? 55 : 25} minSize={20} className="spt-conv-list-panel">
+          {listContent}
+        </Panel>
+      </>
+    );
+  }
+
+  return (
+    <div className="spt-conv-list">
+      {navContent}
+      {listContent}
+    </div>
+  );
+}
+
+function SortTh({ label, k, sortKey, sortDir, onSort }: {
+  label: string; k: SortKey; sortKey: SortKey; sortDir: 'asc' | 'desc'; onSort: (k: SortKey) => void;
+}) {
+  const active = sortKey === k;
+  return (
+    <th className={`spt-tix-th${active ? ' spt-tix-th--active' : ''}`} onClick={() => onSort(k)}>
+      {label}
+      {active && <Icon name={sortDir === 'asc' ? 'arrowUp' : 'arrowDown'} size={11} strokeWidth={2} />}
+    </th>
   );
 }
 
 /* ══════════════════════════════════════════
    COL 2 — Comms Hub Thread + Composer
 ══════════════════════════════════════════ */
-function ThreadPanel({ ticket, onStatusChange, authorName, onClose }: {
+function ThreadPanel({ ticket, onStatusChange, authorName, onClose, aiSuggestionToUse }: {
   ticket: Ticket; onStatusChange: (id: string, s: StatusKey) => void;
-  authorName: string; onClose: () => void;
+  authorName: string; onClose: () => void; aiSuggestionToUse?: string;
 }) {
   const [messages, setMessages]   = useState<Message[]>(ticket.messages || []);
   const [sending, setSending]     = useState(false);
-  const [sendCh, setSendCh]       = useState<ChannelId>('inapp');
+  // Multi-channel broadcast — Set of active channels
+  const [broadcastChs, setBroadcastChs] = useState<Set<ChannelId>>(new Set(['inapp'] as ChannelId[]));
+  const [isNote, setIsNote]       = useState(false);
   const [msgFilter, setMsgFilter] = useState<MsgFilter>('all');
   const [compose, setCompose]     = useState('');
   const [emailSubj, setEmailSubj] = useState(`Re: [${ticket.ref}] ${ticket.subject}`);
+  const [broadcastResult, setBroadcastResult] = useState<{ch: string; success: boolean}[]>([]);
   const msgEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMessages(ticket.messages || []);
     setEmailSubj(`Re: [${ticket.ref}] ${ticket.subject}`);
     setCompose('');
-    setSendCh('inapp');
+    setBroadcastChs(new Set(['inapp'] as ChannelId[]));
+    setIsNote(false);
     setMsgFilter('all');
+    setBroadcastResult([]);
   }, [ticket.id]); // eslint-disable-line
 
+  useEffect(() => {
+    if (aiSuggestionToUse) {
+      setCompose(aiSuggestionToUse);
+    }
+  }, [aiSuggestionToUse]);
+
   useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+  const toggleChannel = (ch: ChannelId) => {
+    if (isNote) return;
+    setBroadcastChs(prev => {
+      const next = new Set(prev);
+      if (next.has(ch)) { if (next.size > 1) next.delete(ch); }
+      else next.add(ch);
+      return next;
+    });
+  };
 
   const handleSend = async () => {
     const content = compose.trim();
     if (!content || sending) return;
     setSending(true);
+    setBroadcastResult([]);
     try {
-      await apiFetch(`/v1/shipments/${ticket.id}/messages`, {
-        method: 'POST', body: JSON.stringify({ content, channel: sendCh.toUpperCase() }),
-      });
+      if (isNote) {
+        const res: any = await apiFetch(`/v1/support/tickets/${ticket.id}/messages`, {
+          method: 'POST', body: JSON.stringify({ content, channel: 'NOTE' }),
+        }).catch(() => null);
+        setMessages(prev => [...prev, {
+          id: `local-${Date.now()}`, content, channel: 'note',
+          author_type: 'OFFICER', author_name: authorName, created_at: new Date().toISOString(),
+          ...(res || {}),
+        }]);
+      } else {
+        const channels = Array.from(broadcastChs).map(ch => ch.toUpperCase());
+        const res: any = await apiFetch(`/v1/support/tickets/${ticket.id}/broadcast`, {
+          method: 'POST',
+          body: JSON.stringify({ content, channels, email_subject: emailSubj }),
+        }).catch(() => null);
+
+        if (res?.results) {
+          setBroadcastResult(res.results.map((r: any) => ({ ch: r.channel, success: r.success })));
+        } else {
+          setBroadcastResult(channels.map(ch => ({ ch, success: true })));
+        }
+        // Add merged outbound messages to the thread
+        const newMsgs: Message[] = Array.from(broadcastChs).map((ch, i) => ({
+          id: `local-${Date.now()}-${i}`,
+          content,
+          channel: ch as ChannelId,
+          author_type: 'OFFICER' as const,
+          author_name: authorName,
+          created_at: new Date().toISOString(),
+        }));
+        setMessages(prev => [...prev, ...newMsgs]);
+      }
     } catch { /* silent */ }
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(), content, channel: sendCh,
-      author_name: authorName, author_type: 'OFFICER' as const,
-      created_at: new Date().toISOString(),
-    }]);
     setCompose('');
     setSending(false);
+    setTimeout(() => setBroadcastResult([]), 5000);
   };
 
   const msgCounts: Record<MsgFilter, number> = {
     all:      messages.length,
-    whatsapp: messages.filter(m => m.channel === 'whatsapp').length,
-    email:    messages.filter(m => m.channel === 'email').length,
-    note:     messages.filter(m => m.channel === 'note').length,
+    whatsapp: messages.filter(m => m.channel?.toLowerCase() === 'whatsapp').length,
+    email:    messages.filter(m => m.channel?.toLowerCase() === 'email').length,
+    note:     messages.filter(m => m.channel?.toLowerCase() === 'note').length,
     autosent: 0,
-    sms:      messages.filter(m => m.channel === 'sms').length,
+    sms:      messages.filter(m => m.channel?.toLowerCase() === 'sms').length,
   };
 
   const visible = msgFilter === 'all' ? messages
-    : messages.filter(m => (m.channel || 'inapp') === msgFilter);
+    : messages.filter(m => (m.channel?.toLowerCase() || 'inapp') === msgFilter);
 
-  const chCfg   = CHANNEL_CFG[sendCh];
-  const sCfg    = STATUS_CFG[ticket.status];
-  const smsLeft = 160 - compose.length;
   const canSend = compose.trim().length > 0 && !sending;
 
-  const SEND_TABS: { ch: ChannelId; label: string }[] = [
-    { ch: 'whatsapp', label: 'WhatsApp'      },
-    { ch: 'email',    label: 'Email'         },
-    { ch: 'note',     label: 'Internal Note' },
-    { ch: 'inapp',    label: 'WeChat'        },
-    { ch: 'sms',      label: 'SMS'           },
+  const BROADCAST_CHANNELS: { ch: ChannelId; label: string; color: string; activeBg: string; icon: string }[] = [
+    { ch: 'whatsapp', label: 'WhatsApp', color: '#25d366', activeBg: '#f0fdf4', icon: '💬' },
+    { ch: 'email',    label: 'Email',    color: '#2563eb', activeBg: '#eff6ff', icon: '✉' },
+    { ch: 'sms',      label: 'SMS',      color: '#7c3aed', activeBg: '#f5f3ff', icon: '📱' },
+    { ch: 'inapp',    label: 'In-App',   color: 'var(--teal)', activeBg: 'var(--teal-l)', icon: '🔔' },
   ];
 
-  return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)', minWidth: 0 }}>
 
-      {/* ── Comms Hub header ── */}
-      <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', background: 'var(--white)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-        <span style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--navy)' }}>Comms Hub</span>
-        <span style={{ fontSize: 13, color: 'var(--ink3)', margin: '0 2px' }}>—</span>
-        <span style={{ fontFamily: 'var(--mono)', fontSize: 12.5, color: 'var(--teal)', fontWeight: 700, letterSpacing: '0.04em' }}>{ticket.ref}</span>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 7, alignItems: 'center' }}>
-          <select title="Status" value={ticket.status} onChange={e => onStatusChange(ticket.id, e.target.value as StatusKey)}
-            style={{ padding: '4px 8px', border: `1.5px solid ${sCfg.color}55`, borderRadius: 7, fontSize: 11.5, fontFamily: 'var(--font)', color: sCfg.color, background: sCfg.bg, fontWeight: 700, cursor: 'pointer' }}>
+  return (
+    <div className="spt-thread">
+
+      {/* ── Thread header — matches TicketGo layout ── */}
+      <div className="spt-thread-hdr">
+        <div className="spt-thread-hdr-left">
+          <Icon name="message" size={14} strokeWidth={1.75} />
+          <span className="spt-thread-customer">{ticket.customer}</span>
+          <span className="spt-thread-ref">{ticket.ref}</span>
+        </div>
+        <div className="spt-thread-hdr-right">
+          <select title="Status" value={ticket.status}
+            className={`spt-status-select spt-status-select--${ticket.status.toLowerCase().replace('_', '-')}`}
+            onChange={e => onStatusChange(ticket.id, e.target.value as StatusKey)}>
             <option value="OPEN">Open</option>
             <option value="IN_PROGRESS">In Progress</option>
             <option value="RESOLVED">Resolved</option>
             <option value="CLOSED">Closed</option>
           </select>
-          <button type="button"
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', border: '1px solid var(--border)', borderRadius: 7, background: 'var(--white)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink2)' }}>
-            <Icon name="users" size={12} strokeWidth={2} /> Participants
+          <button type="button" className="spt-icon-btn" title="More options">
+            <Icon name="moreVertical" size={15} strokeWidth={1.75} />
           </button>
-          <button type="button"
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', border: '1px solid var(--border)', borderRadius: 7, background: 'var(--white)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink2)' }}>
-            <Icon name="zap" size={12} strokeWidth={2} /> Rules
+          <button type="button" className="spt-icon-btn" title="Label conversation">
+            <Icon name="tag" size={14} strokeWidth={1.75} />
           </button>
-          <button type="button"
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 13px', border: 'none', borderRadius: 7, background: 'var(--navy)', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font)', color: '#fff' }}>
-            <Icon name="plus" size={12} strokeWidth={2.5} /> Compose
-          </button>
-          <button type="button" onClick={onClose} title="Close"
-            style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: '1px solid var(--border)', borderRadius: 7, cursor: 'pointer', color: 'var(--ink3)', flexShrink: 0 }}>
-            <Icon name="x" size={14} strokeWidth={2} />
+          <button type="button" className="spt-close-btn" onClick={onClose}>
+            <Icon name="x" size={13} strokeWidth={2.5} />
+            Close
           </button>
         </div>
       </div>
 
       {/* ── Channel filter tabs ── */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--white)', padding: '0 16px', flexShrink: 0, overflowX: 'auto' }}>
+      <div className="spt-ch-tabs">
         {MSG_TABS.map(tab => {
           const count  = msgCounts[tab.key];
           const active = msgFilter === tab.key;
           return (
-            <button key={tab.key} type="button" onClick={() => setMsgFilter(tab.key)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 13px', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 12.5, fontWeight: active ? 700 : 500, color: active ? tab.color : 'var(--ink3)', borderBottom: active ? `2px solid ${tab.color}` : '2px solid transparent', marginBottom: -1, whiteSpace: 'nowrap', flexShrink: 0 }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: count > 0 || active ? tab.color : 'var(--border)', opacity: active ? 1 : 0.55, flexShrink: 0 }} />
+            <button key={tab.key} type="button"
+              className={`spt-ch-tab${active ? ' spt-ch-tab--active' : ''}`}
+              onClick={() => setMsgFilter(tab.key)}>
+              <span className="spt-ch-dot" />
               {tab.label}
-              <span style={{ fontSize: 11, fontWeight: 700, color: active ? tab.color : 'var(--ink3)' }}>{count}</span>
+              <span className="spt-ch-count">{count}</span>
             </button>
           );
         })}
       </div>
 
       {/* ── Message thread ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 22px', display: 'flex', flexDirection: 'column' }}>
-
-        {/* System event: case opened */}
-        <div style={{ textAlign: 'center', marginBottom: 14 }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 14px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 20, fontSize: 11.5, color: 'var(--ink3)' }}>
+      <div className="spt-msgs">
+        <div className="spt-sys-event">
+          <span className="spt-sys-pill">
             <Icon name="fileText" size={11} strokeWidth={2} />
-            Case <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--teal)', margin: '0 2px' }}>{ticket.ref}</span> opened · {relTime(ticket.created_at)}
+            Case <span className="spt-mono">{ticket.ref}</span> opened · {relTime(ticket.created_at)}
           </span>
         </div>
         {ticket.description && (
-          <div style={{ textAlign: 'center', marginBottom: 14 }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 14px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 20, fontSize: 11.5, color: 'var(--ink3)' }}>
+          <div className="spt-sys-event">
+            <span className="spt-sys-pill">
               <Icon name="paperclip" size={11} strokeWidth={2} />
               {ticket.description.slice(0, 70)}
             </span>
@@ -600,70 +654,58 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose }: {
         )}
 
         {visible.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--ink3)' }}>
-            <Icon name="message" size={28} strokeWidth={1.25} style={{ display: 'block', margin: '0 auto 8px', opacity: 0.3 } as React.CSSProperties} />
-            <div style={{ fontSize: 13 }}>No messages — use the composer below</div>
+          <div className="spt-msgs-empty">
+            <Icon name="message" size={28} strokeWidth={1.25} />
+            <div>No messages — use the composer below</div>
           </div>
         )}
 
         {visible.map((m, idx) => {
-          const ch     = (m.channel || 'inapp') as ChannelId;
+          const ch     = (m.channel?.toLowerCase() || 'inapp') as ChannelId;
           const isNote = ch === 'note';
           const isOff  = m.author_type === 'OFFICER';
-
-          /* date separator */
-          const prev     = visible[idx - 1];
-          const mDate    = new Date(m.created_at);
-          const pDate    = prev ? new Date(prev.created_at) : null;
+          const prev   = visible[idx - 1];
+          const mDate  = new Date(m.created_at);
+          const pDate  = prev ? new Date(prev.created_at) : null;
           const showDate = !pDate || mDate.toDateString() !== pDate.toDateString();
-          const dateLbl  = mDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
-          const timeLbl  = mDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+          const dateLbl = mDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+          const timeLbl = mDate.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 
           return (
             <React.Fragment key={m.id}>
               {showDate && (
-                <div style={{ textAlign: 'center', margin: '8px 0 16px' }}>
-                  <span style={{ fontSize: 11, color: 'var(--ink3)', letterSpacing: '0.02em' }}>{dateLbl}</span>
-                </div>
+                <div className="spt-date-sep"><span>{dateLbl}</span></div>
               )}
 
               {isNote ? (
-                /* ── Internal Note card ── */
-                <div style={{ marginBottom: 18 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 7 }}>
+                <div className="spt-note">
+                  <div className="spt-note-meta">
                     <Av name={m.author_name} size={30} />
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{m.author_name}</span>
-                    <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{timeLbl}</span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', background: '#fef9c3', border: '1px solid #fde04788', borderRadius: 6, fontSize: 10.5, fontWeight: 700, color: '#92400e' }}>
-                      🔒 Internal
-                    </span>
+                    <span className="spt-note-author">{m.author_name}</span>
+                    <span className="spt-note-time">{timeLbl}</span>
+                    <span className="spt-note-badge">🔒 Internal</span>
                   </div>
-                  <div style={{ marginLeft: 39, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.05)' }}>
-                    <div style={{ padding: '7px 14px', background: '#fefce8', borderBottom: '1px solid #fde04766' }}>
-                      <span style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--teal)', textTransform: 'uppercase' as const, letterSpacing: '0.07em' }}>INTERNAL NOTE</span>
-                    </div>
-                    <div style={{ padding: '11px 14px', fontSize: 13, color: 'var(--ink)', lineHeight: 1.65 }}>{m.content}</div>
-                    <div style={{ padding: '6px 14px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{timeLbl}</span>
-                      <span style={{ fontSize: 11, color: 'var(--ink3)' }}>·</span>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: '#92400e' }}>🔒 Internal · not visible to customer</span>
+                  <div className="spt-note-card">
+                    <div className="spt-note-card-hdr">INTERNAL NOTE</div>
+                    <div className="spt-note-card-body">{m.content}</div>
+                    <div className="spt-note-card-ft">
+                      <span>{timeLbl}</span>
+                      <span>·</span>
+                      <span>🔒 Internal · not visible to customer</span>
                     </div>
                   </div>
                 </div>
               ) : (
-                /* ── Regular message bubble ── */
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: isOff ? 'flex-end' : 'flex-start', marginBottom: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, flexDirection: isOff ? 'row-reverse' : 'row', maxWidth: '78%' }}>
+                <div className={`spt-msg${isOff ? ' spt-msg--officer' : ' spt-msg--customer'}`}>
+                  <div className="spt-msg-inner">
                     <Av name={m.author_name} size={28} />
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexDirection: isOff ? 'row-reverse' : 'row' }}>
-                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>{m.author_name}</span>
-                        <span style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{timeLbl}</span>
+                    <div className="spt-msg-content">
+                      <div className="spt-msg-meta">
+                        <span className="spt-msg-author">{m.author_name}</span>
+                        <span className="spt-msg-time">{timeLbl}</span>
                         <ChPill ch={ch} />
                       </div>
-                      <div style={{ padding: '9px 14px', borderRadius: isOff ? '12px 2px 12px 12px' : '2px 12px 12px 12px', background: isOff ? 'var(--navy)' : 'var(--white)', color: isOff ? '#fff' : 'var(--ink)', fontSize: 13, lineHeight: 1.6, border: isOff ? 'none' : '1px solid var(--border)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                        {m.content}
-                      </div>
+                      <div className="spt-bubble">{m.content}</div>
                     </div>
                   </div>
                 </div>
@@ -675,83 +717,111 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose }: {
       </div>
 
       {/* ── Composer ── */}
-      <div style={{ borderTop: '1px solid var(--border)', background: 'var(--white)', flexShrink: 0 }}>
+      <div className="spt-composer">
 
-        {/* Send via pills */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 0, padding: '8px 14px', borderBottom: '1px solid var(--border)' }}>
-          <span style={{ fontSize: 11.5, color: 'var(--ink3)', fontWeight: 600, marginRight: 10, flexShrink: 0 }}>Send via:</span>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {SEND_TABS.map(({ ch, label }) => {
-              const c      = CHANNEL_CFG[ch];
-              const active = sendCh === ch;
+        {/* Broadcast success toast */}
+        {broadcastResult.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, padding: '6px 12px', background: '#f0fdf4', borderBottom: '1px solid #86efac', flexWrap: 'wrap' }}>
+            {broadcastResult.map(r => (
+              <span key={r.ch} style={{ fontSize: 10, fontWeight: 700, color: r.success ? '#10b981' : '#ef4444', background: r.success ? '#dcfce7' : '#fee2e2', padding: '2px 8px', borderRadius: 10 }}>
+                {r.success ? '✓' : '✗'} {r.ch}
+              </span>
+            ))}
+            <span style={{ fontSize: 10, color: '#10b981', fontWeight: 600, marginLeft: 4 }}>Sent!</span>
+          </div>
+        )}
+
+        {/* Broadcast channel toggles */}
+        <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', flexShrink: 0 }}>Broadcast to:</span>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
+            {BROADCAST_CHANNELS.map(({ ch, label, color, activeBg, icon }) => {
+              const active = !isNote && broadcastChs.has(ch);
               return (
-                <button key={ch} type="button" onClick={() => setSendCh(ch)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 12px', border: `1.5px solid ${active ? c.color : 'var(--border)'}`, borderRadius: 20, cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font)', background: active ? c.bg : 'var(--white)', color: active ? c.color : 'var(--ink3)', whiteSpace: 'nowrap', transition: 'all 0.12s' }}>
-                  <Icon name={c.icon} size={11} strokeWidth={2} />{label}
+                <button key={ch} type="button"
+                  onClick={() => { setIsNote(false); toggleChannel(ch); }}
+                  title={`Toggle ${label} broadcast`}
+                  style={{
+                    padding: '5px 10px', borderRadius: 8, border: `1.5px solid ${active ? color : 'var(--border)'}`,
+                    background: active ? activeBg : 'var(--white)', color: active ? color : 'var(--ink3)',
+                    fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 5, transition: 'all 0.15s',
+                  }}>
+                  <span>{icon}</span>
+                  {label}
+                  {active && <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />}
                 </button>
               );
             })}
           </div>
+          <button type="button"
+            onClick={() => { setIsNote(n => !n); setBroadcastChs(new Set()); }}
+            style={{
+              padding: '5px 10px', borderRadius: 8, border: `1.5px solid ${isNote ? '#92400e' : 'var(--border)'}`,
+              background: isNote ? '#fefce8' : 'var(--white)', color: isNote ? '#92400e' : 'var(--ink3)',
+              fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 5,
+            }}>
+            🔒 Internal Note
+          </button>
         </div>
 
-        {/* To: recipient chip row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderBottom: '1px solid var(--border)', minHeight: 34 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', flexShrink: 0 }}>To:</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px 3px 6px', background: 'var(--teal-l)', border: '1px solid var(--teal)', borderRadius: 20, fontSize: 12, color: 'var(--teal)', fontWeight: 600 }}>
+        {/* To: row */}
+        <div className="spt-to-row">
+          <span className="spt-to-label">To:</span>
+          <div className="spt-to-chips">
+            <span className="spt-to-chip">
               <Av name={ticket.customer} size={18} />
               {ticket.customer}{ticket.customer_phone ? ` (${ticket.customer_phone})` : ''}
-              <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', padding: '0 0 0 2px', fontSize: 14, lineHeight: 1, display: 'flex', alignItems: 'center' }}>×</button>
+              <button type="button" className="spt-to-chip-rm" title="Remove recipient">×</button>
             </span>
-            <button type="button" style={{ fontSize: 12, color: 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', fontWeight: 600 }}>+ Add</button>
+            <button type="button" className="spt-to-add">+ Add</button>
           </div>
         </div>
 
-        {/* Subject line (email only) */}
-        {sendCh === 'email' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 14px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', flexShrink: 0, width: 52 }}>Subject:</span>
-            <input value={emailSubj} onChange={e => setEmailSubj(e.target.value)}
-              style={{ flex: 1, padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12.5, fontFamily: 'var(--font)', color: 'var(--ink)', outline: 'none' }} />
+        {/* Subject line (email in broadcast) */}
+        {!isNote && broadcastChs.has('email') && (
+          <div className="spt-subject-row">
+            <span className="spt-subject-label">Subject:</span>
+            <input className="spt-subject-input" value={emailSubj} title="Email subject"
+              onChange={e => setEmailSubj(e.target.value)} placeholder="Email subject" />
           </div>
         )}
 
         {/* Textarea */}
-        <div style={{ padding: '10px 14px 4px' }}>
-          {sendCh === 'note' && (
-            <div style={{ fontSize: 11, color: '#92400e', fontWeight: 600, marginBottom: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
+        <div className="spt-compose-area">
+          {isNote && (
+            <div className="spt-note-warning">
               <span>🔒</span> Internal note — not visible to customer
             </div>
           )}
           <textarea rows={3} value={compose}
-            onChange={e => setCompose(sendCh === 'sms' ? e.target.value.slice(0, 160) : e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && sendCh !== 'email') { e.preventDefault(); handleSend(); } }}
-            placeholder={sendCh === 'note' ? 'Write an internal note…' : sendCh === 'email' ? 'Compose email body…' : sendCh === 'whatsapp' ? 'WhatsApp message…' : sendCh === 'sms' ? 'SMS (160 chars)…' : 'Type a message…'}
-            style={{ width: '100%', resize: 'none', padding: '6px 0', border: 'none', borderTop: `1.5px solid ${sendCh !== 'inapp' ? chCfg.border + '55' : 'var(--border)'}`, fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)', lineHeight: 1.6, background: sendCh === 'note' ? '#fefce8' : 'transparent', boxSizing: 'border-box' as const, outline: 'none' }} />
+            className={`spt-compose-ta${isNote ? ' spt-compose-ta--note' : ''}`}
+            onChange={e => setCompose(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !isNote) { e.preventDefault(); handleSend(); } }}
+            placeholder={isNote ? 'Write an internal note…' : broadcastChs.size > 1 ? `Broadcast to ${broadcastChs.size} channels…` : 'Type a message…'}
+          />
         </div>
 
         {/* Toolbar + Send */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 14px 10px' }}>
-          <div style={{ display: 'flex', gap: 1 }}>
+        <div className="spt-toolbar">
+          <div className="spt-toolbar-icons">
             {(['paperclip', 'slash', 'bold', 'smile', 'clock', 'link'] as IconName[]).map(icon => (
-              <button key={icon} type="button"
-                style={{ width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', border: 'none', background: 'none', cursor: 'pointer', borderRadius: 5, color: 'var(--ink3)' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+              <button key={icon} type="button" className="spt-toolbar-btn" title={icon}>
                 <Icon name={icon} size={14} strokeWidth={1.75} />
               </button>
             ))}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {sendCh === 'sms' && (
-              <span style={{ fontSize: 11, color: smsLeft < 20 ? 'var(--red)' : 'var(--ink3)', fontWeight: 600 }}>{smsLeft}</span>
+          <div className="spt-toolbar-right">
+            {!isNote && broadcastChs.size > 1 && (
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 8px', borderRadius: 8 }}>
+                📡 Broadcast × {broadcastChs.size}
+              </span>
             )}
-            <span style={{ fontSize: 11.5, color: 'var(--ink3)', fontWeight: 600 }}>
-              {sendCh === 'note' ? '🔒 Note' : sendCh === 'email' ? 'Email' : sendCh === 'whatsapp' ? 'WhatsApp' : sendCh === 'sms' ? 'SMS' : 'WeChat'}
-            </span>
-            <button type="button" onClick={handleSend} disabled={!canSend}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 20px', border: 'none', borderRadius: 9, background: canSend ? (sendCh === 'note' ? '#92400e' : chCfg.color) : 'var(--border)', color: canSend ? '#fff' : 'var(--ink3)', cursor: canSend ? 'pointer' : 'not-allowed', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13.5, transition: 'background 0.12s' }}>
-              {sending ? 'Sending…' : 'Send'} {!sending && <Icon name="arrowUp" size={13} strokeWidth={2.5} />}
+            <button type="button"
+              className={`spt-send-btn${canSend ? ' spt-send-btn--whatsapp' : ' spt-send-btn--disabled'}`}
+              onClick={handleSend} disabled={!canSend} title="Send message">
+              {sending ? 'Sending…' : isNote ? '💾 Save Note' : broadcastChs.size > 1 ? `📡 Send to ${broadcastChs.size}` : 'Send ↑'}
             </button>
           </div>
         </div>
@@ -760,167 +830,142 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose }: {
   );
 }
 
+
 /* ══════════════════════════════════════════
-   COL 3 — Channel Status Panel
+   COL 3 — Details Panel (TicketGo-style)
 ══════════════════════════════════════════ */
-function ChannelStatusPanel({ ticket }: { ticket: Ticket }) {
-  const navigate = useNavigate();
+function AccordionSection({ title, defaultOpen = true, children }: { title: string; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="spt-detail-section">
+      <button type="button" className="spt-detail-section-hdr" onClick={() => setOpen(o => !o)}>
+        <span>{title}</span>
+        <Icon name={open ? 'chevronUp' : 'chevronDown'} size={13} strokeWidth={2} />
+      </button>
+      {open && <div className="spt-detail-section-body">{children}</div>}
+    </div>
+  );
+}
+
+function DetailsPanel({ ticket }: { ticket: Ticket }) {
   const [rules, setRules] = useState({
-    dailyStatusWa:    true,
-    dailyStatusEmail: true,
-    missingDoc:       true,
-    demurrageAlert:   true,
-    stageAdvance:     true,
-    paymentRequest:   false,
+    dailyStatusWa: true, dailyStatusEmail: true, missingDoc: true,
+    demurrageAlert: true, stageAdvance: true, paymentRequest: false,
   });
 
-  const totalMsgs  = ticket.message_count ?? (ticket.messages?.length ?? 0);
-  const emailMsgs  = ticket.messages?.filter(m => m.channel === 'email').length  ?? 0;
-  const noteMsgs   = ticket.messages?.filter(m => m.channel === 'note').length   ?? 0;
-  const waMsgs     = ticket.messages?.filter(m => m.channel === 'whatsapp').length ?? 0;
-  const custSlug   = ticket.customer.toLowerCase().replace(/\s+/g, '');
-
   const RULE_LIST = [
-    { key: 'dailyStatusWa',    dot: '#15803d', label: 'Daily status update (08:00 EAT) → WhatsApp' },
-    { key: 'dailyStatusEmail', dot: '#2563eb', label: 'Daily status update → Email (CC)'            },
-    { key: 'missingDoc',       dot: '#d97706', label: 'Missing doc reminder (24h, max 3)'           },
-    { key: 'demurrageAlert',   dot: '#dc2626', label: 'Demurrage alert → WhatsApp + Email'          },
-    { key: 'stageAdvance',     dot: '#15803d', label: 'Stage advance notification'                  },
-    { key: 'paymentRequest',   dot: '#6b7280', label: 'Payment confirmation request'                },
+    { key: 'dailyStatusWa',    dot: '#15803d', label: 'Daily status → WhatsApp'   },
+    { key: 'dailyStatusEmail', dot: '#2563eb', label: 'Daily status → Email'       },
+    { key: 'missingDoc',       dot: '#d97706', label: 'Missing doc reminder (24h)' },
+    { key: 'demurrageAlert',   dot: '#dc2626', label: 'Demurrage alert'            },
+    { key: 'stageAdvance',     dot: '#15803d', label: 'Stage advance notification' },
+    { key: 'paymentRequest',   dot: '#6b7280', label: 'Payment confirmation'       },
   ] as const;
 
-  const WA_MEMBERS = [
-    { name: ticket.customer,                 role: 'Customer' },
-    { name: ticket.assigned_to || 'Officer', role: 'Officer'  },
-    { name: 'Finance Officer',               role: 'Finance'  },
-    { name: 'ClearOS Bot',                   role: 'Auto'     },
-  ];
-
   return (
-    <div style={{ width: 292, display: 'flex', flexDirection: 'column', borderLeft: '1px solid var(--border)', background: 'var(--white)', flexShrink: 0, overflow: 'hidden' }}>
+    <div className="spt-details">
 
       {/* Header */}
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--navy)' }}>Channel Status</div>
+      <div className="spt-details-hdr">
+        <span className="spt-details-title">Details</span>
+        <button type="button" className="spt-icon-btn" title="Expand">
+          <Icon name="maximize" size={13} strokeWidth={1.75} />
+        </button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto' }}>
+      <div className="spt-details-scroll">
 
-        {/* Total messages */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
-          <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Messages this case</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{totalMsgs} msgs</span>
-        </div>
-
-        {/* Email */}
-        <div style={{ padding: '13px 16px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 8, background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Icon name="mail" size={14} color="#2563eb" strokeWidth={2} />
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', flex: 1 }}>Email</span>
-            <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>● Connected</span>
-          </div>
-          <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 8 }}>
-            SMTP · ops@{custSlug}.co.tz (primary)<br />
-            cc: finance@{custSlug}.co.tz
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--ink3)' }}>
-            <span>Messages this case</span>
-            <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{emailMsgs} emails</span>
+        {/* Contact card */}
+        <div className="spt-contact-card">
+          <Av name={ticket.customer} size={40} />
+          <div className="spt-contact-info">
+            <div className="spt-contact-name">{ticket.customer}</div>
+            {ticket.customer_email && <div className="spt-contact-meta">{ticket.customer_email}</div>}
+            {ticket.customer_company && <div className="spt-contact-meta">{ticket.customer_company}</div>}
+            {ticket.customer_phone && <div className="spt-contact-meta">{ticket.customer_phone}</div>}
           </div>
         </div>
 
-        {/* Internal Notes */}
-        <div style={{ padding: '13px 16px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 8, background: '#fef9c3', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Icon name="fileText" size={14} color="#92400e" strokeWidth={2} />
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', flex: 1 }}>Internal Notes</span>
-            <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>● Active</span>
+        {/* Assignee / Status rows */}
+        <div className="spt-detail-rows">
+          <div className="spt-detail-row">
+            <span className="spt-detail-row-label">Assignee</span>
+            <span className="spt-detail-row-val">
+              {ticket.assigned_to ? (
+                <span className="spt-detail-assignee">
+                  <Av name={ticket.assigned_to} size={18} />{ticket.assigned_to}
+                </span>
+              ) : (
+                <span className="spt-detail-unassigned">
+                  <Icon name="user" size={13} strokeWidth={1.75} /> Unassigned
+                </span>
+              )}
+            </span>
           </div>
-          <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 8 }}>
-            Visible to officers and managers only.<br />Never sent to customer.
+          <div className="spt-detail-row">
+            <span className="spt-detail-row-label">Status</span>
+            <span className="spt-detail-row-val">
+              <SBadge s={ticket.status} />
+            </span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--ink3)' }}>
-            <span>Notes this case</span>
-            <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{noteMsgs} notes</span>
-          </div>
-        </div>
-
-        {/* WhatsApp */}
-        <div style={{ padding: '13px 16px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-            <div style={{ width: 30, height: 30, borderRadius: 8, background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Icon name="chatBubble" size={14} color="#15803d" strokeWidth={2} />
-            </div>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', flex: 1 }}>WhatsApp</span>
-            {waMsgs > 0
-              ? <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>● Active</span>
-              : <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: 'var(--bg)', color: 'var(--ink3)', border: '1px solid var(--border)' }}>○ Not configured</span>
-            }
-          </div>
-          <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 8 }}>
-            {waMsgs > 0
-              ? `Linked to ${ticket.customer_phone || ticket.customer}.`
-              : 'Customer has not linked a WhatsApp ID. Activate in customer settings.'}
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--ink3)' }}>
-            <span>Messages this case</span>
-            <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{waMsgs}</span>
+          <div className="spt-detail-row">
+            <span className="spt-detail-row-label">Priority</span>
+            <span className="spt-detail-row-val"><PBadge p={ticket.priority} /></span>
           </div>
         </div>
 
-        {/* Related shipments (compact) */}
-        {(ticket.related_shipments?.length ?? 0) > 0 && (
-          <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 7 }}>Related Shipments</div>
-            {ticket.related_shipments!.map(ref => (
-              <button key={ref} type="button" onClick={() => navigate(`/shipments?search=${ref}`)}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px', marginBottom: 4, border: '1px solid var(--border)', borderRadius: 7, background: 'var(--bg)', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' }}>
-                <Icon name="package" size={12} strokeWidth={1.75} style={{ color: 'var(--teal)', flexShrink: 0 } as React.CSSProperties} />
-                <span style={{ fontSize: 12, fontFamily: 'var(--mono)', color: 'var(--teal)', fontWeight: 700, flex: 1 }}>{ref}</span>
-                <Icon name="externalLink" size={11} strokeWidth={1.75} style={{ color: 'var(--ink3)', flexShrink: 0 } as React.CSSProperties} />
-              </button>
+        {/* Tags */}
+        {(ticket.tags?.length ?? 0) > 0 && (
+          <div className="spt-tags-row">
+            {ticket.tags!.map(tag => (
+              <span key={tag} className="spt-tag">{tag}</span>
             ))}
           </div>
         )}
 
-        {/* Auto-notification rules */}
-        <div style={{ borderBottom: '1px solid var(--border)' }}>
-          <div style={{ padding: '8px 16px 5px', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' as const, letterSpacing: '0.09em' }}>
-            Auto-notification Rules
+        {/* Conversation attributes */}
+        <AccordionSection title="Conversation attributes">
+          <div className="spt-attr-grid">
+            <span className="spt-attr-key">Ref</span>
+            <span className="spt-attr-val spt-mono">{ticket.ref}</span>
+            <span className="spt-attr-key">Category</span>
+            <span className="spt-attr-val">{ticket.category}</span>
+            <span className="spt-attr-key">Started</span>
+            <span className="spt-attr-val">{relTime(ticket.created_at)}</span>
+            <span className="spt-attr-key">Last activity</span>
+            <span className="spt-attr-val">{relTime(ticket.updated_at || ticket.created_at)}</span>
           </div>
+        </AccordionSection>
+
+        {/* Related shipments */}
+        {(ticket.related_shipments?.length ?? 0) > 0 && (
+          <AccordionSection title="Related shipments">
+            {ticket.related_shipments!.map(ref => (
+              <Link key={ref} className="spt-shipment-btn"
+                to={`/shipments?search=${ref}`}>
+                <Icon name="package" size={12} strokeWidth={1.75} />
+                <span className="spt-mono">{ref}</span>
+                <Icon name="externalLink" size={11} strokeWidth={1.75} />
+              </Link>
+            ))}
+          </AccordionSection>
+        )}
+
+        {/* Auto-notification rules */}
+        <AccordionSection title="Auto-notifications" defaultOpen={false}>
           {RULE_LIST.map(r => (
-            <div key={r.key} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 16px', borderTop: '1px solid var(--border)' }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: r.dot, flexShrink: 0 }} />
-              <span style={{ flex: 1, fontSize: 11.5, color: 'var(--ink2)', lineHeight: 1.45 }}>{r.label}</span>
-              <button type="button"
-                onClick={() => setRules(p => ({ ...p, [r.key]: !p[r.key] }))}
-                style={{ width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer', background: rules[r.key] ? 'var(--teal)' : 'var(--border)', position: 'relative', flexShrink: 0, transition: 'background 0.18s' }}>
-                <span style={{ position: 'absolute', top: 2, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.18s', left: rules[r.key] ? 18 : 2 }} />
+            <div key={r.key} className="spt-rule-row">
+              <span className="spt-rule-dot" data-rule={r.key} />
+              <span className="spt-rule-label">{r.label}</span>
+              <button type="button" className="spt-toggle" title={rules[r.key] ? 'Disable' : 'Enable'}
+                data-on={rules[r.key] ? 'true' : undefined}
+                onClick={() => setRules(p => ({ ...p, [r.key]: !p[r.key] }))}>
+                <span className="spt-toggle-knob" />
+                <span className="spt-toggle-dot" />
               </button>
             </div>
           ))}
-        </div>
-
-        {/* WA Group Members */}
-        <div>
-          <div style={{ padding: '8px 16px 5px', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' as const, letterSpacing: '0.09em' }}>
-            WA Group Members
-          </div>
-          <div style={{ padding: '5px 16px 5px', background: 'var(--bg)', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.06em', textTransform: 'uppercase' as const }}>
-            DI-OPERATIONS-GROUP
-          </div>
-          {WA_MEMBERS.map(m => (
-            <div key={m.name} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 16px', borderTop: '1px solid var(--border)' }}>
-              <Av name={m.name} size={26} />
-              <span style={{ flex: 1, fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{m.name}</span>
-              <span style={{ fontSize: 10.5, color: 'var(--ink3)', flexShrink: 0 }}>{m.role}</span>
-            </div>
-          ))}
-        </div>
+        </AccordionSection>
 
       </div>
     </div>
@@ -934,16 +979,31 @@ export const Support: React.FC = () => {
   const { user } = useAuth();
   const [tickets, setTickets]   = useState<Ticket[]>([]);
   const [selected, setSelected] = useState<Ticket | null>(null);
+  const [aiSuggestionToUse, setAiSuggestionToUse] = useState('');
   const [custMap, setCustMap]   = useState<Map<string, SysCustomer>>(new Map());
   const [loading, setLoading]   = useState(true);
-  const [search, setSearch]     = useState('');
-  const [filter, setFilter]     = useState<StatusFilter>('all');
-  const [page, setPage]         = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [showCreate, setShowCreate] = useState(false);
   const [newForm, setNewForm]   = useState({ subject: '', customer: '', customer_id: '', category: '', priority: 'MEDIUM', description: '' });
+  const [groups, setGroups]     = useState<SupportGroup[]>([]);
+  const [views, setViews]       = useState<SupportView[]>([]);
 
-  useEffect(() => { setPage(1); }, [filter, search]);
+  const loadGroups = useCallback(() => {
+    apiFetch('/v1/support/groups').then((r: any) => setGroups(r || [])).catch(() => {});
+  }, []);
+  const loadViews = useCallback(() => {
+    apiFetch('/v1/support/views').then((r: any) => setViews(r || [])).catch(() => {});
+  }, []);
+  useEffect(() => { loadGroups(); loadViews(); }, [loadGroups, loadViews]);
+
+  const createGroup = useCallback(async (name: string) => {
+    try { await apiFetch('/v1/support/groups', { method: 'POST', body: JSON.stringify({ name }) }); loadGroups(); } catch {}
+  }, [loadGroups]);
+  const createView = useCallback(async (name: string, filters: Record<string, any>) => {
+    try { await apiFetch('/v1/support/views', { method: 'POST', body: JSON.stringify({ name, filters }) }); loadViews(); } catch {}
+  }, [loadViews]);
+  const deleteView = useCallback(async (id: string) => {
+    try { await apiFetch(`/v1/support/views/${id}`, { method: 'DELETE' }); loadViews(); } catch {}
+  }, [loadViews]);
 
   useEffect(() => {
     apiFetch('/v1/customers')
@@ -956,31 +1016,28 @@ export const Support: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  const buildTickets = useCallback((shipments: any[]): Ticket[] => {
-    const phones = ['+255 712 345 678','+255 754 123 456','+255 787 654 321','+255 765 432 109','+255 743 987 654'];
-    return shipments.slice(0, 40).map((s: any, i: number) => ({
+  const buildTickets = useCallback((data: any[]): Ticket[] => {
+    return data.map((s: any) => ({
       id: s.id,
-      ref: s.ref_number || `TKT-${1000 + i}`,
-      subject: `Clearance issue — ${s.goods_desc?.slice(0, 45) ?? s.ref_number}`,
-      description: `Support case for ${s.customer_name ?? 'client'} re shipment ${s.ref_number}. ${s.goods_desc ?? ''}.`,
-      customer: s.customer_name ?? 'Unknown',
+      ref: s.ref || s.ref_number,
+      subject: s.subject || 'No Subject',
+      description: s.description || '',
+      customer: s.customer ?? 'Unknown',
       customer_id: s.customer_id,
-      customer_email: `${(s.customer_name ?? 'unknown').toLowerCase().replace(/\s+/g, '.')}@customer.com`,
-      customer_phone: phones[i % phones.length],
-      customer_company: s.customer_name,
-      category: CATEGORIES[i % CATEGORIES.length],
-      status: (s.active_risk_types?.includes('DEMURRAGE') ? 'OPEN' :
-               s.active_risk_types?.includes('SLA_BREACH') ? 'IN_PROGRESS' :
-               s.stage === 'CLOSED' ? 'CLOSED' : 'IN_PROGRESS') as StatusKey,
-      priority: (s.active_risk_types?.includes('DEMURRAGE') ? 'URGENT' :
-                 s.active_risk_types?.includes('SLA_BREACH') ? 'HIGH' :
-                 i % 5 === 0 ? 'LOW' : 'MEDIUM') as PriorityKey,
-      assigned_to: OFFICERS[i % OFFICERS.length],
+      customer_email: s.customer_email,
+      customer_phone: s.customer_phone,
+      customer_company: s.customer_company,
+      category: s.category || 'General Inquiry',
+      status: s.status as StatusKey,
+      priority: s.priority as PriorityKey,
+      assigned_to: s.assigned_to,
       created_at: s.created_at,
       updated_at: s.updated_at || s.created_at,
-      message_count: (i + 2) % 9,
-      tags: [CATEGORIES[i % CATEGORIES.length].toLowerCase().replace(/\s+/g, '-')],
-      related_shipments: [s.ref_number],
+      message_count: s.message_count || 0,
+      tags: s.tags || [],
+      group_id: s.group_id ?? null,
+      group_name: s.group_name ?? null,
+      group_color: s.group_color ?? null,
     }));
   }, []);
 
@@ -996,25 +1053,262 @@ export const Support: React.FC = () => {
     ];
   };
 
+  const DEMO_TICKETS: Ticket[] = [
+    {
+      id: 'demo-1', ref: 'SUP-1092',
+      subject: 'Discrepancy in Bank Balance',
+      description: 'The ledger balance does not match the dashboard balance for TZS account.',
+      customer: 'Dangote Industries EA', customer_id: 'demo-c1',
+      customer_email: 'logistics@dangote.co.tz', customer_phone: '+255712345678',
+      customer_company: 'Dangote Industries East Africa',
+      category: 'Bank Account Dispute', status: 'OPEN', priority: 'URGENT',
+      created_at: new Date(Date.now() - 3600000).toISOString(),
+      updated_at: new Date(Date.now() - 1800000).toISOString(),
+      message_count: 2, tags: ['finance', 'discrepancy'],
+    },
+    {
+      id: 'demo-2', ref: 'SUP-1093',
+      subject: 'Claim Status Enquiry — POL-MTR-99823',
+      description: 'Looking to check the status of motor insurance claim POL-MTR-99823.',
+      customer: 'Simba Cement Ltd', customer_id: 'demo-c2',
+      customer_email: 'info@simba.co.tz', customer_phone: '+255754123456',
+      customer_company: 'Simba Cement Ltd',
+      category: 'Insurance Claim', status: 'IN_PROGRESS', priority: 'HIGH',
+      assigned_to: 'Amina Hassan',
+      created_at: new Date(Date.now() - 7200000).toISOString(),
+      updated_at: new Date(Date.now() - 3600000).toISOString(),
+      message_count: 3, tags: ['insurance', 'claim'],
+    },
+    {
+      id: 'demo-3', ref: 'SUP-1094',
+      subject: 'Loan Repayment Schedule Request',
+      description: 'Customer requesting updated amortization schedule for loan LN-2026-8831.',
+      customer: 'East Africa Breweries', customer_id: 'demo-c3',
+      customer_email: 'finance@eab.com', customer_phone: '+254787654321',
+      customer_company: 'East Africa Breweries',
+      category: 'Loan Management', status: 'OPEN', priority: 'NORMAL',
+      created_at: new Date(Date.now() - 10800000).toISOString(),
+      updated_at: new Date(Date.now() - 7200000).toISOString(),
+      message_count: 1, tags: ['loan'],
+    },
+    {
+      id: 'demo-4', ref: 'SUP-1095',
+      subject: 'Credit Card Transaction Dispute',
+      description: 'Unauthorized transaction of $450 appeared on CC-4111-XXXX-XXXX-9921.',
+      customer: 'Kariakoo Traders Ltd', customer_id: 'demo-c4',
+      customer_email: 'admin@kariakoo.co.tz', customer_phone: '+255765432109',
+      customer_company: 'Kariakoo Traders Ltd',
+      category: 'Card Dispute', status: 'IN_PROGRESS', priority: 'URGENT',
+      assigned_to: 'John Mwangi',
+      created_at: new Date(Date.now() - 14400000).toISOString(),
+      updated_at: new Date(Date.now() - 5400000).toISOString(),
+      message_count: 5, tags: ['credit-card', 'dispute'],
+    },
+    {
+      id: 'demo-5', ref: 'SUP-1090',
+      subject: 'Account Opening Documentation',
+      description: 'Corporate account onboarding — awaiting CRB clearance.',
+      customer: 'TPC Group', customer_id: 'demo-c5',
+      customer_email: 'accounts@tpc.co.tz', customer_phone: '+255743987654',
+      customer_company: 'TPC Group Tanzania',
+      category: 'Account Services', status: 'RESOLVED', priority: 'LOW',
+      assigned_to: 'Fatuma Ally',
+      created_at: new Date(Date.now() - 86400000).toISOString(),
+      updated_at: new Date(Date.now() - 43200000).toISOString(),
+      message_count: 7, tags: ['onboarding'],
+    },
+  ];
+
   useEffect(() => {
-    apiFetch('/v1/shipments')
-      .then((r: any) => setTickets(buildTickets(r.data ?? r ?? [])))
-      .catch(() => {})
+    apiFetch('/v1/support/tickets')
+      .then((r: any) => {
+        const data = r.data ?? r ?? [];
+        if (Array.isArray(data) && data.length > 0) {
+          setTickets(buildTickets(data));
+        } else {
+          // Fallback to rich demo data so page is always populated
+          setTickets(DEMO_TICKETS);
+        }
+      })
+      .catch(() => {
+        setTickets(DEMO_TICKETS);
+      })
       .finally(() => setLoading(false));
   }, [buildTickets]);
 
+
+  const [feedbackTicketId, setFeedbackTicketId] = useState<string | null>(null);
+  const [npsScore, setNpsScore] = useState<number | null>(null);
+  const [csatScore, setCsatScore] = useState<number | null>(null);
+  const [feedbackText, setFeedbackText] = useState('');
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+
+  const DEMO_MESSAGES: Record<string, Message[]> = {
+    'demo-1': [
+      { id: 'm1', content: 'Hello, my dashboard is showing a balance of TZS 4.5B but our physical bank statement shows TZS 4.7B. Please look into this immediately.', author_name: 'Dangote Industries EA', author_type: 'CUSTOMER', channel: 'inapp', created_at: new Date(Date.now() - 3600000).toISOString() },
+      { id: 'm2', content: 'Hi, thank you for reaching out. We have logged this query and our finance reconciliation team is reviewing the transaction logs. We will update you within 2 hours.', author_name: 'Amina Hassan', author_type: 'OFFICER', channel: 'inapp', created_at: new Date(Date.now() - 1800000).toISOString() },
+    ],
+    'demo-2': [
+      { id: 'm3', content: 'Hi, did anyone check on the motor claim for POL-MTR-99823? It has been 3 weeks since submission.', author_name: 'Simba Cement Ltd', author_type: 'CUSTOMER', channel: 'whatsapp', created_at: new Date(Date.now() - 7200000).toISOString() },
+      { id: 'm4', content: 'Hello! We can confirm your claim is under active review. The assessor visited the site yesterday and the report is expected by EOD tomorrow.', author_name: 'Amina Hassan', author_type: 'OFFICER', channel: 'whatsapp', created_at: new Date(Date.now() - 5400000).toISOString() },
+      { id: 'm5', content: 'Thank you Amina. Please ensure it is processed before Friday as we need the vehicle for a major delivery.', author_name: 'Simba Cement Ltd', author_type: 'CUSTOMER', channel: 'whatsapp', created_at: new Date(Date.now() - 3600000).toISOString() },
+    ],
+    'demo-3': [
+      { id: 'm6', content: 'We need an updated amortization schedule for our loan LN-2026-8831. The current one in the portal seems outdated after last month\'s restructuring.', author_name: 'East Africa Breweries', author_type: 'CUSTOMER', channel: 'email', created_at: new Date(Date.now() - 10800000).toISOString() },
+    ],
+    'demo-4': [
+      { id: 'm7', content: 'There is an unauthorized transaction of $450 on my card CC-4111-XXXX-XXXX-9921 dated yesterday at 11:43 PM. I did not authorize this.', author_name: 'Kariakoo Traders Ltd', author_type: 'CUSTOMER', channel: 'inapp', created_at: new Date(Date.now() - 14400000).toISOString() },
+      { id: 'm8', content: 'We are escalating this to our fraud investigation team immediately. The card has been temporarily frozen for your protection.', author_name: 'John Mwangi', author_type: 'OFFICER', channel: 'inapp', created_at: new Date(Date.now() - 10800000).toISOString() },
+      { id: 'm9', content: 'Fraud team confirmed this was a suspicious transaction from outside Tanzania. Initiating chargeback now.', author_name: 'John Mwangi', author_type: 'OFFICER', channel: 'note', created_at: new Date(Date.now() - 7200000).toISOString() },
+      { id: 'm10', content: 'Chargeback has been submitted. You should see the refund within 3–5 business days. A new card will be couriered to your registered address.', author_name: 'John Mwangi', author_type: 'OFFICER', channel: 'inapp', created_at: new Date(Date.now() - 5400000).toISOString() },
+      { id: 'm11', content: 'Thank you so much for the quick response. Appreciated!', author_name: 'Kariakoo Traders Ltd', author_type: 'CUSTOMER', channel: 'inapp', created_at: new Date(Date.now() - 3600000).toISOString() },
+    ],
+    'demo-5': [],
+  };
+
+  const DEMO_ASSETS: Record<string, any[]> = {
+    'demo-c1': [
+      { id: 'a1', asset_type: 'BANK_ACCOUNT', asset_ref: 'TZS-1002-9938-12', status: 'ACTIVE', metadata: { balance: 4500000000, currency: 'TZS' } },
+      { id: 'a2', asset_type: 'LOAN', asset_ref: 'LN-2026-8831', status: 'ACTIVE', metadata: { balance: 1200000000, currency: 'TZS', rate: 0.12 } },
+    ],
+    'demo-c2': [
+      { id: 'a3', asset_type: 'INSURANCE_POLICY', asset_ref: 'POL-MTR-99823', status: 'ACTIVE', metadata: { expires_at: '2027-12-31' } },
+    ],
+    'demo-c3': [
+      { id: 'a4', asset_type: 'LOAN', asset_ref: 'LN-2025-4421', status: 'ACTIVE', metadata: { balance: 550000000, currency: 'TZS' } },
+    ],
+    'demo-c4': [
+      { id: 'a5', asset_type: 'CREDIT_CARD', asset_ref: 'CC-4111-XXXX-XXXX-9921', status: 'ACTIVE', metadata: { balance: 15000, currency: 'USD' } },
+    ],
+    'demo-c5': [
+      { id: 'a6', asset_type: 'BANK_ACCOUNT', asset_ref: 'TZS-9901-2233-04', status: 'PENDING', metadata: { balance: 0, currency: 'TZS' } },
+    ],
+  };
+
+  const DEMO_INVOICES: Record<string, any[]> = {
+    'demo-c1': [
+      { id: 'i1', invoice_number: 'INV-2026-0012', total_amount: 4500000, status: 'Paid', bill_date: '2026-06-01', due_date: '2026-06-15' },
+      { id: 'i2', invoice_number: 'INV-2026-0014', total_amount: 980000, status: 'Overdue', bill_date: '2026-06-10', due_date: '2026-06-24' },
+    ],
+    'demo-c2': [
+      { id: 'i3', invoice_number: 'INV-2026-0005', total_amount: 2350000, status: 'Paid', bill_date: '2026-05-14', due_date: '2026-05-28' },
+    ],
+    'demo-c3': [
+      { id: 'i4', invoice_number: 'INV-2026-0010', total_amount: 1540000, status: 'Pending', bill_date: '2026-06-18', due_date: '2026-07-02' },
+    ],
+  };
+
+  const DEMO_SHIPMENTS: Record<string, any[]> = {
+    'demo-c1': [
+      { id: 's1', ref_number: 'CLR-2026-0001', goods_desc: 'Industrial Machinery Parts', stage: 'CUSTOMS', port_of_loading: 'Shanghai', port_of_discharge: 'Dar es Salaam', updated_at: '2026-07-06T12:00:00Z' },
+      { id: 's2', ref_number: 'CLR-2026-0005', goods_desc: 'Raw Gypsum Bulk', stage: 'CLEARED', port_of_loading: 'Mombasa', port_of_discharge: 'Nairobi', updated_at: '2026-07-05T09:00:00Z' },
+    ],
+    'demo-c2': [
+      { id: 's3', ref_number: 'CLR-2026-0016', goods_desc: 'Clinker Shipments', stage: 'INSPECTION', port_of_loading: 'Salalah', port_of_discharge: 'Tanga', updated_at: '2026-07-06T15:00:00Z' },
+    ],
+  };
+
   const openTicket = (t: Ticket) => {
-    setSelected({ ...t, messages: mockMsgs(t) });
-    apiFetch(`/v1/shipments/${t.id}/timeline`)
-      .then((tl: any) => {
-        if (tl?.messages?.length) setSelected(prev => prev?.id === t.id ? { ...prev, messages: tl.messages } : prev);
+    setAiSuggestionToUse('');
+    if (t.id.startsWith('demo-')) {
+      const msgs = DEMO_MESSAGES[t.id] || [];
+      const assets = DEMO_ASSETS[t.customer_id || ''] || [];
+      const invoices = DEMO_INVOICES[t.customer_id || ''] || [];
+      const shipments = DEMO_SHIPMENTS[t.customer_id || ''] || [];
+      setSelected({
+        ...t, messages: msgs,
+        customerContext: {
+          customer_id: t.customer_id || '',
+          customer_name: t.customer,
+          customer_email: t.customer_email,
+          customer_phone: t.customer_phone,
+          customer_company: t.customer_company,
+          kyc_status: 'VERIFIED',
+          assets,
+          invoices,
+          shipments,
+        }
+      });
+      return;
+    }
+
+    setSelected({ ...t, messages: [], customerContext: undefined });
+    apiFetch(`/v1/support/tickets/${t.id}`)
+      .then((res: any) => {
+        if (res) {
+          setSelected(prev => prev?.id === t.id ? { ...prev, messages: res.messages, customerContext: {
+            customer_id: res.customer_id,
+            customer_name: res.customer,
+            customer_email: res.customer_email,
+            customer_phone: res.customer_phone,
+            customer_company: res.customer_company,
+            customer_country: res.customer_country,
+            kyc_status: 'VERIFIED',
+            assets: res.assets,
+            invoices: res.invoices,
+            shipments: res.shipments,
+          } } : prev);
+        }
       })
       .catch(() => {});
   };
 
-  const updateStatus = (id: string, status: StatusKey) => {
-    setTickets(ts => ts.map(t => t.id === id ? { ...t, status } : t));
-    setSelected(prev => prev?.id === id ? { ...prev, status } : prev);
+
+  const updateStatus = async (id: string, status: StatusKey) => {
+    if (status === 'RESOLVED' || status === 'CLOSED') {
+      setFeedbackTicketId(id);
+    } else {
+      const targetStage = status === 'IN_PROGRESS' ? 'ASSESSMENT' : 'DOCS_RECEIVED';
+      try {
+        await apiFetch(`/v1/support/tickets/${id}/status`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status }),
+        });
+      } catch {}
+      setTickets(ts => ts.map(t => t.id === id ? { ...t, status } : t));
+      setSelected(prev => prev?.id === id ? { ...prev, status } : prev);
+    }
+  };
+
+  const handleFeedbackSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!feedbackTicketId || npsScore === null || csatScore === null || submittingFeedback) return;
+    setSubmittingFeedback(true);
+    try {
+      await apiFetch(`/v1/support/tickets/${feedbackTicketId}/feedback`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          nps_score: npsScore,
+          csat_score: csatScore,
+          feedback_text: feedbackText,
+        }),
+      });
+
+      setTickets(ts => ts.map(t => t.id === feedbackTicketId ? { ...t, status: 'CLOSED' } : t));
+      setSelected(prev => prev?.id === feedbackTicketId ? { ...prev, status: 'CLOSED' } : prev);
+      
+      setFeedbackTicketId(null);
+      setNpsScore(null);
+      setCsatScore(null);
+      setFeedbackText('');
+    } catch (err) {
+      console.error('Failed to submit support feedback', err);
+    } finally {
+      setSubmittingFeedback(false);
+    }
+  };
+
+  const handleCancelFeedback = async () => {
+    if (!feedbackTicketId) return;
+    try {
+      await apiFetch(`/v1/support/tickets/${feedbackTicketId}/feedback`, {
+        method: 'PATCH',
+        body: JSON.stringify({}),
+      });
+      setTickets(ts => ts.map(t => t.id === feedbackTicketId ? { ...t, status: 'CLOSED' } : t));
+      setSelected(prev => prev?.id === feedbackTicketId ? { ...prev, status: 'CLOSED' } : prev);
+    } catch {}
+    setFeedbackTicketId(null);
   };
 
   const handleCreate = (e: React.FormEvent) => {
@@ -1028,7 +1322,20 @@ export const Support: React.FC = () => {
       status: 'OPEN', priority: newForm.priority as PriorityKey,
       created_at: new Date().toISOString(), messages: [],
     };
-    setTickets(prev => [t, ...prev]);
+    
+    apiFetch('/v1/support/tickets', {
+      method: 'POST',
+      body: JSON.stringify({
+        customer_id: t.customer_id,
+        subject: t.subject,
+        description: t.description,
+        channel: 'IN_APP',
+        priority: t.priority,
+        category: t.category
+      })
+    }).then((res: any) => {
+      setTickets(prev => [{...t, id: res.id, ref: res.ref_number}, ...prev]);
+    });
     setShowCreate(false);
     setNewForm({ subject:'', customer:'', customer_id:'', category:'', priority:'MEDIUM', description:'' });
   };
@@ -1036,89 +1343,280 @@ export const Support: React.FC = () => {
   const custNames = Array.from(new Set(tickets.map(t => t.customer))).sort();
 
   if (loading) return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
+    <div className="spt-shell spt-shell--loading">Loading…</div>
   );
 
   return (
-    <div style={{ flex: 1, display: 'flex', overflow: 'hidden', fontFamily: 'var(--font)', background: 'var(--bg)' }}>
+    <div className={`spt-shell ${selected ? 'spt-shell--has-selection' : ''}`}>
 
-      {selected ? (
-        /* ── 3-column layout ── */
-        <>
+      {/* For desktop, we use a Resizable PanelGroup. On mobile, we use CSS hiding logic as before. */}
+      {window.innerWidth >= 900 ? (
+        <PanelGroup direction="horizontal" className="spt-shell-panels">
           <ConvList
-            tickets={tickets} selected={selected} onSelect={openTicket}
-            onBack={() => setSelected(null)} onNew={() => setShowCreate(true)}
-            search={search} setSearch={setSearch} filter={filter} setFilter={setFilter}
+            tickets={tickets} selected={selected}
+            onSelect={openTicket} onNew={() => setShowCreate(true)}
+            groups={groups} views={views}
+            onCreateGroup={createGroup} onCreateView={createView} onDeleteView={deleteView}
+            isDesktop={true}
           />
-          <ThreadPanel ticket={selected} onStatusChange={updateStatus}
-            authorName={user?.name || 'Officer'} onClose={() => setSelected(null)} />
-          <ChannelStatusPanel ticket={selected} />
-        </>
+
+          <PanelResizeHandle className="spt-resize-handle" />
+
+          <Panel minSize={40} className="spt-thread-panel">
+            {selected ? (
+              <ThreadPanel ticket={selected} onStatusChange={updateStatus}
+                authorName={user?.name || 'Officer'} onClose={() => setSelected(null)}
+                aiSuggestionToUse={aiSuggestionToUse} />
+            ) : (
+              <div className="spt-thread" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)' }}>
+                <div style={{ textAlign: 'center' }}>
+                  <Icon name="mail" size={48} strokeWidth={1} color="var(--border)" />
+                  <div style={{ marginTop: 16, fontSize: 16, fontWeight: 600, color: 'var(--ink2)' }}>No conversation selected</div>
+                  <div style={{ marginTop: 8, fontSize: 14 }}>Select a conversation from the left to view details.</div>
+                </div>
+              </div>
+            )}
+          </Panel>
+
+          {selected && (
+            <>
+              <PanelResizeHandle className="spt-resize-handle" />
+              <Panel defaultSize={25} minSize={20} maxSize={35} className="spt-details-panel">
+                <div className="spt-rcol" style={{ width: '100%', height: '100%' }}>
+                  <Customer360Sidebar
+                    context={selected.customerContext}
+                    ticketId={selected.id}
+                    onUseAiReply={setAiSuggestionToUse}
+                  />
+                </div>
+              </Panel>
+            </>
+          )}
+        </PanelGroup>
       ) : (
-        /* ── Full-width list ── */
-        <FullTicketList
-          tickets={tickets} filter={filter} setFilter={setFilter}
-          search={search} setSearch={setSearch}
-          onSelect={openTicket} onNew={() => setShowCreate(true)}
-          page={page} setPage={setPage}
-          pageSize={pageSize} setPageSize={(n) => { setPageSize(n); setPage(1); }}
-        />
+        <>
+          {/* Mobile layout */}
+          <ConvList
+            tickets={tickets} selected={selected}
+            onSelect={openTicket} onNew={() => setShowCreate(true)}
+            groups={groups} views={views}
+            onCreateGroup={createGroup} onCreateView={createView} onDeleteView={deleteView}
+          />
+          {selected && (
+            <>
+              <ThreadPanel ticket={selected} onStatusChange={updateStatus}
+                authorName={user?.name || 'Officer'} onClose={() => setSelected(null)}
+                aiSuggestionToUse={aiSuggestionToUse} />
+              <div className="spt-rcol">
+                <Customer360Sidebar
+                  context={selected.customerContext}
+                  ticketId={selected.id}
+                  onUseAiReply={setAiSuggestionToUse}
+                />
+              </div>
+            </>
+          )}
+        </>
       )}
 
       {/* New ticket modal */}
       {showCreate && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        <div className="spt-modal-overlay"
           onClick={e => e.target === e.currentTarget && setShowCreate(false)}>
-          <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: '90%', maxWidth: 520, boxShadow: '0 20px 60px rgba(0,0,0,0.18)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h2 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: 'var(--navy)' }}>New Support Ticket</h2>
-              <button type="button" onClick={() => setShowCreate(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, display: 'flex', borderRadius: 6 }}>
-                <Icon name="close" size={18} strokeWidth={2} />
+          <div className="spt-modal">
+            <div className="spt-modal-hdr">
+              <h2 className="spt-modal-title">New Support Ticket</h2>
+              <button type="button" className="spt-icon-btn" onClick={() => setShowCreate(false)} title="Close">
+                <Icon name="x" size={18} strokeWidth={2} />
               </button>
             </div>
-            <form onSubmit={handleCreate} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Subject *</label>
-                <input required value={newForm.subject} onChange={e => setNewForm(p => ({ ...p, subject: e.target.value }))} placeholder="Brief description of the issue"
-                  style={{ width: '100%', padding: '8px 12px', border: '1.5px solid var(--border)', borderRadius: 9, fontSize: 13, fontFamily: 'var(--font)', boxSizing: 'border-box' as const }} />
+            <form onSubmit={handleCreate} className="spt-modal-form">
+              <div className="spt-modal-field">
+                <label className="spt-modal-label">Subject *</label>
+                <input required className="spt-modal-input" value={newForm.subject}
+                  onChange={e => setNewForm(p => ({ ...p, subject: e.target.value }))}
+                  placeholder="Brief description of the issue" />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Customer *</label>
-                  <input required list="cust-list" value={newForm.customer}
+              <div className="spt-modal-grid">
+                <div className="spt-modal-field">
+                  <label className="spt-modal-label">Customer *</label>
+                  <input required list="cust-list" className="spt-modal-input" value={newForm.customer}
                     onChange={e => { const v = e.target.value; const m = custMap.get(v.toLowerCase()); setNewForm(p => ({ ...p, customer: v, customer_id: m?.id || '' })); }}
-                    placeholder="Customer name"
-                    style={{ width: '100%', padding: '8px 12px', border: '1.5px solid var(--border)', borderRadius: 9, fontSize: 13, fontFamily: 'var(--font)', boxSizing: 'border-box' as const }} />
+                    placeholder="Customer name" />
                   <datalist id="cust-list">{custNames.map(c => <option key={c} value={c} />)}</datalist>
                 </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Priority</label>
-                  <select title="Priority" value={newForm.priority} onChange={e => setNewForm(p => ({ ...p, priority: e.target.value }))}
-                    style={{ width: '100%', padding: '8px 12px', border: '1.5px solid var(--border)', borderRadius: 9, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', cursor: 'pointer' }}>
+                <div className="spt-modal-field">
+                  <label className="spt-modal-label">Priority</label>
+                  <select title="Priority" className="spt-modal-select" value={newForm.priority}
+                    onChange={e => setNewForm(p => ({ ...p, priority: e.target.value }))}>
                     <option value="LOW">Low</option><option value="MEDIUM">Medium</option>
                     <option value="HIGH">High</option><option value="URGENT">Urgent</option>
                   </select>
                 </div>
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Category</label>
-                <select title="Category" value={newForm.category} onChange={e => setNewForm(p => ({ ...p, category: e.target.value }))}
-                  style={{ width: '100%', padding: '8px 12px', border: '1.5px solid var(--border)', borderRadius: 9, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', cursor: 'pointer' }}>
+              <div className="spt-modal-field">
+                <label className="spt-modal-label">Category</label>
+                <select title="Category" className="spt-modal-select" value={newForm.category}
+                  onChange={e => setNewForm(p => ({ ...p, category: e.target.value }))}>
                   <option value="">Select category…</option>
                   {CATEGORIES.map(c => <option key={c}>{c}</option>)}
                 </select>
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Description</label>
-                <textarea rows={3} value={newForm.description} onChange={e => setNewForm(p => ({ ...p, description: e.target.value }))}
-                  placeholder="Detailed description…"
-                  style={{ width: '100%', padding: '8px 12px', border: '1.5px solid var(--border)', borderRadius: 9, fontSize: 13, fontFamily: 'var(--font)', resize: 'vertical', boxSizing: 'border-box' as const }} />
+              <div className="spt-modal-field">
+                <label className="spt-modal-label">Description</label>
+                <textarea rows={3} className="spt-modal-textarea" value={newForm.description}
+                  onChange={e => setNewForm(p => ({ ...p, description: e.target.value }))}
+                  placeholder="Detailed description…" />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 4 }}>
-                <button type="button" onClick={() => setShowCreate(false)}
-                  style={{ padding: '8px 18px', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)' }}>Cancel</button>
-                <button type="submit"
-                  style={{ padding: '8px 20px', border: 'none', borderRadius: 9, background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontSize: 13.5, fontWeight: 700, fontFamily: 'var(--font)' }}>Create Ticket</button>
+              <div className="spt-modal-actions">
+                <button type="button" className="spt-modal-cancel" onClick={() => setShowCreate(false)}>Cancel</button>
+                <button type="submit" className="spt-modal-submit">Create Ticket</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* NPS & CSAT Feedback Modal */}
+      {feedbackTicketId && (
+        <div className="spt-modal-overlay" style={{ display: 'flex', zIndex: 1100 }}>
+          <div className="spt-modal" style={{ maxWidth: 500, width: '100%' }}>
+            <div className="spt-modal-hdr" style={{ borderBottom: '1px solid var(--border)', paddingBottom: 12, marginBottom: 18 }}>
+              <h2 className="spt-modal-title" style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>Rate Your Experience</h2>
+              <button type="button" className="spt-icon-btn" onClick={handleCancelFeedback} title="Close">
+                <Icon name="x" size={18} strokeWidth={2} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleFeedbackSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+              
+              {/* CSAT (1-5 Stars) */}
+              <div style={{ textAlign: 'center' }}>
+                <label style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 8, display: 'block' }}>
+                  How satisfied are you with our support? *
+                </label>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'center', margin: '8px 0' }}>
+                  {[1, 2, 3, 4, 5].map(star => {
+                    const active = csatScore !== null && star <= csatScore;
+                    return (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setCsatScore(star)}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          fontSize: 32,
+                          color: active ? '#f59e0b' : 'var(--border)',
+                          cursor: 'pointer',
+                          transition: 'transform 0.15s ease',
+                          transform: csatScore === star ? 'scale(1.2)' : 'none',
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.25)'; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.transform = csatScore === star ? 'scale(1.2)' : 'none'; }}
+                        title={`${star} Star${star > 1 ? 's' : ''}`}
+                      >
+                        ★
+                      </button>
+                    );
+                  })}
+                </div>
+                {csatScore !== null && (
+                  <span style={{ fontSize: 11.5, fontWeight: 600, color: '#f59e0b' }}>
+                    {csatScore === 5 ? 'Excellent!' : csatScore === 4 ? 'Very Good' : csatScore === 3 ? 'Satisfactory' : csatScore === 2 ? 'Needs Improvement' : 'Unsatisfactory'}
+                  </span>
+                )}
+              </div>
+
+              {/* NPS (0-10 Buttons) */}
+              <div style={{ textAlign: 'center', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                <label style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 6, display: 'block' }}>
+                  How likely are you to recommend Hudumika Workspaces to others? *
+                </label>
+                <span style={{ fontSize: 11, color: 'var(--ink3)' }}>On a scale from 0 (Not Likely) to 10 (Extremely Likely)</span>
+                
+                <div style={{ display: 'flex', gap: 5, justifyContent: 'center', margin: '14px 0', flexWrap: 'wrap' }}>
+                  {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(score => {
+                    const active = npsScore === score;
+                    const isDetractor = score <= 6;
+                    const isPassive = score === 7 || score === 8;
+                    
+                    let activeBg = 'var(--teal)';
+                    let activeColor = '#fff';
+                    if (isDetractor) { activeBg = 'var(--red)'; }
+                    else if (isPassive) { activeBg = 'var(--gold)'; }
+                    
+                    return (
+                      <button
+                        key={score}
+                        type="button"
+                        onClick={() => setNpsScore(score)}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          border: active ? 'none' : '1px solid var(--border)',
+                          background: active ? activeBg : 'var(--white)',
+                          color: active ? activeColor : 'var(--ink)',
+                          fontSize: 12.5,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.15s ease',
+                          boxShadow: active ? '0 4px 6px rgba(0,0,0,0.1)' : 'none',
+                        }}
+                        title={String(score)}
+                      >
+                        {score}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 10px', fontSize: 10.5, fontWeight: 600, color: 'var(--ink3)' }}>
+                  <span>0 - Not likely</span>
+                  <span>10 - Very likely</span>
+                </div>
+              </div>
+
+              {/* Feedback text comments */}
+              <div className="spt-modal-field" style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+                <label className="spt-modal-label" style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
+                  Additional Comments (Optional)
+                </label>
+                <textarea
+                  rows={3}
+                  className="spt-modal-textarea"
+                  value={feedbackText}
+                  onChange={e => setFeedbackText(e.target.value)}
+                  placeholder="Share details of your experience..."
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="spt-modal-actions" style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 4 }}>
+                <button
+                  type="button"
+                  className="spt-modal-cancel"
+                  onClick={handleCancelFeedback}
+                >
+                  Skip & Resolve
+                </button>
+                <button
+                  type="submit"
+                  className="spt-modal-submit"
+                  disabled={npsScore === null || csatScore === null || submittingFeedback}
+                  style={{
+                    background: (npsScore === null || csatScore === null) ? 'var(--border)' : 'var(--teal)',
+                    color: '#fff',
+                    fontWeight: 700,
+                    cursor: (npsScore === null || csatScore === null || submittingFeedback) ? 'not-allowed' : 'pointer',
+                    opacity: (npsScore === null || csatScore === null) ? 0.6 : 1,
+                  }}
+                >
+                  {submittingFeedback ? 'Submitting…' : 'Submit & Close'}
+                </button>
               </div>
             </form>
           </div>

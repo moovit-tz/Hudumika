@@ -1,18 +1,20 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
-import type { SafeUser } from '@clearos/types';
+import type { SafeUser, OnboardingCompleteResponse } from '@hudumika/types';
+import { resetEnabledAppsCache } from './useEnabledApps.js';
 
 const KEYS = {
-  token: 'clearos_token',
-  user:  'clearos_user',
-  superToken: 'clearos_super_token',
-  superUser:  'clearos_super_user',
+  token: 'hudumika_token',
+  user:  'hudumika_user',
+  superToken: 'hudumika_super_token',
+  superUser:  'hudumika_super_user',
 };
 
 interface AuthContextType {
   user: SafeUser | null;
   isImpersonating: boolean;
   login: (email: string, password: string) => Promise<SafeUser>;
+  completeOnboarding: (res: OnboardingCompleteResponse) => void;
   logout: () => void;
   impersonate: (tenantId: string) => Promise<void>;
   stopImpersonating: () => void;
@@ -47,8 +49,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
     localStorage.setItem(KEYS.token, res.access_token);
     localStorage.setItem(KEYS.user,  JSON.stringify(res.user));
+    resetEnabledAppsCache();
     setUser(res.user);
     return res.user;
+  };
+
+  const completeOnboarding = (res: OnboardingCompleteResponse) => {
+    localStorage.setItem(KEYS.token, res.access_token);
+    localStorage.setItem(KEYS.user,  JSON.stringify(res.user));
+    setUser(res.user);
   };
 
   const logout = () => {
@@ -56,6 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem(KEYS.user);
     localStorage.removeItem(KEYS.superToken);
     localStorage.removeItem(KEYS.superUser);
+    resetEnabledAppsCache();
     setUser(null);
   };
 
@@ -96,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, isImpersonating, login, logout, impersonate, stopImpersonating, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, isImpersonating, login, completeOnboarding, logout, impersonate, stopImpersonating, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

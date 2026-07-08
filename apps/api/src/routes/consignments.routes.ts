@@ -1,8 +1,10 @@
+import { requireAppEnabled } from '../middleware/appGate.js';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { consignmentService } from '../services/consignment.service.js';
 
 export async function consignmentRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate);
+  app.addHook('preHandler', requireAppEnabled('clearos'));
 
   app.get('/', async (req: FastifyRequest, reply: FastifyReply) => {
     const user = (req as any).user;

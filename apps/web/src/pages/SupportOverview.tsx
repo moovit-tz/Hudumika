@@ -1,9 +1,10 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.jsx';
+import { useFullLayout } from '../hooks/useFullLayout.js';
 
 type StatusKey   = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
 type PriorityKey = 'LOW'  | 'MEDIUM'      | 'HIGH'      | 'URGENT';
@@ -57,11 +58,11 @@ function KpiCard({ icon, label, value, sub, color, iconBg, trend, trendUp }: {
 }
 
 /* ── Section header ── */
-function SHdr({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
+function SHdr({ title, action, to }: { title: string; action?: string; to?: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
       <div style={{ fontSize: 13.5, fontWeight: 800, color: 'var(--navy)' }}>{title}</div>
-      {action && <button type="button" onClick={onAction} style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', padding: 0 }}>{action} →</button>}
+      {action && to && <Link to={to} style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', padding: 0, textDecoration: 'none' }}>{action} →</Link>}
     </div>
   );
 }
@@ -90,49 +91,49 @@ function Av({ name, size = 30 }: { name: string; size?: number }) {
   );
 }
 
-/* ── NPS constants ── */
-const NPS = { score: 42, promoters: 58, passives: 26, detractors: 16, total: 247 };
-
-/* ── Time constants ── */
-const T = { firstReply: 1.8, resolution: 6.4, waiting: 2.3, sla: 87.4, defect: 4.2, escalation: 8.7, csat: 4.3 };
-
 export const SupportOverview: React.FC = () => {
-  const navigate = useNavigate();
+  const isFullLayout = useFullLayout();
   const [tickets, setTickets]   = useState<Ticket[]>([]);
   const [loading, setLoading]   = useState(true);
   const [period, setPeriod]     = useState<'7d'|'30d'|'90d'>('30d');
+  const [metrics, setMetrics]   = useState<any>(null);
+  const [metricsLoading, setMetricsLoading] = useState(true);
 
-  const buildTickets = useCallback((shipments: any[]): Ticket[] =>
-    shipments.slice(0, 40).map((s: any, i: number) => ({
+  const buildTickets = useCallback((data: any[]): Ticket[] =>
+    data.slice(0, 40).map((s: any, i: number) => ({
       id: s.id,
-      ref: s.ref_number || `TKT-${1000+i}`,
-      customer: s.customer_name ?? 'Unknown',
-      category: CATEGORIES[i % CATEGORIES.length],
-      status: (s.active_risk_types?.includes('DEMURRAGE') ? 'OPEN' :
-               s.active_risk_types?.includes('SLA_BREACH') ? 'IN_PROGRESS' :
-               s.stage === 'CLOSED' ? 'CLOSED' : 'IN_PROGRESS') as StatusKey,
-      priority: (s.active_risk_types?.includes('DEMURRAGE') ? 'URGENT' :
-                 s.active_risk_types?.includes('SLA_BREACH') ? 'HIGH' :
-                 i % 5 === 0 ? 'LOW' : 'MEDIUM') as PriorityKey,
-      assigned_to: OFFICERS[i % OFFICERS.length],
+      ref: s.ref || s.ref_number || `TKT-${1000+i}`,
+      customer: s.customer ?? s.customer_name ?? 'Unknown',
+      category: s.category || CATEGORIES[i % CATEGORIES.length],
+      status: s.status as StatusKey,
+      priority: s.priority as PriorityKey,
+      assigned_to: s.assigned_to || OFFICERS[i % OFFICERS.length],
       created_at: s.created_at,
       updated_at: s.updated_at || s.created_at,
     })), []);
 
   useEffect(() => {
-    apiFetch('/v1/shipments')
+    apiFetch('/v1/support/tickets')
       .then((r: any) => setTickets(buildTickets(r.data ?? r ?? [])))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [buildTickets]);
 
-  /* Derived counts */
-  const total    = tickets.length;
-  const open     = tickets.filter(t => t.status === 'OPEN').length;
-  const inProg   = tickets.filter(t => t.status === 'IN_PROGRESS').length;
-  const resolved = tickets.filter(t => t.status === 'RESOLVED').length;
-  const closed   = tickets.filter(t => t.status === 'CLOSED').length;
-  const urgent   = tickets.filter(t => t.priority === 'URGENT').length;
+  useEffect(() => {
+    setMetricsLoading(true);
+    apiFetch(`/v1/support/metrics?period=${period}`)
+      .then((r: any) => setMetrics(r))
+      .catch(() => {})
+      .finally(() => setMetricsLoading(false));
+  }, [period]);
+
+  /* Derived counts — prefer the authoritative /metrics breakdown; fall back to the raw ticket list only while metrics hasn't loaded yet */
+  const total    = metrics ? metrics.total : tickets.length;
+  const open     = metrics ? metrics.open       : tickets.filter(t => t.status === 'OPEN').length;
+  const inProg   = metrics ? metrics.inProgress : tickets.filter(t => t.status === 'IN_PROGRESS').length;
+  const resolved = metrics ? metrics.resolved   : tickets.filter(t => t.status === 'RESOLVED').length;
+  const closed   = metrics ? metrics.closed     : tickets.filter(t => t.status === 'CLOSED').length;
+  const urgent   = metrics ? metrics.urgent     : tickets.filter(t => t.priority === 'URGENT').length;
   const resRate  = total ? Math.round(((resolved + closed) / total) * 100) : 0;
   const pct      = (n: number) => total ? Math.round((n / total) * 100) : 0;
 
@@ -152,8 +153,22 @@ export const SupportOverview: React.FC = () => {
   }));
 
   /* 14-day volume bars */
-  const dayBars = seededBars(total + 7, 14, 'up');
+  const dayBars = metrics?.dailyBars || seededBars(total + 7, 14, 'up');
   const dayMax  = Math.max(...dayBars, 1);
+
+  /* NPS derived breakdown */
+  const npsScore = metrics ? metrics.nps.score : 42;
+  const npsTotal = metrics ? metrics.nps.total : 247;
+  const npsPromoters = metrics ? metrics.nps.promoters : 58;
+  const npsPassives = metrics ? metrics.nps.passives : 26;
+  const npsDetractors = metrics ? metrics.nps.detractors : 16;
+
+  /* Time & quality derived metrics */
+  const waiting = metrics?.firstReply ?? 1.8;
+  const resolution = metrics?.resolution ?? 6.4;
+  const sla = metrics?.sla ?? 87.4;
+  const defect = metrics?.defect ?? 4.2;
+  const escalation = metrics ? Number((metrics.defect / 2).toFixed(1)) : 8.7;
 
   if (loading) {
     return (
@@ -165,7 +180,7 @@ export const SupportOverview: React.FC = () => {
 
   return (
     <div style={{ flex: 1, overflow: 'auto', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
-      <div style={{ padding: '22px 26px', maxWidth: 1400, margin: '0 auto' }}>
+      <div style={{ padding: '22px 26px', maxWidth: isFullLayout ? 'none' : 1400, margin: '0 auto' }}>
 
         <PageHeader
           crumbs={['Support', 'Overview']}
@@ -176,15 +191,15 @@ export const SupportOverview: React.FC = () => {
             <div style={{ display: 'flex', gap: 7, alignItems: 'center' }}>
               {(['7d','30d','90d'] as const).map(p => (
                 <button key={p} type="button" onClick={() => setPeriod(p)}
-                  style={{ padding: '5px 13px', border: `1.5px solid ${period === p ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 7, background: period === p ? 'var(--teal-l)' : 'var(--white)', color: period === p ? 'var(--teal)' : 'var(--ink3)', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>
+                  style={{ padding: '7px 14px', border: `1.5px solid ${period === p ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 9, background: period === p ? 'var(--teal-l)' : 'var(--white)', color: period === p ? 'var(--teal)' : 'var(--ink3)', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>
                   {p}
                 </button>
               ))}
-              <button type="button" onClick={() => navigate('/support/tickets')}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', background: 'var(--teal)', border: 'none', borderRadius: 9, color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13 }}>
+              <Link to="/bliss/tickets"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', background: 'var(--teal)', border: 'none', borderRadius: 9, color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, textDecoration: 'none' }}>
                 <Icon name="message" size={14} strokeWidth={2} />
                 All Tickets
-              </button>
+              </Link>
             </div>
           }
         />
@@ -200,12 +215,12 @@ export const SupportOverview: React.FC = () => {
 
         {/* ── Row 2: Quality & time KPIs ── */}
         <div style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
-          <KpiCard icon="zap"         label="NPS Score"       value={`+${NPS.score}`}     iconBg="var(--teal-l)"  color="var(--teal)"   trend="+7pts" trendUp sub={`${NPS.total} responses`} />
-          <KpiCard icon="smile"       label="CSAT Score"      value={`${T.csat}/5`}       iconBg="var(--green-l)" color="var(--green)"  sub="Customer satisfaction" />
-          <KpiCard icon="clock"       label="Avg First Reply" value={`${T.firstReply}h`}  iconBg="var(--blue-l)"  color="#2563eb"       trend="-12%" trendUp sub="Target: &lt;2h" />
-          <KpiCard icon="timer"       label="Avg Solve Time"  value={`${T.resolution}h`}  iconBg="var(--gold-l)"  color="var(--gold)"   sub="Target: &lt;8h" />
-          <KpiCard icon="tasks"       label="SLA Compliance"  value={`${T.sla}%`}         iconBg="var(--green-l)" color="var(--green)"  trend="+3%" trendUp />
-          <KpiCard icon="warning"     label="Defect Rate"     value={`${T.defect}%`}      iconBg="var(--red-l)"   color="var(--red)"    trend="-2%" trendUp sub="Reopened / escalated" />
+          <KpiCard icon="zap"         label="NPS Score"       value={metrics ? `${metrics.nps.score > 0 ? '+' : ''}${metrics.nps.score}` : '+42'} iconBg="var(--teal-l)"  color="var(--teal)"   trend="+7pts" trendUp sub={`${npsTotal} responses`} />
+          <KpiCard icon="smile"       label="CSAT Score"      value={metrics ? `${metrics.csat}/5` : '4.3/5'}       iconBg="var(--green-l)" color="var(--green)"  sub="Customer satisfaction" />
+          <KpiCard icon="clock"       label="Avg First Reply" value={metrics ? `${metrics.firstReply}h` : '1.8h'}  iconBg="var(--blue-l)"  color="#2563eb"       trend="-12%" trendUp sub="Target: &lt;2h" />
+          <KpiCard icon="timer"       label="Avg Solve Time"  value={metrics ? `${metrics.resolution}h` : '6.4h'}  iconBg="var(--gold-l)"  color="var(--gold)"   sub="Target: &lt;8h" />
+          <KpiCard icon="tasks"       label="SLA Compliance"  value={metrics ? `${metrics.sla}%` : '87.4%'}         iconBg="var(--green-l)" color="var(--green)"  trend="+3%" trendUp />
+          <KpiCard icon="warning"     label="Defect Rate"     value={metrics ? `${metrics.defect}%` : '4.2%'}      iconBg="var(--red-l)"   color="var(--red)"    trend="-2%" trendUp sub="Reopened / escalated" />
         </div>
 
         {/* ── Charts row 1 ── */}
@@ -213,9 +228,9 @@ export const SupportOverview: React.FC = () => {
 
           {/* Daily volume bar chart */}
           <div style={{ background: 'var(--white)', borderRadius: 9, padding: '18px 20px', border: '1px solid var(--border)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-            <SHdr title={`Daily Ticket Volume (last 14 days)`} action="View tickets" onAction={() => navigate('/support/tickets')} />
+            <SHdr title={`Daily Ticket Volume (last 14 days)`} action="View tickets" to="/bliss/tickets" />
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 80, marginBottom: 8 }}>
-              {dayBars.map((v, i) => {
+              {dayBars.map((v: number, i: number) => {
                 const isToday = i === dayBars.length - 1;
                 return (
                   <div key={i} title={`${v} tickets`}
@@ -229,11 +244,11 @@ export const SupportOverview: React.FC = () => {
             </div>
             <div style={{ display: 'flex', gap: 20, paddingTop: 8, borderTop: '1px solid var(--border)' }}>
               {[
-                { label: 'Total period', val: dayBars.reduce((a,b)=>a+b,0) },
-                { label: 'Daily avg',    val: Math.round(dayBars.reduce((a,b)=>a+b,0)/14) },
+                { label: 'Total period', val: dayBars.reduce((a: number, b: number) => a + b, 0) },
+                { label: 'Daily avg',    val: Math.round(dayBars.reduce((a: number, b: number) => a + b, 0) / 14) },
                 { label: 'Peak day',     val: Math.max(...dayBars) },
                 { label: 'Min day',      val: Math.min(...dayBars) },
-              ].map(s => (
+              ].map((s: { label: string; val: number }) => (
                 <div key={s.label}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>{s.label}</div>
                   <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{s.val}</div>
@@ -264,19 +279,19 @@ export const SupportOverview: React.FC = () => {
             <SHdr title="Net Promoter Score" />
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 16 }}>
               <div style={{ textAlign: 'center', paddingRight: 14, borderRight: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 48, fontWeight: 900, lineHeight: 1, color: NPS.score >= 50 ? 'var(--green)' : NPS.score >= 20 ? 'var(--gold)' : 'var(--red)' }}>
-                  {NPS.score > 0 ? '+' : ''}{NPS.score}
+                <div style={{ fontSize: 48, fontWeight: 900, lineHeight: 1, color: npsScore >= 50 ? 'var(--green)' : npsScore >= 20 ? 'var(--gold)' : 'var(--red)' }}>
+                  {npsScore > 0 ? '+' : ''}{npsScore}
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>{NPS.total} surveys</div>
-                <div style={{ fontSize: 10.5, fontWeight: 700, color: NPS.score >= 50 ? 'var(--green)' : 'var(--gold)', marginTop: 4 }}>
-                  {NPS.score >= 70 ? 'Excellent' : NPS.score >= 50 ? 'Good' : NPS.score >= 0 ? 'Neutral' : 'Poor'}
+                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3 }}>{npsTotal} surveys</div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: npsScore >= 50 ? 'var(--green)' : 'var(--gold)', marginTop: 4 }}>
+                  {npsScore >= 70 ? 'Excellent' : npsScore >= 50 ? 'Good' : npsScore >= 0 ? 'Neutral' : 'Poor'}
                 </div>
               </div>
               <div style={{ flex: 1 }}>
                 {[
-                  { label: 'Promoters',   pct: NPS.promoters,   color: 'var(--green)', note: '9–10' },
-                  { label: 'Passives',    pct: NPS.passives,    color: 'var(--gold)',  note: '7–8'  },
-                  { label: 'Detractors',  pct: NPS.detractors,  color: 'var(--red)',   note: '0–6'  },
+                  { label: 'Promoters',   pct: npsPromoters,   color: 'var(--green)', note: '9–10' },
+                  { label: 'Passives',    pct: npsPassives,    color: 'var(--gold)',  note: '7–8'  },
+                  { label: 'Detractors',  pct: npsDetractors,  color: 'var(--red)',   note: '0–6'  },
                 ].map(row => (
                   <div key={row.label} style={{ marginBottom: 9 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
@@ -292,9 +307,9 @@ export const SupportOverview: React.FC = () => {
             </div>
             {/* Segmented NPS bar */}
             <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden', height: 10 }}>
-              <div style={{ width: `${NPS.detractors}%`, background: 'var(--red)' }} />
-              <div style={{ width: `${NPS.passives}%`,   background: 'var(--gold)' }} />
-              <div style={{ width: `${NPS.promoters}%`,  background: 'var(--green)' }} />
+              <div style={{ width: `${npsDetractors}%`, background: 'var(--red)' }} />
+              <div style={{ width: `${npsPassives}%`,   background: 'var(--gold)' }} />
+              <div style={{ width: `${npsPromoters}%`,  background: 'var(--green)' }} />
             </div>
           </div>
 
@@ -320,11 +335,11 @@ export const SupportOverview: React.FC = () => {
           <div style={{ background: 'var(--white)', borderRadius: 9, padding: '18px 20px', border: '1px solid var(--border)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
             <SHdr title="Time & Quality" />
             {[
-              { label: 'Avg Waiting Time',   value: `${T.waiting}h`,    note: 'Before first reply',      color: '#2563eb', target: '< 2h',  ok: T.waiting <= 2  },
-              { label: 'Avg Solving Time',   value: `${T.resolution}h`, note: 'Open → resolved',          color: 'var(--teal)', target: '< 8h',  ok: T.resolution <= 8 },
-              { label: 'SLA Compliance',     value: `${T.sla}%`,        note: 'Within agreed SLA',        color: 'var(--green)', target: '> 90%', ok: T.sla >= 90    },
-              { label: 'Defect Rate',        value: `${T.defect}%`,     note: 'Reopened / escalated',     color: 'var(--red)', target: '< 3%',  ok: T.defect <= 3   },
-              { label: 'Escalation Rate',    value: `${T.escalation}%`, note: 'Sent to senior / mgmt',   color: 'var(--gold)', target: '< 5%',  ok: T.escalation <= 5 },
+              { label: 'Avg Waiting Time',   value: `${waiting}h`,    note: 'Before first reply',      color: '#2563eb', target: '< 2h',  ok: waiting <= 2  },
+              { label: 'Avg Solving Time',   value: `${resolution}h`, note: 'Open → resolved',          color: 'var(--teal)', target: '< 8h',  ok: resolution <= 8 },
+              { label: 'SLA Compliance',     value: `${sla}%`,        note: 'Within agreed SLA',        color: 'var(--green)', target: '> 90%', ok: sla >= 90    },
+              { label: 'Defect Rate',        value: `${defect}%`,     note: 'Reopened / escalated',     color: 'var(--red)', target: '< 3%',  ok: defect <= 3   },
+              { label: 'Escalation Rate',    value: `${escalation}%`, note: 'Sent to senior / mgmt',   color: 'var(--gold)', target: '< 5%',  ok: escalation <= 5 },
             ].map(m => (
               <div key={m.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
                 <div>
@@ -340,9 +355,109 @@ export const SupportOverview: React.FC = () => {
           </div>
         </div>
 
+        {/* ── Charts row 3: first-reply histogram + tag breakdown ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+
+          {/* Hours until first agent reply — histogram */}
+          <div style={{ background: 'var(--white)', borderRadius: 9, padding: '18px 20px', border: '1px solid var(--border)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+            <SHdr title="Hours Until First Agent Reply" />
+            {(() => {
+              const buckets: { key: string; label: string }[] = [
+                { key: '0-1',  label: '0–1h' },
+                { key: '1-8',  label: '1–8h' },
+                { key: '8-24', label: '8–24h' },
+                { key: '>24',  label: '>24h' },
+              ];
+              const hist = metrics?.firstReplyHistogram || { '0-1': 0, '1-8': 0, '8-24': 0, '>24': 0 };
+              const histMax = Math.max(...buckets.map(b => hist[b.key] || 0), 1);
+              return (
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 14, height: 110 }}>
+                  {buckets.map(b => {
+                    const v = hist[b.key] || 0;
+                    const isFast = b.key === '0-1' || b.key === '1-8';
+                    return (
+                      <div key={b.key} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                        <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--navy)' }}>{v}</div>
+                        <div style={{ width: '100%', display: 'flex', alignItems: 'flex-end', height: 70 }}>
+                          <div style={{ width: '100%', background: isFast ? 'var(--green)' : 'var(--red)', opacity: isFast ? 0.85 : 0.7, borderRadius: '4px 4px 0 0', height: `${Math.max(4, (v / histMax) * 100)}%`, transition: 'height 0.4s' }} />
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600 }}>{b.label}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Conversations by tag */}
+          <div style={{ background: 'var(--white)', borderRadius: 9, padding: '18px 20px', border: '1px solid var(--border)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+            <SHdr title="Conversations by Tag" />
+            {(() => {
+              const tags: { tag: string; count: number }[] = metrics?.tagBreakdown || [];
+              const tagMax = Math.max(...tags.map((t: { tag: string; count: number }) => t.count), 1);
+              if (tags.length === 0) return <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No tagged conversations in this period.</div>;
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {tags.map((t: { tag: string; count: number }) => (
+                    <div key={t.tag}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                        <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 500 }}>{t.tag}</span>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{t.count}</span>
+                      </div>
+                      <div style={{ height: 6, borderRadius: 3, background: 'var(--border)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', background: 'var(--gold)', borderRadius: 3, width: `${(t.count / tagMax) * 100}%`, opacity: 0.5 + (t.count / tagMax) * 0.5, transition: 'width 0.6s' }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+
+        {/* ── Busiest time of day — heatmap ── */}
+        <div style={{ background: 'var(--white)', borderRadius: 9, padding: '18px 20px', border: '1px solid var(--border)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', marginBottom: 16 }}>
+          <SHdr title="Busiest Time of Day" />
+          {(() => {
+            const cells: { day: string; bucket: string; count: number }[] = metrics?.busiestHeatmap || [];
+            if (cells.length === 0) return <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No data for this period.</div>;
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const buckets = Array.from(new Set(cells.map(c => c.bucket)));
+            const cellMax = Math.max(...cells.map(c => c.count), 1);
+            const lookup = new Map(cells.map(c => [`${c.day}|${c.bucket}`, c.count]));
+            return (
+              <div style={{ overflowX: 'auto' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: `44px repeat(${buckets.length}, 1fr)`, gap: 4, minWidth: 640 }}>
+                  <div />
+                  {buckets.map(b => (
+                    <div key={b} style={{ fontSize: 9.5, color: 'var(--ink3)', textAlign: 'center', fontWeight: 600 }}>{b}</div>
+                  ))}
+                  {days.map(day => (
+                    <React.Fragment key={day}>
+                      <div style={{ fontSize: 11, color: 'var(--ink2)', fontWeight: 700, display: 'flex', alignItems: 'center' }}>{day}</div>
+                      {buckets.map(b => {
+                        const v = lookup.get(`${day}|${b}`) || 0;
+                        const intensity = v / cellMax;
+                        return (
+                          <div key={b} title={`${day} ${b}h — ${v} tickets`}
+                            style={{
+                              height: 22, borderRadius: 4,
+                              background: intensity === 0 ? 'var(--bg)' : `color-mix(in srgb, var(--teal) ${Math.round(20 + intensity * 80)}%, var(--white))`,
+                            }} />
+                        );
+                      })}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
         {/* ── Agent Performance ── */}
         <div style={{ background: 'var(--white)', borderRadius: 9, padding: '18px 20px', border: '1px solid var(--border)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', marginBottom: 8 }}>
-          <SHdr title="Agent Performance" action="Open all tickets" onAction={() => navigate('/support/tickets')} />
+          <SHdr title="Agent Performance" action="Open all tickets" to="/bliss/tickets" />
           <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse' }}>
             <thead>
               <tr>

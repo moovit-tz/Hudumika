@@ -1,3 +1,4 @@
+import { requireAppEnabled } from '../middleware/appGate.js';
 import type { FastifyInstance } from 'fastify';
 import { DeclarationService } from '../services/declaration.service.js';
 import { requireRole } from '../middleware/rbac.js';
@@ -6,11 +7,12 @@ import type {
   CreateDeclarationItemInput,
   CreateDeclarationNoticeInput,
   DeclarationStatus,
-} from '@clearos/types';
+} from '@hudumika/types';
 
 export async function declarationRoutes(fastify: FastifyInstance) {
   // Enforce authentication on all routes
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', requireAppEnabled('clearos'));
 
   /**
    * GET /v1/declarations

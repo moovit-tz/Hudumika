@@ -1,0 +1,326 @@
+import React, { useState } from 'react';
+import {
+  useDesignSystem, DesignTokens, NeutralSet, SemanticSet,
+  FONT_IDS, FONT_LABELS, DENSITY_IDS, DENSITY_LABELS, SHADOW_IDS, SHADOW_LABELS,
+  SHADOW_PRESETS, generateFromSeed,
+} from '../hooks/useDesignSystem.js';
+import { useBranding, pushBranding } from '../hooks/useBranding.js';
+import './DesignSystemView.css';
+
+const APPS: { id: string; name: string; color: string }[] = [
+  { id: 'clearos',   name: 'ClearOS',  color: '#ea580c' },
+  { id: 'finops',    name: 'FinOps',   color: '#0284c7' },
+  { id: 'onepi',     name: 'NexusHR',  color: '#0d9488' },
+  { id: 'bliss',     name: 'Bliss',    color: '#7c3aed' },
+  { id: 'complyos',  name: 'ComplyOS', color: '#059669' },
+  { id: 'crm',       name: 'CRM',      color: '#16a34a' },
+  { id: 'cloud',     name: 'Cloud',    color: '#0369a1' },
+  { id: 'email',     name: 'Email',    color: '#0078d4' },
+  { id: 'contacts',  name: 'Contacts', color: '#1a73e8' },
+  { id: 'ai',        name: 'AI',       color: '#6d28d9' },
+  { id: 'store',     name: 'Store',    color: '#8b5cf6' },
+  { id: 'workspace', name: 'Admin',    color: '#64748b' },
+];
+
+const NEUTRAL_LABELS: Record<keyof NeutralSet, string> = {
+  ink: 'Text (primary)', ink2: 'Text (secondary)', ink3: 'Text (muted)',
+  bg: 'Page background', white: 'Surface', border: 'Border', border2: 'Border (strong)',
+};
+
+const SEMANTIC_LABELS: Record<keyof SemanticSet, string> = {
+  gold: 'Warning', red: 'Danger', green: 'Success', blue: 'Info', purple: 'Accent',
+  navy: 'Navy', navy2: 'Navy (alt)',
+};
+
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const [local, setLocal] = useState(value);
+  React.useEffect(() => setLocal(value), [value]);
+  return (
+    <div className="ds-field">
+      <span className="ds-field-label">{label}</span>
+      <div className="ds-color-row">
+        <input type="color" className="ds-swatch" value={/^#[0-9a-f]{6}$/i.test(local) ? local : '#888888'}
+          onChange={e => { setLocal(e.target.value); onChange(e.target.value); }} />
+        <input type="text" className="input-field ds-color-text" value={local}
+          onChange={e => setLocal(e.target.value)}
+          onBlur={() => onChange(local)} />
+      </div>
+    </div>
+  );
+}
+
+function NumberField({ label, value, onChange, suffix }: { label: string; value: number; onChange: (v: number) => void; suffix?: string }) {
+  return (
+    <div className="ds-field">
+      <span className="ds-field-label">{label}</span>
+      <div className="ds-number-row">
+        <input type="number" className="input-field ds-number-input" value={value}
+          onChange={e => onChange(Number(e.target.value) || 0)} />
+        {suffix && <span className="ds-number-suffix">{suffix}</span>}
+      </div>
+    </div>
+  );
+}
+
+export function DesignSystemView() {
+  const { tokens, updateTokens, resetToDefaults } = useDesignSystem();
+  const branding = useBranding();
+
+  const [themeTab, setThemeTab] = useState<'light' | 'dark'>('light');
+  const [previewTheme, setPreviewTheme] = useState<'light' | 'dark'>('light');
+  const [seed, setSeed] = useState(tokens.brand.primary);
+  const [saveErrors, setSaveErrors] = useState<Record<string, string | undefined>>({});
+  const [savedFlash, setSavedFlash] = useState<string | null>(null);
+
+  async function save(section: string, partial: Partial<DesignTokens>) {
+    try {
+      await updateTokens(partial);
+      setSaveErrors(e => ({ ...e, [section]: undefined }));
+      setSavedFlash(section);
+      window.setTimeout(() => setSavedFlash(f => (f === section ? null : f)), 1400);
+    } catch (err: any) {
+      setSaveErrors(e => ({ ...e, [section]: err?.message || 'Failed to save' }));
+    }
+  }
+
+  async function saveAppColor(appId: string, color: string) {
+    try {
+      await pushBranding({ apps: { [appId]: { color } } });
+      setSaveErrors(e => ({ ...e, apps: undefined }));
+    } catch (err: any) {
+      setSaveErrors(e => ({ ...e, apps: err?.message || 'Failed to save' }));
+    }
+  }
+
+  async function handleGenerateFromSeed() {
+    await save('brand', generateFromSeed(seed));
+  }
+
+  const neutralKeys: (keyof NeutralSet)[] = ['ink', 'ink2', 'ink3', 'bg', 'white', 'border', 'border2'];
+  const semanticKeys: (keyof SemanticSet)[] = ['gold', 'red', 'green', 'blue', 'purple', 'navy', 'navy2'];
+
+  return (
+    <div className="ds-root">
+      <div className="ds-header">
+        <div>
+          <h1 className="ds-title">Design System</h1>
+          <p className="ds-sub">
+            Controls the real CSS tokens every app renders from — Bliss, ClearOS, FinOps and the rest.
+            Changes apply live and persist for every tenant.
+          </p>
+        </div>
+        <button type="button" className="btn btn-secondary" onClick={() => resetToDefaults()}>Reset to defaults</button>
+      </div>
+
+      <div className="ds-layout">
+        <div className="ds-panel">
+
+          {/* Brand & Neutral */}
+          <section className="card ds-section">
+            <h2 className="ds-section-title">Brand &amp; Neutral Colors</h2>
+            <p className="ds-section-hint">
+              Pick a seed color to auto-generate a cohesive neutral scale (Material 3 tonal palette
+              algorithm), or edit each value directly.
+            </p>
+            <div className="ds-seed-row">
+              <input type="color" className="ds-swatch" value={seed} onChange={e => setSeed(e.target.value)} />
+              <input type="text" className="input-field ds-color-text" value={seed} onChange={e => setSeed(e.target.value)} />
+              <button type="button" className="btn btn-primary btn-sm" onClick={handleGenerateFromSeed}>Generate</button>
+            </div>
+
+            <ColorField label="Brand primary" value={tokens.brand.primary}
+              onChange={v => save('brand', { brand: { primary: v } })} />
+
+            <div className="ds-tabs">
+              <button type="button" className={`ds-tab${themeTab === 'light' ? ' ds-tab--active' : ''}`} onClick={() => setThemeTab('light')}>Light mode</button>
+              <button type="button" className={`ds-tab${themeTab === 'dark' ? ' ds-tab--active' : ''}`} onClick={() => setThemeTab('dark')}>Dark mode</button>
+            </div>
+
+            {neutralKeys.map(key => (
+              <ColorField key={key} label={NEUTRAL_LABELS[key]} value={tokens.neutral[themeTab][key]}
+                onChange={v => save('neutral', { neutral: { ...tokens.neutral, [themeTab]: { ...tokens.neutral[themeTab], [key]: v } } })} />
+            ))}
+            {(saveErrors.brand || saveErrors.neutral) && <p className="ds-error">{saveErrors.brand || saveErrors.neutral}</p>}
+            {(savedFlash === 'brand' || savedFlash === 'neutral') && <p className="ds-saved">Saved</p>}
+          </section>
+
+          {/* Semantic */}
+          <section className="card ds-section">
+            <h2 className="ds-section-title">Semantic Colors</h2>
+            <p className="ds-section-hint">Status colors used for badges, pills, and alerts — editing {themeTab} mode.</p>
+            {semanticKeys.map(key => (
+              <ColorField key={key} label={SEMANTIC_LABELS[key]} value={tokens.semantic[themeTab][key]}
+                onChange={v => save('semantic', { semantic: { ...tokens.semantic, [themeTab]: { ...tokens.semantic[themeTab], [key]: v } } })} />
+            ))}
+            {saveErrors.semantic && <p className="ds-error">{saveErrors.semantic}</p>}
+            {savedFlash === 'semantic' && <p className="ds-saved">Saved</p>}
+          </section>
+
+          {/* Typography */}
+          <section className="card ds-section">
+            <h2 className="ds-section-title">Typography</h2>
+            <div className="ds-field">
+              <span className="ds-field-label">Base font family</span>
+              <select className="input-field" value={tokens.typography.font}
+                onChange={e => save('typography', { typography: { ...tokens.typography, font: e.target.value as any } })}>
+                {FONT_IDS.map(id => <option key={id} value={id}>{FONT_LABELS[id]}</option>)}
+              </select>
+            </div>
+            <div className="ds-scale-grid">
+              {(Object.keys(tokens.typography.scale) as (keyof typeof tokens.typography.scale)[]).map(key => (
+                <NumberField key={key} label={key.toUpperCase()} suffix="px" value={tokens.typography.scale[key]}
+                  onChange={v => save('typography', { typography: { ...tokens.typography, scale: { ...tokens.typography.scale, [key]: v } } })} />
+              ))}
+            </div>
+            {saveErrors.typography && <p className="ds-error">{saveErrors.typography}</p>}
+            {savedFlash === 'typography' && <p className="ds-saved">Saved</p>}
+          </section>
+
+          {/* Shape */}
+          <section className="card ds-section">
+            <h2 className="ds-section-title">Shape</h2>
+            <div className="ds-scale-grid">
+              <NumberField label="Small radius" suffix="px" value={tokens.shape.rSm} onChange={v => save('shape', { shape: { ...tokens.shape, rSm: v } })} />
+              <NumberField label="Base radius" suffix="px" value={tokens.shape.r} onChange={v => save('shape', { shape: { ...tokens.shape, r: v } })} />
+              <NumberField label="Large radius" suffix="px" value={tokens.shape.rLg} onChange={v => save('shape', { shape: { ...tokens.shape, rLg: v } })} />
+              <NumberField label="Badge radius" suffix="px" value={tokens.shape.badgeRadius} onChange={v => save('shape', { shape: { ...tokens.shape, badgeRadius: v } })} />
+            </div>
+            <div className="ds-shape-preview">
+              <div className="ds-shape-swatch" style={{ borderRadius: tokens.shape.rSm }} />
+              <div className="ds-shape-swatch" style={{ borderRadius: tokens.shape.r }} />
+              <div className="ds-shape-swatch" style={{ borderRadius: tokens.shape.rLg }} />
+              <div className="ds-shape-swatch" style={{ borderRadius: tokens.shape.badgeRadius }} />
+            </div>
+            {saveErrors.shape && <p className="ds-error">{saveErrors.shape}</p>}
+            {savedFlash === 'shape' && <p className="ds-saved">Saved</p>}
+          </section>
+
+          {/* Elevation */}
+          <section className="card ds-section">
+            <h2 className="ds-section-title">Elevation</h2>
+            <div className="ds-preset-row">
+              {SHADOW_IDS.map(id => (
+                <button key={id} type="button"
+                  className={`ds-preset-btn${tokens.elevation === id ? ' ds-preset-btn--active' : ''}`}
+                  onClick={() => save('elevation', { elevation: id })}>
+                  <span className="ds-preset-swatch" style={{ boxShadow: SHADOW_PRESETS[id][previewTheme].base }} />
+                  {SHADOW_LABELS[id]}
+                </button>
+              ))}
+            </div>
+            {saveErrors.elevation && <p className="ds-error">{saveErrors.elevation}</p>}
+            {savedFlash === 'elevation' && <p className="ds-saved">Saved</p>}
+          </section>
+
+          {/* Density */}
+          <section className="card ds-section">
+            <h2 className="ds-section-title">Spacing &amp; Density</h2>
+            <div className="ds-preset-row">
+              {DENSITY_IDS.map(id => (
+                <button key={id} type="button"
+                  className={`ds-preset-btn${tokens.density === id ? ' ds-preset-btn--active' : ''}`}
+                  onClick={() => save('density', { density: id })}>
+                  {DENSITY_LABELS[id]}
+                </button>
+              ))}
+            </div>
+            {saveErrors.density && <p className="ds-error">{saveErrors.density}</p>}
+            {savedFlash === 'density' && <p className="ds-saved">Saved</p>}
+          </section>
+
+          {/* Motion */}
+          <section className="card ds-section">
+            <h2 className="ds-section-title">Motion</h2>
+            <div className="ds-scale-grid">
+              <NumberField label="Fast" suffix="ms" value={tokens.motion.durFast} onChange={v => save('motion', { motion: { ...tokens.motion, durFast: v } })} />
+              <NumberField label="Base" suffix="ms" value={tokens.motion.dur} onChange={v => save('motion', { motion: { ...tokens.motion, dur: v } })} />
+              <NumberField label="Slow" suffix="ms" value={tokens.motion.durSlow} onChange={v => save('motion', { motion: { ...tokens.motion, durSlow: v } })} />
+            </div>
+            <div className="ds-field">
+              <span className="ds-field-label">Easing</span>
+              <input type="text" className="input-field" value={tokens.motion.ease}
+                onChange={e => save('motion', { motion: { ...tokens.motion, ease: e.target.value } })} />
+            </div>
+            {saveErrors.motion && <p className="ds-error">{saveErrors.motion}</p>}
+            {savedFlash === 'motion' && <p className="ds-saved">Saved</p>}
+          </section>
+
+          {/* Per-app accents */}
+          <section className="card ds-section">
+            <h2 className="ds-section-title">Per-App Accent Colors</h2>
+            <p className="ds-section-hint">Each app keeps its own accent on top of the shared design system.</p>
+            <div className="ds-app-grid">
+              {APPS.map(app => (
+                <div key={app.id} className="ds-app-cell">
+                  <input type="color" className="ds-swatch" value={branding.getAppColor(app.id, app.color)}
+                    onChange={e => saveAppColor(app.id, e.target.value)} />
+                  <span className="ds-app-name">{branding.getAppName(app.id, app.name)}</span>
+                </div>
+              ))}
+            </div>
+            {saveErrors.apps && <p className="ds-error">{saveErrors.apps}</p>}
+          </section>
+
+        </div>
+
+        {/* Live preview */}
+        <div className="ds-preview" data-theme={previewTheme === 'dark' ? 'dark' : undefined}>
+          <div className="ds-preview-bar">
+            <span className="ds-preview-label">Live preview</span>
+            <div className="ds-preview-toggle">
+              <button type="button" className={`ds-tab${previewTheme === 'light' ? ' ds-tab--active' : ''}`} onClick={() => setPreviewTheme('light')}>Light</button>
+              <button type="button" className={`ds-tab${previewTheme === 'dark' ? ' ds-tab--active' : ''}`} onClick={() => setPreviewTheme('dark')}>Dark</button>
+            </div>
+          </div>
+
+          <div className="ds-preview-body">
+            <div className="ds-preview-row">
+              <button type="button" className="btn btn-primary">Filled</button>
+              <button type="button" className="btn btn-secondary">Secondary</button>
+              <button type="button" className="btn btn-ghost">Ghost</button>
+              <button type="button" className="btn btn-danger">Danger</button>
+            </div>
+
+            <div className="ds-preview-row">
+              <span className="badge badge-teal">Teal</span>
+              <span className="badge badge-gold">Warning</span>
+              <span className="badge badge-red">Danger</span>
+              <span className="badge badge-green">Success</span>
+              <span className="badge badge-blue">Info</span>
+              <span className="badge badge-purple">Accent</span>
+            </div>
+
+            <div className="ds-preview-row">
+              <span className="status-pill spl-teal">Active</span>
+              <span className="status-pill spl-amber">Pending</span>
+              <span className="status-pill spl-red">Overdue</span>
+              <span className="status-pill spl-green">Done</span>
+            </div>
+
+            <div className="card ds-preview-card">
+              <h3 className="ds-preview-card-title">Card title</h3>
+              <p className="ds-preview-card-body">
+                This card uses the app's real <code>.card</code> class — background, border,
+                radius and shadow all come straight from the tokens on the left.
+              </p>
+              <div className="ds-preview-nav-item">Navigation item</div>
+            </div>
+
+            <div className="ds-preview-type-scale">
+              <div style={{ fontSize: 'var(--text-3xl)' }}>Heading 3XL</div>
+              <div style={{ fontSize: 'var(--text-2xl)' }}>Heading 2XL</div>
+              <div style={{ fontSize: 'var(--text-xl)' }}>Heading XL</div>
+              <div style={{ fontSize: 'var(--text-lg)' }}>Heading LG</div>
+              <div style={{ fontSize: 'var(--text-md)' }}>Body MD</div>
+              <div style={{ fontSize: 'var(--text-base)' }}>Body base</div>
+              <div style={{ fontSize: 'var(--text-sm)' }}>Caption SM</div>
+              <div style={{ fontSize: 'var(--text-xs)' }}>Caption XS</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default DesignSystemView;

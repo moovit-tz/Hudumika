@@ -1,10 +1,15 @@
+import { requireAppEnabled } from '../middleware/appGate.js';
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { sql, type SqlBool } from 'kysely';
+import { GLService } from '../services/gl.service.js';
+import { AccountingIntegrationService } from '../services/accounting-integration.service.js';
+import { TRAService } from '../services/tra.service.js';
 
 export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', requireAppEnabled('finops'));
 
   // GET /v1/invoices/stats
   fastify.get('/stats', async (request) => {
@@ -269,21 +274,49 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         notes: body.notes || null,
         created_by: user.sub,
       }).returningAll().execute();
+
+      let grandTotal = 0;
       if (Array.isArray(body.items) && body.items.length > 0) {
-        await trx.insertInto('sales_invoice_lines').values(
-          body.items.map((it: any, i: number) => ({
-            invoice_id: inv.id,
-            name: it.name,
-            unit: it.unit || 'PER BIL',
-            rate: it.rate || 0,
-            qty: it.qty || 1,
-            tax_pct: it.tax_pct || 0,
-            line_group: it.line_group || 'other',
-            currency: it.currency || 'TZS',
-            sort_order: i,
-          }))
-        ).execute();
+        const itemsToInsert = body.items.map((it: any, i: number) => ({
+          invoice_id: inv.id,
+          name: it.name,
+          unit: it.unit || 'PER BIL',
+          rate: it.rate || 0,
+          qty: it.qty || 1,
+          tax_pct: it.tax_pct || 0,
+          line_group: it.line_group || 'other',
+          currency: it.currency || 'TZS',
+          sort_order: i,
+        }));
+        await trx.insertInto('sales_invoice_lines').values(itemsToInsert).execute();
+
+        const clearingLines = itemsToInsert.filter((l: any) => l.line_group === 'clearing' || l.line_group === 'other');
+        const shippingLines = itemsToInsert.filter((l: any) => l.line_group === 'shipping');
+        const exRate = Number(inv.exchange_rate) || 1;
+        grandTotal = clearingLines.reduce((s: number, l: any) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0)
+          + shippingLines.reduce((s: number, l: any) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0) * exRate;
       }
+
+      if (inv.status !== 'Draft' && grandTotal > 0) {
+        await GLService.post(user.tenant_id, {
+          entryDate: inv.bill_date ? new Date(inv.bill_date).toISOString() : new Date().toISOString(),
+          description: `Sales invoice: ${inv.invoice_number}`,
+          reference: inv.invoice_number,
+          sourceModule: 'AR',
+          sourceId: inv.id,
+          createdBy: user.sub,
+          lines: [
+            { accountCode: '1100', debit: grandTotal, credit: 0, description: 'Accounts Receivable' },
+            { accountCode: '4000', debit: 0, credit: grandTotal, description: 'Freight Revenue' },
+          ],
+        });
+      }
+
+      // Trigger accounting integration sync in background
+      if (inv.status !== 'Draft') {
+        AccountingIntegrationService.syncInvoice(user.tenant_id, inv.id).catch(console.error);
+      }
+
       return reply.status(201).send(inv);
     });
   });
@@ -297,30 +330,74 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       const existing = await trx.selectFrom('sales_invoices').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Invoice not found' });
       const updates: any = { updated_at: new Date() };
-      const fields = ['invoice_number', 'client_name', 'client_address', 'bl_number', 'origin', 'destination', 'mode', 'bill_date', 'due_date', 'sale_agent', 'payment_terms', 'exchange_rate', 'status', 'notes', 'ref_code', 'version'];
+      const fields = ['invoice_number', 'customer_id', 'client_name', 'client_address', 'shipment_ref', 'bl_number', 'origin', 'destination', 'mode', 'bill_date', 'due_date', 'sale_agent', 'payment_terms', 'exchange_rate', 'status', 'notes', 'ref_code', 'version'];
       for (const f of fields) {
         if (body[f] !== undefined) updates[f] = f === 'client_address' ? JSON.stringify(body[f]) : body[f];
       }
       await trx.updateTable('sales_invoices').set(updates).where('id', '=', id).execute();
+      
+      let lines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', id).execute();
       if (Array.isArray(body.items)) {
         await trx.deleteFrom('sales_invoice_lines').where('invoice_id', '=', id).execute();
         if (body.items.length > 0) {
-          await trx.insertInto('sales_invoice_lines').values(
-            body.items.map((it: any, i: number) => ({
-              invoice_id: id,
-              name: it.name,
-              unit: it.unit || 'PER BIL',
-              rate: it.rate || 0,
-              qty: it.qty || 1,
-              tax_pct: it.tax_pct || 0,
-              line_group: it.line_group || 'other',
-              currency: it.currency || 'TZS',
-              sort_order: i,
-            }))
-          ).execute();
+          const itemsToInsert = body.items.map((it: any, i: number) => ({
+            invoice_id: id,
+            name: it.name,
+            unit: it.unit || 'PER BIL',
+            rate: it.rate || 0,
+            qty: it.qty || 1,
+            tax_pct: it.tax_pct || 0,
+            line_group: it.line_group || 'other',
+            currency: it.currency || 'TZS',
+            sort_order: i,
+          }));
+          await trx.insertInto('sales_invoice_lines').values(itemsToInsert).execute();
+          lines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', id).execute();
+        } else {
+          lines = [];
         }
       }
-      const inv = await trx.selectFrom('sales_invoices').selectAll().where('id', '=', id).executeTakeFirst();
+      const inv = await trx.selectFrom('sales_invoices').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
+
+      if (inv.status !== 'Draft') {
+        const alreadyPosted = await trx
+          .selectFrom('journal_entries')
+          .select('id')
+          .where('tenant_id', '=', user.tenant_id)
+          .where('source_module', '=', 'AR')
+          .where('source_id', '=', id)
+          .where('description', 'like', 'Sales invoice%')
+          .executeTakeFirst();
+
+        if (!alreadyPosted) {
+          const exRate = Number(inv.exchange_rate) || 1;
+          const clearingLines = lines.filter(l => l.line_group === 'clearing' || l.line_group === 'other');
+          const shippingLines = lines.filter(l => l.line_group === 'shipping');
+          const grandTotal = clearingLines.reduce((s, l) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0)
+            + shippingLines.reduce((s, l) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0) * exRate;
+
+          if (grandTotal > 0) {
+            await GLService.post(user.tenant_id, {
+              entryDate: inv.bill_date ? new Date(inv.bill_date).toISOString() : new Date().toISOString(),
+              description: `Sales invoice: ${inv.invoice_number}`,
+              reference: inv.invoice_number,
+              sourceModule: 'AR',
+              sourceId: inv.id,
+              createdBy: user.sub,
+              lines: [
+                { accountCode: '1100', debit: grandTotal, credit: 0, description: 'Accounts Receivable' },
+                { accountCode: '4000', debit: 0, credit: grandTotal, description: 'Freight Revenue' },
+              ],
+            });
+          }
+        }
+      }
+
+      // Trigger accounting integration sync in background
+      if (inv.status !== 'Draft') {
+        AccountingIntegrationService.syncInvoice(user.tenant_id, inv.id).catch(console.error);
+      }
+
       return inv;
     });
   });
@@ -368,7 +445,95 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       else if (totalPaid >= grandTotal) newStatus = 'Paid';
       else newStatus = 'Partial';
       await trx.updateTable('sales_invoices').set({ received: totalPaid, status: newStatus, updated_at: new Date() }).where('id', '=', id).execute();
+
+      // Post payment to GL
+      await GLService.post(user.tenant_id, {
+        entryDate: payment_date ? new Date(payment_date).toISOString() : new Date().toISOString(),
+        description: `Payment received: ${inv.invoice_number}`,
+        reference: inv.invoice_number,
+        sourceModule: 'AR',
+        sourceId: inv.id,
+        createdBy: user.sub,
+        lines: [
+          { accountCode: '1010', debit: Number(amount), credit: 0, description: 'Cash received' },
+          { accountCode: '1100', debit: 0, credit: Number(amount), description: `Clear AR: ${inv.invoice_number}` },
+        ],
+      });
+
+      // Trigger accounting integration payment sync in background
+      AccountingIntegrationService.syncPayment(user.tenant_id, id, 'INVOICE').catch(console.error);
+
       return { success: true, received: totalPaid, status: newStatus };
     });
   });
+
+  // ── POST /v1/invoices/:id/submit-to-tra ──────────────────────────────────────
+  // Submit invoice to TRA EFDMS and receive a receipt verification number + QR code.
+  fastify.post('/:id/submit-to-tra', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+    const user = request.user as any;
+    const { id } = request.params as { id: string };
+
+    // Ensure invoice belongs to tenant and is not Draft
+    const inv = await db
+      .selectFrom('sales_invoices')
+      .select(['id', 'status', 'tra_status', 'tra_rctvnum', 'tra_ack_code', 'tra_qr_url'])
+      .where('id', '=', id)
+      .where('tenant_id', '=', user.tenant_id)
+      .executeTakeFirst();
+
+    if (!inv) return reply.status(404).send({ error: 'Invoice not found' });
+    if (inv.status === 'Draft') return reply.status(400).send({ error: 'Cannot submit Draft invoices to TRA. Change status first.' });
+
+    const result = await TRAService.submitInvoice(user.tenant_id, id);
+
+    if (!result.success) {
+      return reply.status(400).send({
+        error: result.error,
+        ackCode: result.ackCode,
+        ackMsg: result.ackMsg,
+      });
+    }
+
+    return {
+      success: true,
+      rctNum: result.rctNum,
+      rctvNum: result.rctvNum,
+      qrUrl: result.qrUrl,
+      verifyUrl: result.qrUrl,
+    };
+  });
+
+  // ── GET /v1/invoices/:id/tra-receipt ─────────────────────────────────────────
+  // Get TRA receipt details for an invoice including QR code data URL.
+  fastify.get('/:id/tra-receipt', async (request, reply) => {
+    const user = request.user as any;
+    const { id } = request.params as { id: string };
+
+    const inv = await db
+      .selectFrom('sales_invoices')
+      .select([
+        'id', 'invoice_number', 'client_name', 'bill_date',
+        'tra_status', 'tra_rctnum', 'tra_rctvnum', 'tra_dc', 'tra_znum',
+        'tra_submitted_at', 'tra_ack_code', 'tra_ack_msg', 'tra_qr_url',
+      ])
+      .where('id', '=', id)
+      .where('tenant_id', '=', user.tenant_id)
+      .executeTakeFirst();
+
+    if (!inv) return reply.status(404).send({ error: 'Invoice not found' });
+
+    let qrDataUrl: string | null = null;
+    if (inv.tra_rctvnum) {
+      const config = await TRAService.getConfig(user.tenant_id);
+      const env = (config?.environment || 'production') as 'test' | 'production';
+      qrDataUrl = await TRAService.generateQRCodeDataUrl(inv.tra_rctvnum, env).catch(() => null);
+    }
+
+    return {
+      ...inv,
+      qrDataUrl,
+      isSubmitted: inv.tra_status === 'submitted' && inv.tra_ack_code === 0,
+    };
+  });
 }
+
