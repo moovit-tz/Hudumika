@@ -4,6 +4,9 @@ import { env } from '../config/env.js';
 import { runRiskScanJob } from './risk-scan.job.js';
 import { runDailyStatusJob } from './daily-status.job.js';
 import { runMissingDocReminderJob } from './reminder.job.js';
+import { runComplyRenewalJob } from './comply-renewal.job.js';
+import { runTRAZReportJob } from './tra-zreport.job.js';
+import { runSupportRulesJob } from './support-rules.job.js';
 
 let redisConnection: Redis | null = null;
 let riskQueue: Queue | null = null;
@@ -70,6 +73,12 @@ function startBullMQ(): void {
           await runMissingDocReminderJob();
         } else if (job.name === 'daily-status') {
           await runDailyStatusJob();
+        } else if (job.name === 'comply-renewal') {
+          await runComplyRenewalJob();
+        } else if (job.name === 'tra-zreport') {
+          await runTRAZReportJob();
+        } else if (job.name === 'support-rules') {
+          await runSupportRulesJob();
         }
       },
       { connection: redisConnection as any }
@@ -80,12 +89,25 @@ function startBullMQ(): void {
       repeat: { every: 15 * 60 * 1000 } // Every 15 minutes
     }).catch(console.error);
 
+    reminderQueue.add('support-rules', {}, {
+      repeat: { every: 15 * 60 * 1000 } // Every 15 minutes — SLA escalation + status automation
+    }).catch(console.error);
+
     reminderQueue.add('doc-reminder', {}, {
       repeat: { every: 24 * 60 * 60 * 1000 } // Every 24 hours
     }).catch(console.error);
 
     reminderQueue.add('daily-status', {}, {
       repeat: { pattern: '0 8 * * *' } // Every day at 8:00 AM
+    }).catch(console.error);
+
+    reminderQueue.add('comply-renewal', {}, {
+      repeat: { pattern: '0 8 * * *' } // Daily at 8:00 AM
+    }).catch(console.error);
+
+    // TRA Z-Report: run at midnight (00:05) every day
+    reminderQueue.add('tra-zreport', {}, {
+      repeat: { pattern: '5 0 * * *' } // Every day at 00:05 AM
     }).catch(console.error);
 
     console.log('🚀 BullMQ Workers and repeat schedules initialized.');
@@ -105,15 +127,20 @@ function startIntervalFallback(): void {
   // Immediately run first pass
   runRiskScanJob().catch(console.error);
   runMissingDocReminderJob().catch(console.error);
+  runComplyRenewalJob().catch(console.error);
+  runSupportRulesJob().catch(console.error);
 
   // Set interval timers
   fallbackTimer = setInterval(() => {
     runRiskScanJob().catch(console.error);
     runMissingDocReminderJob().catch(console.error);
+    runSupportRulesJob().catch(console.error);
   }, 10 * 60 * 1000); // Poll every 10 minutes in fallback mode
 
-  // Daily status fallback: once every 24 hours
+  // Daily jobs: status + comply renewals — once every 24 hours
   setInterval(() => {
     runDailyStatusJob().catch(console.error);
+    runComplyRenewalJob().catch(console.error);
+    runTRAZReportJob().catch(console.error);
   }, 24 * 60 * 60 * 1000);
 }

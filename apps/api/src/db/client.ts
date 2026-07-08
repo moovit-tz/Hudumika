@@ -1166,6 +1166,18 @@ export interface SupportTicketsTable {
   resolved_at: Date | null;
   resolution_time_seconds: number | null;
   sla_deadline: Date | null;
+  sla_escalated_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SupportRulesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  type: 'auto_assign' | 'sla_escalation' | 'status_automation' | 'notification_trigger';
+  name: string;
+  enabled: Generated<boolean>;
+  config: any;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -1259,6 +1271,7 @@ export interface Database {
   support_messages: SupportMessagesTable;
   support_groups: SupportGroupsTable;
   support_views: SupportViewsTable;
+  support_rules: SupportRulesTable;
   customer_assets: CustomerAssetsTable;
   kb_categories: KbCategoriesTable;
   knowledge_base: KnowledgeBaseTable;

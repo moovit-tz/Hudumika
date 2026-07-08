@@ -1,7 +1,111 @@
 import type { FastifyInstance } from 'fastify';
-import { db, withTenant } from '../db/client.js';
+import type { Transaction } from 'kysely';
+import { db, withTenant, type Database } from '../db/client.js';
 import { MessagingService } from '../services/messaging.service.js';
-import type { MessageChannel, TicketPriority, TicketStatus } from '@hudumika/types';
+import { requireRole } from '../middleware/rbac.js';
+import type { MessageChannel, TicketPriority, TicketStatus, UserRole } from '@hudumika/types';
+
+const MGMT_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'];
+const AGENT_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER'];
+
+// SLA deadline defaults by priority — no per-rule config in v1, just a
+// sane system default so sla_escalation rules have something real to act on.
+const SLA_HOURS: Record<TicketPriority, number> = { URGENT: 4, HIGH: 8, NORMAL: 24, MEDIUM: 24, LOW: 48 };
+
+// ── Rules engine — auto-assignment ──────────────────────────────
+export async function applyAutoAssignRules(trx: Transaction<Database>, tenantId: string, ticket: { id: string; category: string }): Promise<string | null> {
+  const rules = await trx.selectFrom('support_rules').selectAll()
+    .where('tenant_id', '=', tenantId).where('type', '=', 'auto_assign').where('enabled', '=', true)
+    .orderBy('created_at', 'asc').execute();
+  if (rules.length === 0) return null;
+
+  const rule = rules[0]; // first enabled auto-assign rule wins
+  const config = typeof rule.config === 'string' ? JSON.parse(rule.config) : rule.config;
+  const agentIds: string[] = config.agentIds || [];
+  if (agentIds.length === 0) return null;
+
+  let chosenId: string | null = null;
+
+  if (config.strategy === 'category_match' && config.categoryMap?.[ticket.category]) {
+    chosenId = config.categoryMap[ticket.category];
+  } else if (config.strategy === 'load_based') {
+    const openCounts = await trx.selectFrom('support_tickets')
+      .select(['assigned_to'])
+      .select(trx.fn.count('id').as('cnt'))
+      .where('tenant_id', '=', tenantId)
+      .where('assigned_to', 'in', agentIds)
+      .where('status', 'in', ['OPEN', 'IN_PROGRESS'])
+      .groupBy('assigned_to')
+      .execute();
+    const loadMap = new Map(openCounts.map(r => [r.assigned_to as string, Number(r.cnt)]));
+    chosenId = agentIds.reduce((least, id) => (loadMap.get(id) || 0) < (loadMap.get(least) || 0) ? id : least, agentIds[0]);
+  } else {
+    // round_robin — pick whoever was assigned longest ago among the pool
+    const lastAssigned = await trx.selectFrom('support_tickets')
+      .select(['assigned_to', 'created_at'])
+      .where('tenant_id', '=', tenantId)
+      .where('assigned_to', 'in', agentIds)
+      .orderBy('created_at', 'desc')
+      .execute();
+    const lastIndex = lastAssigned.length > 0 ? agentIds.indexOf(lastAssigned[0].assigned_to as string) : -1;
+    chosenId = agentIds[(lastIndex + 1) % agentIds.length];
+  }
+
+  if (chosenId) {
+    await trx.updateTable('support_tickets').set({ assigned_to: chosenId }).where('id', '=', ticket.id).execute();
+  }
+  return chosenId;
+}
+
+// ── Rules engine — notification triggers ────────────────────────
+export async function fireNotificationTrigger(
+  trx: Transaction<Database>,
+  tenantId: string,
+  event: 'new_ticket' | 'sla_breach' | 'reassigned' | 'status_changed',
+  ticket: { id: string; ref_number?: string; subject: string; assigned_to?: string | null },
+  extra?: { title?: string; message?: string }
+): Promise<void> {
+  const rules = await trx.selectFrom('support_rules').selectAll()
+    .where('tenant_id', '=', tenantId).where('type', '=', 'notification_trigger').where('enabled', '=', true).execute();
+
+  for (const rule of rules) {
+    const config = typeof rule.config === 'string' ? JSON.parse(rule.config) : rule.config;
+    if (config.event !== event) continue;
+
+    let recipientIds: string[] = [];
+    if (config.notify === 'assignee') {
+      if (ticket.assigned_to) recipientIds = [ticket.assigned_to];
+    } else if (config.notify === 'manager_role') {
+      const managers = await trx.selectFrom('users').select('id')
+        .where('tenant_id', '=', tenantId).where('role', 'in', MGMT_ROLES).execute();
+      recipientIds = managers.map(m => m.id);
+    } else if (Array.isArray(config.notify)) {
+      recipientIds = config.notify;
+    }
+
+    for (const userId of recipientIds) {
+      await trx.insertInto('notifications').values({
+        tenant_id: tenantId,
+        user_id: userId,
+        app: 'bliss',
+        type: 'support',
+        title: extra?.title ?? `Ticket ${ticket.ref_number ?? ''}: ${ticket.subject}`,
+        message: extra?.message ?? null,
+        link: `/bliss/tickets?id=${ticket.id}`,
+        metadata: '{}',
+        entity_type: 'support_ticket',
+        entity_id: ticket.id,
+        entity_label: ticket.subject,
+        shipment_id: null,
+        customer_id: null,
+        trigger_type: null,
+        channel: null,
+        recipient: null,
+        content: null,
+      } as any).execute();
+    }
+  }
+}
 
 export default async function supportRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -45,7 +149,8 @@ export default async function supportRoutes(fastify: FastifyInstance) {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       const b = request.body;
-      const ticket = await trx
+      const slaDeadline = new Date(Date.now() + SLA_HOURS[b.priority] * 3600_000);
+      let ticket = await trx
         .insertInto('support_tickets')
         .values({
           tenant_id: user.tenant_id,
@@ -58,9 +163,15 @@ export default async function supportRoutes(fastify: FastifyInstance) {
           category: b.category,
           status: 'OPEN',
           tags: JSON.stringify([]),
+          sla_deadline: slaDeadline,
         })
         .returningAll()
         .executeTakeFirstOrThrow();
+
+      const assignedTo = await applyAutoAssignRules(trx, user.tenant_id, ticket);
+      if (assignedTo) ticket = { ...ticket, assigned_to: assignedTo };
+
+      await fireNotificationTrigger(trx, user.tenant_id, 'new_ticket', ticket);
 
       reply.status(201);
       return ticket;
@@ -226,16 +337,31 @@ export default async function supportRoutes(fastify: FastifyInstance) {
   }>('/tickets/:id/status', async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
+      const before = await trx.selectFrom('support_tickets')
+        .select(['status', 'assigned_to', 'created_at', 'resolved_at'])
+        .where('id', '=', request.params.id).executeTakeFirst();
+
+      const newlyResolved = request.body.status === 'RESOLVED' && before?.status !== 'RESOLVED' && !before?.resolved_at;
+      const resolvedAt = newlyResolved ? new Date() : undefined;
+      const resolutionSeconds = newlyResolved && before
+        ? Math.round((resolvedAt!.getTime() - new Date(before.created_at).getTime()) / 1000)
+        : undefined;
+
       const updated = await trx
         .updateTable('support_tickets')
         .set({
           status: request.body.status,
           ...(request.body.assigned_to ? { assigned_to: request.body.assigned_to } : {}),
+          ...(resolvedAt ? { resolved_at: resolvedAt, resolution_time_seconds: resolutionSeconds } : {}),
           updated_at: new Date(),
         })
         .where('id', '=', request.params.id)
         .returningAll()
         .executeTakeFirstOrThrow();
+
+      const wasReassigned = !!request.body.assigned_to && request.body.assigned_to !== before?.assigned_to;
+      if (wasReassigned) await fireNotificationTrigger(trx, user.tenant_id, 'reassigned', updated);
+      if (request.body.status !== before?.status) await fireNotificationTrigger(trx, user.tenant_id, 'status_changed', updated);
 
       reply.status(200);
       return updated;
@@ -571,6 +697,33 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
         .sort((a, b) => b.count - a.count)
         .slice(0, 8);
 
+      // Per-agent performance — real data from support_tickets.assigned_to
+      // (a real FK to users), not a fabricated list.
+      const assignedIds = Array.from(new Set(tickets.map(t => t.assigned_to).filter((x): x is string => !!x)));
+      const agentUsers = assignedIds.length > 0
+        ? await trx.selectFrom('users').select(['id', 'name']).where('id', 'in', assignedIds).execute()
+        : [];
+      const agentNameMap = new Map(agentUsers.map(u => [u.id, u.name]));
+      const agents = assignedIds.map(id => {
+        const agentTickets = tickets.filter(t => t.assigned_to === id);
+        const resolvedCount = agentTickets.filter(t => t.status === 'RESOLVED' || t.status === 'CLOSED').length;
+        const openCount = agentTickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length;
+        const resTimes = agentTickets.filter(t => t.resolution_time_seconds != null).map(t => t.resolution_time_seconds!);
+        const avgResolutionHours = resTimes.length ? Number((resTimes.reduce((a, b) => a + b, 0) / resTimes.length / 3600).toFixed(1)) : null;
+        const csatVals = agentTickets.filter(t => t.csat_score != null).map(t => t.csat_score!);
+        const avgCsat = csatVals.length ? Number((csatVals.reduce((a, b) => a + b, 0) / csatVals.length).toFixed(1)) : null;
+        return {
+          id,
+          name: agentNameMap.get(id) || 'Unknown',
+          assigned: agentTickets.length,
+          resolved: resolvedCount,
+          open: openCount,
+          avgResolutionHours,
+          csat: avgCsat,
+          resolutionRate: agentTickets.length ? Math.round((resolvedCount / agentTickets.length) * 100) : 0,
+        };
+      }).sort((a, b) => b.assigned - a.assigned);
+
       return {
         total, open, inProgress, resolved, closed, urgent,
         nps: { score: npsScore, promoters, passives, detractors, total: totalNpsCount },
@@ -583,6 +736,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
         firstReplyHistogram,
         busiestHeatmap,
         tagBreakdown,
+        agents,
       };
     });
   });
@@ -621,6 +775,81 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
 
       reply.status(200);
       return updated;
+    });
+  });
+
+  // 17. Real tenant users eligible as support agents — used by the Team tab
+  // and the auto-assign rule config UI, replacing the old hardcoded OFFICERS list.
+  fastify.get('/agents', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      reply.status(200);
+      return trx.selectFrom('users')
+        .select(['id', 'name', 'email', 'role'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('role', 'in', AGENT_ROLES)
+        .where('active', '=', true)
+        .orderBy('name', 'asc')
+        .execute();
+    });
+  });
+
+  // 18. Rules & workflows — auto-assignment, SLA escalation, status
+  // automation, notification triggers. See applyAutoAssignRules /
+  // fireNotificationTrigger above and support-rules.job.ts for execution.
+  fastify.get('/rules', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      reply.status(200);
+      return trx.selectFrom('support_rules').selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .orderBy('type', 'asc').orderBy('created_at', 'asc')
+        .execute();
+    });
+  });
+
+  fastify.post<{
+    Body: { type: 'auto_assign' | 'sla_escalation' | 'status_automation' | 'notification_trigger'; name: string; enabled?: boolean; config: any }
+  }>('/rules', { preHandler: [requireRole(...MGMT_ROLES)] }, async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const b = request.body;
+      const rule = await trx.insertInto('support_rules').values({
+        tenant_id: user.tenant_id,
+        type: b.type,
+        name: b.name,
+        enabled: b.enabled ?? true,
+        config: JSON.stringify(b.config ?? {}),
+      }).returningAll().executeTakeFirstOrThrow();
+      reply.status(201);
+      return rule;
+    });
+  });
+
+  fastify.patch<{
+    Params: { id: string };
+    Body: { name?: string; enabled?: boolean; config?: any };
+  }>('/rules/:id', { preHandler: [requireRole(...MGMT_ROLES)] }, async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const b = request.body;
+      const rule = await trx.updateTable('support_rules').set({
+        ...(b.name !== undefined ? { name: b.name } : {}),
+        ...(b.enabled !== undefined ? { enabled: b.enabled } : {}),
+        ...(b.config !== undefined ? { config: JSON.stringify(b.config) } : {}),
+        updated_at: new Date(),
+      }).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow();
+      reply.status(200);
+      return rule;
+    });
+  });
+
+  fastify.delete<{ Params: { id: string } }>('/rules/:id', { preHandler: [requireRole(...MGMT_ROLES)] }, async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.deleteFrom('support_rules').where('id', '=', request.params.id).execute();
+      reply.status(204);
+      return null;
     });
   });
 }

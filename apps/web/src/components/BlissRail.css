@@ -1,0 +1,260 @@
+/* ══════════════════════════════════════════════════
+   BlissRail — Bedesk-style vertical icon rail.
+   Bliss-only chrome; does not affect any other app.
+══════════════════════════════════════════════════ */
+
+.bliss-rail {
+  width: 60px;
+  min-width: 60px;
+  height: 100%;
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+  flex-shrink: 0;
+}
+
+.bliss-rail-brand {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  background: var(--bliss-brand, #7c3aed);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  flex-shrink: 0;
+  margin-bottom: 4px;
+}
+
+.bliss-rail-divider {
+  width: 28px;
+  height: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+  margin: 2px 0;
+}
+
+.bliss-rail-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.bliss-rail-spacer {
+  flex: 1;
+}
+
+.bliss-rail-rel {
+  position: relative;
+  display: flex;
+}
+
+.bliss-rail-icon-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink3);
+  transition: background 0.12s, color 0.12s;
+  text-decoration: none;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.bliss-rail-icon-btn:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.bliss-rail-icon-btn--active {
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+.bliss-rail-icon-btn--open {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.bliss-rail-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: var(--red);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  border: 1.5px solid var(--white);
+}
+
+.bliss-rail-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: var(--avatar-color, var(--teal));
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* User dropdown — opens rightward from the rail */
+.bliss-rail-user-dropdown {
+  position: absolute;
+  left: 50px;
+  bottom: 0;
+  width: 220px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.14), 0 2px 6px rgba(0,0,0,0.06);
+  z-index: 500;
+  overflow: hidden;
+}
+
+.bliss-rail-user-info {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bliss-rail-user-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.bliss-rail-user-email {
+  font-size: 11.5px;
+  color: var(--ink3);
+}
+
+.bliss-rail-user-role {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--teal);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-family: var(--mono);
+  margin-top: 2px;
+}
+
+.bliss-rail-user-actions {
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+}
+
+.bliss-rail-user-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  color: var(--ink2);
+  font-size: 12.5px;
+  font-weight: 500;
+  font-family: var(--font);
+  text-decoration: none;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.bliss-rail-user-action:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.bliss-rail-user-action--signout {
+  color: var(--red);
+}
+
+.bliss-rail-user-action--signout:hover {
+  background: var(--red-l);
+}
+
+/* ── Dark mode ── */
+[data-theme="dark"] .bliss-rail {
+  background: #111218;
+  border-right-color: rgba(255,255,255,0.07);
+}
+
+[data-theme="dark"] .bliss-rail-divider {
+  background: rgba(255,255,255,0.08);
+}
+
+[data-theme="dark"] .bliss-rail-icon-btn:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+[data-theme="dark"] .bliss-rail-icon-btn--active {
+  background: rgba(124,58,237,0.18);
+}
+
+[data-theme="dark"] .bliss-rail-icon-btn--open {
+  background: rgba(255,255,255,0.08);
+}
+
+[data-theme="dark"] .bliss-rail-badge {
+  border-color: #111218;
+}
+
+[data-theme="dark"] .bliss-rail-user-dropdown {
+  background: #16181f;
+  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3);
+}
+
+[data-theme="dark"] .bliss-rail-user-info {
+  border-bottom-color: rgba(255,255,255,0.07);
+}
+
+[data-theme="dark"] .bliss-rail-user-name {
+  color: rgba(255,255,255,0.9);
+}
+
+[data-theme="dark"] .bliss-rail-user-action:hover {
+  background: rgba(255,255,255,0.06);
+}
+
+/* ── Responsive — keep the rail always visible, just tighten spacing ── */
+@media (max-width: 600px) {
+  .bliss-rail {
+    width: 52px;
+    min-width: 52px;
+    padding: 8px 0;
+  }
+  .bliss-rail-icon-btn {
+    width: 34px;
+    height: 34px;
+  }
+}
