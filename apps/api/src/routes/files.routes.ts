@@ -1,4 +1,4 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
@@ -189,7 +189,7 @@ async function seedSampleFiles(trx: Transaction<Database>, tenantId: string, dri
 
 export async function filesRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('cloud'));
+  fastify.addHook('preHandler', requireEntitlement('cloud'));
 
   // GET / — list every file/folder for a drive (seeds sample data into a brand-new tenant's only drive)
   fastify.get('/', async (req, reply) => {

@@ -1,4 +1,4 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
@@ -8,7 +8,7 @@ type DriveRole = typeof DRIVE_ROLES[number];
 
 export async function drivesRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('cloud'));
+  fastify.addHook('preHandler', requireEntitlement('cloud'));
 
   // GET / — list every drive for the tenant, auto-creating the default "My Drive" if none exist yet
   fastify.get('/', async (req, reply) => {
