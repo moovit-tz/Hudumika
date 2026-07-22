@@ -1,0 +1,92 @@
+import type { FastifyInstance } from 'fastify';
+import { requireRole } from '../middleware/rbac.js';
+import { db } from '../db/client.js';
+import { METRICS, runMetric, type MetricFilters } from '../services/reports.service.js';
+
+export async function superAdminReportsRoutes(fastify: FastifyInstance) {
+  fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', requireRole('SUPER_ADMIN'));
+
+  // GET /v1/superadmin/reports/metrics — the registry, so the frontend rail
+  // builds itself instead of hardcoding the app/metric list twice.
+  fastify.get('/metrics', async () => METRICS);
+
+  // POST /v1/superadmin/reports/run — executes a metric, records the run.
+  fastify.post('/run', async (request, reply) => {
+    const actor = request.user;
+    const body = request.body as { app_id: string; metric_key: string; filters?: MetricFilters; report_definition_id?: string };
+    if (!body.metric_key) return reply.status(400).send({ error: 'metric_key is required' });
+
+    const started = Date.now();
+    let rows: Awaited<ReturnType<typeof runMetric>> = [];
+    let status = 'succeeded';
+    let error: string | null = null;
+    try {
+      rows = await runMetric(body.metric_key, body.filters || {});
+    } catch (err: any) {
+      status = 'failed';
+      error = err?.message || 'Query failed';
+    }
+    const duration_ms = Date.now() - started;
+
+    const run = await db.insertInto('report_runs').values({
+      report_definition_id: body.report_definition_id || null,
+      app_id: body.app_id,
+      metric_key: body.metric_key,
+      filters: JSON.stringify(body.filters || {}) as any,
+      status,
+      row_count: rows.length,
+      duration_ms,
+      run_by: actor.sub,
+      error,
+    }).returningAll().executeTakeFirstOrThrow();
+
+    if (status === 'failed') return reply.status(500).send({ error, run_id: run.id });
+    return { rows, run_id: run.id };
+  });
+
+  // GET /v1/superadmin/reports/runs — run history (Query Observability style)
+  fastify.get('/runs', async (request) => {
+    const { limit = '50' } = request.query as { limit?: string };
+    return db.selectFrom('report_runs')
+      .leftJoin('report_definitions', 'report_definitions.id', 'report_runs.report_definition_id')
+      .leftJoin('users', 'users.id', 'report_runs.run_by')
+      .select([
+        'report_runs.id', 'report_runs.app_id', 'report_runs.metric_key', 'report_runs.filters',
+        'report_runs.status', 'report_runs.row_count', 'report_runs.duration_ms', 'report_runs.started_at',
+        'report_runs.error',
+        'report_definitions.name as report_name',
+        'users.name as run_by_name',
+      ])
+      .orderBy('report_runs.started_at', 'desc')
+      .limit(parseInt(limit, 10) || 50)
+      .execute();
+  });
+
+  // ── Saved report definitions ──────────────────────────────────────────
+  fastify.get('/definitions', async () => {
+    return db.selectFrom('report_definitions').selectAll().orderBy('created_at', 'desc').execute();
+  });
+
+  fastify.post('/definitions', async (request, reply) => {
+    const actor = request.user;
+    const body = request.body as { name: string; app_id: string; metric_key: string; filters?: MetricFilters };
+    if (!body.name?.trim() || !body.app_id || !body.metric_key) {
+      return reply.status(400).send({ error: 'name, app_id and metric_key are required' });
+    }
+    const def = await db.insertInto('report_definitions').values({
+      name: body.name.trim(),
+      app_id: body.app_id,
+      metric_key: body.metric_key,
+      filters: JSON.stringify(body.filters || {}) as any,
+      created_by: actor.sub,
+    }).returningAll().executeTakeFirstOrThrow();
+    return def;
+  });
+
+  fastify.delete('/definitions/:id', async (request) => {
+    const { id } = request.params as { id: string };
+    await db.deleteFrom('report_definitions').where('id', '=', id).execute();
+    return { success: true };
+  });
+}

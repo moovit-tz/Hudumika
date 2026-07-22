@@ -128,6 +128,17 @@ export const Reports: React.FC = () => {
               </Section>
             </div>
 
+            {/* Sustainability */}
+            <div className="card">
+              <Section title="Sustainability">
+                <KVRow label="Total CO2 Emissions" value={kpis.total_co2_emissions_kg ? `${Number(kpis.total_co2_emissions_kg).toLocaleString()} kg` : '—'} />
+                <KVRow label="Carbon Credits Saved" value={kpis.total_carbon_credits_saved ? Number(kpis.total_carbon_credits_saved).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'} />
+                {!kpis.total_co2_emissions_kg && (
+                  <div style={{ color: 'var(--ink3)', fontSize: 12, marginTop: 8 }}>No shipments have a CO2 estimate yet — closed shipments with origin, destination, and weight populated calculate this automatically.</div>
+                )}
+              </Section>
+            </div>
+
             {/* Officer performance */}
             <div className="card" style={{ gridColumn: '1 / 4' }}>
               <Section title="Officer Performance">
