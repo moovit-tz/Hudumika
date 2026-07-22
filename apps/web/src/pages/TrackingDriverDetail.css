@@ -1,0 +1,414 @@
+/* TrackingDriverDetail.css */
+
+.dd-layout {
+  display: flex;
+  background: var(--bg);
+  min-height: calc(100vh - 60px);
+  color: var(--ink);
+  font-family: var(--font);
+}
+
+.dd-main {
+  flex: 1;
+  padding: 32px;
+  overflow-y: auto;
+}
+
+/* Header */
+.dd-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.dd-search-bar {
+  display: flex;
+  align-items: center;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 16px;
+  width: 320px;
+  gap: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.dd-search-bar input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--font);
+  font-size: 14px;
+  width: 100%;
+}
+
+.dd-header-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.dd-action-btn {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.dd-action-btn.dark {
+  background: #1e293b;
+  color: #fff;
+  border: none;
+}
+
+/* Alert Banner — soft-tint tokens (CLAUDE.md: never hand-roll one-off colors
+   for these; --gold-l/--gold track the live theme/brand, hardcoded hex don't
+   and go invisible in dark mode since --ink flips light while a hardcoded
+   background stays put). */
+.dd-alert {
+  background: var(--gold-l);
+  border: 1px solid rgba(154,103,0,0.2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+}
+
+.dd-alert-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dd-alert-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--white);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold);
+}
+
+.dd-alert-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.dd-alert-close {
+  color: var(--ink3);
+  cursor: pointer;
+}
+
+/* Profile Grid (Top Half) */
+.dd-profile-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.dd-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.dd-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.dd-card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* Courier Information */
+.dd-courier-top {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dd-courier-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 16px;
+  object-fit: cover;
+}
+
+.dd-courier-name {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+
+.dd-courier-badges {
+  display: flex;
+  gap: 12px;
+}
+
+.dd-courier-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  background: var(--bg);
+  padding: 4px 10px;
+  border-radius: 8px;
+}
+
+.dd-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.dd-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dd-info-label {
+  font-size: 12px;
+  color: var(--ink3);
+  font-weight: 600;
+}
+
+.dd-info-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* Fleet Information */
+.dd-fleet-top {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dd-fleet-minikcard {
+  flex: 1;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dd-fleet-icon {
+  width: 32px;
+  height: 32px;
+  background: var(--white);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.dd-fleet-minikcard-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.dd-fleet-minikcard-sub {
+  font-size: 12px;
+  color: var(--ink3);
+}
+
+.dd-fleet-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.dd-condition-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  margin-right: 6px;
+}
+
+/* Statistics Tabs */
+.dd-stats-section {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  overflow: hidden;
+}
+
+.dd-tabs-header {
+  display: flex;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.dd-tab {
+  padding: 20px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.dd-tab.active {
+  color: var(--ink);
+  border-bottom-color: var(--ink);
+}
+
+/* Report List */
+.dd-report-list {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dd-report-item {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+}
+
+.dd-report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.dd-route-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.dd-route-meta {
+  font-size: 12px;
+  color: var(--ink3);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.dd-route-status {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.dd-route-status.transit { background: var(--gold-l); color: var(--gold); }
+.dd-route-status.completed { background: var(--green-l); color: var(--green); }
+
+.dd-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 16px;
+  padding: 20px 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+
+.dd-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.dd-metric-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.dd-metric-label {
+  font-size: 11px;
+  color: var(--ink3);
+  font-weight: 600;
+}
+
+/* Nested Cards Row */
+.dd-nested-cards {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  gap: 20px;
+}
+
+.dd-ncard {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.dd-ncard-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 16px;
+}
+
+.dd-ncard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.dd-ncard-grid.cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.dd-ncard-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dd-ncard-label {
+  font-size: 11px;
+  color: var(--ink3);
+}
+
+.dd-ncard-val {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}

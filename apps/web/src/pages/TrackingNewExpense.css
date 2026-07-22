@@ -1,0 +1,338 @@
+.exp-page {
+  padding: 32px 40px;
+  background: var(--bg);
+  min-height: calc(100vh - 60px);
+  color: var(--ink);
+  font-family: var(--font);
+}
+
+.exp-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.exp-title-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.exp-back-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink3);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.exp-back-link:hover {
+  color: var(--ink);
+}
+
+.exp-page-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.exp-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.exp-btn-secondary {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.exp-btn-secondary:hover {
+  background: var(--bg);
+}
+
+.exp-btn-primary {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  background: #6225e6; /* The purple from Movex design */
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.exp-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.exp-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Form Container */
+.exp-form-container {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.exp-section {
+  margin-bottom: 32px;
+}
+
+.exp-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 16px;
+}
+
+.exp-field-group {
+  margin-bottom: 20px;
+}
+
+.exp-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink2);
+  margin-bottom: 8px;
+}
+
+.exp-label .required {
+  color: #dc2626;
+  margin-left: 2px;
+}
+
+.exp-input, .exp-select, .exp-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--white);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.exp-input:focus, .exp-select:focus, .exp-textarea:focus {
+  border-color: #6225e6;
+}
+
+.exp-textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Custom Select styling to mimic the design */
+.exp-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
+
+.exp-select:invalid {
+  color: var(--ink3);
+}
+
+/* Frequency Checkboxes */
+.exp-freq-row {
+  display: flex;
+  gap: 32px;
+  margin-top: 12px;
+}
+
+.exp-radio-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.exp-radio-input {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 2px solid var(--border);
+  background: var(--white);
+  margin: 0;
+  margin-top: 2px;
+  position: relative;
+  cursor: pointer;
+}
+
+.exp-radio-input:checked {
+  background: #6225e6;
+  border-color: #6225e6;
+}
+
+.exp-radio-input:checked::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 5px;
+  width: 4px;
+  height: 8px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.exp-radio-text-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.exp-radio-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.exp-radio-desc {
+  font-size: 12px;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+/* File Upload Zones */
+.exp-upload-row {
+  display: flex;
+  gap: 24px;
+}
+
+.exp-upload-col {
+  flex: 1;
+}
+
+.exp-upload-zone {
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: var(--bg);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.exp-upload-zone:hover {
+  background: var(--border);
+  border-color: var(--border2);
+}
+
+.exp-upload-icon {
+  width: 40px;
+  height: 48px;
+  background: var(--border);
+  border-radius: 4px 12px 4px 4px;
+  position: relative;
+}
+
+.exp-upload-icon::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
+  background: var(--border2);
+  border-bottom-left-radius: 4px;
+}
+
+.exp-upload-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.exp-upload-primary {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.exp-upload-secondary {
+  font-size: 12px;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+/* Form Footer */
+.exp-form-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.exp-btn-text {
+  color: #6225e6;
+  font-size: 13px;
+  font-weight: 600;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.exp-btn-text:hover {
+  text-decoration: underline;
+}
+
+.exp-footer-actions {
+  display: flex;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .exp-freq-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .exp-upload-row {
+    flex-direction: column;
+  }
+  .exp-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .exp-form-footer {
+    flex-direction: column;
+    gap: 20px;
+  }
+  .exp-footer-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .exp-footer-actions button {
+    flex: 1;
+  }
+}
