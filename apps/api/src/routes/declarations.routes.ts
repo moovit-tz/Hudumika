@@ -1,7 +1,9 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { DeclarationService } from '../services/declaration.service.js';
 import { requireRole } from '../middleware/rbac.js';
+import { withTenant } from '../db/client.js';
+import { MinioIntegration } from '../integrations/minio.js';
 import type {
   CreateDeclarationInput,
   CreateDeclarationItemInput,
@@ -9,10 +11,16 @@ import type {
   DeclarationStatus,
 } from '@hudumika/types';
 
+const ATTACHMENT_MIME_TYPES: Record<string, string> = {
+  pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', xls: 'application/vnd.ms-excel',
+  doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+};
+
 export async function declarationRoutes(fastify: FastifyInstance) {
   // Enforce authentication on all routes
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('clearos'));
+  fastify.addHook('preHandler', requireEntitlement('clearos'));
 
   /**
    * GET /v1/declarations
@@ -237,4 +245,103 @@ export async function declarationRoutes(fastify: FastifyInstance) {
       }
     }
   );
+
+  // ── Attachments ───────────────────────────────────────────────
+
+  /**
+   * GET /v1/declarations/:id/attachments
+   */
+  fastify.get('/:id/attachments', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) =>
+      trx.selectFrom('declaration_attachments').selectAll()
+        .where('declaration_id', '=', id)
+        .orderBy('document_no', 'asc')
+        .execute()
+    );
+  });
+
+  /**
+   * POST /v1/declarations/:id/attachments/upload
+   */
+  fastify.post('/:id/attachments/upload', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+
+    const data = await request.file();
+    if (!data) return reply.status(400).send({ error: 'No file uploaded' });
+
+    const documentType = ((data.fields.document_type as any)?.value || (request.query as any).document_type || 'Other') as string;
+    const documentDescription = (data.fields.document_description as any)?.value as string | undefined;
+
+    try {
+      const fileBuffer = await data.toBuffer();
+      const uploadRes = await MinioIntegration.uploadDocument(user.tenant_id, 'declarations', id, data.filename, fileBuffer);
+
+      const attachment = await withTenant(user.tenant_id, async (trx) => {
+        const countRow = await trx.selectFrom('declaration_attachments')
+          .select(trx.fn.count('id').as('cnt')).where('declaration_id', '=', id).executeTakeFirst();
+        const documentNo = Number(countRow?.cnt ?? 0) + 1;
+
+        return trx.insertInto('declaration_attachments').values({
+          declaration_id: id,
+          document_no: documentNo,
+          document_type: documentType,
+          document_description: documentDescription ?? null,
+          filename: data.filename,
+          storage_key: uploadRes.storageKey,
+        }).returningAll().executeTakeFirstOrThrow();
+      });
+
+      reply.status(201);
+      return attachment;
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message || 'File upload failed' });
+    }
+  });
+
+  /**
+   * GET /v1/declarations/:id/attachments/:attId/download
+   */
+  fastify.get('/:id/attachments/:attId/download', async (request, reply) => {
+    const user = request.user;
+    const { id, attId } = request.params as { id: string; attId: string };
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const att = await trx.selectFrom('declaration_attachments').selectAll()
+        .where('declaration_id', '=', id).where('id', '=', attId).executeTakeFirst();
+      if (!att || !att.storage_key) return reply.status(404).send({ error: 'Attachment not found' });
+
+      const fileBuffer = MinioIntegration.readFile(att.storage_key);
+      if (fileBuffer) {
+        const ext = (att.filename || '').split('.').pop()?.toLowerCase() || '';
+        reply.header('Content-Type', ATTACHMENT_MIME_TYPES[ext] || 'application/octet-stream');
+        reply.header('Content-Disposition', `inline; filename="${att.filename}"`);
+        return reply.send(fileBuffer);
+      }
+
+      const signedUrl = await MinioIntegration.getSignedUrl(user.tenant_id, att.storage_key, 600);
+      return { url: signedUrl };
+    });
+  });
+
+  /**
+   * DELETE /v1/declarations/:id/attachments/:attId
+   */
+  fastify.delete('/:id/attachments/:attId', async (request, reply) => {
+    const user = request.user;
+    const { id, attId } = request.params as { id: string; attId: string };
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const att = await trx.selectFrom('declaration_attachments').selectAll()
+        .where('declaration_id', '=', id).where('id', '=', attId).executeTakeFirst();
+      if (!att) return reply.status(404).send({ error: 'Attachment not found' });
+
+      if (att.storage_key) await MinioIntegration.deleteDocument(user.tenant_id, att.storage_key);
+      await trx.deleteFrom('declaration_attachments').where('id', '=', attId).execute();
+      reply.status(204);
+      return null;
+    });
+  });
 }

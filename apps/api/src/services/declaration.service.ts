@@ -7,7 +7,7 @@ import type {
   CreateDeclarationInput,
   CreateDeclarationItemInput,
   CreateDeclarationNoticeInput,
-} from '@clearos/types';
+} from '@hudumika/types';
 
 export class DeclarationService {
   /**
