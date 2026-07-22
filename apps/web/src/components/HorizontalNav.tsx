@@ -1,7 +1,7 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Icon } from './Icon.jsx';
-import type { IconName } from './Icon.jsx';
+import { useLocation, Link } from 'react-router-dom';
+import { Icon } from './Icon.js';
+import type { IconName } from './Icon.js';
 
 interface NavItem { label: string; to: string; icon: IconName; }
 interface Category {
@@ -74,7 +74,6 @@ function matchesCategory(pathname: string, prefixes: string[]): boolean {
 }
 
 export const HorizontalNav: React.FC = () => {
-  const navigate     = useNavigate();
   const { pathname } = useLocation();
 
   if (pathname === '/') return null;
@@ -91,18 +90,17 @@ export const HorizontalNav: React.FC = () => {
       <div className="hnav-cats">
         <div className="hnav-cats-inner">
           {CATS.map(cat => (
-            <button
+            <Link
               key={cat.id}
-              type="button"
+              to={cat.root}
               className={`hnav-cat${active?.id === cat.id ? ' hnav-cat--active' : ''}`}
-              onClick={() => navigate(cat.root)}
             >
               <span className="hnav-cat-icon">
                 <Icon name={cat.icon} size={20} strokeWidth={1.6} />
               </span>
               <span className="hnav-cat-label">{cat.label}</span>
               <span className="hnav-cat-sub">{cat.subtitle}</span>
-            </button>
+            </Link>
           ))}
         </div>
       </div>
@@ -117,15 +115,14 @@ export const HorizontalNav: React.FC = () => {
                     .filter(item => pathname === item.to || pathname.startsWith(item.to + '/'))
                     .sort((a, b) => b.to.length - a.to.length)[0]?.to ?? null;
                   return active.items.map(item => (
-                    <button
+                    <Link
                       key={item.to}
-                      type="button"
+                      to={item.to}
                       className={`hnav-sub${item.to === activeTo ? ' hnav-sub--active' : ''}`}
-                      onClick={() => navigate(item.to)}
                     >
                       <Icon name={item.icon} size={13} strokeWidth={2} className="hnav-sub-icon" />
                       {item.label}
-                    </button>
+                    </Link>
                   ));
                 })()
               : null}

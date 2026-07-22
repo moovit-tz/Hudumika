@@ -1,4 +1,4 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
@@ -8,7 +8,7 @@ import { TRAService } from '../services/tra.service.js';
 
 export async function billRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('finops'));
+  fastify.addHook('preHandler', requireEntitlement('finops'));
 
   // ── Stats ─────────────────────────────────────────────────────────────────
 

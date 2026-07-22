@@ -1,4 +1,6 @@
 ﻿import React, { useState } from 'react';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Icon } from '../components/Icon.js';
 
 type Tab = 'general' | 'notifications' | 'stages' | 'users' | 'integrations';
 
@@ -110,12 +112,15 @@ export const Setup: React.FC = () => {
               <input className="input-field" style={{ width: 160 }} value={config.country} onChange={e => setConfig(p => ({ ...p, country: e.target.value }))} />
             </Row>
             <Row label="Primary Currency">
-              <select className="input-field" style={{ width: 120 }} value={config.currency} onChange={e => setConfig(p => ({ ...p, currency: e.target.value }))}>
-                <option value="TZS">TZS</option>
-                <option value="USD">USD</option>
-                <option value="EUR">EUR</option>
-                <option value="GBP">GBP</option>
-              </select>
+              <Select value={config.currency} onValueChange={v => setConfig(p => ({ ...p, currency: v }))}>
+                <SelectTrigger style={{ width: 120 }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TZS">TZS</SelectItem>
+                  <SelectItem value="USD">USD</SelectItem>
+                  <SelectItem value="EUR">EUR</SelectItem>
+                  <SelectItem value="GBP">GBP</SelectItem>
+                </SelectContent>
+              </Select>
             </Row>
             <Row label="Default Container Free Time" desc="Days before demurrage charges begin">
               <input type="number" className="input-field" style={{ width: 80 }} value={config.free_time_days} onChange={e => setConfig(p => ({ ...p, free_time_days: Number(e.target.value) }))} />
@@ -167,7 +172,7 @@ export const Setup: React.FC = () => {
 
         {tab === 'users' && (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--ink3)' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>👥</div>
+            <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><Icon name="users" size={32} strokeWidth={1.25} /></div>
             <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>User Management</div>
             <div style={{ fontSize: 13 }}>Manage users via Tenant Administration.</div>
           </div>

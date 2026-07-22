@@ -110,6 +110,7 @@ export function useBranding(): BrandingState {
       if (data.loginSubtext) localStorage.setItem('hudumika_login_subtext', data.loginSubtext);
       if (data.loginBgStyle) localStorage.setItem('hudumika_login_bg', data.loginBgStyle);
       if (data.supportEmail) localStorage.setItem('hudumika_support_email', data.supportEmail);
+      if (data.accentColor) localStorage.setItem('hudumika_email_accent', data.accentColor);
 
       if (data.apps) {
         for (const [appId, cfg] of Object.entries(data.apps as Record<string, AppBrandingConfig>)) {

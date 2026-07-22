@@ -1,0 +1,265 @@
+/* ── ComplyOS Sidebar — Rizz-style ── */
+
+.comply-sidebar {
+  width: 260px;
+  min-width: 260px;
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.24s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 100;
+}
+
+/* ── Icon-only collapse (desktop) ── */
+.comply-sidebar--collapsed {
+  width: 70px;
+  min-width: 70px;
+}
+
+/* ── Brand area — height matches topbar (64px) ── */
+.comply-sb-brand {
+  height: 64px;
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.comply-sb-brand-icon {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  background: linear-gradient(145deg, #059669 0%, #047857 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.25);
+}
+
+.comply-sb-brand-text {
+  overflow: hidden;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.comply-sb-brand-name {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--ink);
+  font-family: var(--font);
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.comply-sb-brand-sub {
+  font-size: 9.5px;
+  color: var(--ink3);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1;
+  margin-top: 2px;
+}
+
+/* ── Nav scroll area ── */
+.comply-sb-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 0;
+}
+
+.comply-sb-nav::-webkit-scrollbar       { width: 4px; }
+.comply-sb-nav::-webkit-scrollbar-track { background: transparent; }
+.comply-sb-nav::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ── Nav items — Rizz pattern: full-width with left-border indicator ── */
+.comply-sb-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 42px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink2);
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  padding: 0;
+  margin-bottom: 1px;
+  transition: background 0.12s ease, color 0.12s ease;
+  border-radius: 0;
+}
+
+/* Left-edge indicator bar */
+.comply-sb-item::before {
+  content: '';
+  display: block;
+  width: 3px;
+  min-width: 3px;
+  height: 100%;
+  background: transparent;
+  transition: background 0.12s ease;
+  border-radius: 0 2px 2px 0;
+}
+
+.comply-sb-item:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.comply-sb-item:hover::before {
+  background: var(--border);
+}
+
+.comply-sb-item.active {
+  background: rgba(5, 150, 105, 0.06);
+  color: #059669;
+  font-weight: 600;
+}
+
+.comply-sb-item.active::before {
+  background: #059669;
+}
+
+/* Icon slot: fixed 44px centered */
+.comply-sb-item-icon {
+  width: 47px;
+  min-width: 47px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Label */
+.comply-sb-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ── Section separators & headers ── */
+.comply-sb-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 14px;
+  opacity: 0.7;
+}
+
+.comply-sb-section {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 10px 18px 3px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* ── Collapse toggle (bottom) ── */
+.comply-sb-toggle {
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  padding: 8px 0;
+}
+
+.comply-sb-toggle-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 40px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--ink3);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  padding: 0;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.comply-sb-toggle-btn:hover {
+  background: var(--bg);
+  color: var(--comply);
+}
+
+.comply-sb-toggle-icon {
+  width: 50px;
+  min-width: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.comply-sb-toggle-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-right: 14px;
+}
+
+/* ── ClearOS expanded mode ── */
+html[data-expanded="true"] .comply-sidebar {
+  width: 0 !important;
+  min-width: 0 !important;
+}
+
+/* ── Responsive: tablet (768–1199px) → icon-only ── */
+@media (max-width: 1199px) {
+  .comply-sidebar:not(.comply-sidebar--open) {
+    width: 70px;
+    min-width: 70px;
+  }
+}
+
+/* ── Responsive: mobile (<768px) → fixed overlay ── */
+@media (max-width: 767px) {
+  .comply-sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 260px !important;
+    min-width: 260px !important;
+    transform: translateX(-100%);
+    box-shadow: 4px 0 32px rgba(0, 0, 0, 0.12);
+    z-index: 999;
+  }
+  .comply-sidebar--open {
+    transform: translateX(0);
+  }
+}
+
+/* ── Dark mode ── */
+html[data-theme="dark"] .comply-sidebar {
+  box-shadow: none;
+}
+html[data-theme="dark"] .comply-sb-item.active {
+  background: rgba(5, 150, 105, 0.1);
+}

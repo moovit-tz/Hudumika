@@ -1,0 +1,714 @@
+/* ══════════════════════════════════════════════════
+   App Sidebar — styled after Ngao reference
+══════════════════════════════════════════════════ */
+
+/* ── Shell layout wrapper ── */
+.app-shell {
+  display: flex;
+  flex-direction: row;
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+[data-theme="dark"] .app-shell {
+  background: #080b10;
+}
+
+[data-theme="dark"] .app-main {
+  background: #111218;
+  border-radius: 9px 0 0 9px;
+}
+
+/* ── Main column (header + content) ── */
+.app-main {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-shell-content {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  max-width: 1380px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 24px;
+  box-sizing: border-box;
+  transition: max-width 0.25s ease, padding 0.25s ease;
+}
+
+/* Full-width mode: let content use the reclaimed space, but keep a small
+   gutter either side rather than running edge-to-edge against the sidebar
+   rail / browser edge. */
+[data-layout="full"] .app-shell-content {
+  max-width: 100%;
+  padding: 0 16px;
+}
+
+/* .page-layout (the white content card most pages/apps render into) has its
+   own fixed max-width + auto-centering — without this override it stays
+   capped and centered even once .app-shell-content above has reclaimed the
+   sidebar's width, leaving idle gutters on both sides instead of the content
+   actually growing. */
+[data-layout="full"] .page-layout {
+  max-width: 100%;
+}
+
+/* ── Skin: Bordered — set from /admin/design-system's Layout Customizer ──
+   Flattens shadows in favor of a visible border, same visual language as the
+   'flat' elevation preset in useDesignSystem.ts but applied unconditionally
+   to the two most common surface classes rather than requiring the whole
+   platform's elevation token to change. */
+[data-skin="bordered"] .card,
+[data-skin="bordered"] .mc-card {
+  box-shadow: none !important;
+  border: 1.5px solid var(--border);
+}
+
+/* ── Semi Dark — sidebar stays dark regardless of the page's own light/dark
+   theme. Values mirror index.css's [data-theme="dark"] block exactly. ── */
+[data-semi-dark="true"] .app-sidebar {
+  --ink: #e2e8f0;
+  --ink2: #94a3b8;
+  --ink3: #64748b;
+  --bg: #080b10;
+  --white: #111218;
+  --border: rgba(255, 255, 255, 0.07);
+  --border2: rgba(255, 255, 255, 0.13);
+  color-scheme: dark;
+}
+
+/* ── Sidebar container ── */
+.app-sidebar {
+  width: 240px;
+  min-width: 240px;
+  background: var(--white);
+  border-right: 1px solid rgba(0, 0, 0, 0.09);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: visible;
+  position: relative;
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+              min-width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-sidebar--collapsed {
+  width: 68px;
+  min-width: 68px;
+}
+
+html[data-expanded="true"] .app-sidebar {
+  width: 0 !important;
+  min-width: 0 !important;
+  border-right: none;
+}
+
+/* ── Brand header ── */
+.app-sb-brand {
+  height: 57px;
+  min-height: 57px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 10px 0 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.09);
+  flex-shrink: 0;
+}
+
+.app-sidebar--collapsed .app-sb-brand {
+  justify-content: center;
+  padding: 0 8px;
+}
+
+.app-sb-brand-icon {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  background: var(--sb-color, #64748b);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.app-sb-brand-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-sb-brand-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: var(--font);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-sb-brand-sub {
+  font-size: 10px;
+  color: var(--ink3);
+  font-weight: 500;
+  white-space: nowrap;
+  margin-top: 1px;
+}
+
+/* ── Floating collapse / expand toggle on the right edge ── */
+.app-sb-toggle {
+  position: absolute;
+  top: 21px;
+  right: -11px;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  border-radius: 50%;
+  background: var(--white);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink);
+  transition: background 0.12s, box-shadow 0.12s, transform 0.12s;
+  z-index: 20;
+  flex-shrink: 0;
+}
+
+.app-sb-toggle:hover {
+  background: var(--bg);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  transform: scale(1.08);
+}
+
+/* ── Nav ── */
+.app-sb-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 10px 0;
+}
+
+/* ── Fill-nav (replaces nav entirely, takes flex: 1) ── */
+.app-sb-fill-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.app-sb-nav::-webkit-scrollbar       { width: 4px; }
+.app-sb-nav::-webkit-scrollbar-track { background: transparent; }
+.app-sb-nav::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 4px; }
+
+.app-sb-section-group {
+  margin-bottom: 4px;
+}
+
+.app-sb-section-hdr {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 10px 18px 4px;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-sb-section-hdr--collapsible {
+  cursor: pointer;
+}
+
+.app-sb-section-toggle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink3);
+  line-height: 1;
+}
+
+/* ── Nav items — Ngao-style rounded pill with brand color active ── */
+.app-sb-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 44px;
+  width: calc(100% - 16px);
+  margin: 2px 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 500;
+  color: #444;
+  text-align: left;
+  text-decoration: none;
+  padding: 0 14px;
+  border-radius: 8px;
+  transition: background 0.1s ease, color 0.1s ease;
+  overflow: hidden;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.app-sb-item:hover:not(.app-sb-item--active) {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.app-sb-item--active {
+  background: color-mix(in srgb, var(--sb-color, #64748b) 14%, transparent);
+  color: var(--sb-color, #64748b);
+  font-weight: 600;
+}
+
+.app-sb-item--active .app-sb-item-icon {
+  color: var(--sb-color, #64748b);
+}
+
+/* Collapsed: center icon, remove margins */
+.app-sidebar--collapsed .app-sb-item {
+  width: calc(100% - 16px);
+  justify-content: center;
+  padding: 0;
+  gap: 0;
+}
+
+/* ── Icon slot ── */
+.app-sb-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: inherit;
+  opacity: 0.75;
+}
+
+.app-sb-item--active .app-sb-item-icon {
+  opacity: 1;
+}
+
+/* ── Label ── */
+.app-sb-item-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Parent items with children: toggle only, not a link — same idea as
+   the uppercase section headers (OPERATIONS, TOOLS, ...) but at item scale. ── */
+.app-sb-item--parent-hdr {
+  color: #444;
+}
+
+.app-sb-item-parent-toggle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink3);
+  line-height: 1;
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+
+/* ── Child items — indented, slightly smaller ── */
+.app-sb-item--child {
+  height: 38px;
+  padding-left: 40px;
+  font-size: 13px;
+}
+
+/* ── Badges ── */
+.app-sb-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 20px;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.app-sb-badge--free {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.app-sb-badge--soon {
+  background: #f1f5f9;
+  color: var(--ink3);
+}
+
+.app-sb-badge--count {
+  background: var(--sb-color, #64748b);
+  color: #fff;
+}
+
+/* ── Footer ── /* Subscription Footer Box */
+.app-sb-sub-footer {
+  margin-top: auto;
+  border-top: 1px solid var(--border);
+  padding: 16px;
+  background: var(--bg);
+}
+
+.app-sb-sub-box {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+
+.app-sb-sub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  cursor: pointer;
+  background: rgba(0,0,0,0.01);
+  transition: background 0.15s;
+}
+
+.app-sb-sub-header:hover {
+  background: rgba(0,0,0,0.03);
+}
+
+.app-sb-sub-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.app-sb-sub-content {
+  padding: 0 14px 14px 14px;
+  border-top: 1px solid rgba(0,0,0,0.03);
+}
+
+.app-sb-sub-metric {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink2);
+  margin-top: 12px;
+  margin-bottom: 4px;
+}
+
+.app-sb-sub-progress {
+  height: 6px;
+  background: rgba(0,0,0,0.05);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.app-sb-sub-bar {
+  height: 100%;
+  background: var(--teal);
+  border-radius: 4px;
+}
+
+.app-sb-sub-btn {
+  display: block;
+  text-align: center;
+  margin-top: 16px;
+  padding: 8px;
+  background: var(--teal-l);
+  color: var(--teal-d);
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.app-sb-sub-btn:hover {
+  background: var(--teal-m);
+}
+
+/* Collapsed: single icon button */
+.app-sb-footer-icon-btn {
+  width: 44px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink3);
+  border-radius: 8px;
+  transition: background 0.1s, color 0.1s;
+  margin: 0 auto;
+}
+
+.app-sb-footer-icon-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--ink);
+}
+
+.app-sidebar--collapsed .app-sb-sub-footer {
+  padding: 10px 0;
+}
+
+/* Sign out row */
+.app-sb-footer-signout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink3);
+  text-align: left;
+  padding: 0 10px;
+  border-radius: 8px;
+  transition: background 0.1s, color 0.1s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.app-sb-footer-signout:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.app-sidebar--collapsed .app-sb-footer-signout {
+  justify-content: center;
+  padding: 0;
+}
+
+/* ── AI coming-soon placeholder ── */
+.ai-coming-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  gap: 12px;
+  font-family: var(--font);
+}
+
+.ai-coming-soon-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ai-coming-soon-sub {
+  font-size: 13.5px;
+  color: var(--ink3);
+  text-align: center;
+  max-width: 320px;
+}
+
+/* ── Dark mode ── */
+[data-theme="dark"] .app-sidebar {
+  background: #0d1117;
+  border-right: none;
+  border-radius: 0 9px 9px 0;
+}
+
+[data-theme="dark"] .app-sb-brand {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .app-sb-item {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+[data-theme="dark"] .app-sb-item:hover:not(.app-sb-item--active) {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+}
+
+[data-theme="dark"] .app-sb-item--active {
+  background: color-mix(in srgb, var(--sb-color, #64748b) 22%, transparent);
+  color: var(--sb-color, #64748b);
+}
+
+[data-theme="dark"] .app-sb-item--active .app-sb-item-icon {
+  color: var(--sb-color, #64748b);
+}
+
+[data-theme="dark"] .app-sb-section-hdr {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="dark"] .app-sb-toggle {
+  background: #0d1117;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .app-sb-toggle:hover {
+  background: #151c26;
+}
+
+[data-theme="dark"] .app-sb-footer {
+  background: rgba(255, 255, 255, 0.03);
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .app-sb-theme-pills {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .app-sb-theme-pill {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+[data-theme="dark"] .app-sb-theme-pill:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+[data-theme="dark"] .app-sb-theme-pill--active {
+  background: #1e2433;
+  color: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .app-sb-footer-icon-btn {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] .app-sb-footer-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="dark"] .app-sb-footer-signout {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+[data-theme="dark"] .app-sb-footer-signout:hover {
+  background: rgba(220, 38, 38, 0.15);
+  color: #f87171;
+}
+
+/* ── Tablet: icon-only at 1100px ── */
+@media (max-width: 1100px) {
+  .app-sidebar:not(.app-sidebar--collapsed) {
+    width: 68px;
+    min-width: 68px;
+  }
+}
+
+/* ── Mobile: hide in-flow sidebar; overlay handled via portal ── */
+@media (max-width: 767px) {
+  .app-sidebar {
+    display: none;
+  }
+
+  .app-shell-content {
+    width: 100%;
+  }
+
+  /* Hide the collapse toggle inside the mobile overlay — it pokes past the edge */
+  .app-sb-toggle {
+    display: none;
+  }
+}
+
+/* ── Mobile overlay — backdrop + slide-in sidebar (portal-rendered, screen-size-agnostic) ── */
+.app-sb-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 499;
+  animation: sb-fade-in 0.18s ease;
+}
+
+.app-sidebar--mobile-open {
+  display: flex;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 240px !important;
+  min-width: 240px !important;
+  z-index: 500;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.18);
+  animation: sb-slide-in 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes sb-slide-in {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes sb-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Email Compose button (beforeNav slot) ── */
+.em-shell-compose {
+  padding: 4px 12px 16px;
+}
+.em-shell-compose--collapsed {
+  padding: 4px 8px 16px;
+}
+.em-shell-compose-btn {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 20px;
+  border-radius: 18px;
+  background: #fff;
+  border: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,.14), 0 1px 2px rgba(0,0,0,.08);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: #202124;
+  font-family: var(--font);
+  transition: box-shadow 0.15s, background 0.12s;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.em-shell-compose--collapsed .em-shell-compose-btn {
+  justify-content: center;
+  padding: 14px;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+}
+.em-shell-compose-btn:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,.18);
+}
+
+[data-theme="dark"] .em-shell-compose-btn {
+  background: rgba(255,255,255,.08);
+  color: rgba(255,255,255,.85);
+  box-shadow: 0 1px 4px rgba(0,0,0,.4);
+}
+[data-theme="dark"] .em-shell-compose-btn:hover {
+  background: rgba(255,255,255,.12);
+}

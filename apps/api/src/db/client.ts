@@ -1,5 +1,5 @@
 import pg from 'pg';
-import { Kysely, PostgresDialect, sql, Generated, Transaction } from 'kysely';
+import { Kysely, PostgresDialect, sql, Generated, ColumnType, Transaction } from 'kysely';
 import { env } from '../config/env.js';
 import type { 
   TenantPlan, 
@@ -65,6 +65,7 @@ export interface UsersTable {
   phone: string | null;
   location_id: string | null;
   avatar_url: string | null;
+  profile: Generated<Record<string, any>>;
   active: Generated<boolean>;
   last_login_at: Date | null;
   created_at: Generated<Date>;
@@ -89,6 +90,14 @@ export interface CustomersTable {
   active: Generated<boolean>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  // BRELA-derived company profile fields (migration 104) — nullable, only
+  // populated for companies imported via ComplyOS's BRELA Search.
+  source: Generated<string>;
+  registry_number: string | null;
+  entity_type: string | null;
+  registration_status: string | null;
+  registered_address: string | null;
+  incorporation_date: Date | null;
 }
 
 export interface ShipmentCasesTable {
@@ -113,11 +122,19 @@ export interface ShipmentCasesTable {
   container_numbers: string | null; // JSONB
   internal_notes: string | null;
   eta: Date | null;
-  stage: Generated<ClearanceStage>;
+  // Holds a ClearanceStage literal for legacy/default-workflow shipments, or
+  // a workflow_steps.id (UUID) for shipments governed by a tenant-defined
+  // workflow — always some string, never NULL. See workflow-resolver.service.ts.
+  stage: Generated<string>;
   assigned_to: string | null;
   location_id: string | null;
   sla_deadline: Date | null;
   free_time_end: Date | null;
+  // Tenant-configurable workflow (migration 105) — resolved once at creation,
+  // NULL for shipments running on the legacy fixed-stage system.
+  workflow_id: string | null;
+  workflow_step_id: string | null;
+  consignment_type: Generated<string>;
   // TANCIS / TANESW fields
   tancis_ref: string | null;
   tansad_number: string | null;
@@ -137,19 +154,114 @@ export interface ShipmentCasesTable {
   carbon_credits_saved: number | null;
   co2_calc_details: string | null;
   vessel_mmsi: string | null;
+  whatsapp_bot_active: Generated<boolean>;
+  deleted_at: Date | null;
+  deleted_by: string | null;
 }
 
 export interface StageHistoryTable {
   id: Generated<string>;
   tenant_id: string;
   shipment_id: string;
-  stage: ClearanceStage;
+  stage: string; // ClearanceStage literal or a workflow_steps.id — see ShipmentCasesTable.stage
   entered_at: Generated<Date>;
   exited_at: Date | null;
   duration_h: number | null;
   actor_id: string | null;
   note: string | null;
   blocker: string | null;
+}
+
+export interface WorkflowsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  description: Generated<string>;
+  is_active: Generated<boolean>;
+  is_default: Generated<boolean>;
+  triggers: string; // JSONB: WorkflowTrigger
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+  deleted_at: Date | null;
+}
+
+export interface WorkflowStepsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  workflow_id: string;
+  name: string;
+  description: Generated<string>;
+  step_order: number;
+  is_start: Generated<boolean>;
+  is_terminal: Generated<boolean>;
+  next_step_ids: string; // JSONB: string[]
+  entry_conditions: string; // JSONB: FieldCondition[]
+  auto_comms: string; // JSONB: AutoComm[]
+  sla_hours: number | null;
+  color: Generated<string>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface WorkflowCommQueueTable {
+  id: Generated<string>;
+  tenant_id: string;
+  shipment_id: string;
+  workflow_step_id: string;
+  auto_comm_id: string;
+  fire_at: Date;
+  status: Generated<string>; // PENDING | SENT | FAILED | CANCELLED
+  error: string | null;
+  created_at: Generated<Date>;
+  sent_at: Date | null;
+}
+
+export interface ChatChannelsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  type: 'channel' | 'dm' | 'group';
+  name: string;
+  description: string | null;
+  created_by: string;
+  created_at: Generated<Date>;
+}
+
+export interface ChatChannelMembersTable {
+  channel_id: string;
+  user_id: string;
+  last_read_at: Generated<Date>;
+  joined_at: Generated<Date>;
+}
+
+export interface ChatMessagesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  channel_id: string;
+  author_id: string;
+  content: string;
+  created_at: Generated<Date>;
+}
+
+export interface ChatMessageReactionsTable {
+  id: Generated<string>;
+  message_id: string;
+  user_id: string;
+  emoji: string;
+  created_at: Generated<Date>;
+}
+
+export interface ShipmentListenersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  shipment_id: string;
+  type: 'internal' | 'customer';
+  user_id: string | null;
+  name: string;
+  role: string | null;
+  channels: string; // JSONB: string[]
+  created_at: Generated<Date>;
+  created_by: string | null;
 }
 
 export interface CaseDocumentsTable {
@@ -177,6 +289,28 @@ export interface ExpensesTable {
   is_revenue: Generated<boolean>;
   is_passthrough: Generated<boolean>;
   recorded_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface FinanceExpensesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  amount: number;
+  expense_date: Generated<Date>;
+  category: string;
+  shipment_id: string | null;
+  customer_id: string | null;
+  supplier_id: string | null;
+  payment_mode: string | null;
+  reference: string | null;
+  note: string | null;
+  is_revenue: Generated<boolean>;
+  attachment_data: string | null;
+  efd_verified: boolean | null;
+  efd_verified_at: Date | null;
+  efd_error: string | null;
+  created_by: string | null;
   created_at: Generated<Date>;
 }
 
@@ -487,6 +621,67 @@ export interface ContainerTrackingTable {
 // ═══════════════════════════════════════════════════════════════
 // Quotations Tables
 // ═══════════════════════════════════════════════════════════════
+
+export interface CarriersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  mode: string;
+  scac_or_iata: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface FreightRateCardsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  carrier_id: string;
+  mode: string;
+  origin_port: string;
+  destination_port: string;
+  cost_rate: number;
+  sell_rate: number;
+  currency: Generated<string>;
+  valid_from: Date | null;
+  valid_to: Date | null;
+  notes: string | null;
+  active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface FreightBookingsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  booking_number: string;
+  customer_id: string;
+  carrier_id: string | null;
+  rate_card_id: string | null;
+  mode: string;
+  origin_port: string;
+  destination_port: string;
+  cargo_desc: string | null;
+  quantity: Generated<number>;
+  requested_ship_date: Date | null;
+  status: Generated<string>;
+  quoted_cost: number | null;
+  quoted_sell: number | null;
+  currency: Generated<string>;
+  vessel_name: string | null;
+  voyage_number: string | null;
+  carrier_booking_ref: string | null;
+  bl_number: string | null;
+  awb_number: string | null;
+  eta: Date | null;
+  converted_shipment_id: string | null;
+  created_by: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
 
 export interface QuotationsTable {
   id: Generated<string>;
@@ -983,6 +1178,79 @@ export interface InvoicePaymentsTable {
   created_at: Generated<Date>;
 }
 
+export interface InvoiceNotesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  invoice_id: string;
+  author_id: string;
+  author_name: string;
+  content: string;
+  created_at: Generated<Date>;
+}
+
+export interface InvoiceTasksTable {
+  id: Generated<string>;
+  tenant_id: string;
+  invoice_id: string;
+  description: string;
+  assignee: string | null;
+  due_date: Date | null;
+  done: Generated<boolean>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface InvoiceRemindersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  invoice_id: string;
+  remind_date: Date;
+  message: string;
+  done: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export interface InvoiceActivityLogTable {
+  id: Generated<string>;
+  tenant_id: string;
+  invoice_id: string;
+  actor_id: string | null;
+  actor_name: string | null;
+  action: string;
+  detail: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ProductsTable {
+  id: string;
+  tenant_id: string;
+  code: string;
+  name: string;
+  type: Generated<string>;
+  description: string | null;
+  category: string | null;
+  unit: Generated<string>;
+  sale_price: Generated<number>;
+  purchase_price: Generated<number>;
+  currency: Generated<string>;
+  tax_rate: Generated<number>;
+  status: Generated<string>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SsoProvidersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  provider_type: string;
+  name: string;
+  config: Generated<string>;
+  enabled: Generated<boolean>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface SuppliersTable {
   id: Generated<string>;
   tenant_id: string;
@@ -1089,6 +1357,46 @@ export interface TenantSettingsTable {
   updated_at: Generated<Date>;
 }
 
+export interface ReportDefinitionsTable {
+  id: Generated<string>;
+  name: string;
+  app_id: string;
+  metric_key: string;
+  filters: Generated<Record<string, any>>;
+  created_by: string;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ReportRunsTable {
+  id: Generated<string>;
+  report_definition_id: string | null;
+  app_id: string;
+  metric_key: string;
+  filters: Generated<Record<string, any>>;
+  status: Generated<string>;
+  row_count: number | null;
+  duration_ms: number | null;
+  run_by: string;
+  started_at: Generated<Date>;
+  error: string | null;
+}
+
+export interface QueryBuilderRunsTable {
+  id: Generated<string>;
+  mode: string;
+  table_name: string | null;
+  columns: Generated<any[]> | null;
+  filters: Generated<Record<string, any>> | null;
+  raw_sql: string | null;
+  status: Generated<string>;
+  row_count: number | null;
+  duration_ms: number | null;
+  run_by: string;
+  started_at: Generated<Date>;
+  error: string | null;
+}
+
 export interface PackagesTable {
   id: Generated<string>;
   code: string;
@@ -1096,12 +1404,127 @@ export interface PackagesTable {
   monthly_price: number;
   annual_price: number;
   max_users: number;
+  price_per_seat: number | null;      // USD/user/month — NULL only for the custom-pricing (enterprise) tier
+  monthly_item_limit: number | null;  // billable items/month across the whole platform — NULL = unlimited
+  trade_wizard_monthly_searches: number | null;  // Trade Compliance Wizard runs/month — NULL = unlimited
   features: string[];           // JSONB — auto-parsed to a native array by the pg driver
   color: string | null;
   popular: Generated<boolean>;
   is_active: Generated<boolean>;
   sort_order: Generated<number>;
   created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface TenantUsageCountersTable {
+  tenant_id: string;
+  period: string;   // 'YYYY-MM'
+  count: Generated<number>;
+  updated_at: Generated<Date>;
+}
+
+export interface TaskListsTable {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  name: string;
+  color: string;
+  sort_order: Generated<number>;
+  created_at: Generated<Date>;
+}
+
+export interface TasksTable {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  list_id: string;
+  title: string;
+  notes: string | null;
+  // Plain 'YYYY-MM-DD' in, Date out — never passed through JS Date parsing on
+  // the way in, so there's no local-vs-UTC day-shift risk (see date-picker.tsx's
+  // parseDateOnly/toDateOnlyString for the same concern on the frontend).
+  due: ColumnType<Date | null, string | null, string | null>;
+  starred: Generated<boolean>;
+  someday: Generated<boolean>;
+  status: Generated<string>;
+  tags: string[]; // JSONB — auto-parsed to a native array by the pg driver
+  completed: Generated<boolean>;
+  completed_at: ColumnType<Date | null, string | null, string | null>;
+  deleted_at: ColumnType<Date | null, string | null, string | null>;
+  sort_order: Generated<number>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface TaskSubtasksTable {
+  id: string;
+  task_id: string;
+  title: string;
+  completed: Generated<boolean>;
+  sort_order: Generated<number>;
+}
+
+export interface CalendarEventsTable {
+  id: string;
+  tenant_id: string;
+  user_id: string;
+  title: string;
+  // Full UTC ISO string in (frontend converts local wall-clock -> UTC before
+  // sending), Date out — see calendarStore.ts's localToUTCISO/utcISOToLocal.
+  start_at: ColumnType<Date, string, string>;
+  end_at: ColumnType<Date, string, string>;
+  description: string | null;
+  location: string | null;
+  category: Generated<string>;
+  guests: string[]; // JSONB
+  created_at: Generated<Date>;
+}
+
+export interface UserAppSettingsTable {
+  user_id: string;
+  tenant_id: string;
+  calendar_default_view: Generated<string>;
+  week_starts_monday: Generated<boolean>;
+  tasks_default_view: Generated<string>;
+  updated_at: Generated<Date>;
+}
+
+export interface ApiKeysTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  key_prefix: string;
+  key_hash: string;
+  scopes: string[];           // JSONB — auto-parsed to a native array by the pg driver
+  acting_role: string;
+  created_by: string | null;
+  last_used_at: Date | null;
+  revoked_at: Date | null;
+  created_at: Generated<Date>;
+}
+
+export interface ApiUsageEventsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  api_key_id: string | null;
+  method: string;
+  path: string;
+  status_code: number;
+  duration_ms: number;
+  created_at: Generated<Date>;
+}
+
+export interface PackageFeaturesTable {
+  package_code: string;
+  feature_key: string;
+  created_at: Generated<Date>;
+}
+
+export interface AppStatusTable {
+  app_id: string;
+  status: Generated<string>;
+  message: string | null;
+  updated_by: string | null;
   updated_at: Generated<Date>;
 }
 
@@ -1136,6 +1559,7 @@ export interface TrackingSnapshotsTable {
   status: string | null;
   status_code: string | null;
   eta: Date | null;
+  eta_initial: Date | null;     // captured once on create, preserved across retracks
   progress_pct: Generated<number>;
   events: string;               // JSONB stored as string
   share_token: Generated<string>;
@@ -1285,8 +1709,17 @@ export interface Database {
   customers: CustomersTable;
   shipment_cases: ShipmentCasesTable;
   stage_history: StageHistoryTable;
+  workflows: WorkflowsTable;
+  workflow_steps: WorkflowStepsTable;
+  workflow_comm_queue: WorkflowCommQueueTable;
+  shipment_listeners: ShipmentListenersTable;
+  chat_channels: ChatChannelsTable;
+  chat_channel_members: ChatChannelMembersTable;
+  chat_messages: ChatMessagesTable;
+  chat_message_reactions: ChatMessageReactionsTable;
   case_documents: CaseDocumentsTable;
   expenses: ExpensesTable;
+  finance_expenses: FinanceExpensesTable;
   case_messages: CaseMessagesTable;
   risk_flags: RiskFlagsTable;
   notifications: NotificationsTable;
@@ -1303,6 +1736,9 @@ export interface Database {
   // Quotations
   quotations: QuotationsTable;
   quotation_lines: QuotationLinesTable;
+  carriers: CarriersTable;
+  freight_rate_cards: FreightRateCardsTable;
+  freight_bookings: FreightBookingsTable;
   // Road Consignments
   road_consignments: RoadConsignmentsTable;
   consignment_trips: ConsignmentTripsTable;
@@ -1347,8 +1783,15 @@ export interface Database {
   sales_invoices: SalesInvoicesTable;
   sales_invoice_lines: SalesInvoiceLinesTable;
   invoice_payments: InvoicePaymentsTable;
+  invoice_notes: InvoiceNotesTable;
+  invoice_tasks: InvoiceTasksTable;
+  invoice_reminders: InvoiceRemindersTable;
+  invoice_activity_log: InvoiceActivityLogTable;
   // Suppliers / Vendors
+  products: ProductsTable;
   suppliers: SuppliersTable;
+  // Ondi (Identity & Access)
+  sso_providers: SsoProvidersTable;
   // Supplier Bills
   supplier_bills: SupplierBillsTable;
   supplier_bill_lines: SupplierBillLinesTable;
@@ -1356,9 +1799,18 @@ export interface Database {
   recurring_bills: RecurringBillsTable;
   // Tenant Settings
   tenant_settings: TenantSettingsTable;
+  report_definitions: ReportDefinitionsTable;
+  report_runs: ReportRunsTable;
+  query_builder_runs: QueryBuilderRunsTable;
   // Signup / Onboarding
   packages: PackagesTable;
+  tenant_usage_counters: TenantUsageCountersTable;
   platform_transactions: PlatformTransactionsTable;
+  task_lists: TaskListsTable;
+  tasks: TasksTable;
+  task_subtasks: TaskSubtasksTable;
+  calendar_events: CalendarEventsTable;
+  user_app_settings: UserAppSettingsTable;
   // AWB / BL Tracking
   tracking_snapshots: TrackingSnapshotsTable;
   // General Ledger
@@ -1417,15 +1869,66 @@ export interface Database {
   comply_obligations:    ComplyObligationsTable;
   comply_renewals:       ComplyRenewalsTable;
   comply_agency_syncs:   ComplyAgencySyncsTable;
+  comply_agency_directory: ComplyAgencyDirectoryTable;
+  comply_reminders:        ComplyRemindersTable;
+  comply_profiles:              ComplyProfilesTable;
+  comply_obligation_rules:      ComplyObligationRulesTable;
+  comply_legal_firms:        ComplyLegalFirmsTable;
+  comply_legal_engagements: ComplyLegalEngagementsTable;
+  comply_legal_milestones:  ComplyLegalMilestonesTable;
+  comply_legal_messages:    ComplyLegalMessagesTable;
+  comply_brela_search_history: ComplyBrelaSearchHistoryTable;
+  comply_license_catalog: ComplyLicenseCatalogTable;
+  // CMS (platform pages + OneSite tenant pages)
+  cms_pages: CmsPagesTable;
+  cms_posts: CmsPostsTable;
+  cms_comments: CmsCommentsTable;
   // TRA VFD Integration
   tra_vfd_config: TraVfdConfigTable;
   // Customs Intelligence Suite
   hs_codes: HsCodesTable;
+  carrier_directory: CarrierDirectoryTable;
+  trade_institutions: TradeInstitutionsTable;
+  trade_procedures: TradeProceduresTable;
+  trade_procedure_steps: TradeProcedureStepsTable;
+  trade_procedure_prechecks: TradeProcedurePrechecksTable;
+  trade_wizard_usage_counters: TradeWizardUsageCountersTable;
+  trade_wizard_runs: TradeWizardRunsTable;
+  trade_wizard_searches: TradeWizardSearchesTable;
+  wma_hs_codes: WmaHsCodesTable;
+  compliance_check_log: ComplianceCheckLogTable;
+  icd_directory: IcdDirectoryTable;
+  clearing_agents_registry: ClearingAgentsRegistryTable;
+  eac_excise_schedules: EacExciseSchedulesTable;
   customs_penalties: CustomsPenaltiesTable;
   landed_cost_records: LandedCostRecordsTable;
   vessel_positions: VesselPositionsTable;
   geofences: GeofencesTable;
   geofence_events: GeofenceEventsTable;
+  // Tracking (Vehicle GPS)
+  vehicles: VehiclesTable;
+  vehicle_assignments: VehicleAssignmentsTable;
+  vehicle_positions: VehiclePositionsTable;
+  vehicle_issue_events: VehicleIssueEventsTable;
+  vehicle_sensor_snapshots: VehicleSensorSnapshotsTable;
+  vehicle_geofence_events: VehicleGeofenceEventsTable;
+  drivers: DriversTable;
+  vehicle_vendors: VehicleVendorsTable;
+  trips: TripsTable;
+  maintenance_records: MaintenanceRecordsTable;
+  parts_stock: PartsStockTable;
+  fuel_logs: FuelLogsTable;
+  vehicle_documents: VehicleDocumentsTable;
+  fleet_reminders: FleetRemindersTable;
+  driver_messages: DriverMessagesTable;
+  fleet_alerts: FleetAlertsTable;
+  warehouse_locations: WarehouseLocationsTable;
+  warehouse_dock_appointments: WarehouseDockAppointmentsTable;
+  cargo_manifests: CargoManifestsTable;
+  cargo_items: CargoItemsTable;
+  vehicle_issues: VehicleIssuesTable;
+  vehicle_expenses: VehicleExpensesTable;
+  vehicle_meter_readings: VehicleMeterReadingsTable;
   // Cloud / Drive File Manager
   cloud_files: CloudFilesTable;
   cloud_file_shares: CloudFileSharesTable;
@@ -1433,6 +1936,12 @@ export interface Database {
   cloud_external_files: CloudExternalFilesTable;
   cloud_drives: CloudDrivesTable;
   cloud_drive_members: CloudDriveMembersTable;
+  // Entitlements (package-gated features + per-app maintenance status)
+  package_features: PackageFeaturesTable;
+  app_status: AppStatusTable;
+  // Public/partner API layer
+  api_keys: ApiKeysTable;
+  api_usage_events: ApiUsageEventsTable;
 }
 
 // ── TRA VFD Integration ──────────────────────────────────────────────────────
@@ -1493,6 +2002,180 @@ export interface HsCodesTable {
   permits: string | null;
   restrictions: string | null;
   notes: string | null;
+  unit: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface CarrierDirectoryTable {
+  id: Generated<string>;
+  name: string;
+  mode: string;              // 'OCEAN' | 'AIR' | 'ROAD' | 'RAIL'
+  scac_or_iata: string | null;
+  country: string | null;
+  region: string | null;
+  website: string | null;
+  source_url: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface TradeInstitutionsTable {
+  id: Generated<string>;
+  name: string;
+  acronym: string | null;
+  category: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  source_url: string | null;
+  scraped_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface TradeProceduresTable {
+  id: Generated<string>;
+  source_id: number | null;
+  name: string;
+  kind: string;                    // 'IMPORT' | 'EXPORT' | 'TRANSIT' | 'REGISTRATION'
+  product_keywords: string | null;
+  summary: string | null;
+  has_detail: Generated<boolean>;
+  source_url: string | null;
+  scraped_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface TradeProcedureStepsTable {
+  id: Generated<string>;
+  procedure_id: string;
+  step_no: number;
+  name: string;
+  description: string | null;
+  institution_id: string | null;
+  duration_estimate: string | null;
+  cost_estimate: string | null;
+  required_documents: string[];    // real JSONB — node-postgres auto-parses to a native array
+  is_online: Generated<boolean>;
+  source_url: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface TradeProcedurePrechecksTable {
+  id: Generated<string>;
+  procedure_id: string;
+  question: string;
+  help_text: string | null;
+  options: { value: string; label: string }[];  // real JSONB — auto-parsed
+  sort_order: Generated<number>;
+}
+
+export interface TradeWizardUsageCountersTable {
+  tenant_id: string;
+  period: string;                  // 'YYYY-MM'
+  searches: Generated<number>;
+}
+
+export interface TradeWizardRunsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  procedure_id: string;
+  answers: Record<string, string>; // real JSONB — auto-parsed
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface TradeWizardSearchesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string | null;
+  query: string | null;
+  kind: string | null;
+  results_count: Generated<number>;
+  matched_procedure_id: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ComplianceCheckLogTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string | null;
+  hs_code: string;
+  hs_description: string | null;
+  origin_country: string;
+  total_checks: number;
+  required_count: number;
+  risk_level: string;
+  created_at: Generated<Date>;
+}
+
+export interface WmaHsCodesTable {
+  id: Generated<string>;
+  hs_code_from: string;
+  hs_code_to: string;
+  hs_code_display: string;
+  hs_description: string | null;
+  sheet: 'A' | 'B';
+  wma_class: string;
+  act_description: string | null;
+  schedule_ref: string | null;
+  obligation_trigger: string;
+  confidence: 'direct' | 'derived' | 'broad';
+  notes: string | null;
+  rigid_container_qty: string | null;
+  other_container_qty: string | null;
+  source_note: string | null;
+  scraped_at: Generated<Date>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface IcdDirectoryTable {
+  id: Generated<string>;
+  operator_type: string;
+  name: string;
+  email: string | null;
+  tel: string | null;
+  address: string | null;
+  region: string | null;
+  license_no: string | null;
+  license_start: Date | null;
+  license_exp: Date | null;
+  source_url: string | null;
+  scraped_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ClearingAgentsRegistryTable {
+  id: Generated<string>;
+  name: string;
+  email: string | null;
+  license_no: string | null;
+  region: string | null;
+  address: string | null;
+  tel: string | null;
+  source_url: string | null;
+  scraped_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface EacExciseSchedulesTable {
+  id: Generated<string>;
+  category: string;
+  item_description: string;
+  tz_rate: string | null;
+  ke_rate: string | null;
+  ug_rate: string | null;
+  rw_rate: string | null;
+  bi_rate: string | null;
+  source_url: string | null;
+  scraped_at: Date | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -1582,6 +2265,356 @@ export interface GeofenceEventsTable {
   latitude: number;
   longitude: number;
   occurred_at: Generated<Date>;
+}
+
+export interface VehiclesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  plate_number: string | null;
+  type: Generated<string>;
+  driver_name: string | null;
+  driver_phone: string | null;
+  device_id: string;
+  status: Generated<string>;
+  vin: string | null;
+  year: number | null;
+  make: string | null;
+  model: string | null;
+  trim: string | null;
+  color: string | null;
+  ownership: Generated<string>;
+  mileage_km: number | null;
+  photo_url: string | null;
+  fuel_type: string | null;
+  group_name: string | null;
+  purchase_vendor: string | null;
+  purchase_date: Date | null;
+  purchase_price: number | null;
+  initial_odometer: number | null;
+  financing_type: Generated<string>;
+  in_service_date: Date | null;
+  in_service_odometer: number | null;
+  est_life_months: number | null;
+  est_life_meter: number | null;
+  est_resale_value: number | null;
+  out_of_service_date: Date | null;
+  out_of_service_odometer: number | null;
+  lifecycle_notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface VehicleIssuesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  vehicle_id: string;
+  title: string;
+  description: string | null;
+  severity: Generated<string>;
+  priority: Generated<string>;
+  status: Generated<string>;
+  reported_by: string | null;
+  assigned_to: string | null;
+  due_date: Date | null;
+  due_odometer_km: number | null;
+  odometer_km: number | null;
+  resolved_odometer_km: number | null;
+  source: Generated<string>;
+  created_at: Generated<Date>;
+  resolved_at: Date | null;
+}
+
+export interface VehicleExpensesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  vehicle_id: string;
+  category: Generated<string>;
+  description: string | null;
+  amount: number;
+  expense_date: Generated<Date>;
+  vendor_id: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface VehicleMeterReadingsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  vehicle_id: string;
+  reading_km: number;
+  source: Generated<string>;
+  recorded_at: Generated<Date>;
+  created_by: string | null;
+}
+
+export interface VehicleAssignmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  vehicle_id: string;
+  driver_id: string;
+  start_time: Date;
+  end_time: Date | null;
+  labels: string | null;
+  comment: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface VehicleIssueEventsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  issue_id: string;
+  event_type: string;
+  description: string;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface VehicleSensorSnapshotsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  vehicle_id: string;
+  snapshot_type: string;
+  payload: any;
+  recorded_at: Date;
+  created_at: Generated<Date>;
+}
+
+export interface VehiclePositionsTable {
+  id: Generated<string>;
+  vehicle_id: string;
+  tenant_id: string;
+  latitude: number;
+  longitude: number;
+  speed: number | null;
+  heading: number | null;
+  battery_pct: number | null;
+  ignition: string | null;
+  recorded_at: Generated<Date>;
+}
+
+export interface VehicleGeofenceEventsTable {
+  id: Generated<string>;
+  geofence_id: string;
+  vehicle_id: string;
+  tenant_id: string;
+  event_type: 'ENTER' | 'EXIT';
+  latitude: number;
+  longitude: number;
+  occurred_at: Generated<Date>;
+}
+
+export interface DriversTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  phone: string | null;
+  license_number: string | null;
+  license_expiry: Date | null;
+  employee_id: string | null;
+  assigned_vehicle_id: string | null;
+  status: Generated<string>;
+  photo_url: string | null;
+  avatar_url: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface VehicleVendorsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  vendor_type: Generated<string>;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  notes: string | null;
+  active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface TripsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  vehicle_id: string;
+  driver_id: string | null;
+  customer_id: string | null;
+  origin: string | null;
+  destination: string | null;
+  scheduled_start: Date | null;
+  scheduled_end: Date | null;
+  actual_start: Date | null;
+  actual_end: Date | null;
+  status: Generated<string>;
+  cargo_desc: string | null;
+  cargo_type: string | null;
+  cargo_weight_kg: number | null;
+  cargo_temp_c: number | null;
+  load_capacity_pct: number | null;
+  distance_km: number | null;
+  notes: string | null;
+  shipment_id: string | null;
+  job_type: Generated<string>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface MaintenanceRecordsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  vehicle_id: string;
+  vendor_id: string | null;
+  service_type: string;
+  description: string | null;
+  cost: number | null;
+  odometer_km: number | null;
+  service_date: Generated<Date>;
+  next_due_date: Date | null;
+  next_due_odometer: number | null;
+  status: Generated<string>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface PartsStockTable {
+  id: Generated<string>;
+  tenant_id: string;
+  part_name: string;
+  part_number: string | null;
+  category: string | null;
+  quantity: Generated<number>;
+  unit_cost: number | null;
+  reorder_level: Generated<number>;
+  vendor_id: string | null;
+  location_id: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface WarehouseLocationsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  code: string;
+  name: string;
+  zone: string | null;
+  capacity_units: number | null;
+  active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface WarehouseDockAppointmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  dock_number: string;
+  appointment_type: 'INBOUND' | 'OUTBOUND';
+  vehicle_id: string | null;
+  reference: string | null;
+  scheduled_at: Date;
+  status: Generated<string>;
+  notes: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface CargoManifestsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  vehicle_id: string | null;
+  trip_id: string | null;
+  name: string;
+  container_length_cm: number;
+  container_width_cm: number;
+  container_height_cm: number;
+  max_weight_kg: number;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface CargoItemsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  manifest_id: string;
+  label: string;
+  length_cm: number;
+  width_cm: number;
+  height_cm: number;
+  weight_kg: number;
+  quantity: Generated<number>;
+  color: string | null;
+  placements: Generated<string>;
+  created_at: Generated<Date>;
+}
+
+export interface FuelLogsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  vehicle_id: string;
+  driver_id: string | null;
+  liters: number;
+  cost: number | null;
+  odometer_km: number | null;
+  station: string | null;
+  vendor_id: string | null;
+  logged_at: Generated<Date>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface VehicleDocumentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  vehicle_id: string;
+  doc_type: Generated<string>;
+  doc_number: string | null;
+  issued_date: Date | null;
+  expiry_date: Date | null;
+  file_url: string | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface FleetRemindersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  vehicle_id: string | null;
+  driver_id: string | null;
+  title: string;
+  reminder_type: Generated<string>;
+  due_date: Date;
+  status: Generated<string>;
+  notes: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface DriverMessagesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  driver_id: string;
+  trip_id: string | null;
+  sender_type: 'OPS' | 'DRIVER';
+  sender_id: string | null;
+  message: string;
+  created_at: Generated<Date>;
+}
+
+export interface FleetAlertsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  vehicle_id: string | null;
+  alert_type: string;
+  severity: Generated<string>;
+  message: string;
+  acknowledged: Generated<boolean>;
+  created_at: Generated<Date>;
 }
 
 export interface AccountingIntegrationsTable {
@@ -2210,6 +3243,10 @@ export interface ComplyCertificatesTable {
   auto_renew:     Generated<boolean>;
   last_synced_at: Date | null;
   metadata:       Generated<Record<string, any>>;
+  customer_id:    string | null;
+  reminder_90d_sent_at: Date | null;
+  reminder_30d_sent_at: Date | null;
+  non_renewal_risk:     string | null;
   created_at:     Generated<Date>;
   updated_at:     Generated<Date>;
 }
@@ -2229,6 +3266,61 @@ export interface ComplyApplicationsTable {
   notes:          string | null;
   linked_cert_id: string | null;
   metadata:       Generated<Record<string, any>>;
+  customer_id:    string | null;
+  license_catalog_id: string | null;
+}
+
+export interface ComplyLicenseCatalogTable {
+  id:                   Generated<string>;
+  code:                 string;
+  sn:                   number;
+  category:             string;
+  description:          string;
+  tier:                 string | null;
+  principal_fee:        string | null; // NUMERIC comes back as string via pg
+  principal_currency:   Generated<string>;
+  subsidiary_fee:       string | null;
+  subsidiary_currency:  Generated<string>;
+  notes:                string | null;
+  requirements:         Generated<string[]>;
+  created_at:           Generated<Date>;
+}
+
+export interface CmsPagesTable {
+  id:               Generated<string>;
+  tenant_id:        string | null; // null = Hudumika platform page
+  slug:             string;
+  title:            string;
+  content:          Generated<string>;
+  status:           Generated<string>; // draft | published
+  seo_description:  string | null;
+  author_id:        string | null;
+  created_at:       Generated<Date>;
+  updated_at:       Generated<Date>;
+}
+
+export interface CmsPostsTable {
+  id:          Generated<string>;
+  tenant_id:   string;
+  title:       string;
+  content:     Generated<string>;
+  status:      Generated<string>; // draft | published | trash
+  author_id:   string | null;
+  category:    string | null;
+  tags:        string | null;
+  created_at:  Generated<Date>;
+  updated_at:  Generated<Date>;
+}
+
+export interface CmsCommentsTable {
+  id:          Generated<string>;
+  tenant_id:   string;
+  post_id:     string | null;
+  author:      string;
+  email:       string | null;
+  content:     string;
+  status:      Generated<string>; // approved | pending | spam
+  created_at:  Generated<Date>;
 }
 
 export interface ComplyObligationsTable {
@@ -2244,6 +3336,7 @@ export interface ComplyObligationsTable {
   due_date:             Date | null;
   last_fulfilled_date:  Date | null;
   linked_cert_id:       string | null;
+  customer_id:          string | null;
   created_at:           Generated<Date>;
   updated_at:           Generated<Date>;
 }
@@ -2273,6 +3366,126 @@ export interface ComplyAgencySyncsTable {
   status:          string;  // success | failed | partial
   records_updated: Generated<number>;
   error:           string | null;
+}
+
+export interface ComplyAgencyDirectoryTable {
+  code:         string;
+  name:         string;
+  category:     string;
+  agency_class: Generated<string>;
+  website:      string | null;
+  phone:        string | null;
+  location:     string | null;
+  obligations:  Generated<string[]>;
+  turnaround:   string | null;
+  portal_type:  Generated<string>; // api | portal | manual | legal_firm
+  created_at:   Generated<Date>;
+  updated_at:   Generated<Date>;
+}
+
+export interface ComplyRemindersTable {
+  id:          Generated<string>;
+  tenant_id:   string;
+  title:       string;
+  agency_code: string | null;
+  remind_date: Date;
+  notes:       string | null;
+  created_by:  string;
+  created_at:  Generated<Date>;
+}
+
+export interface ComplyProfilesTable {
+  tenant_id:              string;
+  sector:                 string;
+  sub_sector:              string | null;
+  ownership_structure:    string | null;
+  employee_band:          string | null;
+  jurisdiction:           Generated<string>; // TZ | KE | UG | RW
+  created_at:             Generated<Date>;
+  updated_at:             Generated<Date>;
+}
+
+export interface ComplyObligationRulesTable {
+  id:              Generated<string>;
+  jurisdiction:    string;
+  sector:          string | null; // null = applies to all sectors
+  agency_code:     string;
+  obligation_code: string;
+  name:            string;
+  frequency:       string;
+  mandatory:       Generated<boolean>;
+  description:     string | null;
+  created_at:      Generated<Date>;
+}
+
+export interface ComplyLegalFirmsTable {
+  id:                  Generated<string>;
+  name:                string;
+  initials:            string;
+  color:                string;
+  specialties:         Generated<string[]>;
+  agencies_handled:    Generated<string[]>;
+  location:            string | null;
+  founded_year:        number | null;
+  rating:              Generated<number>;
+  review_count:        Generated<number>;
+  starting_price_label: string | null;
+  description:         string | null;
+  verified:            Generated<boolean>;
+  created_at:          Generated<Date>;
+}
+
+export interface ComplyLegalEngagementsTable {
+  id:               Generated<string>;
+  tenant_id:        string;
+  firm_id:          string;
+  application_id:   string | null;
+  engagement_type:  string;
+  agency_code:      string | null;
+  brief:            string;
+  status:           Generated<string>; // requested | quoted | instructed | in_progress | milestone_due | completed | cancelled
+  quoted_price:     string | null;
+  created_by:       string;
+  customer_id:      string | null;
+  created_at:       Generated<Date>;
+  updated_at:       Generated<Date>;
+}
+
+export interface ComplyLegalMilestonesTable {
+  id:             Generated<string>;
+  engagement_id:  string;
+  description:    string;
+  amount:         string | null;
+  status:         Generated<string>; // pending | paid | released
+  created_at:     Generated<Date>;
+  updated_at:     Generated<Date>;
+}
+
+export interface ComplyLegalMessagesTable {
+  id:             Generated<string>;
+  engagement_id:  string;
+  sender_type:    string; // tenant | firm
+  sender_id:      string;
+  body:           string;
+  created_at:     Generated<Date>;
+}
+
+export interface ComplyBrelaSearchHistoryTable {
+  id:            Generated<string>;
+  tenant_id:     string;
+  searched_by:   string;
+  object_type:   string;
+  inc_number:    string | null;
+  company_name:  string | null;
+  is_live:       Generated<boolean>;
+  result_count:  Generated<number>;
+  // JSONB array — stored/read as a JSON string (same convention as this
+  // file's other JSONB-array columns, e.g. shipment_cases.containers):
+  // pg's parameter binding doesn't reliably round-trip a raw JS array into
+  // jsonb (an empty array can come back as `{}`), so callers must
+  // JSON.stringify() on insert and JSON.parse() on read.
+  results:       Generated<string>;
+  created_at:    Generated<Date>;
 }
 
 // ── Cloud / Drive File Manager ──────────────────────────────────────────────
@@ -2358,6 +3571,21 @@ const pool = new pg.Pool({
 export const db = new Kysely<Database>({
   dialect: new PostgresDialect({
     pool,
+  }),
+});
+
+// Separate connection, separate Postgres role (hudumika_readonly, granted
+// SELECT-only — see db/migrations/084_readonly_role.sql). Used exclusively
+// by the Query Builder's raw-SQL mode: even if the application-layer
+// statement/keyword checks in services/queryBuilder.service.ts were somehow
+// bypassed, this connection cannot execute a write or DDL statement at all.
+const readonlyPool = new pg.Pool({
+  connectionString: env.DATABASE_URL_READONLY,
+});
+
+export const dbReadonly = new Kysely<Database>({
+  dialect: new PostgresDialect({
+    pool: readonlyPool,
   }),
 });
 

@@ -1,13 +1,15 @@
 import React from 'react';
-import type { ShipmentCase } from '@clearos/types';
-import { StatusPill, ProgressSegments } from '@clearos/ui';
+import { Link } from 'react-router-dom';
+import type { ShipmentCase } from '@hudumika/types';
+import { StatusPill, ProgressSegments } from '@hudumika/ui';
+import { Icon } from './Icon.js';
 
 interface ShipmentRowProps {
   shipment: ShipmentCase;
-  onClick: () => void;
+  to: string;
 }
 
-export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, onClick }) => {
+export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
   // Determine urgency color
   let urgencyClass = 'urg-teal';
   if (shipment.active_risk_types?.includes('DEMURRAGE')) {
@@ -33,9 +35,9 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, onClick }) =
   };
 
   return (
-    <div
+    <Link
+      to={to}
       className="ship-row"
-      onClick={onClick}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -44,6 +46,8 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, onClick }) =
         cursor: 'pointer',
         background: 'var(--white)',
         minHeight: '56px',
+        textDecoration: 'none',
+        color: 'inherit',
       }}
     >
       {/* Urgency indicator strip */}
@@ -64,14 +68,14 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, onClick }) =
         <div className="sr-goods" style={{ fontWeight: 600, fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {shipment.goods_desc}
         </div>
-        <div className="sr-vessel" style={{ fontSize: '11px', color: 'var(--ink3)', marginTop: '2px' }}>
-          🚢 {shipment.vessel || 'N/A'} • {shipment.origin_port || 'Origin'} ➔ {shipment.dest_port || 'Dest'}
+        <div className="sr-vessel" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '11px', color: 'var(--ink3)', marginTop: '2px' }}>
+          <Icon name="ship" size={11} /> {shipment.vessel || 'N/A'} • {shipment.origin_port || 'Origin'} ➔ {shipment.dest_port || 'Dest'}
         </div>
       </div>
 
       {/* Stage Progress Bar */}
       <div className="sr-stage" style={{ width: '160px', flexShrink: 0, padding: '0 12px' }}>
-        <ProgressSegments currentStage={shipment.stage} />
+        <ProgressSegments currentStage={shipment.stage} workflowStepOrder={shipment.workflow_step_order} workflowStepCount={shipment.workflow_step_count} />
       </div>
 
       {/* Status Pill */}
@@ -112,6 +116,6 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, onClick }) =
       <div className="sr-arrow-btn" style={{ width: 28, height: 28, flexShrink: 0, color: 'var(--teal)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         →
       </div>
-    </div>
+    </Link>
   );
 };

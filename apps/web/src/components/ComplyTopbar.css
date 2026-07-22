@@ -1,0 +1,217 @@
+/* ── ComplyOS Topbar — Metronic/Rizz style ── */
+
+/* Topbar height is 64px — matches sidebar brand area for a clean horizontal rule */
+.comply-topbar {
+  height: 64px;
+  min-height: 64px;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 0 24px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+/* ── Left: hamburger + greeting ── */
+.comply-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  justify-self: start;
+}
+
+.comply-topbar-hamburger {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: var(--bg);
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--ink2);
+  flex-shrink: 0;
+  transition: background 0.14s, color 0.14s;
+}
+
+.comply-topbar-hamburger:hover {
+  background: var(--border);
+  color: var(--ink);
+}
+
+.comply-topbar-greeting {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-family: var(--font);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.comply-topbar-greeting-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink2);
+}
+
+.comply-topbar-greeting-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* ── Center: pill search bar ── */
+.comply-topbar-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg);
+  border-radius: 100px;
+  padding: 0 16px;
+  height: 40px;
+  width: 340px;
+  max-width: min(340px, calc(100vw - 480px));
+  justify-self: center;
+  transition: background 0.14s, box-shadow 0.14s;
+}
+
+.comply-topbar-search:focus-within {
+  background: var(--white);
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.18), 0 0 0 1px var(--border);
+}
+
+.comply-topbar-search-icon {
+  color: var(--ink3);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.comply-topbar-search-input {
+  border: none;
+  background: transparent;
+  font-family: var(--font);
+  font-size: 13.5px;
+  color: var(--ink);
+  outline: none;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+}
+
+.comply-topbar-search-input::placeholder {
+  color: var(--ink3);
+}
+
+/* Remove default search input cancel button in WebKit */
+.comply-topbar-search-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+/* ── Right: action buttons + avatar ── */
+.comply-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-self: end;
+  flex-shrink: 0;
+}
+
+.comply-topbar-action-btn {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--ink2);
+  transition: background 0.14s, color 0.14s;
+}
+
+.comply-topbar-action-btn:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* Notification dot */
+.comply-topbar-notif-dot {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 7px;
+  height: 7px;
+  background: var(--comply);
+  border-radius: 50%;
+  border: 2px solid var(--white);
+  pointer-events: none;
+}
+
+/* User avatar circle */
+.comply-topbar-avatar {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: 6px;
+  letter-spacing: 0.02em;
+  transition: box-shadow 0.14s;
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.3);
+}
+
+.comply-topbar-avatar:hover {
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.22), 0 2px 6px rgba(5, 150, 105, 0.3);
+}
+
+/* ── Dark mode ── */
+html[data-theme="dark"] .comply-topbar {
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .comply-topbar-search:focus-within {
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.25);
+}
+
+/* ── Responsive ── */
+
+/* Tablet: shorten search bar */
+@media (max-width: 1024px) {
+  .comply-topbar { padding: 0 16px; gap: 12px; }
+  .comply-topbar-search { width: 240px; max-width: 240px; }
+}
+
+/* Mobile: collapse to hamburger + avatar only */
+@media (max-width: 767px) {
+  .comply-topbar {
+    grid-template-columns: auto 1fr auto;
+    padding: 0 14px;
+    gap: 8px;
+  }
+  .comply-topbar-greeting { display: none; }
+  .comply-topbar-search   { display: none; }
+}
+
+/* Very small screens */
+@media (max-width: 480px) {
+  .comply-topbar { padding: 0 10px; }
+  .comply-topbar-action-btn:not(:last-child) { display: none; }
+}

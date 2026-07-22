@@ -1,6 +1,7 @@
-// ─── ClearOS Notification Types ──────────────────────────────
+// ─── Hudumika Notification Types ──────────────────────────────
 
 import type { MessageChannel } from './core.js';
+import type { AppId } from './user.js';
 
 // ── Notification Triggers ────────────────────────────────────
 
@@ -25,7 +26,9 @@ export type NotificationTrigger =
   | 'PAYMENT_NOTICE_ISSUED'
   | 'RELEASE_ORDER'
   | 'CUSTOMS_QUERY'
-  | 'TANSAD_AMENDMENT';
+  | 'TANSAD_AMENDMENT'
+  // ── ComplyOS Events ──
+  | 'COMPLY_RENEWAL_TRIGGERED';
 
 // ── Recipient Types ──────────────────────────────────────────
 
@@ -75,6 +78,11 @@ export interface Notification {
   read: boolean;
   read_at?: string;
   created_at: string;
+  // Workspace fields (nullable for backward compat with older records)
+  app?: AppId;           // which Hudumika app generated this
+  entity_type?: string;  // 'shipment' | 'invoice' | 'employee' | 'ticket'
+  entity_id?: string;
+  entity_label?: string; // human-readable label, e.g. 'CLR-2025-0042'
 }
 
 // ── Send Notification Input ──────────────────────────────────

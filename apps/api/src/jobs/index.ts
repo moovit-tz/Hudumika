@@ -4,13 +4,17 @@ import { env } from '../config/env.js';
 import { runRiskScanJob } from './risk-scan.job.js';
 import { runDailyStatusJob } from './daily-status.job.js';
 import { runMissingDocReminderJob } from './reminder.job.js';
-import { runComplyRenewalJob } from './comply-renewal.job.js';
+import { runComplyRenewalJob, runComplyExpiryReminderJob } from './comply-renewal.job.js';
 import { runTRAZReportJob } from './tra-zreport.job.js';
 import { runSupportRulesJob } from './support-rules.job.js';
+import { runGpswoxSyncJob } from './gpswox-sync.job.js';
+import { runWorkflowCommQueueJob } from './workflow-comm.job.js';
 
 let redisConnection: Redis | null = null;
 let riskQueue: Queue | null = null;
 let reminderQueue: Queue | null = null;
+let gpswoxQueue: Queue | null = null;
+let workflowCommQueue: Queue | null = null;
 
 /**
  * Initializes BullMQ or falls back to in-memory intervals if Redis is not running
@@ -53,6 +57,8 @@ function startBullMQ(): void {
   try {
     riskQueue = new Queue('risk-scans', { connection: redisConnection as any });
     reminderQueue = new Queue('reminders', { connection: redisConnection as any });
+    gpswoxQueue = new Queue('gpswox-sync', { connection: redisConnection as any });
+    workflowCommQueue = new Queue('workflow-comms', { connection: redisConnection as any });
 
     // Worker for risk scans
     new Worker(
@@ -75,10 +81,36 @@ function startBullMQ(): void {
           await runDailyStatusJob();
         } else if (job.name === 'comply-renewal') {
           await runComplyRenewalJob();
+        } else if (job.name === 'comply-expiry-reminders') {
+          await runComplyExpiryReminderJob();
         } else if (job.name === 'tra-zreport') {
           await runTRAZReportJob();
         } else if (job.name === 'support-rules') {
           await runSupportRulesJob();
+        }
+      },
+      { connection: redisConnection as any }
+    );
+
+    // Worker for GPSWOX device sync — its own queue since it polls far more
+    // frequently (~2 min) than the 15-min/24h cadence of the reminders queue.
+    new Worker(
+      'gpswox-sync',
+      async (job) => {
+        if (job.name === 'sync') {
+          await runGpswoxSyncJob();
+        }
+      },
+      { connection: redisConnection as any }
+    );
+
+    // Worker for delayed workflow-step auto-comms — its own queue since it
+    // polls far more frequently (~2 min) than the reminders queue.
+    new Worker(
+      'workflow-comms',
+      async (job) => {
+        if (job.name === 'send-due') {
+          await runWorkflowCommQueueJob();
         }
       },
       { connection: redisConnection as any }
@@ -105,9 +137,21 @@ function startBullMQ(): void {
       repeat: { pattern: '0 8 * * *' } // Daily at 8:00 AM
     }).catch(console.error);
 
+    reminderQueue.add('comply-expiry-reminders', {}, {
+      repeat: { pattern: '0 8 * * *' } // Daily at 8:00 AM — 90-day/30-day permit expiry notices
+    }).catch(console.error);
+
     // TRA Z-Report: run at midnight (00:05) every day
     reminderQueue.add('tra-zreport', {}, {
       repeat: { pattern: '5 0 * * *' } // Every day at 00:05 AM
+    }).catch(console.error);
+
+    gpswoxQueue.add('sync', {}, {
+      repeat: { every: 2 * 60 * 1000 } // Every 2 minutes — GPSWOX device position/alert sync
+    }).catch(console.error);
+
+    workflowCommQueue.add('send-due', {}, {
+      repeat: { every: 2 * 60 * 1000 } // Every 2 minutes — delayed workflow-step auto-comms
     }).catch(console.error);
 
     console.log('🚀 BullMQ Workers and repeat schedules initialized.');
@@ -128,7 +172,10 @@ function startIntervalFallback(): void {
   runRiskScanJob().catch(console.error);
   runMissingDocReminderJob().catch(console.error);
   runComplyRenewalJob().catch(console.error);
+  runComplyExpiryReminderJob().catch(console.error);
   runSupportRulesJob().catch(console.error);
+  runGpswoxSyncJob().catch(console.error);
+  runWorkflowCommQueueJob().catch(console.error);
 
   // Set interval timers
   fallbackTimer = setInterval(() => {
@@ -141,6 +188,18 @@ function startIntervalFallback(): void {
   setInterval(() => {
     runDailyStatusJob().catch(console.error);
     runComplyRenewalJob().catch(console.error);
+    runComplyExpiryReminderJob().catch(console.error);
     runTRAZReportJob().catch(console.error);
   }, 24 * 60 * 60 * 1000);
+
+  // GPSWOX device sync — every 2 minutes, its own timer since it's far more
+  // frequent than the other fallback intervals.
+  setInterval(() => {
+    runGpswoxSyncJob().catch(console.error);
+  }, 2 * 60 * 1000);
+
+  // Delayed workflow-step auto-comms — every 2 minutes, same cadence as GPSWOX.
+  setInterval(() => {
+    runWorkflowCommQueueJob().catch(console.error);
+  }, 2 * 60 * 1000);
 }

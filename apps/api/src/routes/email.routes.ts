@@ -1,10 +1,10 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { EmailIntegration } from '../integrations/email.js';
 
 export async function emailRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('email'));
+  fastify.addHook('preHandler', requireEntitlement('email'));
 
   // POST /v1/email/send
   fastify.post('/send', async (request, reply) => {

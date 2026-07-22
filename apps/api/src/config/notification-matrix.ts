@@ -1,25 +1,25 @@
-import type { NotificationRule } from '@clearos/types';
+import type { NotificationRule } from '@hudumika/types';
 
 export const NOTIFICATION_MATRIX: NotificationRule[] = [
   {
     trigger: 'CASE_OPENED',
     recipients: ['CUSTOMER', 'ASSIGNED_OFFICER'],
     channels: ['WHATSAPP', 'EMAIL', 'IN_APP'],
-    template: 'Hello {{customerName}}, shipment case {{refNumber}} for "{{goodsDesc}}" has been opened and assigned to officer {{officerName}} ({{officerPhone}}). You can track it here: {{portalUrl}}/shipments/{{caseId}}',
+    template: 'Hello {{customerName}}, shipment case {{refNumber}} for "{{goodsDesc}}" has been opened and assigned to officer {{officerName}} ({{officerPhone}}). You can track it here: {{portalUrl}}/clearos/clearance/{{caseId}}',
     priority: 'NORMAL',
   },
   {
     trigger: 'STAGE_ADVANCED',
     recipients: ['CUSTOMER'],
     channels: ['WHATSAPP', 'IN_APP'],
-    template: 'Update for shipment {{refNumber}}: Status updated to "{{stageLabel}}". Track updates here: {{portalUrl}}/shipments/{{caseId}}',
+    template: 'Update for shipment {{refNumber}}: Status updated to "{{stageLabel}}". Track updates here: {{portalUrl}}/clearos/clearance/{{caseId}}',
     priority: 'NORMAL',
   },
   {
     trigger: 'MISSING_DOCUMENT',
     recipients: ['CUSTOMER'],
     channels: ['WHATSAPP', 'EMAIL'],
-    template: 'Action required for shipment {{refNumber}}: Please upload the following missing document(s): {{docList}}. Upload here: {{portalUrl}}/shipments/{{caseId}}/docs',
+    template: 'Action required for shipment {{refNumber}}: Please upload the following missing document(s): {{docList}}. Upload here: {{portalUrl}}/clearos/clearance/{{caseId}}?tab=files',
     priority: 'HIGH',
     repeat: {
       every: 24,

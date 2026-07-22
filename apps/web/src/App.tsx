@@ -1,98 +1,118 @@
-import React, { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { AuthProvider, useAuth } from './hooks/useAuth.jsx';
-import { HorizontalNav } from './components/HorizontalNav.jsx';
-import { TopBar } from './components/TopBar.jsx';
-import { useIsMobile } from './hooks/useIsMobile.js';
-import { Login }           from './pages/Login.jsx';
-import { Register }        from './pages/Register.jsx';
-import { ForgotPassword }  from './pages/ForgotPassword.jsx';
-import { ResetPassword }   from './pages/ResetPassword.jsx';
-import { VerifyEmail }     from './pages/VerifyEmail.jsx';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useParams, Link } from 'react-router-dom';
+import { AuthProvider, useAuth } from './hooks/useAuth.js';
+import { useBranding } from './hooks/useBranding.js';
+import type { UserRole } from '@hudumika/types';
+import { MGMT_ROLES, OPS_ROLES, FIN_ROLES } from './lib/permissions.js';
+import { WorkspaceProvider } from './contexts/WorkspaceContext.js';
+import { Icon, type IconName } from './components/Icon.js';
+import { Login }           from './pages/Login.js';
+import { OnboardingWizard } from './pages/onboarding/OnboardingWizard.js';
+import { ForgotPassword }  from './pages/ForgotPassword.js';
+import { ResetPassword }   from './pages/ResetPassword.js';
+import { AcceptInvite }    from './pages/AcceptInvite.js';
+import { VerifyEmail }     from './pages/VerifyEmail.js';
+import { ComplyOSSales }   from './pages/ComplyOSSales.js';
 
-import { CommandCenter }    from './pages/CommandCenter.jsx';
-import { DashboardHome }    from './pages/DashboardHome.jsx';
-import { DeliveryNotes }   from './pages/DeliveryNotes.jsx';
-import { ShipmentsList }    from './pages/ShipmentsList.jsx';
-import { FinanceDashboard } from './pages/FinanceDashboard.jsx';
-import { PurchaseOrders }   from './pages/PurchaseOrders.jsx';
-import { Demurrage }        from './pages/Demurrage.jsx';
-import { Quotations }       from './pages/Quotations.jsx';
-import { Billing }          from './pages/Billing.jsx';
-import { Settings }         from './pages/Settings.jsx';
-import { SuperAdmin }       from './pages/SuperAdmin.jsx';
-import { TenantManagement } from './pages/TenantManagement.jsx';
+import { CommandCenter }  from './pages/CommandCenter.js';
+import { ShipmentsList }  from './pages/ShipmentsList.js';
+import { ShipmentDetail } from './pages/ShipmentDetail.js';
+import { TrackingShared } from './pages/TrackingShared.js';
+import { UserProfile }    from './pages/UserProfile.js';
+import { Support }        from './pages/Support.js';
+import { SupportOverview }from './pages/SupportOverview.js';
+import { FileManager }    from './pages/FileManager.js';
+import { Escalations }    from './pages/Escalations.js';
+import { Chat }           from './pages/Chat.js';
+import { ToolsOverview }  from './pages/ToolsOverview.js';
+import { LandedCostPage } from './pages/LandedCostPage.js';
+import { CompliancePage } from './pages/CompliancePage.js';
+import { PenaltyPage }    from './pages/PenaltyPage.js';
+import { CarbonCreditsPage } from './pages/CarbonCreditsPage.js';
+import { TasksApp }       from './pages/TasksApp.js';
+import { CalendarApp }    from './pages/CalendarApp.js';
+import { CustomerDashboard }  from './pages/CustomerDashboard.js';
+import { CustomerSupport }    from './pages/CustomerSupport.js';
+import { CustomerInvoices }   from './pages/CustomerInvoices.js';
+import { CustomerQuotations } from './pages/CustomerQuotations.js';
+import { TermsOfService }     from './pages/TermsOfService.js';
+import { PrivacyPolicy }      from './pages/PrivacyPolicy.js';
+import { SupportTicket }      from './pages/SupportTicket.js';
+import { OneSitePublic }      from './pages/OneSitePublic.js';
+import { CheckInWidget }      from './components/CheckInWidget.js';
+import { ClockInProvider }    from './contexts/ClockInContext.js';
+import { DesignSystemProvider } from './components/DesignSystemProvider.js';
+import { SeoAnalyticsProvider } from './components/SeoAnalyticsProvider.js';
 
-import { UserProfile }   from './pages/UserProfile.jsx';
-import { Subscription }  from './pages/Subscription.jsx';
-import { Customers }  from './pages/Customers.jsx';
-import { Sales }      from './pages/Sales.jsx';
-import { Expenses }   from './pages/Expenses.jsx';
-import { Contracts }  from './pages/Contracts.jsx';
-import { Support }         from './pages/Support.jsx';
-import { SupportOverview } from './pages/SupportOverview.jsx';
-import { Leads }       from './pages/Leads.jsx';
-import { LeadDetail }  from './pages/LeadDetail.jsx';
-import { FileManager }        from './pages/FileManager.jsx';
-import { SystemUpdate }       from './pages/SystemUpdate.jsx';
-import { CustomerOverview }   from './pages/CustomerOverview.jsx';
-import { CustomerBulkUpload } from './pages/CustomerBulkUpload.jsx';
-import { Reports }             from './pages/Reports.jsx';
-import { Utilities }           from './pages/Utilities.jsx';
-import { Setup }               from './pages/Setup.jsx';
-import { FinancePlaceholder }  from './pages/FinancePlaceholder.jsx';
-import { AccountsQuery }        from './pages/AccountsQuery.jsx';
-import { PurchasesOverview }  from './pages/PurchasesOverview.jsx';
-import { ProductsServices }    from './pages/ProductsServices.jsx';
-import { Suppliers }           from './pages/Suppliers.jsx';
-import { Bills }               from './pages/Bills.jsx';
-import { HRM }                from './pages/HRM.jsx';
-import { StaffDetail }        from './pages/StaffDetail.jsx';
-import { CheckInWidget }      from './components/CheckInWidget.jsx';
-import { ClockInProvider }    from './contexts/ClockInContext.jsx';
-import { Chat }               from './pages/Chat.jsx';
-import { ShipmentBoard }      from './pages/ShipmentBoard.jsx';
-import { ShipmentDetail }     from './pages/ShipmentDetail.jsx';
-import { FinanceSalesReport }      from './pages/FinanceSalesReport.jsx';
-import { FinanceExpensesReport }   from './pages/FinanceExpensesReport.jsx';
-import { FinanceIncomeVsExpenses } from './pages/FinanceIncomeVsExpenses.jsx';
-import { FinanceTaxReport }        from './pages/FinanceTaxReport.jsx';
-import { FinanceCashFlow }         from './pages/FinanceCashFlow.jsx';
-import { FinanceShell }            from './pages/FinanceShell.jsx';
-import { FinanceAgedReceivables }  from './pages/FinanceAgedReceivables.jsx';
-import { FinanceAgedPayables }     from './pages/FinanceAgedPayables.jsx';
-import { FinanceBalanceSheet }     from './pages/FinanceBalanceSheet.jsx';
-import { FinanceProfitLoss }       from './pages/FinanceProfitLoss.jsx';
-import { FinanceLedger }           from './pages/FinanceLedger.jsx';
-import { FinanceTrialBalance }     from './pages/FinanceTrialBalance.jsx';
-import { FinancePayments }         from './pages/FinancePayments.jsx';
-import { FinanceReportingMaster }  from './pages/FinanceReportingMaster.jsx';
-import { Escalations }             from './pages/Escalations.jsx';
-import { ToolsOverview }           from './pages/ToolsOverview.jsx';
-import { CustomerDashboard }       from './pages/CustomerDashboard.jsx';
-import { CustomerSupport }         from './pages/CustomerSupport.jsx';
-import { TermsOfService }          from './pages/TermsOfService.jsx';
-import { PrivacyPolicy }           from './pages/PrivacyPolicy.jsx';
+import { ClearOSShell } from './shells/ClearOSShell.js';
+import { FinOpsShell }  from './shells/FinOpsShell.js';
+import { OnePIShell }   from './shells/OnePIShell.js';
+import { BlissShell }   from './shells/BlissShell.js';
+import { CloudShell }   from './shells/CloudShell.js';
+import { AdminShell }        from './shells/AdminShell.js';
+import { SuperAdminShell }   from './shells/SuperAdminShell.js';
+import { AIShell }      from './shells/AIShell.js';
+import { ComplyOSShell } from './shells/ComplyOSShell.js';
+import { EmailShell }   from './shells/EmailShell.js';
+import { CRMShell }     from './shells/CRMShell.js';
+import { ContactsShell } from './shells/ContactsShell.js';
+import { StoreShell }    from './shells/StoreShell.js';
+import { OneIdShell }    from './shells/OneIdShell.js';
+import { TrackingShell } from './shells/TrackingShell.js';
+import { CargoTrackerShell } from './shells/CargoTrackerShell.js';
+import { CalendarShell } from './shells/CalendarShell.js';
+import { TasksShell }    from './shells/TasksShell.js';
+import { CMSShell }      from './shells/CMSShell.js';
+import { AppHeader }    from './components/AppHeader.js';
+import { WorkspaceHome } from './pages/WorkspaceHome.js';
 
-/* ── Inner page layout — boxed centered wrapper ── */
-const PageLayout: React.FC = () => (
-  <div className="page-layout">
-    <Outlet />
-    <footer className="page-footer">
-      <span className="page-footer-copy">© 2026 ClearOS · Moovit Logistics. All rights reserved.</span>
-      <nav className="page-footer-links">
-        <Link to="/terms" className="page-footer-link">Terms of Service</Link>
-        <Link to="/privacy" className="page-footer-link">Privacy Policy</Link>
-        <Link to="/support/tickets" className="page-footer-link">Support</Link>
-      </nav>
-    </footer>
+/* ── Hub page — shares search state between header and workspace ── */
+const HubPage: React.FC = () => {
+  const [hubSearch, setHubSearch] = React.useState('');
+  return (
+    <div className="app-shell">
+      <div className="app-main">
+        <AppHeader hubSearch={hubSearch} onHubSearchChange={setHubSearch} />
+        <div className="app-shell-content">
+          <WorkspaceHome externalSearch={hubSearch} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* Redirects the legacy bare /clearance/:id(/edit) paths into the ClearOS-
+   shell-wrapped route so the shipment page always keeps its sidebar/header
+   instead of escaping into the sidebar-less NavShell. */
+const ClearanceRedirect: React.FC<{ edit?: boolean }> = ({ edit }) => {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/clearos/clearance/${id}${edit ? '/edit' : ''}`} replace />;
+};
+
+/* ── Nav shell — AppHeader without a sidebar, for standalone tool pages ── */
+const NavShell: React.FC = () => (
+  <div className="app-shell">
+    <div className="app-main">
+      <AppHeader />
+      <div className="app-shell-content">
+        <Outlet />
+      </div>
+    </div>
   </div>
 );
 
-/* ── Route guard: SUPER_ADMIN only ── */
-function RequireSuperAdmin({ children }: { children: React.ReactNode }) {
+function HrmStaffRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/onepi/staff/${id}`} replace />;
+}
+
+/* ── Route guard: restrict to specific roles ── */
+function RequireRoles({ children, roles }: { children: React.ReactNode; roles: UserRole[] }) {
   const { user } = useAuth();
-  if (user?.role !== 'SUPER_ADMIN') return <Navigate to="/" replace />;
+  if (!user) return <Navigate to="/" replace />;
+  if (!roles.includes(user.role as UserRole)) {
+    return <Navigate to="/" replace />;
+  }
   return <>{children}</>;
 }
 
@@ -113,14 +133,13 @@ const ImpersonationBanner: React.FC = () => {
 
 /* ── Customer bottom nav ── */
 const CustomerBottomNav: React.FC = () => {
-  const navigate = useNavigate();
   const location = useLocation();
-  const tabs = [
-    { path: '/',                  icon: '🏠', label: 'Home'     },
-    { path: '/billing',           icon: '🧾', label: 'Invoices' },
-    { path: '/quotations',        icon: '📋', label: 'Quotes'   },
-    { path: '/support/tickets',   icon: '🎧', label: 'Support'  },
-    { path: '/profile',           icon: '👤', label: 'Profile'  },
+  const tabs: { path: string; icon: IconName; label: string }[] = [
+    { path: '/',                  icon: 'home',       label: 'Home'     },
+    { path: '/billing',           icon: 'invoice',    label: 'Invoices' },
+    { path: '/quotations',        icon: 'clipboard',  label: 'Quotes'   },
+    { path: '/support/tickets',   icon: 'headphones', label: 'Support'  },
+    { path: '/profile',           icon: 'user',       label: 'Profile'  },
   ];
   return (
     <nav style={{
@@ -133,18 +152,17 @@ const CustomerBottomNav: React.FC = () => {
           ? location.pathname === '/'
           : location.pathname.startsWith(t.path);
         return (
-          <button key={t.path} type="button" title={t.label}
-            onClick={() => navigate(t.path)}
+          <Link key={t.path} to={t.path} title={t.label}
             style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
               gap: 2, background: 'none', border: 'none', cursor: 'pointer',
-              padding: '6px 0', fontFamily: 'var(--font)',
+              padding: '6px 0', fontFamily: 'var(--font)', textDecoration: 'none',
             }}>
-            <span style={{ fontSize: 18, lineHeight: 1 }}>{t.icon}</span>
+            <Icon name={t.icon} size={18} color={active ? 'var(--teal)' : 'var(--ink3)'} />
             <span style={{ fontSize: 10, fontWeight: active ? 700 : 400, color: active ? 'var(--teal)' : 'var(--ink3)' }}>
               {t.label}
             </span>
-          </button>
+          </Link>
         );
       })}
     </nav>
@@ -154,29 +172,34 @@ const CustomerBottomNav: React.FC = () => {
 /* ── Customer portal shell ── */
 const CustomerShell: React.FC = () => {
   const { user, logout } = useAuth();
-  const navigate = useNavigate();
+  const branding = useBranding();
+  
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
       <ImpersonationBanner />
       {/* Branded top bar */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 100,
-        background: 'var(--teal)', color: '#fff',
+        background: branding.accentColor || '#E8521A', color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '10px 18px', flexShrink: 0,
-        boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+        boxShadow: `0 2px 12px ${branding.accentColor || '#E8521A'}50`,
       }}>
-        <img src="/logo-dark.png" alt="Moovit ClearOS" style={{ height: 30, objectFit: 'contain' }} />
+        {branding.logoDark ? (
+          <img src={branding.logoDark} alt={branding.platformName} style={{ height: 30, objectFit: 'contain' }} />
+        ) : (
+          <div style={{ fontSize: 18, fontWeight: 800 }}>{branding.platformName}</div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button type="button" title="Profile" onClick={() => navigate('/profile')}
+          <Link to="/profile" title="Profile"
             style={{
               background: 'rgba(255,255,255,0.2)', border: '1.5px solid rgba(255,255,255,0.3)',
               borderRadius: '50%', width: 36, height: 36, cursor: 'pointer', color: '#fff',
               fontSize: 15, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontFamily: 'var(--font)',
+              fontFamily: 'var(--font)', textDecoration: 'none', boxSizing: 'border-box',
             }}>
             {user?.name?.[0] ?? '?'}
-          </button>
+          </Link>
           <button type="button" title="Sign out" onClick={logout}
             style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: 14, fontFamily: 'var(--font)', padding: '4px 0' }}>
             Sign out
@@ -186,16 +209,19 @@ const CustomerShell: React.FC = () => {
       {/* Page content */}
       <main style={{ flex: 1, overflowY: 'auto', paddingBottom: 80 }}>
         <Routes>
-          <Route path="/"                   element={<CustomerDashboard />} />
-          <Route path="/billing"            element={<Billing />} />
-          <Route path="/quotations"         element={<Quotations />} />
-          <Route path="/documents"          element={<FileManager />} />
-          <Route path="/support/tickets"    element={<CustomerSupport />} />
-          <Route path="/support"            element={<CustomerSupport />} />
-          <Route path="/chat"               element={<Chat />} />
-          <Route path="/profile"            element={<UserProfile />} />
-          <Route path="/clearance/:id"      element={<ShipmentDetail />} />
-          <Route path="*"                   element={<Navigate to="/" replace />} />
+          <Route path="/"                element={<CustomerDashboard />} />
+          <Route path="/billing"         element={<CustomerInvoices />} />
+          <Route path="/quotations"      element={<CustomerQuotations />} />
+          <Route path="/documents"       element={<FileManager />} />
+          <Route path="/support/tickets" element={<CustomerSupport />} />
+          <Route path="/support"         element={<CustomerSupport />} />
+          <Route path="/chat"            element={<Chat />} />
+          <Route path="/profile"         element={<UserProfile />} />
+          <Route path="/clearance/:id"   element={<ShipmentDetail />} />
+          <Route path="comply"      element={<CompliancePage />} />
+          <Route path="penalty"     element={<PenaltyPage />} />
+          <Route path="carbon-credits" element={<CarbonCreditsPage />} />
+          <Route path="*"           element={<Navigate to="overview" replace />} />
         </Routes>
       </main>
       <CustomerBottomNav />
@@ -208,47 +234,13 @@ const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
   const { pathname } = useLocation();
   const isHub = pathname === '/';
-  const isMobile = useIsMobile();
-  const [navOpen, setNavOpen] = useState(true);
-  const [isDark, setIsDark] = useState(
-    () => document.documentElement.getAttribute('data-theme') === 'dark'
-  );
-  const [isExpanded, setIsExpanded] = useState(() => {
-    const saved = localStorage.getItem('layout-expanded') === 'true';
-    if (saved) document.documentElement.setAttribute('data-expanded', 'true');
-    return saved;
-  });
-
-  function toggleExpand() {
-    const next = !isExpanded;
-    setIsExpanded(next);
-    if (next) {
-      document.documentElement.setAttribute('data-expanded', 'true');
-      localStorage.setItem('layout-expanded', 'true');
-    } else {
-      document.documentElement.removeAttribute('data-expanded');
-      localStorage.setItem('layout-expanded', '');
-    }
-  }
-
-  function toggleTheme() {
-    const next = !isDark;
-    setIsDark(next);
-    if (next) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('theme', 'light');
-    }
-  }
 
   if (loading) {
     return (
       <div className="app-loading">
         <div className="app-loading-inner">
           <div className="app-loading-spinner" />
-          <div className="app-loading-label">Loading Moovit ClearOS…</div>
+          <div className="app-loading-label">Loading Hudumika ClearOS…</div>
         </div>
       </div>
     );
@@ -256,12 +248,19 @@ const AppContent: React.FC = () => {
 
   if (!user) return (
     <Routes>
-      <Route path="/auth/register"        element={<Register />} />
+      <Route path="/signup"               element={<OnboardingWizard />} />
+      <Route path="/auth/register"        element={<Navigate to="/signup" replace />} />
       <Route path="/auth/forgot-password" element={<ForgotPassword />} />
       <Route path="/auth/reset-password"  element={<ResetPassword />} />
+      <Route path="/accept-invite"        element={<AcceptInvite />} />
       <Route path="/auth/verify-email"    element={<VerifyEmail />} />
       <Route path="/terms"                element={<TermsOfService />} />
       <Route path="/privacy"              element={<PrivacyPolicy />} />
+      <Route path="/support-ticket"       element={<SupportTicket />} />
+      <Route path="/track/shared/:token"  element={<TrackingShared />} />
+      <Route path="/why-complyos"         element={<ComplyOSSales />} />
+      <Route path="/site/:tenantSlug"             element={<OneSitePublic />} />
+      <Route path="/site/:tenantSlug/:pageSlug"   element={<OneSitePublic />} />
       <Route path="*"                     element={<Login />} />
     </Routes>
   );
@@ -272,132 +271,138 @@ const AppContent: React.FC = () => {
   }
 
   return (
-      <div className="app-container">
-        <ImpersonationBanner />
-        <TopBar
-          navCollapsed={false}
-          onToggleNav={() => setNavOpen(o => !o)}
-          onMobileNavOpen={() => setNavOpen(o => !o)}
-          isDark={isDark}
-          onToggleTheme={toggleTheme}
-          isExpanded={isExpanded}
-          onToggleExpand={toggleExpand}
-        />
-        {navOpen && <HorizontalNav />}
-        <main className={`main-content${isHub ? ' main-content-hub' : ''}`}>
-            <Routes>
-              {/* Hub — no page-layout wrapper */}
-              <Route path="/" element={<DashboardHome />} />
+    <div className="app-container">
+      <ImpersonationBanner />
+      <main className={`main-content${isHub ? ' main-content-hub' : ''}`}>
+        <Routes>
+          {/* Hub — WorkspaceHome with shared search state */}
+          <Route path="/" element={<HubPage />} />
 
-              {/* Public legal pages — self-contained layout */}
-              <Route path="/terms"   element={<TermsOfService />} />
-              <Route path="/privacy" element={<PrivacyPolicy />} />
+          {/* Public legal pages — self-contained layout */}
+          <Route path="/terms"          element={<TermsOfService />} />
+          <Route path="/privacy"        element={<PrivacyPolicy />} />
+          <Route path="/support-ticket" element={<SupportTicket />} />
+          <Route path="/why-complyos"   element={<ComplyOSSales />} />
+          <Route path="/site/:tenantSlug"           element={<OneSitePublic />} />
+          <Route path="/site/:tenantSlug/:pageSlug" element={<OneSitePublic />} />
+          <Route path="/subscription" element={<Navigate to="/workspace/billing" replace />} />
 
-              {/* Full-viewport apps — no page-layout (manage their own height/overflow) */}
-              <Route path="/ops" element={<CommandCenter />} />
+          {/* Full-viewport apps — no page-layout (manage their own height/overflow) */}
+          <Route path="/ops" element={<RequireRoles roles={OPS_ROLES}><CommandCenter /></RequireRoles>} />
 
-              {/* Finance Shell — full-viewport, owns sidebar + tab bar (no page-layout wrapper) */}
-              <Route path="/finance/*" element={<FinanceShell />} />
-              {/* Redirect old standalone finance routes into the shell */}
-              <Route path="/billing"         element={<Navigate to="/finance/invoices"        replace />} />
-              <Route path="/quotations"      element={<Navigate to="/finance/quotations"      replace />} />
-              <Route path="/purchase-orders" element={<Navigate to="/finance/purchase-orders" replace />} />
-              <Route path="/expenses"        element={<Navigate to="/finance/expenses"        replace />} />
-              <Route path="/accounts"        element={<Navigate to="/finance/accounts"        replace />} />
+          {/* ── App shells (prefix-based routes) ── */}
+          <Route path="/clearos/*"  element={<ClearOSShell />} />
+          <Route path="/finance/*"  element={<RequireRoles roles={FIN_ROLES}><FinOpsShell /></RequireRoles>} />
+          <Route path="/finops/*"   element={<RequireRoles roles={FIN_ROLES}><FinOpsShell /></RequireRoles>} />
+          <Route path="/onepi/*"    element={<OnePIShell />} />
+          <Route path="/bliss/*"    element={<BlissShell />} />
+          <Route path="/cloud/*"    element={<CloudShell />} />
+          <Route path="/workspace/*"element={<AdminShell />} />
+          <Route path="/admin/*"    element={<SuperAdminShell />} />
+          <Route path="/ai/*"       element={<AIShell />} />
+          <Route path="/complyos/*" element={<ComplyOSShell />} />
+          <Route path="/email/*"    element={<EmailShell />} />
+          <Route path="/crm/*"      element={<CRMShell />} />
+          <Route path="/contacts/*"  element={<ContactsShell />} />
+          <Route path="/store/*"     element={<StoreShell />} />
+          <Route path="/oneid/*"     element={<OneIdShell />} />
+          <Route path="/tracking/*"  element={<TrackingShell />} />
+          <Route path="/cargotracker/*" element={<CargoTrackerShell />} />
+          <Route path="/cms/*"       element={<CMSShell />} />
 
-              {/* All inner pages — boxed centered layout */}
-              <Route element={<PageLayout />}>
-                {/* CFA / Ops */}
-                <Route path="/shipments"     element={<ShipmentsList />} />
-                <Route path="/clearance/:id" element={<ShipmentDetail />} />
-                <Route path="/demurrage"     element={<Demurrage />} />
+          {/* Legacy redirects for old routes */}
+          <Route path="/billing"         element={<Navigate to="/finance/invoices"        replace />} />
+          <Route path="/quotations"      element={<Navigate to="/finance/quotations"      replace />} />
+          <Route path="/purchase-orders" element={<Navigate to="/finance/purchase-orders" replace />} />
+          <Route path="/expenses"        element={<Navigate to="/finance/expenses"        replace />} />
+          <Route path="/accounts"        element={<Navigate to="/finance/accounts"        replace />} />
+          <Route path="/customers"       element={<Navigate to="/crm/customers"           replace />} />
+          <Route path="/customers/*"     element={<Navigate to="/crm/customers"           replace />} />
+          <Route path="/leads"           element={<Navigate to="/crm/leads"               replace />} />
+          <Route path="/leads/:id"       element={<Navigate to="/crm/leads"               replace />} />
+          <Route path="/tracker"         element={<Navigate to="/cargotracker"            replace />} />
+          <Route path="/demurrage/*"     element={<Navigate to="/cargotracker/demurrage"  replace />} />
 
-                {/* CRM & Sales */}
-                <Route path="/customers/overview"     element={<CustomerOverview />} />
-                <Route path="/customers/bulk-upload"  element={<CustomerBulkUpload />} />
-                <Route path="/customers"              element={<Customers />} />
-                <Route path="/sales"            element={<Sales />} />
-                <Route path="/delivery-notes"   element={<DeliveryNotes />} />
-                <Route path="/leads"      element={<Leads />} />
-                <Route path="/leads/:id"  element={<LeadDetail />} />
+          {/* ── Legacy redirects for old admin / settings paths ── */}
+          <Route path="/settings"          element={<Navigate to="/workspace/settings" replace />} />
+          <Route path="/system-update"     element={<Navigate to="/admin"              replace />} />
+          <Route path="/tenant-management" element={<Navigate to="/admin"              replace />} />
+          <Route path="/superadmin"        element={<Navigate to="/admin"              replace />} />
+          <Route path="/clearos/trade-wizard" element={<Navigate to="/clearos/compliance/advanced" replace />} />
+          <Route path="/reports"           element={<Navigate to="/workspace/reports"  replace />} />
+          <Route path="/utilities"         element={<Navigate to="/workspace/utilities" replace />} />
+          <Route path="/setup"             element={<Navigate to="/workspace/settings" replace />} />
 
-                {/* Tools */}
-                <Route path="/documents"          element={<FileManager />} />
-                <Route path="/support/overview"   element={<SupportOverview />} />
-                <Route path="/support/tickets"    element={<Support />} />
-                <Route path="/support"            element={<SupportOverview />} />
-                <Route path="/escalations"        element={<Escalations />} />
-                <Route path="/chat"               element={<Chat />} />
+          {/* ── CRM / Sales / Finance shortcuts → canonical shell routes ── */}
+          <Route path="/customers/overview"    element={<Navigate to="/crm/overview"              replace />} />
+          <Route path="/customers/bulk-upload" element={<Navigate to="/crm/customers/bulk-upload" replace />} />
+          <Route path="/sales"                 element={<Navigate to="/crm/sales"                 replace />} />
+          <Route path="/delivery-notes"        element={<Navigate to="/finance/delivery-notes"    replace />} />
+          <Route path="/accounts/ledger"           element={<Navigate to="/finance/ledger"           replace />} />
+          <Route path="/accounts/trial-balance"    element={<Navigate to="/finance/trial-balance"    replace />} />
+          <Route path="/accounts/balance-sheet"    element={<Navigate to="/finance/balance-sheet"    replace />} />
+          <Route path="/accounts/profit-loss"      element={<Navigate to="/finance/profit-loss"      replace />} />
+          <Route path="/accounts/aged-receivables" element={<Navigate to="/finance/aged-receivables" replace />} />
+          <Route path="/accounts/aged-payables"    element={<Navigate to="/finance/aged-payables"    replace />} />
 
-                {/* Contracts (not in shell yet) */}
-                <Route path="/contracts" element={<Contracts />} />
+          {/* ── Tool / staff pages — AppHeader shell, no sidebar ── */}
+          <Route element={<NavShell />}>
+            {/* Legacy CFA routes */}
+            <Route path="/shipments"     element={<RequireRoles roles={[...OPS_ROLES, 'FINANCE']}><ShipmentsList /></RequireRoles>} />
+            <Route path="/clearance/:id" element={<ClearanceRedirect />} />
+            <Route path="/clearance/:id/edit" element={<ClearanceRedirect edit />} />
+            <Route path="/customs-tools" element={<RequireRoles roles={OPS_ROLES}><LandedCostPage /></RequireRoles>} />
+            <Route path="/compliance"    element={<RequireRoles roles={OPS_ROLES}><CompliancePage /></RequireRoles>} />
+            <Route path="/penalty"       element={<RequireRoles roles={OPS_ROLES}><PenaltyPage /></RequireRoles>} />
 
-                {/* Accounts sub-pages still accessible via direct URL */}
-                <Route path="/accounts/ledger"           element={<FinanceLedger />} />
-                <Route path="/accounts/trial-balance"    element={<FinanceTrialBalance />} />
-                <Route path="/accounts/balance-sheet"    element={<FinanceBalanceSheet />} />
-                <Route path="/accounts/profit-loss"      element={<FinanceProfitLoss />} />
-                <Route path="/accounts/aged-receivables" element={<FinanceAgedReceivables />} />
-                <Route path="/accounts/aged-payables"    element={<FinanceAgedPayables />} />
+            {/* Tools — all staff */}
+            <Route path="/documents"        element={<FileManager />} />
+            <Route path="/support/overview" element={<SupportOverview />} />
+            <Route path="/support/tickets"  element={<Support />} />
+            <Route path="/support"          element={<SupportOverview />} />
+            <Route path="/escalations"      element={<RequireRoles roles={[...MGMT_ROLES, 'SENIOR']}><Escalations /></RequireRoles>} />
+            <Route path="/chat"             element={<Chat />} />
+            <Route path="/profile"          element={<UserProfile />} />
+            <Route path="/tools/overview"   element={<ToolsOverview />} />
+            <Route path="/carbon-credits"   element={<CarbonCreditsPage />} />
 
-                {/* Reports & Setup */}
-                <Route path="/reports"    element={<Reports />} />
-                <Route path="/utilities"  element={<Utilities />} />
-                <Route path="/setup"      element={<Setup />} />
+          </Route>
 
-                {/* Profile & Account */}
-                <Route path="/profile"       element={<UserProfile />} />
-                <Route path="/subscription"  element={<Subscription />} />
+          {/* ── App shells (prefix-based routes) that use WorkspaceApp ── */}
+          <Route path="/calendar/*"       element={<CalendarShell />} />
+          <Route path="/tasks/*"          element={<TasksShell />} />
 
-                {/* Tools Overview */}
-                <Route path="/tools/overview" element={<ToolsOverview />} />
+          {/* Legacy HRM routes — superseded by the OnePI shell (/onepi/*), kept as redirects for old links/bookmarks */}
+          <Route path="/hrm"           element={<Navigate to="/onepi" replace />} />
+          <Route path="/hrm/staff/:id" element={<HrmStaffRedirect />} />
+          {['employees','roles','permissions','delete-requests','departments','designations','teams','invitations',
+            'staff-directory','activity-logs','login-history','device-management','leaves','attendance','shifts',
+            'holidays','payroll','announcements','org-chart'].map(seg => (
+            <Route key={seg} path={`/hrm/${seg}`} element={<Navigate to={`/onepi/${seg}`} replace />} />
+          ))}
 
-                {/* HRM */}
-                <Route path="/hrm"                   element={<HRM />} />
-                <Route path="/hrm/employees"         element={<HRM />} />
-                <Route path="/hrm/roles"             element={<HRM />} />
-                <Route path="/hrm/delete-requests"   element={<HRM />} />
-                <Route path="/hrm/departments"       element={<HRM />} />
-                <Route path="/hrm/teams"             element={<HRM />} />
-                <Route path="/hrm/invitations"       element={<HRM />} />
-                <Route path="/hrm/staff-directory"   element={<HRM />} />
-                <Route path="/hrm/staff/:id"         element={<StaffDetail />} />
-                <Route path="/hrm/activity-logs"     element={<HRM />} />
-                <Route path="/hrm/login-history"     element={<HRM />} />
-                <Route path="/hrm/device-management" element={<HRM />} />
-                <Route path="/hrm/leaves"            element={<HRM />} />
-                <Route path="/hrm/attendance"        element={<HRM />} />
-                <Route path="/hrm/shifts"            element={<HRM />} />
-                <Route path="/hrm/holidays"          element={<HRM />} />
-                <Route path="/hrm/designations"      element={<HRM />} />
-                <Route path="/hrm/payroll"           element={<HRM />} />
-                <Route path="/hrm/announcements"     element={<HRM />} />
-                <Route path="/hrm/org-chart"         element={<HRM />} />
-                <Route path="/hrm/permissions"       element={<HRM />} />
-
-                <Route path="/settings" element={<Settings />} />
-
-                {/* Admin */}
-                <Route path="/tenant-management" element={<RequireSuperAdmin><TenantManagement /></RequireSuperAdmin>} />
-                <Route path="/admin"             element={<RequireSuperAdmin><SuperAdmin /></RequireSuperAdmin>} />
-                <Route path="/system-update"     element={<RequireSuperAdmin><SystemUpdate /></RequireSuperAdmin>} />
-              </Route>
-
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
-        <CheckInWidget />
-      </div>
+          <Route path="/track/shared/:token" element={<TrackingShared />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
+      <CheckInWidget />
+    </div>
   );
 };
 
 const App: React.FC = () => (
   <BrowserRouter>
-    <AuthProvider>
-      <ClockInProvider>
-        <AppContent />
-      </ClockInProvider>
-    </AuthProvider>
+    <SeoAnalyticsProvider>
+      <AuthProvider>
+        <ClockInProvider>
+          <WorkspaceProvider>
+            <DesignSystemProvider>
+              <AppContent />
+            </DesignSystemProvider>
+          </WorkspaceProvider>
+        </ClockInProvider>
+      </AuthProvider>
+    </SeoAnalyticsProvider>
   </BrowserRouter>
 );
 

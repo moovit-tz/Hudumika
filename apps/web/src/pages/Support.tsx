@@ -1,12 +1,88 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
+import { useMediaQuery } from '../hooks/useMediaQuery.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { Customer360Sidebar, CustomerContext } from '../components/Customer360Sidebar.js';
 import '../pages/Bliss.css';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+
+const COMPLYOS_AGENCIES = [
+  { code: 'BRELA', name: 'BRELA — Business Registration & Licensing' },
+  { code: 'TRA',   name: 'TRA — Tanzania Revenue Authority' },
+  { code: 'NSSF',  name: 'NSSF — National Social Security Fund' },
+  { code: 'WCF',   name: 'WCF — Workers Compensation Fund' },
+  { code: 'NHIF',  name: 'NHIF — National Health Insurance Fund' },
+  { code: 'TFDA',  name: 'TFDA — Tanzania Food & Drugs Authority' },
+  { code: 'TBS',   name: 'TBS — Tanzania Bureau of Standards' },
+  { code: 'OSHA',  name: 'OSHA — Occupational Safety & Health Authority' },
+];
+
+/** Bliss → ComplyOS bridge modal — raises a draft ComplyOS application pre-filled with this ticket's context (PRD 7.2: a support ticket surfacing a compliance gap should open a ComplyOS workflow without asking the client to re-explain the issue). */
+function SendToComplyOSModal({ ticket, onClose }: { ticket: Ticket; onClose: () => void }) {
+  const navigate = useNavigate();
+  const [agencyCode, setAgencyCode] = useState(COMPLYOS_AGENCIES[0].code);
+  const [certType, setCertType] = useState(ticket.subject);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handleSend() {
+    if (!certType.trim()) { setError('Please describe what certification/permit is needed.'); return; }
+    setSending(true);
+    setError('');
+    try {
+      const app = await apiFetch('/v1/comply/applications/from-ticket', {
+        method: 'POST',
+        body: JSON.stringify({ ticket_id: ticket.id, agency_code: agencyCode, cert_type: certType.trim() }),
+      });
+      navigate(`/complyos/applications?opened=${app.id}`);
+    } catch (e: any) {
+      setError(e.message || 'Could not open a ComplyOS application for this ticket.');
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
+      <div style={{ background: 'var(--white)', borderRadius: 14, width: 440, maxWidth: '100%', border: '1px solid var(--border)', boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Send to ComplyOS</div>
+            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Opens a draft compliance application pre-filled from this ticket — {ticket.ref}.</div>
+          </div>
+          <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }} onClick={onClose}><Icon name="x" size={16} /></button>
+        </div>
+        <div style={{ padding: '18px 22px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Agency</label>
+            <Select value={agencyCode} onValueChange={setAgencyCode}>
+              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {COMPLYOS_AGENCIES.map(a => <SelectItem key={a.code} value={a.code}>{a.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', marginBottom: 5 }}>Certification / Permit Needed</label>
+            <input className="input-field" value={certType} onChange={e => setCertType(e.target.value)} placeholder="e.g. Tax Compliance Certificate" />
+          </div>
+          {error && <div style={{ fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
+        </div>
+        <div style={{ padding: '14px 22px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="button" className="btn btn-primary" disabled={sending} onClick={handleSend}>
+            {sending ? 'Opening…' : 'Open Application'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /* ── Types ── */
 type ChannelId = 'inapp' | 'email' | 'whatsapp' | 'sms' | 'note';
@@ -57,7 +133,7 @@ const STATUS_CFG: Record<StatusKey, { bg: string; color: string; label: string }
 const CHANNEL_CFG: Record<ChannelId, { label: string; icon: IconName; color: string; bg: string; border: string; btnLabel: string }> = {
   inapp:    { label: 'Reply',    icon: 'message',    color: 'var(--teal)', bg: 'var(--teal-l)', border: 'var(--teal)', btnLabel: 'Send Reply'        },
   email:    { label: 'Email',    icon: 'mail',       color: '#2563eb',     bg: '#eff6ff',       border: '#2563eb',     btnLabel: 'Send Email'        },
-  whatsapp: { label: 'WhatsApp', icon: 'chatBubble', color: '#15803d',     bg: '#f0fdf4',       border: '#15803d',     btnLabel: 'Send via WhatsApp' },
+  whatsapp: { label: 'WhatsApp', icon: 'chatBubble', color: '#047857',     bg: '#ecfdf5',       border: '#047857',     btnLabel: 'Send via WhatsApp' },
   sms:      { label: 'SMS',      icon: 'smartphone', color: '#7c3aed',     bg: '#f5f3ff',       border: '#7c3aed',     btnLabel: 'Send SMS'          },
   note:     { label: 'Note',     icon: 'fileText',   color: '#92400e',     bg: '#fefce8',       border: '#92400e',     btnLabel: 'Save Note'         },
 };
@@ -69,7 +145,7 @@ const STATUS_ORDER: Record<StatusKey, number> = { OPEN: 0, IN_PROGRESS: 1, RESOL
 type MsgFilter = 'all' | 'whatsapp' | 'email' | 'note' | 'autosent' | 'sms';
 const MSG_TABS: { key: MsgFilter; label: string; color: string }[] = [
   { key: 'all',      label: 'All',       color: 'var(--ink2)'  },
-  { key: 'whatsapp', label: 'WhatsApp',  color: '#15803d'      },
+  { key: 'whatsapp', label: 'WhatsApp',  color: '#047857'      },
   { key: 'email',    label: 'Email',     color: '#2563eb'      },
   { key: 'note',     label: 'Internal',  color: '#92400e'      },
   { key: 'autosent', label: 'Auto-sent', color: 'var(--ink3)'  },
@@ -83,7 +159,7 @@ function sortTickets(a: Ticket, b: Ticket) {
 }
 
 /* ── Helpers ── */
-const AVATAR_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#1a7f37','#9a6700','#cf222e','#d05c30','#0e7490'];
+const AVATAR_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30','#0e7490'];
 const initials    = (n: string) => n.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
 const avatarColor = (n: string) => AVATAR_COLORS[n.charCodeAt(0) % AVATAR_COLORS.length];
 const relTime = (d: string) => {
@@ -265,9 +341,12 @@ function ConvList({ tickets, selected, onSelect, onNew, groups, views, onCreateG
           {newViewOpen && (
             <div className="spt-nav-new-form">
               <input className="input-field" placeholder="View name" value={newViewName} onChange={e => setNewViewName(e.target.value)} />
-              <select className="input-field" title="View category" value={newViewCategory} onChange={e => setNewViewCategory(e.target.value)}>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <Select value={newViewCategory} onValueChange={setNewViewCategory}>
+                <SelectTrigger aria-label="View category" className="input-field"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
               <div className="spt-nav-new-actions">
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => setNewViewOpen(false)}>Cancel</button>
                 <button type="button" className="btn btn-primary btn-sm" disabled={!newViewName.trim()} onClick={() => {
@@ -478,9 +557,9 @@ function SortTh({ label, k, sortKey, sortDir, onSort }: {
 /* ══════════════════════════════════════════
    COL 2 — Comms Hub Thread + Composer
 ══════════════════════════════════════════ */
-function ThreadPanel({ ticket, onStatusChange, authorName, onClose, aiSuggestionToUse }: {
+function ThreadPanel({ ticket, onStatusChange, authorName, onClose, onOpenDetails, aiSuggestionToUse }: {
   ticket: Ticket; onStatusChange: (id: string, s: StatusKey) => void;
-  authorName: string; onClose: () => void; aiSuggestionToUse?: string;
+  authorName: string; onClose: () => void; onOpenDetails?: () => void; aiSuggestionToUse?: string;
 }) {
   const [messages, setMessages]   = useState<Message[]>(ticket.messages || []);
   const [sending, setSending]     = useState(false);
@@ -491,6 +570,7 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, aiSuggestion
   const [compose, setCompose]     = useState('');
   const [emailSubj, setEmailSubj] = useState(`Re: [${ticket.ref}] ${ticket.subject}`);
   const [broadcastResult, setBroadcastResult] = useState<{ch: string; success: boolean}[]>([]);
+  const [showComplyModal, setShowComplyModal] = useState(false);
   const msgEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -579,12 +659,7 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, aiSuggestion
 
   const canSend = compose.trim().length > 0 && !sending;
 
-  const BROADCAST_CHANNELS: { ch: ChannelId; label: string; color: string; activeBg: string; icon: string }[] = [
-    { ch: 'whatsapp', label: 'WhatsApp', color: '#25d366', activeBg: '#f0fdf4', icon: '💬' },
-    { ch: 'email',    label: 'Email',    color: '#2563eb', activeBg: '#eff6ff', icon: '✉' },
-    { ch: 'sms',      label: 'SMS',      color: '#7c3aed', activeBg: '#f5f3ff', icon: '📱' },
-    { ch: 'inapp',    label: 'In-App',   color: 'var(--teal)', activeBg: 'var(--teal-l)', icon: '🔔' },
-  ];
+  const BROADCAST_ORDER: ChannelId[] = ['whatsapp', 'email', 'sms', 'inapp'];
 
 
   return (
@@ -598,20 +673,29 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, aiSuggestion
           <span className="spt-thread-ref">{ticket.ref}</span>
         </div>
         <div className="spt-thread-hdr-right">
-          <select title="Status" value={ticket.status}
-            className={`spt-status-select spt-status-select--${ticket.status.toLowerCase().replace('_', '-')}`}
-            onChange={e => onStatusChange(ticket.id, e.target.value as StatusKey)}>
-            <option value="OPEN">Open</option>
-            <option value="IN_PROGRESS">In Progress</option>
-            <option value="RESOLVED">Resolved</option>
-            <option value="CLOSED">Closed</option>
-          </select>
+          <Select value={ticket.status} onValueChange={v => onStatusChange(ticket.id, v as StatusKey)}>
+            <SelectTrigger aria-label="Status" className={`spt-status-select spt-status-select--${ticket.status.toLowerCase().replace('_', '-')}`}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="OPEN">Open</SelectItem>
+              <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+              <SelectItem value="RESOLVED">Resolved</SelectItem>
+              <SelectItem value="CLOSED">Closed</SelectItem>
+            </SelectContent>
+          </Select>
           <button type="button" className="spt-icon-btn" title="More options">
             <Icon name="moreVertical" size={15} strokeWidth={1.75} />
           </button>
           <button type="button" className="spt-icon-btn" title="Label conversation">
             <Icon name="tag" size={14} strokeWidth={1.75} />
           </button>
+          <button type="button" className="spt-icon-btn" title="Send to ComplyOS — open a compliance application from this ticket" onClick={() => setShowComplyModal(true)}>
+            <Icon name="shield" size={14} strokeWidth={1.75} />
+          </button>
+          {onOpenDetails && (
+            <button type="button" className="spt-icon-btn spt-details-toggle" title="Customer details" onClick={onOpenDetails}>
+              <Icon name="user" size={15} strokeWidth={1.75} />
+            </button>
+          )}
           <button type="button" className="spt-close-btn" onClick={onClose}>
             <Icon name="x" size={13} strokeWidth={2.5} />
             Close
@@ -683,7 +767,7 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, aiSuggestion
                     <Av name={m.author_name} size={30} />
                     <span className="spt-note-author">{m.author_name}</span>
                     <span className="spt-note-time">{timeLbl}</span>
-                    <span className="spt-note-badge">🔒 Internal</span>
+                    <span className="spt-note-badge"><Icon name="lock" size={10} /> Internal</span>
                   </div>
                   <div className="spt-note-card">
                     <div className="spt-note-card-hdr">INTERNAL NOTE</div>
@@ -691,7 +775,7 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, aiSuggestion
                     <div className="spt-note-card-ft">
                       <span>{timeLbl}</span>
                       <span>·</span>
-                      <span>🔒 Internal · not visible to customer</span>
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icon name="lock" size={10} /> Internal · not visible to customer</span>
                     </div>
                   </div>
                 </div>
@@ -721,48 +805,41 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, aiSuggestion
 
         {/* Broadcast success toast */}
         {broadcastResult.length > 0 && (
-          <div style={{ display: 'flex', gap: 6, padding: '6px 12px', background: '#f0fdf4', borderBottom: '1px solid #86efac', flexWrap: 'wrap' }}>
+          <div className="spt-broadcast-toast">
             {broadcastResult.map(r => (
-              <span key={r.ch} style={{ fontSize: 10, fontWeight: 700, color: r.success ? '#10b981' : '#ef4444', background: r.success ? '#dcfce7' : '#fee2e2', padding: '2px 8px', borderRadius: 10 }}>
+              <span key={r.ch} className={`spt-broadcast-toast-chip${r.success ? '' : ' spt-broadcast-toast-chip--fail'}`}>
                 {r.success ? '✓' : '✗'} {r.ch}
               </span>
             ))}
-            <span style={{ fontSize: 10, color: '#10b981', fontWeight: 600, marginLeft: 4 }}>Sent!</span>
+            <span className="spt-broadcast-toast-label">Sent!</span>
           </div>
         )}
 
         {/* Broadcast channel toggles */}
-        <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', flexShrink: 0 }}>Broadcast to:</span>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
-            {BROADCAST_CHANNELS.map(({ ch, label, color, activeBg, icon }) => {
+        <div className="spt-broadcast-row">
+          <span className="spt-broadcast-label">Broadcast to:</span>
+          <div className="spt-broadcast-chs">
+            {BROADCAST_ORDER.map(ch => {
+              const cfg = CHANNEL_CFG[ch];
               const active = !isNote && broadcastChs.has(ch);
               return (
                 <button key={ch} type="button"
+                  className={`spt-broadcast-btn${active ? ' spt-broadcast-btn--active' : ''}`}
+                  data-ch={ch}
                   onClick={() => { setIsNote(false); toggleChannel(ch); }}
-                  title={`Toggle ${label} broadcast`}
-                  style={{
-                    padding: '5px 10px', borderRadius: 8, border: `1.5px solid ${active ? color : 'var(--border)'}`,
-                    background: active ? activeBg : 'var(--white)', color: active ? color : 'var(--ink3)',
-                    fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: 5, transition: 'all 0.15s',
-                  }}>
-                  <span>{icon}</span>
-                  {label}
-                  {active && <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />}
+                  title={`Toggle ${cfg.label} broadcast`}>
+                  <Icon name={cfg.icon} size={12} strokeWidth={2} />
+                  {cfg.label}
+                  {active && <span className="spt-broadcast-dot" />}
                 </button>
               );
             })}
           </div>
           <button type="button"
-            onClick={() => { setIsNote(n => !n); setBroadcastChs(new Set()); }}
-            style={{
-              padding: '5px 10px', borderRadius: 8, border: `1.5px solid ${isNote ? '#92400e' : 'var(--border)'}`,
-              background: isNote ? '#fefce8' : 'var(--white)', color: isNote ? '#92400e' : 'var(--ink3)',
-              fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 5,
-            }}>
-            🔒 Internal Note
+            className={`spt-note-toggle-btn${isNote ? ' spt-note-toggle-btn--active' : ''}`}
+            onClick={() => { setIsNote(n => !n); setBroadcastChs(new Set()); }}>
+            <Icon name="lock" size={12} strokeWidth={2} />
+            Internal Note
           </button>
         </div>
 
@@ -792,7 +869,7 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, aiSuggestion
         <div className="spt-compose-area">
           {isNote && (
             <div className="spt-note-warning">
-              <span>🔒</span> Internal note — not visible to customer
+              <Icon name="lock" size={12} /> Internal note — not visible to customer
             </div>
           )}
           <textarea rows={3} value={compose}
@@ -814,18 +891,22 @@ function ThreadPanel({ ticket, onStatusChange, authorName, onClose, aiSuggestion
           </div>
           <div className="spt-toolbar-right">
             {!isNote && broadcastChs.size > 1 && (
-              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 8px', borderRadius: 8 }}>
-                📡 Broadcast × {broadcastChs.size}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', padding: '2px 8px', borderRadius: 8 }}>
+                <Icon name="zap" size={11} /> Broadcast × {broadcastChs.size}
               </span>
             )}
             <button type="button"
               className={`spt-send-btn${canSend ? ' spt-send-btn--whatsapp' : ' spt-send-btn--disabled'}`}
               onClick={handleSend} disabled={!canSend} title="Send message">
-              {sending ? 'Sending…' : isNote ? '💾 Save Note' : broadcastChs.size > 1 ? `📡 Send to ${broadcastChs.size}` : 'Send ↑'}
+              {sending ? 'Sending…' : isNote ? <><Icon name="save" size={13} /> Save Note</> : broadcastChs.size > 1 ? <><Icon name="zap" size={13} /> Send to {broadcastChs.size}</> : 'Send ↑'}
             </button>
           </div>
         </div>
       </div>
+
+      {showComplyModal && (
+        <SendToComplyOSModal ticket={ticket} onClose={() => setShowComplyModal(false)} />
+      )}
     </div>
   );
 }
@@ -854,11 +935,11 @@ function DetailsPanel({ ticket }: { ticket: Ticket }) {
   });
 
   const RULE_LIST = [
-    { key: 'dailyStatusWa',    dot: '#15803d', label: 'Daily status → WhatsApp'   },
+    { key: 'dailyStatusWa',    dot: '#047857', label: 'Daily status → WhatsApp'   },
     { key: 'dailyStatusEmail', dot: '#2563eb', label: 'Daily status → Email'       },
     { key: 'missingDoc',       dot: '#d97706', label: 'Missing doc reminder (24h)' },
     { key: 'demurrageAlert',   dot: '#dc2626', label: 'Demurrage alert'            },
-    { key: 'stageAdvance',     dot: '#15803d', label: 'Stage advance notification' },
+    { key: 'stageAdvance',     dot: '#047857', label: 'Stage advance notification' },
     { key: 'paymentRequest',   dot: '#6b7280', label: 'Payment confirmation'       },
   ] as const;
 
@@ -979,6 +1060,8 @@ export const Support: React.FC = () => {
   const { user } = useAuth();
   const [tickets, setTickets]   = useState<Ticket[]>([]);
   const [selected, setSelected] = useState<Ticket | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const isDesktop = useMediaQuery('(min-width: 900px)');
   const [aiSuggestionToUse, setAiSuggestionToUse] = useState('');
   const [custMap, setCustMap]   = useState<Map<string, SysCustomer>>(new Map());
   const [loading, setLoading]   = useState(true);
@@ -1210,6 +1293,7 @@ export const Support: React.FC = () => {
 
   const openTicket = (t: Ticket) => {
     setAiSuggestionToUse('');
+    setDetailsOpen(false);
     if (t.id.startsWith('demo-')) {
       const msgs = DEMO_MESSAGES[t.id] || [];
       const assets = DEMO_ASSETS[t.customer_id || ''] || [];
@@ -1350,7 +1434,7 @@ export const Support: React.FC = () => {
     <div className={`spt-shell ${selected ? 'spt-shell--has-selection' : ''}`}>
 
       {/* For desktop, we use a Resizable PanelGroup. On mobile, we use CSS hiding logic as before. */}
-      {window.innerWidth >= 900 ? (
+      {isDesktop ? (
         <PanelGroup direction="horizontal" className="spt-shell-panels">
           <ConvList
             tickets={tickets} selected={selected}
@@ -1403,18 +1487,26 @@ export const Support: React.FC = () => {
             onCreateGroup={createGroup} onCreateView={createView} onDeleteView={deleteView}
           />
           {selected && (
+            <ThreadPanel ticket={selected} onStatusChange={updateStatus}
+              authorName={user?.name || 'Officer'} onClose={() => setSelected(null)}
+              onOpenDetails={() => setDetailsOpen(true)}
+              aiSuggestionToUse={aiSuggestionToUse} />
+          )}
+          {selected && detailsOpen && createPortal(
             <>
-              <ThreadPanel ticket={selected} onStatusChange={updateStatus}
-                authorName={user?.name || 'Officer'} onClose={() => setSelected(null)}
-                aiSuggestionToUse={aiSuggestionToUse} />
-              <div className="spt-rcol">
+              <div className="spt-details-backdrop" onClick={() => setDetailsOpen(false)} />
+              <div className="spt-details-drawer">
+                <button type="button" className="spt-icon-btn spt-details-drawer-close" onClick={() => setDetailsOpen(false)} title="Close">
+                  <Icon name="close" size={16} strokeWidth={2} />
+                </button>
                 <Customer360Sidebar
                   context={selected.customerContext}
                   ticketId={selected.id}
                   onUseAiReply={setAiSuggestionToUse}
                 />
               </div>
-            </>
+            </>,
+            document.body
           )}
         </>
       )}
@@ -1447,20 +1539,26 @@ export const Support: React.FC = () => {
                 </div>
                 <div className="spt-modal-field">
                   <label className="spt-modal-label">Priority</label>
-                  <select title="Priority" className="spt-modal-select" value={newForm.priority}
-                    onChange={e => setNewForm(p => ({ ...p, priority: e.target.value }))}>
-                    <option value="LOW">Low</option><option value="MEDIUM">Medium</option>
-                    <option value="HIGH">High</option><option value="URGENT">Urgent</option>
-                  </select>
+                  <Select value={newForm.priority} onValueChange={v => setNewForm(p => ({ ...p, priority: v }))}>
+                    <SelectTrigger aria-label="Priority" className="spt-modal-select"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="LOW">Low</SelectItem>
+                      <SelectItem value="MEDIUM">Medium</SelectItem>
+                      <SelectItem value="HIGH">High</SelectItem>
+                      <SelectItem value="URGENT">Urgent</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="spt-modal-field">
                 <label className="spt-modal-label">Category</label>
-                <select title="Category" className="spt-modal-select" value={newForm.category}
-                  onChange={e => setNewForm(p => ({ ...p, category: e.target.value }))}>
-                  <option value="">Select category…</option>
-                  {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-                </select>
+                <Select value={newForm.category || '__none__'} onValueChange={v => setNewForm(p => ({ ...p, category: v === '__none__' ? '' : v }))}>
+                  <SelectTrigger aria-label="Category" className="spt-modal-select"><SelectValue placeholder="Select category…" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Select category…</SelectItem>
+                    {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="spt-modal-field">
                 <label className="spt-modal-label">Description</label>
@@ -1515,7 +1613,7 @@ export const Support: React.FC = () => {
                         onMouseLeave={(e) => { e.currentTarget.style.transform = csatScore === star ? 'scale(1.2)' : 'none'; }}
                         title={`${star} Star${star > 1 ? 's' : ''}`}
                       >
-                        ★
+                        <Icon name="star" size={28} duotone={active} />
                       </button>
                     );
                   })}

@@ -1,7 +1,7 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Icon } from '../components/Icon.js';
 
-/* ── Types ── */
+/* -- Types -- */
 interface UpdateEntry {
   version: string;
   date: string;
@@ -10,7 +10,7 @@ interface UpdateEntry {
   status: 'installed' | 'available' | 'failed';
 }
 
-/* ── Static data ── */
+/* -- Static data -- */
 const CURRENT_VERSION: string = '2.4.1';
 const LATEST_VERSION: string  = '2.5.0';
 const HAS_UPDATE = CURRENT_VERSION !== LATEST_VERSION;
@@ -23,7 +23,7 @@ const UPDATE_HISTORY: UpdateEntry[] = [
       'File Manager drag-and-drop upload improvements',
       'Super Admin: Finance module with MRR/ARR analytics',
       'Dark mode refinements across all pages',
-      'Performance improvements — 40% faster page loads',
+      'Performance improvements � 40% faster page loads',
     ],
   },
   {
@@ -70,20 +70,20 @@ const UPDATE_HISTORY: UpdateEntry[] = [
 ];
 
 const SYS_REQS = [
-  { label: 'Node.js',       required: '≥ 18.0',  current: '20.11.0', ok: true  },
-  { label: 'NPM',           required: '≥ 9.0',   current: '10.2.4',  ok: true  },
-  { label: 'Disk space',    required: '≥ 500 MB', current: '12.4 GB free', ok: true  },
-  { label: 'RAM',           required: '≥ 512 MB', current: '3.8 GB free', ok: true  },
-  { label: 'API server',    required: 'reachable', current: 'Online ✓', ok: true  },
-  { label: 'Database',      required: 'reachable', current: 'Online ✓', ok: true  },
+  { label: 'Node.js',       required: '= 18.0',  current: '20.11.0', ok: true  },
+  { label: 'NPM',           required: '= 9.0',   current: '10.2.4',  ok: true  },
+  { label: 'Disk space',    required: '= 500 MB', current: '12.4 GB free', ok: true  },
+  { label: 'RAM',           required: '= 512 MB', current: '3.8 GB free', ok: true  },
+  { label: 'API server',    required: 'reachable', current: 'Online ?', ok: true  },
+  { label: 'Database',      required: 'reachable', current: 'Online ?', ok: true  },
 ];
 
-/* ── Badge helpers ── */
+/* -- Badge helpers -- */
 type BadgeType = 'major' | 'minor' | 'patch' | 'security';
 const TYPE_COLORS: Record<BadgeType, { bg: string; color: string }> = {
   major:    { bg: '#fee2e2', color: '#dc2626' },
   minor:    { bg: '#dbeafe', color: '#2563eb' },
-  patch:    { bg: '#f0fdf4', color: '#16a34a' },
+  patch:    { bg: '#ecfdf5', color: '#059669' },
   security: { bg: '#fef3c7', color: '#d97706' },
 };
 
@@ -101,7 +101,7 @@ function TypeBadge({ type }: { type: BadgeType }) {
   );
 }
 
-/* ── Main Component ── */
+/* -- Main Component -- */
 export const SystemUpdate: React.FC = () => {
   const [updating, setUpdating] = useState(false);
   const [updateDone, setUpdateDone] = useState(false);
@@ -115,12 +115,12 @@ export const SystemUpdate: React.FC = () => {
     setProgress(0);
 
     const steps = [
-      { pct: 10, label: 'Downloading update package…'    },
-      { pct: 30, label: 'Verifying integrity checksums…'  },
-      { pct: 50, label: 'Backing up current installation…' },
-      { pct: 70, label: 'Applying database migrations…'   },
-      { pct: 85, label: 'Replacing application files…'    },
-      { pct: 95, label: 'Clearing cache and reloading…'   },
+      { pct: 10, label: 'Downloading update package�'    },
+      { pct: 30, label: 'Verifying integrity checksums�'  },
+      { pct: 50, label: 'Backing up current installation�' },
+      { pct: 70, label: 'Applying database migrations�'   },
+      { pct: 85, label: 'Replacing application files�'    },
+      { pct: 95, label: 'Clearing cache and reloading�'   },
       { pct: 100, label: 'Update complete!'               },
     ];
 
@@ -161,7 +161,7 @@ export const SystemUpdate: React.FC = () => {
               style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 16px', borderRadius: 9, border:'none', background: updating ? 'var(--ink3)' : 'var(--teal)', color:'#fff', fontSize:12, fontWeight:700, cursor: updating ? 'not-allowed' : 'pointer' }}
             >
               <Icon name="upload" size={13} />
-              {updating ? 'Updating…' : `Update to v${LATEST_VERSION}`}
+              {updating ? 'Updating�' : `Update to v${LATEST_VERSION}`}
             </button>
           )}
         </div>
@@ -179,7 +179,7 @@ export const SystemUpdate: React.FC = () => {
                   <Icon name="upload" size={16} color="var(--teal)" />
                 </div>
                 <div>
-                  <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)' }}>Updating ClearOS…</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)' }}>Updating Hudumika�</div>
                   <div style={{ fontSize:12, color:'var(--ink3)' }}>Do not close this window</div>
                 </div>
               </div>
@@ -195,11 +195,11 @@ export const SystemUpdate: React.FC = () => {
 
           {/* Success banner */}
           {updateDone && (
-            <div style={{ background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius: 9, padding:'16px 20px', display:'flex', alignItems:'center', gap:12 }}>
-              <Icon name="checkCircle" size={20} color="#16a34a" />
+            <div style={{ background:'#ecfdf5', border:'1px solid #a7f3d0', borderRadius: 9, padding:'16px 20px', display:'flex', alignItems:'center', gap:12 }}>
+              <Icon name="checkCircle" size={20} color="#059669" />
               <div>
-                <div style={{ fontSize:14, fontWeight:700, color:'#15803d' }}>Successfully updated to v{LATEST_VERSION}</div>
-                <div style={{ fontSize:12, color:'#166534', marginTop:2 }}>All modules are running the latest version. A page reload may be required.</div>
+                <div style={{ fontSize:14, fontWeight:700, color:'#047857' }}>Successfully updated to v{LATEST_VERSION}</div>
+                <div style={{ fontSize:12, color:'#065f46', marginTop:2 }}>All modules are running the latest version. A page reload may be required.</div>
               </div>
             </div>
           )}
@@ -211,7 +211,7 @@ export const SystemUpdate: React.FC = () => {
               <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:10 }}>Current Version</div>
               <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:8 }}>
                 <span style={{ fontSize:30, fontWeight:800, color:'var(--ink)', letterSpacing:'-0.04em' }}>v{updateDone ? LATEST_VERSION : CURRENT_VERSION}</span>
-                <span style={{ padding:'2px 8px', borderRadius:20, background:'#f0fdf4', color:'#16a34a', fontSize:11, fontWeight:700 }}>Installed</span>
+                <span style={{ padding:'2px 8px', borderRadius:20, background:'#ecfdf5', color:'#059669', fontSize:11, fontWeight:700 }}>Installed</span>
               </div>
               <div style={{ fontSize:12, color:'var(--ink3)' }}>Released {UPDATE_HISTORY.find(u => u.version === CURRENT_VERSION)?.date}</div>
             </div>
@@ -223,7 +223,7 @@ export const SystemUpdate: React.FC = () => {
                 <span style={{ fontSize:30, fontWeight:800, color: HAS_UPDATE && !updateDone ? '#2563eb' : 'var(--ink)', letterSpacing:'-0.04em' }}>v{LATEST_VERSION}</span>
                 {HAS_UPDATE && !updateDone
                   ? <span style={{ padding:'2px 8px', borderRadius:20, background:'#dbeafe', color:'#1d4ed8', fontSize:11, fontWeight:700 }}>Update Available</span>
-                  : <span style={{ padding:'2px 8px', borderRadius:20, background:'#f0fdf4', color:'#16a34a', fontSize:11, fontWeight:700 }}>Up to Date</span>
+                  : <span style={{ padding:'2px 8px', borderRadius:20, background:'#ecfdf5', color:'#059669', fontSize:11, fontWeight:700 }}>Up to Date</span>
                 }
               </div>
               <div style={{ fontSize:12, color:'var(--ink3)' }}>Released {UPDATE_HISTORY.find(u => u.version === LATEST_VERSION)?.date}</div>
@@ -239,7 +239,7 @@ export const SystemUpdate: React.FC = () => {
                 </div>
                 <div>
                   <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)' }}>What's New in v{LATEST_VERSION}</div>
-                  <div style={{ fontSize:12, color:'var(--ink3)' }}>Minor release · {UPDATE_HISTORY[0].date}</div>
+                  <div style={{ fontSize:12, color:'var(--ink3)' }}>Minor release � {UPDATE_HISTORY[0].date}</div>
                 </div>
                 <TypeBadge type={UPDATE_HISTORY[0].type} />
               </div>
@@ -273,12 +273,12 @@ export const SystemUpdate: React.FC = () => {
                 }}>
                   <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:4 }}>
                     <span style={{ fontSize:12, fontWeight:600, color:'var(--ink2)' }}>{req.label}</span>
-                    <span style={{ width:16, height:16, borderRadius:'50%', background: req.ok ? '#f0fdf4' : '#fef2f2', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                      <Icon name={req.ok ? 'check' : 'x'} size={10} color={req.ok ? '#16a34a' : '#dc2626'} />
+                    <span style={{ width:16, height:16, borderRadius:'50%', background: req.ok ? '#ecfdf5' : '#fef2f2', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <Icon name={req.ok ? 'check' : 'x'} size={10} color={req.ok ? '#059669' : '#dc2626'} />
                     </span>
                   </div>
                   <div style={{ fontSize:11, color:'var(--ink3)', marginBottom:2 }}>Required: {req.required}</div>
-                  <div style={{ fontSize:12, fontWeight:600, color: req.ok ? '#16a34a' : '#dc2626' }}>{req.current}</div>
+                  <div style={{ fontSize:12, fontWeight:600, color: req.ok ? '#059669' : '#dc2626' }}>{req.current}</div>
                 </div>
               ))}
             </div>
@@ -342,11 +342,11 @@ export const SystemUpdate: React.FC = () => {
               </div>
               <div>
                 <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>Confirm System Update</div>
-                <div style={{ fontSize:12, color:'var(--ink3)' }}>v{CURRENT_VERSION} → v{LATEST_VERSION}</div>
+                <div style={{ fontSize:12, color:'var(--ink3)' }}>v{CURRENT_VERSION} ? v{LATEST_VERSION}</div>
               </div>
             </div>
             <p style={{ fontSize:13, color:'var(--ink2)', lineHeight:1.6, marginBottom:20 }}>
-              This will update ClearOS to <strong>v{LATEST_VERSION}</strong>. The system will be briefly unavailable during the update. A backup will be created automatically before any changes are applied.
+              This will update Hudumika to <strong>v{LATEST_VERSION}</strong>. The system will be briefly unavailable during the update. A backup will be created automatically before any changes are applied.
             </p>
             <div style={{ background:'var(--bg)', borderRadius: 9, padding:'12px 14px', marginBottom:20, fontSize:12, color:'var(--ink2)' }}>
               <div style={{ fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Before you proceed:</div>

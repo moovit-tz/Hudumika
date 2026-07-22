@@ -1,8 +1,97 @@
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { env } from '../config/env.js';
+import { NotificationService } from '../services/notification.service.js';
+
+const FLEET_MGMT_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
+
+/** Fans a fleet alert out to every fleet-manager-role user in the tenant — same pattern as fleetCompliance.routes.ts's notifyFleetManagers(). */
+async function notifyFleetManagers(tenantId: string, title: string, message: string, link: string) {
+  const managers = await withTenant(tenantId, (trx) =>
+    trx.selectFrom('users').select('id')
+      .where('tenant_id', '=', tenantId)
+      .where('role', 'in', [...FLEET_MGMT_ROLES])
+      .execute()
+  );
+  await Promise.all(managers.map((m) =>
+    NotificationService.createNotification({
+      tenantId, userId: m.id, app: 'tracking', type: 'fleet_alert', title, message, link,
+    })
+  ));
+}
 
 export async function webhookRoutes(fastify: FastifyInstance) {
+  /**
+   * POST /v1/webhooks/gpswox
+   * Webhook endpoint for GPSWOX to push live tracking and alerts
+   */
+  fastify.post('/gpswox', async (request, reply) => {
+    try {
+      const payload = request.body as any;
+      console.log('📥 GPSWOX Webhook Received:', payload);
+
+      // Extract device ID (IMEI)
+      const imei = payload.device_imei || payload.imei;
+      
+      if (!imei) {
+        return reply.status(400).send({ error: 'Missing device IMEI in payload' });
+      }
+
+      // Find the corresponding vehicle
+      const vehicle = await db.selectFrom('vehicles')
+        .select(['id', 'tenant_id', 'name'])
+        .where('device_id', '=', imei)
+        .where('status', '=', 'ACTIVE')
+        .executeTakeFirst();
+
+      if (!vehicle) {
+        return reply.status(404).send({ error: 'Vehicle not found for this device' });
+      }
+
+      await withTenant(vehicle.tenant_id, async (trx) => {
+        // If it's a position update
+        if (payload.latitude && payload.longitude) {
+          let ignition = 'OFF';
+          let battery_pct = 100;
+
+          // GPSWOX sends sensors in a params/sensors object depending on webhook type
+          if (payload.params) {
+            if (payload.params.ignition !== undefined) ignition = payload.params.ignition ? 'ON' : 'OFF';
+            if (payload.params.battery !== undefined) battery_pct = parseFloat(payload.params.battery);
+          }
+
+          await trx.insertInto('vehicle_positions').values({
+            tenant_id: vehicle.tenant_id,
+            vehicle_id: vehicle.id,
+            latitude: payload.latitude,
+            longitude: payload.longitude,
+            speed: payload.speed || 0,
+            heading: payload.course || 0,
+            battery_pct,
+            ignition,
+            recorded_at: payload.time ? new Date(payload.time) : new Date(),
+          }).execute();
+        }
+
+        // Check for alerts (e.g. geofence)
+        if (payload.alert_name) {
+          const alertType = payload.alert_name.toLowerCase();
+          
+          const link = `/tracking/vehicles/${vehicle.id}`;
+          if (alertType.includes('geofence')) {
+            await notifyFleetManagers(vehicle.tenant_id, 'Geofence Alert', `${vehicle.name} has ${payload.alert_name}`, link);
+          } else if (alertType.includes('deviation') || alertType.includes('overspeed')) {
+            await notifyFleetManagers(vehicle.tenant_id, 'Security / Compliance Alert', `${vehicle.name} triggered: ${payload.alert_name}`, link);
+          }
+        }
+      });
+
+      return { ok: true };
+    } catch (error: any) {
+      console.error('Error processing GPSWOX webhook:', error);
+      return reply.status(500).send({ error: 'Internal Server Error' });
+    }
+  });
   /**
    * GET /v1/webhooks/whatsapp
    * Challenge verification for setting up Meta WhatsApp Cloud API integrations.
@@ -55,52 +144,69 @@ export async function webhookRoutes(fastify: FastifyInstance) {
         .executeTakeFirst();
 
       if (customer) {
-        // 2. Find their most recently updated active shipment case
-        const activeCase = await db
-          .selectFrom('shipment_cases')
+        // 2. Find their most recently updated active Support Ticket
+        let activeTicket = await db
+          .selectFrom('support_tickets')
           .selectAll()
           .where('customer_id', '=', customer.id)
-          .where('stage', 'not in', ['CLOSED'])
+          .where('status', 'in', ['OPEN', 'IN_PROGRESS'])
           .orderBy('updated_at', 'desc')
           .executeTakeFirst();
 
-        if (activeCase) {
-          await withTenant(customer.tenant_id, async (trx) => {
-            // Append incoming message record
-            await trx
-              .insertInto('case_messages')
+        await withTenant(customer.tenant_id, async (trx) => {
+          if (!activeTicket) {
+            // Auto-create ticket if none exists
+            const ref_number = `SUP-WA-${Math.floor(1000 + Math.random() * 9000)}`;
+            activeTicket = await trx
+              .insertInto('support_tickets')
               .values({
                 tenant_id: customer.tenant_id,
-                shipment_id: activeCase.id,
-                author_id: customer.id,
-                author_name: customer.contact_name || customer.name,
-                author_type: 'CUSTOMER',
+                customer_id: customer.id,
+                ref_number,
+                subject: 'Inbound WhatsApp Message',
                 channel: 'WHATSAPP',
-                direction: 'INBOUND',
-                content: textBody,
-                created_at: new Date(),
+                status: 'OPEN',
+                priority: 'NORMAL',
+                category: 'General Inquiry',
+                tags: JSON.stringify([]),
               })
-              .execute();
+              .returningAll()
+              .executeTakeFirstOrThrow();
+          }
 
-            // Bump shipment case update date
-            await trx
-              .updateTable('shipment_cases')
-              .set({ updated_at: new Date() })
-              .where('id', '=', activeCase.id)
-              .execute();
-          });
+          // Append incoming message record to support_messages
+          await trx
+            .insertInto('support_messages')
+            .values({
+              tenant_id: customer.tenant_id,
+              ticket_id: activeTicket.id,
+              author_id: customer.id,
+              author_name: customer.contact_name || customer.name,
+              author_type: 'CUSTOMER',
+              channel: 'WHATSAPP',
+              direction: 'INBOUND',
+              content: textBody,
+            })
+            .execute();
 
-          // 3. Broadcast real-time WebSocket event to connected ops boards
-          fastify.websocketServer?.clients.forEach((client: any) => {
-            client.send(
-              JSON.stringify({
-                type: 'case.update_posted',
-                caseId: activeCase.id,
-                message: textBody,
-              })
-            );
-          });
-        }
+          // Bump ticket update date
+          await trx
+            .updateTable('support_tickets')
+            .set({ updated_at: new Date() })
+            .where('id', '=', activeTicket.id)
+            .execute();
+        });
+
+        // 3. Broadcast real-time WebSocket event to connected ops boards
+        fastify.websocketServer?.clients.forEach((client: any) => {
+          client.send(
+            JSON.stringify({
+              type: 'support.message_received',
+              ticketId: activeTicket!.id,
+              message: textBody,
+            })
+          );
+        });
       }
     }
 

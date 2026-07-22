@@ -1,7 +1,6 @@
-// ─── ClearOS API Request/Response Types ──────────────────────
+// ─── Hudumika API Request/Response Types ──────────────────────
 
 import type {
-  ClearanceStage,
   ShipmentType,
   ShipmentCase,
   RiskFlagType,
@@ -27,7 +26,7 @@ export interface ShipmentListQuery {
   limit?: number;           // default 50, max 200
   group_by?: 'customer' | 'stage' | 'location';
   customer_id?: string;
-  stage?: ClearanceStage;
+  stage?: string; // ClearanceStage literal, or a workflow_steps.id for custom-workflow shipments
   assigned_to?: string;     // officer user_id
   location_id?: string;
   risk?: 'demurrage' | 'sla' | 'penalty';
@@ -126,6 +125,46 @@ export interface KPIResponse {
   awaiting_docs?: number;
   invoices_pending?: number;
   duty_payments_tzs?: number;
+  total_co2_emissions_kg?: number;
+  total_carbon_credits_saved?: number;
+}
+
+// ── Carbon Portfolio (ESG / sustainability reporting) ─────────
+// Internal emissions-avoidance estimate rolled up across shipments —
+// NOT a registry-issued, tradeable carbon credit (no Gold Standard/Verra
+// verification). See co2.service.ts for the per-shipment GLEC calculation.
+
+export interface CarbonModeBreakdown {
+  mode: string;
+  co2_kg: number;
+  credits: number;
+  shipment_count: number;
+}
+
+export interface CarbonCustomerBreakdown {
+  customer_id: string;
+  customer_name: string;
+  co2_kg: number;
+  credits: number;
+  shipment_count: number;
+}
+
+export interface CarbonMonthBreakdown {
+  month: string; // YYYY-MM
+  co2_kg: number;
+  credits: number;
+  shipment_count: number;
+}
+
+export interface CarbonPortfolioResponse {
+  total_co2_kg: number;
+  total_credits: number;
+  calculated_shipment_count: number;
+  uncalculated_shipment_count: number;
+  avg_co2_per_shipment_kg: number;
+  by_mode: CarbonModeBreakdown[];
+  by_customer: CarbonCustomerBreakdown[];
+  by_month: CarbonMonthBreakdown[];
 }
 
 // ── Customer Analytics ───────────────────────────────────────
@@ -147,7 +186,7 @@ export interface CustomerAnalytics {
 // ── Bottleneck Analysis ──────────────────────────────────────
 
 export interface StageBottleneck {
-  stage: ClearanceStage;
+  stage: string; // ClearanceStage literal, or a workflow_steps.id for custom-workflow shipments
   avg_hours: number;
   p90_hours: number;
   case_count: number;
@@ -168,7 +207,7 @@ export interface OfficerPerformance {
 // ── WebSocket Events ─────────────────────────────────────────
 
 export type ServerEvent =
-  | { type: 'case.status_changed'; caseId: string; stage: ClearanceStage }
+  | { type: 'case.status_changed'; caseId: string; stage: string }
   | { type: 'case.update_posted'; caseId: string; message: string }
   | { type: 'case.document_uploaded'; caseId: string; documentId: string }
   | { type: 'case.risk_changed'; caseId: string; riskType: RiskFlagType; severity: string }
@@ -177,7 +216,9 @@ export type ServerEvent =
   // ── Declaration Events ──
   | { type: 'declaration.notice_received'; declarationId: string; noticeType: string }
   | { type: 'declaration.status_changed'; declarationId: string; status: string }
-  | { type: 'declaration.selectivity_result'; declarationId: string; channel: string };
+  | { type: 'declaration.selectivity_result'; declarationId: string; channel: string }
+  // ── Tracking Events ──
+  | { type: 'vehicle.position_updated'; vehicleId: string; latitude: number; longitude: number };
 
 // ── Declaration List Query ───────────────────────────────────
 

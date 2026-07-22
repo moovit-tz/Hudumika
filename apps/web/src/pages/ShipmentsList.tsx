@@ -1,7 +1,9 @@
-﻿import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import { RowLink } from '../components/RowLink.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
-import { PageHeader } from '../components/PageHeader.jsx';
+import { PageHeader } from '../components/PageHeader.js';
+import { Icon } from '../components/Icon.js';
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, BarElement, ArcElement,
@@ -9,14 +11,14 @@ import {
 } from 'chart.js';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { apiFetch } from '../lib/api.js';
-import type { ShipmentCase, ClearanceStage, ShipmentType, OfficerPerformance } from '@clearos/types';
+import type { ShipmentCase, ShipmentType, OfficerPerformance, StageBottleneck } from '@hudumika/types';
 
 ChartJS.register(
   CategoryScale, LinearScale, BarElement, ArcElement,
   PointElement, LineElement, Tooltip, Legend, Filler,
 );
 
-// ── helpers ────────────────────────────────────────────────────────────────
+// -- helpers ----------------------------------------------------------------
 function fmt(n: number | undefined | null) {
   return (n ?? 0).toLocaleString();
 }
@@ -26,8 +28,13 @@ function pct(a: number, total: number) {
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-// ── stage groups ────────────────────────────────────────────────────────────
-const STAGE_GROUPS: Record<string, ClearanceStage[]> = {
+// -- stage groups ------------------------------------------------------------
+// stage is now a string (a ClearanceStage literal for legacy shipments, or a
+// workflow_steps.id UUID for shipments on a tenant-defined custom workflow —
+// see workflow-resolver.service.ts). Custom-workflow stage values naturally
+// don't match any of these named buckets, so they land in "Other" below
+// rather than silently vanishing from the chart's totals.
+const STAGE_GROUPS: Record<string, string[]> = {
   'Awaiting Docs':  ['DOCS_RECEIVED','VALIDATION','PERMITS'],
   'At Port':        ['ENTRY_PREP','TANCIS_REG','ASSESSMENT','TAX_PAYMENT','DO_APPLICATION'],
   'Inspection':     ['INSPECTION_BOOKING','INSPECTION','GOV_REMARKS','RELEASE'],
@@ -41,6 +48,7 @@ const STAGE_COLORS = [
   'rgba(249,115,22,.85)',   // Inspection — orange
   'rgba(20,184,166,.85)',   // Gate/Transit — teal
   'rgba(34,197,94,.85)',    // Delivered — green
+  'rgba(148,163,184,.85)',  // Other (custom workflow steps) — gray
 ];
 
 const TYPE_LABELS: Record<ShipmentType, string> = {
@@ -53,7 +61,7 @@ const ORIGIN_PORTS = [
   'Port of Guangzhou', 'Port of Tokyo',
 ];
 
-// ── chart theme ─────────────────────────────────────────────────────────────
+// -- chart theme -------------------------------------------------------------
 function chartTheme() {
   const dark = document.documentElement.getAttribute('data-theme') === 'dark';
   return {
@@ -63,7 +71,7 @@ function chartTheme() {
   };
 }
 
-// ── background sparkline bars for KPI cards ────────────────────────────────
+// -- background sparkline bars for KPI cards --------------------------------
 function CardSpark({ seed, dir, color }: { seed: number; dir: 'up' | 'down'; color: string }) {
   const bars = Array.from({ length: 10 }, (_, i) => {
     const base = Math.abs(Math.sin(seed + i * 0.73)) * 0.35 + 0.22;
@@ -80,7 +88,7 @@ function CardSpark({ seed, dir, color }: { seed: number; dir: 'up' | 'down'; col
   );
 }
 
-// ── section card wrapper ────────────────────────────────────────────────────
+// -- section card wrapper ----------------------------------------------------
 const Panel: React.FC<{ title: string; children: React.ReactNode; action?: React.ReactNode }> = ({ title, children, action }) => (
   <div className="card" style={{ marginBottom: 0 }}>
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -91,7 +99,31 @@ const Panel: React.FC<{ title: string; children: React.ReactNode; action?: React
   </div>
 );
 
-// ── export helpers ──────────────────────────────────────────────────────────
+// -- export helpers ----------------------------------------------------------
+function exportCsv(shipments: any[]) {
+  const rows = [
+    ['ID', 'Customer', 'BL Number', 'Origin', 'Destination', 'Mode', 'Status', 'Created Date'],
+    ...shipments.map(s => [
+      s.id,
+      s.customer_name ?? s.customer?.name ?? '',
+      s.ref_number ?? '',
+      s.origin_port ?? '',
+      s.dest_port ?? '',
+      s.type ?? '',
+      s.stage ?? '',
+      new Date(s.created_at).toLocaleDateString('en-GB'),
+    ]),
+  ];
+  const csv = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `shipments-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function exportCSV(shipments: any[]) {
   const headers = ['Ref Number', 'Customer', 'Type', 'Origin Port', 'Destination Port', 'Stage', 'Created At'];
   const rows = shipments.map(s => [
@@ -109,7 +141,7 @@ function exportCSV(shipments: any[]) {
 function exportPDF(shipments: any[]) {
   const html = `<!DOCTYPE html><html><head><title>Shipments Report</title>
   <style>body{font-family:Arial,sans-serif;font-size:12px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}th{background:#f5f5f5;font-weight:bold}h1{font-size:18px;margin-bottom:8px}</style></head>
-  <body><h1>ClearOS — Shipments Report</h1><p>Generated: ${new Date().toLocaleString()}</p>
+  <body><h1>ClearOS � Shipments Report</h1><p>Generated: ${new Date().toLocaleString()}</p>
   <table><thead><tr><th>Ref</th><th>Customer</th><th>Type</th><th>Origin</th><th>Destination</th><th>Stage</th><th>Created</th></tr></thead>
   <tbody>${shipments.map(s => `<tr><td>${s.ref_number}</td><td>${s.customer_name ?? s.customer?.name ?? ''}</td><td>${s.type || ''}</td><td>${s.origin_port || ''}</td><td>${s.dest_port || ''}</td><td>${s.stage || ''}</td><td>${new Date(s.created_at).toLocaleDateString('en-GB')}</td></tr>`).join('')}
   </tbody></table></body></html>`;
@@ -117,29 +149,31 @@ function exportPDF(shipments: any[]) {
   if (win) { win.document.write(html); win.document.close(); win.print(); }
 }
 
-// ── main page ───────────────────────────────────────────────────────────────
+// -- main page ---------------------------------------------------------------
 export const ShipmentsList: React.FC = () => {
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
   const [kpis, setKpis]           = useState<any>(null);
   const [shipments, setShipments] = useState<ShipmentCase[]>([]);
   const [officers, setOfficers]   = useState<OfficerPerformance[]>([]);
+  const [bottlenecks, setBottlenecks] = useState<StageBottleneck[]>([]);
   const [loading, setLoading]     = useState(true);
   const [period, setPeriod]       = useState<'month' | 'quarter' | 'year'>('month');
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [kRes, sRes, oRes] = await Promise.all([
+      const [kRes, sRes, oRes, bRes] = await Promise.all([
         apiFetch('/v1/analytics/kpi'),
         apiFetch('/v1/shipments'),
         apiFetch('/v1/analytics/officers'),
+        apiFetch('/v1/analytics/bottlenecks'),
       ]);
       setKpis(kRes);
       setShipments(sRes.data ?? []);
       setOfficers(oRes.data ?? []);
+      setBottlenecks(bRes.data ?? []);
     } catch {
-      /* graceful degradation — charts render with empty data */
+      /* graceful degradation � charts render with empty data */
     } finally {
       setLoading(false);
     }
@@ -147,10 +181,10 @@ export const ShipmentsList: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
-  // ── computed chart data ────────────────────────────────────────────────
+  // -- computed chart data ------------------------------------------------
   const th = chartTheme();
 
-  // Monthly trend — last 12 months from created_at
+  // Monthly trend � last 12 months from created_at
   const now = new Date();
   const monthlyTrend = Array.from({ length: 12 }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 11 + i, 1);
@@ -163,11 +197,16 @@ export const ShipmentsList: React.FC = () => {
     };
   });
 
-  // Stage distribution
-  const stageDist = Object.entries(STAGE_GROUPS).map(([name, stages]) => ({
-    name,
-    count: shipments.filter(s => stages.includes(s.stage)).length,
-  }));
+  // Stage distribution — shipments whose stage isn't in any named bucket
+  // (i.e. on a custom workflow) land in "Other" rather than vanishing.
+  const namedStages = new Set(Object.values(STAGE_GROUPS).flat());
+  const stageDist = [
+    ...Object.entries(STAGE_GROUPS).map(([name, stages]) => ({
+      name,
+      count: shipments.filter(s => stages.includes(s.stage)).length,
+    })),
+    { name: 'Other', count: shipments.filter(s => !namedStages.has(s.stage)).length },
+  ].filter(d => d.name !== 'Other' || d.count > 0);
 
   // Type distribution
   const typeKeys: ShipmentType[] = ['SEA_FCL','SEA_LCL','AIR','ROAD','RAIL','BULK'];
@@ -209,7 +248,7 @@ export const ShipmentsList: React.FC = () => {
     .sort((a, b) => (b.active_risk_types?.length ?? 0) - (a.active_risk_types?.length ?? 0))
     .slice(0, 8);
 
-  // ── chart configs ──────────────────────────────────────────────────────
+  // -- chart configs ------------------------------------------------------
   const barOptions = (xLabel = '', yLabel = '') => ({
     responsive: true,
     maintainAspectRatio: false,
@@ -256,7 +295,7 @@ export const ShipmentsList: React.FC = () => {
 
   const totalStage = stageDist.reduce((s, x) => s + x.count, 0);
 
-  // SLA trend (last 8 weeks — seeded from on_time_rate_pct)
+  // SLA trend (last 8 weeks � seeded from on_time_rate_pct)
   const baseRate = kpis?.on_time_rate_pct ?? 82;
   const slaWeeks = Array.from({ length: 8 }, (_, i) => ({
     label: `W${i + 1}`,
@@ -272,7 +311,7 @@ export const ShipmentsList: React.FC = () => {
             {p === 'month' ? 'Month' : p === 'quarter' ? 'Quarter' : 'Year'}
           </button>
         ))}
-        <button type="button" className="btn btn-secondary btn-sm" onClick={load}>↻</button>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={load}>?</button>
       </div>
       <div style={{ display: 'flex', gap: 6 }}>
         <button type="button" className="btn btn-secondary btn-sm" onClick={() => exportCSV(shipments)} title="Export CSV / Excel">
@@ -294,23 +333,35 @@ export const ShipmentsList: React.FC = () => {
   return (
     <div>
 
-      {/* ── page title ── */}
+      {/* -- action bar -- */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'var(--white)' }}>
+        <Link to="/shipments/new"
+          style={{ padding: '11px 22px', fontSize: 14, fontWeight: 700, borderRadius: 10, border: 'none', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7, textDecoration: 'none' }}>
+          <Icon name="plus" size={14} strokeWidth={2.5} /> New Shipment
+        </Link>
+        <button type="button" onClick={() => exportCsv(shipments)}
+          style={{ padding: '10px 18px', fontSize: 13, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7 }}>
+          <Icon name="download" size={14} /> Export CSV
+        </button>
+      </div>
+
+      {/* -- page title -- */}
       <PageHeader
         crumbs={['Shipments', 'Clearance']}
         titlePlain="Clearance"
         titleEm="operations"
-        subtitle="Manage freight clearance, track shipments, and coordinate with clients — end to end."
+        subtitle="Manage freight clearance, track shipments, and coordinate with clients � end to end."
         actions={headerActions}
       />
 
-      {/* ── content ── */}
+      {/* -- content -- */}
       <div style={{ paddingBottom: 40, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-        {/* ── Enterprise KPI Cards ── */}
+        {/* -- Enterprise KPI Cards -- */}
         <div className="ent-kpi-grid">
 
-          {/* Card 1 — Ops & Logistics */}
-          <div className="ent-kpi-card ent-kpi-ops" onClick={() => navigate('/ops')}>
+          {/* Card 1 � Ops & Logistics */}
+          <Link to="/ops" className="ent-kpi-card ent-kpi-ops">
             <CardSpark seed={42} dir="up" color="#0b7264" />
             <div className="ent-kpi-top">
               <div className="ent-kpi-category"><div className="ent-kpi-dot ent-kpi-dot-ops" />OPS &amp; LOGISTICS</div>
@@ -321,19 +372,19 @@ export const ShipmentsList: React.FC = () => {
               </div>
             </div>
             <div className="ent-kpi-metric">
-              <span className="ent-kpi-value">{loading ? '—' : (kpis?.active_cases ?? 0)}</span>
+              <span className="ent-kpi-value">{loading ? '�' : (kpis?.active_cases ?? 0)}</span>
               <span className="ent-kpi-unit">shipments</span>
             </div>
             <div className="ent-kpi-label">Active &amp; in progress</div>
             <div className="ent-kpi-footer">
-              <span className="ent-kpi-pill ent-kpi-pill-green">✓ {loading ? '—' : (kpis?.delivered_today ?? 0)} delivered</span>
-              <span className="ent-kpi-pill ent-kpi-pill-neutral">{loading ? '—' : `${kpis?.on_time_rate_pct ?? 0}%`} SLA</span>
-              <span className="ent-kpi-pill ent-kpi-pill-neutral">{loading ? '—' : (kpis?.cases_this_month ?? 0)} this month</span>
+              <span className="ent-kpi-pill ent-kpi-pill-green">? {loading ? '�' : (kpis?.delivered_today ?? 0)} delivered</span>
+              <span className="ent-kpi-pill ent-kpi-pill-neutral">{loading ? '�' : `${kpis?.on_time_rate_pct ?? 0}%`} SLA</span>
+              <span className="ent-kpi-pill ent-kpi-pill-neutral">{loading ? '�' : (kpis?.cases_this_month ?? 0)} this month</span>
             </div>
-          </div>
+          </Link>
 
-          {/* Card 2 — Risk & Compliance */}
-          <div className="ent-kpi-card ent-kpi-risk" onClick={() => navigate('/ops?filter=risk')}>
+          {/* Card 2 � Risk & Compliance */}
+          <Link to="/ops?filter=risk" className="ent-kpi-card ent-kpi-risk">
             <CardSpark seed={17} dir="down" color="#dc2626" />
             <div className="ent-kpi-top">
               <div className="ent-kpi-category"><div className="ent-kpi-dot ent-kpi-dot-risk" />RISK &amp; COMPLIANCE</div>
@@ -346,22 +397,23 @@ export const ShipmentsList: React.FC = () => {
             </div>
             <div className="ent-kpi-metric">
               <span className={`ent-kpi-value${((kpis?.demurrage_risk ?? 0) + (kpis?.sla_breached ?? 0)) > 0 ? ' ent-kpi-value-alert' : ''}`}>
-                {loading ? '—' : ((kpis?.demurrage_risk ?? 0) + (kpis?.sla_breached ?? 0))}
+                {loading ? '�' : ((kpis?.demurrage_risk ?? 0) + (kpis?.sla_breached ?? 0))}
               </span>
               <span className="ent-kpi-unit">alerts</span>
             </div>
             <div className="ent-kpi-label">Requiring immediate action</div>
             <div className="ent-kpi-footer">
-              <span className="ent-kpi-pill ent-kpi-pill-amber">{loading ? '—' : (kpis?.demurrage_risk ?? 0)} demurrage</span>
-              <span className="ent-kpi-pill ent-kpi-pill-red">{loading ? '—' : (kpis?.sla_breached ?? 0)} SLA breaches</span>
+              <span className="ent-kpi-pill ent-kpi-pill-amber">{loading ? '�' : (kpis?.demurrage_risk ?? 0)} demurrage</span>
+              <span className="ent-kpi-pill ent-kpi-pill-red">{loading ? '�' : (kpis?.sla_breached ?? 0)} SLA breaches</span>
               {(kpis?.penalty_exposure_tzs ?? 0) > 0 && (
                 <span className="ent-kpi-pill ent-kpi-pill-neutral">{((kpis.penalty_exposure_tzs ?? 0) / 1_000_000).toFixed(1)}M TZS exposure</span>
               )}
             </div>
-          </div>
+          </Link>
 
-          {/* Card 3 — CRM & Network */}
-          <div className="ent-kpi-card ent-kpi-crm" onClick={() => navigate('/customers')}>
+          {/* Card 3 � CRM & Network */}
+          <div className="ent-kpi-card ent-kpi-crm">
+            <RowLink to="/customers" label="View CRM & Network" />
             <CardSpark seed={89} dir="up" color="#7c3aed" />
             <div className="ent-kpi-top">
               <div className="ent-kpi-category"><div className="ent-kpi-dot ent-kpi-dot-crm" />CRM &amp; NETWORK</div>
@@ -374,18 +426,19 @@ export const ShipmentsList: React.FC = () => {
               </div>
             </div>
             <div className="ent-kpi-metric">
-              <span className="ent-kpi-value">{loading ? '—' : (kpis?.customer_count ?? 0)}</span>
+              <span className="ent-kpi-value">{loading ? '�' : (kpis?.customer_count ?? 0)}</span>
               <span className="ent-kpi-unit">accounts</span>
             </div>
             <div className="ent-kpi-label">Active consignee companies</div>
             <div className="ent-kpi-footer">
-              <span className="ent-kpi-pill ent-kpi-pill-purple">{loading ? '—' : (kpis?.awaiting_docs ?? 0)} awaiting docs</span>
-              <button type="button" className="ent-kpi-link" onClick={e => { e.stopPropagation(); navigate('/customers'); }}>View all →</button>
+              <span className="ent-kpi-pill ent-kpi-pill-purple">{loading ? '�' : (kpis?.awaiting_docs ?? 0)} awaiting docs</span>
+              <Link to="/customers" className="ent-kpi-link">View all ?</Link>
             </div>
           </div>
 
-          {/* Card 4 — Finance & Billing */}
-          <div className="ent-kpi-card ent-kpi-finance" onClick={() => navigate('/billing')}>
+          {/* Card 4 � Finance & Billing */}
+          <div className="ent-kpi-card ent-kpi-finance">
+            <RowLink to="/billing" label="View Finance & Billing" />
             <CardSpark seed={33} dir="down" color="#d97706" />
             <div className="ent-kpi-top">
               <div className="ent-kpi-category"><div className="ent-kpi-dot ent-kpi-dot-finance" />FINANCE &amp; BILLING</div>
@@ -396,13 +449,13 @@ export const ShipmentsList: React.FC = () => {
               </div>
             </div>
             <div className="ent-kpi-metric">
-              <span className="ent-kpi-value">{loading ? '—' : (kpis?.invoices_pending ?? 0)}</span>
+              <span className="ent-kpi-value">{loading ? '�' : (kpis?.invoices_pending ?? 0)}</span>
               <span className="ent-kpi-unit">invoices</span>
             </div>
             <div className="ent-kpi-label">Pending collection</div>
             <div className="ent-kpi-footer">
-              <span className="ent-kpi-pill ent-kpi-pill-amber">Duty: {loading ? '—' : ((kpis?.duty_payments_tzs ?? 0) / 1_000_000).toFixed(1)}M TZS</span>
-              <button type="button" className="ent-kpi-link" onClick={e => { e.stopPropagation(); navigate('/finance'); }}>Finance →</button>
+              <span className="ent-kpi-pill ent-kpi-pill-amber">Duty: {loading ? '�' : ((kpis?.duty_payments_tzs ?? 0) / 1_000_000).toFixed(1)}M TZS</span>
+              <Link to="/finance" className="ent-kpi-link">Finance ?</Link>
             </div>
           </div>
 
@@ -516,7 +569,7 @@ export const ShipmentsList: React.FC = () => {
         {/* Row 3: SLA trend + Officer performance */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
 
-          <Panel title="SLA Compliance — Last 8 Weeks">
+          <Panel title="SLA Compliance � Last 8 Weeks">
             <div style={{ height: 200 }}>
               <Line
                 data={{
@@ -614,7 +667,7 @@ export const ShipmentsList: React.FC = () => {
                       {c.atRisk > 0 ? (
                         <span style={{ color: 'var(--red)', fontWeight: 600 }}>{c.atRisk}</span>
                       ) : (
-                        <span style={{ color: 'var(--ink3)' }}>—</span>
+                        <span style={{ color: 'var(--ink3)' }}>�</span>
                       )}
                     </td>
                     <td style={{ padding: '8px 8px', textAlign: 'right' }}>
@@ -646,10 +699,10 @@ export const ShipmentsList: React.FC = () => {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 290, overflowY: 'auto' }}>
                 {atRisk.map(s => (
-                  <div key={s.id} onClick={() => navigate(`/clearance/${s.id}`)} style={{
+                  <Link key={s.id} to={`/clearos/clearance/${s.id}`} style={{
                     display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px',
                     borderRadius: 9, background: 'var(--bg)', border: '1px solid var(--border)',
-                    cursor: 'pointer',
+                    cursor: 'pointer', textDecoration: 'none', color: 'inherit',
                   }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginBottom: 2 }}>{s.ref_number}</div>
@@ -667,10 +720,73 @@ export const ShipmentsList: React.FC = () => {
                         </span>
                       ))}
                     </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
+          </Panel>
+
+        </div>
+
+        {/* Row 5: Stage cycle-time bottlenecks + Officer output & penalties */}
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
+
+          <Panel title="Clearance Stages Cycle Times & Bottlenecks">
+            <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--ink2)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.3px' }}>Stage</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--ink2)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.3px' }}>Cases</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--ink2)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.3px' }}>Avg Hours</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--ink2)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.3px' }}>P90</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--ink2)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.3px' }}>SLA Breaches</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bottlenecks.length === 0 ? (
+                  <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: 'var(--ink3)' }}>No stage history recorded</td></tr>
+                ) : bottlenecks.map(b => (
+                  <tr key={b.stage} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '8px 8px', fontWeight: 600, color: 'var(--ink)' }}>{b.stage.replace(/_/g, ' ')}</td>
+                    <td style={{ padding: '8px 8px', textAlign: 'right' }}>{b.case_count}</td>
+                    <td style={{ padding: '8px 8px', textAlign: 'right', fontFamily: 'var(--mono)', color: b.avg_hours > 24 ? 'var(--red)' : 'var(--ink)' }}>{b.avg_hours}h</td>
+                    <td style={{ padding: '8px 8px', textAlign: 'right', fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{b.p90_hours}h</td>
+                    <td style={{ padding: '8px 8px', textAlign: 'right' }}>
+                      <span className={b.sla_breaches > 0 ? 'badge badge-red' : 'badge badge-green'}>{b.sla_breaches}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
+          </Panel>
+
+          <Panel title="Officer Output & Penalties">
+            <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                  <th style={{ padding: '6px 8px', textAlign: 'left', fontWeight: 600, color: 'var(--ink2)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.3px' }}>Officer</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--ink2)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.3px' }}>Active</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--ink2)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.3px' }}>Closed</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--ink2)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.3px' }}>Avg Cycle</th>
+                  <th style={{ padding: '6px 8px', textAlign: 'right', fontWeight: 600, color: 'var(--ink2)', fontSize: 11.5, textTransform: 'uppercase', letterSpacing: '.3px' }}>Penalties</th>
+                </tr>
+              </thead>
+              <tbody>
+                {officers.length === 0 ? (
+                  <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: 'var(--ink3)' }}>No active clearing officers found</td></tr>
+                ) : officers.map(o => (
+                  <tr key={o.user_id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '8px 8px', fontWeight: 600, color: 'var(--ink)' }}>{o.name}</td>
+                    <td style={{ padding: '8px 8px', textAlign: 'right' }}>{o.active_cases}</td>
+                    <td style={{ padding: '8px 8px', textAlign: 'right' }}>{o.cases_closed}</td>
+                    <td style={{ padding: '8px 8px', textAlign: 'right', fontFamily: 'var(--mono)', color: 'var(--ink2)' }}>{o.avg_days}d</td>
+                    <td style={{ padding: '8px 8px', textAlign: 'right' }}>
+                      <span className={o.penalties_caused > 0 ? 'badge badge-red' : 'badge badge-green'}>{o.penalties_caused}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
           </Panel>
 
         </div>

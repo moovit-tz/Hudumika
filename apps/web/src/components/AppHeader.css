@@ -15,6 +15,10 @@
   z-index: 10;
 }
 
+/* ── Navbar type — set from /admin/design-system's Layout Customizer ── */
+[data-navbar="sticky"] .app-header { position: sticky; top: 0; }
+[data-navbar="hidden"] .app-header { display: none; }
+
 /* ── Inner wrapper — constrained in boxed mode ── */
 .app-header-inner {
   display: flex;
@@ -60,20 +64,21 @@
   width: 36px;
   height: 36px;
   border-radius: 9px;
-  border: none;
-  background: transparent;
+  border: 1px solid var(--border);
+  background: var(--surface, rgba(0,0,0,0.04));
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--ink2);
-  transition: background 0.12s;
+  transition: background 0.12s, border-color 0.12s;
   flex-shrink: 0;
   position: relative;
 }
 
 .app-header-icon-btn:hover {
   background: var(--bg);
+  border-color: var(--border2, var(--border));
 }
 
 .app-header-icon-btn--active {
@@ -98,7 +103,7 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #16a34a;
+  background: #059669;
   border: 1.5px solid var(--white);
 }
 
@@ -228,6 +233,58 @@
 .app-header-user-action--signout:hover {
   background: #fee2e2;
   color: #dc2626;
+}
+
+/* ── Language dropdown ── */
+.app-header-lang-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--white);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  z-index: 300;
+  width: 190px;
+  padding: 6px;
+  overflow: hidden;
+}
+
+.app-header-lang-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ink2);
+  font-family: var(--font);
+  border-radius: 7px;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.app-header-lang-item:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.app-header-lang-item--active {
+  color: var(--teal);
+  font-weight: 700;
+}
+
+.app-header-lang-flag {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.app-header-lang-name {
+  flex: 1;
 }
 
 /* ── Brand left section ── */
@@ -430,10 +487,13 @@
 
 [data-theme="dark"] .app-header-icon-btn {
   color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 [data-theme="dark"] .app-header-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(255, 255, 255, 0.16);
   color: #fff;
 }
 
@@ -465,6 +525,21 @@
 [data-theme="dark"] .app-header-user-action--signout:hover {
   background: rgba(220, 38, 38, 0.18);
   color: #f87171;
+}
+
+[data-theme="dark"] .app-header-lang-dropdown {
+  background: #1a1d26;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .app-header-lang-item {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+[data-theme="dark"] .app-header-lang-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
 }
 
 
@@ -604,25 +679,6 @@
   }
 }
 
-/* ── App icon shown in the header once the sidebar collapses to a rail —
-   restores the identity the sidebar's own (now icon-only) brand header
-   loses its label for. Desktop only; mobile already shows this via the
-   hamburger button. Click re-expands the sidebar. ── */
-.app-header-collapsed-app-icon {
-  display: none;
-}
-
-@media (min-width: 769px) {
-  .app-header-collapsed-app-icon {
-    display: flex;
-    width: 30px;
-    height: 30px;
-  }
-
-  .app-header-collapsed-app-icon .app-lnch-svg-icon {
-    border-radius: 7px;
-  }
-}
 
 /* ── Hub center search ── */
 .app-header-hub-search {
@@ -823,4 +879,45 @@
   .app-header-layout-toggle {
     display: none;
   }
+
+  /* Extend menu and profile card to start from both ends */
+  .app-header-inner--hub,
+  .app-header-inner--app {
+    padding: 0 10px !important;
+    grid-template-columns: auto 1fr auto !important;
+  }
+
+  .desktop-search {
+    display: none !important;
+  }
+
+  .mobile-search-btn {
+    display: flex !important;
+  }
+
+  .app-header-mobile-brand-container {
+    display: flex;
+  }
+}
+
+.mobile-search-btn {
+  display: none;
+}
+
+.app-header-mobile-brand-container {
+  display: none;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-header-mobile-app-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+}
+
+.app-header-mobile-app-icon .app-lnch-svg-icon {
+  border-radius: 6px;
 }

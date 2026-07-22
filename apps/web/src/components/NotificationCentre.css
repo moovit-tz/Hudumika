@@ -1,0 +1,405 @@
+/* ══════════════════════════════════════════════
+   NotificationCentre — popup panel (launcher-style)
+══════════════════════════════════════════════ */
+
+/* The DropdownMenuContent wrapper around this panel (see AppHeader.tsx) —
+   unlayered, so it reliably wins over the component's own Tailwind
+   @layer utilities (p-1.5, min-w-[12rem], overflow-y-auto) regardless of
+   cascade order. Those defaults fight this panel's own fixed-size,
+   internally-scrolling layout: min-w/overflow-auto on an absolutely
+   positioned shrink-to-fit box collapses it to ~0 height (the box has no
+   definite size to shrink-to-fit against once overflow removes its
+   automatic minimum size). */
+.notif-dropdown-content {
+  padding: 0;
+  min-width: 0;
+  width: auto;
+  overflow: visible;
+}
+
+/* Panel — rendered inside a Radix DropdownMenuContent, which owns
+   positioning/portal/z-index; this only sets the panel's own box look. */
+.notif-panel {
+  width: 292px;
+  max-width: calc(100vw - 20px);
+  height: min(480px, calc(100vh - 100px));
+  background: var(--white);
+  border-radius: 13px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── Header ── */
+.notif-panel-hdr {
+  background: var(--nav-header-bg);
+  border-radius: 13px 13px 0 0;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.notif-panel-hdr-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+}
+
+.notif-panel-hdr-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.notif-panel-hdr-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notif-panel-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  font-family: var(--font);
+}
+
+.notif-panel-badge {
+  background: var(--red);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-family: var(--font);
+}
+
+.notif-panel-mark-all {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 6px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--font);
+  transition: background 0.12s;
+  white-space: nowrap;
+}
+
+.notif-panel-mark-all:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.notif-panel-close {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: background 0.12s, color 0.12s;
+}
+
+.notif-panel-close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+/* ── App tabs ── */
+.notif-panel-tabs {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  padding: 0 12px 1px;
+}
+
+.notif-panel-tabs::-webkit-scrollbar { display: none; }
+
+.notif-panel-tab {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.5);
+  border-bottom: 2px solid transparent;
+  padding: 6px 10px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  font-family: var(--font);
+  transition: color 0.12s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.notif-panel-tab--active {
+  color: #fff;
+  border-bottom-color: var(--teal);
+}
+
+.notif-panel-tab:hover:not(.notif-panel-tab--active) {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.notif-panel-tab-count {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  padding: 1px 5px;
+  font-size: 10px;
+}
+
+/* Removed App Styles */
+
+/* ── Notification list ──
+   max-height (not flex: 1) — this panel now lives in-flow inside a Radix
+   DropdownMenuContent instead of a position:fixed box, and a flex:1 +
+   overflow:auto child inside an in-flow auto-height flex column collapses
+   to 0 height (no bounding height for it to grow into). */
+.notif-panel-scroll {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.notif-panel-scroll::-webkit-scrollbar { width: 3px; }
+.notif-panel-scroll::-webkit-scrollbar-track { background: transparent; }
+.notif-panel-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.notif-panel-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 220px;
+  padding: 24px;
+}
+
+.notif-panel-empty-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.notif-panel-empty-text {
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.notif-panel-empty-sub {
+  color: var(--ink3);
+  font-family: var(--font);
+  font-size: 13px;
+}
+
+/* Notification row */
+.notif-panel-item {
+  display: flex;
+  gap: 12px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+  cursor: default;
+  text-decoration: none;
+  color: inherit;
+}
+
+.notif-panel-item--unread {
+  background: var(--teal-l);
+}
+
+.notif-panel-item--clickable {
+  cursor: pointer;
+}
+
+.notif-panel-item--clickable:hover {
+  background: var(--bg);
+}
+
+.notif-panel-item--unread.notif-panel-item--clickable:hover {
+  background: #fde8e0;
+}
+
+/* Icon */
+.notif-panel-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--notif-icon-bg, var(--bg));
+}
+
+.notif-panel-item-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Body */
+.notif-panel-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-panel-item-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  font-family: var(--font);
+  line-height: 1.3;
+}
+
+.notif-panel-item-title--bold {
+  font-weight: 700;
+}
+
+.notif-panel-item-msg {
+  font-size: 12px;
+  color: var(--ink2);
+  margin-top: 2px;
+  font-family: var(--font);
+  line-height: 1.4;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.notif-panel-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+
+/* Removed App badge */
+
+.notif-panel-item-entity,
+.notif-panel-item-time {
+  font-size: 11px;
+  color: var(--ink3);
+  font-family: var(--font);
+}
+
+/* Unread dot */
+.notif-panel-item-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--teal);
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+/* ── Footer ── */
+.notif-panel-footer {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  display: flex;
+}
+
+.notif-panel-view-all {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--ink2);
+  font-size: 10.5px;
+  font-weight: 600;
+  font-family: var(--font);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.notif-panel-view-all:hover {
+  background: var(--bg);
+  border-color: var(--ink3);
+  color: var(--ink);
+}
+
+/* ── Dark mode ── */
+[data-theme="dark"] .notif-panel {
+  background: #16181f;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .notif-panel-item {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .notif-panel-item--unread {
+  background: rgba(13, 148, 136, 0.08);
+}
+
+[data-theme="dark"] .notif-panel-item--clickable:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+[data-theme="dark"] .notif-panel-item--unread.notif-panel-item--clickable:hover {
+  background: rgba(234, 88, 12, 0.1);
+}
+
+[data-theme="dark"] .notif-panel-caret {
+  background: #1e1e2d;
+}
+
+[data-theme="dark"] .notif-panel-footer {
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="dark"] .notif-panel-view-all:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ── Mobile — bottom sheet ── */
+@media (max-width: 600px) {
+  .notif-panel {
+    width: 100%;
+    max-height: 80vh;
+    top: auto;
+    bottom: 0;
+    right: 0;
+    border-radius: 16px 16px 0 0;
+    border-bottom: none;
+    transform-origin: bottom center;
+    transform: translateY(100%);
+    opacity: 1;
+    box-shadow: 0 -6px 32px rgba(0, 0, 0, 0.18);
+  }
+
+  .notif-panel--open {
+    transform: translateY(0);
+    opacity: 1;
+  }
+
+  .notif-panel-hdr {
+    border-radius: 16px 16px 0 0;
+  }
+}

@@ -1,13 +1,31 @@
 import React from 'react';
-import type { ClearanceStage } from '@clearos/types';
-import { CLEARANCE_STAGES } from '@clearos/types';
+import { CLEARANCE_STAGES } from '@hudumika/types';
 
 export interface ProgressSegmentsProps {
-  currentStage: ClearanceStage;
+  currentStage: string;
+  // Set only for shipments governed by a tenant-defined custom workflow
+  // (stage is then a workflow_steps.id, meaningless as a CLEARANCE_STAGES
+  // index) — when both are present, render stepCount segments with
+  // stepOrder marking progress instead of iterating the fixed 18 stages.
+  workflowStepOrder?: number;
+  workflowStepCount?: number;
 }
 
-export const ProgressSegments: React.FC<ProgressSegmentsProps> = ({ currentStage }) => {
-  const currentIndex = CLEARANCE_STAGES.indexOf(currentStage);
+export const ProgressSegments: React.FC<ProgressSegmentsProps> = ({ currentStage, workflowStepOrder, workflowStepCount }) => {
+  if (workflowStepCount !== undefined && workflowStepOrder !== undefined) {
+    return (
+      <div className="progress-segments" style={{ display: 'flex', gap: '3px', width: '100%' }}>
+        {Array.from({ length: workflowStepCount }, (_, idx) => {
+          let stateClass = 'ps-pending';
+          if (idx < workflowStepOrder) stateClass = 'ps-done';
+          else if (idx === workflowStepOrder) stateClass = 'ps-active';
+          return <div key={idx} className={`progress-segment-item ${stateClass}`} />;
+        })}
+      </div>
+    );
+  }
+
+  const currentIndex = CLEARANCE_STAGES.indexOf(currentStage as any);
 
   return (
     <div className="progress-segments" style={{ display: 'flex', gap: '3px', width: '100%' }}>

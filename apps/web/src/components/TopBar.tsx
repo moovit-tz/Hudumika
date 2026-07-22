@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -6,8 +6,15 @@ import { useCompany } from '../data/companyStore.js';
 import { Icon } from './Icon.js';
 import { getJobs, updateJob, STAGES } from '../pages/clearanceData.js';
 import type { Stage, TimeEntry } from '../pages/clearanceData.js';
-import { useClockIn } from '../contexts/ClockInContext.jsx';
+import { useClockIn } from '../contexts/ClockInContext.js';
 import { apiFetch } from '../lib/api.js';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from './ui/dropdown-menu.js';
 
 /* ── AI Search Modal ── */
 const QUICK_CHIPS = [
@@ -25,10 +32,22 @@ const SUGGESTIONS = [
   { icon: 'settings'   as const, label: 'Settings',             path: '/settings' },
 ];
 
+const CATEGORY_LABELS: Record<string, { label: string; icon: 'ship' | 'users' | 'invoice' | 'user' | 'truck' | 'container' }> = {
+  shipments: { label: 'Shipments', icon: 'ship' },
+  customers: { label: 'Customers', icon: 'users' },
+  invoices:  { label: 'Invoices',  icon: 'invoice' },
+  staff:     { label: 'Staff',     icon: 'user' },
+  drivers:   { label: 'Drivers',   icon: 'truck' },
+  vehicles:  { label: 'Vehicles',  icon: 'container' },
+};
+
 function AISearchModal({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
+  const [results, setResults] = useState<Record<string, { id: string; label: string; sublabel: string | null; path: string }[]>>({});
+  const [searching, setSearching] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { inputRef.current?.focus(); }, []);
 
@@ -38,9 +57,32 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
     return () => document.removeEventListener('keydown', fn);
   }, [onClose]);
 
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (query.trim().length < 2) { setResults({}); setSearching(false); return; }
+    setSearching(true);
+    debounceRef.current = setTimeout(() => {
+      apiFetch(`/v1/search?q=${encodeURIComponent(query.trim())}`)
+        .then(res => setResults(res.data || {}))
+        .catch(() => setResults({}))
+        .finally(() => setSearching(false));
+    }, 250);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [query]);
+
+  const hasResults = Object.keys(results).length > 0;
+  const totalResults = Object.values(results).reduce((n, arr) => n + arr.length, 0);
+
   function handleChip(q: string) { setQuery(q); inputRef.current?.focus(); }
 
   function handleSuggestion(path: string) { navigate(path); onClose(); }
+
+  function handleHit(path: string) { navigate(path); onClose(); }
+
+  function searchWeb() {
+    window.open(`https://www.google.com/search?q=${encodeURIComponent(query.trim())}`, '_blank', 'noopener');
+    onClose();
+  }
 
   return (
     <div
@@ -72,16 +114,16 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
             ref={inputRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Ask anything — search shipments, invoices, customers…"
+            placeholder="Search shipments, customers, invoices, staff, drivers, vehicles…"
             style={{
               flex: 1, border: 'none', outline: 'none', background: 'transparent',
               fontSize: 15, fontFamily: 'var(--font)', color: 'var(--ink)',
             }}
             onKeyDown={e => {
-              if (e.key === 'Enter' && query.trim()) {
-                navigate(`/?search=${encodeURIComponent(query.trim())}`);
-                onClose();
-              }
+              if (e.key !== 'Enter' || !query.trim()) return;
+              const first = Object.values(results)[0]?.[0];
+              if (first) handleHit(first.path);
+              else searchWeb();
             }}
           />
           {query && (
@@ -97,59 +139,120 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
           }}>ESC</kbd>
         </div>
 
-        {/* Quick chips */}
-        <div style={{ padding: '12px 18px 8px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>Try</span>
-          {QUICK_CHIPS.map(c => (
-            <button key={c.q} type="button" onClick={() => handleChip(c.q)}
-              style={{
-                fontSize: 11.5, padding: '5px 11px', borderRadius: 20, cursor: 'pointer',
-                border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)',
-                fontFamily: 'var(--font)',
-              }}>
-              {c.label}
-            </button>
-          ))}
-        </div>
+        {query.trim().length < 2 ? (
+          <>
+            {/* Quick chips */}
+            <div style={{ padding: '12px 18px 8px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', textTransform: 'uppercase', alignSelf: 'center', marginRight: 4 }}>Try</span>
+              {QUICK_CHIPS.map(c => (
+                <button key={c.q} type="button" onClick={() => handleChip(c.q)}
+                  style={{
+                    fontSize: 11.5, padding: '5px 11px', borderRadius: 20, cursor: 'pointer',
+                    border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)',
+                    fontFamily: 'var(--font)',
+                  }}>
+                  {c.label}
+                </button>
+              ))}
+            </div>
 
-        {/* Quick nav */}
-        <div style={{ borderTop: '1px solid var(--border)', padding: '8px 0 10px' }}>
-          <div style={{ padding: '4px 18px 6px', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
-            Quick Navigation
-          </div>
-          {SUGGESTIONS.map(s => (
-            <button key={s.path} type="button" onClick={() => handleSuggestion(s.path)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                width: '100%', padding: '9px 18px', border: 'none',
-                background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
-                color: 'var(--ink)', fontSize: 13.5, textAlign: 'left',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
-              onMouseLeave={e => (e.currentTarget.style.background = '')}>
-              <div style={{
-                width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-                background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Icon name={s.icon} size={14} color="var(--teal)" strokeWidth={2} />
+            {/* Quick nav */}
+            <div style={{ borderTop: '1px solid var(--border)', padding: '8px 0 10px' }}>
+              <div style={{ padding: '4px 18px 6px', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                Quick Navigation
               </div>
-              {s.label}
-              <Icon name="arrowUpRight" size={13} color="var(--ink3)" style={{ marginLeft: 'auto' }} />
-            </button>
-          ))}
-        </div>
+              {SUGGESTIONS.map(s => (
+                <button key={s.path} type="button" onClick={() => handleSuggestion(s.path)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    width: '100%', padding: '9px 18px', border: 'none',
+                    background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
+                    color: 'var(--ink)', fontSize: 13.5, textAlign: 'left',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                  <div style={{
+                    width: 30, height: 30, borderRadius: 9, flexShrink: 0,
+                    background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Icon name={s.icon} size={14} color="var(--teal)" strokeWidth={2} />
+                  </div>
+                  {s.label}
+                  <Icon name="arrowUpRight" size={13} color="var(--ink3)" style={{ marginLeft: 'auto' }} />
+                </button>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div style={{ maxHeight: 380, overflowY: 'auto', padding: '6px 0' }}>
+            {searching && (
+              <div style={{ padding: '14px 18px', fontSize: 12.5, color: 'var(--ink3)' }}>Searching…</div>
+            )}
+            {!searching && !hasResults && (
+              <div style={{ padding: '18px', fontSize: 13, color: 'var(--ink3)' }}>No matches in the app for "{query}".</div>
+            )}
+            {!searching && Object.entries(results).map(([cat, hits]) => (
+              <div key={cat} style={{ padding: '4px 0 8px' }}>
+                <div style={{ padding: '4px 18px 6px', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em', textTransform: 'uppercase' }}>
+                  {CATEGORY_LABELS[cat]?.label || cat}
+                </div>
+                {hits.map(h => (
+                  <button key={h.id} type="button" onClick={() => handleHit(h.path)}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      width: '100%', padding: '8px 18px', border: 'none',
+                      background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
+                      color: 'var(--ink)', fontSize: 13.5, textAlign: 'left',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                    <div style={{
+                      width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                      background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <Icon name={CATEGORY_LABELS[cat]?.icon || 'search'} size={13} color="var(--teal)" strokeWidth={2} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.label}</div>
+                      {h.sublabel && <div style={{ fontSize: 11.5, color: 'var(--ink3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.sublabel}</div>}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ))}
+
+            {/* Extend outside the app */}
+            <div style={{ borderTop: '1px solid var(--border)', padding: '4px 0' }}>
+              <button type="button" onClick={searchWeb}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  width: '100%', padding: '10px 18px', border: 'none',
+                  background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
+                  color: 'var(--ink2)', fontSize: 13, textAlign: 'left',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 8, flexShrink: 0,
+                  background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon name="globe" size={13} color="var(--ink3)" strokeWidth={2} />
+                </div>
+                Search the web for "{query}"
+                <Icon name="arrowUpRight" size={13} color="var(--ink3)" style={{ marginLeft: 'auto' }} />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Footer hint */}
         <div style={{
           borderTop: '1px solid var(--border)', padding: '10px 18px',
           display: 'flex', gap: 16, fontSize: 11, color: 'var(--ink3)',
         }}>
-          <span><kbd style={{ fontFamily: 'var(--mono)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>↵</kbd> to search</span>
+          <span><kbd style={{ fontFamily: 'var(--mono)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>↵</kbd> to open</span>
           <span><kbd style={{ fontFamily: 'var(--mono)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px' }}>ESC</kbd> to close</span>
-          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Icon name="sparkle" size={12} color="var(--teal)" strokeWidth={2} />
-            AI-powered search
-          </span>
+          {hasResults && <span style={{ marginLeft: 'auto' }}>{totalResults} result{totalResults === 1 ? '' : 's'}</span>}
         </div>
       </div>
     </div>
@@ -357,12 +460,9 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
   const isMobile = useIsMobile();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [profileOpen, setProfileOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const { isCheckedIn, currentEntry, triggerOpen } = useClockIn();
   const [clockOpen, setClockOpen] = useState(false);
-  const profileRef = useRef<HTMLDivElement>(null);
-  const clockRef = useRef<HTMLDivElement>(null);
 
   const openAI = useCallback(() => setAiOpen(true), []);
   const closeAI = useCallback(() => setAiOpen(false), []);
@@ -373,7 +473,6 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifTab, setNotifTab] = useState<'all' | 'messages' | 'alerts'>('all');
   const [checkedNotifs, setCheckedNotifs] = useState<Set<string>>(new Set());
-  const notifRef = useRef<HTMLDivElement>(null);
 
   const loadNotifs = useCallback(() => {
     apiFetch('/v1/notifications')
@@ -387,14 +486,6 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
     const t = setInterval(loadNotifs, 30000);
     return () => clearInterval(t);
   }, [loadNotifs]);
-
-  useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false);
-    };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, []);
 
   const markRead = async (id: string, link?: string) => {
     await apiFetch(`/v1/notifications/${id}/read`, { method: 'PATCH' }).catch(() => {});
@@ -428,25 +519,6 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
     document.addEventListener('keydown', fn);
     return () => document.removeEventListener('keydown', fn);
   }, []);
-
-
-  useEffect(() => {
-    const fn = (e: MouseEvent) => {
-      if (profileRef.current && !profileRef.current.contains(e.target as Node))
-        setProfileOpen(false);
-    };
-    if (profileOpen) document.addEventListener('mousedown', fn);
-    return () => document.removeEventListener('mousedown', fn);
-  }, [profileOpen]);
-
-  useEffect(() => {
-    const fn = (e: MouseEvent) => {
-      if (clockRef.current && !clockRef.current.contains(e.target as Node))
-        setClockOpen(false);
-    };
-    if (clockOpen) document.addEventListener('mousedown', fn);
-    return () => document.removeEventListener('mousedown', fn);
-  }, [clockOpen]);
 
   function clockDuration() {
     if (!isCheckedIn || !currentEntry?.started_at) return '';
@@ -502,11 +574,11 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
         )}
       </div>
 
-      {/* ── Center: AI search trigger ── */}
+      {/* ── Center: Search trigger ── */}
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '0 16px' }}>
         <button
           type="button"
-          title="AI Search (⌘K)"
+          title="Search (⌘K)"
           onClick={openAI}
           className="top-bar-search-trigger"
           style={{
@@ -517,15 +589,9 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
             fontFamily: 'var(--font)',
           }}
         >
-          <div style={{
-            width: 20, height: 20, borderRadius: 6, flexShrink: 0,
-            background: 'linear-gradient(135deg, #7c3aed 0%, var(--teal) 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Icon name="sparkle" size={11} color="#fff" strokeWidth={1.8} />
-          </div>
+          <Icon name="search" size={14} color="var(--ink3)" strokeWidth={2} />
           <span style={{ flex: 1, textAlign: 'left', fontSize: 13, color: 'var(--ink3)' }}>
-            Ask anything…
+            Search...
           </span>
           <kbd style={{
             fontSize: 10, fontFamily: 'var(--mono)', color: 'var(--ink3)',
@@ -565,23 +631,19 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
         </button>
 
         {/* Clock In / Out */}
-        <div ref={clockRef} style={{ position: 'relative' }}>
-          <button
-            type="button"
-            title={isCheckedIn ? 'Session active — click to manage' : 'Clock In'}
-            onClick={() => isCheckedIn ? setClockOpen(o => !o) : triggerOpen()}
-            style={{ ...ibStyle(isCheckedIn), position: 'relative' }}
-            onMouseEnter={e => { if (!isCheckedIn) e.currentTarget.style.background = 'var(--bg)'; }}
-            onMouseLeave={e => { if (!isCheckedIn) e.currentTarget.style.background = 'transparent'; }}
-          >
-            <Icon name="clock" size={17} color={isCheckedIn ? 'var(--teal)' : 'var(--ink2)'} />
-            {isCheckedIn && (
-              <span style={{ position: 'absolute', top: 7, right: 7, width: 7, height: 7, borderRadius: '50%', background: 'var(--green)', border: '2px solid var(--white)' }} />
-            )}
-          </button>
-
-          {clockOpen && isCheckedIn && currentEntry && (
-            <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 270, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', boxShadow: '0 12px 40px rgba(0,0,0,.16)', zIndex: 400, overflow: 'hidden' }}>
+        {isCheckedIn && currentEntry ? (
+          <DropdownMenu open={clockOpen} onOpenChange={setClockOpen}>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                title="Session active — click to manage"
+                style={{ ...ibStyle(true), position: 'relative' }}
+              >
+                <Icon name="clock" size={17} color="var(--teal)" />
+                <span style={{ position: 'absolute', top: 7, right: 7, width: 7, height: 7, borderRadius: '50%', background: 'var(--green)', border: '2px solid var(--white)' }} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={8} className="w-[270px] p-0 rounded-xl overflow-hidden">
               <div style={{ background: 'rgba(16,185,129,.08)', padding: '14px 16px', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div style={{ width: 36, height: 36, borderRadius: 9, background: 'rgba(16,185,129,.15)', border: '1px solid rgba(16,185,129,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -602,177 +664,178 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
                   Switch Task
                 </button>
               </div>
-            </div>
-          )}
-        </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <button
+            type="button"
+            title="Clock In"
+            onClick={() => triggerOpen()}
+            style={ibStyle()}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+          >
+            <Icon name="clock" size={17} color="var(--ink2)" />
+          </button>
+        )}
 
         {/* Divider */}
         <div style={{ width: 1, height: 24, background: 'var(--border)', margin: '0 4px', flexShrink: 0 }} />
 
         {/* Notifications */}
-        <div ref={notifRef} style={{ position: 'relative' }}>
-          <button
-            onClick={() => { setNotifOpen(o => !o); if (!notifOpen) loadNotifs(); }}
-            style={{ ...ibStyle(), position: 'relative' }}
-            title="Notifications"
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
-            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-          >
-            <Icon name="bell" size={17} color="var(--ink2)" />
-            {unreadCount > 0 && (
-              <span style={{
-                position: 'absolute', top: 5, right: 5,
-                minWidth: 16, height: 16, borderRadius: 8, padding: '0 4px',
-                background: 'var(--red)', border: '2px solid var(--white)',
-                fontSize: 9, fontWeight: 700, color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
-            )}
-          </button>
+        <DropdownMenu open={notifOpen} onOpenChange={(o) => { setNotifOpen(o); if (o) loadNotifs(); }}>
+          <DropdownMenuTrigger asChild>
+            <button
+              style={{ ...ibStyle(), position: 'relative' }}
+              title="Notifications"
+            >
+              <Icon name="bell" size={17} color="var(--ink2)" />
+              {unreadCount > 0 && (
+                <span style={{
+                  position: 'absolute', top: 5, right: 5,
+                  minWidth: 16, height: 16, borderRadius: 8, padding: '0 4px',
+                  background: 'var(--red)', border: '2px solid var(--white)',
+                  fontSize: 9, fontWeight: 700, color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
+            </button>
+          </DropdownMenuTrigger>
 
-          {notifOpen && (
-            <div className="notif-panel">
-              {/* Purple header */}
-              <div className="notif-panel-hd">
-                <div className="notif-panel-hd-row">
-                  <span className="notif-panel-title">Notifications</span>
-                  {unreadCount > 0 && <span className="notif-panel-badge">{unreadCount} New</span>}
-                </div>
-                <div className="notif-tabs">
-                  {(['all', 'messages', 'alerts'] as const).map(tab => {
-                    const labels = { all: `All (${notifs.length})`, messages: 'Messages', alerts: 'Alerts' };
-                    return (
-                      <button key={tab} type="button" onClick={() => setNotifTab(tab)}
-                        className="notif-tab-btn" data-active={notifTab === tab}>
-                        {labels[tab]}
-                      </button>
-                    );
-                  })}
-                </div>
+          <DropdownMenuContent align="end" sideOffset={8} className="notif-panel p-0 rounded-xl">
+            {/* Purple header */}
+            <div className="notif-panel-hd">
+              <div className="notif-panel-hd-row">
+                <span className="notif-panel-title">Notifications</span>
+                {unreadCount > 0 && <span className="notif-panel-badge">{unreadCount} New</span>}
               </div>
-
-              {/* Notification list */}
-              <div className="notif-list">
-                {filteredNotifs.length === 0 ? (
-                  <div className="notif-empty">No notifications</div>
-                ) : filteredNotifs.map((n: any) => {
-                  const cfg = NOTIF_TYPE_CFG[n.type] ?? NOTIF_TYPE_CFG.info;
-                  const checked = checkedNotifs.has(n.id);
+              <div className="notif-tabs">
+                {(['all', 'messages', 'alerts'] as const).map(tab => {
+                  const labels = { all: `All (${notifs.length})`, messages: 'Messages', alerts: 'Alerts' };
                   return (
-                    <div key={n.id} className="notif-item" data-read={n.read}
-                      onClick={() => markRead(n.id, n.link)}>
-                      {/* Avatar — background is data-driven, kept as inline style */}
-                      <div className="notif-avatar" style={{ background: n.avatar_url ? 'transparent' : cfg.bg }}>
-                        {n.avatar_url
-                          ? <img src={n.avatar_url} alt="" className="notif-avatar-img" />
-                          : <Icon name={cfg.icon} size={20} color={cfg.fg} strokeWidth={2} />
-                        }
-                      </div>
-
-                      {/* Content */}
-                      <div className="notif-content">
-                        <div className="notif-item-title">{n.title}</div>
-                        {n.message && <div className="notif-item-body">{n.message}</div>}
-                        <div className="notif-time-row">
-                          <Icon name="clock" size={11} color="var(--ink3)" />
-                          <span className="notif-time-label">{relTime(n.created_at)}</span>
-                        </div>
-                      </div>
-
-                      {/* Checkbox */}
-                      <div className="notif-check" data-checked={checked}
-                        onClick={e => toggleCheck(n.id, e)}>
-                        {checked && <Icon name="check" size={11} color="#fff" />}
-                      </div>
-                    </div>
+                    <button key={tab} type="button" onClick={() => setNotifTab(tab)}
+                      className="notif-tab-btn" data-active={notifTab === tab}>
+                      {labels[tab]}
+                    </button>
                   );
                 })}
               </div>
-
-              {/* Footer */}
-              <div className="notif-footer">
-                <button type="button" className="notif-footer-btn" onClick={markAllRead}>
-                  Mark all as read
-                </button>
-              </div>
             </div>
-          )}
-        </div>
+
+            {/* Notification list */}
+            <div className="notif-list">
+              {filteredNotifs.length === 0 ? (
+                <div className="notif-empty">No notifications</div>
+              ) : filteredNotifs.map((n: any) => {
+                const cfg = NOTIF_TYPE_CFG[n.type] ?? NOTIF_TYPE_CFG.info;
+                const checked = checkedNotifs.has(n.id);
+                return (
+                  <div key={n.id} className="notif-item" data-read={n.read}
+                    onClick={() => markRead(n.id, n.link)}>
+                    {/* Avatar — background is data-driven, kept as inline style */}
+                    <div className="notif-avatar" style={{ background: n.avatar_url ? 'transparent' : cfg.bg }}>
+                      {n.avatar_url
+                        ? <img src={n.avatar_url} alt="" className="notif-avatar-img" />
+                        : <Icon name={cfg.icon} size={20} color={cfg.fg} strokeWidth={2} />
+                      }
+                    </div>
+
+                    {/* Content */}
+                    <div className="notif-content">
+                      <div className="notif-item-title">{n.title}</div>
+                      {n.message && <div className="notif-item-body">{n.message}</div>}
+                      <div className="notif-time-row">
+                        <Icon name="clock" size={11} color="var(--ink3)" />
+                        <span className="notif-time-label">{relTime(n.created_at)}</span>
+                      </div>
+                    </div>
+
+                    {/* Checkbox */}
+                    <div className="notif-check" data-checked={checked}
+                      onClick={e => toggleCheck(n.id, e)}>
+                      {checked && <Icon name="check" size={11} color="#fff" />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer */}
+            <div className="notif-footer">
+              <button type="button" className="notif-footer-btn" onClick={markAllRead}>
+                Mark all as read
+              </button>
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Divider */}
         <div style={{ width: 1, height: 24, background: 'var(--border)', margin: '0 4px', flexShrink: 0 }} />
 
         {/* User avatar + dropdown */}
-        <div ref={profileRef} style={{ position: 'relative' }}>
-          <button
-            onClick={() => setProfileOpen(o => !o)}
-            style={{
-              background: profileOpen ? 'var(--bg)' : 'none',
-              border: 'none', cursor: 'pointer', borderRadius: 9,
-              padding: '4px 8px 4px 4px',
-              display: 'flex', alignItems: 'center', gap: 8,
-              transition: 'background .15s',
-            }}
-            onMouseEnter={e => { if (!profileOpen) e.currentTarget.style.background = 'var(--bg)'; }}
-            onMouseLeave={e => { if (!profileOpen) e.currentTarget.style.background = 'none'; }}
-          >
-            {/* Avatar circle */}
-            <div style={{ position: 'relative', flexShrink: 0 }}>
-              {user?.avatar_url ? (
-                <img src={user.avatar_url} alt={user.name}
-                  style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border)' }} />
-              ) : (
-                <div style={{
-                  width: 34, height: 34, borderRadius: '50%',
-                  background: 'linear-gradient(135deg, var(--teal) 0%, #0550ae 100%)',
-                  color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 12, fontWeight: 800, letterSpacing: '-0.02em',
-                }}>
-                  {user ? initials(user.name) : '?'}
+        <div style={{ position: 'relative' }}>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                style={{
+                  background: 'none',
+                  border: 'none', cursor: 'pointer', borderRadius: 9,
+                  padding: '4px 8px 4px 4px',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  transition: 'background .15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg)'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+              >
+                {/* Avatar circle */}
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  {user?.avatar_url ? (
+                    <img src={user.avatar_url} alt={user.name}
+                      style={{ width: 34, height: 34, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--border)' }} />
+                  ) : (
+                    <div style={{
+                      width: 34, height: 34, borderRadius: '50%',
+                      background: 'linear-gradient(135deg, var(--teal) 0%, #0550ae 100%)',
+                      color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 12, fontWeight: 800, letterSpacing: '-0.02em',
+                    }}>
+                      {user ? initials(user.name) : '?'}
+                    </div>
+                  )}
+                  <span style={{
+                    position: 'absolute', bottom: 1, right: 1,
+                    width: 9, height: 9, borderRadius: '50%',
+                    background: '#22c55e', border: '2px solid var(--white)',
+                  }} />
                 </div>
-              )}
-              <span style={{
-                position: 'absolute', bottom: 1, right: 1,
-                width: 9, height: 9, borderRadius: '50%',
-                background: '#22c55e', border: '2px solid var(--white)',
-              }} />
-            </div>
 
-            {/* Name + role — hidden on mobile */}
-            {!isMobile && (
-              <div style={{ textAlign: 'left', lineHeight: 1.25 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap' }}>
-                  {user?.name ?? 'User'}
-                </div>
-                <div style={{ fontSize: 10, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
-                  {ROLE_LABELS[user?.role ?? ''] ?? user?.role}
-                </div>
-              </div>
-            )}
+                {/* Name + role — hidden on mobile */}
+                {!isMobile && (
+                  <div style={{ textAlign: 'left', lineHeight: 1.25 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap' }}>
+                      {user?.name ?? 'User'}
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
+                      {ROLE_LABELS[user?.role ?? ''] ?? user?.role}
+                    </div>
+                  </div>
+                )}
 
-            {!isMobile && (
-              <Icon name="chevronDown" size={12} color="var(--ink3)"
-                style={{ transform: profileOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}
-              />
-            )}
-          </button>
+                {!isMobile && (
+                  <Icon name="chevronDown" size={12} color="var(--ink3)" />
+                )}
+              </button>
+            </DropdownMenuTrigger>
 
-          {/* ── Profile dropdown ── */}
-          {profileOpen && (
-            <div style={{
-              position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-              background: 'var(--white)', border: '1px solid var(--border)',
-              borderRadius: 9, boxShadow: '0 12px 40px rgba(0,0,0,.14)',
-              zIndex: 400, minWidth: 252, overflow: 'hidden',
-            }}>
+            <DropdownMenuContent align="end" className="w-[280px] p-2 rounded-xl">
               {/* User info header */}
-              <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ padding: '12px', display: 'flex', alignItems: 'center', gap: 12 }}>
                 {user?.avatar_url ? (
                   <img src={user.avatar_url} alt={user.name}
-                    style={{ width: 48, height: 48, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid var(--border)' }} />
+                    style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid var(--border)' }} />
                 ) : (
                   <div style={{
-                    width: 48, height: 48, borderRadius: '50%', flexShrink: 0,
+                    width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
                     background: 'linear-gradient(135deg, var(--teal) 0%, #0550ae 100%)',
                     color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     fontSize: 15, fontWeight: 800, letterSpacing: '-0.02em',
@@ -782,60 +845,46 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
                 )}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</div>
-                  <span style={{ display: 'inline-block', marginTop: 5, padding: '2px 8px', borderRadius: 20, background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 10, fontWeight: 700, letterSpacing: '0.04em' }}>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</div>
+                  <span style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 20, background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 10, fontWeight: 700, letterSpacing: '0.04em' }}>
                     {ROLE_LABELS[user?.role ?? ''] ?? user?.role}
                   </span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => { navigate('/settings'); setProfileOpen(false); }}
-                  title="App Settings"
-                  style={{ width: 30, height: 30, borderRadius: 9, flexShrink: 0, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--teal-l)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg)')}
+              </div>
+
+              <DropdownMenuSeparator />
+
+              {[
+                { icon: 'user'       as const, label: 'View Profile',        path: '/profile?tab=personal' },
+                { icon: 'settings'   as const, label: 'Account Setting',     path: '/profile?tab=security' },
+                { icon: 'activity'   as const, label: 'Login Activity',      path: '/profile?tab=activity' },
+                { icon: 'creditCard' as const, label: 'Manage Subscription', path: '/subscription'         },
+              ].map(item => (
+                <DropdownMenuItem
+                  key={item.path}
+                  onClick={() => navigate(item.path)}
+                  className="rounded-lg gap-3 py-2.5 px-3 cursor-pointer text-[13px]"
                 >
-                  <Icon name="settings" size={13} color="var(--ink3)" />
-                </button>
-              </div>
-
-              {/* Menu items */}
-              <div style={{ padding: '6px 0' }}>
-                {[
-                  { icon: 'user'       as const, label: 'View Profile',        path: '/profile?tab=personal' },
-                  { icon: 'settings'   as const, label: 'Account Setting',     path: '/profile?tab=security' },
-                  { icon: 'activity'   as const, label: 'Login Activity',      path: '/profile?tab=activity' },
-                  { icon: 'creditCard' as const, label: 'Manage Subscription', path: '/subscription'         },
-                ].map(item => (
-                  <button key={item.path}
-                    type="button"
-                    onClick={() => { navigate(item.path); setProfileOpen(false); }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)', textAlign: 'left' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
-                    onMouseLeave={e => (e.currentTarget.style.background = '')}>
-                    <div style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                      <Icon name={item.icon} size={15} color="var(--ink3)" />
-                    </div>
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-
-              <div style={{ borderTop: '1px solid var(--border)', padding: '6px 0' }}>
-                <button
-                  type="button"
-                  onClick={() => { logout(); setProfileOpen(false); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font)', color: 'var(--red)', textAlign: 'left' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-l)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = '')}>
-                  <div style={{ width: 32, height: 32, borderRadius: 9, background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Icon name="externalLink" size={15} color="var(--red)" />
+                  <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon name={item.icon} size={14} color="var(--ink3)" />
                   </div>
-                  Sign Out
-                </button>
-              </div>
-            </div>
-          )}
+                  {item.label}
+                </DropdownMenuItem>
+              ))}
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuItem
+                onClick={logout}
+                className="rounded-lg gap-3 py-2.5 px-3 cursor-pointer text-[13px] text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
+              >
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name="externalLink" size={14} color="var(--red)" />
+                </div>
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

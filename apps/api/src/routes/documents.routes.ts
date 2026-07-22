@@ -1,4 +1,4 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
@@ -8,7 +8,7 @@ import type { DocumentType, DocumentStatus } from '@hudumika/types';
 
 export async function documentRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('clearos'));
+  fastify.addHook('preHandler', requireEntitlement('clearos'));
 
   /**
    * GET /v1/shipments/:id/documents

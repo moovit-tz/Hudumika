@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import type { CustomerShipmentGroup, ShipmentCase } from '@clearos/types';
-import { ShipmentRow } from './ShipmentRow.jsx';
+import type { CustomerShipmentGroup, ShipmentCase } from '@hudumika/types';
+import { ShipmentRow } from './ShipmentRow.js';
+import { Icon } from './Icon.js';
 
 interface CustomerGroupProps {
   group: CustomerShipmentGroup;
-  onSelectShipment: (shipment: ShipmentCase) => void;
+  shipmentHref: (shipment: ShipmentCase) => string;
 }
 
-export const CustomerGroup: React.FC<CustomerGroupProps> = ({ group, onSelectShipment }) => {
+export const CustomerGroup: React.FC<CustomerGroupProps> = ({ group, shipmentHref }) => {
   const [isOpen, setIsOpen] = useState(true);
 
   return (
@@ -56,17 +57,17 @@ export const CustomerGroup: React.FC<CustomerGroupProps> = ({ group, onSelectShi
         {/* Risk Indicators */}
         <div className="ch-tags">
           {group.urgent_count > 0 && (
-            <span className="ch-tag ct-red">
-              🚨 {group.urgent_count} Demurrage Risk
+            <span className="ch-tag ct-red" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Icon name="alertCircle" size={11} /> {group.urgent_count} Demurrage Risk
             </span>
           )}
           {group.action_count > 0 && (
-            <span className="ch-tag ct-amber">
-              ⚠️ {group.action_count} Action Needed
+            <span className="ch-tag ct-amber" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <Icon name="alertTriangle" size={11} /> {group.action_count} Action Needed
             </span>
           )}
-          <span className="ch-tag ct-def">
-            📦 {group.shipment_count} Active
+          <span className="ch-tag ct-def" style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Icon name="package" size={11} /> {group.shipment_count} Active
           </span>
         </div>
       </div>
@@ -77,7 +78,7 @@ export const CustomerGroup: React.FC<CustomerGroupProps> = ({ group, onSelectShi
             <ShipmentRow
               key={shipment.id}
               shipment={shipment}
-              onClick={() => onSelectShipment(shipment)}
+              to={shipmentHref(shipment)}
             />
           ))}
         </div>

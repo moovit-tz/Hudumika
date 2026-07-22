@@ -1,4 +1,4 @@
-// ─── ClearOS Core Types ──────────────────────────────────────
+// ─── Hudumika Core Types ──────────────────────────────────────
 // The primary unit of work is the ShipmentCase. Everything else
 // orbits the case: documents, people, approvals, payments, comms.
 
@@ -159,7 +159,8 @@ export interface RiskFlag {
 // ── Document ─────────────────────────────────────────────────
 
 export type DocumentType =
-  | 'BL'              // Bill of Lading
+  | 'BL'              // Bill of Lading (sea)
+  | 'AWB'             // Air Waybill (air freight)
   | 'INVOICE'         // Commercial Invoice
   | 'PACKING_LIST'    // Packing List
   | 'PERMIT'          // Regulatory permit (TMDA, TFDA, etc.)
@@ -248,11 +249,28 @@ export interface ShipmentCase {
   origin_port: string;
   dest_port: string;
   eta?: string;                 // ISO 8601
-  stage: ClearanceStage;
+  // ClearanceStage literal for legacy/default-workflow shipments, or a
+  // workflow_steps.id (UUID) for shipments governed by a tenant-defined
+  // workflow — see workflow-resolver.service.ts.
+  stage: string;
+  workflow_id?: string | null;
+  workflow_step_id?: string | null;
+  consignment_type?: string;
   stage_history?: StageEvent[];
   documents?: CaseDocument[];
   expenses?: Expense[];
   messages?: CaseMessage[];
+  // Lightweight counts (no full arrays) — populated by the grouped/kanban
+  // listing endpoint instead of `documents`/`messages` above, which stay
+  // list-populated only on the single-shipment detail fetch.
+  document_count?: number;
+  message_count?: number;
+  // Custom-workflow position (only set when workflow_id is set) — lets
+  // ProgressSegments/DetailPanel render a proportional progress bar without
+  // fetching the full workflow; see listGroupedByCustomer's batched lookup.
+  workflow_step_order?: number;
+  workflow_step_count?: number;
+  workflow_step_name?: string;
   risk_flags?: RiskFlag[];
   active_risk_types?: RiskFlagType[];
   assigned_to: string;          // officer user_id
@@ -266,6 +284,8 @@ export interface ShipmentCase {
   tansad_number?: string;       // TANSAD declaration number
   selectivity_channel?: 'GREEN' | 'YELLOW' | 'RED' | 'BLUE';
   declaration_id?: string;      // FK to declarations table
+  co2_emissions_kg?: number | null;
+  carbon_credits_saved?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -283,4 +303,66 @@ export interface Location {
   city: string;
   country: string;
   created_at: string;
+}
+
+// ── Support Tickets & Multichannel ─────────────────────────────
+
+export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
+export type TicketPriority = 'LOW' | 'NORMAL' | 'MEDIUM' | 'HIGH' | 'URGENT';
+
+export interface SupportTicket {
+  id: string;
+  tenant_id: string;
+  ref_number: string;
+  customer_id: string;
+  subject: string;
+  description?: string;
+  channel: MessageChannel;
+  status: TicketStatus;
+  priority: TicketPriority;
+  category: string;
+  assigned_to?: string;
+  tags?: any;
+  created_at: string;
+  updated_at: string;
+  // relations
+  customer_name?: string;
+  assigned_officer_name?: string;
+}
+
+export interface SupportMessage {
+  id: string;
+  tenant_id: string;
+  ticket_id: string;
+  channel: MessageChannel;
+  direction: MessageDirection;
+  author_id: string;
+  author_name: string;
+  author_type: 'OFFICER' | 'CUSTOMER' | 'SYSTEM';
+  content: string;
+  external_ref?: string;
+  created_at: string;
+}
+
+export type AssetType = 'BANK_ACCOUNT' | 'CREDIT_CARD' | 'INSURANCE_POLICY' | 'LOAN';
+
+export interface CustomerAsset {
+  id: string;
+  tenant_id: string;
+  customer_id: string;
+  asset_type: AssetType;
+  asset_ref: string;
+  status: string;
+  metadata: any;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface KnowledgeBaseArticle {
+  id: string;
+  tenant_id: string;
+  title: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
 }

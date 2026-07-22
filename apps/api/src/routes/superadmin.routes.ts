@@ -20,28 +20,37 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
     const totalSubscribers = Number(totalUsersRow?.count ?? 0);
 
     const tenants = await db.selectFrom('tenants').select(['id', 'plan', 'active', 'name', 'created_at']).execute();
-    
+
+    // Real list prices from the packages catalog, keyed by code — replaces a
+    // previously hardcoded 3-tier ternary that didn't match the real 4-tier
+    // starter/growth/scale/enterprise codes. Enterprise has no fixed list
+    // price (custom/"talk to sales"), so it contributes 0 to these estimates
+    // rather than a fabricated number — real enterprise revenue lives in
+    // platform_transactions, not this list-price-based estimate.
+    const packageRows = await db.selectFrom('packages').select(['code', 'monthly_price']).execute();
+    const priceByCode = Object.fromEntries(packageRows.map(p => [p.code, Number(p.monthly_price)]));
+
     let totalEarnings = 0;
     tenants.forEach(t => {
-      if (t.active) {
-        if (t.plan === 'enterprise') totalEarnings += 499;
-        else if (t.plan === 'professional') totalEarnings += 299;
-        else totalEarnings += 99;
-      }
+      if (t.active) totalEarnings += priceByCode[t.plan] ?? 0;
     });
 
-    const planCounts = { starter: 0, professional: 0, enterprise: 0 };
+    const PLAN_META: Record<string, { label: string; color: string }> = {
+      starter: { label: 'Starter', color: '#0891b2' },
+      growth: { label: 'Growth', color: '#0d7a6b' },
+      scale: { label: 'Scale', color: '#2563eb' },
+      enterprise: { label: 'Enterprise', color: '#6e40c9' },
+    };
+    const planCounts: Record<string, number> = { starter: 0, growth: 0, scale: 0, enterprise: 0 };
     tenants.forEach(t => {
-      if (t.active && (t.plan === 'starter' || t.plan === 'professional' || t.plan === 'enterprise')) {
-        planCounts[t.plan as 'starter' | 'professional' | 'enterprise']++;
-      }
+      if (t.active && t.plan in planCounts) planCounts[t.plan]++;
     });
     const totalActivePlanTenants = Math.max(1, activeTenants);
-    const planDist = [
-      { label: 'Starter', pct: Math.round((planCounts.starter / totalActivePlanTenants) * 100), color: '#3b82f6' },
-      { label: 'Professional', pct: Math.round((planCounts.professional / totalActivePlanTenants) * 100), color: '#7c3aed' },
-      { label: 'Enterprise', pct: Math.round((planCounts.enterprise / totalActivePlanTenants) * 100), color: '#0d7a6b' }
-    ];
+    const planDist = Object.entries(PLAN_META).map(([code, meta]) => ({
+      label: meta.label,
+      pct: Math.round((planCounts[code] / totalActivePlanTenants) * 100),
+      color: meta.color,
+    }));
 
     const spark = {
       companies: [1, 2, 2, 3, 5, totalTenants],
@@ -59,17 +68,14 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       { label: 'Jun', value: totalEarnings }
     ];
 
-    const recentTransactions = tenants.slice(0, 5).map((t, idx) => {
-      const amount = t.plan === 'enterprise' ? 499 : t.plan === 'professional' ? 299 : 99;
-      return {
-        id: `tx-${t.id}`,
-        companyId: t.id,
-        amount,
-        status: 'completed',
-        txRef: `TXN-${100000 + idx}`,
-        created: t.created_at ? new Date(t.created_at).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)
-      };
-    });
+    const recentTransactions = tenants.slice(0, 5).map((t, idx) => ({
+      id: `tx-${t.id}`,
+      companyId: t.id,
+      amount: priceByCode[t.plan] ?? 0,
+      status: 'completed',
+      txRef: `TXN-${100000 + idx}`,
+      created: t.created_at ? new Date(t.created_at).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)
+    }));
 
     const upcomingRenewals = tenants.slice(0, 4).map(t => {
       const expiry = new Date();
@@ -80,7 +86,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
         plan: t.plan,
         start: new Date().toISOString().slice(0, 10),
         end: expiry.toISOString().slice(0, 10),
-        amount: t.plan === 'enterprise' ? 499 : t.plan === 'professional' ? 299 : 99,
+        amount: priceByCode[t.plan] ?? 0,
         status: 'active'
       };
     });
@@ -254,4 +260,80 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
   fastify.post('/smtp-test', async (request, reply) => {
     return { success: true, message: 'SMTP Test connection successful.' };
   });
+
+  // 8b. POST /v1/superadmin/ocr-test — verify a Gemini API key actually works
+  fastify.post('/ocr-test', async (request, reply) => {
+    const { geminiApiKey } = request.body as { geminiApiKey?: string };
+    if (!geminiApiKey) return reply.status(400).send({ error: 'geminiApiKey is required' });
+
+    try {
+      const { GoogleGenAI } = await import('@google/genai');
+      const ai = new GoogleGenAI({ apiKey: geminiApiKey });
+      await ai.models.generateContent({
+        model: 'gemini-flash-latest',
+        contents: [{ role: 'user', parts: [{ text: 'Reply with the single word: ok' }] }],
+      });
+      return { success: true, message: 'Gemini connection successful.' };
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message || 'Gemini connection failed' });
+    }
+  });
+
+  // 9. GET /v1/superadmin/app-status — per-app maintenance kill switch state
+  fastify.get('/app-status', async (request, reply) => {
+    const rows = await db.selectFrom('app_status').selectAll().execute();
+    return { appStatus: rows };
+  });
+
+  // 10. PATCH /v1/superadmin/app-status/:appId — flip an app into/out of maintenance
+  fastify.patch<{ Params: { appId: string }; Body: { status: 'active' | 'maintenance'; message?: string } }>(
+    '/app-status/:appId',
+    async (request, reply) => {
+      const { appId } = request.params;
+      const { status, message } = request.body;
+      const user = request.user;
+
+      const existing = await db.selectFrom('app_status').select('app_id').where('app_id', '=', appId).executeTakeFirst();
+      if (existing) {
+        await db.updateTable('app_status')
+          .set({ status, message: message ?? null, updated_by: user.sub, updated_at: new Date() })
+          .where('app_id', '=', appId)
+          .execute();
+      } else {
+        await db.insertInto('app_status')
+          .values({ app_id: appId, status, message: message ?? null, updated_by: user.sub })
+          .execute();
+      }
+
+      const row = await db.selectFrom('app_status').selectAll().where('app_id', '=', appId).executeTakeFirstOrThrow();
+      return { appStatus: row };
+    }
+  );
+
+  // 11. GET /v1/superadmin/packages/:code/features — which feature keys a package grants
+  fastify.get<{ Params: { code: string } }>('/packages/:code/features', async (request, reply) => {
+    const { code } = request.params;
+    const rows = await db.selectFrom('package_features').select('feature_key').where('package_code', '=', code).execute();
+    return { packageCode: code, features: rows.map(r => r.feature_key) };
+  });
+
+  // 12. PATCH /v1/superadmin/packages/:code/features — replace the full feature set for a package
+  fastify.patch<{ Params: { code: string }; Body: { features: string[] } }>(
+    '/packages/:code/features',
+    async (request, reply) => {
+      const { code } = request.params;
+      const { features } = request.body;
+
+      await db.transaction().execute(async (trx) => {
+        await trx.deleteFrom('package_features').where('package_code', '=', code).execute();
+        if (features.length > 0) {
+          await trx.insertInto('package_features')
+            .values(features.map(feature_key => ({ package_code: code, feature_key })))
+            .execute();
+        }
+      });
+
+      return { packageCode: code, features };
+    }
+  );
 }

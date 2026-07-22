@@ -1,4 +1,4 @@
-import type { ClearanceStage, DocumentType } from '@clearos/types';
+import type { ClearanceStage, DocumentType } from '@hudumika/types';
 
 export interface StageConfig {
   stage: ClearanceStage;
@@ -91,7 +91,7 @@ export const WORKFLOW_CONFIGS: Record<ClearanceStage, StageConfig> = {
     label: 'Customs Release',
     slaHours: 24,
     requiredDocuments: ['RELEASE_ORDER'],
-    prerequisites: ['RELEASE'], // A self prerequisite or previous release-like steps
+    prerequisites: ['TAX_PAYMENT'],
   },
   ICD_PAYMENT: {
     stage: 'ICD_PAYMENT',
@@ -144,8 +144,6 @@ export const WORKFLOW_CONFIGS: Record<ClearanceStage, StageConfig> = {
   },
 };
 
-// Fix circular dependencies or special cases in prerequisites for RELEASE
-WORKFLOW_CONFIGS.RELEASE.prerequisites = ['TAX_PAYMENT']; // RELEASE requires duty paid
 
 /**
  * Validates a transition from current stage to next stage

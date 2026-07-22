@@ -2,6 +2,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
 import type { SafeUser, OnboardingCompleteResponse } from '@hudumika/types';
 import { resetEnabledAppsCache } from './useEnabledApps.js';
+import { hydrateCompanyFromServer, resetCompanyCache } from '../data/companyStore.js';
+import { hydrateTasksFromServer, resetTasksCache } from '../data/calendarStore.js';
 
 const KEYS = {
   token: 'hudumika_token',
@@ -34,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedUser = localStorage.getItem(KEYS.user);
     const storedToken = localStorage.getItem(KEYS.token);
     if (storedUser && storedToken) {
-      try { setUser(JSON.parse(storedUser)); } catch {
+      try { setUser(JSON.parse(storedUser)); hydrateCompanyFromServer(); hydrateTasksFromServer(); } catch {
         localStorage.removeItem(KEYS.user);
         localStorage.removeItem(KEYS.token);
       }
@@ -50,7 +52,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(KEYS.token, res.access_token);
     localStorage.setItem(KEYS.user,  JSON.stringify(res.user));
     resetEnabledAppsCache();
+    resetCompanyCache();
+    resetTasksCache();
     setUser(res.user);
+    hydrateCompanyFromServer();
+    hydrateTasksFromServer();
     return res.user;
   };
 
@@ -58,6 +64,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(KEYS.token, res.access_token);
     localStorage.setItem(KEYS.user,  JSON.stringify(res.user));
     setUser(res.user);
+    hydrateCompanyFromServer();
+    hydrateTasksFromServer();
   };
 
   const logout = () => {
@@ -66,6 +74,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem(KEYS.superToken);
     localStorage.removeItem(KEYS.superUser);
     resetEnabledAppsCache();
+    resetCompanyCache();
+    resetTasksCache();
     setUser(null);
   };
 

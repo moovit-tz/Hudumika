@@ -1,14 +1,16 @@
-﻿import React, { useState, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useState, useRef } from 'react';
+import { usePageSEO } from '../hooks/usePageSEO.js';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { MetricsRow, spark } from '../components/MetricCard.js';
 import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 /* ── Avatar ── */
-const AV_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#1a7f37','#9a6700','#cf222e','#d05c30'];
+const AV_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30'];
 function avColor(name: string) { return AV_COLORS[name.charCodeAt(0) % AV_COLORS.length]; }
 function initials(name: string) { return name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
 
@@ -83,26 +85,28 @@ const ACTIVITY_LOG = [
    Main Component
 ══════════════════════════════════════════ */
 export const UserProfile: React.FC = () => {
-  const { user, logout } = useAuth();
+  usePageSEO('My Profile', 'Manage your account settings and preferences.');
+  const { user, logout, updateUser } = useAuth();
   const isMobile = useIsMobile();
   const [params, setParams] = useSearchParams();
-  const navigate = useNavigate();
   const activeTab = params.get('tab') || 'personal';
 
   /* Personal info form */
-  const [form, setForm] = useState({
-    name:     user?.name || '',
-    phone:    user?.phone || '',
-    bio:      '',
-    job_title: ROLE_LABELS[user?.role || ''] || '',
-    city:     'Dar es Salaam',
-    country:  'Tanzania',
-    timezone: 'Africa/Dar_es_Salaam',
-    language: 'en',
-    website:  '',
+  const buildInitialForm = () => ({
+    name:      user?.name || '',
+    phone:     user?.phone || '',
+    bio:       user?.profile?.bio || '',
+    job_title: user?.profile?.job_title || ROLE_LABELS[user?.role || ''] || '',
+    city:      user?.profile?.city || '',
+    country:   user?.profile?.country || 'Tanzania',
+    timezone:  user?.profile?.timezone || 'Africa/Dar_es_Salaam',
+    language:  user?.profile?.language || 'en',
+    website:   user?.profile?.website || '',
   });
+  const [form, setForm] = useState(buildInitialForm);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved]   = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   /* Security form */
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' });
@@ -123,11 +127,25 @@ export const UserProfile: React.FC = () => {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setSaveError(null);
     try {
-      await apiFetch(`/v1/users/${user?.id}`, { method: 'PATCH', body: JSON.stringify({ name: form.name, phone: form.phone }) });
+      const res = await apiFetch('/v1/auth/me', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: form.name,
+          phone: form.phone,
+          profile: {
+            bio: form.bio, job_title: form.job_title, city: form.city,
+            country: form.country, timezone: form.timezone, language: form.language, website: form.website,
+          },
+        }),
+      });
+      if (res?.user) updateUser(res.user);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch { /* ignore */ } finally { setSaving(false); }
+    } catch (err: any) {
+      setSaveError(err?.message || 'Failed to save changes.');
+    } finally { setSaving(false); }
   };
 
   const handlePwSave = async (e: React.FormEvent) => {
@@ -145,10 +163,25 @@ export const UserProfile: React.FC = () => {
   if (!user) return null;
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
-
-      {/* ── Profile header card ── */}
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', margin: '0 -20px 24px' }}>
+    <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', background: 'var(--bg)', fontFamily: 'var(--font)', padding: isMobile ? '16px' : '32px' }}>
+      <style>{`
+        .profile-container {
+          max-width: 1600px;
+          margin: 0 auto;
+          background: var(--white);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 2px 12px rgba(0,0,0,0.03);
+          transition: max-width 0.25s ease;
+        }
+        [data-layout="full"] .profile-container {
+          max-width: 100%;
+        }
+      `}</style>
+      <div className="profile-container">
+        {/* ── Profile header card ── */}
+        <div style={{ borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
         {/* Cover gradient */}
         <div style={{ height: 120, background: 'linear-gradient(135deg, var(--navy) 0%, var(--teal) 100%)', position: 'relative' }}>
           <button style={{ position: 'absolute', top: 12, right: 16, display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 7, background: 'rgba(255,255,255,0.12)', color: '#fff', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font)' }}>
@@ -169,10 +202,10 @@ export const UserProfile: React.FC = () => {
               </button>
             </div>
             <div style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
-              <button onClick={() => navigate('/subscription')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)' }}>
+              <Link to="/subscription" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)', textDecoration: 'none' }}>
                 <Icon name="creditCard" size={13} strokeWidth={2} />
                 Subscription
-              </button>
+              </Link>
               <button onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--red)' }}>
                 <Icon name="externalLink" size={13} strokeWidth={2} />
                 Sign Out
@@ -235,7 +268,9 @@ export const UserProfile: React.FC = () => {
       </div>
 
       {/* ── Tab content ── */}
-      <div style={{ padding: '0 28px 32px' }}>
+      {/* Capped narrower than the now-wide profile-container so form fields (2-col grids)
+          stay a comfortable reading/input width instead of stretching edge to edge. */}
+      <div style={{ padding: '0 28px 32px', maxWidth: 960, marginLeft: 0 }}>
 
         {/* ══ PERSONAL INFO ══ */}
         {activeTab === 'personal' && (
@@ -269,30 +304,40 @@ export const UserProfile: React.FC = () => {
             <Card title="Address & Region" subtitle="Your location is used for timezone and reporting.">
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '0 20px' }}>
                 <Field label="Country">
-                  <select style={INPUT} value={form.country} onChange={e => setForm(p => ({...p, country: e.target.value}))}>
-                    {['Tanzania','Kenya','Uganda','Rwanda','Burundi','Zambia','Malawi','Mozambique','Ethiopia','Other'].map(c => <option key={c}>{c}</option>)}
-                  </select>
+                  <Select value={form.country} onValueChange={v => setForm(p => ({...p, country: v}))}>
+                    <SelectTrigger aria-label="Country" style={INPUT}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {['Tanzania','Kenya','Uganda','Rwanda','Burundi','Zambia','Malawi','Mozambique','Ethiopia','Other'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </Field>
                 <Field label="City / Town">
                   <input style={INPUT} value={form.city} onChange={e => setForm(p => ({...p, city: e.target.value}))} />
                 </Field>
                 <Field label="Timezone">
-                  <select style={INPUT} value={form.timezone} onChange={e => setForm(p => ({...p, timezone: e.target.value}))}>
-                    {['Africa/Dar_es_Salaam','Africa/Nairobi','Africa/Kampala','Africa/Kigali','UTC'].map(t => <option key={t}>{t}</option>)}
-                  </select>
+                  <Select value={form.timezone} onValueChange={v => setForm(p => ({...p, timezone: v}))}>
+                    <SelectTrigger aria-label="Timezone" style={INPUT}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {['Africa/Dar_es_Salaam','Africa/Nairobi','Africa/Kampala','Africa/Kigali','UTC'].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </Field>
                 <Field label="Language">
-                  <select style={INPUT} value={form.language} onChange={e => setForm(p => ({...p, language: e.target.value}))}>
-                    <option value="en">English</option>
-                    <option value="sw">Swahili</option>
-                    <option value="fr">French</option>
-                  </select>
+                  <Select value={form.language} onValueChange={v => setForm(p => ({...p, language: v}))}>
+                    <SelectTrigger aria-label="Language" style={INPUT}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="sw">Swahili</SelectItem>
+                      <SelectItem value="fr">French</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </Field>
               </div>
             </Card>
 
+            {saveError && <p style={{ fontSize: 12.5, color: 'var(--red)', textAlign: 'right', marginBottom: 8 }}>{saveError}</p>}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button type="button" onClick={() => setForm({ name: user.name, phone: user.phone||'', bio:'', job_title: ROLE_LABELS[user.role]||'', city:'Dar es Salaam', country:'Tanzania', timezone:'Africa/Dar_es_Salaam', language:'en', website:'' })} style={{ padding: '9px 20px', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)' }}>
+              <button type="button" onClick={() => setForm(buildInitialForm())} style={{ padding: '9px 20px', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)' }}>
                 Discard
               </button>
               <button type="submit" disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 22px', border: 'none', borderRadius: 9, background: saved ? 'var(--green)' : 'var(--teal)', color: '#fff', cursor: 'pointer', fontSize: 13.5, fontWeight: 700, fontFamily: 'var(--font)' }}>
@@ -424,7 +469,7 @@ export const UserProfile: React.FC = () => {
               ))}
             </Card>
 
-            <Card title="In-App Notifications" subtitle="Notifications inside the ClearOS platform.">
+            <Card title="In-App Notifications" subtitle="Notifications inside the Hudumika platform.">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>All in-app notifications</div>
@@ -476,6 +521,7 @@ export const UserProfile: React.FC = () => {
           </Card>
         )}
 
+      </div>
       </div>
     </div>
   );

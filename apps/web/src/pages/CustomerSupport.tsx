@@ -1,6 +1,8 @@
-﻿import React, { useState } from 'react';
-import { useAuth } from '../hooks/useAuth.jsx';
+import React, { useState } from 'react';
+import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
+import { LiveChatWidget } from '../components/LiveChatWidget.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 /* ── Types ── */
 interface Message {
@@ -70,22 +72,26 @@ const MOCK_TICKETS: Ticket[] = [
 const STATUS_CFG: Record<Ticket['status'], { label: string; color: string; bg: string }> = {
   OPEN:        { label: 'Open',        color: '#0891b2', bg: '#ecfeff' },
   IN_PROGRESS: { label: 'In Progress', color: '#d97706', bg: '#fef3c7' },
-  RESOLVED:    { label: 'Resolved',    color: '#16a34a', bg: '#dcfce7' },
+  RESOLVED:    { label: 'Resolved',    color: '#059669', bg: '#ecfdf5' },
   CLOSED:      { label: 'Closed',      color: '#6b7280', bg: '#f3f4f6' },
 };
 
-const PRIORITY_CFG: Record<Ticket['priority'], { label: string; color: string }> = {
+const PRIORITY_CFG: Record<string, { label: string; color: string }> = {
   LOW:    { label: 'Low',    color: '#6b7280' },
   NORMAL: { label: 'Normal', color: '#0891b2' },
+  MEDIUM: { label: 'Medium', color: '#0891b2' },
   HIGH:   { label: 'High',   color: '#d97706' },
   URGENT: { label: 'Urgent', color: '#dc2626' },
 };
 
 /* ── Helpers ── */
 function fmtDate(iso: string) {
+  if (!iso) return '—';
   const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
   const now = new Date();
   const diffH = (now.getTime() - d.getTime()) / 3600000;
+  if (diffH < 0)    return 'Just now';
   if (diffH < 1)    return 'Just now';
   if (diffH < 24)   return `${Math.round(diffH)}h ago`;
   if (diffH < 48)   return 'Yesterday';
@@ -93,13 +99,16 @@ function fmtDate(iso: string) {
 }
 
 function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('en-TZ', { hour: '2-digit', minute: '2-digit' });
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleTimeString('en-TZ', { hour: '2-digit', minute: '2-digit' });
 }
 
 /* ── Ticket card ── */
 function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick: () => void }) {
-  const st = STATUS_CFG[ticket.status];
-  const pr = PRIORITY_CFG[ticket.priority];
+  const st = STATUS_CFG[ticket.status] || STATUS_CFG.OPEN;
+  const pr = PRIORITY_CFG[ticket.priority] || PRIORITY_CFG.NORMAL;
   const isActive = ticket.status === 'OPEN' || ticket.status === 'IN_PROGRESS';
 
   return (
@@ -327,20 +336,14 @@ function NewTicketModal({ onClose, onCreate }: {
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6, fontFamily: 'var(--font)' }}>
               Category
             </label>
-            <select
-              title="Ticket category"
-              value={category}
-              onChange={e => setCategory(e.target.value)}
-              style={{
-                width: '100%', border: '1.5px solid var(--border)', borderRadius: 9,
-                padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font)', color: 'var(--ink)',
-                background: 'var(--bg)', outline: 'none', appearance: 'none',
-              }}
-            >
-              {['Clearance', 'Documentation', 'Billing', 'Delivery', 'Quote', 'Other'].map(c => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger aria-label="Ticket category" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['Clearance', 'Documentation', 'Billing', 'Delivery', 'Quote', 'Other'].map(c => (
+                  <SelectItem key={c} value={c}>{c}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Subject */}
@@ -549,6 +552,7 @@ export const CustomerSupport: React.FC = () => {
       </div>
 
       {showNew && <NewTicketModal onClose={() => setShowNew(false)} onCreate={handleCreate} />}
+      <LiveChatWidget />
     </div>
   );
 };

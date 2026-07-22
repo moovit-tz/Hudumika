@@ -1,16 +1,16 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from './Icon.js';
 import type { IconName } from './Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
-import type { TenantPlan } from '@clearos/types';
-import { PLAN_LEVELS } from '@clearos/types';
+import type { TenantPlan } from '@hudumika/types';
+import { PLAN_LEVELS } from '@hudumika/types';
 
 /* ── Plan detection ─────────────────────────────────────────── */
 function usePlan(): TenantPlan {
-  const stored = localStorage.getItem('clearos_tenant_plan') as TenantPlan | null;
+  const stored = localStorage.getItem('hudumika_tenant_plan') as TenantPlan | null;
   if (stored && stored in PLAN_LEVELS) return stored;
   return 'enterprise'; // default: all features visible until plan is set
 }
@@ -21,6 +21,8 @@ function planHas(userPlan: TenantPlan, required: TenantPlan): boolean {
 
 const PLAN_LABEL: Record<TenantPlan, string> = {
   starter:      'Starter',
+  growth:       'Growth',
+  scale:        'Scale',
   operations:   'Operations',
   finance:      'Finance',
   professional: 'Finance',

@@ -3,12 +3,17 @@ import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import './SuperAdmin.css';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { Switch } from '../components/ui/switch.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
 
 /* ══════════════════════════════════════════════════
    TYPES
 ══════════════════════════════════════════════════ */
-type PlanId = 'starter' | 'professional' | 'enterprise';
+type PlanId = 'starter' | 'growth' | 'scale' | 'enterprise';
 type CoStatus = 'active' | 'inactive' | 'trial' | 'suspended';
 type SubStatus = 'active' | 'expired' | 'trial' | 'cancelled';
 type DomainStatus = 'active' | 'pending' | 'expired';
@@ -17,7 +22,7 @@ type PayMethod = 'card' | 'bank' | 'mpesa' | 'paypal';
 
 interface Company { id:string; name:string; email:string; phone:string; plan:PlanId; users:number; status:CoStatus; domain:string; created:string; owner:string; country:string; color:string; }
 interface Subscription { id:string; companyId:string; plan:PlanId; start:string; end:string; amount:number; billing:'monthly'|'annual'; status:SubStatus; }
-interface Package { id:string; name:string; monthly:number; annual:number; maxUsers:number; features:string[]; active:number; color:string; popular?:boolean; }
+interface Package { id:string; code:string; name:string; monthly:number; annual:number; maxUsers:number; features:string[]; active:number; color:string; popular?:boolean; }
 interface Domain { id:string; domain:string; companyId:string; status:DomainStatus; ssl:boolean; created:string; }
 interface Transaction { id:string; txRef:string; companyId:string; plan:PlanId; amount:number; date:string; method:PayMethod; status:TxStatus; }
 
@@ -25,29 +30,30 @@ interface Transaction { id:string; txRef:string; companyId:string; plan:PlanId; 
    CONFIG
 ══════════════════════════════════════════════════ */
 const PLAN_CFG: Record<PlanId,{label:string;color:string;bg:string}> = {
-  starter:      { label:'Starter',      color:'#0891b2', bg:'#ecfeff'  },
-  professional: { label:'Professional', color:'#7c3aed', bg:'#ede9fe'  },
-  enterprise:   { label:'Enterprise',   color:'#0d7a6b', bg:'#ccfbf1'  },
+  starter:    { label:'Starter',    color:'#0891b2', bg:'#ecfeff'  },
+  growth:     { label:'Growth',     color:'#7c3aed', bg:'#ede9fe'  },
+  scale:      { label:'Scale',      color:'#2563eb', bg:'#dbeafe'  },
+  enterprise: { label:'Enterprise', color:'#0d7a6b', bg:'#ccfbf1'  },
 };
 const CO_CFG: Record<CoStatus,{label:string;color:string;bg:string}> = {
-  active:    { label:'Active',    color:'#16a34a', bg:'#dcfce7' },
+  active:    { label:'Active',    color:'#059669', bg:'#ecfdf5' },
   inactive:  { label:'Inactive',  color:'#6b7280', bg:'#f3f4f6' },
   trial:     { label:'Trial',     color:'#d97706', bg:'#fef3c7' },
   suspended: { label:'Suspended', color:'#ef4444', bg:'#fef2f2' },
 };
 const SUB_CFG: Record<SubStatus,{label:string;color:string;bg:string}> = {
-  active:    { label:'Active',    color:'#16a34a', bg:'#dcfce7' },
+  active:    { label:'Active',    color:'#059669', bg:'#ecfdf5' },
   expired:   { label:'Expired',   color:'#ef4444', bg:'#fef2f2' },
   trial:     { label:'Trial',     color:'#d97706', bg:'#fef3c7' },
   cancelled: { label:'Cancelled', color:'#6b7280', bg:'#f3f4f6' },
 };
 const DOM_CFG: Record<DomainStatus,{label:string;color:string;bg:string}> = {
-  active:  { label:'Active',  color:'#16a34a', bg:'#dcfce7' },
+  active:  { label:'Active',  color:'#059669', bg:'#ecfdf5' },
   pending: { label:'Pending', color:'#d97706', bg:'#fef3c7' },
   expired: { label:'Expired', color:'#ef4444', bg:'#fef2f2' },
 };
 const TX_CFG: Record<TxStatus,{label:string;color:string;bg:string}> = {
-  completed: { label:'Completed', color:'#16a34a', bg:'#dcfce7' },
+  completed: { label:'Completed', color:'#059669', bg:'#ecfdf5' },
   pending:   { label:'Pending',   color:'#d97706', bg:'#fef3c7' },
   failed:    { label:'Failed',    color:'#ef4444', bg:'#fef2f2' },
   refunded:  { label:'Refunded',  color:'#0891b2', bg:'#ecfeff' },
@@ -59,33 +65,35 @@ const METHOD_LABELS: Record<PayMethod,string> = { card:'Credit Card', bank:'Bank
 ══════════════════════════════════════════════════ */
 const COMPANIES: Company[] = [
   { id:'C1', name:'Summit Traders Ltd',     email:'admin@summit.co.tz',    phone:'+255 712 345 678', plan:'enterprise',   users:48, status:'active',    domain:'summit.clearos.app',    created:'2024-01-15', owner:'Amina Hassan',     country:'Tanzania', color:'#0d7a6b' },
-  { id:'C2', name:'Serengeti Foods Co.',    email:'info@serengeti.co.tz',  phone:'+255 754 987 321', plan:'professional', users:18, status:'active',    domain:'serengeti.clearos.app', created:'2024-02-08', owner:'John Mwangi',      country:'Tanzania', color:'#3b82f6' },
-  { id:'C3', name:'Karibu Imports',         email:'ops@karibu.co.tz',      phone:'+255 767 111 222', plan:'starter',      users:5,  status:'trial',     domain:'karibu.clearos.app',    created:'2025-01-20', owner:'Grace Osei',       country:'Kenya',    color:'#a855f7' },
-  { id:'C4', name:'East Africa Logistics',  email:'admin@eal.co.tz',       phone:'+255 788 456 789', plan:'enterprise',   users:62, status:'active',    domain:'eal.clearos.app',       created:'2023-11-01', owner:'Peter Kimani',     country:'Tanzania', color:'#ef4444' },
-  { id:'C5', name:'Kilimanjaro Mining Ltd', email:'info@kilimining.co.tz', phone:'+255 745 333 444', plan:'professional', users:23, status:'active',    domain:'kilimining.clearos.app',created:'2024-04-12', owner:'Fatuma Ally',      country:'Tanzania', color:'#f59e0b' },
-  { id:'C6', name:'Dar Port Agency',        email:'ops@darport.co.tz',     phone:'+255 712 999 888', plan:'starter',      users:8,  status:'inactive',  domain:'darport.clearos.app',   created:'2024-06-30', owner:'David Odhiambo',   country:'Tanzania', color:'#6366f1' },
-  { id:'C7', name:'TZ Freight Solutions',   email:'admin@tzfreight.co.tz', phone:'+255 767 777 666', plan:'professional', users:15, status:'active',    domain:'tzfreight.clearos.app', created:'2024-08-15', owner:'Amina Hassan',     country:'Tanzania', color:'#22c55e' },
+  { id:'C2', name:'Serengeti Foods Co.',    email:'info@serengeti.co.tz',  phone:'+255 754 987 321', plan:'growth',     users:18, status:'active',    domain:'serengeti.clearos.app', created:'2024-02-08', owner:'John Mwangi',      country:'Tanzania', color:'#3b82f6' },
+  { id:'C3', name:'Karibu Imports',         email:'ops@karibu.co.tz',      phone:'+255 767 111 222', plan:'starter',    users:5,  status:'trial',     domain:'karibu.clearos.app',    created:'2025-01-20', owner:'Grace Osei',       country:'Kenya',    color:'#a855f7' },
+  { id:'C4', name:'East Africa Logistics',  email:'admin@eal.co.tz',       phone:'+255 788 456 789', plan:'enterprise', users:62, status:'active',    domain:'eal.clearos.app',       created:'2023-11-01', owner:'Peter Kimani',     country:'Tanzania', color:'#ef4444' },
+  { id:'C5', name:'Kilimanjaro Mining Ltd', email:'info@kilimining.co.tz', phone:'+255 745 333 444', plan:'scale',      users:23, status:'active',    domain:'kilimining.clearos.app',created:'2024-04-12', owner:'Fatuma Ally',      country:'Tanzania', color:'#f59e0b' },
+  { id:'C6', name:'Dar Port Agency',        email:'ops@darport.co.tz',     phone:'+255 712 999 888', plan:'starter',    users:8,  status:'inactive',  domain:'darport.clearos.app',   created:'2024-06-30', owner:'David Odhiambo',   country:'Tanzania', color:'#6366f1' },
+  { id:'C7', name:'TZ Freight Solutions',   email:'admin@tzfreight.co.tz', phone:'+255 767 777 666', plan:'growth',     users:15, status:'active',    domain:'tzfreight.clearos.app', created:'2024-08-15', owner:'Amina Hassan',     country:'Tanzania', color:'#22c55e' },
   { id:'C8', name:'Coastal Clearers Ltd',   email:'info@coastal.co.tz',    phone:'+255 754 555 444', plan:'enterprise',   users:37, status:'suspended', domain:'coastal.clearos.app',   created:'2023-09-22', owner:'Beatrice Njoroge', country:'Kenya',    color:'#0891b2' },
 ];
 
 const PACKAGES: Package[] = [
-  { id:'P1', name:'Starter',      monthly:49,  annual:490,  maxUsers:10, active:2, color:'#0891b2',
-    features:['Up to 10 users','5 GB storage','Basic shipment tracking','Email support','API access (limited)','Monthly reports'] },
-  { id:'P2', name:'Professional', monthly:149, annual:1490, maxUsers:50, active:3, color:'#7c3aed', popular:true,
-    features:['Up to 50 users','50 GB storage','Advanced tracking & alerts','Priority support 24h','Full API access','Custom reports','Finance module','CRM & Leads'] },
-  { id:'P3', name:'Enterprise',   monthly:399, annual:3990, maxUsers:0,  active:3, color:'#0d7a6b',
-    features:['Unlimited users','500 GB storage','Dedicated account manager','24/7 phone support','Custom integrations','White-label option','SLA guarantee','On-premise option'] },
+  { id:'P1', code:'starter',  name:'Starter',  monthly:29,  annual:290,  maxUsers:5,  active:0, color:'#0891b2',
+    features:['0-5 employees — East African startups & entrepreneurs','Up to 5 users','10 GB storage','50 shipments / month','Basic shipment tracking','TANCIS integration','Email support','Local mobile money (M-Pesa, Tigo Pesa, Airtel Money)'] },
+  { id:'P2', code:'growth',   name:'Growth',   monthly:99,  annual:990,  maxUsers:20, active:0, color:'#0d7a6b', popular:true,
+    features:['6-20 employees — growing logistics & trading teams','Up to 20 users','50 GB storage','250 shipments / month','Advanced tracking & alerts','Finance module (invoices, bills)','CRM & Leads','WhatsApp Bot','Priority 24h support'] },
+  { id:'P3', code:'scale',    name:'Scale',    monthly:299, annual:2990, maxUsers:99, active:0, color:'#2563eb',
+    features:['21-99 employees — established multi-branch operators','Up to 99 users','250 GB storage','1,000 shipments / month','Full API access','HR / People module','TANESW integration','Demurrage tracking','Custom reports','Multi-branch support'] },
+  { id:'P4', code:'enterprise', name:'Enterprise', monthly:0, annual:0, maxUsers:0,  active:0, color:'#6e40c9',
+    features:['100+ employees — large enterprises & financial institutions','Unlimited users','Unlimited storage','Unlimited shipments','Dedicated account manager','24/7 phone & WhatsApp support','Custom integrations (core banking APIs)','White-label option','99.99% SLA guarantee','On-premise / private cloud option'] },
 ];
 
 const SUBSCRIPTIONS: Subscription[] = [
-  { id:'S1', companyId:'C1', plan:'enterprise',   start:'2024-01-15', end:'2025-01-15', amount:3990, billing:'annual',  status:'active'    },
-  { id:'S2', companyId:'C2', plan:'professional', start:'2024-02-08', end:'2025-02-08', amount:149,  billing:'monthly', status:'active'    },
-  { id:'S3', companyId:'C3', plan:'starter',      start:'2025-01-20', end:'2025-02-20', amount:0,    billing:'monthly', status:'trial'     },
-  { id:'S4', companyId:'C4', plan:'enterprise',   start:'2023-11-01', end:'2024-11-01', amount:3990, billing:'annual',  status:'active'    },
-  { id:'S5', companyId:'C5', plan:'professional', start:'2024-04-12', end:'2025-04-12', amount:1490, billing:'annual',  status:'active'    },
-  { id:'S6', companyId:'C6', plan:'starter',      start:'2024-06-30', end:'2025-06-30', amount:49,   billing:'monthly', status:'cancelled' },
-  { id:'S7', companyId:'C7', plan:'professional', start:'2024-08-15', end:'2025-08-15', amount:149,  billing:'monthly', status:'active'    },
-  { id:'S8', companyId:'C8', plan:'enterprise',   start:'2023-09-22', end:'2024-09-22', amount:3990, billing:'annual',  status:'cancelled' },
+  { id:'S1', companyId:'C1', plan:'enterprise', start:'2024-01-15', end:'2025-01-15', amount:9990, billing:'annual',  status:'active'    },
+  { id:'S2', companyId:'C2', plan:'growth',     start:'2024-02-08', end:'2025-02-08', amount:99,   billing:'monthly', status:'active'    },
+  { id:'S3', companyId:'C3', plan:'starter',    start:'2025-01-20', end:'2025-02-20', amount:0,    billing:'monthly', status:'trial'     },
+  { id:'S4', companyId:'C4', plan:'enterprise', start:'2023-11-01', end:'2024-11-01', amount:9990, billing:'annual',  status:'active'    },
+  { id:'S5', companyId:'C5', plan:'scale',      start:'2024-04-12', end:'2025-04-12', amount:2990, billing:'annual',  status:'active'    },
+  { id:'S6', companyId:'C6', plan:'starter',    start:'2024-06-30', end:'2025-06-30', amount:29,   billing:'monthly', status:'cancelled' },
+  { id:'S7', companyId:'C7', plan:'growth',     start:'2024-08-15', end:'2025-08-15', amount:99,   billing:'monthly', status:'active'    },
+  { id:'S8', companyId:'C8', plan:'enterprise', start:'2023-09-22', end:'2024-09-22', amount:9990, billing:'annual',  status:'cancelled' },
 ];
 
 const DOMAINS: Domain[] = [
@@ -102,18 +110,18 @@ const DOMAINS: Domain[] = [
 ];
 
 const TRANSACTIONS: Transaction[] = [
-  { id:'T1',  txRef:'TXN-2025-0142', companyId:'C1', plan:'enterprise',   amount:3990, date:'2025-02-14', method:'bank',   status:'completed' },
-  { id:'T2',  txRef:'TXN-2025-0141', companyId:'C2', plan:'professional', amount:149,  date:'2025-02-13', method:'card',   status:'completed' },
-  { id:'T3',  txRef:'TXN-2025-0140', companyId:'C5', plan:'professional', amount:1490, date:'2025-02-12', method:'bank',   status:'completed' },
-  { id:'T4',  txRef:'TXN-2025-0139', companyId:'C7', plan:'professional', amount:149,  date:'2025-02-12', method:'card',   status:'completed' },
-  { id:'T5',  txRef:'TXN-2025-0138', companyId:'C4', plan:'enterprise',   amount:3990, date:'2025-02-10', method:'bank',   status:'completed' },
-  { id:'T6',  txRef:'TXN-2025-0137', companyId:'C3', plan:'starter',      amount:49,   date:'2025-02-08', method:'mpesa',  status:'pending'   },
-  { id:'T7',  txRef:'TXN-2025-0136', companyId:'C6', plan:'starter',      amount:49,   date:'2025-02-05', method:'mpesa',  status:'failed'    },
-  { id:'T8',  txRef:'TXN-2025-0135', companyId:'C8', plan:'enterprise',   amount:3990, date:'2025-01-30', method:'bank',   status:'refunded'  },
-  { id:'T9',  txRef:'TXN-2025-0134', companyId:'C1', plan:'enterprise',   amount:3990, date:'2025-01-15', method:'bank',   status:'completed' },
-  { id:'T10', txRef:'TXN-2025-0133', companyId:'C2', plan:'professional', amount:149,  date:'2025-01-13', method:'card',   status:'completed' },
-  { id:'T11', txRef:'TXN-2025-0132', companyId:'C7', plan:'professional', amount:149,  date:'2025-01-12', method:'card',   status:'completed' },
-  { id:'T12', txRef:'TXN-2025-0131', companyId:'C4', plan:'enterprise',   amount:3990, date:'2024-12-01', method:'bank',   status:'completed' },
+  { id:'T1',  txRef:'TXN-2025-0142', companyId:'C1', plan:'enterprise', amount:9990, date:'2025-02-14', method:'bank',   status:'completed' },
+  { id:'T2',  txRef:'TXN-2025-0141', companyId:'C2', plan:'growth',     amount:99,   date:'2025-02-13', method:'card',   status:'completed' },
+  { id:'T3',  txRef:'TXN-2025-0140', companyId:'C5', plan:'scale',      amount:2990, date:'2025-02-12', method:'bank',   status:'completed' },
+  { id:'T4',  txRef:'TXN-2025-0139', companyId:'C7', plan:'growth',     amount:99,   date:'2025-02-12', method:'card',   status:'completed' },
+  { id:'T5',  txRef:'TXN-2025-0138', companyId:'C4', plan:'enterprise', amount:9990, date:'2025-02-10', method:'bank',   status:'completed' },
+  { id:'T6',  txRef:'TXN-2025-0137', companyId:'C3', plan:'starter',    amount:29,   date:'2025-02-08', method:'mpesa',  status:'pending'   },
+  { id:'T7',  txRef:'TXN-2025-0136', companyId:'C6', plan:'starter',    amount:29,   date:'2025-02-05', method:'mpesa',  status:'failed'    },
+  { id:'T8',  txRef:'TXN-2025-0135', companyId:'C8', plan:'enterprise', amount:9990, date:'2025-01-30', method:'bank',   status:'refunded'  },
+  { id:'T9',  txRef:'TXN-2025-0134', companyId:'C1', plan:'enterprise', amount:9990, date:'2025-01-15', method:'bank',   status:'completed' },
+  { id:'T10', txRef:'TXN-2025-0133', companyId:'C2', plan:'growth',     amount:99,   date:'2025-01-13', method:'card',   status:'completed' },
+  { id:'T11', txRef:'TXN-2025-0132', companyId:'C7', plan:'growth',     amount:99,   date:'2025-01-12', method:'card',   status:'completed' },
+  { id:'T12', txRef:'TXN-2025-0131', companyId:'C4', plan:'enterprise', amount:9990, date:'2024-12-01', method:'bank',   status:'completed' },
 ];
 
 
@@ -144,7 +152,7 @@ const MOCK_ACTIVITY: ActivityLog[] = [
 ══════════════════════════════════════════════════ */
 function fmtCurrency(n: number) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 }); }
 function fmtDate(d: string) { return new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); }
-const AV_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#1a7f37','#9a6700','#cf222e','#d05c30','#0e7490'];
+const AV_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30','#0e7490'];
 function avColor(n: string) { return AV_COLORS[n.charCodeAt(0) % AV_COLORS.length]; }
 function coByID(id: string) { return COMPANIES.find(c=>c.id===id)!; }
 
@@ -220,8 +228,8 @@ function KPICard({ title, value, change, icon, color, spark }: { title:string; v
           <div style={{ fontSize:11, color:'var(--ink3)', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.07em', fontWeight:700 }}>{title}</div>
           <div style={{ fontSize:26, fontWeight:800, color:'var(--ink)', letterSpacing:'-0.02em', lineHeight:1 }}>{value}</div>
           <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:8 }}>
-            <span style={{ fontSize:12, fontWeight:700, color:pos?'#16a34a':'#ef4444', display:'flex', alignItems:'center', gap:2 }}>
-              <Icon name={pos?'arrowUp':'arrowDown'} size={11} color={pos?'#16a34a':'#ef4444'} />
+            <span style={{ fontSize:12, fontWeight:700, color:pos?'#059669':'#ef4444', display:'flex', alignItems:'center', gap:2 }}>
+              <Icon name={pos?'arrowUp':'arrowDown'} size={11} color={pos?'#059669':'#ef4444'} />
               {Math.abs(change)}%
             </span>
             <span style={{ fontSize:11, color:'var(--ink3)' }}>vs last month</span>
@@ -239,8 +247,8 @@ function KPICard({ title, value, change, icon, color, spark }: { title:string; v
 /* ── Page header ── */
 function PageHdr({ title, sub, action }: { title:string; sub:string; action?:React.ReactNode }) {
   return (
-    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:24, gap:16 }}>
-      <div>
+    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:24, gap:16, flexWrap:'wrap' }}>
+      <div style={{ minWidth:0 }}>
         <h1 style={{ fontSize:20, fontWeight:800, color:'var(--ink)', margin:0, letterSpacing:'-0.02em' }}>{title}</h1>
         <p style={{ fontSize:13, color:'var(--ink3)', margin:'4px 0 0' }}>{sub}</p>
       </div>
@@ -330,6 +338,7 @@ const PLAN_DIST = [
 const EXPIRING = SUBSCRIPTIONS.filter(s=>s.status==='active').slice(0,4);
 
 export function DashboardView() {
+  const isMobile = useIsMobile();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -356,15 +365,15 @@ export function DashboardView() {
       <PageHdr title="Super Admin Dashboard" sub="Platform overview — all companies, revenue and activity at a glance" />
 
       {/* KPI row */}
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:24 }}>
+      <div style={{ display:'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap:16, marginBottom:24 }}>
         <KPICard title="Total Companies"    value={String(kpis.totalCompanies)}    change={19.01} icon="building"    color="#3b82f6" spark={spark.companies}   />
-        <KPICard title="Active Companies"   value={String(kpis.activeCompanies)}   change={-12}   icon="check"       color="#16a34a" spark={spark.active}      />
+        <KPICard title="Active Companies"   value={String(kpis.activeCompanies)}   change={-12}   icon="check"       color="#059669" spark={spark.active}      />
         <KPICard title="Total Subscribers"  value={`${kpis.totalSubscribers} users`}  change={6}     icon="users"       color="#7c3aed" spark={spark.subscribers} />
         <KPICard title="Total Earnings"     value={fmtCurrency(kpis.totalEarnings)}    change={-8}    icon="dollarSign"  color="#0d7a6b" spark={spark.earnings}    />
       </div>
 
       {/* Charts row */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 280px', gap:16, marginBottom:24 }}>
+      <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 280px', gap:16, marginBottom:24 }}>
         {/* Monthly revenue bar */}
         <div className="card" style={{ padding:'20px 22px' }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
@@ -384,7 +393,7 @@ export function DashboardView() {
               <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>Company Growth</div>
               <div style={{ fontSize:11, color:'var(--ink3)' }}>Registrations per month</div>
             </div>
-            <span style={{ fontSize:12, fontWeight:700, color:'#16a34a', background:'#dcfce7', padding:'3px 8px', borderRadius:20 }}>+6% MoM</span>
+            <span style={{ fontSize:12, fontWeight:700, color:'#059669', background:'#ecfdf5', padding:'3px 8px', borderRadius:20 }}>+6% MoM</span>
           </div>
           <BarChart data={[{label:'Sep',value:1},{label:'Oct',value:1},{label:'Nov',value:2},{label:'Dec',value:1},{label:'Jan',value:2},{label:'Feb',value:1}]} color="#3b82f6" />
         </div>
@@ -411,7 +420,7 @@ export function DashboardView() {
       </div>
 
       {/* Bottom row */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+      <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:16 }}>
         {/* Recent transactions */}
         <div className="card" style={{ padding:'20px 22px' }}>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', marginBottom:14 }}>Recent Transactions</div>
@@ -474,13 +483,17 @@ const TENANT_APPS: { id: string; name: string; color: string }[] = [
   { id: 'onepi',     name: 'NexusHR',  color: '#0d9488' },
   { id: 'bliss',     name: 'Bliss',    color: '#7c3aed' },
   { id: 'complyos',  name: 'ComplyOS', color: '#059669' },
-  { id: 'crm',       name: 'CRM',      color: '#16a34a' },
+  { id: 'crm',       name: 'CRM',      color: '#059669' },
   { id: 'cloud',     name: 'Cloud',    color: '#0369a1' },
   { id: 'email',     name: 'Email',    color: '#0078d4' },
   { id: 'contacts',  name: 'Contacts', color: '#1a73e8' },
   { id: 'ai',        name: 'AI',       color: '#6d28d9' },
   { id: 'store',     name: 'Store',    color: '#8b5cf6' },
+  { id: 'oneid',     name: 'Ondi',     color: '#4361EE' },
+  { id: 'tracking',  name: 'Tracking', color: '#0891b2' },
   { id: 'workspace', name: 'Admin',    color: '#64748b' },
+  { id: 'demurrage',     name: 'Demurrage',    color: '#dc2626' },
+  { id: 'cargotracker',  name: 'CargoTracker', color: '#4f46e5' },
 ];
 
 export function CompaniesView() {
@@ -640,15 +653,16 @@ export function CompaniesView() {
           <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)' }} />
           <input title="Search companies" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search companies…" className="input-field" />
         </div>
-        <select title="Filter by status" value={statusFilter} onChange={e=>setStatusFilter(e.target.value as any)} className="input-field sa-toolbar-select">
-          <option value="all">All Status</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
-        <select title="Filter by plan" value={planFilter} onChange={e=>setPlanFilter(e.target.value as PlanId|'all')} className="input-field sa-toolbar-select">
-          <option value="all">All Plans</option>
-          {(Object.keys(PLAN_CFG) as PlanId[]).map(k=><option key={k} value={k}>{PLAN_CFG[k].label}</option>)}
-        </select>
+        <SingleSelectFilter
+          label="Status" allLabel="All Status"
+          options={[{ value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }]}
+          value={statusFilter === 'all' ? null : statusFilter} onChange={v => setStatusFilter((v ?? 'all') as any)}
+        />
+        <SingleSelectFilter
+          label="Plan" allLabel="All Plans"
+          options={(Object.keys(PLAN_CFG) as PlanId[]).map(k => ({ value: k, label: PLAN_CFG[k].label }))}
+          value={planFilter === 'all' ? null : planFilter} onChange={v => setPlanFilter((v ?? 'all') as PlanId | 'all')}
+        />
       </div>
 
       {!apiLoaded && (
@@ -722,9 +736,12 @@ export function CompaniesView() {
               ))}
               <div>
                 <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Plan</label>
-                <select title="Plan" value={form.plan} onChange={e=>setForm(p=>({...p,plan:e.target.value as PlanId}))} className="input-field" style={{ width:'100%' }}>
-                  {(Object.keys(PLAN_CFG) as PlanId[]).map(k=><option key={k} value={k}>{PLAN_CFG[k].label}</option>)}
-                </select>
+                <Select value={form.plan} onValueChange={v=>setForm(p=>({...p,plan:v as PlanId}))}>
+                  <SelectTrigger className="input-field" style={{ width:'100%' }}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(PLAN_CFG) as PlanId[]).map(k=><SelectItem key={k} value={k}>{PLAN_CFG[k].label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:22 }}>
@@ -749,9 +766,12 @@ export function CompaniesView() {
               </div>
               <div>
                 <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Plan</label>
-                <select title="Plan" value={editForm.plan} onChange={e=>setEditForm(p=>({...p,plan:e.target.value as PlanId}))} className="input-field" style={{ width:'100%' }}>
-                  {(Object.keys(PLAN_CFG) as PlanId[]).map(k=><option key={k} value={k}>{PLAN_CFG[k].label}</option>)}
-                </select>
+                <Select value={editForm.plan} onValueChange={v=>setEditForm(p=>({...p,plan:v as PlanId}))}>
+                  <SelectTrigger className="input-field" style={{ width:'100%' }}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(PLAN_CFG) as PlanId[]).map(k=><SelectItem key={k} value={k}>{PLAN_CFG[k].label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
@@ -812,7 +832,7 @@ export function SubscriptionsView() {
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:22 }}>
         <StatCard label="Total Subscriptions" value={counts.total}   color="var(--teal)"  />
-        <StatCard label="Active"               value={counts.active}  color="#16a34a"      />
+        <StatCard label="Active"               value={counts.active}  color="#059669"      />
         <StatCard label="Trial"                value={counts.trial}   color="#d97706"      />
         <StatCard label="Expired / Cancelled"  value={counts.expired} color="#ef4444"      />
       </div>
@@ -822,10 +842,11 @@ export function SubscriptionsView() {
           <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)' }} />
           <input title="Search by company" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by company…" className="input-field" />
         </div>
-        <select title="Filter by status" value={statusFilter} onChange={e=>setStatusFilter(e.target.value as SubStatus|'all')} className="input-field sa-toolbar-select">
-          <option value="all">All Status</option>
-          {(Object.keys(SUB_CFG) as SubStatus[]).map(k=><option key={k} value={k}>{SUB_CFG[k].label}</option>)}
-        </select>
+        <SingleSelectFilter
+          label="Status" allLabel="All Status"
+          options={(Object.keys(SUB_CFG) as SubStatus[]).map(k => ({ value: k, label: SUB_CFG[k].label }))}
+          value={statusFilter === 'all' ? null : statusFilter} onChange={v => setStatusFilter((v ?? 'all') as SubStatus | 'all')}
+        />
       </div>
 
       <DataTable headers={['Company','Plan','Billing','Start Date','End Date','Amount','Status','Actions']}>
@@ -862,6 +883,75 @@ export function SubscriptionsView() {
 /* ══════════════════════════════════════════════════
    PACKAGES VIEW
 ══════════════════════════════════════════════════ */
+const ALL_FEATURE_KEYS = [
+  'ai', 'clearos', 'cloud', 'complyos', 'contacts', 'email', 'finops', 'oneid', 'onepi', 'tracking',
+  'tracking.cargo-loading', 'tracking.warehouse', 'tracking.analytics', 'tracking.reports',
+  'demurrage', 'cargotracker',
+];
+
+/** Real, wired editor for which entitlement feature keys a package grants — PATCHes
+ *  /v1/superadmin/packages/:code/features (backed by the package_features table), distinct
+ *  from the still-local-only price/maxUsers/display-features fields in the parent modal. */
+function FeatureGatesEditor({ packageCode }: { packageCode: string }) {
+  const [features, setFeatures] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    apiFetch(`/v1/superadmin/packages/${packageCode}/features`)
+      .then(res => { if (alive) setFeatures(res.features || []); })
+      .catch(() => { if (alive) setFeatures([]); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [packageCode]);
+
+  function toggleKey(key: string) {
+    setFeatures(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      await apiFetch(`/v1/superadmin/packages/${packageCode}/features`, {
+        method: 'PATCH',
+        body: JSON.stringify({ features }),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
+    } catch (err: any) {
+      alert(`Failed to save feature gates: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div style={{ marginBottom:16, paddingTop:14, borderTop:'1px solid var(--border)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+        <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)' }}>Feature Gates ({packageCode})</label>
+        <button type="button" onClick={save} disabled={loading || saving} className="btn btn-secondary btn-sm" style={{ fontSize:11 }}>
+          {saved ? 'Saved' : saving ? 'Saving…' : 'Save Gates'}
+        </button>
+      </div>
+      {loading ? (
+        <div style={{ fontSize:12, color:'var(--ink3)' }}>Loading…</div>
+      ) : (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:6, maxHeight:180, overflowY:'auto' }}>
+          {ALL_FEATURE_KEYS.map(key => (
+            <label key={key} style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--ink2)', cursor:'pointer' }}>
+              <input type="checkbox" checked={features.includes(key)} onChange={() => toggleKey(key)} />
+              {key}
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function PackagesView() {
   const [packages, setPackages] = useState(PACKAGES);
   const [billing, setBilling] = useState<'monthly'|'annual'>('monthly');
@@ -870,23 +960,32 @@ export function PackagesView() {
   const [newPkg, setNewPkg] = useState({ name:'', monthly:0, annual:0, maxUsers:10 });
 
   // Load the canonical catalog from the API — falls back to PACKAGES defaults on failure.
-  // Edits here are local-only (no PATCH endpoint yet); this just replaces the old hardcoded seed.
-  useEffect(() => {
+  // Edit/Create/Deactivate below are wired to real endpoints (packages.routes.ts POST/PATCH/DELETE,
+  // SuperAdmin-gated). The Feature Gates checklist in the edit modal is a separate, already-wired
+  // endpoint (/v1/superadmin/packages/:code/features) — see FeatureGatesEditor below.
+  function mapFromApi(pkg: { id:string; code:string; name:string; monthly_price:number; annual_price:number; max_users:number; features:string[]; color:string; popular:boolean }): Package {
+    return {
+      id: pkg.id,
+      code: pkg.code,
+      name: pkg.name,
+      monthly: pkg.monthly_price,
+      annual: pkg.annual_price,
+      maxUsers: pkg.max_users,
+      active: 0,
+      color: pkg.color,
+      popular: pkg.popular,
+      features: pkg.features,
+    };
+  }
+
+  function reload() {
     apiFetch('/v1/packages').then(res => {
-      const mapped: Package[] = (res.data as Array<{ id:string; code:string; name:string; monthly_price:number; annual_price:number; max_users:number; features:string[]; color:string; popular:boolean }>).map(pkg => ({
-        id: pkg.id,
-        name: pkg.name,
-        monthly: pkg.monthly_price,
-        annual: pkg.annual_price,
-        maxUsers: pkg.max_users,
-        active: PACKAGES.find(p => p.name === pkg.name)?.active ?? 0,
-        color: pkg.color,
-        popular: pkg.popular,
-        features: pkg.features,
-      }));
+      const mapped: Package[] = (res.data as any[]).map(mapFromApi);
       if (mapped.length) setPackages(mapped);
-    }).catch(() => { /* keep PACKAGES fallback */ });
-  }, []);
+    }).catch(() => { /* keep current/fallback list */ });
+  }
+
+  useEffect(() => { reload(); }, []);
 
   return (
     <div>
@@ -903,7 +1002,7 @@ export function PackagesView() {
         }
       />
 
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20 }}>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(240px,1fr))', gap:20 }}>
         {packages.map(pkg=>(
           <div key={pkg.id} className="card" style={{ padding:'28px 26px', position:'relative', border:`2px solid ${pkg.popular?pkg.color:'var(--border)'}` }}>
             {pkg.popular && (
@@ -926,7 +1025,7 @@ export function PackagesView() {
                 <span style={{ fontSize:13, color:'var(--ink3)' }}>/{billing==='monthly'?'mo':'yr'}</span>
               </div>
               {billing==='annual' && (
-                <div style={{ fontSize:11, color:'#16a34a', fontWeight:600, marginTop:2 }}>Save ${(pkg.monthly*12-pkg.annual).toFixed(0)}/yr vs monthly</div>
+                <div style={{ fontSize:11, color:'#059669', fontWeight:600, marginTop:2 }}>Save ${(pkg.monthly*12-pkg.annual).toFixed(0)}/yr vs monthly</div>
               )}
             </div>
 
@@ -952,7 +1051,7 @@ export function PackagesView() {
       {/* Edit modal */}
       {editing && (
         <div className="modal-overlay" onClick={()=>setEditing(null)}>
-          <div className="card" style={{ width:400, padding:28 }} onClick={e=>e.stopPropagation()}>
+          <div className="card" style={{ width:460, padding:28 }} onClick={e=>e.stopPropagation()}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
               <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Edit Package — {editing.name}</span>
               <button onClick={()=>setEditing(null)} className="dp-close"><Icon name="close" size={16} /></button>
@@ -967,9 +1066,44 @@ export function PackagesView() {
                 <input type={f.type} value={(editing as any)[f.key]} onChange={e=>setEditing(p=>p?({...p,[f.key]:Number(e.target.value)}):p)} className="input-field" style={{ width:'100%' }} />
               </div>
             ))}
-            <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:4 }}>
-              <button onClick={()=>setEditing(null)} className="btn btn-secondary btn-sm">Cancel</button>
-              <button onClick={()=>{ setPackages(p=>p.map(pk=>pk.id===editing.id?editing:pk)); setEditing(null); }} className="btn btn-primary btn-sm">Save Changes</button>
+            <FeatureGatesEditor packageCode={editing.code} />
+            <div style={{ display:'flex', gap:10, justifyContent:'space-between', marginTop:4 }}>
+              <button
+                onClick={async () => {
+                  if (!confirm(`Deactivate the ${editing.name} package? It will stop appearing to new signups.`)) return;
+                  try {
+                    await apiFetch(`/v1/packages/${editing.code}`, { method: 'DELETE' });
+                    setPackages(p => p.filter(pk => pk.id !== editing.id));
+                    setEditing(null);
+                  } catch (err: any) {
+                    alert(`Failed to deactivate: ${err?.message ?? 'Unknown error'}`);
+                  }
+                }}
+                className="btn btn-sm"
+                style={{ color: 'var(--red)', border: '1px solid var(--border)', background: 'var(--white)' }}
+              >
+                Deactivate
+              </button>
+              <div style={{ display:'flex', gap:10 }}>
+                <button onClick={()=>setEditing(null)} className="btn btn-secondary btn-sm">Cancel</button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const updated = await apiFetch(`/v1/packages/${editing.code}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify({ monthly_price: editing.monthly, annual_price: editing.annual, max_users: editing.maxUsers }),
+                      });
+                      setPackages(p => p.map(pk => pk.id === editing.id ? mapFromApi(updated) : pk));
+                      setEditing(null);
+                    } catch (err: any) {
+                      alert(`Failed to save: ${err?.message ?? 'Unknown error'}`);
+                    }
+                  }}
+                  className="btn btn-primary btn-sm"
+                >
+                  Save Changes
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -996,11 +1130,24 @@ export function PackagesView() {
             ))}
             <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:4 }}>
               <button onClick={()=>setShowAdd(false)} className="btn btn-secondary btn-sm">Cancel</button>
-              <button onClick={()=>{
+              <button onClick={async ()=>{
                 if (!newPkg.name.trim()) return;
-                setPackages(p=>[...p,{ id:`P${p.length+1}`, ...newPkg, active:0, color:'#6366f1', features:['Custom features'] }]);
-                setNewPkg({name:'',monthly:0,annual:0,maxUsers:10});
-                setShowAdd(false);
+                const code = newPkg.name.trim().toLowerCase().replace(/\s+/g,'-');
+                try {
+                  await apiFetch('/v1/packages', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                      code, name: newPkg.name.trim(),
+                      monthly_price: newPkg.monthly, annual_price: newPkg.annual, max_users: newPkg.maxUsers,
+                      features: ['Custom features'], color: '#6366f1', popular: false, sort_order: 99,
+                    }),
+                  });
+                  reload();
+                  setNewPkg({name:'',monthly:0,annual:0,maxUsers:10});
+                  setShowAdd(false);
+                } catch (err: any) {
+                  alert(`Failed to create package: ${err?.message ?? 'Unknown error'}`);
+                }
               }} className="btn btn-primary btn-sm" disabled={!newPkg.name.trim()}>Create Package</button>
             </div>
           </div>
@@ -1039,7 +1186,7 @@ export function DomainsView() {
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:22 }}>
         <StatCard label="Total Domains"  value={stats.total}   color="var(--teal)"  />
-        <StatCard label="Active"         value={stats.active}  color="#16a34a"      />
+        <StatCard label="Active"         value={stats.active}  color="#059669"      />
         <StatCard label="SSL Secured"    value={stats.ssl}     color="#7c3aed"      />
         <StatCard label="Pending"        value={stats.pending} color="#d97706"      />
       </div>
@@ -1049,10 +1196,11 @@ export function DomainsView() {
           <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)' }} />
           <input title="Search domains" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search domains…" className="input-field" />
         </div>
-        <select title="Filter by status" value={statusFilter} onChange={e=>setStatusFilter(e.target.value as DomainStatus|'all')} className="input-field sa-toolbar-select">
-          <option value="all">All Status</option>
-          {(Object.keys(DOM_CFG) as DomainStatus[]).map(k=><option key={k} value={k}>{DOM_CFG[k].label}</option>)}
-        </select>
+        <SingleSelectFilter
+          label="Status" allLabel="All Status"
+          options={(Object.keys(DOM_CFG) as DomainStatus[]).map(k => ({ value: k, label: DOM_CFG[k].label }))}
+          value={statusFilter === 'all' ? null : statusFilter} onChange={v => setStatusFilter((v ?? 'all') as DomainStatus | 'all')}
+        />
       </div>
 
       <DataTable headers={['Domain','Company','SSL','Status','Created','Actions']}>
@@ -1076,7 +1224,7 @@ export function DomainsView() {
               </TD>
               <TD>
                 {d.ssl
-                  ? <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, fontWeight:700, color:'#16a34a', background:'#dcfce7', padding:'3px 8px', borderRadius:20 }}><Icon name="lock" size={10} color="#16a34a" />SSL Active</span>
+                  ? <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, fontWeight:700, color:'#059669', background:'#ecfdf5', padding:'3px 8px', borderRadius:20 }}><Icon name="lock" size={10} color="#059669" />SSL Active</span>
                   : <span style={{ fontSize:11, fontWeight:700, color:'#ef4444', background:'#fef2f2', padding:'3px 8px', borderRadius:20 }}>No SSL</span>
                 }
               </TD>
@@ -1128,7 +1276,7 @@ export function TransactionsView() {
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:22 }}>
         <StatCard label="Total Revenue"      value={fmtCurrency(stats.total)} color="var(--teal)"  />
-        <StatCard label="Completed"          value={stats.completed}          color="#16a34a"      />
+        <StatCard label="Completed"          value={stats.completed}          color="#059669"      />
         <StatCard label="Pending"            value={stats.pending}            color="#d97706"      />
         <StatCard label="Failed"             value={stats.failed}             color="#ef4444"      />
       </div>
@@ -1138,10 +1286,11 @@ export function TransactionsView() {
           <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)' }} />
           <input title="Search company or ref" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search company or Ref…" className="input-field" />
         </div>
-        <select title="Filter by status" value={statusFilter} onChange={e=>setStatusFilter(e.target.value as TxStatus|'all')} className="input-field sa-toolbar-select">
-          <option value="all">All Status</option>
-          {(Object.keys(TX_CFG) as TxStatus[]).map(k=><option key={k} value={k}>{TX_CFG[k].label}</option>)}
-        </select>
+        <SingleSelectFilter
+          label="Status" allLabel="All Status"
+          options={(Object.keys(TX_CFG) as TxStatus[]).map(k => ({ value: k, label: TX_CFG[k].label }))}
+          value={statusFilter === 'all' ? null : statusFilter} onChange={v => setStatusFilter((v ?? 'all') as TxStatus | 'all')}
+        />
       </div>
 
       <DataTable headers={['Ref','Company','Plan','Amount','Date','Method','Status','Actions']}>
@@ -1185,9 +1334,10 @@ const MRR_DATA = [
   {label:'Dec',value:1415},{label:'Jan',value:1266},{label:'Feb',value:1087},
 ];
 const PLAN_REV: { plan:PlanId; companies:number; mrr:number; arr:number }[] = [
-  { plan:'starter',      companies:2, mrr:49,     arr:588    },
-  { plan:'professional', companies:3, mrr:447,    arr:5364   },
-  { plan:'enterprise',   companies:3, mrr:997.50, arr:11970  },
+  { plan:'starter',      companies:2, mrr:58,     arr:696    },
+  { plan:'growth',       companies:2, mrr:198,    arr:2376   },
+  { plan:'scale',        companies:1, mrr:299,    arr:3588   },
+  { plan:'enterprise',   companies:3, mrr:2997,   arr:35964  },
 ];
 
 export function FinanceView() {
@@ -1288,14 +1438,16 @@ export function ActivityView() {
       <PageHdr title="Activity Log" sub="Audit trail of all superadmin actions on the platform" />
 
       <div className="sa-toolbar">
-        <select title="Filter by type" value={typeFilter} onChange={e => setTypeFilter(e.target.value as ActivityType|'all')} className="input-field sa-toolbar-select">
-          <option value="all">All Types</option>
-          {(Object.keys(TYPE_LABELS) as ActivityType[]).map(k => <option key={k} value={k}>{TYPE_LABELS[k]}</option>)}
-        </select>
-        <select title="Filter by company" value={coFilter} onChange={e => setCoFilter(e.target.value)} className="input-field sa-toolbar-select">
-          <option value="all">All Companies</option>
-          {COMPANIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
+        <SingleSelectFilter
+          label="Type" allLabel="All Types"
+          options={(Object.keys(TYPE_LABELS) as ActivityType[]).map(k => ({ value: k, label: TYPE_LABELS[k] }))}
+          value={typeFilter === 'all' ? null : typeFilter} onChange={v => setTypeFilter((v ?? 'all') as ActivityType | 'all')}
+        />
+        <SingleSelectFilter
+          label="Company" allLabel="All Companies"
+          options={COMPANIES.map(c => ({ value: c.id, label: c.name }))}
+          value={coFilter === 'all' ? null : coFilter} onChange={v => setCoFilter(v ?? 'all')}
+        />
       </div>
 
       <div className="card" style={{ padding:'8px 0' }}>
@@ -1342,14 +1494,17 @@ export function SettingsView() {
   const [saved, setSaved] = useState<string|null>(null);
   const [maintenance, setMaintenance] = useState(false);
   const [smtp, setSmtp] = useState({ host:'smtp.mailgun.org', port:'587', user:'no-reply@clearos.io', pass:'', from:'Hudumika Platform <no-reply@clearos.io>', tls:true });
-  const [storage, setStorage] = useState({ starter:'5', professional:'50', enterprise:'500', perUserGB:'2' });
+  const [storage, setStorage] = useState({ starter:'10', growth:'50', scale:'250', enterprise:'Unlimited', perUserGB:'2' });
   const [features, setFeatures] = useState({ crm:true, hrm:true, finance:true, api:true, whitelabel:false, customDomain:true, aiCopilot:true, twoFactor:false });
   const [security, setSecurity] = useState({ minPasswordLength:'8', sessionTimeoutHours:'8', maxLoginAttempts:'5', lockoutMinutes:'15', twoFaPolicy:'optional' as 'off'|'optional'|'required', ipAllowlist:'' });
   const [api, setApi] = useState({ rateLimit:'120', corsOrigins:'*', webhookSecret:'whs_live_••••••••••••••••', keyRotationDays:'90' });
   const [showWebhookSecret, setShowWebhookSecret] = useState(false);
+  const [ocr, setOcr] = useState({ geminiApiKey:'' });
   const [loading, setLoading] = useState(true);
   const [testingSmtp, setTestingSmtp] = useState(false);
   const [smtpTested, setSmtpTested] = useState(false);
+  const [testingOcr, setTestingOcr] = useState(false);
+  const [ocrTested, setOcrTested] = useState(false);
 
   useEffect(() => {
     apiFetch('/v1/superadmin/settings')
@@ -1361,6 +1516,7 @@ export function SettingsView() {
         if (s.features) setFeatures(prev => ({ ...prev, ...s.features }));
         if (s.security) setSecurity(prev => ({ ...prev, ...s.security }));
         if (s.api) setApi(prev => ({ ...prev, ...s.api }));
+        if (s.ocr) setOcr(prev => ({ ...prev, ...s.ocr }));
         setLoading(false);
       })
       .catch(() => {
@@ -1375,7 +1531,8 @@ export function SettingsView() {
       storage,
       features,
       security,
-      api
+      api,
+      ocr
     };
 
     try {
@@ -1427,6 +1584,26 @@ export function SettingsView() {
     }
   }
 
+  async function testOcr() {
+    if (!ocr.geminiApiKey) {
+      alert('Enter a Gemini API key first.');
+      return;
+    }
+    setTestingOcr(true);
+    try {
+      await apiFetch('/v1/superadmin/ocr-test', {
+        method: 'POST',
+        body: JSON.stringify({ geminiApiKey: ocr.geminiApiKey })
+      });
+      setOcrTested(true);
+      setTimeout(() => setOcrTested(false), 2000);
+    } catch (err: any) {
+      alert(`Gemini Test Failed: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setTestingOcr(false);
+    }
+  }
+
   const SectionCard = ({ title, sub, children, section, readOnly }: { title:string; sub:string; children:React.ReactNode; section:string; readOnly?:boolean }) => (
     <div className="card" style={{ padding:'24px 26px', marginBottom:20 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20 }}>
@@ -1466,7 +1643,7 @@ export function SettingsView() {
       <PageHdr title="Platform Settings" sub="Platform-wide configuration applied across all tenants" />
 
       {/* ── Maintenance Mode ── */}
-      <div className="card" style={{ padding:'20px 26px', marginBottom:20, borderLeft:`4px solid ${maintenance ? '#ef4444' : 'var(--border)'}` }}>
+      <div className="card" style={{ padding:'20px 26px', marginBottom:20, borderLeft:`4px solid ${maintenance ? 'var(--red)' : 'var(--border)'}` }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:24 }}>
           <div>
             <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>Maintenance Mode</div>
@@ -1478,7 +1655,7 @@ export function SettingsView() {
           </div>
           <button type="button" title="Toggle maintenance mode" onClick={toggleMaintenance}
             style={{ padding:'8px 20px', borderRadius:9, border:'none', cursor:'pointer', fontWeight:700, fontSize:13, flexShrink:0,
-              background: maintenance ? '#ef4444' : 'var(--teal)', color:'#fff', fontFamily:'var(--font)' }}>
+              background: maintenance ? 'var(--red)' : 'var(--teal)', color:'#fff', fontFamily:'var(--font)' }}>
             {maintenance ? 'Disable Maintenance' : 'Enable Maintenance'}
           </button>
         </div>
@@ -1504,11 +1681,14 @@ export function SettingsView() {
               onChange={e => setSecurity(p=>({...p,lockoutMinutes:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
           <Field label="Two-Factor Authentication Policy" hint="Applies to all tenant admin and staff accounts">
-            <select title="2FA policy" value={security.twoFaPolicy} onChange={e => setSecurity(p=>({...p,twoFaPolicy:e.target.value as any}))} className="input-field" style={{ width:'100%' }}>
-              <option value="off">Off — not offered</option>
-              <option value="optional">Optional — users can enable it</option>
-              <option value="required">Required — all users must enable it</option>
-            </select>
+            <Select value={security.twoFaPolicy} onValueChange={v => setSecurity(p=>({...p,twoFaPolicy:v as any}))}>
+              <SelectTrigger className="input-field" style={{ width:'100%' }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="off">Off — not offered</SelectItem>
+                <SelectItem value="optional">Optional — users can enable it</SelectItem>
+                <SelectItem value="required">Required — all users must enable it</SelectItem>
+              </SelectContent>
+            </Select>
           </Field>
           <Field label="IP Allowlist" hint="Comma-separated CIDRs. Leave blank to allow all IPs.">
             <input title="IP allowlist" placeholder="e.g. 196.0.0.0/8, 10.0.0.1" value={security.ipAllowlist}
@@ -1554,6 +1734,24 @@ export function SettingsView() {
         </div>
       </SectionCard>
 
+      {/* ── OCR / Document Scanning ── */}
+      <SectionCard title="OCR / Document Scanning" sub="Google Gemini API key used to extract structured data from scanned BLs, invoices, and TANSAD documents in ClearOS" section="ocr">
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
+          <Field label="Gemini API Key" hint="From aistudio.google.com/apikey. Leave blank to keep OCR running on simulated demo data.">
+            <input title="Gemini API Key" type="password" placeholder="AIza••••••••••••••••" value={ocr.geminiApiKey}
+              onChange={e => setOcr(p=>({...p,geminiApiKey:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+          </Field>
+          <div style={{ display:'flex', alignItems:'flex-end' }}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={testOcr} disabled={testingOcr} style={{ gap:6 }}>
+              {testingOcr ? 'Testing...' : ocrTested ? <><Icon name="check" size={12}/>Connection OK</> : <><Icon name="zap" size={12}/>Test Connection</>}
+            </button>
+          </div>
+        </div>
+        <div style={{ fontSize:11, color:'var(--ink3)', marginTop:2 }}>
+          {ocr.geminiApiKey ? <span style={{ color:'var(--teal)' }}>● Live — scans use Gemini vision extraction</span> : <span>○ Simulated — no key configured, scans return demo data</span>}
+        </div>
+      </SectionCard>
+
       {/* ── API & Webhooks ── */}
       <SectionCard title="API & Webhooks" sub="Rate limiting, CORS, and webhook security for platform APIs" section="api">
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
@@ -1588,9 +1786,9 @@ export function SettingsView() {
       {/* ── Storage Quotas ── */}
       <SectionCard title="Storage Quotas" sub="Maximum storage allocated per subscription plan and per user" section="storage">
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))', gap:14 }}>
-          {(['starter','professional','enterprise'] as const).map(plan => (
+          {(['starter','growth','scale','enterprise'] as const).map(plan => (
             <Field key={plan} label={`${PLAN_CFG[plan].label} (GB)`}>
-              <input title={`${PLAN_CFG[plan].label} quota`} type="number" min={1} value={(storage as any)[plan]}
+              <input title={`${PLAN_CFG[plan].label} quota`} type={plan === 'enterprise' ? 'text' : 'number'} min={1} value={(storage as any)[plan]}
                 onChange={e => setStorage(p=>({...p,[plan]:e.target.value}))} className="input-field" style={{ width:'100%' }} />
             </Field>
           ))}
@@ -1705,395 +1903,179 @@ export function SettingsView() {
 }
 
 /* ══════════════════════════════════════════════════
-   BRANDING VIEW
+   APP STATUS VIEW — per-app maintenance kill switch
 ══════════════════════════════════════════════════ */
-const APP_META_BRAND: { id: string; name: string; defaultColor: string }[] = [
-  { id:'clearos',   name:'ClearOS',        defaultColor:'#ea580c' },
-  { id:'finops',    name:'FinOps',          defaultColor:'#0284c7' },
-  { id:'complyos',  name:'ComplyOS',        defaultColor:'#059669' },
-  { id:'bliss',     name:'Bliss',           defaultColor:'#7c3aed' },
-  { id:'onepi',     name:'NexusHR',         defaultColor:'#0d9488' },
-  { id:'cloud',     name:'Cloud',           defaultColor:'#0369a1' },
-  { id:'ai',        name:'AI',              defaultColor:'#6d28d9' },
-  { id:'workspace', name:'Admin',           defaultColor:'#64748b' },
-  { id:'email',     name:'Email',           defaultColor:'#0078d4' },
-  { id:'crm',       name:'CRM',             defaultColor:'#16a34a' },
-  { id:'contacts',  name:'Contacts',        defaultColor:'#1a73e8' },
-  { id:'store',     name:'Store',           defaultColor:'#8b5cf6' },
-  { id:'admin',     name:'Platform Admin',  defaultColor:'#dc2626' },
-];
+const APP_LABELS: Record<string, string> = {
+  ai: 'AI', clearos: 'ClearOS', cloud: 'Cloud', complyos: 'ComplyOS',
+  contacts: 'Contacts', email: 'Email', finops: 'FinOps', oneid: 'Ondi',
+  onepi: 'NexusHR', tracking: 'Tracking', demurrage: 'Demurrage', cargotracker: 'CargoTracker',
+};
 
-const BG_OPTIONS = [
-  { value:'navy',     label:'Navy',     bg:'#0e1f3d' },
-  { value:'teal',     label:'Teal',     bg:'#0d7a6b' },
-  { value:'gradient', label:'Gradient', bg:'linear-gradient(135deg,#0e1f3d 0%,#0d7a6b 100%)' },
-  { value:'white',    label:'Light',    bg:'#f8fafc' },
-] as const;
+const APP_ICONS: Record<string, IconName> = {
+  ai: 'sparkle', clearos: 'ship', cloud: 'folder', complyos: 'shield',
+  contacts: 'contact', email: 'mail', finops: 'dollarSign', oneid: 'key',
+  onepi: 'users', tracking: 'truck', demurrage: 'timer', cargotracker: 'container',
+};
 
-function BField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+interface AppStatusRow { app_id: string; status: 'active' | 'maintenance'; message: string | null; updated_at: string; }
+
+type AppStatusSort = 'name' | 'status' | 'updated';
+
+export function AppStatusView() {
+  const isMobile = useIsMobile();
+  const [rows, setRows] = useState<AppStatusRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [sortBy, setSortBy] = useState<AppStatusSort>('name');
+
+  useEffect(() => {
+    apiFetch('/v1/superadmin/app-status')
+      .then(res => setRows(res.appStatus || []))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const visibleRows = useMemo(() => {
+    let list = rows;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(r => (APP_LABELS[r.app_id] ?? r.app_id).toLowerCase().includes(q) || r.app_id.toLowerCase().includes(q));
+    }
+    if (statusFilter) list = list.filter(r => r.status === statusFilter);
+    const sorted = [...list];
+    if (sortBy === 'name') {
+      sorted.sort((a, b) => (APP_LABELS[a.app_id] ?? a.app_id).localeCompare(APP_LABELS[b.app_id] ?? b.app_id));
+    } else if (sortBy === 'status') {
+      sorted.sort((a, b) => (a.status === b.status ? 0 : a.status === 'maintenance' ? -1 : 1));
+    } else {
+      sorted.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+    }
+    return sorted;
+  }, [rows, search, statusFilter, sortBy]);
+
+  async function toggle(row: AppStatusRow) {
+    const nextStatus = row.status === 'active' ? 'maintenance' : 'active';
+    setSavingId(row.app_id);
+    try {
+      const res = await apiFetch(`/v1/superadmin/app-status/${row.app_id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: nextStatus, message: drafts[row.app_id] ?? row.message ?? undefined }),
+      });
+      setRows(prev => prev.map(r => r.app_id === row.app_id ? res.appStatus : r));
+    } catch (err: any) {
+      alert(`Failed to update ${APP_LABELS[row.app_id] ?? row.app_id}: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setSavingId(null);
+    }
+  }
+
+  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading app status…</div>;
+
+  const liveCount = rows.filter(r => r.status === 'active').length;
+  const SORT_OPTIONS: { value: string; label: string }[] = [
+    { value: 'name',    label: 'Name A–Z' },
+    { value: 'status',  label: 'Maintenance first' },
+    { value: 'updated', label: 'Recently updated' },
+  ];
+
   return (
     <div>
-      <label className="bfield-label">{label}</label>
-      {children}
-      {hint && <div className="bfield-hint">{hint}</div>}
-    </div>
-  );
-}
-
-function BCard({ title, sub, section, saved, onSave, children }: {
-  title: string; sub: string; section: string;
-  saved: string|null; onSave: (s: string) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="card bcard">
-      <div className="bcard-hdr">
-        <div>
-          <div className="bcard-title">{title}</div>
-          <div className="bcard-sub">{sub}</div>
-        </div>
-        <button type="button" title={`Save ${title}`} onClick={() => onSave(section)} className="btn btn-primary btn-sm">
-          {saved===section ? <><Icon name="check" size={13}/>Saved</> : <><Icon name="save" size={13}/>Save</>}
-        </button>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function LogoSlot({ variant, preview, onUpload, onClear }: {
-  variant: 'light'|'dark';
-  preview: string;
-  onUpload: (v: 'light'|'dark', e: React.ChangeEvent<HTMLInputElement>) => void;
-  onClear: (v: 'light'|'dark') => void;
-}) {
-  return (
-    <div className="logo-slot">
-      <div className="logo-slot-label">
-        {variant === 'light' ? 'Light Mode Logo' : 'Dark Mode Logo'}
-      </div>
-      <div className={`logo-slot-preview logo-slot-preview--${variant}`}>
-        {preview
-          ? <img src={preview} alt={`${variant} logo`} className="logo-slot-img" />
-          : <span className={`logo-slot-empty--${variant}`}>No logo</span>
+      <PageHdr
+        title="App Status"
+        sub="Per-app maintenance switch — take a single app down for a deploy without affecting the rest of the platform"
+        action={
+          <Badge cfg={liveCount === rows.length
+            ? { label: `${liveCount} of ${rows.length} apps live`, color:'var(--green)', bg:'var(--green-l)' }
+            : { label: `${liveCount} of ${rows.length} apps live`, color:'var(--gold)', bg:'var(--gold-l)' }} />
         }
+      />
+
+      {/* Toolbar: search + status filter + sort */}
+      <div style={{ display:'flex', flexWrap:'wrap', gap:10, marginBottom:18 }}>
+        <div style={{ position:'relative', flex:'1 1 240px', minWidth:200 }}>
+          <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:12, top:'50%', transform:'translateY(-50%)' }} />
+          <input
+            className="input-field"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search apps…"
+            style={{ width:'100%', boxSizing:'border-box', paddingLeft:34 }}
+          />
+        </div>
+        <SingleSelectFilter
+          label="Status"
+          icon={<Icon name="filter" size={13} />}
+          options={[{ value:'active', label:'Live' }, { value:'maintenance', label:'Maintenance' }]}
+          value={statusFilter}
+          onChange={setStatusFilter}
+          allLabel="All statuses"
+        />
+        <Select value={sortBy} onValueChange={v => setSortBy(v as AppStatusSort)}>
+          <SelectTrigger style={{ minWidth:170 }}>
+            <Icon name="sliders" size={13} color="var(--ink3)" />
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
-      <div className="logo-slot-actions">
-        <label className="logo-slot-upload-btn">
-          <Icon name="upload" size={12}/>{preview ? 'Replace' : 'Upload'}
-          <input type="file" accept="image/*,image/svg+xml" className="logo-slot-file-input" onChange={e => onUpload(variant, e)} />
-        </label>
-        {preview && (
-          <button type="button" title="Remove" onClick={() => onClear(variant)} className="logo-slot-remove-btn">
-            <Icon name="x" size={12}/>
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
 
-export function BrandingView() {
-  const [saved, setSaved] = useState<string|null>(null);
-
-  const [identity, setIdentity] = useState({
-    name:         localStorage.getItem('hudumika_platform_name')     ?? 'Hudumika',
-    tagline:      localStorage.getItem('hudumika_platform_tagline')  ?? 'Smart Business, Simplified.',
-    supportEmail: localStorage.getItem('hudumika_support_email')     ?? 'support@hudumika.io',
-    supportUrl:   localStorage.getItem('hudumika_support_url')       ?? 'https://support.hudumika.io',
-    websiteUrl:   localStorage.getItem('hudumika_website_url')       ?? 'https://hudumika.io',
-  });
-
-  const [logoLight, setLogoLight] = useState<string>(localStorage.getItem('hudumika_brand_logo_light') ?? '');
-  const [logoDark,  setLogoDark]  = useState<string>(localStorage.getItem('hudumika_brand_logo_dark')  ?? '');
-  const [favicon,   setFavicon]   = useState<string>(localStorage.getItem('hudumika_brand_favicon')    ?? '');
-
-  const [login, setLogin] = useState({
-    headline: localStorage.getItem('hudumika_login_headline') ?? 'Welcome back',
-    subtext:  localStorage.getItem('hudumika_login_subtext')  ?? 'Sign in to your Hudumika workspace',
-    bgStyle:  (localStorage.getItem('hudumika_login_bg') ?? 'navy') as 'navy'|'teal'|'gradient'|'white',
-  });
-
-  const [colors, setColors] = useState<Record<string, string>>(
-    Object.fromEntries(APP_META_BRAND.map(a => [a.id, localStorage.getItem(`hudumika_app_color_${a.id}`) ?? a.defaultColor]))
-  );
-
-  const [appLogos, setAppLogos] = useState<Record<string, string>>(
-    Object.fromEntries(APP_META_BRAND.map(a => [a.id, localStorage.getItem(`hudumika_app_logo_${a.id}`) ?? '']))
-  );
-  const [savedApp, setSavedApp] = useState<string|null>(null);
-
-  const [emailBrand, setEmailBrand] = useState({
-    headerText:  localStorage.getItem('hudumika_email_header')  ?? 'Hudumika Platform',
-    footerText:  localStorage.getItem('hudumika_email_footer')  ?? '© 2026 Hudumika LLC. All rights reserved.',
-    accentColor: localStorage.getItem('hudumika_email_accent')  ?? '#0d7a6b',
-  });
-
-  function readFile(file: File): Promise<string> {
-    return new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(file); });
-  }
-
-  async function handleLogoFile(which: 'light'|'dark', e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file) return;
-    const data = await readFile(file);
-    const key  = which === 'light' ? 'hudumika_brand_logo_light' : 'hudumika_brand_logo_dark';
-    localStorage.setItem(key, data);
-    which === 'light' ? setLogoLight(data) : setLogoDark(data);
-    window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
-  }
-
-  async function handleFaviconFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file) return;
-    const data = await readFile(file);
-    localStorage.setItem('hudumika_brand_favicon', data);
-    setFavicon(data);
-  }
-
-  function clearLogo(which: 'light'|'dark') {
-    const key = which === 'light' ? 'hudumika_brand_logo_light' : 'hudumika_brand_logo_dark';
-    localStorage.removeItem(key);
-    which === 'light' ? setLogoLight('') : setLogoDark('');
-    window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
-  }
-
-  async function handleAppLogoFile(appId: string, e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]; if (!file) return;
-    const data = await readFile(file);
-    setAppLogos(p => ({ ...p, [appId]: data }));
-  }
-
-  function saveApp(appId: string) {
-    localStorage.setItem(`hudumika_app_color_${appId}`, colors[appId]);
-    const logo = appLogos[appId];
-    if (logo) localStorage.setItem(`hudumika_app_logo_${appId}`, logo);
-    else localStorage.removeItem(`hudumika_app_logo_${appId}`);
-    window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
-    setSavedApp(appId);
-    setTimeout(() => setSavedApp(null), 2000);
-  }
-
-  function save(section: string) {
-    if (section === 'identity') {
-      localStorage.setItem('hudumika_platform_name',    identity.name);
-      localStorage.setItem('hudumika_platform_tagline', identity.tagline);
-      localStorage.setItem('hudumika_support_email',    identity.supportEmail);
-      localStorage.setItem('hudumika_support_url',      identity.supportUrl);
-      localStorage.setItem('hudumika_website_url',      identity.websiteUrl);
-      window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
-    }
-    if (section === 'login') {
-      localStorage.setItem('hudumika_login_headline', login.headline);
-      localStorage.setItem('hudumika_login_subtext',  login.subtext);
-      localStorage.setItem('hudumika_login_bg',       login.bgStyle);
-    }
-    if (section === 'colors') {
-      APP_META_BRAND.forEach(a => localStorage.setItem(`hudumika_app_color_${a.id}`, colors[a.id]));
-    }
-    if (section === 'email') {
-      localStorage.setItem('hudumika_email_header', emailBrand.headerText);
-      localStorage.setItem('hudumika_email_footer', emailBrand.footerText);
-      localStorage.setItem('hudumika_email_accent', emailBrand.accentColor);
-    }
-    setSaved(section);
-    setTimeout(() => setSaved(null), 2000);
-  }
-
-  const loginBg = BG_OPTIONS.find(o => o.value === login.bgStyle)?.bg ?? '#0e1f3d';
-  const loginDark = login.bgStyle !== 'white';
-
-  return (
-    <div style={{ width:'100%' }}>
-      <PageHdr title="Platform Branding" sub="Visual identity applied across all tenant interfaces, login pages, and communications" />
-
-      {/* ── Platform Identity ── */}
-      <BCard title="Platform Identity" sub="Name, tagline, and support links shown on the workspace home, login page, and error pages" section="identity" saved={saved} onSave={save}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
-          <BField label="Platform Name" hint="Appears in the AppHeader and on the login page">
-            <input title="Platform name" value={identity.name} onChange={e => setIdentity(p=>({...p,name:e.target.value}))} placeholder="Hudumika" className="input-field" style={{ width:'100%' }} />
-          </BField>
-          <BField label="Tagline" hint="Short slogan on the workspace home welcome bar">
-            <input title="Tagline" value={identity.tagline} onChange={e => setIdentity(p=>({...p,tagline:e.target.value}))} placeholder="Smart Business, Simplified." className="input-field" style={{ width:'100%' }} />
-          </BField>
-          <BField label="Support Email" hint="Linked on error pages and the footer">
-            <input title="Support email" type="email" value={identity.supportEmail} onChange={e => setIdentity(p=>({...p,supportEmail:e.target.value}))} placeholder="support@clearos.io" className="input-field" style={{ width:'100%' }} />
-          </BField>
-          <BField label="Help / Documentation URL" hint="Help desk or knowledge base link">
-            <input title="Support URL" type="url" value={identity.supportUrl} onChange={e => setIdentity(p=>({...p,supportUrl:e.target.value}))} placeholder="https://support.clearos.io" className="input-field" style={{ width:'100%' }} />
-          </BField>
-          <BField label="Website URL" hint="Linked in email footers and the login page">
-            <input title="Website URL" type="url" value={identity.websiteUrl} onChange={e => setIdentity(p=>({...p,websiteUrl:e.target.value}))} placeholder="https://clearos.io" className="input-field" style={{ width:'100%' }} />
-          </BField>
-        </div>
-      </BCard>
-
-      {/* ── Logos & Favicon ── */}
-      <BCard title="Logos & Favicon" sub="Upload both logo variants for light/dark mode support. SVG or PNG recommended." section="logos" saved={saved} onSave={save}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:16 }}>
-          <LogoSlot variant="light" preview={logoLight} onUpload={handleLogoFile} onClear={clearLogo} />
-          <LogoSlot variant="dark"  preview={logoDark}  onUpload={handleLogoFile} onClear={clearLogo} />
-          {/* Favicon */}
-          <div style={{ border:'1px solid var(--border)', borderRadius:10, padding:16 }}>
-            <div style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', marginBottom:10 }}>Favicon</div>
-            <div style={{ height:72, borderRadius:8, marginBottom:12, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)', border:'1px solid var(--border)' }}>
-              {favicon
-                ? <img src={favicon} alt="favicon" style={{ width:32, height:32, objectFit:'contain', imageRendering:'pixelated' }} />
-                : <span style={{ fontSize:11, color:'var(--ink3)' }}>No favicon</span>
-              }
-            </div>
-            <div style={{ display:'flex', gap:8 }}>
-              <label style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:5, height:32, borderRadius:7, border:'1px solid var(--border)', cursor:'pointer', fontSize:12, fontWeight:600, color:'var(--ink2)', background:'var(--bg)' }}>
-                <Icon name="upload" size={12}/>{favicon ? 'Replace' : 'Upload ICO/PNG'}
-                <input type="file" accept="image/x-icon,image/png,image/svg+xml" style={{ display:'none' }} onChange={handleFaviconFile} />
-              </label>
-              {favicon && (
-                <button type="button" title="Remove favicon" onClick={() => { setFavicon(''); localStorage.removeItem('hudumika_brand_favicon'); }} style={{ width:32, height:32, borderRadius:7, border:'1px solid var(--border)', background:'var(--bg)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--ink3)' }}>
-                  <Icon name="x" size={12}/>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </BCard>
-
-      {/* ── Login Page ── */}
-      <BCard title="Login Page" sub="Headline text and background shown to all users on the sign-in screen" section="login" saved={saved} onSave={save}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))', gap:20 }}>
-          <div style={{ display:'grid', gap:16, alignContent:'start' }}>
-            <BField label="Headline" hint="Large text displayed above the sign-in form">
-              <input title="Login headline" value={login.headline} onChange={e => setLogin(p=>({...p,headline:e.target.value}))} placeholder="Welcome back" className="input-field" style={{ width:'100%' }} />
-            </BField>
-            <BField label="Sub-text" hint="Descriptive text below the headline">
-              <input title="Login subtext" value={login.subtext} onChange={e => setLogin(p=>({...p,subtext:e.target.value}))} placeholder="Sign in to your workspace" className="input-field" style={{ width:'100%' }} />
-            </BField>
-            <BField label="Background Style">
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:6 }}>
-                {BG_OPTIONS.map(opt => (
-                  <button key={opt.value} type="button" title={opt.label} onClick={() => setLogin(p=>({...p,bgStyle:opt.value}))}
-                    style={{ height:36, borderRadius:8, border: login.bgStyle===opt.value ? '2.5px solid var(--teal)' : '2px solid var(--border)', cursor:'pointer', background:opt.bg, outline:'none' }} />
-                ))}
-              </div>
-              <div style={{ display:'flex', gap:8 }}>
-                {BG_OPTIONS.map(opt => (
-                  <span key={opt.value} style={{ flex:1, fontSize:10, color: login.bgStyle===opt.value ? 'var(--teal)':'var(--ink3)', textAlign:'center', fontWeight: login.bgStyle===opt.value ? 700:400 }}>{opt.label}</span>
-                ))}
-              </div>
-            </BField>
-          </div>
-          {/* Live preview */}
-          <div style={{ borderRadius:12, overflow:'hidden', border:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'center', minHeight:180, background:loginBg }}>
-            <div style={{ textAlign:'center', padding:'0 24px' }}>
-              <div style={{ width:32, height:32, borderRadius:8, background: loginDark?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.08)', margin:'0 auto 12px', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <Icon name="shield" size={16} color={loginDark ? '#fff' : 'var(--ink2)'} />
-              </div>
-              <div style={{ fontSize:15, fontWeight:800, color: loginDark?'#fff':'var(--ink)', marginBottom:6 }}>
-                {login.headline || 'Welcome back'}
-              </div>
-              <div style={{ fontSize:11, color: loginDark?'rgba(255,255,255,0.55)':'var(--ink3)' }}>
-                {login.subtext || 'Sign in to your workspace'}
-              </div>
-            </div>
-          </div>
-        </div>
-      </BCard>
-
-      {/* ── App Branding ── */}
-      <div className="card sa-app-brand-card">
-        <div className="sa-app-brand-hdr">
-          <div className="sa-app-brand-title">App Branding</div>
-          <div className="sa-app-brand-sub">Logo and accent color for each app — saved individually</div>
-        </div>
-        <div className="sa-app-brand-list">
-          {APP_META_BRAND.map(app => {
-            const logo  = appLogos[app.id];
-            const color = colors[app.id];
+      {visibleRows.length === 0 ? (
+        <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>No apps match your search.</div>
+      ) : (
+        <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap:14 }}>
+          {visibleRows.map(row => {
+            const inMaintenance = row.status === 'maintenance';
+            const label = APP_LABELS[row.app_id] ?? row.app_id;
+            const busy = savingId === row.app_id;
             return (
-              <div key={app.id} className="sa-app-brand-row">
-
-                {/* Preview */}
-                <div className={`sa-app-preview${logo ? ' sa-app-preview--logo' : ''}`}
-                  style={logo ? undefined : { background: color }}>
-                  {logo
-                    ? <img src={logo} alt={app.name} />
-                    : <span className="sa-app-preview-init">{app.name.slice(0,1)}</span>
-                  }
+              <div
+                key={row.app_id}
+                className="card list-row-accent"
+                data-variant={inMaintenance ? 'error' : 'success'}
+                style={{ padding:'16px 18px', display:'flex', flexDirection:'column', gap:10 }}
+              >
+                <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:10 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:10, minWidth:0 }}>
+                    <FeaturedIcon variant={inMaintenance ? 'error' : 'success'} size="md">
+                      <Icon name={APP_ICONS[row.app_id] ?? 'layers'} size={18} />
+                    </FeaturedIcon>
+                    <div style={{ minWidth:0 }}>
+                      <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{label}</div>
+                      <Badge cfg={inMaintenance
+                        ? { label:'Maintenance', color:'var(--red)', bg:'var(--red-l)' }
+                        : { label:'Live', color:'var(--green)', bg:'var(--green-l)' }} />
+                    </div>
+                  </div>
+                  <Switch
+                    checked={!inMaintenance}
+                    disabled={busy}
+                    title={`Toggle ${label}`}
+                    onCheckedChange={() => toggle(row)}
+                    style={{ flexShrink:0, opacity: busy ? 0.6 : 1 }}
+                  />
                 </div>
-
-                {/* Name + id */}
-                <div className="sa-app-info">
-                  <div className="sa-app-info-name">{app.name}</div>
-                  <div className="sa-app-info-id">{app.id}</div>
+                <div style={{ fontSize:12, color:'var(--ink3)' }}>
+                  {inMaintenance ? 'All tenants are blocked from this app.' : 'Accessible per each tenant’s plan.'}
                 </div>
-
-                {/* Color picker */}
-                <div className="sa-app-color-row">
-                  <input type="color" title={`${app.name} color`} className="sa-brand-color-input"
-                    value={color} onChange={e => setColors(p=>({...p,[app.id]:e.target.value}))} />
-                  <button type="button" title="Reset color" className="btn btn-sm sa-brand-reset-app-btn"
-                    onClick={() => setColors(p=>({...p,[app.id]:app.defaultColor}))}>↺</button>
-                </div>
-
-                {/* Logo upload */}
-                <div className="sa-app-logo-row">
-                  <label className="sa-app-logo-label">
-                    <Icon name="upload" size={12}/>{logo ? 'Replace Logo' : 'Upload Logo'}
-                    <input type="file" accept="image/*,image/svg+xml" onChange={e => handleAppLogoFile(app.id, e)} />
-                  </label>
-                  {logo && (
-                    <button type="button" title="Remove logo" className="sa-app-logo-remove"
-                      onClick={() => setAppLogos(p=>({...p,[app.id]:''}))}>
-                      <Icon name="x" size={12}/>
-                    </button>
-                  )}
-                </div>
-
-                {/* Per-app save */}
-                <button type="button" onClick={() => saveApp(app.id)} className="btn btn-primary btn-sm sa-app-save-btn">
-                  {savedApp===app.id ? <><Icon name="check" size={12}/>Saved</> : <><Icon name="save" size={12}/>Save</>}
-                </button>
+                {inMaintenance && (
+                  <input
+                    title="Maintenance message shown to tenants"
+                    placeholder="Optional message shown to tenants while in maintenance…"
+                    value={drafts[row.app_id] ?? row.message ?? ''}
+                    onChange={e => setDrafts(prev => ({ ...prev, [row.app_id]: e.target.value }))}
+                    className="input-field"
+                    style={{ width:'100%', boxSizing:'border-box', fontSize:12 }}
+                  />
+                )}
               </div>
             );
           })}
         </div>
-      </div>
-
-      {/* ── Email Branding ── */}
-      <BCard title="Email Branding" sub="Header, footer, and accent color rendered in all platform-generated emails" section="email" saved={saved} onSave={save}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))', gap:20 }}>
-          <div style={{ display:'grid', gap:16, alignContent:'start' }}>
-            <BField label="Email Header Text" hint="Brand name shown at the top of every outgoing email">
-              <input title="Email header" value={emailBrand.headerText} onChange={e => setEmailBrand(p=>({...p,headerText:e.target.value}))} placeholder="Hudumika Platform" className="input-field" style={{ width:'100%' }} />
-            </BField>
-            <BField label="Email Footer Text" hint="Copyright or legal line at the bottom of emails">
-              <input title="Email footer" value={emailBrand.footerText} onChange={e => setEmailBrand(p=>({...p,footerText:e.target.value}))} placeholder="© 2026 Hudumika LLC." className="input-field" style={{ width:'100%' }} />
-            </BField>
-            <BField label="Accent Color" hint="Button and link color in email templates">
-              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                <input type="color" title="Email accent color" className="sa-brand-color-input"
-                  value={emailBrand.accentColor} onChange={e => setEmailBrand(p=>({...p,accentColor:e.target.value}))} />
-                <span style={{ fontSize:12, color:'var(--ink3)', fontFamily:'var(--mono)' }}>{emailBrand.accentColor}</span>
-              </div>
-            </BField>
-          </div>
-          {/* Email preview */}
-          <div style={{ border:'1px solid var(--border)', borderRadius:10, overflow:'hidden', fontSize:12, background:'var(--white)' }}>
-            <div style={{ padding:'12px 16px', borderBottom:`3px solid ${emailBrand.accentColor}`, background:'var(--bg)', fontWeight:700, color:'var(--ink)', display:'flex', alignItems:'center', gap:8 }}>
-              <span style={{ width:8, height:8, borderRadius:'50%', background:emailBrand.accentColor, display:'inline-block', flexShrink:0 }} />
-              {emailBrand.headerText || 'Platform'}
-            </div>
-            <div style={{ padding:'18px 16px' }}>
-              <div style={{ width:48, height:7, background:emailBrand.accentColor, borderRadius:3, marginBottom:12 }} />
-              <div style={{ width:'75%', height:5, background:'var(--border)', borderRadius:3, marginBottom:7 }} />
-              <div style={{ width:'55%', height:5, background:'var(--border)', borderRadius:3, marginBottom:18 }} />
-              <div style={{ display:'inline-block', padding:'7px 16px', background:emailBrand.accentColor, color:'#fff', borderRadius:6, fontSize:11, fontWeight:700 }}>
-                View in App →
-              </div>
-            </div>
-            <div style={{ padding:'10px 16px', background:'var(--bg)', borderTop:'1px solid var(--border)', color:'var(--ink3)', fontSize:10, lineHeight:1.5 }}>
-              {emailBrand.footerText || '© 2026 Hudumika LLC.'}
-            </div>
-          </div>
-        </div>
-      </BCard>
+      )}
     </div>
   );
 }

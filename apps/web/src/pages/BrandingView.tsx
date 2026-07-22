@@ -7,19 +7,31 @@ import { Button } from '@/components/ui/button';
 import { Icon } from '../components/Icon.js';
 import { pushBranding } from '../hooks/useBranding.js';
 
+// Every app defaults to the single brand accent (matches WorkspaceApp.tsx's
+// APP_COLORS / index.css's --teal) rather than its own hue by default — the
+// color picker below still lets a SuperAdmin recolor individual apps.
+const DEFAULT_APP_COLOR = '#0b1e3a';
 const APP_META_BRAND = [
-  { id: 'clearos',   name: 'ClearOS',        slogan: 'Customs & Freight clearance platform', defaultColor: '#ea580c' },
-  { id: 'finops',    name: 'FinOps',         slogan: 'Financial accounts and payroll ledger', defaultColor: '#0284c7' },
-  { id: 'onepi',     name: 'NexusHR',        slogan: 'People operations and shift rosters', defaultColor: '#0d9488' },
-  { id: 'bliss',     name: 'Bliss',          slogan: 'Support ticketing and client helpdesk', defaultColor: '#7c3aed' },
-  { id: 'complyos',  name: 'ComplyOS',       slogan: 'Compliance tracking and audit logs', defaultColor: '#059669' },
-  { id: 'crm',       name: 'CRM',            slogan: 'Customer relationships and sales deals', defaultColor: '#16a34a' },
-  { id: 'cloud',     name: 'Cloud',          slogan: 'Secure digital document management', defaultColor: '#0369a1' },
-  { id: 'email',     name: 'Email',          slogan: 'Internal corporate messaging center', defaultColor: '#0078d4' },
-  { id: 'contacts',  name: 'Contacts',       slogan: 'Stakeholder and client phone book', defaultColor: '#1a73e8' },
-  { id: 'ai',        name: 'AI',             slogan: 'ClearOS copilot and analytics bot', defaultColor: '#6d28d9' },
-  { id: 'store',     name: 'Store',          slogan: 'Plugin store and integrations hub', defaultColor: '#8b5cf6' },
-  { id: 'workspace', name: 'Admin',          slogan: 'Organization settings and configuration', defaultColor: '#64748b' },
+  { id: 'clearos',   name: 'ClearOS',        slogan: 'Customs & Freight clearance platform', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'finops',    name: 'FinOps',         slogan: 'Financial accounts and payroll ledger', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'onepi',     name: 'NexusHR',        slogan: 'People operations and shift rosters', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'bliss',     name: 'Bliss',          slogan: 'Omnichannel customer helpdesk & ticketing', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'complyos',  name: 'ComplyOS',       slogan: 'Compliance tracking, BRELA search & permits', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'crm',       name: 'CRM',            slogan: 'Customer relationships and sales deals', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'cloud',     name: 'CloudOS',        slogan: 'Enterprise document storage & cloud drive', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'email',     name: 'Email',          slogan: 'Internal corporate messaging center', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'contacts',  name: 'Contacts',       slogan: 'Stakeholder and client phone book', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'ai',        name: 'AI Automations', slogan: 'Document OCR, copilot & predictive analytics', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'store',     name: 'Hudumika Store', slogan: 'B2B procurement & equipment marketplace', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'workspace', name: 'Admin',          slogan: 'Organization settings and configuration', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'admin',     name: 'SuperAdmin',     slogan: 'Platform governance, tenants & query builder', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'oneid',     name: 'OneID',          slogan: 'SSO, identity verification & biometrics', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'onesite',   name: 'CMS',            slogan: 'Content management & company intranet', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'tracking',  name: 'CargoTracker',   slogan: 'GPS fleet tracking, telemetry & live map', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'demurrage',     name: 'Demurrage',    slogan: 'Container demurrage tariffs and cost tracking', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'cargotracker',  name: 'AWB Tracker',  slogan: 'AWB and Bill of Lading shipment tracking', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'calendar',  name: 'Calendar',       slogan: 'Scheduling & team calendar', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'tasks',     name: 'Tasks',          slogan: 'To-dos & team task tracking', defaultColor: DEFAULT_APP_COLOR },
 ];
 
 function readFile(file: File): Promise<string> {
@@ -34,9 +46,10 @@ export function BrandingView() {
   const [identity, setIdentity] = useState({
     name:         localStorage.getItem('hudumika_platform_name')     ?? 'Hudumika',
     tagline:      localStorage.getItem('hudumika_platform_tagline')  ?? 'Smart Business, Simplified.',
-    supportEmail: localStorage.getItem('hudumika_support_email')     ?? 'support@hudumika.io',
-    supportUrl:   localStorage.getItem('hudumika_support_url')       ?? 'https://support.hudumika.io',
-    websiteUrl:   localStorage.getItem('hudumika_website_url')       ?? 'https://hudumika.io',
+    supportEmail: localStorage.getItem('hudumika_support_email')     ?? 'support@hudumika.tz',
+    supportUrl:   localStorage.getItem('hudumika_support_url')       ?? 'https://support.hudumika.tz',
+    websiteUrl:   localStorage.getItem('hudumika_website_url')       ?? 'https://hudumika.tz',
+    accentColor:  localStorage.getItem('hudumika_email_accent')      ?? '#0d7a6b',
   });
 
   const [logoLight, setLogoLight] = useState<string>(localStorage.getItem('hudumika_brand_logo_light') ?? '');
@@ -77,9 +90,10 @@ export function BrandingView() {
       setIdentity({
         name:         localStorage.getItem('hudumika_platform_name')     ?? 'Hudumika',
         tagline:      localStorage.getItem('hudumika_platform_tagline')  ?? 'Smart Business, Simplified.',
-        supportEmail: localStorage.getItem('hudumika_support_email')     ?? 'support@hudumika.io',
-        supportUrl:   localStorage.getItem('hudumika_support_url')       ?? 'https://support.hudumika.io',
-        websiteUrl:   localStorage.getItem('hudumika_website_url')       ?? 'https://hudumika.io',
+        supportEmail: localStorage.getItem('hudumika_support_email')     ?? 'support@hudumika.tz',
+        supportUrl:   localStorage.getItem('hudumika_support_url')       ?? 'https://support.hudumika.tz',
+        websiteUrl:   localStorage.getItem('hudumika_website_url')       ?? 'https://hudumika.tz',
+        accentColor:  localStorage.getItem('hudumika_email_accent')      ?? '#0d7a6b',
       });
       setLogoLight(localStorage.getItem('hudumika_brand_logo_light') ?? '');
       setLogoDark(localStorage.getItem('hudumika_brand_logo_dark') ?? '');
@@ -104,9 +118,10 @@ export function BrandingView() {
     localStorage.setItem('hudumika_support_email',    identity.supportEmail);
     localStorage.setItem('hudumika_support_url',      identity.supportUrl);
     localStorage.setItem('hudumika_website_url',      identity.websiteUrl);
+    localStorage.setItem('hudumika_email_accent',     identity.accentColor);
     window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
     try {
-      await pushBranding({ platformName: identity.name, platformTagline: identity.tagline, supportEmail: identity.supportEmail });
+      await pushBranding({ platformName: identity.name, platformTagline: identity.tagline, supportEmail: identity.supportEmail, accentColor: identity.accentColor });
       flashSaved('identity');
     } catch (err: any) {
       flashError('identity', err);
@@ -187,10 +202,10 @@ export function BrandingView() {
       </div>
 
       <Tabs defaultValue="identity" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="identity">Global Identity</TabsTrigger>
-          <TabsTrigger value="apps">App Configurator</TabsTrigger>
-          <TabsTrigger value="login">Login Screen</TabsTrigger>
+        <TabsList className="mb-6 h-12 p-1.5 gap-2 bg-muted/60 rounded-xl border border-border">
+          <TabsTrigger value="identity" className="h-9 px-6 text-sm font-bold rounded-lg cursor-pointer transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">Global Identity</TabsTrigger>
+          <TabsTrigger value="apps" className="h-9 px-6 text-sm font-bold rounded-lg cursor-pointer transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">App Configurator</TabsTrigger>
+          <TabsTrigger value="login" className="h-9 px-6 text-sm font-bold rounded-lg cursor-pointer transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">Login Screen</TabsTrigger>
         </TabsList>
 
         <TabsContent value="identity" className="space-y-6">
@@ -215,6 +230,17 @@ export function BrandingView() {
               <div className="space-y-2">
                 <Label>Documentation URL</Label>
                 <Input value={identity.supportUrl} onChange={e => setIdentity({...identity, supportUrl: e.target.value})} type="url" />
+              </div>
+              <div className="space-y-2">
+                <Label>Accent Color</Label>
+                <div className="flex items-center gap-2">
+                  <Input type="color" className="w-12 p-1 h-9" value={identity.accentColor} onChange={e => setIdentity({...identity, accentColor: e.target.value})} />
+                  <span className="text-sm text-muted-foreground font-mono">{identity.accentColor}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Used on documents and the login screen. Defaults to whatever theme is active on Design System —
+                  set it here to override that default independently.
+                </p>
               </div>
             </CardContent>
             <CardFooter className="flex-col items-start gap-2">
@@ -305,8 +331,23 @@ export function BrandingView() {
                     <div className="space-y-2">
                       <Label>Accent Color</Label>
                       <div className="flex items-center gap-2">
-                        <Input type="color" className="w-12 p-1 h-9" value={colors[app.id]} onChange={e => setColors({...colors, [app.id]: e.target.value})} />
-                        <span className="text-sm text-muted-foreground font-mono">{colors[app.id]}</span>
+                        <div
+                          className="relative w-9 h-9 rounded-lg border border-input shrink-0 overflow-hidden cursor-pointer shadow-sm transition-transform hover:scale-105"
+                          style={{ backgroundColor: colors[app.id] }}
+                          title="Click to change accent color"
+                        >
+                          <input
+                            type="color"
+                            value={colors[app.id]}
+                            onChange={e => setColors({...colors, [app.id]: e.target.value})}
+                            className="absolute -inset-2 opacity-0 cursor-pointer"
+                          />
+                        </div>
+                        <Input
+                          value={colors[app.id]}
+                          onChange={e => setColors({...colors, [app.id]: e.target.value})}
+                          className="font-mono text-sm h-9"
+                        />
                       </div>
                     </div>
                   </div>
@@ -315,17 +356,31 @@ export function BrandingView() {
                     <Input value={appSlogans[app.id]} onChange={e => setAppSlogans({...appSlogans, [app.id]: e.target.value})} />
                   </div>
                   <div className="space-y-2">
-                    <Label>Custom App Icon</Label>
-                    <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="relative overflow-hidden w-full">
-                        Upload Custom Icon
-                        <input type="file" accept="image/*,image/svg+xml" className="absolute inset-0 opacity-0 cursor-pointer" onChange={async e => {
-                          const file = e.target.files?.[0]; if (!file) return;
-                          const data = await readFile(file);
-                          setAppLogos({...appLogos, [app.id]: data});
-                        }} />
-                      </Button>
-                      {appLogos[app.id] && <Button variant="ghost" size="sm" onClick={() => setAppLogos({...appLogos, [app.id]: ''})}><Icon name="x" size={14} /></Button>}
+                    <Label>App Icon</Label>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-14 h-14 rounded-xl border border-input shrink-0 flex items-center justify-center overflow-hidden shadow-sm"
+                        style={{ backgroundColor: appLogos[app.id] ? 'var(--bg)' : colors[app.id] }}
+                      >
+                        {appLogos[app.id]
+                          ? <img src={appLogos[app.id]} alt="" className="w-9 h-9 object-contain" />
+                          : <span className="text-white text-lg font-bold">{appNames[app.id].charAt(0)}</span>}
+                      </div>
+                      <div className="flex flex-col gap-2 flex-1">
+                        <Button variant="outline" size="sm" className="relative overflow-hidden w-full">
+                          Upload custom icon
+                          <input type="file" accept="image/*,image/svg+xml" className="absolute inset-0 opacity-0 cursor-pointer" onChange={async e => {
+                            const file = e.target.files?.[0]; if (!file) return;
+                            const data = await readFile(file);
+                            setAppLogos({...appLogos, [app.id]: data});
+                          }} />
+                        </Button>
+                        {appLogos[app.id] && (
+                          <Button variant="ghost" size="sm" className="w-full" onClick={() => setAppLogos({...appLogos, [app.id]: ''})}>
+                            <Icon name="x" size={14} /> Remove, use initial
+                          </Button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </CardContent>

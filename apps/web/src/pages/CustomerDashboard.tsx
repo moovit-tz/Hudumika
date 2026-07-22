@@ -1,10 +1,12 @@
-﻿import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth.jsx';
+import React, { useEffect, useState } from 'react';
+import { usePageSEO } from '../hooks/usePageSEO.js';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
-import type { ShipmentCase } from '@clearos/types';
+import type { ShipmentCase } from '@hudumika/types';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { mapApiInvoice, invoiceTotals } from './Billing.js';
 
 /* ── helpers ──────────────────────────────────────────────── */
 function fmtDate(iso?: string | null) {
@@ -21,21 +23,21 @@ const STAGE_CFG: Record<string, { label: string; color: string; bg: string; step
   CUSTOMS:     { label: 'Customs',        color: '#d97706', bg: '#fef3c7', step: 3 },
   DUTY:        { label: 'Duty Payment',   color: '#ea580c', bg: '#fff7ed', step: 4 },
   RELEASE:     { label: 'Port Release',   color: '#0d7a6b', bg: '#ccfbf1', step: 5 },
-  DELIVERY:    { label: 'Delivery',       color: '#16a34a', bg: '#dcfce7', step: 6 },
+  DELIVERY:    { label: 'Delivery',       color: '#059669', bg: '#ecfdf5', step: 6 },
   CLOSED:      { label: 'Completed',      color: '#6b7280', bg: '#f3f4f6', step: 7 },
 };
 const TOTAL_STEPS = 7;
 
 /* ── Quick action button ──────────────────────────────────── */
-function QuickAction({ icon, label, onClick, color = 'var(--teal)' }: {
-  icon: string; label: string; onClick: () => void; color?: string;
+function QuickAction({ icon, label, to, color = 'var(--teal)' }: {
+  icon: string; label: string; to: string; color?: string;
 }) {
   return (
-    <button type="button" title={label} onClick={onClick} style={{
+    <Link to={to} title={label} style={{
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
       background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9,
       padding: '18px 8px', cursor: 'pointer', fontFamily: 'var(--font)', flex: 1,
-      minWidth: 72, transition: 'transform 0.1s',
+      minWidth: 72, transition: 'transform 0.1s', textDecoration: 'none', boxSizing: 'border-box',
     }}
       onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.96)')}
       onMouseUp={e => (e.currentTarget.style.transform = '')}
@@ -49,25 +51,23 @@ function QuickAction({ icon, label, onClick, color = 'var(--teal)' }: {
         <Icon name={icon as any} size={20} color={color} />
       </div>
       <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink2)', textAlign: 'center', lineHeight: 1.3 }}>{label}</span>
-    </button>
+    </Link>
   );
 }
 
 /* ── Shipment card ────────────────────────────────────────── */
 function ShipmentCard({ s }: { s: ShipmentCase & { active_risk_types?: string[] } }) {
-  const navigate = useNavigate();
   const cfg = STAGE_CFG[s.stage] ?? STAGE_CFG.INTAKE;
   const pct = Math.round((cfg.step / TOTAL_STEPS) * 100);
   const atRisk = s.active_risk_types?.includes('DEMURRAGE') || s.active_risk_types?.includes('SLA_BREACH');
 
   return (
-    <button type="button" title={`Open ${s.ref_number}`}
-      onClick={() => navigate(`/clearance/${s.id}`)}
+    <Link to={`/clearance/${s.id}`} title={`Open ${s.ref_number}`}
       style={{
-        display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer',
+        display: 'block', width: '100%', boxSizing: 'border-box', textAlign: 'left', cursor: 'pointer',
         background: 'var(--white)', border: `1px solid ${atRisk ? '#fca5a5' : 'var(--border)'}`,
         borderRadius: 9, padding: '14px 16px', fontFamily: 'var(--font)',
-        boxShadow: atRisk ? '0 0 0 1px #fca5a5' : 'none',
+        boxShadow: atRisk ? '0 0 0 1px #fca5a5' : 'none', textDecoration: 'none', color: 'inherit',
       }}
     >
       {/* Row 1: ref + stage badge */}
@@ -106,18 +106,21 @@ function ShipmentCard({ s }: { s: ShipmentCase & { active_risk_types?: string[] 
           ETA {fmtDate(s.eta)}
         </span>
       </div>
-    </button>
+    </Link>
   );
 }
 
 /* ── Main dashboard ───────────────────────────────────────── */
 export const CustomerDashboard: React.FC = () => {
+  usePageSEO('Customer Portal', 'Track your shipments and invoices.');
   const { user } = useAuth();
-  const navigate = useNavigate();
   const isMobile = useIsMobile();
 
   const [shipments, setShipments] = useState<(ShipmentCase & { active_risk_types?: string[] })[]>([]);
   const [loading, setLoading] = useState(true);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [finLoading, setFinLoading] = useState(true);
 
   useEffect(() => {
     apiFetch('/v1/shipments/grouped')
@@ -130,9 +133,30 @@ export const CustomerDashboard: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  useEffect(() => {
+    if (!user?.id) return;
+    Promise.all([
+      apiFetch(`/v1/invoices?customer_id=${user.id}`).catch(() => []),
+      apiFetch(`/v1/payments?customer_id=${user.id}`).catch(() => []),
+    ]).then(([inv, pay]) => {
+      setInvoices(Array.isArray(inv) ? inv : (inv?.data ?? []));
+      setPayments(Array.isArray(pay) ? pay : (pay?.data ?? []));
+    }).finally(() => setFinLoading(false));
+  }, [user?.id]);
+
+  // Real per-invoice grand total requires the same line-item math Billing.tsx
+  // uses (sales_invoices has no amount/total column of its own).
+  const totalInvoiced = invoices.reduce((s: number, i: any) => s + invoiceTotals(mapApiInvoice(i)).grandTotalTZS, 0);
+  const totalPaid      = payments.reduce((s: number, p: any) => s + (parseFloat(p.amount ?? 0)), 0);
+  const totalPending    = Math.max(0, totalInvoiced - totalPaid);
+
   const active    = shipments.filter(s => s.stage !== 'CLOSED' && s.stage !== 'DELIVERY');
   const delivered = shipments.filter(s => s.stage === 'CLOSED' || s.stage === 'DELIVERY');
   const atRisk    = shipments.filter(s => s.active_risk_types && s.active_risk_types.length > 0);
+
+  const co2Calculated = shipments.filter(s => s.co2_emissions_kg != null);
+  const totalCo2Kg     = co2Calculated.reduce((sum, s) => sum + Number(s.co2_emissions_kg || 0), 0);
+  const totalCredits   = co2Calculated.reduce((sum, s) => sum + Number(s.carbon_credits_saved || 0), 0);
 
   const firstName = user?.name?.split(' ')[0] ?? 'there';
 
@@ -185,10 +209,10 @@ export const CustomerDashboard: React.FC = () => {
         <div style={{ marginTop: 20, marginBottom: 24 }}>
           <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginBottom: 12 }}>QUICK ACTIONS</p>
           <div style={{ display: 'flex', gap: 10 }}>
-            <QuickAction icon="package"    label="Track Shipment"   onClick={() => navigate('/')}                  color="var(--teal)"  />
-            <QuickAction icon="clipboard"  label="Request Quote"    onClick={() => navigate('/quotations')}         color="#7c3aed"      />
-            <QuickAction icon="headphones" label="Get Support"      onClick={() => navigate('/support/tickets')}   color="#0891b2"      />
-            <QuickAction icon="folder"     label="My Files"         onClick={() => navigate('/documents')}          color="#d97706"      />
+            <QuickAction icon="package"    label="Track Shipment"   to="/"                  color="var(--teal)"  />
+            <QuickAction icon="clipboard"  label="Request Quote"    to="/quotations"         color="#7c3aed"      />
+            <QuickAction icon="headphones" label="Get Support"      to="/support/tickets"   color="#0891b2"      />
+            <QuickAction icon="folder"     label="My Files"         to="/documents"          color="#d97706"      />
           </div>
         </div>
 
@@ -196,10 +220,10 @@ export const CustomerDashboard: React.FC = () => {
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', margin: 0 }}>MY SHIPMENTS</p>
-            <button type="button" title="View all" onClick={() => navigate('/')}
-              style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', padding: 0 }}>
+            <Link to="/" title="View all"
+              style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', padding: 0, textDecoration: 'none' }}>
               View all →
-            </button>
+            </Link>
           </div>
 
           {loading ? (
@@ -216,32 +240,56 @@ export const CustomerDashboard: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {shipments.slice(0, 5).map(s => <ShipmentCard key={s.id} s={s} />)}
               {shipments.length > 5 && (
-                <button type="button" title="See more" onClick={() => navigate('/')}
+                <Link to="/" title="See more"
                   style={{
+                    display: 'block', textAlign: 'center', boxSizing: 'border-box',
                     background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9,
                     padding: '12px', fontSize: 13, fontWeight: 600, color: 'var(--teal)',
-                    cursor: 'pointer', fontFamily: 'var(--font)',
+                    cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'none',
                   }}>
                   +{shipments.length - 5} more shipments
-                </button>
+                </Link>
               )}
             </div>
           )}
         </div>
 
+        {/* ── Carbon footprint — summed from my own shipments' GLEC estimate ── */}
+        {co2Calculated.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginBottom: 12 }}>CARBON FOOTPRINT</p>
+            <div style={{
+              background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9,
+              padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap',
+            }}>
+              <div style={{ width: 36, height: 36, borderRadius: 9, background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Icon name="globe" size={17} color="#059669" />
+              </div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{totalCo2Kg.toLocaleString('en')} kg</div>
+                <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>CO₂ emissions ({co2Calculated.length} of {shipments.length} shipments)</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: '#059669' }}>{totalCredits.toFixed(2)}</div>
+                <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Credits saved (est.)</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Invoices summary ── */}
         <div style={{ marginBottom: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', margin: 0 }}>INVOICES</p>
-            <button type="button" title="View invoices" onClick={() => navigate('/billing')}
-              style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', padding: 0 }}>
+            <Link to="/billing" title="View invoices"
+              style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', padding: 0, textDecoration: 'none' }}>
               View all →
-            </button>
+            </Link>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
             {[
-              { label: 'Pending',  value: fmtAmt(4_200_000),  icon: 'clock',      color: '#d97706', bg: '#fef3c7' },
-              { label: 'Paid',     value: fmtAmt(18_750_000), icon: 'checkCircle', color: '#16a34a', bg: '#dcfce7' },
+              { label: 'Pending',  value: finLoading ? '…' : fmtAmt(totalPending), icon: 'clock',      color: '#d97706', bg: '#fef3c7' },
+              { label: 'Paid',     value: finLoading ? '…' : fmtAmt(totalPaid),    icon: 'checkCircle', color: '#059669', bg: '#ecfdf5' },
             ].map(c => (
               <div key={c.label} style={{
                 background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9,
