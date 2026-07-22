@@ -1,4 +1,4 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import crypto from 'crypto';
 import { db, withTenant } from '../db/client.js';
@@ -12,7 +12,7 @@ async function logActivity(trx: any, tenantId: string, userId: string | null, ac
 
 export async function hrRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('onepi'));
+  fastify.addHook('preHandler', requireEntitlement('onepi'));
 
   // ── Departments ───────────────────────────────────────────────
 

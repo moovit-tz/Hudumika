@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { EMPLOYEES } from '../data/staffData.js';
 import type { EmpStatus } from '../data/staffData.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 interface StaffData {
   id: string;
@@ -24,7 +25,7 @@ interface StaffData {
   recent_leaves?: Array<{ id: string; type: string; from_date: string; to_date: string; status: string; reason: string | null }>;
 }
 
-const AVATAR_COLORS = ['#e8461a','#0891b2','#7c3aed','#16a34a','#d97706','#9333ea'];
+const AVATAR_COLORS = ['#e8461a','#0891b2','#7c3aed','#059669','#d97706','#9333ea'];
 function avatarBg(n: string) { return AVATAR_COLORS[[...n].reduce((a,c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length]; }
 function initials(n: string) { return n.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase(); }
 
@@ -90,6 +91,8 @@ export const StaffDetail: React.FC = () => {
   const [newRole, setNewRole]        = useState('');
   const [savingRole, setSavingRole]  = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
+  const [resetSent, setResetSent]    = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
@@ -186,6 +189,16 @@ export const StaffDetail: React.FC = () => {
     finally { setSavingStatus(false); }
   };
 
+  const sendResetLink = async () => {
+    if (!staff) return;
+    setSendingReset(true);
+    try {
+      await apiFetch('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email: staff.email }) });
+      setResetSent(true);
+    } catch { /* ignore */ }
+    finally { setSendingReset(false); }
+  };
+
   const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -219,7 +232,7 @@ export const StaffDetail: React.FC = () => {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <h2 style={{ color: 'var(--ink)', marginBottom: 12 }}>Staff member not found</h2>
-        <button className="btn btn-secondary" onClick={() => navigate('/hrm/employees')}>Back to HR</button>
+        <Link to="/onepi/employees" className="btn btn-secondary">Back to HR</Link>
       </div>
     );
   }
@@ -238,7 +251,7 @@ export const StaffDetail: React.FC = () => {
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-        <button onClick={() => navigate(-1)}
+        <button type="button" onClick={() => navigate(-1)} title="Go back"
           style={{ width: 32, height: 32, borderRadius: '50%', border: '1px solid var(--border)', background: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
           <Icon name="arrowLeft" size={16} color="var(--ink2)" />
         </button>
@@ -457,10 +470,12 @@ export const StaffDetail: React.FC = () => {
               <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, padding: 20, marginBottom: 14 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>System Role</div>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8 }}>
-                  <select value={newRole} onChange={e => setNewRole(e.target.value)}
-                    style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 7, fontFamily: 'var(--font)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)' }}>
-                    {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
-                  </select>
+                  <Select value={newRole} onValueChange={setNewRole}>
+                    <SelectTrigger style={{ flex: 1 }}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                   <button type="button" className="btn btn-primary" onClick={changeRole} disabled={savingRole || newRole === staff.role}
                     style={{ fontSize: 12, display: 'flex', gap: 6, alignItems: 'center', whiteSpace: 'nowrap' }}>
                     {savingRole ? 'Applying…' : 'Apply Role'}
@@ -496,8 +511,8 @@ export const StaffDetail: React.FC = () => {
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 3 }}>Reset Password</div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Send a password reset link to {staff.email}</div>
                 </div>
-                <button type="button" className="btn btn-secondary" style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
-                  Send Reset Link
+                <button type="button" className="btn btn-secondary" onClick={sendResetLink} disabled={sendingReset} style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+                  {sendingReset ? 'Sending…' : resetSent ? 'Sent ✓' : 'Send Reset Link'}
                 </button>
               </div>
             </div>
