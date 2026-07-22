@@ -1,5 +1,6 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Icon } from '../components/Icon.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 const fmtM = (n: number) => `TZS ${(n / 1_000_000).toFixed(1)}M`;
 const fmtFull = (n: number) => `TZS ${n.toLocaleString()}`;
@@ -21,7 +22,7 @@ const INVOICES = [
 ];
 
 const SC: Record<string, { color: string; bg: string }> = {
-  Paid:    { color: 'var(--green)', bg: '#f0fdf4' },
+  Paid:    { color: 'var(--green)', bg: '#ecfdf5' },
   Unpaid:  { color: '#f59e0b',     bg: '#fffbeb' },
   Overdue: { color: 'var(--red)',   bg: '#fef2f2' },
   Partial: { color: 'var(--blue)',  bg: '#eff6ff' },
@@ -61,10 +62,12 @@ export const FinanceSalesReport: React.FC = () => {
           <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Invoice income and payment status</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <select value={period} onChange={e => setPeriod(e.target.value)}
-            style={{ padding: '7px 10px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-            {PERIODS.map(p => <option key={p}>{p}</option>)}
-          </select>
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 'auto', padding: '7px 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             <Icon name="download" size={13} /> Export
           </button>
@@ -77,7 +80,7 @@ export const FinanceSalesReport: React.FC = () => {
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           {[
             { label: 'Total Sales',   value: fmtM(totalSales), icon: 'trendingUp',    color: 'var(--teal)',   bg: 'var(--teal-l)' },
-            { label: 'Total Paid',    value: fmtM(paid),       icon: 'checkCircle',   color: 'var(--green)', bg: '#f0fdf4'       },
+            { label: 'Total Paid',    value: fmtM(paid),       icon: 'checkCircle',   color: 'var(--green)', bg: '#ecfdf5'       },
             { label: 'Total Unpaid',  value: fmtM(unpaid),     icon: 'clock',         color: '#f59e0b',      bg: '#fffbeb'       },
             { label: 'Total Overdue', value: fmtM(overdue),    icon: 'alertTriangle', color: 'var(--red)',   bg: '#fef2f2'       },
           ].map(s => (

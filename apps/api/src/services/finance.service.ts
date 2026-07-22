@@ -1,5 +1,5 @@
 import { withTenant } from '../db/client.js';
-import type { ShipmentPnL, ExpenseCategory } from '@clearos/types';
+import type { ShipmentPnL, ExpenseCategory } from '@hudumika/types';
 
 export class FinanceService {
   /**

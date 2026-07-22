@@ -1,6 +1,7 @@
 ﻿import React, { useState, useMemo, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 // --- Types ---
 type AccountType = 'Asset' | 'Liability' | 'Equity' | 'Revenue' | 'Expense';
@@ -112,7 +113,7 @@ export const FinanceReportingMaster: React.FC = () => {
     if (!w) return;
     const rangeLbl = dateRange === 'all_time' ? 'All Time' : dateRange === 'this_year' ? 'This Year' : 'This Month';
     w.document.write(`<!DOCTYPE html><html><head>
-      <title>${reportName} – ClearOS</title>
+      <title>${reportName} – Hudumika</title>
       <style>
         *{box-sizing:border-box;margin:0;padding:0}
         body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:13px;color:#111827;padding:36px}
@@ -128,7 +129,7 @@ export const FinanceReportingMaster: React.FC = () => {
       </style>
     </head><body>
       <div class="ph">
-        <span class="ph-co">ClearOS</span>
+        <span class="ph-co">Hudumika</span>
         <span class="ph-meta">${reportName}<br>${rangeLbl}${filterDept !== 'All' ? ' · ' + filterDept : ''} · ${currency}<br>Printed ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
       </div>
       ${el.innerHTML}
@@ -761,26 +762,35 @@ export const FinanceReportingMaster: React.FC = () => {
           <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Date Range</span>
-              <select title="Date range" style={{ ...sel, width: 148 }} value={dateRange} onChange={e => setDateRange(e.target.value)}>
-                <option value="all_time">All Time</option>
-                <option value="this_year">This Year</option>
-                <option value="this_month">This Month</option>
-              </select>
+              <Select value={dateRange} onValueChange={setDateRange}>
+                <SelectTrigger aria-label="Date range" style={{ ...sel, width: 148, height: 'auto' }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all_time">All Time</SelectItem>
+                  <SelectItem value="this_year">This Year</SelectItem>
+                  <SelectItem value="this_month">This Month</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Department</span>
-              <select title="Filter by department" style={{ ...sel, width: 150 }} value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-                <option value="All">All Departments</option>
-                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+              <Select value={filterDept} onValueChange={setFilterDept}>
+                <SelectTrigger aria-label="Filter by department" style={{ ...sel, width: 150, height: 'auto' }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="All">All Departments</SelectItem>
+                  {DEPARTMENTS.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Currency</span>
-              <select title="Currency" style={{ ...sel, width: 96 }} value={currency} onChange={e => setCurrency(e.target.value)}>
-                <option value="USD">USD ($)</option>
-                <option value="EUR">EUR (€)</option>
-                <option value="TZS">TZS</option>
-              </select>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger aria-label="Currency" style={{ ...sel, width: 96, height: 'auto' }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="USD">USD ($)</SelectItem>
+                  <SelectItem value="EUR">EUR (€)</SelectItem>
+                  <SelectItem value="TZS">TZS</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <button type="button" title="Save filters" style={tbBtn} onClick={saveFilters}>Save Filters</button>
           </>
@@ -788,11 +798,14 @@ export const FinanceReportingMaster: React.FC = () => {
 
         {/* Mobile: compact date picker */}
         {isMobile && (
-          <select title="Date range" style={{ ...sel, flex: 1, minWidth: 0 }} value={dateRange} onChange={e => setDateRange(e.target.value)}>
-            <option value="all_time">All Time</option>
-            <option value="this_year">This Year</option>
-            <option value="this_month">This Month</option>
-          </select>
+          <Select value={dateRange} onValueChange={setDateRange}>
+            <SelectTrigger aria-label="Date range" style={{ ...sel, flex: 1, minWidth: 0, height: 'auto' }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all_time">All Time</SelectItem>
+              <SelectItem value="this_year">This Year</SelectItem>
+              <SelectItem value="this_month">This Month</SelectItem>
+            </SelectContent>
+          </Select>
         )}
 
         <div style={{ flex: 1 }} />
@@ -923,18 +936,24 @@ export const FinanceReportingMaster: React.FC = () => {
                 <div className="frm-modal-row">
                   <div className="frm-modal-field">
                     <label className="frm-modal-label">Frequency</label>
-                    <select className="frm-modal-select" value={schedFreq} onChange={e => setSchedFreq(e.target.value as 'daily' | 'weekly' | 'monthly')} title="Frequency">
-                      <option value="daily">Daily</option>
-                      <option value="weekly">Weekly</option>
-                      <option value="monthly">Monthly</option>
-                    </select>
+                    <Select value={schedFreq} onValueChange={v => setSchedFreq(v as 'daily' | 'weekly' | 'monthly')}>
+                      <SelectTrigger aria-label="Frequency" className="frm-modal-select"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="frm-modal-field">
                     <label className="frm-modal-label">Format</label>
-                    <select className="frm-modal-select" value={schedFmt} onChange={e => setSchedFmt(e.target.value as 'PDF' | 'Excel')} title="Format">
-                      <option value="PDF">PDF</option>
-                      <option value="Excel">Excel / CSV</option>
-                    </select>
+                    <Select value={schedFmt} onValueChange={v => setSchedFmt(v as 'PDF' | 'Excel')}>
+                      <SelectTrigger aria-label="Format" className="frm-modal-select"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PDF">PDF</SelectItem>
+                        <SelectItem value="Excel">Excel / CSV</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
                 <div className="frm-sched-preview">

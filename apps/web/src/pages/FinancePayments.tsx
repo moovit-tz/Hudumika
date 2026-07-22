@@ -1,16 +1,17 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
 import { MetricsRow, spark } from '../components/MetricCard.js';
 import { usePayments, addPayment, deletePayment, Payment } from '../data/paymentData.js';
-import { addFolder, addFile, findFolderByName } from '../data/fileManagerStore.js';
+import { apiFetch } from '../lib/api.js';
 import { INITIAL_INVOICES } from './Billing.js';
 import { useCurrency } from '../hooks/useCurrency.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { Combobox } from '../components/ui/combobox.js';
 
-function extOf(name: string) { return name.split('.').pop()?.toLowerCase() ?? 'txt'; }
-
-// ── Detail Panel (Aside) ───────────────────────────────────────────────────────
+// -- Detail Panel (Aside) -------------------------------------------------------
 function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; onClose: () => void; isMobile?: boolean }) {
   const { fmt } = useCurrency();
   const invoice = INITIAL_INVOICES.find(i => i.id === payment.invoiceId);
@@ -43,13 +44,13 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Linked Invoice</div>
             <div style={{ fontSize: 12, fontWeight: 600, color: '#1e40af', background: '#dbeafe', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
-              📄 {payment.invoiceId}
+              ?? {payment.invoiceId}
             </div>
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Linked Client</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#166534', background: '#dcfce7', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
-              🏢 {payment.clientId}
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#065f46', background: '#ecfdf5', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
+              ?? {payment.clientId}
             </div>
           </div>
         </div>
@@ -62,7 +63,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {[
               { label: 'Payment Mode', value: payment.paymentMode },
-              { label: 'Transaction ID', value: payment.transactionId || '—' },
+              { label: 'Transaction ID', value: payment.transactionId || '�' },
               { label: 'Logged By', value: 'System Admin' },
               ...(payment.attachmentName ? [{ label: 'Attachment', value: payment.attachmentName, isFile: true }] : []),
             ].map((item, i, arr) => (
@@ -100,7 +101,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
   );
 }
 
-// ── Main Page ──────────────────────────────────────────────────────────────────
+// -- Main Page ------------------------------------------------------------------
 
 export const FinancePayments: React.FC = () => {
   const isMobile = useIsMobile();
@@ -130,34 +131,36 @@ export const FinancePayments: React.FC = () => {
 
   const selectedInvoice = INITIAL_INVOICES.find(i => i.id === fInvoice);
 
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fInvoice || !fAmount) return;
 
     let attachmentName;
 
-    // Process attachment to File Manager
+    // Process attachment to the Cloud file manager (real backend � find/create the
+    // client + BL folders, then upload the receipt into it).
     if (fFile && selectedInvoice) {
-      const clientName = selectedInvoice.client;
-      const blNumber = selectedInvoice.blNumber || 'General';
-      const today = new Date().toISOString().split('T')[0];
+      try {
+        const clientName = selectedInvoice.client;
+        const blNumber = selectedInvoice.blNumber || 'General';
+        const allFiles: any[] = await apiFetch('/v1/files');
+        const findFolder = (name: string, parentId: string | null) =>
+          allFiles.find(f => f.type === 'folder' && !f.is_trash && f.name === name && f.parent_id === parentId);
 
-      // Create or find Client Folder
-      const clientFolderId = findFolderByName(clientName)?.id || addFolder(clientName, null, '#6366f1');
-      // Create or find BL Folder inside Client Folder
-      const blFolderId = findFolderByName(blNumber, clientFolderId)?.id || addFolder(blNumber, clientFolderId, '#f59e0b');
+        let clientFolder = findFolder(clientName, null);
+        if (!clientFolder) clientFolder = await apiFetch('/v1/files/folder', { method: 'POST', body: JSON.stringify({ name: clientName, parent_id: null, color: '#6366f1' }) });
 
-      // Add the file to the BL Folder
-      addFile({
-        name: fFile.name,
-        type: extOf(fFile.name),
-        size: fFile.size,
-        modified: today,
-        created: today,
-        parentId: blFolderId,
-      });
+        let blFolder = findFolder(blNumber, clientFolder.id);
+        if (!blFolder) blFolder = await apiFetch('/v1/files/folder', { method: 'POST', body: JSON.stringify({ name: blNumber, parent_id: clientFolder.id, color: '#f59e0b' }) });
 
-      attachmentName = fFile.name;
+        const form = new FormData();
+        form.append('file', fFile);
+        await apiFetch(`/v1/files/upload?parent_id=${encodeURIComponent(blFolder.id)}`, { method: 'POST', body: form });
+
+        attachmentName = fFile.name;
+      } catch (err: any) {
+        alert(err.message || 'Failed to attach receipt to Cloud files');
+      }
     }
 
     addPayment({
@@ -192,7 +195,7 @@ export const FinancePayments: React.FC = () => {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
-      {/* ── Header ── */}
+      {/* -- Header -- */}
       <div style={{ padding: isMobile ? '14px 16px' : '0 24px', paddingBottom: 0 }}>
         <PageHeader
           crumbs={['Finance', 'Payments']}
@@ -221,10 +224,10 @@ export const FinancePayments: React.FC = () => {
         ]} />
       </div>
 
-      {/* ── Main Content Area ── */}
+      {/* -- Main Content Area -- */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
         
-        {/* ── Left: List ── */}
+        {/* -- Left: List -- */}
         <div style={{ flex: isSplit ? '0 0 55%' : 1, padding: '24px 28px', borderRight: isSplit ? '1px solid var(--border)' : 'none', overflowY: 'auto' }}>
           <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
             
@@ -286,7 +289,7 @@ export const FinancePayments: React.FC = () => {
           </div>
         </div>
 
-        {/* ── Right: Aside Detail Panel ── */}
+        {/* -- Right: Aside Detail Panel -- */}
         {isSplit && selectedPayment && (
           <PaymentDetailPanel
             payment={selectedPayment}
@@ -296,25 +299,23 @@ export const FinancePayments: React.FC = () => {
         )}
       </div>
 
-      {/* ── Record Payment Modal ── */}
+      {/* -- Record Payment Modal -- */}
       {showAdd && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowAdd(false)}>
           <div className="card" style={{ width: 480, padding: 24, borderRadius: 9 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <h2 style={{ margin: 0, fontSize: 16, color: 'var(--navy)' }}>Record Payment</h2>
-              <button className="dp-close" onClick={() => setShowAdd(false)}>×</button>
+              <button className="dp-close" onClick={() => setShowAdd(false)}>�</button>
             </div>
 
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Select Invoice</label>
-                <select className="input-field" value={fInvoice} onChange={e => setFInvoice(e.target.value)} required>
-                  <option value="">-- Choose Invoice --</option>
-                  {INITIAL_INVOICES.map(inv => (
-                    <option key={inv.id} value={inv.id}>{inv.id} - {inv.client}</option>
-                  ))}
-                </select>
+                <Combobox
+                  options={INITIAL_INVOICES.map(inv => ({ value: inv.id, label: `${inv.id} - ${inv.client}` }))}
+                  value={fInvoice} onChange={setFInvoice} placeholder="-- Choose Invoice --"
+                />
                 {selectedInvoice && (
                   <div style={{ fontSize: 11, color: 'var(--teal)', marginTop: 4 }}>
                     Linked Client: <strong>{selectedInvoice.client}</strong>
@@ -329,19 +330,22 @@ export const FinancePayments: React.FC = () => {
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Date</label>
-                  <input type="date" className="input-field" value={fDate} onChange={e => setFDate(e.target.value)} required />
+                  <DatePicker date={parseDateOnly(fDate)} onChange={d => setFDate(toDateOnlyString(d))} />
                 </div>
               </div>
 
               <div style={{ display: 'flex', gap: 12 }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Payment Mode</label>
-                  <select className="input-field" value={fMode} onChange={e => setFMode(e.target.value)}>
-                    <option>Bank Transfer</option>
-                    <option>Cash</option>
-                    <option>Cheque</option>
-                    <option>Mobile Money</option>
-                  </select>
+                  <Select value={fMode} onValueChange={setFMode}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                      <SelectItem value="Cash">Cash</SelectItem>
+                      <SelectItem value="Cheque">Cheque</SelectItem>
+                      <SelectItem value="Mobile Money">Mobile Money</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Transaction ID</label>

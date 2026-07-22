@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow, spark } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
@@ -6,6 +6,10 @@ import { getCompany } from '../data/companyStore.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { apiFetch } from '../lib/api.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Combobox } from '../components/ui/combobox.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -25,6 +29,11 @@ interface Bill {
   subtotal: number; tax_amount: number; total: number; paid_amount: number;
   lines: BillLine[]; po_number?: string; shipment_ref?: string; notes?: string;
   recurring_id?: string; created_at: string;
+  // EFD/VFD receipt verification (against the TRA verify portal)
+  efd_receipt_number?: string;
+  efd_verified?: boolean;
+  efd_verified_at?: string;
+  efd_verification_data?: Record<string, any>;
 }
 
 interface RecurringBill {
@@ -87,16 +96,18 @@ const CURRENCIES = ['USD','TZS','EUR','GBP','KES'];
 const ALL_CATS = Object.keys(CAT_CFG) as BillCat[];
 const ALL_FREQS = Object.keys(FREQ_CFG) as RecurFreq[];
 
-const SUPPLIER_MAP: Record<string, { name: string; email: string; terms: string; currency: string }> = {
-  'sup-001': { name: 'Maersk Line Tanzania',           email: 'thomas.andersen@maersk.co.tz',    terms: 'Net 30',  currency: 'USD' },
-  'sup-002': { name: 'Tanzania Ports Authority (TPA)', email: 'operations@tpa.go.tz',            terms: 'Advance', currency: 'TZS' },
-  'sup-003': { name: 'M&G Customs Clearance Ltd',      email: 'm.gulamali@mgcustoms.co.tz',      terms: 'Net 15',  currency: 'TZS' },
-  'sup-004': { name: 'Dar Transport Solutions Ltd',    email: 'b.msomi@dartransport.co.tz',      terms: 'COD',     currency: 'TZS' },
-  'sup-005': { name: 'Port Bonded Warehouses Ltd',     email: 'y.rashidi@pbwl.co.tz',            terms: 'Net 30',  currency: 'USD' },
-  'sup-006': { name: 'DHL Global Forwarding Tanzania', email: 'anita.patel@dhl.co.tz',           terms: 'Net 45',  currency: 'USD' },
-  'sup-007': { name: 'UAP Old Mutual Cargo Insurance', email: 's.ochieng@uapoldmutual.co.tz',   terms: 'Net 30',  currency: 'USD' },
-  'sup-008': { name: 'Freight Link Consolidators',     email: 'j.hassan@freightlink.co.tz',      terms: 'Advance', currency: 'USD' },
+type SupplierMap = Record<string, { name: string; email: string; terms: string; currency: string }>;
+
+const PAYMENT_TERMS_DISPLAY: Record<string, string> = {
+  cod: 'COD', net_15: 'Net 15', net_30: 'Net 30', net_45: 'Net 45', net_60: 'Net 60', net_90: 'Net 90', prepaid: 'Prepaid', advance: 'Advance',
 };
+
+function buildSupplierMap(suppliers: any[]): SupplierMap {
+  return Object.fromEntries(suppliers.map((s) => [
+    s.id,
+    { name: s.name, email: s.email || '', terms: PAYMENT_TERMS_DISPLAY[s.payment_terms] || s.payment_terms || '', currency: s.currency || 'TZS' },
+  ]));
+}
 
 // ── API Mapping ────────────────────────────────────────────────────────────────
 
@@ -112,6 +123,10 @@ function mapApiBill(d: any): Bill {
     total: Number(d.total) || 0, paid_amount: Number(d.paid_amount) || 0,
     po_number: d.po_number || undefined, shipment_ref: d.shipment_ref || undefined,
     notes: d.notes || undefined, recurring_id: d.recurring_id || undefined,
+    efd_receipt_number: d.efd_receipt_number || undefined,
+    efd_verified: !!d.efd_verified,
+    efd_verified_at: d.efd_verified_at || undefined,
+    efd_verification_data: d.efd_verification_data || undefined,
     lines: Array.isArray(d.lines) ? d.lines.map((l: any) => ({
       _key: l.id || String(Math.random()), description: l.description || '',
       category: (l.category || 'OTHER') as BillCat,
@@ -140,7 +155,7 @@ function mapApiRecurring(d: any): RecurringBill {
 
 export const MOCK_BILLS: Bill[] = [
   {
-    id:'bill-001', bill_number:'BILL-2026-001', supplier_id:'sup-001', supplier_name:'Maersk Line Tanzania',
+    id:'f84e12c1-d4b9-4c17-91f1-3312e75e9b81', bill_number:'BILL-2026-001', supplier_id:'sup-001', supplier_name:'Maersk Line Tanzania',
     bill_date:'2026-01-10', due_date:'2026-02-09', status:'PAID', currency:'USD',
     subtotal:1800, tax_amount:0, total:1800, paid_amount:1800, po_number:'PO-2026-001', shipment_ref:'CLR-2026-0001',
     lines:[
@@ -152,7 +167,7 @@ export const MOCK_BILLS: Bill[] = [
     created_at:'2026-01-10T08:00:00Z',
   },
   {
-    id:'bill-002', bill_number:'BILL-2026-002', supplier_id:'sup-003', supplier_name:'M&G Customs Clearance Ltd',
+    id:'83d81b3c-62a2-4a7b-a251-171b9e28de82', bill_number:'BILL-2026-002', supplier_id:'sup-003', supplier_name:'M&G Customs Clearance Ltd',
     bill_date:'2026-01-13', due_date:'2026-01-28', status:'PAID', currency:'TZS',
     subtotal:420000, tax_amount:75600, total:495600, paid_amount:495600, po_number:'PO-2026-002', shipment_ref:'CLR-2026-0001',
     lines:[
@@ -163,7 +178,7 @@ export const MOCK_BILLS: Bill[] = [
     created_at:'2026-01-13T08:00:00Z',
   },
   {
-    id:'bill-003', bill_number:'BILL-2026-003', supplier_id:'sup-002', supplier_name:'Tanzania Ports Authority (TPA)',
+    id:'c9c0b11c-7f55-44cb-bf5d-16f316223e73', bill_number:'BILL-2026-003', supplier_id:'sup-002', supplier_name:'Tanzania Ports Authority (TPA)',
     bill_date:'2026-02-01', due_date:'2026-02-01', status:'OVERDUE', currency:'TZS',
     subtotal:1745000, tax_amount:0, total:1745000, paid_amount:0, po_number:'PO-2026-005', shipment_ref:'CLR-2026-0002',
     lines:[
@@ -175,7 +190,7 @@ export const MOCK_BILLS: Bill[] = [
     created_at:'2026-02-01T08:00:00Z',
   },
   {
-    id:'bill-004', bill_number:'BILL-2026-004', supplier_id:'sup-006', supplier_name:'DHL Global Forwarding Tanzania',
+    id:'6a6c0b1a-8c9f-431e-a4b5-12e3f5b74584', bill_number:'BILL-2026-004', supplier_id:'sup-006', supplier_name:'DHL Global Forwarding Tanzania',
     bill_date:'2026-05-15', due_date:'2026-06-29', status:'PARTIAL', currency:'USD',
     subtotal:4900, tax_amount:0, total:4900, paid_amount:2000, po_number:'PO-2026-004', shipment_ref:'CLR-2026-0004',
     lines:[
@@ -357,8 +372,8 @@ function PayModal({ bill, onPay, onClose }: {
           {amount > balance && <div style={{ fontSize:11.5, color:'var(--red)', marginTop:4 }}>Amount exceeds outstanding balance ({fmt(balance, bill.currency)})</div>}
         </div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
-          <div><label style={lbl}>Payment Date *</label><input type="date" title="Date" value={date} onChange={e => setDate(e.target.value)} style={inp} /></div>
-          <div><label style={lbl}>Method</label><select title="Method" value={method} onChange={e => setMethod(e.target.value)} style={inp}>{PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}</select></div>
+          <div><label style={lbl}>Payment Date *</label><DatePicker date={parseDateOnly(date)} onChange={d => setDate(toDateOnlyString(d))} /></div>
+          <div><label style={lbl}>Method</label><Select value={method} onValueChange={setMethod}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PAYMENT_METHODS.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></div>
         </div>
         <div style={{ marginBottom:14 }}><label style={lbl}>Reference / Transaction ID</label><input type="text" title="Reference" placeholder="e.g. TRX-CRDB-20260625-001" value={ref} onChange={e => setRef(e.target.value)} style={{ ...inp, fontFamily:'var(--mono)', fontSize:12 }} /></div>
         <div style={{ marginBottom:20 }}><label style={lbl}>Note (optional)</label><input type="text" title="Note" placeholder="Payment note…" value={note} onChange={e => setNote(e.target.value)} style={inp} /></div>
@@ -380,8 +395,8 @@ function PayModal({ bill, onPay, onClose }: {
 
 // ── Bill Form (create / edit) ──────────────────────────────────────────────────
 
-function BillFormView({ initial, allBills, onSave, onClose }: {
-  initial?: Bill; allBills: Bill[];
+function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave, onClose }: {
+  initial?: Bill; allBills: Bill[]; suppliers: any[]; onSupplierCreated: (s: any) => void;
   onSave: (f: BillForm) => void; onClose: () => void;
 }) {
   const { fmt } = useCurrency();
@@ -396,15 +411,58 @@ function BillFormView({ initial, allBills, onSave, onClose }: {
     lines:        initial?.lines.length ? initial.lines : [{ _key:newKey(), description:'', category:'OTHER', qty:1, unit_price:0, tax_rate:0 }],
   });
 
-  function setField<K extends keyof BillForm>(k: K, v: BillForm[K]) {
+  const [supplierItem, setSupplierItem] = useState<PickerItem | null>(() => {
+    const s = suppliers.find((s: any) => s.id === (initial?.supplier_id ?? ''));
+    return s ? { id: s.id, label: s.name, sublabel: s.email || undefined } : null;
+  });
+
+  async function searchSuppliersLocal(q: string): Promise<PickerItem[]> {
+    const ql = q.trim().toLowerCase();
+    const filtered = ql
+      ? suppliers.filter((s: any) => (s.name || '').toLowerCase().includes(ql) || (s.email || '').toLowerCase().includes(ql))
+      : suppliers;
+    return filtered.slice(0, 25).map((s: any) => ({ id: s.id, label: s.name, sublabel: s.email || undefined }));
+  }
+
+  async function createSupplierInline(name: string): Promise<PickerItem> {
+    const created = await apiFetch('/v1/suppliers', { method: 'POST', body: JSON.stringify({ name }) });
+    onSupplierCreated(created);
+    return { id: created.id, label: created.name };
+  }
+
+  function handleSupplierChange(item: PickerItem | null) {
+    setSupplierItem(item);
     setF(p => {
-      const n = { ...p, [k]: v };
-      if (k === 'supplier_id') {
-        const sup = SUPPLIER_MAP[v as string];
-        if (sup && !initial) { n.currency = sup.currency ?? getCompany().currency; }
+      const n = { ...p, supplier_id: item?.id ?? '' };
+      if (item && !initial) {
+        const full = suppliers.find((s: any) => s.id === item.id);
+        if (full?.currency) n.currency = full.currency;
       }
       return n;
     });
+  }
+
+  const [shipmentItem, setShipmentItem] = useState<PickerItem | null>(
+    initial?.shipment_ref ? { id: initial.shipment_ref, label: initial.shipment_ref } : null,
+  );
+
+  async function searchShipmentsLocal(q: string): Promise<PickerItem[]> {
+    const qs = q.trim() ? `?search=${encodeURIComponent(q.trim())}` : '';
+    const res = await apiFetch(`/v1/shipments${qs}`).catch(() => ({ data: [] }));
+    const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
+    return list.slice(0, 25).map((s) => ({
+      id: s.ref_number, label: s.ref_number,
+      sublabel: [s.customer_name, s.goods_desc].filter(Boolean).join(' · '),
+    }));
+  }
+
+  function handleShipmentChange(item: PickerItem | null) {
+    setShipmentItem(item);
+    setField('shipment_ref', item?.id ?? '');
+  }
+
+  function setField<K extends keyof BillForm>(k: K, v: BillForm[K]) {
+    setF(p => ({ ...p, [k]: v }));
   }
   function updateLine(key: string, field: keyof BillLine, val: BillLine[keyof BillLine]) {
     setF(p => ({ ...p, lines: p.lines.map(l => l._key === key ? { ...l, [field]: val } : l) }));
@@ -431,23 +489,29 @@ function BillFormView({ initial, allBills, onSave, onClose }: {
         <div style={{ flex:1, overflowY:'auto', padding:'18px 24px' }}>
           <div style={{ ...sec, marginTop:0 }}>Bill Details</div>
           <div style={{ marginBottom:12 }}>
-            <label style={lbl}>Supplier *</label>
-            <select title="Supplier" value={f.supplier_id} onChange={e => setField('supplier_id', e.target.value)} style={inp}>
-              <option value="">— Select supplier —</option>
-              {Object.entries(SUPPLIER_MAP).map(([id, s]) => <option key={id} value={id}>{s.name}</option>)}
-            </select>
+            <EntityPicker
+              label="Supplier *" value={supplierItem} onChange={handleSupplierChange}
+              search={searchSuppliersLocal} onCreate={createSupplierInline}
+              createLabel={(q) => `Create new supplier "${q}"`}
+              placeholder="Search suppliers…"
+            />
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
-            <div><label style={lbl}>Bill Date *</label><input type="date" title="Bill date" value={f.bill_date} onChange={e => setField('bill_date', e.target.value)} style={inp} /></div>
-            <div><label style={lbl}>Due Date *</label><input type="date" title="Due date" value={f.due_date} onChange={e => setField('due_date', e.target.value)} style={inp} /></div>
+            <div><label style={lbl}>Bill Date *</label><DatePicker date={parseDateOnly(f.bill_date)} onChange={d => setField('bill_date', toDateOnlyString(d))} /></div>
+            <div><label style={lbl}>Due Date *</label><DatePicker date={parseDateOnly(f.due_date)} onChange={d => setField('due_date', toDateOnlyString(d))} /></div>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:12, marginBottom:16 }}>
             <div>
                 <label style={lbl}>Currency {f.currency === getCompany().currency && <span style={{ fontWeight:400, color:'var(--teal)', fontSize:10.5 }}>· company default</span>}</label>
-                <select title="Currency" value={f.currency} onChange={e => setField('currency', e.target.value)} style={inp}>{CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                <Select value={f.currency} onValueChange={v => setField('currency', v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
               </div>
             <div><label style={lbl}>PO Reference</label><input type="text" title="PO number" placeholder="PO-2026-..." value={f.po_number} onChange={e => setField('po_number', e.target.value)} style={{ ...inp, fontFamily:'var(--mono)', fontSize:12 }} /></div>
-            <div><label style={lbl}>Shipment Ref</label><input type="text" title="Shipment ref" placeholder="CLR-2026-..." value={f.shipment_ref} onChange={e => setField('shipment_ref', e.target.value)} style={{ ...inp, fontFamily:'var(--mono)', fontSize:12 }} /></div>
+            <div>
+              <EntityPicker
+                label="Shipment Ref" value={shipmentItem} onChange={handleShipmentChange}
+                search={searchShipmentsLocal} placeholder="Search shipments…"
+              />
+            </div>
           </div>
 
           <div style={sec}>Line Items</div>
@@ -468,10 +532,12 @@ function BillFormView({ initial, allBills, onSave, onClose }: {
                         style={{ width:'100%', padding:'6px 8px', border:'1px solid var(--border)', borderRadius:6, fontSize:12, outline:'none', boxSizing:'border-box' as const }} />
                     </td>
                     <td style={{ padding:'7px 8px' }}>
-                      <select title="Category" value={ln.category} onChange={e => updateLine(ln._key, 'category', e.target.value as BillCat)}
-                        style={{ padding:'6px 8px', border:'1px solid var(--border)', borderRadius:6, fontSize:11.5, outline:'none', cursor:'pointer', background:'var(--white)' }}>
-                        {ALL_CATS.map(c => <option key={c} value={c}>{CAT_CFG[c].label}</option>)}
-                      </select>
+                      <Select value={ln.category} onValueChange={v => updateLine(ln._key, 'category', v as BillCat)}>
+                        <SelectTrigger className="h-7 px-2 text-xs"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {ALL_CATS.map(c => <SelectItem key={c} value={c}>{CAT_CFG[c].label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
                     </td>
                     <td style={{ padding:'7px 6px' }}>
                       <input type="number" title="Qty" value={ln.qty} min={1} step={1} onChange={e => updateLine(ln._key, 'qty', parseFloat(e.target.value)||1)}
@@ -525,8 +591,9 @@ function BillFormView({ initial, allBills, onSave, onClose }: {
 
 // ── Recurring Bill Form ────────────────────────────────────────────────────────
 
-function RecurFormView({ initial, onSave, onClose }: {
-  initial?: RecurringBill; onSave: (f: RecurForm) => void; onClose: () => void;
+function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose }: {
+  initial?: RecurringBill; suppliers: any[]; onSupplierCreated: (s: any) => void;
+  onSave: (f: RecurForm) => void; onClose: () => void;
 }) {
   const { fmt } = useCurrency();
   const [f, setF] = useState<RecurForm>({
@@ -543,6 +610,30 @@ function RecurFormView({ initial, onSave, onClose }: {
     end_date:      initial?.end_date      ?? '',
   });
   const set = <K extends keyof RecurForm>(k: K, v: RecurForm[K]) => setF(p => ({ ...p, [k]: v }));
+
+  const [supplierItem, setSupplierItem] = useState<PickerItem | null>(() => {
+    const s = suppliers.find((s: any) => s.id === (initial?.supplier_id ?? ''));
+    return s ? { id: s.id, label: s.name, sublabel: s.email || undefined } : null;
+  });
+
+  async function searchSuppliersLocal(q: string): Promise<PickerItem[]> {
+    const ql = q.trim().toLowerCase();
+    const filtered = ql
+      ? suppliers.filter((s: any) => (s.name || '').toLowerCase().includes(ql) || (s.email || '').toLowerCase().includes(ql))
+      : suppliers;
+    return filtered.slice(0, 25).map((s: any) => ({ id: s.id, label: s.name, sublabel: s.email || undefined }));
+  }
+
+  async function createSupplierInline(name: string): Promise<PickerItem> {
+    const created = await apiFetch('/v1/suppliers', { method: 'POST', body: JSON.stringify({ name }) });
+    onSupplierCreated(created);
+    return { id: created.id, label: created.name };
+  }
+
+  function handleSupplierChange(item: PickerItem | null) {
+    setSupplierItem(item);
+    set('supplier_id', item?.id ?? '');
+  }
   const inp: React.CSSProperties = { width:'100%', padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 9, fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const, color:'var(--ink)', fontFamily:'inherit' };
   const lbl: React.CSSProperties = { fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 };
   const total = f.amount * (1 + f.tax_rate / 100);
@@ -559,29 +650,36 @@ function RecurFormView({ initial, onSave, onClose }: {
         </div>
         <div style={{ flex:1, overflowY:'auto', padding:'18px 22px' }}>
           <div style={{ marginBottom:14 }}><label style={lbl}>Template Name *</label><input type="text" title="Name" placeholder="e.g. Monthly Retainer" value={f.name} onChange={e => set('name', e.target.value)} style={inp} /></div>
-          <div style={{ marginBottom:14 }}><label style={lbl}>Supplier *</label><select title="Supplier" value={f.supplier_id} onChange={e => set('supplier_id', e.target.value)} style={inp}><option value="">— Select supplier —</option>{Object.entries(SUPPLIER_MAP).map(([id, s]) => <option key={id} value={id}>{s.name}</option>)}</select></div>
+          <div style={{ marginBottom:14 }}>
+            <EntityPicker
+              label="Supplier *" value={supplierItem} onChange={handleSupplierChange}
+              search={searchSuppliersLocal} onCreate={createSupplierInline}
+              createLabel={(q) => `Create new supplier "${q}"`}
+              placeholder="Search suppliers…"
+            />
+          </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
-            <div><label style={lbl}>Frequency</label><select title="Frequency" value={f.frequency} onChange={e => set('frequency', e.target.value as RecurFreq)} style={inp}>{ALL_FREQS.map(fr => <option key={fr} value={fr}>{FREQ_CFG[fr].label}</option>)}</select></div>
-            <div><label style={lbl}>Category</label><select title="Category" value={f.category} onChange={e => set('category', e.target.value as BillCat)} style={inp}>{ALL_CATS.map(c => <option key={c} value={c}>{CAT_CFG[c].label}</option>)}</select></div>
+            <div><label style={lbl}>Frequency</label><Select value={f.frequency} onValueChange={v => set('frequency', v as RecurFreq)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ALL_FREQS.map(fr => <SelectItem key={fr} value={fr}>{FREQ_CFG[fr].label}</SelectItem>)}</SelectContent></Select></div>
+            <div><label style={lbl}>Category</label><Select value={f.category} onValueChange={v => set('category', v as BillCat)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{ALL_CATS.map(c => <SelectItem key={c} value={c}>{CAT_CFG[c].label}</SelectItem>)}</SelectContent></Select></div>
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr', gap:12, marginBottom:14 }}>
             <div><label style={lbl}>Amount</label><input type="number" title="Amount" value={f.amount} min={0} step={0.01} onChange={e => set('amount', parseFloat(e.target.value)||0)} style={inp} /></div>
             <div>
                 <label style={lbl}>Currency {f.currency === getCompany().currency && <span style={{ fontWeight:400, color:'var(--teal)', fontSize:10.5 }}>· company default</span>}</label>
-                <select title="Currency" value={f.currency} onChange={e => set('currency', e.target.value)} style={inp}>{CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}</select>
+                <Select value={f.currency} onValueChange={v => set('currency', v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
               </div>
             <div><label style={lbl}>Tax %</label><input type="number" title="Tax rate" value={f.tax_rate} min={0} max={100} step={1} onChange={e => set('tax_rate', parseFloat(e.target.value)||0)} style={inp} /></div>
           </div>
           <div style={{ marginBottom:14 }}><label style={lbl}>Description</label><textarea title="Description" placeholder="Description of the recurring charge…" value={f.description} onChange={e => set('description', e.target.value)} rows={2} style={{ ...inp, resize:'vertical' }} /></div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
-            <div><label style={lbl}>First / Next Due Date</label><input type="date" title="Next due" value={f.next_due} onChange={e => set('next_due', e.target.value)} style={inp} /></div>
-            <div><label style={lbl}>End Date (optional)</label><input type="date" title="End date" value={f.end_date} onChange={e => set('end_date', e.target.value)} style={inp} /></div>
+            <div><label style={lbl}>First / Next Due Date</label><DatePicker date={parseDateOnly(f.next_due)} onChange={d => set('next_due', toDateOnlyString(d))} /></div>
+            <div><label style={lbl}>End Date (optional)</label><DatePicker date={parseDateOnly(f.end_date)} onChange={d => set('end_date', toDateOnlyString(d))} /></div>
           </div>
-          <div style={{ marginBottom:14 }}><label style={lbl}>Payment Terms</label><select title="Payment terms" value={f.payment_terms} onChange={e => set('payment_terms', e.target.value)} style={inp}>{['Net 15','Net 30','Net 45','Net 60','COD','Advance'].map(t => <option key={t} value={t}>{t}</option>)}</select></div>
+          <div style={{ marginBottom:14 }}><label style={lbl}>Payment Terms</label><Select value={f.payment_terms} onValueChange={v => set('payment_terms', v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{['Net 15','Net 30','Net 45','Net 60','COD','Advance'].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></div>
           <div style={{ background:'var(--teal-l)', borderRadius: 9, padding:'14px 16px' }}>
             <div style={{ fontSize:11, fontWeight:700, color:'var(--teal)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8 }}>Preview</div>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              <div><div style={{ fontWeight:700, color:'var(--ink)', fontSize:13 }}>{f.name || 'Template Name'}</div><div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{f.supplier_id ? SUPPLIER_MAP[f.supplier_id]?.name : '—'} · {FREQ_CFG[f.frequency].label}</div></div>
+              <div><div style={{ fontWeight:700, color:'var(--ink)', fontSize:13 }}>{f.name || 'Template Name'}</div><div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{supplierItem?.label ?? '—'} · {FREQ_CFG[f.frequency].label}</div></div>
               <div style={{ textAlign:'right' }}><div style={{ fontWeight:800, fontSize:16, color:'var(--teal)' }}>{fmt(total, f.currency)}</div><div style={{ fontSize:11, color:'var(--ink3)' }}>per period</div></div>
             </div>
           </div>
@@ -600,15 +698,35 @@ function RecurFormView({ initial, onSave, onClose }: {
 
 // ── Detail View ────────────────────────────────────────────────────────────────
 
-function DetailView({ bill, payments, onBack, onEdit, onPay, onPost, onVoid, isMobile = false }: {
-  bill: Bill; payments: Payment[];
+function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost, onVoid, onVerifyEfd, isMobile = false }: {
+  bill: Bill; payments: Payment[]; supplierMap: SupplierMap;
   onBack: () => void; onEdit: () => void;
-  onPay: () => void; onPost: () => void; onVoid: () => void; isMobile?: boolean;
+  onPay: () => void; onPost: () => void; onVoid: () => void;
+  onVerifyEfd: (rctvnum: string) => Promise<{ verified?: boolean; error?: string }>;
+  isMobile?: boolean;
 }) {
   const { fmt } = useCurrency();
   const myPmts = payments.filter(p => p.bill_id === bill.id);
   const balance = bill.total - bill.paid_amount;
   const over = isOverdue(bill);
+
+  const [efdInput, setEfdInput] = useState(bill.efd_receipt_number || '');
+  const [efdChecking, setEfdChecking] = useState(false);
+  const [efdError, setEfdError] = useState<string | null>(null);
+
+  async function runVerify() {
+    if (!efdInput.trim() || efdChecking) return;
+    setEfdChecking(true);
+    setEfdError(null);
+    try {
+      const result = await onVerifyEfd(efdInput.trim());
+      if (!result.verified) setEfdError(result.error || 'Receipt could not be verified against TRA');
+    } catch (err: any) {
+      setEfdError(err?.message || 'Verification request failed');
+    } finally {
+      setEfdChecking(false);
+    }
+  }
 
   return (
     <div style={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column' }}>
@@ -727,11 +845,41 @@ function DetailView({ bill, payments, onBack, onEdit, onPay, onPost, onVoid, isM
           {bill.supplier_id && (
             <div style={{ marginTop:14, padding:'12px 14px', border:'1px solid var(--border)', borderRadius: 9 }}>
               <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8 }}>Supplier</div>
-              <div style={{ fontWeight:700, fontSize:13, color:'var(--ink)', marginBottom:3 }}>{SUPPLIER_MAP[bill.supplier_id]?.name}</div>
-              <div style={{ fontSize:12, color:'var(--teal)' }}>{SUPPLIER_MAP[bill.supplier_id]?.email}</div>
-              <div style={{ fontSize:12, color:'var(--ink3)', marginTop:2 }}>Terms: {SUPPLIER_MAP[bill.supplier_id]?.terms}</div>
+              <div style={{ fontWeight:700, fontSize:13, color:'var(--ink)', marginBottom:3 }}>{supplierMap[bill.supplier_id]?.name}</div>
+              <div style={{ fontSize:12, color:'var(--teal)' }}>{supplierMap[bill.supplier_id]?.email}</div>
+              <div style={{ fontSize:12, color:'var(--ink3)', marginTop:2 }}>Terms: {supplierMap[bill.supplier_id]?.terms}</div>
             </div>
           )}
+
+          {/* EFD/VFD receipt verification against the TRA verify portal */}
+          <div style={{ marginTop:14, padding:'12px 14px', border:'1px solid var(--border)', borderRadius: 9 }}>
+            <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:8 }}>EFD/VFD Verification</div>
+            {bill.efd_verified ? (
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+                <Icon name="checkCircle" size={14} color="var(--green)" />
+                <span style={{ fontSize:12.5, fontWeight:700, color:'var(--green)' }}>Verified</span>
+              </div>
+            ) : bill.efd_receipt_number ? (
+              <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+                <Icon name="alertTriangle" size={14} color="var(--red)" />
+                <span style={{ fontSize:12.5, fontWeight:700, color:'var(--red)' }}>Not verified</span>
+              </div>
+            ) : null}
+            {bill.efd_receipt_number && (
+              <div style={{ fontFamily:'var(--mono)', fontSize:11.5, color:'var(--ink3)', marginBottom:8, wordBreak:'break-all' }}>{bill.efd_receipt_number}</div>
+            )}
+            <input
+              type="text" placeholder="RCTVNUM from supplier's receipt" value={efdInput}
+              onChange={e => setEfdInput(e.target.value)}
+              style={{ width:'100%', padding:'7px 9px', borderRadius:6, border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink)', fontSize:12.5, fontFamily:'var(--mono)', outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}
+            />
+            <button type="button" onClick={runVerify} disabled={!efdInput.trim() || efdChecking}
+              style={{ width:'100%', padding:'7px 0', borderRadius:7, border:'none', background: efdChecking ? 'var(--ink3)' : 'var(--teal)', color:'#fff', fontSize:12.5, fontWeight:700, cursor: efdChecking ? 'default' : 'pointer' }}>
+              {efdChecking ? 'Checking with TRA…' : 'Verify against TRA'}
+            </button>
+            {efdError && <div style={{ marginTop:8, fontSize:11.5, color:'var(--red)' }}>{efdError}</div>}
+            {bill.efd_verified_at && <div style={{ marginTop:8, fontSize:11, color:'var(--ink3)' }}>Last checked {fmtDate(bill.efd_verified_at)}</div>}
+          </div>
         </div>
       </div>
     </div>
@@ -827,6 +975,7 @@ export const Bills: React.FC = () => {
   const [bills, setBills]           = useState<Bill[]>(MOCK_BILLS);
   const [recurring, setRecurring]   = useState<RecurringBill[]>(MOCK_RECURRING);
   const [payments, setPayments]     = useState<Payment[]>(MOCK_PAYMENTS);
+  const [suppliers, setSuppliers]   = useState<any[]>([]);
   const [tab, setTab]               = useState<MainTab>('bills');
   const [view, setView]             = useState<AppView>('list');
   const [selected, setSelected]     = useState<Bill | null>(null);
@@ -850,7 +999,13 @@ export const Bills: React.FC = () => {
     apiFetch('/v1/bills/recurring')
       .then((d: any) => { if (Array.isArray(d) && d.length > 0) setRecurring(d.map(mapApiRecurring)); })
       .catch(() => {});
+    apiFetch('/v1/suppliers')
+      .then((d: any) => { if (Array.isArray(d)) setSuppliers(d); })
+      .catch(() => {});
   }, []);
+
+  const supplierMap = useMemo(() => buildSupplierMap(suppliers), [suppliers]);
+  function handleSupplierCreated(s: any) { setSuppliers(prev => [...prev, s]); }
   useEffect(() => {
     function handler(e: Event) {
       if ((e as CustomEvent).detail?.section === 'bills') { setShowBillForm(true); setFormBill(null); }
@@ -900,12 +1055,12 @@ export const Bills: React.FC = () => {
       setBills(p => p.map(b => b.id === formBill!.id ? { ...b, ...f, ...t } : b));
       if (selected?.id === formBill!.id) setSelected({ ...selected, ...f, ...t });
     } else {
-      const nb: Bill = { id:genId(), bill_number:genNum(bills), ...f, ...t, supplier_name: SUPPLIER_MAP[f.supplier_id]?.name ?? f.supplier_id, paid_amount:0, status:'DRAFT', created_at:now };
+      const nb: Bill = { id:genId(), bill_number:genNum(bills), ...f, ...t, supplier_name: supplierMap[f.supplier_id]?.name ?? f.supplier_id, paid_amount:0, status:'DRAFT', created_at:now };
       setBills(p => [nb, ...p]);
     }
     setShowBillForm(false); setFormBill(null);
     const payload = {
-      supplier_id: f.supplier_id, supplier_name: SUPPLIER_MAP[f.supplier_id]?.name || f.supplier_id,
+      supplier_id: f.supplier_id, supplier_name: supplierMap[f.supplier_id]?.name || f.supplier_id,
       bill_date: f.bill_date, due_date: f.due_date, currency: f.currency,
       po_number: f.po_number || null, shipment_ref: f.shipment_ref || null, notes: f.notes || null,
       items: f.lines.map((l, i) => ({ description: l.description, category: l.category, qty: l.qty, unit_price: l.unit_price, tax_rate: l.tax_rate, sort_order: i })),
@@ -923,11 +1078,11 @@ export const Bills: React.FC = () => {
     if (isEdit) {
       setRecurring(p => p.map(r => r.id === formRecur!.id ? { ...r, ...f } : r));
     } else {
-      const nr: RecurringBill = { id:'rec-'+genId(), ...f, supplier_name: SUPPLIER_MAP[f.supplier_id]?.name ?? f.supplier_id, state:'ACTIVE', bills_generated:0, total_spend:0, created_at:now };
+      const nr: RecurringBill = { id:'rec-'+genId(), ...f, supplier_name: supplierMap[f.supplier_id]?.name ?? f.supplier_id, state:'ACTIVE', bills_generated:0, total_spend:0, created_at:now };
       setRecurring(p => [nr, ...p]);
     }
     setShowRecurForm(false); setFormRecur(null);
-    const payload = { ...f, supplier_name: SUPPLIER_MAP[f.supplier_id]?.name || f.supplier_id };
+    const payload = { ...f, supplier_name: supplierMap[f.supplier_id]?.name || f.supplier_id };
     apiFetch(isEdit ? `/v1/bills/recurring/${formRecur!.id}` : '/v1/bills/recurring', {
       method: isEdit ? 'PATCH' : 'POST', body: JSON.stringify(payload),
     }).then(() => apiFetch('/v1/bills/recurring'))
@@ -946,6 +1101,22 @@ export const Bills: React.FC = () => {
     if (selected?.id === bill.id) setSelected({ ...selected, status:'VOID' });
     setVoidTarget(null);
     apiFetch(`/v1/bills/${bill.id}`, { method:'PATCH', body:JSON.stringify({ status:'VOID' }) }).catch(() => {});
+  }
+
+  async function handleVerifyEfd(bill: Bill, rctvnum: string) {
+    const result = await apiFetch('/v1/tra/verify-receipt', {
+      method: 'POST',
+      body: JSON.stringify({ rctvnum, bill_id: bill.id }),
+    });
+    const patch = {
+      efd_receipt_number: rctvnum,
+      efd_verified: !!result.verified,
+      efd_verified_at: new Date().toISOString(),
+      efd_verification_data: result.data ?? { error: result.error },
+    };
+    setBills(p => p.map(b => b.id === bill.id ? { ...b, ...patch } : b));
+    if (selected?.id === bill.id) setSelected({ ...selected, ...patch });
+    return result;
   }
 
   function handlePay(bill: Bill, amount: number, date: string, method: string, ref: string, note: string) {
@@ -1009,10 +1180,10 @@ export const Bills: React.FC = () => {
         </div>
       )}
       {showBillForm && (
-        <BillFormView initial={formBill ?? undefined} allBills={bills} onSave={handleSaveBill} onClose={() => { setShowBillForm(false); setFormBill(null); }} />
+        <BillFormView initial={formBill ?? undefined} allBills={bills} suppliers={suppliers} onSupplierCreated={handleSupplierCreated} onSave={handleSaveBill} onClose={() => { setShowBillForm(false); setFormBill(null); }} />
       )}
       {showRecurForm && (
-        <RecurFormView initial={formRecur ?? undefined} onSave={handleSaveRecur} onClose={() => { setShowRecurForm(false); setFormRecur(null); }} />
+        <RecurFormView initial={formRecur ?? undefined} suppliers={suppliers} onSupplierCreated={handleSupplierCreated} onSave={handleSaveRecur} onClose={() => { setShowRecurForm(false); setFormRecur(null); }} />
       )}
 
       {/* Detail view */}
@@ -1020,11 +1191,13 @@ export const Bills: React.FC = () => {
         <DetailView
           bill={{ ...selected, status: isOverdue(selected) ? 'OVERDUE' : selected.status }}
           payments={payments}
+          supplierMap={supplierMap}
           onBack={() => { setView('list'); setSelected(null); }}
           onEdit={() => { setFormBill(selected); setShowBillForm(true); }}
           onPay={() => setPayTarget(selected)}
           onPost={() => handlePost(selected)}
           onVoid={() => setVoidTarget(selected)}
+          onVerifyEfd={(rctvnum) => handleVerifyEfd(selected, rctvnum)}
           isMobile={isMobile}
         />
       ) : (
@@ -1081,11 +1254,10 @@ export const Bills: React.FC = () => {
                     </button>
                   ))}
                 </div>
-                <select title="Filter by supplier" value={supFilter} onChange={e => setSupFilter(e.target.value)}
-                  style={{ padding:'7px 11px', border:'1px solid var(--border)', borderRadius: 9, fontSize:12.5, outline:'none', background:'var(--white)', cursor:'pointer', color:'var(--ink)' }}>
-                  <option value="ALL">All Suppliers</option>
-                  {uniqueSups.map(id => <option key={id} value={id}>{SUPPLIER_MAP[id]?.name ?? id}</option>)}
-                </select>
+                <Combobox
+                  options={[{ value: 'ALL', label: 'All Suppliers' }, ...uniqueSups.map(id => ({ value: id, label: supplierMap[id]?.name ?? id }))]}
+                  value={supFilter} onChange={setSupFilter} triggerClassName="w-52"
+                />
                 <div style={{ position:'relative', marginLeft:'auto' }}>
                   <Icon name="search" size={14} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--ink3)' } as React.CSSProperties} />
                   <input type="text" title="Search bills" placeholder="Search bill # or supplier…" value={search} onChange={e => setSearch(e.target.value)}

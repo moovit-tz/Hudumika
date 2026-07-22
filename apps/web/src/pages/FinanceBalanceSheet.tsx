@@ -1,54 +1,67 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
-
-const fmt = (n: number) => `TZS ${n.toLocaleString()}`;
+import { apiFetch } from '../lib/api.js';
+import { useCompany } from '../data/companyStore.js';
+import type { BalanceSheetReport, BalanceSheetLine } from '@hudumika/types';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 
 interface LineItem { label: string; amount: number; sub?: boolean; bold?: boolean; separator?: boolean }
 
-const ASSETS: LineItem[] = [
-  { label: 'Current Assets',                  amount: 0,          bold: true },
-  { label: 'Cash and Cash Equivalents',        amount: 45600000,   sub: true  },
-  { label: 'Accounts Receivable',              amount: 11810000,   sub: true  },
-  { label: 'Advance Payments to Suppliers',    amount: 3200000,    sub: true  },
-  { label: 'Prepaid Expenses',                 amount: 850000,     sub: true  },
-  { label: 'Tax Receivable (VAT Refund)',       amount: 920000,     sub: true  },
-  { label: 'Total Current Assets',             amount: 62380000,   bold: true },
-  { label: '',                                 amount: 0,          separator: true },
-  { label: 'Non-Current Assets',               amount: 0,          bold: true },
-  { label: 'Property & Equipment (net)',        amount: 12400000,   sub: true  },
-  { label: 'Vehicles & Fleet (net)',            amount: 8700000,    sub: true  },
-  { label: 'Office Furniture & Equipment',     amount: 1200000,    sub: true  },
-  { label: 'Intangible Assets (Software)',     amount: 450000,     sub: true  },
-  { label: 'Total Non-Current Assets',         amount: 22750000,   bold: true },
-  { label: '',                                 amount: 0,          separator: true },
-  { label: 'TOTAL ASSETS',                     amount: 85130000,   bold: true },
-];
+function todayIso() {
+  return new Date().toISOString().split('T')[0];
+}
 
-const LIABILITIES: LineItem[] = [
-  { label: 'Current Liabilities',             amount: 0,          bold: true },
-  { label: 'Accounts Payable (Suppliers)',     amount: 5695000,    sub: true  },
-  { label: 'Customs Duties Payable',           amount: 2100000,    sub: true  },
-  { label: 'VAT Payable',                      amount: 1840000,    sub: true  },
-  { label: 'PAYE & Staff Levies Payable',      amount: 950000,     sub: true  },
-  { label: 'Accrued Expenses',                 amount: 620000,     sub: true  },
-  { label: 'Short-term Loan',                  amount: 3000000,    sub: true  },
-  { label: 'Total Current Liabilities',        amount: 14205000,   bold: true },
-  { label: '',                                 amount: 0,          separator: true },
-  { label: 'Non-Current Liabilities',          amount: 0,          bold: true },
-  { label: 'Long-term Bank Loan',              amount: 8500000,    sub: true  },
-  { label: 'Deferred Tax Liability',           amount: 680000,     sub: true  },
-  { label: 'Total Non-Current Liabilities',    amount: 9180000,    bold: true },
-  { label: '',                                 amount: 0,          separator: true },
-  { label: 'Equity',                           amount: 0,          bold: true },
-  { label: 'Share Capital',                    amount: 20000000,   sub: true  },
-  { label: 'Retained Earnings',                amount: 38545000,   sub: true  },
-  { label: 'Profit for the Period',            amount: 3200000,    sub: true  },
-  { label: 'Total Equity',                     amount: 61745000,   bold: true },
-  { label: '',                                 amount: 0,          separator: true },
-  { label: 'TOTAL LIABILITIES & EQUITY',       amount: 85130000,   bold: true },
-];
+function buildAssetRows(lines: BalanceSheetLine[]): LineItem[] {
+  const current = lines.filter(l => l.subtype === 'CURRENT_ASSET');
+  const nonCurrent = lines.filter(l => l.subtype !== 'CURRENT_ASSET');
+  const currentTotal = current.reduce((s, l) => s + l.balance, 0);
+  const nonCurrentTotal = nonCurrent.reduce((s, l) => s + l.balance, 0);
+  const rows: LineItem[] = [];
+  if (current.length) {
+    rows.push({ label: 'Current Assets', amount: 0, bold: true });
+    current.forEach(l => rows.push({ label: l.account_name, amount: l.balance, sub: true }));
+    rows.push({ label: 'Total Current Assets', amount: currentTotal, bold: true });
+    rows.push({ label: '', amount: 0, separator: true });
+  }
+  if (nonCurrent.length) {
+    rows.push({ label: 'Non-Current Assets', amount: 0, bold: true });
+    nonCurrent.forEach(l => rows.push({ label: l.account_name, amount: l.balance, sub: true }));
+    rows.push({ label: 'Total Non-Current Assets', amount: nonCurrentTotal, bold: true });
+    rows.push({ label: '', amount: 0, separator: true });
+  }
+  rows.push({ label: 'TOTAL ASSETS', amount: currentTotal + nonCurrentTotal, bold: true });
+  return rows;
+}
 
-function StatementSection({ rows, highlight }: { rows: LineItem[]; highlight: string }) {
+function buildLiabilitiesEquityRows(liabilities: BalanceSheetLine[], equity: BalanceSheetLine[]): LineItem[] {
+  const current = liabilities.filter(l => l.subtype === 'CURRENT_LIABILITY');
+  const nonCurrent = liabilities.filter(l => l.subtype !== 'CURRENT_LIABILITY');
+  const currentTotal = current.reduce((s, l) => s + l.balance, 0);
+  const nonCurrentTotal = nonCurrent.reduce((s, l) => s + l.balance, 0);
+  const equityTotal = equity.reduce((s, l) => s + l.balance, 0);
+  const rows: LineItem[] = [];
+  if (current.length) {
+    rows.push({ label: 'Current Liabilities', amount: 0, bold: true });
+    current.forEach(l => rows.push({ label: l.account_name, amount: l.balance, sub: true }));
+    rows.push({ label: 'Total Current Liabilities', amount: currentTotal, bold: true });
+    rows.push({ label: '', amount: 0, separator: true });
+  }
+  if (nonCurrent.length) {
+    rows.push({ label: 'Non-Current Liabilities', amount: 0, bold: true });
+    nonCurrent.forEach(l => rows.push({ label: l.account_name, amount: l.balance, sub: true }));
+    rows.push({ label: 'Total Non-Current Liabilities', amount: nonCurrentTotal, bold: true });
+    rows.push({ label: '', amount: 0, separator: true });
+  }
+  rows.push({ label: 'Equity', amount: 0, bold: true });
+  equity.forEach(l => rows.push({ label: l.account_name, amount: l.balance, sub: true }));
+  rows.push({ label: 'Total Equity', amount: equityTotal, bold: true });
+  rows.push({ label: '', amount: 0, separator: true });
+  rows.push({ label: 'TOTAL LIABILITIES & EQUITY', amount: currentTotal + nonCurrentTotal + equityTotal, bold: true });
+  return rows;
+}
+
+function StatementSection({ rows, highlight, cur }: { rows: LineItem[]; highlight: string; cur: string }) {
+  const fmt = (n: number) => `${cur} ${n.toLocaleString()}`;
   return (
     <div>
       {rows.map((row, i) => {
@@ -67,7 +80,7 @@ function StatementSection({ rows, highlight }: { rows: LineItem[]; highlight: st
             }}>
               {row.label}
             </span>
-            {row.amount > 0 && (
+            {(row.amount !== 0 || row.bold) && !row.separator && row.label && (
               <span style={{
                 fontSize: row.bold ? 13 : 12,
                 fontWeight: row.bold ? 700 : 400,
@@ -84,14 +97,32 @@ function StatementSection({ rows, highlight }: { rows: LineItem[]; highlight: st
   );
 }
 
-const AS_OF_OPTIONS = ['13 Jun 2026', '31 Mar 2026', '31 Dec 2025', '30 Sep 2025'];
-
 export const FinanceBalanceSheet: React.FC = () => {
-  const [asOf, setAsOf] = useState('13 Jun 2026');
+  const co = useCompany();
+  const cur = co.currency ?? 'TZS';
+  const [asOf, setAsOf] = useState(todayIso());
+  const [report, setReport] = useState<BalanceSheetReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const totalAssets = 85130000;
-  const totalLiabilities = 14205000 + 9180000;
-  const totalEquity = 61745000;
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    setError(null);
+    apiFetch(`/v1/finance/balance-sheet?date=${asOf}`)
+      .then((res: BalanceSheetReport) => { if (alive) setReport(res); })
+      .catch((err: any) => { if (alive) setError(err?.message ?? 'Failed to load balance sheet'); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [asOf]);
+
+  const assetRows = useMemo(() => buildAssetRows(report?.assets ?? []), [report]);
+  const liabEquityRows = useMemo(() => buildLiabilitiesEquityRows(report?.liabilities ?? [], report?.equity ?? []), [report]);
+
+  const totalAssets = report?.totals.assets ?? 0;
+  const totalLiabilities = report?.totals.liabilities ?? 0;
+  const totalEquity = report?.totals.equity ?? 0;
+  const fmt = (n: number) => `${cur} ${n.toLocaleString()}`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
@@ -102,16 +133,18 @@ export const FinanceBalanceSheet: React.FC = () => {
           <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Statement of financial position</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <select value={asOf} onChange={e => setAsOf(e.target.value)}
-            style={{ padding: '7px 10px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-            {AS_OF_OPTIONS.map(d => <option key={d}>{d}</option>)}
-          </select>
+          <DatePicker date={parseDateOnly(asOf)} onChange={d => setAsOf(toDateOnlyString(d))} triggerClassName="w-auto" />
           <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             <Icon name="download" size={13} /> Export
           </button>
         </div>
       </div>
 
+      {loading ? (
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading balance sheet…</div>
+      ) : error ? (
+        <div style={{ padding: '48px 0', textAlign: 'center', color: '#ef4444' }}>{error}</div>
+      ) : (
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Summary */}
@@ -119,8 +152,8 @@ export const FinanceBalanceSheet: React.FC = () => {
           {[
             { label: 'Total Assets',              value: fmt(totalAssets),      color: 'var(--teal)',  bg: 'var(--teal-l)', icon: 'layers'      },
             { label: 'Total Liabilities',         value: fmt(totalLiabilities), color: 'var(--red)',   bg: '#fef2f2',       icon: 'receipt'     },
-            { label: 'Total Equity',              value: fmt(totalEquity),      color: 'var(--green)', bg: '#f0fdf4',       icon: 'dollarSign'  },
-            { label: 'Debt to Equity Ratio',      value: `${(totalLiabilities / totalEquity).toFixed(2)}x`, color: 'var(--blue)', bg: '#eff6ff', icon: 'barChart2' },
+            { label: 'Total Equity',              value: fmt(totalEquity),      color: 'var(--green)', bg: '#ecfdf5',       icon: 'dollarSign'  },
+            { label: 'Debt to Equity Ratio',      value: totalEquity !== 0 ? `${(totalLiabilities / totalEquity).toFixed(2)}x` : '—', color: 'var(--blue)', bg: '#eff6ff', icon: 'barChart2' },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -134,6 +167,13 @@ export const FinanceBalanceSheet: React.FC = () => {
           ))}
         </div>
 
+        {Math.abs(totalAssets - (totalLiabilities + totalEquity)) > 1 && (
+          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 16px', borderRadius:9, background:'#fef2f2', border:'1px solid #ef444440', fontSize:12, fontWeight:600, color:'#ef4444' }}>
+            <Icon name="alertTriangle" size={14} color="#ef4444" />
+            Assets do not equal Liabilities + Equity — difference of {fmt(Math.abs(totalAssets - (totalLiabilities + totalEquity)))}
+          </div>
+        )}
+
         {/* Statement */}
         <div style={{ display: 'flex', gap: 14 }}>
           {/* Assets */}
@@ -144,7 +184,7 @@ export const FinanceBalanceSheet: React.FC = () => {
               <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink3)' }}>As of {asOf}</span>
             </div>
             <div style={{ padding: '8px 20px 16px' }}>
-              <StatementSection rows={ASSETS} highlight="var(--teal)" />
+              <StatementSection rows={assetRows} highlight="var(--teal)" cur={cur} />
             </div>
           </div>
 
@@ -156,11 +196,12 @@ export const FinanceBalanceSheet: React.FC = () => {
               <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink3)' }}>As of {asOf}</span>
             </div>
             <div style={{ padding: '8px 20px 16px' }}>
-              <StatementSection rows={LIABILITIES} highlight="var(--blue)" />
+              <StatementSection rows={liabEquityRows} highlight="var(--blue)" cur={cur} />
             </div>
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };

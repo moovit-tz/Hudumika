@@ -21,6 +21,8 @@ import { FinanceReportingMaster } from './FinanceReportingMaster.js';
 import { FinanceVendors }         from './FinanceVendors.js';
 import { FinanceProducts }        from './FinanceProducts.js';
 import { PageHeader }             from '../components/PageHeader.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '../components/ui/dropdown-menu.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 /* ── Section & nav types ── */
 type SectionId = 'overview' | 'invoices' | 'bills' | 'quotations' | 'purchase-orders' | 'expenses' | 'payments' | 'vendors' | 'products' | 'accounts' | 'reports';
@@ -77,7 +79,7 @@ const ALL_SECTIONS: NavLeaf[] = [
   { kind: 'leaf', id: 'quotations',      label: 'Quotations',          icon: 'copy',          color: '#7c3aed' },
   { kind: 'leaf', id: 'purchase-orders', label: 'Purchase Orders',     icon: 'clipboardList', color: '#b45309' },
   { kind: 'leaf', id: 'expenses',        label: 'Expenses',            icon: 'creditCard',    color: '#dc2626' },
-  { kind: 'leaf', id: 'payments',        label: 'Payments',            icon: 'dollarSign',    color: '#16a34a' },
+  { kind: 'leaf', id: 'payments',        label: 'Payments',            icon: 'dollarSign',    color: '#059669' },
   { kind: 'leaf', id: 'vendors',         label: 'Vendors',             icon: 'truck',         color: '#0891b2' },
   { kind: 'leaf', id: 'products',        label: 'Products & Services', icon: 'package',       color: '#7c3aed' },
   { kind: 'leaf', id: 'accounts',        label: 'Accounts',            icon: 'barChart',      color: '#374151' },
@@ -403,7 +405,7 @@ const AVATAR_PALETTES = [
   { bg: '#fef3c7', fg: '#92400e' },
   { bg: '#fee2e2', fg: '#991b1b' },
   { bg: '#e0f2fe', fg: '#0369a1' },
-  { bg: '#f0fdf4', fg: '#15803d' },
+  { bg: '#ecfdf5', fg: '#047857' },
 ];
 function clientPalette(name: string) {
   let h = 0;
@@ -476,19 +478,9 @@ function InvoiceArchiveList({ invoices, activeId, search, onSearch, filterStatus
   const { fmt } = useCurrency();
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [sortField, setSortField] = useState<'id' | 'date' | 'amount' | null>('id');
   const [sortAsc, setSortAsc] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!menuOpenId) return;
-    function onDown(e: MouseEvent) {
-      if (listRef.current && !listRef.current.contains(e.target as Node)) setMenuOpenId(null);
-    }
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [menuOpenId]);
 
   function toggleSort(field: 'id' | 'date' | 'amount') {
     if (sortField === field) setSortAsc(v => !v);
@@ -627,7 +619,7 @@ function InvoiceArchiveList({ invoices, activeId, search, onSearch, filterStatus
 
         <div className="fin-kpi-card">
           <div className="fin-kpi-head">
-            <div className="fin-kpi-icon fin-kpi-icon--paid"><Icon name="checkCircle" size={18} color="#16a34a" /></div>
+            <div className="fin-kpi-icon fin-kpi-icon--paid"><Icon name="checkCircle" size={18} color="#059669" /></div>
             <span className="fin-kpi-label">Paid</span>
           </div>
           <div className="fin-kpi-foot">
@@ -638,7 +630,7 @@ function InvoiceArchiveList({ invoices, activeId, search, onSearch, filterStatus
                 <span className="fin-kpi-trend-sub">{stats.paidTrend}</span>
               </span>
             </div>
-            <Sparkline id="paid" data={stats.paidSpark} color="#16a34a" />
+            <Sparkline id="paid" data={stats.paidSpark} color="#059669" />
           </div>
         </div>
 
@@ -668,16 +660,14 @@ function InvoiceArchiveList({ invoices, activeId, search, onSearch, filterStatus
         <div className="fin-table-card-hd">
           <span className="fin-table-card-title">Invoices</span>
           <div className="fin-table-card-hd-right">
-            <select
-              className="fin-status-filter-select"
-              value={filterStatus}
-              onChange={e => { onFilter(e.target.value as FilterStatus); setPage(1); }}
-              title="Filter by status"
-            >
-              {ALL_STATUSES.map(s => (
-                <option key={s} value={s}>{s === 'all' ? 'All Statuses' : (STATUS_STYLE[s as Status]?.label ?? s)}</option>
-              ))}
-            </select>
+            <Select value={filterStatus} onValueChange={v => { onFilter(v as FilterStatus); setPage(1); }}>
+              <SelectTrigger aria-label="Filter by status" className="fin-status-filter-select"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ALL_STATUSES.map(s => (
+                  <SelectItem key={s} value={s}>{s === 'all' ? 'All Statuses' : (STATUS_STYLE[s as Status]?.label ?? s)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <button type="button" className="fin-btn-primary" onClick={onNew}>
               <Icon name="plus" size={13} color="#fff" /> Create Invoice
             </button>
@@ -688,13 +678,12 @@ function InvoiceArchiveList({ invoices, activeId, search, onSearch, filterStatus
         <div className="fin-table-toolbar">
           <label className="fin-entries-label">
             Show
-            <select
-              className="fin-per-page"
-              value={perPage}
-              onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }}
-            >
-              {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
+            <Select value={String(perPage)} onValueChange={v => { setPerPage(Number(v)); setPage(1); }}>
+              <SelectTrigger aria-label="Entries per page" className="fin-per-page"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[10, 25, 50, 100].map(n => <SelectItem key={n} value={String(n)}>{n}</SelectItem>)}
+              </SelectContent>
+            </Select>
             entries
           </label>
           <div className="fin-arch-search-wrap">
@@ -738,7 +727,6 @@ function InvoiceArchiveList({ invoices, activeId, search, onSearch, filterStatus
             const isDraft   = inv.status === 'Draft';
             const diff      = dueDaysDiff(inv.dueDate);
             const isOverdue = diff !== null && diff < 0 && inv.status !== 'Paid' && inv.status !== 'Credited';
-            const menuOpen  = menuOpenId === inv.id;
             const palIdx    = AVATAR_PALETTES.indexOf(clientPalette(inv.client));
             const initials  = inv.client.split(' ').slice(0, 2).map(w => w[0]?.toUpperCase() ?? '').join('');
 
@@ -803,35 +791,30 @@ function InvoiceArchiveList({ invoices, activeId, search, onSearch, filterStatus
                   <button type="button" className="fin-act-btn" title="Download">
                     <Icon name="download" size={15} color="var(--ink3)" />
                   </button>
-                  <div className="fin-act-menu-wrap">
-                    <button
-                      type="button"
-                      className={`fin-act-btn${menuOpen ? ' fin-act-btn--open' : ''}`}
-                      title="More"
-                      onClick={() => setMenuOpenId(menuOpen ? null : inv.id)}
-                    >
-                      <Icon name="moreVertical" size={15} color="var(--ink3)" />
-                    </button>
-                    {menuOpen && (
-                      <div className="fin-act-menu">
-                        <button type="button" className="fin-act-menu-item" onClick={() => { onOpen(inv); setMenuOpenId(null); }}>
-                          <Icon name="eye" size={13} color="var(--ink2)" /> View Invoice
-                        </button>
-                        <button type="button" className="fin-act-menu-item" onClick={() => setMenuOpenId(null)}>
-                          <Icon name="download" size={13} color="var(--ink2)" /> Download
-                        </button>
-                        {isDraft && <>
-                          <div className="fin-act-menu-divider" />
-                          <button type="button" className="fin-act-menu-item" onClick={() => { onEditDirect(inv); setMenuOpenId(null); }}>
-                            <Icon name="edit" size={13} color="#2563eb" /> Edit Invoice
-                          </button>
-                          <button type="button" className="fin-act-menu-item fin-act-menu-item--danger" onClick={() => { onDeleteDirect(inv); setMenuOpenId(null); }}>
-                            <Icon name="trash" size={13} color="#dc2626" /> Delete
-                          </button>
-                        </>}
-                      </div>
-                    )}
-                  </div>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button type="button" className="fin-act-btn" title="More">
+                        <Icon name="moreVertical" size={15} color="var(--ink3)" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => onOpen(inv)}>
+                        <Icon name="eye" size={13} color="var(--ink2)" /> View Invoice
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Icon name="download" size={13} color="var(--ink2)" /> Download
+                      </DropdownMenuItem>
+                      {isDraft && <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => onEditDirect(inv)}>
+                          <Icon name="edit" size={13} color="#2563eb" /> Edit Invoice
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onDeleteDirect(inv)} className="text-destructive focus:text-destructive">
+                          <Icon name="trash" size={13} color="#dc2626" /> Delete
+                        </DropdownMenuItem>
+                      </>}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               </div>
             );
@@ -885,18 +868,17 @@ function NarrowInvoiceStrip({ invoices, activeId, filterStatus, onOpen }: {
     if (searchOpen) searchRef.current?.focus();
   }, [searchOpen]);
 
-  /* Close both panels when clicking outside the strip */
+  /* Close search panel when clicking outside the strip */
   useEffect(() => {
-    if (!filterOpen && !searchOpen) return;
+    if (!searchOpen) return;
     function handleClick(e: MouseEvent) {
       if (stripRef.current && !stripRef.current.contains(e.target as Node)) {
-        setFilterOpen(false);
         setSearchOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
-  }, [filterOpen, searchOpen]);
+  }, [searchOpen]);
 
   const allMonths = useMemo(
     () => [...new Set(invoices.map(inv => monthLabel(inv.billDate)))],
@@ -924,12 +906,6 @@ function NarrowInvoiceStrip({ invoices, activeId, filterStatus, onOpen }: {
     if (searchOpen) setSearchQuery('');
     setStripPage(1);
   }
-  function toggleFilter() {
-    setFilterOpen(v => !v);
-    setSearchOpen(false);
-    setSearchQuery('');
-    setStripPage(1);
-  }
 
   return (
     <div className="fin-narrow-strip" ref={stripRef}>
@@ -942,15 +918,46 @@ function NarrowInvoiceStrip({ invoices, activeId, filterStatus, onOpen }: {
         >
           <Icon name="search" size={14} color={searchOpen ? 'var(--teal)' : 'var(--ink3)'} />
         </button>
-        <button
-          type="button"
-          className={`fin-narrow-filter-btn${hasFilter ? ' fin-narrow-filter-btn--active' : ''}`}
-          onClick={toggleFilter}
-          title="Filter invoices"
-        >
-          <Icon name="filter" size={14} color={hasFilter ? 'var(--teal)' : 'var(--ink3)'} />
-          {hasFilter && <span className="fin-narrow-filter-dot" />}
-        </button>
+        <DropdownMenu open={filterOpen} onOpenChange={setFilterOpen}>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className={`fin-narrow-filter-btn${hasFilter ? ' fin-narrow-filter-btn--active' : ''}`}
+              onClick={() => setSearchOpen(false)}
+              title="Filter invoices"
+            >
+              <Icon name="filter" size={14} color={hasFilter ? 'var(--teal)' : 'var(--ink3)'} />
+              {hasFilter && <span className="fin-narrow-filter-dot" />}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-56">
+            <DropdownMenuLabel>Month</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => setMonthFilter(null)} className={!monthFilter ? 'bg-accent text-accent-foreground' : ''}>All months</DropdownMenuItem>
+            {allMonths.map(m => (
+              <DropdownMenuItem key={m} onClick={() => { setMonthFilter(prev => prev === m ? null : m); setStripPage(1); }}
+                className={monthFilter === m ? 'bg-accent text-accent-foreground' : ''}>
+                {m}
+              </DropdownMenuItem>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>Customer</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => setClientFilter(null)} className={!clientFilter ? 'bg-accent text-accent-foreground' : ''}>All customers</DropdownMenuItem>
+            {allClients.map(c => (
+              <DropdownMenuItem key={c} onClick={() => { setClientFilter(prev => prev === c ? null : c); setStripPage(1); }}
+                className={clientFilter === c ? 'bg-accent text-accent-foreground' : ''}>
+                {c}
+              </DropdownMenuItem>
+            ))}
+            {hasFilter && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => { setMonthFilter(null); setClientFilter(null); setStripPage(1); }} className="text-destructive focus:text-destructive font-semibold">
+                  Clear filters
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Inline search box — drops inside the strip below the header */}
@@ -967,40 +974,6 @@ function NarrowInvoiceStrip({ invoices, activeId, filterStatus, onOpen }: {
           />
           {searchQuery && (
             <button type="button" className="fin-narrow-search-clear" onClick={() => setSearchQuery('')} title="Clear search">×</button>
-          )}
-        </div>
-      )}
-
-      {/* Filter dropdown — drops inside the strip, overlays list */}
-      {filterOpen && (
-        <div className="fin-narrow-filter-panel">
-          <div className="fin-nf-section">
-            <div className="fin-nf-label">Month</div>
-            <button type="button" className={`fin-nf-option${!monthFilter ? ' fin-nf-option--active' : ''}`} onClick={() => setMonthFilter(null)}>All months</button>
-            {allMonths.map(m => (
-              <button key={m} type="button" className={`fin-nf-option${monthFilter === m ? ' fin-nf-option--active' : ''}`}
-                onClick={() => { setMonthFilter(prev => prev === m ? null : m); setFilterOpen(false); setStripPage(1); }}>
-                {m}
-              </button>
-            ))}
-          </div>
-          <div className="fin-nf-divider" />
-          <div className="fin-nf-section">
-            <div className="fin-nf-label">Customer</div>
-            <button type="button" className={`fin-nf-option${!clientFilter ? ' fin-nf-option--active' : ''}`} onClick={() => setClientFilter(null)}>All customers</button>
-            {allClients.map(c => (
-              <button key={c} type="button" className={`fin-nf-option${clientFilter === c ? ' fin-nf-option--active' : ''}`}
-                onClick={() => { setClientFilter(prev => prev === c ? null : c); setFilterOpen(false); setStripPage(1); }}>
-                {c}
-              </button>
-            ))}
-          </div>
-          {hasFilter && (
-            <div className="fin-nf-footer">
-              <button type="button" className="fin-nf-clear" onClick={() => { setMonthFilter(null); setClientFilter(null); setFilterOpen(false); setStripPage(1); }}>
-                Clear filters
-              </button>
-            </div>
           )}
         </div>
       )}
@@ -1256,7 +1229,7 @@ export const FinanceShell: React.FC = () => {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `clearos-${section}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.href = url; a.download = `hudumika-${section}-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a); a.click();
     document.body.removeChild(a); URL.revokeObjectURL(url);
   }
@@ -1366,7 +1339,8 @@ export const FinanceShell: React.FC = () => {
     apiFetch(dbId ? `/v1/invoices/${dbId}` : '/v1/invoices', {
       method: dbId ? 'PATCH' : 'POST',
       body: JSON.stringify({
-        invoice_number: inv.id, client_name: inv.client, client_address: inv.clientAddress,
+        invoice_number: inv.id, customer_id: inv.customerId || null, client_name: inv.client, client_address: inv.clientAddress,
+        shipment_ref: inv.shipmentRef || null,
         bl_number: inv.blNumber, origin: inv.origin, destination: inv.destination, mode: inv.mode,
         bill_date: inv.billDate ? inv.billDate.split('-').reverse().join('-') : null,
         due_date: inv.dueDate ? inv.dueDate.split('-').reverse().join('-') : null,
@@ -1392,6 +1366,23 @@ export const FinanceShell: React.FC = () => {
     if (activeInvoice._dbId) apiFetch(`/v1/invoices/${activeInvoice._dbId}`, { method: 'DELETE' }).catch(() => {});
     setInvoices(prev => prev.filter(i => i.id !== activeInvoice.id));
     closeTab(`invoice-${activeInvoice.id}`);
+  }
+
+  async function handleSubmitTRA() {
+    if (!activeInvoice?._dbId) throw new Error('Save the invoice before submitting it to TRA');
+    const dbId = activeInvoice._dbId;
+    const tabId = activeTabId;
+    try {
+      await apiFetch(`/v1/tra/invoices/${dbId}/submit`, { method: 'POST' });
+    } finally {
+      // Refresh either way — the backend persists tra_status on both success and failure.
+      const fresh = await apiFetch(`/v1/invoices/${dbId}`).catch(() => null);
+      if (fresh) {
+        const updated = mapApiInvoice(fresh);
+        setInvoices(prev => prev.map(i => i.id === updated.id ? updated : i));
+        setOpenTabs(prev => prev.map(t => t.id === tabId ? { ...t, invoice: updated } : t));
+      }
+    }
   }
 
   function handleRecordPayment(amount: number, payMethod: string, payDate: string) {
@@ -1499,7 +1490,7 @@ export const FinanceShell: React.FC = () => {
                         onCopy={handleCopyInvoice}
                         onDelete={handleDeleteInvoice}
                         onRecordPayment={handleRecordPayment}
-                        onUpdate={handleUpdateInvoice}
+                        onSubmitTRA={handleSubmitTRA}
                         isMobile={isMobile}
                       />
                     ) : null}
