@@ -1,0 +1,95 @@
+/* ── Wizard step indicator ── */
+.ob-steps { display: flex; justify-content: center; gap: 8px; }
+.ob-step-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--lp-row-border, #e2e8f0);
+  transition: background 0.2s, transform 0.2s;
+}
+.ob-step-dot--done   { background: var(--lp-accent, #0d7a6b); }
+.ob-step-dot--active { background: var(--lp-accent, #0d7a6b); transform: scale(1.3); }
+
+/* Wider card for steps with richer content (package grid, review) */
+.login-card.ob-card--wide { max-width: 640px; }
+
+/* ── Field status (email/subdomain availability) ── */
+.ob-field-status { font-size: 12px; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
+.ob-field-status--checking { color: var(--lp-ink3, #5f6368); }
+.ob-field-status--ok       { color: #059669; }
+.ob-field-status--bad      { color: #ea4335; }
+.login-field-pw .ob-field-status { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); margin-top: 0; }
+
+/* ── Form actions variant: single button, right-aligned ── */
+.login-form-actions--end { justify-content: flex-end; }
+
+/* ── Billing cycle / payment method toggle ── */
+.ob-billing-toggle { display: flex; gap: 8px; background: var(--lp-row-border, #e2e8f0); padding: 4px; border-radius: 100px; width: fit-content; }
+.ob-billing-opt {
+  border: none;
+  background: transparent;
+  padding: 8px 18px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--lp-ink2, #444746);
+  cursor: pointer;
+}
+.ob-billing-opt--active { background: var(--lp-card-bg, #fff); color: var(--lp-accent, #0d7a6b); }
+.ob-billing-save { font-size: 10.5px; font-weight: 700; color: #059669; margin-left: 4px; }
+
+/* ── Package pricing cards ── */
+.ob-loading { font-size: 13px; color: var(--lp-ink3, #5f6368); }
+.ob-pkg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+.ob-pkg-card {
+  position: relative;
+  text-align: left;
+  border: 1.5px solid var(--lp-input-border, #cbd5e1);
+  border-radius: 10px;
+  padding: 18px 16px;
+  background: var(--lp-card-bg, #fff);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.15s;
+}
+.ob-pkg-card--selected { border-color: var(--pkg-color, var(--lp-accent)); box-shadow: inset 0 0 0 1px var(--pkg-color, var(--lp-accent)); }
+.ob-pkg-badge { position: absolute; top: -10px; left: 14px; background: var(--pkg-color, #7c3aed); color: #fff; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+.ob-pkg-name { font-size: 14px; font-weight: 700; color: var(--lp-ink, #1f1f1f); }
+.ob-pkg-price { font-size: 20px; font-weight: 800; color: var(--pkg-color, var(--lp-ink)); }
+.ob-pkg-price span { font-size: 12px; font-weight: 600; color: var(--lp-ink3, #5f6368); }
+.ob-pkg-users { font-size: 11.5px; color: var(--lp-ink3, #5f6368); }
+.ob-pkg-features { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.ob-pkg-features li { display: flex; align-items: flex-start; gap: 6px; font-size: 11.5px; color: var(--lp-ink2, #444746); }
+.ob-pkg-features li svg { color: var(--pkg-color, var(--lp-accent)); margin-top: 1px; flex-shrink: 0; }
+.ob-pkg-selected-tick { position: absolute; top: 12px; right: 12px; color: var(--pkg-color, var(--lp-accent)); }
+
+/* ── Domain step ── */
+.ob-domain-row { display: flex; align-items: center; gap: 8px; }
+.ob-domain-input { flex: 1; }
+.ob-domain-suffix { font-size: 13.5px; color: var(--lp-ink3, #5f6368); white-space: nowrap; }
+
+/* ── Payment step ── */
+.ob-payment-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.ob-payment-note { font-size: 12px; color: var(--lp-ink3, #5f6368); text-align: center; margin: 0; }
+
+/* ── Review summary ── */
+.ob-review { border: 1px solid var(--lp-row-border, #e2e8f0); border-radius: 10px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.ob-review-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--lp-ink3, #5f6368); margin-bottom: 2px; }
+.ob-review-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.ob-review-row span:first-child { color: var(--lp-ink3, #5f6368); }
+.ob-review-row span:last-child { color: var(--lp-ink, #1f1f1f); font-weight: 600; text-align: right; }
+
+/* ── Success screen ── */
+.ob-success { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; padding: 12px 0; }
+.ob-success-icon { color: #059669; margin-bottom: 4px; }
+.ob-checklist { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 280px; }
+.ob-checklist-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--lp-ink3, #5f6368); }
+.ob-checklist-item--done { color: var(--lp-ink, #1f1f1f); }
+.ob-checklist-item--done svg { color: #059669; }
+
+@media (max-width: 620px) {
+  .ob-pkg-grid { grid-template-columns: 1fr; }
+  .ob-payment-row { grid-template-columns: 1fr; }
+}

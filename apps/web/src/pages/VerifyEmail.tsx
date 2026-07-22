@@ -31,7 +31,7 @@ export const VerifyEmail: React.FC = () => {
             <div className="auth-verify-steps">
               {[
                 { icon: 'mail' as const,        text: 'Open your email inbox' },
-                { icon: 'search' as const,      text: 'Find the email from ClearOS' },
+                { icon: 'search' as const,      text: 'Find the email from Hudumika' },
                 { icon: 'checkCircle' as const, text: 'Click the verification link' },
               ].map((s, i) => (
                 <div key={i} className="auth-verify-step">
