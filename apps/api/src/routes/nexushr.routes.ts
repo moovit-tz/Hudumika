@@ -1,11 +1,11 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { NexusHRService } from '../services/nexushr.service.js';
 import { requireRole } from '../middleware/rbac.js';
 
 export async function nexusHRRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('onepi'));
+  fastify.addHook('preHandler', requireEntitlement('onepi'));
 
   // ─── CORE HR ───────────────────────────────────────────────────────────────
 

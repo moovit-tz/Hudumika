@@ -1,13 +1,5 @@
-﻿import React, { useState, useCallback, useEffect, lazy, Suspense } from 'react';
-const OrgChartLazy = lazy(() => import('./OrgChart.js').then(m => ({ default: m.OrgChart })));
-function OrgChartPage() {
-  return (
-    <Suspense fallback={<div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)', fontFamily: 'var(--font)' }}>Loading…</div>}>
-      <OrgChartLazy />
-    </Suspense>
-  );
-}
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
@@ -15,15 +7,31 @@ import { MetricsRow, spark } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
 import { EMPLOYEES } from '../data/staffData.js';
 import type { EmpStatus, Employee } from '../data/staffData.js';
-import { useShiftAssignments, EMPLOYEES as SHIFT_EMPLOYEES, SHIFT_TYPES, assignShift, assignBulkShifts, useAttendance, markAttendance, bulkMarkAttendance } from '../data/hrmData.js';
-import type { AttendanceStatus, AttendanceRecord } from '../data/hrmData.js';
+import { EMPLOYEES as SHIFT_EMPLOYEES, SHIFT_TYPES } from '../data/hrmData.js';
+import type { AttendanceStatus, AttendanceRecord, ShiftType, ShiftAssignment, Employee as ShiftEmployee } from '../data/hrmData.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Combobox } from '../components/ui/combobox.js';
+import { MultiSelectFilter } from '../components/ui/filter-dropdown.js';
+import { DatePicker } from '../components/ui/date-picker.js';
 
-/* ── Types ── */
+function mapAttStatus(s: string): AttendanceStatus {
+  switch (s) {
+    case 'PRESENT':  return 'Present';
+    case 'ABSENT':   return 'Absent';
+    case 'LATE':     return 'Late';
+    case 'HALF_DAY': return 'Half-Day';
+    case 'ON_LEAVE': return 'On Leave';
+    default:         return 'Present';
+  }
+}
+function toAttStatusApi(s: AttendanceStatus): string { return s.toUpperCase().replace('-', '_'); }
+
+/* -- Types -- */
 type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
 type AttStatus  = 'PRESENT' | 'ABSENT' | 'LATE' | 'HALF_DAY' | 'ON_LEAVE';
 type PayStatus  = 'PAID' | 'PENDING' | 'PROCESSING';
 
-/* ── Mock data ── */
+/* -- Mock data -- */
 
 const LEAVE_TYPES = ['Annual Leave','Sick Leave','Casual Leave','Maternity Leave','Emergency Leave'];
 const LEAVES = [
@@ -66,7 +74,7 @@ const HOLIDAYS = [
   { date:'2026-11-01', name:'Team Building Day',        type:'Company' },
 ];
 
-/* ── TZ PAYE Formula ── */
+/* -- TZ PAYE Formula -- */
 function calcPAYE(gross: number): number {
   if (gross < 270000)  return 0;
   if (gross < 520000)  return Math.round((gross - 270000) * 0.08);
@@ -76,7 +84,7 @@ function calcPAYE(gross: number): number {
 }
 function calcNSSF(basic: number): number { return Math.round(basic * 0.10); }
 
-/* ── Payslip Modal ── */
+/* -- Payslip Modal -- */
 type PayslipRow = { emp: string; basic: number; allow: number; ded: number; status: string };
 
 function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabel: string; onClose: () => void }) {
@@ -188,7 +196,7 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
             <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)', borderRadius: 8, padding: '18px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Net Pay</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>After all deductions — {monthLabel}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>After all deductions � {monthLabel}</div>
               </div>
               <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
                 TZS {net.toLocaleString()}
@@ -197,7 +205,7 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
 
             {/* PAYE Note */}
             <div style={{ padding: '10px 14px', background: '#fefce8', border: '1px solid #fef08a', borderRadius: 6, marginBottom: 20, fontSize: 11, color: '#713f12' }}>
-              <strong>PAYE calculated per TRA Tanzania rates:</strong> 0% up to TZS 270,000 · 8% (270k–520k) · 20% (520k–760k) · 25% (760k–1M) · 30% above TZS 1,000,000
+              <strong>PAYE calculated per TRA Tanzania rates:</strong> 0% up to TZS 270,000 � 8% (270k�520k) � 20% (520k�760k) � 25% (760k�1M) � 30% above TZS 1,000,000
             </div>
 
             {/* Signatures */}
@@ -215,7 +223,7 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
             </div>
 
             <div style={{ textAlign: 'center', marginTop: 24, fontSize: 10, color: '#94a3b8' }}>
-              This is a computer-generated payslip · Moovit ClearOS · Generated on {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
+              This is a computer-generated payslip � Moovit ClearOS � Generated on {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
             </div>
           </div>
         </div>
@@ -258,49 +266,11 @@ const PAYROLL = [
 const ANNOUNCEMENTS = [
   { id:'a1', title:'Mid-Year Performance Reviews', category:'HR', body:'All managers are required to complete mid-year performance reviews for their team members by June 30, 2026. Please use the standard review form available on the HR portal.', author:'Rose Kimaro', date:'2026-06-10', audience:'All Staff' },
   { id:'a2', title:'New Overtime Policy Effective July 2026', category:'Policy', body:'Please be informed that the updated overtime policy will come into effect from 1st July 2026. Overtime must be pre-approved by department heads and submitted via the attendance module.', author:'John Baraka', date:'2026-06-08', audience:'All Staff' },
-  { id:'a3', title:'System Maintenance Scheduled', category:'IT', body:'ClearOS will undergo scheduled maintenance on Sunday 22 June 2026 from 00:00 to 04:00 EAT. During this period, all modules will be unavailable. Please plan your work accordingly.', author:'Said Ali', date:'2026-06-05', audience:'All Staff' },
+  { id:'a3', title:'System Maintenance Scheduled', category:'IT', body:'Hudumika will undergo scheduled maintenance on Sunday 22 June 2026 from 00:00 to 04:00 EAT. During this period, all modules will be unavailable. Please plan your work accordingly.', author:'Said Ali', date:'2026-06-05', audience:'All Staff' },
 ];
 
-const TEAMS = [
-  { name:'Clearing Team Alpha', leader:'Amina Hassan',  members:['Amina Hassan','Fatuma Juma','Omar Shariff','Grace Mwamba'], projects:3 },
-  { name:'Finance Team',        leader:'John Baraka',   members:['John Baraka','David Mlay'], projects:2 },
-  { name:'IT & Systems',        leader:'Said Ali',      members:['Said Ali'], projects:4 },
-  { name:'Compliance Team',     leader:'Rose Kimaro',   members:['Rose Kimaro','Grace Mwamba'], projects:1 },
-];
-
-const INVITATIONS = [
-  { email:'new.officer@moovit.co.tz',   role:'Officer',  sentBy:'Rose Kimaro', sent:'2026-06-10', expires:'2026-06-17', status:'PENDING'  },
-  { email:'accounts@moovit.co.tz',      role:'Finance',  sentBy:'John Baraka', sent:'2026-06-08', expires:'2026-06-15', status:'EXPIRED'  },
-  { email:'logistics2@moovit.co.tz',    role:'Officer',  sentBy:'Said Ali',    sent:'2026-06-12', expires:'2026-06-19', status:'PENDING'  },
-  { email:'senior.ops@moovit.co.tz',    role:'Manager',  sentBy:'Rose Kimaro', sent:'2026-06-01', expires:'2026-06-08', status:'ACCEPTED' },
-];
-
-const ACTIVITY_LOGS = [
-  { user:'Amina Hassan',  action:'Updated shipment BL/MSKU123456',  module:'Operations', ip:'196.201.1.10', time:'2026-06-14 09:12' },
-  { user:'John Baraka',   action:'Generated invoice INV-2026-0234',  module:'Billing',    ip:'196.201.1.11', time:'2026-06-14 08:55' },
-  { user:'Said Ali',      action:'Changed user role: Grace Mwamba',  module:'HR',         ip:'196.201.1.15', time:'2026-06-14 08:40' },
-  { user:'Rose Kimaro',   action:'Approved leave: Omar Shariff',     module:'HR',         ip:'196.201.1.14', time:'2026-06-13 17:02' },
-  { user:'David Mlay',    action:'Exported payroll report June 2026', module:'Finance',   ip:'196.201.1.12', time:'2026-06-13 16:45' },
-  { user:'Fatuma Juma',   action:'Logged in',                         module:'Auth',      ip:'196.201.1.13', time:'2026-06-13 08:01' },
-];
-
-const LOGIN_HISTORY = [
-  { user:'Amina Hassan', ip:'196.201.1.10', browser:'Chrome 124', os:'Windows 11', status:'SUCCESS', time:'2026-06-14 08:02' },
-  { user:'John Baraka',  ip:'196.201.1.11', browser:'Safari 17',  os:'macOS 14',   status:'SUCCESS', time:'2026-06-14 07:58' },
-  { user:'Said Ali',     ip:'196.201.1.15', browser:'Chrome 124', os:'Ubuntu 22',  status:'SUCCESS', time:'2026-06-14 08:40' },
-  { user:'Omar Shariff', ip:'41.75.188.22', browser:'Firefox 125',os:'Windows 11', status:'FAILED',  time:'2026-06-13 22:14' },
-  { user:'Grace Mwamba', ip:'196.201.1.13', browser:'Chrome 124', os:'Windows 10', status:'SUCCESS', time:'2026-06-13 08:30' },
-];
-
-const DEVICES = [
-  { user:'Amina Hassan', device:'Dell Latitude 5540',   type:'Laptop',    browser:'Chrome 124', lastUsed:'2026-06-14', trusted:true  },
-  { user:'John Baraka',  device:'MacBook Pro 16"',      type:'Laptop',    browser:'Safari 17',  lastUsed:'2026-06-14', trusted:true  },
-  { user:'Said Ali',     device:'ThinkPad X1 Carbon',   type:'Laptop',    browser:'Chrome 124', lastUsed:'2026-06-14', trusted:true  },
-  { user:'Omar Shariff', device:'Unknown Device',        type:'Mobile',    browser:'Firefox 125',lastUsed:'2026-06-13', trusted:false },
-];
-
-/* ── Shared helpers ── */
-const AVATAR_COLORS = ['#e8461a','#0891b2','#7c3aed','#16a34a','#d97706','#9333ea'];
+/* -- Shared helpers -- */
+const AVATAR_COLORS = ['#e8461a','#0891b2','#7c3aed','#059669','#d97706','#9333ea'];
 function avatarColor(n: string) { return AVATAR_COLORS[[...n].reduce((a,c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length]; }
 function ini(n: string) { return n.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase(); }
 function fmtTZS(n: number) { return 'TZS ' + n.toLocaleString(); }
@@ -339,16 +309,15 @@ function Badge({ status }: { status: string }) {
 }
 
 function PageHeader({ icon, title, sub, children, backTo }: { icon: IconName; title: string; sub?: string; children?: React.ReactNode; backTo?: string }) {
-  const navigate = useNavigate();
   return (
     <div style={{ marginBottom:20, display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
       <div style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
         {backTo !== undefined && (
-          <button type="button" onClick={() => navigate(backTo || '/hrm')} title="Go back"
+          <Link to={backTo || '/onepi'} title="Go back"
             style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--border)', background:'var(--white)', cursor:'pointer',
               display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:2 }}>
             <Icon name="arrowLeft" size={15} color="var(--ink2)" />
-          </button>
+          </Link>
         )}
         <div>
           <h1 style={{ fontSize:20, fontWeight:800, color:'var(--ink)', margin:'0 0 4px', display:'flex', alignItems:'center', gap:10 }}>
@@ -386,9 +355,9 @@ function Wrap({ children }: { children: React.ReactNode }) {
   );
 }
 
-function PrimaryBtn({ label, icon, onClick }: { label: string; icon?: IconName; onClick?: () => void }) {
+function PrimaryBtn({ label, icon, onClick, type = 'button' }: { label: string; icon?: IconName; onClick?: () => void; type?: 'button' | 'submit' }) {
   return (
-    <button type="button" className="btn btn-primary" onClick={onClick} style={{ display:'flex', alignItems:'center', gap:6 }}>
+    <button type={type} className="btn btn-primary" onClick={onClick} style={{ display:'flex', alignItems:'center', gap:6 }}>
       {icon && <Icon name={icon} size={13} color="#fff" />}
       {label}
     </button>
@@ -403,9 +372,9 @@ function ActionBtn({ label, color = 'var(--teal)', onClick }: { label: string; c
   );
 }
 
-/* ── Sub-pages ── */
+/* -- Sub-pages -- */
 
-function EmployeesPage() {
+export function EmployeesPage() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [search,    setSearch]    = useState('');
@@ -455,7 +424,7 @@ function EmployeesPage() {
 
   return (
     <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex: 1, overflowY: 'auto' }}>
-      <PageHeader icon="users" title="Manage Users" sub={`${employees.filter(e => e.status === 'ACTIVE').length} active · ${employees.length} total`} backTo="/hrm">
+      <PageHeader icon="users" title="Manage Staff" sub={`${employees.filter(e => e.status === 'ACTIVE').length} active � ${employees.length} total`} backTo="/onepi">
         <PrimaryBtn label="Invite User" icon="userPlus" onClick={() => setShowOnboard(true)} />
       </PageHeader>
 
@@ -465,7 +434,7 @@ function EmployeesPage() {
         { title: 'Inactive',       value: String(employees.filter(e => e.status === 'INACTIVE').length),     trend: -5, sub1Label: 'PENDING',   sub1Value: '1',                                                            sub2Label: 'LEFT YTD', sub2Value: '2',                                               bars: spark(102, 15, 'down'), barColor: 'var(--red-l)',   barHighlight: 'var(--red)'   },
       ]} />
 
-      {/* ── Toolbar ── */}
+      {/* -- Toolbar -- */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center', flexWrap: 'wrap' }}>
         {/* Status chips */}
         <div style={{ display: 'flex', gap: 4 }}>
@@ -483,16 +452,18 @@ function EmployeesPage() {
         {/* Search */}
         <div style={{ position: 'relative', width: 260 }}>
           <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email…"
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email�"
             style={{ width: '100%', padding: '7px 10px 7px 32px', border: '1px solid var(--border)', borderRadius: 9, fontFamily: 'var(--font)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
         </div>
 
         {/* Dept filter */}
-        <select value={deptF} onChange={e => setDeptF(e.target.value)}
-          style={{ padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 9, fontFamily: 'var(--font)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)' }}>
-          <option value="">All Departments</option>
-          {depts.map(d => <option key={d} value={d}>{d}</option>)}
-        </select>
+        <Select value={deptF || '__all__'} onValueChange={v => setDeptF(v === '__all__' ? '' : v)}>
+          <SelectTrigger style={{ width: 'auto', padding: '7px 10px', height: 'auto' }}><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All Departments</SelectItem>
+            {depts.map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+          </SelectContent>
+        </Select>
 
         {/* View toggle */}
         <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
@@ -509,14 +480,14 @@ function EmployeesPage() {
         Showing {rows.length} of {employees.length} members
       </div>
 
-      {/* ── Grid View ── */}
+      {/* -- Grid View -- */}
       {viewMode === 'grid' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 16, marginBottom: 16 }}>
           {rows.length === 0 && <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px 0', color: 'var(--ink3)', fontSize: 14 }}>No staff match current filters.</div>}
           {rows.map(e => {
             const rCol = roleColor(e.role);
             return (
-              <div key={e.id} onClick={() => navigate('/hrm/staff/' + e.id)} style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden', cursor: 'pointer' }}>
+              <Link key={e.id} to={'/onepi/staff/' + e.id} style={{ display: 'block', background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
                 <div style={{ height: 3, background: statusBar(e.status) }} />
                 <div style={{ padding: '18px 16px 12px', textAlign: 'center' }}>
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
@@ -540,12 +511,12 @@ function EmployeesPage() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             );
           })}
         </div>
       ) : (
-        /* ── List / Table View ── */
+        /* -- List / Table View -- */
         <Wrap>
           <thead>
             <tr><TH>Employee</TH><TH>Department</TH><TH>Designation</TH><TH>Role</TH><TH>Hired</TH><TH>Status</TH></tr>
@@ -556,11 +527,11 @@ function EmployeesPage() {
               const rCol = roleColor(e.role);
               return (
                 <tr key={e.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
-                  onClick={() => navigate('/hrm/staff/' + e.id)}
+                  onClick={() => navigate('/onepi/staff/' + e.id)}
                   onMouseEnter={ev => (ev.currentTarget.style.background = 'var(--bg)')}
                   onMouseLeave={ev => (ev.currentTarget.style.background = '')}>
                   <TD>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <Link to={'/onepi/staff/' + e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit' }}>
                       <div style={{ position: 'relative', flexShrink: 0 }}>
                         <Avatar name={e.name} size={34} />
                         <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: statusBar(e.status), border: '2px solid var(--white)' }} />
@@ -569,7 +540,7 @@ function EmployeesPage() {
                         <div style={{ fontWeight: 700, color: 'var(--ink)', fontSize: 13 }}>{e.name}</div>
                         <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{e.email}</div>
                       </div>
-                    </div>
+                    </Link>
                   </TD>
                   <TD muted>{e.dept}</TD>
                   <TD>{e.designation}</TD>
@@ -583,43 +554,51 @@ function EmployeesPage() {
         </Wrap>
       )}
 
-      {/* ── Invite / Onboard Modal ── */}
+      {/* -- Invite / Onboard Modal -- */}
       {showOnboard && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ background: 'var(--white)', borderRadius: 9, padding: 32, width: 500, maxWidth: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 9, padding: 32, width: 460, maxWidth: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Onboard New Staff</h2>
+              <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Invite New Staff</h2>
               <button type="button" title="Close" onClick={() => setShowOnboard(false)} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><Icon name="x" size={20} color="var(--ink3)" /></button>
             </div>
-            <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '0 0 24px' }}>Enter personal and HR details to invite them to ClearOS.</p>
+            <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '0 0 24px' }}>Sends an email invite. They'll set their own name and password when they accept.</p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 16 }}>
-              <div><label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Full Name</label>
-                <input type="text" placeholder="e.g. John Doe" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 9, boxSizing: 'border-box' as const, fontFamily: 'var(--font)' }} /></div>
-              <div><label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Work Email</label>
-                <input type="email" placeholder="john@company.com" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 9, boxSizing: 'border-box' as const, fontFamily: 'var(--font)' }} /></div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 16 }}>
-              <div><label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Department</label>
-                <select style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 9, boxSizing: 'border-box' as const, fontFamily: 'var(--font)' }}>
-                  <option>Operations</option><option>Finance</option><option>IT</option><option>HR</option>
-                </select></div>
-              <div><label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Designation</label>
-                <input type="text" placeholder="e.g. Senior Officer" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 9, boxSizing: 'border-box' as const, fontFamily: 'var(--font)' }} /></div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 24 }}>
-              <div><label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>System Role</label>
-                <select title="System role" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 9, boxSizing: 'border-box' as const, fontFamily: 'var(--font)' }}>
-                  <option>Officer</option><option>Manager</option><option>Finance</option><option>Tenant Admin</option>
-                </select></div>
-              <div><label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Hire Date</label>
-                <input type="date" title="Hire date" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 9, boxSizing: 'border-box' as const, fontFamily: 'var(--font)' }} /></div>
-            </div>
+            <form onSubmit={async e => {
+              e.preventDefault();
+              const fd = new FormData(e.currentTarget);
+              const email = fd.get('email') as string;
+              const role = fd.get('role') as string;
+              if (!email || !role) return;
+              try {
+                await apiFetch('/v1/hr/invitations', { method: 'POST', body: JSON.stringify({ email, role }) });
+                setShowOnboard(false);
+              } catch { /* ignore */ }
+            }}>
+              <div style={{ marginBottom: 16 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Work Email</label>
+                <input name="email" type="email" required placeholder="john@company.com" style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 9, boxSizing: 'border-box' as const, fontFamily: 'var(--font)' }} />
+              </div>
+              <div style={{ marginBottom: 24 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>System Role</label>
+                <Select name="role" required defaultValue="OFFICER">
+                  <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="OFFICER">Officer</SelectItem>
+                    <SelectItem value="SENIOR">Senior Officer</SelectItem>
+                    <SelectItem value="MANAGER">Manager</SelectItem>
+                    <SelectItem value="FINANCE">Finance</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="TENANT_ADMIN">Tenant Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => setShowOnboard(false)} className="btn btn-secondary">Cancel</button>
-              <button type="button" onClick={() => setShowOnboard(false)} className="btn btn-primary">Send Invite & Onboard</button>
-            </div>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setShowOnboard(false)} className="btn btn-secondary">Cancel</button>
+                <button type="submit" className="btn btn-primary">Send Invite</button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -627,12 +606,12 @@ function EmployeesPage() {
   );
 }
 
-/* ─── Roles & Permissions (full implementation) ───────────── */
+/* --- Roles & Permissions (full implementation) ------------- */
 
 const ROLE_META: Record<string, { color: string; desc: string; label: string }> = {
   ADMIN:       { color:'#7c3aed', label:'Admin',          desc:'Full access to all modules except super-admin settings' },
   MANAGER:     { color:'#2563eb', label:'Manager',        desc:'Manage teams, approve workflows, view all reports'      },
-  FINANCE:     { color:'#16a34a', label:'Finance',        desc:'Finance module: invoices, payments, payroll, reports'   },
+  FINANCE:     { color:'#059669', label:'Finance',        desc:'Finance module: invoices, payments, payroll, reports'   },
   SALES:       { color:'#f59e0b', label:'Sales',          desc:'Sales pipeline, CRM, leads and customer management'     },
   SENIOR:      { color:'#0891b2', label:'Senior Officer', desc:'Senior ops: all shipments, clearance, docs'             },
   JUNIOR:      { color:'#64748b', label:'Junior Officer', desc:'Entry-level: assigned clearance tasks, limited access'  },
@@ -654,7 +633,7 @@ const ACTION_COLORS: Record<string,string> = {
 
 interface PermRow { id?: string; role: string; resource: string; action: string; allowed: boolean }
 
-function RolesPage() {
+export function RolesPage() {
   const navigate = useNavigate();
   const [perms,     setPerms]     = useState<PermRow[]>([]);
   const [userCounts,setUserCounts]= useState<Record<string,number>>({});
@@ -706,11 +685,11 @@ function RolesPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="shield" title="Roles & Permissions" sub="Manage access control for each role across all modules" backTo="/hrm">
+      <PageHeader icon="shield" title="Roles & Permissions" sub="Manage access control for each role across all modules" backTo="/onepi">
         {dirty && (
           <button type="button" onClick={save} disabled={saving}
             style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', borderRadius:8, border:'none', background:'var(--teal)', color:'#fff', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer' }}>
-            <Icon name="save" size={14} color="#fff" />{saving ? 'Saving…' : 'Save Changes'}
+            <Icon name="save" size={14} color="#fff" />{saving ? 'Saving�' : 'Save Changes'}
           </button>
         )}
       </PageHeader>
@@ -776,7 +755,7 @@ function RolesPage() {
               <Icon name="shield" size={17} color={selMeta.color} />
             </div>
             <div>
-              <div style={{ fontSize:14, fontWeight:800, color:'var(--ink)' }}>{selMeta.label} — Permission Matrix</div>
+              <div style={{ fontSize:14, fontWeight:800, color:'var(--ink)' }}>{selMeta.label} � Permission Matrix</div>
               <div style={{ fontSize:11.5, color:'var(--ink3)' }}>Click checkboxes to grant or revoke access. Save when done.</div>
             </div>
           </div>
@@ -837,10 +816,10 @@ function RolesPage() {
       <div style={{ background:'var(--white)', borderRadius:10, border:'1px solid var(--border)', overflow:'hidden' }}>
         <div style={{ padding:'12px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Staff by Role</span>
-          <button type="button" onClick={() => navigate('/hrm/employees')}
-            style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)' }}>
-            Manage Staff →
-          </button>
+          <Link to="/onepi/employees"
+            style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)', textDecoration:'none' }}>
+            Manage Staff ?
+          </Link>
         </div>
         <div style={{ padding:'8px 0' }}>
           {roles.map(([key, meta]) => {
@@ -868,7 +847,7 @@ function RolesPage() {
   );
 }
 
-function PermissionsPage() {
+export function PermissionsPage() {
   const [perms,  setPerms]  = useState<PermRow[]>([]);
   const [saving, setSaving] = useState(false);
   const [dirty,  setDirty]  = useState(false);
@@ -910,18 +889,18 @@ function PermissionsPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="key" title="Permission Matrix" sub="Full cross-role permission overview — toggle access per module and action" backTo="/hrm">
+      <PageHeader icon="key" title="Permission Matrix" sub="Full cross-role permission overview � toggle access per module and action" backTo="/onepi">
         {dirty && (
           <button type="button" onClick={save} disabled={saving}
             style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', borderRadius:8, border:'none', background:'var(--teal)', color:'#fff', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer' }}>
-            <Icon name="save" size={14} color="#fff" />{saving ? 'Saving…' : 'Save Changes'}
+            <Icon name="save" size={14} color="#fff" />{saving ? 'Saving�' : 'Save Changes'}
           </button>
         )}
       </PageHeader>
 
       {/* Filter */}
       <div style={{ marginBottom:16, maxWidth:340 }}>
-        <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter modules…"
+        <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter modules�"
           style={{ width:'100%', padding:'8px 12px', border:'1px solid var(--border)', borderRadius:8, fontSize:13, fontFamily:'var(--font)', color:'var(--ink)', background:'var(--white)', boxSizing:'border-box' as const }} />
       </div>
 
@@ -995,25 +974,74 @@ function PermissionsPage() {
   );
 }
 
-function DeleteRequestsPage() {
-  const reqs = [
-    { user:'Baraka Ngowi',     email:'baraka.n@moovit.co.tz',  requested:'2026-06-10', reason:'Resigned from company',     status:'PENDING'   },
-    { user:'Suleiman Rashid',  email:'suleiman@moovit.co.tz',  requested:'2026-06-05', reason:'Duplicate account',          status:'APPROVED'  },
-  ];
+type DeleteReqRow = { id: string; user_name: string; user_email: string; requested_by_name: string; reason: string | null; status: string; created_at: string };
+
+export function DeleteRequestsPage() {
+  const [reqs, setReqs] = useState<DeleteReqRow[]>([]);
+  const [staff, setStaff] = useState<Employee[]>([]);
+  const [showNew, setShowNew] = useState(false);
+
+  const load = useCallback(async () => {
+    try { setReqs(await apiFetch('/v1/hr/delete-requests')); } catch { /* none yet */ }
+  }, []);
+  const loadStaff = useCallback(async () => {
+    try { setStaff(await apiFetch('/v1/hr/staff')); } catch { /* keep empty */ }
+  }, []);
+  useEffect(() => { load(); loadStaff(); }, [load, loadStaff]);
+
+  async function decide(id: string, status: 'APPROVED' | 'REJECTED') {
+    try { await apiFetch(`/v1/hr/delete-requests/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) }); load(); } catch { /* ignore */ }
+  }
+
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="userMinus" title="Delete Requests" sub="User account deletion requests pending review" backTo="/hrm" />
+      <PageHeader icon="userMinus" title="Delete Requests" sub="User account deletion requests pending review" backTo="/onepi">
+        <PrimaryBtn label="New Request" icon="plus" onClick={() => setShowNew(v => !v)} />
+      </PageHeader>
+
+      {showNew && (
+        <Card>
+          <form onSubmit={async e => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const userId = fd.get('user_id') as string;
+            const reason = fd.get('reason') as string;
+            if (!userId) return;
+            try {
+              await apiFetch('/v1/hr/delete-requests', { method: 'POST', body: JSON.stringify({ user_id: userId, reason }) });
+              setShowNew(false); load();
+            } catch { /* ignore */ }
+          }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Staff Member</label>
+              <Select name="user_id" required>
+                <SelectTrigger style={{ width: 220 }}><SelectValue placeholder="-- Select --" /></SelectTrigger>
+                <SelectContent>
+                  {staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Reason</label>
+              <input name="reason" placeholder="e.g. Resigned from company" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+            </div>
+            <PrimaryBtn label="Submit Request" type="submit" />
+          </form>
+        </Card>
+      )}
+
       <Wrap>
-        <thead><tr><TH>User</TH><TH>Email</TH><TH>Requested</TH><TH>Reason</TH><TH>Status</TH><TH right>Actions</TH></tr></thead>
+        <thead><tr><TH>User</TH><TH>Email</TH><TH>Requested By</TH><TH>Reason</TH><TH>Status</TH><TH right>Actions</TH></tr></thead>
         <tbody>
-          {reqs.map((r,i) => (
-            <tr key={i} style={{ borderBottom:'1px solid var(--border)' }}>
-              <TD bold>{r.user}</TD>
-              <TD muted>{r.email}</TD>
-              <TD muted>{r.requested}</TD>
-              <TD muted>{r.reason}</TD>
+          {reqs.length === 0 && <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)' }}>No delete requests.</td></tr>}
+          {reqs.map(r => (
+            <tr key={r.id} style={{ borderBottom:'1px solid var(--border)' }}>
+              <TD bold>{r.user_name}</TD>
+              <TD muted>{r.user_email}</TD>
+              <TD muted>{r.requested_by_name}</TD>
+              <TD muted>{r.reason || '-'}</TD>
               <TD><Badge status={r.status} /></TD>
-              <TD right>{r.status==='PENDING' && <><ActionBtn label="Approve" color="var(--green)" /><ActionBtn label="Reject" color="var(--red)" /></>}</TD>
+              <TD right>{r.status==='PENDING' && <><ActionBtn label="Approve" color="var(--green)" onClick={() => decide(r.id, 'APPROVED')} /><ActionBtn label="Reject" color="var(--red)" onClick={() => decide(r.id, 'REJECTED')} /></>}</TD>
             </tr>
           ))}
         </tbody>
@@ -1022,38 +1050,103 @@ function DeleteRequestsPage() {
   );
 }
 
-type DeptRow = { id?: string; name: string; head: string; employees: number; status: string };
+type DeptRow = { id?: string; name: string; head: string; head_user_id?: string | null; employees: number; status: string };
 
-function DepartmentsPage() {
+function DeptForm({ staff, initial, onCancel, onSubmit }: {
+  staff: Employee[]; initial?: DeptRow; onCancel: () => void; onSubmit: (v: { name: string; head_user_id: string; status: string }) => void;
+}) {
+  return (
+    <Card>
+      <form onSubmit={e => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        const headId = fd.get('head_user_id') as string;
+        onSubmit({ name: fd.get('name') as string, head_user_id: headId === '__none__' ? '' : headId, status: fd.get('status') as string });
+      }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Department Name</label>
+          <input name="name" required defaultValue={initial?.name} placeholder="e.g. Operations" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Head</label>
+          <Select name="head_user_id" defaultValue={initial?.head_user_id || '__none__'}>
+            <SelectTrigger style={{ width: 180 }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">-- None --</SelectItem>
+              {staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Status</label>
+          <Select name="status" defaultValue={initial?.status || 'ACTIVE'}>
+            <SelectTrigger style={{ width: 140 }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ACTIVE">Active</SelectItem>
+              <SelectItem value="INACTIVE">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <PrimaryBtn label={initial ? 'Save' : 'Create'} type="submit" />
+        <ActionBtn label="Cancel" onClick={onCancel} />
+      </form>
+    </Card>
+  );
+}
+
+export function DepartmentsPage() {
   const [depts, setDepts] = useState<DeptRow[]>(DEPARTMENTS);
+  const [staff, setStaff] = useState<Employee[]>([]);
+  const [showNew, setShowNew] = useState(false);
+  const [editing, setEditing] = useState<DeptRow | null>(null);
 
   const load = useCallback(async () => {
     try {
       const res = await apiFetch('/v1/hr/departments');
       const data = Array.isArray(res) ? res : [];
       if (data.length > 0) setDepts(data.map((d: any) => ({
-        id: d.id, name: d.name, head: d.head_name || '-',
+        id: d.id, name: d.name, head: d.head_name || '-', head_user_id: d.head_user_id,
         employees: d.employee_count || 0, status: d.status || 'ACTIVE',
       })));
     } catch { /* keep mock */ }
   }, []);
-  useEffect(() => { load(); }, [load]);
+  const loadStaff = useCallback(async () => {
+    try { setStaff(await apiFetch('/v1/hr/staff')); } catch { /* keep empty */ }
+  }, []);
+  useEffect(() => { load(); loadStaff(); }, [load, loadStaff]);
+
+  async function create(v: { name: string; head_user_id: string; status: string }) {
+    try {
+      await apiFetch('/v1/hr/departments', { method: 'POST', body: JSON.stringify({ name: v.name, head_user_id: v.head_user_id || null, status: v.status }) });
+      setShowNew(false); load();
+    } catch { /* ignore */ }
+  }
+  async function save(id: string, v: { name: string; head_user_id: string; status: string }) {
+    try {
+      await apiFetch(`/v1/hr/departments/${id}`, { method: 'PATCH', body: JSON.stringify({ name: v.name, head_user_id: v.head_user_id || null, status: v.status }) });
+      setEditing(null); load();
+    } catch { /* ignore */ }
+  }
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="building" title="Departments" sub="Organisational departments and their leads" backTo="/hrm">
-        <PrimaryBtn label="Add Department" icon="plus" />
+      <PageHeader icon="building" title="Departments" sub="Organisational departments and their leads" backTo="/onepi">
+        <PrimaryBtn label="Add Department" icon="plus" onClick={() => { setEditing(null); setShowNew(v => !v); }} />
       </PageHeader>
+
+      {showNew && <DeptForm staff={staff} onCancel={() => setShowNew(false)} onSubmit={create} />}
+      {editing && <DeptForm staff={staff} initial={editing} onCancel={() => setEditing(null)} onSubmit={v => save(editing.id!, v)} />}
+
       <Wrap>
         <thead><tr><TH>Department</TH><TH>Head</TH><TH right>Employees</TH><TH>Status</TH><TH right>Actions</TH></tr></thead>
         <tbody>
           {depts.map(d => (
             <tr key={d.name} style={{ borderBottom:'1px solid var(--border)' }}>
               <TD bold>{d.name}</TD>
-              <TD>{d.head === '-' ? <span style={{ color:'var(--ink3)' }}>—</span> : <div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={d.head} size={24} />{d.head}</div>}</TD>
+              <TD>{d.head === '-' ? <span style={{ color:'var(--ink3)' }}>�</span> : <div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={d.head} size={24} />{d.head}</div>}</TD>
               <TD right bold>{d.employees}</TD>
               <TD><Badge status={d.status} /></TD>
-              <TD right><ActionBtn label="Edit" /></TD>
+              <TD right>{d.id && <ActionBtn label="Edit" onClick={() => { setShowNew(false); setEditing(d); }} />}</TD>
             </tr>
           ))}
         </tbody>
@@ -1062,26 +1155,95 @@ function DepartmentsPage() {
   );
 }
 
-function TeamsPage() {
+type TeamRow = { id: string; name: string; lead_user_id: string | null; lead_name: string | null; members: { user_id: string; user_name: string }[] };
+
+export function TeamsPage() {
+  const [teams, setTeams] = useState<TeamRow[]>([]);
+  const [staff, setStaff] = useState<Employee[]>([]);
+  const [showNew, setShowNew] = useState(false);
+  const [addingTo, setAddingTo] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    try { setTeams(await apiFetch('/v1/hr/teams')); } catch { /* none yet */ }
+  }, []);
+  const loadStaff = useCallback(async () => {
+    try { setStaff(await apiFetch('/v1/hr/staff')); } catch { /* keep empty */ }
+  }, []);
+  useEffect(() => { load(); loadStaff(); }, [load, loadStaff]);
+
+  async function addMember(teamId: string, userId: string) {
+    if (!userId) return;
+    try { await apiFetch(`/v1/hr/teams/${teamId}/members`, { method: 'POST', body: JSON.stringify({ user_id: userId }) }); setAddingTo(null); load(); } catch { /* ignore */ }
+  }
+  async function removeMember(teamId: string, userId: string) {
+    try { await apiFetch(`/v1/hr/teams/${teamId}/members/${userId}`, { method: 'DELETE' }); load(); } catch { /* ignore */ }
+  }
+
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="users" title="Teams" sub="Cross-functional working groups and project teams" backTo="/hrm">
-        <PrimaryBtn label="Create Team" icon="plus" />
+      <PageHeader icon="users" title="Teams" sub="Cross-functional working groups and project teams" backTo="/onepi">
+        <PrimaryBtn label="Create Team" icon="plus" onClick={() => setShowNew(v => !v)} />
       </PageHeader>
+
+      {showNew && (
+        <Card>
+          <form onSubmit={async e => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const name = fd.get('name') as string;
+            const leadIdRaw = fd.get('lead_user_id') as string;
+            const leadId = leadIdRaw === '__none__' ? '' : leadIdRaw;
+            if (!name) return;
+            try {
+              await apiFetch('/v1/hr/teams', { method: 'POST', body: JSON.stringify({ name, lead_user_id: leadId || null }) });
+              setShowNew(false); load();
+            } catch { /* ignore */ }
+          }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Team Name</label>
+              <input name="name" required placeholder="e.g. Finance Team" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Team Lead</label>
+              <Select name="lead_user_id" defaultValue="__none__">
+                <SelectTrigger style={{ width: 180 }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">-- None --</SelectItem>
+                  {staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <PrimaryBtn label="Create" type="submit" />
+          </form>
+        </Card>
+      )}
+
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
-        {TEAMS.map(t => (
-          <div key={t.name} style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', padding:18 }}>
+        {teams.length === 0 && <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 32, color: 'var(--ink3)' }}>No teams yet.</div>}
+        {teams.map(t => (
+          <div key={t.id} style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', padding:18 }}>
             <div style={{ fontWeight:700, fontSize:14, color:'var(--ink)', marginBottom:4 }}>{t.name}</div>
-            <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:12 }}>Lead: {t.leader} · {t.projects} active project{t.projects!==1?'s':''}</div>
-            <div style={{ display:'flex', alignItems:'center', gap:-4, marginBottom:12 }}>
-              {t.members.slice(0,4).map((m,i) => (
-                <div key={i} style={{ marginLeft: i > 0 ? -8 : 0, zIndex: t.members.length - i }}>
-                  <Avatar name={m} size={28} />
+            <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:12 }}>Lead: {t.lead_name || '�'} � {t.members.length} member{t.members.length!==1?'s':''}</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:12 }}>
+              {t.members.map(m => (
+                <div key={m.user_id} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  <Avatar name={m.user_name} size={22} />
+                  <span style={{ fontSize:12.5, color:'var(--ink)', flex:1 }}>{m.user_name}</span>
+                  <button type="button" title="Remove" onClick={() => removeMember(t.id, m.user_id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)' }}>
+                    <Icon name="x" size={12} />
+                  </button>
                 </div>
               ))}
-              {t.members.length > 4 && <span style={{ fontSize:11, color:'var(--ink3)', marginLeft:6 }}>+{t.members.length-4}</span>}
             </div>
-            <ActionBtn label="View Team" />
+            {addingTo === t.id ? (
+              <Combobox
+                options={staff.filter(s => !t.members.some(m => m.user_id === s.id)).map(s => ({ value: s.id, label: s.name }))}
+                value="" onChange={v => v && addMember(t.id, v)}
+                placeholder="-- Select staff to add --"
+              />
+            ) : (
+              <ActionBtn label="Add Member" onClick={() => setAddingTo(t.id)} />
+            )}
           </div>
         ))}
       </div>
@@ -1089,24 +1251,77 @@ function TeamsPage() {
   );
 }
 
-function InvitationsPage() {
+type InvitationRow = { id: string; email: string; role: string; invited_by_name: string | null; status: string; expires_at: string; created_at: string };
+
+export function InvitationsPage() {
+  const [invites, setInvites] = useState<InvitationRow[]>([]);
+  const [showNew, setShowNew] = useState(false);
+
+  const load = useCallback(async () => {
+    try { setInvites(await apiFetch('/v1/hr/invitations')); } catch { /* none yet */ }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  async function resend(id: string) {
+    try { await apiFetch(`/v1/hr/invitations/${id}/resend`, { method: 'POST' }); } catch { /* ignore */ }
+  }
+  async function revoke(id: string) {
+    try { await apiFetch(`/v1/hr/invitations/${id}`, { method: 'DELETE' }); load(); } catch { /* ignore */ }
+  }
+
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="userPlus" title="Invitations" sub="Pending and sent user invitations" backTo="/hrm">
-        <PrimaryBtn label="Send Invitation" icon="send" />
+      <PageHeader icon="userPlus" title="Invitations" sub="Pending and sent user invitations" backTo="/onepi">
+        <PrimaryBtn label="Send Invitation" icon="send" onClick={() => setShowNew(v => !v)} />
       </PageHeader>
+
+      {showNew && (
+        <Card>
+          <form onSubmit={async e => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const email = fd.get('email') as string;
+            const role = fd.get('role') as string;
+            if (!email || !role) return;
+            try {
+              await apiFetch('/v1/hr/invitations', { method: 'POST', body: JSON.stringify({ email, role }) });
+              setShowNew(false); load();
+            } catch { /* ignore */ }
+          }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 200 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Work Email</label>
+              <input name="email" type="email" required placeholder="name@company.com" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Role</label>
+              <Select name="role" required defaultValue="OFFICER">
+                <SelectTrigger style={{ width: 160 }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="OFFICER">Officer</SelectItem>
+                  <SelectItem value="SENIOR">Senior Officer</SelectItem>
+                  <SelectItem value="MANAGER">Manager</SelectItem>
+                  <SelectItem value="FINANCE">Finance</SelectItem>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <PrimaryBtn label="Send" icon="send" type="submit" />
+          </form>
+        </Card>
+      )}
+
       <Wrap>
-        <thead><tr><TH>Email</TH><TH>Role</TH><TH>Sent By</TH><TH>Sent</TH><TH>Expires</TH><TH>Status</TH><TH right>Actions</TH></tr></thead>
+        <thead><tr><TH>Email</TH><TH>Role</TH><TH>Invited By</TH><TH>Expires</TH><TH>Status</TH><TH right>Actions</TH></tr></thead>
         <tbody>
-          {INVITATIONS.map((inv,i) => (
-            <tr key={i} style={{ borderBottom:'1px solid var(--border)' }}>
+          {invites.length === 0 && <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)' }}>No invitations sent yet.</td></tr>}
+          {invites.map(inv => (
+            <tr key={inv.id} style={{ borderBottom:'1px solid var(--border)' }}>
               <TD mono>{inv.email}</TD>
               <TD><span style={{ fontSize:11, padding:'2px 8px', borderRadius:4, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--ink2)' }}>{inv.role}</span></TD>
-              <TD>{inv.sentBy}</TD>
-              <TD muted>{inv.sent}</TD>
-              <TD muted>{inv.expires}</TD>
+              <TD>{inv.invited_by_name || '-'}</TD>
+              <TD muted>{new Date(inv.expires_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })}</TD>
               <TD><Badge status={inv.status} /></TD>
-              <TD right>{inv.status==='PENDING' && <><ActionBtn label="Resend" /><ActionBtn label="Revoke" color="var(--red)" /></>}</TD>
+              <TD right>{inv.status==='PENDING' && <><ActionBtn label="Resend" onClick={() => resend(inv.id)} /><ActionBtn label="Revoke" color="var(--red)" onClick={() => revoke(inv.id)} /></>}</TD>
             </tr>
           ))}
         </tbody>
@@ -1115,49 +1330,26 @@ function InvitationsPage() {
   );
 }
 
-function StaffDirectoryPage() {
-  const navigate = useNavigate();
-  return (
-    <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="contact" title="Staff Directory" sub="All active team members and their contact info" backTo="/hrm" />
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:16 }}>
-        {EMPLOYEES.filter(e=>e.status!=='INACTIVE').map(e => (
-          <div key={e.id} onClick={() => navigate('/hrm/staff/' + e.id)} style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', padding:20, textAlign:'center', cursor:'pointer' }}>
-            <div style={{ display:'flex', justifyContent:'center', marginBottom:10 }}>
-              <Avatar name={e.name} size={52} />
-            </div>
-            <div style={{ fontWeight:700, fontSize:14, color:'var(--ink)', marginBottom:2 }}>{e.name}</div>
-            <div style={{ fontSize:12, color:'var(--teal)', fontWeight:600, marginBottom:2 }}>{e.designation}</div>
-            <div style={{ fontSize:11.5, color:'var(--ink3)', marginBottom:10 }}>{e.dept}</div>
-            <div style={{ display:'flex', flexDirection:'column', gap:4, fontSize:11.5 }}>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5, color:'var(--ink3)' }}>
-                <Icon name="mail" size={11} />{e.email}
-              </div>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5, color:'var(--ink3)' }}>
-                <Icon name="phone" size={11} />{e.phone}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
 
-function ActivityLogsPage() {
+type ActivityRow = { id: string; user_name: string | null; action: string; module: string; created_at: string };
+
+export function ActivityLogsPage() {
+  const [logs, setLogs] = useState<ActivityRow[]>([]);
+  useEffect(() => { apiFetch('/v1/hr/activity-log').then(setLogs).catch(() => {}); }, []);
+
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="activity" title="User Activity Logs" sub="Recent user actions across all modules" backTo="/hrm" />
+      <PageHeader icon="activity" title="User Activity Logs" sub="Recent actions taken through the HR module" backTo="/onepi" />
       <Wrap>
-        <thead><tr><TH>User</TH><TH>Action</TH><TH>Module</TH><TH>IP Address</TH><TH>Time</TH></tr></thead>
+        <thead><tr><TH>User</TH><TH>Action</TH><TH>Module</TH><TH>Time</TH></tr></thead>
         <tbody>
-          {ACTIVITY_LOGS.map((l,i) => (
-            <tr key={i} style={{ borderBottom:'1px solid var(--border)' }}>
-              <TD><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={l.user} size={24} />{l.user}</div></TD>
+          {logs.length === 0 && <tr><td colSpan={4} style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)' }}>No activity recorded yet.</td></tr>}
+          {logs.map(l => (
+            <tr key={l.id} style={{ borderBottom:'1px solid var(--border)' }}>
+              <TD><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={l.user_name || '?'} size={24} />{l.user_name || 'Unknown'}</div></TD>
               <TD>{l.action}</TD>
               <TD><span style={{ fontSize:11, padding:'2px 8px', borderRadius:4, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--ink2)' }}>{l.module}</span></TD>
-              <TD mono muted>{l.ip}</TD>
-              <TD muted>{l.time}</TD>
+              <TD muted>{new Date(l.created_at).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</TD>
             </tr>
           ))}
         </tbody>
@@ -1166,21 +1358,26 @@ function ActivityLogsPage() {
   );
 }
 
-function LoginHistoryPage() {
+type LoginHistoryRow = { id: string; user_name: string; ip: string | null; user_agent: string | null; status: string; created_at: string };
+
+export function LoginHistoryPage() {
+  const [rows, setRows] = useState<LoginHistoryRow[]>([]);
+  useEffect(() => { apiFetch('/v1/hr/login-history').then(setRows).catch(() => {}); }, []);
+
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="lock" title="Login History" sub="Authentication events for all users" backTo="/hrm" />
+      <PageHeader icon="lock" title="Login History" sub="Authentication events for all users" backTo="/onepi" />
       <Wrap>
-        <thead><tr><TH>User</TH><TH>IP Address</TH><TH>Browser</TH><TH>OS</TH><TH>Status</TH><TH>Time</TH></tr></thead>
+        <thead><tr><TH>User</TH><TH>IP Address</TH><TH>Device</TH><TH>Status</TH><TH>Time</TH></tr></thead>
         <tbody>
-          {LOGIN_HISTORY.map((l,i) => (
-            <tr key={i} style={{ borderBottom:'1px solid var(--border)' }}>
-              <TD><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={l.user} size={24} />{l.user}</div></TD>
-              <TD mono muted>{l.ip}</TD>
-              <TD muted>{l.browser}</TD>
-              <TD muted>{l.os}</TD>
+          {rows.length === 0 && <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)' }}>No login history recorded yet.</td></tr>}
+          {rows.map(l => (
+            <tr key={l.id} style={{ borderBottom:'1px solid var(--border)' }}>
+              <TD><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={l.user_name} size={24} />{l.user_name}</div></TD>
+              <TD mono muted>{l.ip || '-'}</TD>
+              <TD muted><span style={{ display: 'inline-block', maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', verticalAlign: 'bottom' }}>{l.user_agent || '-'}</span></TD>
               <TD><Badge status={l.status} /></TD>
-              <TD muted>{l.time}</TD>
+              <TD muted>{new Date(l.created_at).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</TD>
             </tr>
           ))}
         </tbody>
@@ -1189,28 +1386,40 @@ function LoginHistoryPage() {
   );
 }
 
-function DeviceManagementPage() {
+type DeviceRow = { id: string; user_name: string; device_label: string; device_type: string; trusted: boolean; last_used_at: string };
+
+export function DeviceManagementPage() {
+  const [devices, setDevices] = useState<DeviceRow[]>([]);
+  const load = useCallback(async () => {
+    try { setDevices(await apiFetch('/v1/hr/devices')); } catch { /* none yet */ }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  async function setTrusted(id: string, trusted: boolean) {
+    try { await apiFetch(`/v1/hr/devices/${id}`, { method: 'PATCH', body: JSON.stringify({ trusted }) }); load(); } catch { /* ignore */ }
+  }
+
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="smartphone" title="Device Management" sub="Trusted and known devices per user" backTo="/hrm" />
+      <PageHeader icon="smartphone" title="Device Management" sub="Trusted and known devices per user" backTo="/onepi" />
       <Wrap>
-        <thead><tr><TH>User</TH><TH>Device</TH><TH>Type</TH><TH>Browser</TH><TH>Last Used</TH><TH>Trusted</TH><TH right>Actions</TH></tr></thead>
+        <thead><tr><TH>User</TH><TH>Device</TH><TH>Type</TH><TH>Last Used</TH><TH>Trusted</TH><TH right>Actions</TH></tr></thead>
         <tbody>
-          {DEVICES.map((d,i) => (
-            <tr key={i} style={{ borderBottom:'1px solid var(--border)' }}>
-              <TD><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={d.user} size={24} />{d.user}</div></TD>
-              <TD bold>{d.device}</TD>
-              <TD muted>{d.type}</TD>
-              <TD muted>{d.browser}</TD>
-              <TD muted>{d.lastUsed}</TD>
+          {devices.length === 0 && <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)' }}>No devices recorded yet.</td></tr>}
+          {devices.map(d => (
+            <tr key={d.id} style={{ borderBottom:'1px solid var(--border)' }}>
+              <TD><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={d.user_name} size={24} />{d.user_name}</div></TD>
+              <TD bold>{d.device_label}</TD>
+              <TD muted>{d.device_type}</TD>
+              <TD muted>{new Date(d.last_used_at).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })}</TD>
               <TD>
                 {d.trusted
                   ? <span style={{ fontSize:11, padding:'2px 8px', borderRadius:4, background:'rgba(16,185,129,.12)', color:'var(--green)', fontWeight:700 }}>Trusted</span>
                   : <span style={{ fontSize:11, padding:'2px 8px', borderRadius:4, background:'rgba(239,68,68,.12)', color:'var(--red)', fontWeight:700 }}>Unknown</span>}
               </TD>
               <TD right>
-                {!d.trusted && <ActionBtn label="Trust" color="var(--green)" />}
-                <ActionBtn label="Block" color="var(--red)" />
+                {!d.trusted && <ActionBtn label="Trust" color="var(--green)" onClick={() => setTrusted(d.id, true)} />}
+                <ActionBtn label="Block" color="var(--red)" onClick={() => setTrusted(d.id, false)} />
               </TD>
             </tr>
           ))}
@@ -1236,9 +1445,11 @@ function apiLeaveToRow(l: any): LeaveRow {
   };
 }
 
-function LeavesPage() {
+export function LeavesPage() {
   const [filter, setFilter] = useState('');
   const [leaves, setLeaves] = useState<LeaveRow[]>(LEAVES);
+  const [staff, setStaff] = useState<Employee[]>([]);
+  const [showNew, setShowNew] = useState(false);
 
   const loadLeaves = useCallback(async () => {
     try {
@@ -1247,8 +1458,11 @@ function LeavesPage() {
       if (data.length > 0) setLeaves(data.map(apiLeaveToRow));
     } catch { /* keep mock */ }
   }, []);
+  const loadStaff = useCallback(async () => {
+    try { setStaff(await apiFetch('/v1/hr/staff')); } catch { /* keep empty */ }
+  }, []);
 
-  useEffect(() => { loadLeaves(); }, [loadLeaves]);
+  useEffect(() => { loadLeaves(); loadStaff(); }, [loadLeaves, loadStaff]);
 
   async function handleStatus(id: string, status: LeaveStatus) {
     setLeaves(prev => prev.map(l => l.id === id ? { ...l, status } : l));
@@ -1262,9 +1476,63 @@ function LeavesPage() {
   const rows = filter ? leaves.filter(l => l.type === filter) : leaves;
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="calendar" title="Leave Management" sub="Employee leave requests and approvals" backTo="/hrm">
-        <PrimaryBtn label="New Request" icon="plus" />
+      <PageHeader icon="calendar" title="Leave Management" sub="Employee leave requests and approvals" backTo="/onepi">
+        <PrimaryBtn label="New Request" icon="plus" onClick={() => setShowNew(v => !v)} />
       </PageHeader>
+
+      {showNew && (
+        <Card>
+          <form onSubmit={async e => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const user_id = fd.get('user_id') as string;
+            const type = fd.get('type') as string;
+            const from_date = fd.get('from_date') as string;
+            const to_date = fd.get('to_date') as string;
+            const reason = fd.get('reason') as string;
+            if (!user_id || !from_date || !to_date) return;
+            const days = Math.max(1, Math.round((new Date(to_date).getTime() - new Date(from_date).getTime()) / 86400000) + 1);
+            try {
+              await apiFetch('/v1/hr/leaves', { method: 'POST', body: JSON.stringify({ user_id, type, from_date, to_date, days, reason }) });
+              setShowNew(false); loadLeaves();
+            } catch { /* ignore */ }
+          }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Employee</label>
+              <Select name="user_id" required>
+                <SelectTrigger style={{ width: 180 }}><SelectValue placeholder="-- Select --" /></SelectTrigger>
+                <SelectContent>
+                  {staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Type</label>
+              <Select name="type" required defaultValue={LEAVE_TYPES[0]}>
+                <SelectTrigger style={{ width: 160 }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {LEAVE_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>From</label>
+              <DatePicker name="from_date" triggerClassName="w-auto" />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>To</label>
+              <DatePicker name="to_date" triggerClassName="w-auto" />
+            </div>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Reason</label>
+              <input name="reason" placeholder="Optional" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+            </div>
+            <PrimaryBtn label="Submit" type="submit" />
+            <ActionBtn label="Cancel" onClick={() => setShowNew(false)} />
+          </form>
+        </Card>
+      )}
+
       <MetricsRow cards={[
         { title:'Pending',  value:String(leaves.filter(l=>l.status==='PENDING').length),  trend:0, sub1Label:'THIS MONTH', sub1Value:String(leaves.length), sub2Label:'APPROVED', sub2Value:String(leaves.filter(l=>l.status==='APPROVED').length), bars:spark(200,15,'flat'), barColor:'var(--gold-l)',  barHighlight:'var(--gold)'  },
         { title:'Approved', value:String(leaves.filter(l=>l.status==='APPROVED').length), trend:0, sub1Label:'REJECTED',   sub1Value:String(leaves.filter(l=>l.status==='REJECTED').length), sub2Label:'TYPES', sub2Value:String(LEAVE_TYPES.length), bars:spark(201,15,'up'), barColor:'var(--green-l)', barHighlight:'var(--green)' },
@@ -1300,19 +1568,47 @@ function LeavesPage() {
   );
 }
 
-function AttendancePage() {
+export function AttendancePage() {
   const isMobile = useIsMobile();
-  const records = useAttendance();
+  const [employees, setEmployees] = useState<ShiftEmployee[]>(SHIFT_EMPLOYEES);
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [view, setView] = useState<'grid' | 'member'>('grid');
   const [date, setDate] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1); // first of current month
   });
-  
+
   const [filterDept, setFilterDept] = useState('');
   const [selectedEmpId, setSelectedEmpId] = useState<string | null>(null);
   const [showBulk, setShowBulk] = useState(false);
+  const [bulkEmpIds, setBulkEmpIds] = useState<string[]>([]);
   const [activeCell, setActiveCell] = useState<{ empId: string, date: string } | null>(null);
+
+  const loadStaff = useCallback(async () => {
+    try {
+      const data = await apiFetch('/v1/hr/staff');
+      if (Array.isArray(data) && data.length > 0) {
+        setEmployees(data.map((u: any): ShiftEmployee => ({
+          id: u.id, name: u.name, department: u.dept || 'General', role: u.role, avatar: ini(u.name),
+        })));
+      }
+    } catch { /* keep mock */ }
+  }, []);
+
+  const loadAttendance = useCallback(async () => {
+    try {
+      const data = await apiFetch('/v1/hr/attendance');
+      if (Array.isArray(data)) {
+        setRecords(data.map((a: any): AttendanceRecord => ({
+          id: a.id, employeeId: a.user_id, date: String(a.date).slice(0, 10),
+          clockIn: a.clock_in || '', clockOut: a.clock_out || '',
+          status: mapAttStatus(a.status),
+        })));
+      }
+    } catch { /* keep empty � falls back to no records rendered */ }
+  }, []);
+
+  useEffect(() => { loadStaff(); loadAttendance(); }, [loadStaff, loadAttendance]);
 
   // Generate days for the month
   const year = date.getFullYear();
@@ -1324,12 +1620,12 @@ function AttendancePage() {
 
   const getDayFormat = (d: Date) => d.toISOString().split('T')[0];
 
-  const filteredEmps = SHIFT_EMPLOYEES.filter(e => {
+  const filteredEmps = employees.filter(e => {
     if (filterDept && e.department !== filterDept) return false;
     return true;
   });
 
-  const memberEmp = selectedEmpId ? SHIFT_EMPLOYEES.find(e => e.id === selectedEmpId) : filteredEmps[0];
+  const memberEmp = selectedEmpId ? employees.find(e => e.id === selectedEmpId) : filteredEmps[0];
 
   const getStatusColor = (s: AttendanceStatus) => {
     switch(s) {
@@ -1355,8 +1651,8 @@ function AttendancePage() {
 
   return (
     <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex:1, overflowY:'auto', display: 'flex', flexDirection: 'column' }}>
-      <PageHeader icon="clock" title="Attendances" sub="Daily staff attendance and clock records" backTo="/hrm">
-        <button type="button" className="btn btn-secondary" onClick={() => setShowBulk(true)} style={{ display:'flex', alignItems:'center', gap:6 }}>
+      <PageHeader icon="clock" title="Attendances" sub="Daily staff attendance and clock records" backTo="/onepi">
+        <button type="button" className="btn btn-secondary" onClick={() => { setBulkEmpIds([]); setShowBulk(true); }} style={{ display:'flex', alignItems:'center', gap:6 }}>
           <Icon name="checkSquare" size={14} /> Mark Attendance
         </button>
       </PageHeader>
@@ -1365,17 +1661,24 @@ function AttendancePage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, background: 'var(--white)', padding: '12px 16px', borderRadius: 9, border: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', gap: 12 }}>
           {view === 'member' ? (
-            <select className="input-field" style={{ width: 220, height: 32, fontSize: 12 }} value={selectedEmpId || ''} onChange={e => setSelectedEmpId(e.target.value)}>
-              {filteredEmps.map(e => <option key={e.id} value={e.id}>{e.name} ({e.department})</option>)}
-            </select>
+            <div style={{ width: 220 }}>
+              <Combobox
+                options={filteredEmps.map(e => ({ value: e.id, label: `${e.name} (${e.department})` }))}
+                value={selectedEmpId || ''} onChange={setSelectedEmpId}
+                triggerClassName="h-8 text-xs"
+              />
+            </div>
           ) : (
-            <select className="input-field" style={{ width: 160, height: 32, fontSize: 12 }} value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-              <option value="">All Departments</option>
-              {Array.from(new Set(SHIFT_EMPLOYEES.map(e => e.department))).map(d => <option key={d} value={d}>{d}</option>)}
-            </select>
+            <Select value={filterDept || '__all__'} onValueChange={v => setFilterDept(v === '__all__' ? '' : v)}>
+              <SelectTrigger className="input-field" style={{ width: 160, height: 32, fontSize: 12 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Departments</SelectItem>
+                {Array.from(new Set(employees.map(e => e.department))).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+              </SelectContent>
+            </Select>
           )}
         </div>
-        
+
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button type="button" className="btn btn-secondary btn-sm" style={{ padding: '4px 8px' }} onClick={() => setDate(new Date(year, month - 1, 1))}>
@@ -1389,10 +1692,13 @@ function AttendancePage() {
             </button>
           </div>
           
-          <select className="input-field" style={{ width: 160, height: 32, fontSize: 12 }} value={view} onChange={e => setView(e.target.value as any)}>
-            <option value="grid">Summary Grid</option>
-            <option value="member">Attendance by Member</option>
-          </select>
+          <Select value={view} onValueChange={v => setView(v as any)}>
+            <SelectTrigger className="input-field" style={{ width: 160, height: 32, fontSize: 12 }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="grid">Summary Grid</SelectItem>
+              <SelectItem value="member">Attendance by Member</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -1447,20 +1753,28 @@ function AttendancePage() {
                               const status = fd.get('status') as AttendanceStatus;
                               const clockIn = fd.get('clockIn') as string;
                               const clockOut = fd.get('clockOut') as string;
-                              markAttendance({ id: a?.id || '', employeeId: emp.id, date: dStr, status, clockIn, clockOut });
+                              setRecords(prev => {
+                                const next = prev.filter(x => !(x.employeeId === emp.id && x.date === dStr));
+                                next.push({ id: a?.id || `ATT_${Date.now()}`, employeeId: emp.id, date: dStr, status, clockIn, clockOut });
+                                return next;
+                              });
                               setActiveCell(null);
                               try {
-                                await apiFetch('/v1/hr/attendance', { method: 'POST', body: JSON.stringify({ user_id: emp.id, date: dStr, status: status.toUpperCase().replace('-', '_'), clock_in: clockIn || null, clock_out: clockOut || null }) });
+                                await apiFetch('/v1/hr/attendance', { method: 'POST', body: JSON.stringify({ user_id: emp.id, date: dStr, status: toAttStatusApi(status), clock_in: clockIn || null, clock_out: clockOut || null }) });
+                                loadAttendance();
                               } catch { /* local state already updated */ }
                             }}>
                               <div style={{ marginBottom: 8 }}>
-                                <select name="status" className="input-field" defaultValue={a?.status || 'Present'} required style={{ width: '100%', fontSize: 12, height: 28 }}>
-                                  <option value="Present">Present</option>
-                                  <option value="Absent">Absent</option>
-                                  <option value="Late">Late</option>
-                                  <option value="Half-Day">Half-Day</option>
-                                  <option value="On Leave">On Leave</option>
-                                </select>
+                                <Select name="status" required defaultValue={a?.status || 'Present'}>
+                                  <SelectTrigger className="input-field" style={{ width: '100%', fontSize: 12, height: 28 }}><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Present">Present</SelectItem>
+                                    <SelectItem value="Absent">Absent</SelectItem>
+                                    <SelectItem value="Late">Late</SelectItem>
+                                    <SelectItem value="Half-Day">Half-Day</SelectItem>
+                                    <SelectItem value="On Leave">On Leave</SelectItem>
+                                  </SelectContent>
+                                </Select>
                               </div>
                               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 8, marginBottom: 12 }}>
                                 <input type="time" name="clockIn" className="input-field" defaultValue={a?.clockIn || '08:00'} style={{ fontSize: 12, height: 28, padding: '0 4px' }} />
@@ -1577,48 +1891,52 @@ function AttendancePage() {
               <form onSubmit={async e => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
-                const emps = fd.getAll('employees') as string[];
+                const emps = bulkEmpIds;
                 const sDate = fd.get('startDate') as string;
                 const eDate = fd.get('endDate') as string;
                 const stat = fd.get('status') as AttendanceStatus;
                 const cIn = fd.get('clockIn') as string;
                 const cOut = fd.get('clockOut') as string;
                 if (emps.length && sDate && eDate && stat) {
-                  bulkMarkAttendance(emps, sDate, eDate, stat, cIn, cOut);
                   setShowBulk(false);
                   try {
-                    await apiFetch('/v1/hr/attendance/bulk', { method: 'POST', body: JSON.stringify({ user_ids: emps, from_date: sDate, to_date: eDate, status: stat.toUpperCase().replace('-', '_'), clock_in: cIn || null, clock_out: cOut || null }) });
-                  } catch { /* local state already updated */ }
+                    await apiFetch('/v1/hr/attendance/bulk', { method: 'POST', body: JSON.stringify({ user_ids: emps, from_date: sDate, to_date: eDate, status: toAttStatusApi(stat), clock_in: cIn || null, clock_out: cOut || null }) });
+                    loadAttendance();
+                  } catch { /* ignore */ }
                 }
               }}>
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Select Employees</label>
-                  <select name="employees" multiple className="input-field" style={{ height: 120 }} required>
-                    {SHIFT_EMPLOYEES.map(e => <option key={e.id} value={e.id}>{e.name} ({e.department})</option>)}
-                  </select>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>Hold Ctrl/Cmd to select multiple.</div>
+                  <MultiSelectFilter
+                    label="Employees"
+                    options={employees.map(e => ({ value: e.id, label: `${e.name} (${e.department})` }))}
+                    values={bulkEmpIds} onChange={setBulkEmpIds}
+                  />
                 </div>
-                
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Start Date</label>
-                    <input type="date" name="startDate" className="input-field" required defaultValue={getDayFormat(new Date())} />
+                    <DatePicker name="startDate" defaultDate={new Date()} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>End Date</label>
-                    <input type="date" name="endDate" className="input-field" required defaultValue={getDayFormat(new Date())} />
+                    <DatePicker name="endDate" defaultDate={new Date()} />
                   </div>
                 </div>
 
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Status</label>
-                  <select name="status" className="input-field" required defaultValue="Present">
-                    <option value="Present">Present</option>
-                    <option value="Absent">Absent</option>
-                    <option value="Late">Late</option>
-                    <option value="Half-Day">Half-Day</option>
-                    <option value="On Leave">On Leave</option>
-                  </select>
+                  <Select name="status" required defaultValue="Present">
+                    <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Present">Present</SelectItem>
+                      <SelectItem value="Absent">Absent</SelectItem>
+                      <SelectItem value="Late">Late</SelectItem>
+                      <SelectItem value="Half-Day">Half-Day</SelectItem>
+                      <SelectItem value="On Leave">On Leave</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 24 }}>
@@ -1650,22 +1968,60 @@ function AttendancePage() {
   );
 }
 
-function ShiftsPage() {
+export function ShiftsPage() {
   const isMobile = useIsMobile();
-  const assignments = useShiftAssignments();
+  const [employees, setEmployees] = useState<ShiftEmployee[]>(SHIFT_EMPLOYEES);
+  const [shiftTypes, setShiftTypes] = useState<ShiftType[]>(SHIFT_TYPES);
+  const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
   const [view, setView] = useState<'week' | 'month'>('week');
   const [startDate, setStartDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - d.getDay() + 1); // Monday of current week
     return d;
   });
-  
+
   const [filterEmp, setFilterEmp] = useState('');
   const [filterDept, setFilterDept] = useState('');
   const [showBulk, setShowBulk] = useState(false);
+  const [bulkEmpIds, setBulkEmpIds] = useState<string[]>([]);
 
   // shift assign modal state
   const [activeCell, setActiveCell] = useState<{ empId: string, date: string } | null>(null);
+
+  const loadStaff = useCallback(async () => {
+    try {
+      const data = await apiFetch('/v1/hr/staff');
+      if (Array.isArray(data) && data.length > 0) {
+        setEmployees(data.map((u: any): ShiftEmployee => ({
+          id: u.id, name: u.name, department: u.dept || 'General', role: u.role, avatar: ini(u.name),
+        })));
+      }
+    } catch { /* keep mock */ }
+  }, []);
+
+  const loadShiftTypes = useCallback(async () => {
+    try {
+      const data = await apiFetch('/v1/hr/shifts');
+      if (Array.isArray(data) && data.length > 0) {
+        setShiftTypes(data.map((s: any): ShiftType => ({
+          id: s.id, name: s.name, startTime: s.start_time, endTime: s.end_time, color: s.color || '#0891b2',
+        })));
+      }
+    } catch { /* keep mock */ }
+  }, []);
+
+  const loadAssignments = useCallback(async () => {
+    try {
+      const data = await apiFetch('/v1/hr/shift-assignments');
+      if (Array.isArray(data)) {
+        setAssignments(data.map((a: any): ShiftAssignment => ({
+          id: a.id, employeeId: a.user_id, date: String(a.date).slice(0, 10), shiftId: a.shift_id,
+        })));
+      }
+    } catch { /* keep empty */ }
+  }, []);
+
+  useEffect(() => { loadStaff(); loadShiftTypes(); loadAssignments(); }, [loadStaff, loadShiftTypes, loadAssignments]);
 
   // Generate days
   const days: Date[] = [];
@@ -1677,7 +2033,7 @@ function ShiftsPage() {
   }
 
   // Filter employees
-  const filteredEmps = SHIFT_EMPLOYEES.filter(e => {
+  const filteredEmps = employees.filter(e => {
     if (filterEmp && e.id !== filterEmp) return false;
     if (filterDept && e.department !== filterDept) return false;
     return true;
@@ -1687,8 +2043,8 @@ function ShiftsPage() {
 
   return (
     <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex:1, overflowY:'auto', display: 'flex', flexDirection: 'column' }}>
-      <PageHeader icon="timer" title="Shift Roster" sub="Manage employee shift schedules" backTo="/hrm">
-        <button type="button" className="btn btn-secondary" onClick={() => setShowBulk(true)} style={{ display:'flex', alignItems:'center', gap:6 }}>
+      <PageHeader icon="timer" title="Shift Roster" sub="Manage employee shift schedules" backTo="/onepi">
+        <button type="button" className="btn btn-secondary" onClick={() => { setBulkEmpIds([]); setShowBulk(true); }} style={{ display:'flex', alignItems:'center', gap:6 }}>
           <Icon name="users" size={14} /> Assign Bulk Shifts
         </button>
       </PageHeader>
@@ -1696,14 +2052,20 @@ function ShiftsPage() {
       {/* Filters & Controls */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, background: 'var(--white)', padding: '12px 16px', borderRadius: 9, border: '1px solid var(--border)' }}>
         <div style={{ display: 'flex', gap: 12 }}>
-          <select className="input-field" style={{ width: 180, height: 32, fontSize: 12 }} value={filterEmp} onChange={e => setFilterEmp(e.target.value)}>
-            <option value="">All Employees</option>
-            {SHIFT_EMPLOYEES.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-          </select>
-          <select className="input-field" style={{ width: 160, height: 32, fontSize: 12 }} value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-            <option value="">All Departments</option>
-            {Array.from(new Set(SHIFT_EMPLOYEES.map(e => e.department))).map(d => <option key={d} value={d}>{d}</option>)}
-          </select>
+          <div style={{ width: 180 }}>
+            <Combobox
+              options={[{ value: '', label: 'All Employees' }, ...employees.map(e => ({ value: e.id, label: e.name }))]}
+              value={filterEmp} onChange={setFilterEmp}
+              triggerClassName="h-8 text-xs"
+            />
+          </div>
+          <Select value={filterDept || '__all__'} onValueChange={v => setFilterDept(v === '__all__' ? '' : v)}>
+            <SelectTrigger className="input-field" style={{ width: 160, height: 32, fontSize: 12 }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All Departments</SelectItem>
+              {Array.from(new Set(employees.map(e => e.department))).map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}
+            </SelectContent>
+          </Select>
           {(filterEmp || filterDept) && (
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setFilterEmp(''); setFilterDept(''); }}>Clear</button>
           )}
@@ -1728,10 +2090,13 @@ function ShiftsPage() {
             }}><Icon name="chevronRight" size={14} /></button>
           </div>
           
-          <select className="input-field" style={{ width: 120, height: 32, fontSize: 12 }} value={view} onChange={e => setView(e.target.value as any)}>
-            <option value="week">Weekly View</option>
-            <option value="month">Monthly View</option>
-          </select>
+          <Select value={view} onValueChange={v => setView(v as any)}>
+            <SelectTrigger className="input-field" style={{ width: 120, height: 32, fontSize: 12 }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="week">Weekly View</SelectItem>
+              <SelectItem value="month">Monthly View</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -1764,7 +2129,7 @@ function ShiftsPage() {
                 {days.map(d => {
                   const dStr = getDayFormat(d);
                   const a = assignments.find(x => x.employeeId === emp.id && x.date === dStr);
-                  const sType = a?.shiftId ? SHIFT_TYPES.find(s => s.id === a.shiftId) : null;
+                  const sType = a?.shiftId ? shiftTypes.find(s => s.id === a.shiftId) : null;
                   
                   return (
                     <td key={dStr} onClick={() => setActiveCell({ empId: emp.id, date: dStr })} style={{ padding: 4, borderRight: '1px solid var(--border)', cursor: 'pointer', verticalAlign: 'top', position: 'relative' }}>
@@ -1786,12 +2151,12 @@ function ShiftsPage() {
                         <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', zIndex: 100, padding: 12, width: 220, marginTop: 4 }}>
                           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Assign Shift</div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                            {SHIFT_TYPES.map(st => (
+                            {shiftTypes.map(st => (
                               <button key={st.id} type="button" onClick={async (e) => {
                                 e.stopPropagation();
-                                assignShift(emp.id, dStr, st.id);
+                                setAssignments(prev => [...prev.filter(x => !(x.employeeId === emp.id && x.date === dStr)), { id: `A_${Date.now()}`, employeeId: emp.id, date: dStr, shiftId: st.id }]);
                                 setActiveCell(null);
-                                try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: st.id, date: dStr }) }); } catch { /**/ }
+                                try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: st.id, date: dStr }) }); loadAssignments(); } catch { /**/ }
                               }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 4, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }} className="hover-bg">
                                 <div style={{ width: 10, height: 10, borderRadius: 2, background: st.color }} />
                                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)' }}>{st.name}</span>
@@ -1800,9 +2165,9 @@ function ShiftsPage() {
                             <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
                             <button type="button" onClick={async (e) => {
                               e.stopPropagation();
-                              assignShift(emp.id, dStr, null);
+                              setAssignments(prev => prev.filter(x => !(x.employeeId === emp.id && x.date === dStr)));
                               setActiveCell(null);
-                              try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: null, date: dStr }) }); } catch { /**/ }
+                              try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: null, date: dStr }) }); loadAssignments(); } catch { /**/ }
                             }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 4, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'var(--red)' }} className="hover-bg">
                               <Icon name="x" size={12} />
                               <span style={{ fontSize: 12, fontWeight: 600 }}>Clear Shift</span>
@@ -1832,12 +2197,11 @@ function ShiftsPage() {
               <form onSubmit={async e => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
-                const emps = fd.getAll('employees') as string[];
+                const emps = bulkEmpIds;
                 const sDate = fd.get('startDate') as string;
                 const eDate = fd.get('endDate') as string;
                 const sId = fd.get('shiftId') as string;
                 if (emps.length && sDate && eDate && sId) {
-                  assignBulkShifts(emps, sDate, eDate, sId);
                   setShowBulk(false);
                   try {
                     const from = new Date(sDate);
@@ -1849,34 +2213,38 @@ function ShiftsPage() {
                         d.setDate(d.getDate() + 1);
                       }
                     }
-                  } catch { /* local state already updated */ }
+                    loadAssignments();
+                  } catch { /* ignore */ }
                 }
               }}>
                 <div style={{ marginBottom: 16 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Select Employees</label>
-                  <select name="employees" multiple className="input-field" style={{ height: 120 }} required>
-                    {SHIFT_EMPLOYEES.map(e => <option key={e.id} value={e.id}>{e.name} ({e.department})</option>)}
-                  </select>
-                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>Hold Ctrl/Cmd to select multiple.</div>
+                  <MultiSelectFilter
+                    label="Employees"
+                    options={employees.map(e => ({ value: e.id, label: `${e.name} (${e.department})` }))}
+                    values={bulkEmpIds} onChange={setBulkEmpIds}
+                  />
                 </div>
-                
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Start Date</label>
-                    <input type="date" name="startDate" className="input-field" required defaultValue={getDayFormat(startDate)} />
+                    <DatePicker name="startDate" defaultDate={startDate} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>End Date</label>
-                    <input type="date" name="endDate" className="input-field" required defaultValue={getDayFormat(days[days.length-1])} />
+                    <DatePicker name="endDate" defaultDate={days[days.length-1]} />
                   </div>
                 </div>
 
                 <div style={{ marginBottom: 24 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 6 }}>Assign Shift</label>
-                  <select name="shiftId" className="input-field" required>
-                    <option value="">-- Select Shift --</option>
-                    {SHIFT_TYPES.map(s => <option key={s.id} value={s.id}>{s.name} ({s.startTime}-{s.endTime})</option>)}
-                  </select>
+                  <Select name="shiftId" required>
+                    <SelectTrigger className="input-field"><SelectValue placeholder="-- Select Shift --" /></SelectTrigger>
+                    <SelectContent>
+                      {shiftTypes.map(s => <SelectItem key={s.id} value={s.id}>{s.name} ({s.startTime}-{s.endTime})</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>Assign Shifts</button>
@@ -1902,8 +2270,9 @@ function ShiftsPage() {
 
 type HolidayRow = { id?: string; date: string; name: string; type: string };
 
-function HolidaysPage() {
+export function HolidaysPage() {
   const [holidays, setHolidays] = useState<HolidayRow[]>(HOLIDAYS);
+  const [showNew, setShowNew] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -1914,23 +2283,68 @@ function HolidaysPage() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
+  async function handleDelete(id: string) {
+    setHolidays(prev => prev.filter(h => h.id !== id));
+    try { await apiFetch(`/v1/hr/holidays/${id}`, { method: 'DELETE' }); } catch { load(); }
+  }
+
   const grouped = { Public: holidays.filter(h=>h.type==='Public'), Company: holidays.filter(h=>h.type==='Company') };
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="sun" title="Holidays" sub="Public and company-designated holidays" backTo="/hrm">
-        <PrimaryBtn label="Add Holiday" icon="plus" />
+      <PageHeader icon="sun" title="Holidays" sub="Public and company-designated holidays" backTo="/onepi">
+        <PrimaryBtn label="Add Holiday" icon="plus" onClick={() => setShowNew(v => !v)} />
       </PageHeader>
+
+      {showNew && (
+        <Card>
+          <form onSubmit={async e => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const date = fd.get('date') as string;
+            const name = fd.get('name') as string;
+            const type = fd.get('type') as string;
+            if (!date || !name) return;
+            try {
+              await apiFetch('/v1/hr/holidays', { method: 'POST', body: JSON.stringify({ date, name, type }) });
+              setShowNew(false); load();
+            } catch { /* ignore */ }
+          }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Date</label>
+              <DatePicker name="date" triggerClassName="w-auto" />
+            </div>
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Holiday Name</label>
+              <input name="name" required placeholder="e.g. Founders Day" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Type</label>
+              <Select name="type" defaultValue="Public">
+                <SelectTrigger style={{ width: 140 }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Public">Public</SelectItem>
+                  <SelectItem value="Company">Company</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <PrimaryBtn label="Create" type="submit" />
+            <ActionBtn label="Cancel" onClick={() => setShowNew(false)} />
+          </form>
+        </Card>
+      )}
+
       {(Object.entries(grouped) as [string, HolidayRow[]][]).map(([type, list]) => (
         <div key={type} style={{ marginBottom:20 }}>
           <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:8 }}>{type} Holidays</div>
           <Wrap>
-            <thead><tr><TH>Date</TH><TH>Holiday Name</TH><TH>Type</TH></tr></thead>
+            <thead><tr><TH>Date</TH><TH>Holiday Name</TH><TH>Type</TH><TH right>Actions</TH></tr></thead>
             <tbody>
               {list.map(h => (
                 <tr key={h.date} style={{ borderBottom:'1px solid var(--border)' }}>
                   <TD mono muted>{h.date}</TD>
                   <TD bold>{h.name}</TD>
                   <TD><span style={{ fontSize:11, padding:'2px 8px', borderRadius:4, background: h.type==='Public'?'rgba(59,130,246,.12)':'rgba(124,58,237,.12)', color: h.type==='Public'?'var(--blue)':'#7c3aed', fontWeight:700 }}>{h.type}</span></TD>
+                  <TD right>{h.id && <ActionBtn label="Delete" color="var(--red)" onClick={() => handleDelete(h.id!)} />}</TD>
                 </tr>
               ))}
             </tbody>
@@ -1941,30 +2355,88 @@ function HolidaysPage() {
   );
 }
 
-type DesigRow = { id?: string; title: string; dept: string; employees: number };
+type DesigRow = { id?: string; title: string; dept: string; department_id?: string | null; employees: number };
+type DeptOption = { id: string; name: string };
 
-function DesignationsPage() {
+function DesigForm({ depts, initial, onCancel, onSubmit }: {
+  depts: DeptOption[]; initial?: DesigRow; onCancel: () => void; onSubmit: (v: { title: string; department_id: string }) => void;
+}) {
+  return (
+    <Card>
+      <form onSubmit={e => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        const deptId = fd.get('department_id') as string;
+        onSubmit({ title: fd.get('title') as string, department_id: deptId === '__none__' ? '' : deptId });
+      }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Title</label>
+          <input name="title" required defaultValue={initial?.title} placeholder="e.g. Senior Officer" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Department</label>
+          <Select name="department_id" defaultValue={initial?.department_id || '__none__'}>
+            <SelectTrigger style={{ width: 180 }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">-- None --</SelectItem>
+              {depts.map(d => <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <PrimaryBtn label={initial ? 'Save' : 'Create'} type="submit" />
+        <ActionBtn label="Cancel" onClick={onCancel} />
+      </form>
+    </Card>
+  );
+}
+
+export function DesignationsPage() {
   const [desigs, setDesigs] = useState<DesigRow[]>(DESIGNATIONS);
+  const [depts, setDepts] = useState<DeptOption[]>([]);
+  const [showNew, setShowNew] = useState(false);
+  const [editing, setEditing] = useState<DesigRow | null>(null);
 
   const load = useCallback(async () => {
     try {
       const res = await apiFetch('/v1/hr/designations');
       const data = Array.isArray(res) ? res : [];
-      if (data.length > 0) setDesigs(data.map((d: any) => ({ id: d.id, title: d.title, dept: d.department_name || '', employees: d.employee_count || 0 })));
+      if (data.length > 0) setDesigs(data.map((d: any) => ({ id: d.id, title: d.title, dept: d.department_name || '', department_id: d.department_id, employees: d.employee_count || 0 })));
     } catch { /* keep mock */ }
   }, []);
-  useEffect(() => { load(); }, [load]);
+  const loadDepts = useCallback(async () => {
+    try {
+      const res = await apiFetch('/v1/hr/departments');
+      if (Array.isArray(res)) setDepts(res.map((d: any) => ({ id: d.id, name: d.name })));
+    } catch { /* keep empty */ }
+  }, []);
+  useEffect(() => { load(); loadDepts(); }, [load, loadDepts]);
 
   async function handleDelete(id: string) {
     setDesigs(prev => prev.filter(d => d.id !== id));
     try { await apiFetch(`/v1/hr/designations/${id}`, { method: 'DELETE' }); } catch { load(); }
   }
+  async function create(v: { title: string; department_id: string }) {
+    try {
+      await apiFetch('/v1/hr/designations', { method: 'POST', body: JSON.stringify({ title: v.title, department_id: v.department_id || null }) });
+      setShowNew(false); load();
+    } catch { /* ignore */ }
+  }
+  async function save(id: string, v: { title: string; department_id: string }) {
+    try {
+      await apiFetch(`/v1/hr/designations/${id}`, { method: 'PATCH', body: JSON.stringify({ title: v.title, department_id: v.department_id || null }) });
+      setEditing(null); load();
+    } catch { /* ignore */ }
+  }
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="award" title="Designations" sub="Job titles and role classifications" backTo="/hrm">
-        <PrimaryBtn label="Add Designation" icon="plus" />
+      <PageHeader icon="award" title="Designations" sub="Job titles and role classifications" backTo="/onepi">
+        <PrimaryBtn label="Add Designation" icon="plus" onClick={() => { setEditing(null); setShowNew(v => !v); }} />
       </PageHeader>
+
+      {showNew && <DesigForm depts={depts} onCancel={() => setShowNew(false)} onSubmit={create} />}
+      {editing && <DesigForm depts={depts} initial={editing} onCancel={() => setEditing(null)} onSubmit={v => save(editing.id!, v)} />}
+
       <Wrap>
         <thead><tr><TH>Designation / Title</TH><TH>Department</TH><TH right>Employees</TH><TH right>Actions</TH></tr></thead>
         <tbody>
@@ -1973,7 +2445,7 @@ function DesignationsPage() {
               <TD bold>{d.title}</TD>
               <TD muted>{d.dept}</TD>
               <TD right bold>{d.employees}</TD>
-              <TD right><ActionBtn label="Edit" />{d.id && <ActionBtn label="Delete" color="var(--red)" onClick={() => handleDelete(d.id!)} />}</TD>
+              <TD right>{d.id && <><ActionBtn label="Edit" onClick={() => { setShowNew(false); setEditing(d); }} /><ActionBtn label="Delete" color="var(--red)" onClick={() => handleDelete(d.id!)} /></>}</TD>
             </tr>
           ))}
         </tbody>
@@ -1984,12 +2456,13 @@ function DesignationsPage() {
 
 type PayRow = { id?: string; emp: string; basic: number; allow: number; ded: number; status: PayStatus };
 
-function PayrollPage() {
+export function PayrollPage() {
   const now = new Date();
   const [monthIdx,    setMonthIdx]    = useState(now.getMonth() + 1);
   const [year,        setYear]        = useState(now.getFullYear());
   const [payroll,     setPayroll]     = useState<PayRow[]>(PAYROLL);
   const [slipRow,     setSlipRow]     = useState<PayRow | null>(null);
+  const [running,     setRunning]     = useState(false);
   const monthLabel = new Date(year, monthIdx - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   const load = useCallback(async () => {
@@ -2010,14 +2483,45 @@ function PayrollPage() {
     try { await apiFetch(`/v1/hr/payroll/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'PAID' }) }); } catch { load(); }
   }
 
+  async function runPayroll() {
+    setRunning(true);
+    try {
+      const staff: any[] = await apiFetch('/v1/hr/staff');
+      const existingNames = new Set(payroll.map(p => p.emp));
+      const active = staff.filter((s: any) => s.status !== 'INACTIVE' && !existingNames.has(s.name));
+      for (const s of active) {
+        await apiFetch('/v1/hr/payroll', {
+          method: 'POST',
+          body: JSON.stringify({ user_id: s.id, period_month: monthIdx, period_year: year, basic_pay: 0, allowances: 0, deductions: 0, status: 'PENDING' }),
+        });
+      }
+      load();
+    } catch { /* ignore */ }
+    finally { setRunning(false); }
+  }
+
   const total = payroll.reduce((s, p) => s + (p.basic + p.allow - p.ded), 0);
+
+  function exportCsv() {
+    const header = ['Employee', 'Basic Pay', 'Allowances', 'Deductions', 'Net Pay', 'Status'];
+    const lines = payroll.map(p => [p.emp, p.basic, p.allow, p.ded, p.basic + p.allow - p.ded, p.status].join(','));
+    const csv = [header.join(','), ...lines].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `payroll-${year}-${String(monthIdx).padStart(2, '0')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="dollarSign" title="Payroll" sub={`Monthly payroll — ${monthLabel}`} backTo="/hrm">
-        <button type="button" className="btn btn-secondary" style={{ display:'flex', alignItems:'center', gap:6 }}>
+      <PageHeader icon="dollarSign" title="Payroll" sub={`Monthly payroll � ${monthLabel}`} backTo="/onepi">
+        <button type="button" className="btn btn-secondary" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6 }}>
           <Icon name="download" size={13} color="var(--ink2)" /> Export
         </button>
-        <PrimaryBtn label="Run Payroll" />
+        <PrimaryBtn label={running ? 'Running�' : 'Run Payroll'} onClick={running ? undefined : runPayroll} />
       </PageHeader>
       <MetricsRow cards={[
         { title:'Total Payroll', value:'TZS ' + (total/1_000_000).toFixed(1) + 'M', trend:3.2, sub1Label:'BASIC',      sub1Value:'TZS '+(payroll.reduce((s,p)=>s+p.basic,0)/1_000_000).toFixed(1)+'M', sub2Label:'ALLOWANCES', sub2Value:'TZS '+(payroll.reduce((s,p)=>s+p.allow,0)/1_000_000).toFixed(1)+'M', bars:spark(400,15,'up'), barColor:'var(--green-l)', barHighlight:'var(--green)' },
@@ -2050,8 +2554,9 @@ function PayrollPage() {
 
 type AnnRow = { id: string; title: string; category: string; body: string; author: string; date: string; audience: string };
 
-function AnnouncementsPage() {
+export function AnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<AnnRow[]>(ANNOUNCEMENTS);
+  const [showNew, setShowNew] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -2074,9 +2579,64 @@ function AnnouncementsPage() {
   const catColor: Record<string, string> = { HR:'#7c3aed', Policy:'#e8461a', IT:'#0891b2' };
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="volume2" title="Announcements" sub="Company-wide announcements and notices" backTo="/hrm">
-        <PrimaryBtn label="Post Announcement" icon="plus" />
+      <PageHeader icon="volume2" title="Announcements" sub="Company-wide announcements and notices" backTo="/onepi">
+        <PrimaryBtn label="Post Announcement" icon="plus" onClick={() => setShowNew(v => !v)} />
       </PageHeader>
+
+      {showNew && (
+        <Card>
+          <form onSubmit={async e => {
+            e.preventDefault();
+            const fd = new FormData(e.currentTarget);
+            const title = fd.get('title') as string;
+            const body = fd.get('body') as string;
+            const category = fd.get('category') as string;
+            const audience = fd.get('audience') as string;
+            if (!title || !body) return;
+            try {
+              await apiFetch('/v1/hr/announcements', { method: 'POST', body: JSON.stringify({ title, body, category, audience }) });
+              setShowNew(false); load();
+            } catch { /* ignore */ }
+          }} style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Title</label>
+                <input name="title" required placeholder="e.g. Office closed for public holiday" style={{ width: '100%', padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Category</label>
+                <Select name="category" defaultValue="HR">
+                  <SelectTrigger style={{ width: 140 }}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="HR">HR</SelectItem>
+                    <SelectItem value="Policy">Policy</SelectItem>
+                    <SelectItem value="IT">IT</SelectItem>
+                    <SelectItem value="General">General</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Audience</label>
+                <Select name="audience" defaultValue="All Staff">
+                  <SelectTrigger style={{ width: 140 }}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="All Staff">All Staff</SelectItem>
+                    <SelectItem value="Management">Management</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Message</label>
+              <textarea name="body" required rows={4} placeholder="Write the announcement..." style={{ width: '100%', padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'var(--font)', fontSize: 13, boxSizing: 'border-box' as const, resize: 'vertical' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <PrimaryBtn label="Post" icon="send" type="submit" />
+              <ActionBtn label="Cancel" onClick={() => setShowNew(false)} />
+            </div>
+          </form>
+        </Card>
+      )}
       <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
         {announcements.map(a => (
           <div key={a.id} style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', padding:20 }}>
@@ -2103,8 +2663,8 @@ function AnnouncementsPage() {
   );
 }
 
-/* ── Page routing ── */
-function HrmDashboard() {
+/* -- Page routing -- */
+export function HrmDashboard() {
   const navigate = useNavigate();
   const [metrics, setMetrics] = useState<any>(null);
 
@@ -2116,10 +2676,10 @@ function HrmDashboard() {
   const attRate = hr.active_staff > 0 ? Math.round((hr.today_present / hr.active_staff) * 100) : 0;
 
   const kpis = [
-    { label:'Total Staff',       value: hr.total_staff,       icon:'users'      as IconName, color:'var(--teal)',  bg:'rgba(8,145,178,0.1)',  path:'/hrm/employees' },
-    { label:'Present Today',     value: hr.today_present,     icon:'check'      as IconName, color:'var(--green)', bg:'rgba(16,185,129,0.1)', path:'/hrm/attendance' },
-    { label:'On Leave',          value: hr.on_leave,          icon:'calendar'   as IconName, color:'#f59e0b',      bg:'rgba(245,158,11,0.1)', path:'/hrm/leaves' },
-    { label:'Pending Leaves',    value: hr.pending_leaves,    icon:'clock'      as IconName, color:'var(--red)',   bg:'rgba(239,68,68,0.1)',  path:'/hrm/leaves' },
+    { label:'Total Staff',       value: hr.total_staff,       icon:'users'      as IconName, color:'var(--teal)',  bg:'rgba(8,145,178,0.1)',  path:'/onepi/employees' },
+    { label:'Present Today',     value: hr.today_present,     icon:'check'      as IconName, color:'var(--green)', bg:'rgba(16,185,129,0.1)', path:'/onepi/attendance' },
+    { label:'On Leave',          value: hr.on_leave,          icon:'calendar'   as IconName, color:'#f59e0b',      bg:'rgba(245,158,11,0.1)', path:'/onepi/leaves' },
+    { label:'Pending Leaves',    value: hr.pending_leaves,    icon:'clock'      as IconName, color:'var(--red)',   bg:'rgba(239,68,68,0.1)',  path:'/onepi/leaves' },
   ];
 
   return (
@@ -2129,9 +2689,9 @@ function HrmDashboard() {
       {/* KPI Row */}
       <div style={{ display:'flex', gap:16, marginBottom:24, flexWrap:'wrap' }}>
         {kpis.map(k => (
-          <div key={k.label} onClick={() => navigate(k.path)} style={{
-            flex:1, minWidth:160, background:'var(--white)', borderRadius:9, border:'1px solid var(--border)',
-            padding:'18px 20px', cursor:'pointer', transition:'box-shadow 0.15s',
+          <Link key={k.label} to={k.path} style={{
+            flex:1, minWidth:160, display:'block', background:'var(--white)', borderRadius:9, border:'1px solid var(--border)',
+            padding:'18px 20px', cursor:'pointer', transition:'box-shadow 0.15s', textDecoration:'none', color:'inherit',
           }}
             onMouseEnter={e => (e.currentTarget as HTMLElement).style.boxShadow='0 4px 16px rgba(0,0,0,0.08)'}
             onMouseLeave={e => (e.currentTarget as HTMLElement).style.boxShadow=''}>
@@ -2142,7 +2702,7 @@ function HrmDashboard() {
             </div>
             <div style={{ fontSize:28, fontWeight:900, color:'var(--ink)', letterSpacing:'-0.03em', lineHeight:1 }}>{k.value}</div>
             <div style={{ fontSize:12, color:'var(--ink3)', marginTop:4 }}>{k.label}</div>
-          </div>
+          </Link>
         ))}
       </div>
 
@@ -2153,7 +2713,7 @@ function HrmDashboard() {
         <div style={{ background:'var(--white)', borderRadius:9, border:'1px solid var(--border)', overflow:'hidden' }}>
           <div style={{ padding:'11px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
             <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Today's Attendance</span>
-            <button type="button" onClick={() => navigate('/hrm/attendance')} style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)' }}>Mark →</button>
+            <Link to="/onepi/attendance" style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)', textDecoration:'none' }}>Mark ?</Link>
           </div>
           <div style={{ padding:'16px 18px' }}>
             {[
@@ -2185,7 +2745,7 @@ function HrmDashboard() {
         <div style={{ background:'var(--white)', borderRadius:9, border:'1px solid var(--border)', overflow:'hidden' }}>
           <div style={{ padding:'11px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
             <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Departments</span>
-            <button type="button" onClick={() => navigate('/hrm/departments')} style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)' }}>Manage →</button>
+            <Link to="/onepi/departments" style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)', textDecoration:'none' }}>Manage ?</Link>
           </div>
           <div style={{ padding:'14px 18px' }}>
             {DEPARTMENTS.map((d, i) => {
@@ -2208,8 +2768,8 @@ function HrmDashboard() {
         {/* Payroll summary */}
         <div style={{ background:'var(--white)', borderRadius:9, border:'1px solid var(--border)', overflow:'hidden' }}>
           <div style={{ padding:'11px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Payroll — This Month</span>
-            <button type="button" onClick={() => navigate('/hrm/payroll')} style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)' }}>View All →</button>
+            <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Payroll � This Month</span>
+            <Link to="/onepi/payroll" style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)', textDecoration:'none' }}>View All ?</Link>
           </div>
           <div style={{ padding:'16px 18px' }}>
             {[
@@ -2238,26 +2798,26 @@ function HrmDashboard() {
           </div>
           <div style={{ padding:'14px 16px', display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px,1fr))', gap:10 }}>
             {[
-              { label:'Manage Staff',    icon:'users'      as IconName, path:'/hrm/employees',   color:'#2563eb', bg:'rgba(37,99,235,0.08)' },
-              { label:'Attendance',      icon:'clock'      as IconName, path:'/hrm/attendance',  color:'var(--teal)', bg:'rgba(20,184,166,0.08)' },
-              { label:'Leave Requests',  icon:'calendar'   as IconName, path:'/hrm/leaves',      color:'#f59e0b', bg:'rgba(245,158,11,0.08)' },
-              { label:'Payroll',         icon:'dollarSign' as IconName, path:'/hrm/payroll',     color:'#16a34a', bg:'rgba(22,163,74,0.08)' },
-              { label:'Departments',     icon:'building'   as IconName, path:'/hrm/departments', color:'#7c3aed', bg:'rgba(124,58,237,0.08)' },
-              { label:'Shift Roster',    icon:'timer'      as IconName, path:'/hrm/shifts',      color:'#0891b2', bg:'rgba(8,145,178,0.08)' },
-              { label:'Roles & Access',  icon:'shield'     as IconName, path:'/hrm/roles',       color:'#dc2626', bg:'rgba(220,38,38,0.08)' },
-              { label:'Announcements',   icon:'volume2'    as IconName, path:'/hrm/announcements',color:'#64748b',bg:'rgba(100,116,139,0.08)' },
-              { label:'Org Chart',       icon:'users'      as IconName, path:'/hrm/org-chart',   color:'#0891b2', bg:'rgba(8,145,178,0.08)' },
-              { label:'Invitations',     icon:'userPlus'   as IconName, path:'/hrm/invitations', color:'#7c3aed', bg:'rgba(124,58,237,0.08)' },
+              { label:'Manage Staff',    icon:'users'      as IconName, path:'/onepi/employees',   color:'#2563eb', bg:'rgba(37,99,235,0.08)' },
+              { label:'Attendance',      icon:'clock'      as IconName, path:'/onepi/attendance',  color:'var(--teal)', bg:'rgba(20,184,166,0.08)' },
+              { label:'Leave Requests',  icon:'calendar'   as IconName, path:'/onepi/leaves',      color:'#f59e0b', bg:'rgba(245,158,11,0.08)' },
+              { label:'Payroll',         icon:'dollarSign' as IconName, path:'/onepi/payroll',     color:'#059669', bg:'rgba(22,163,74,0.08)' },
+              { label:'Departments',     icon:'building'   as IconName, path:'/onepi/departments', color:'#7c3aed', bg:'rgba(124,58,237,0.08)' },
+              { label:'Shift Roster',    icon:'timer'      as IconName, path:'/onepi/shifts',      color:'#0891b2', bg:'rgba(8,145,178,0.08)' },
+              { label:'Roles & Access',  icon:'shield'     as IconName, path:'/onepi/roles',       color:'#dc2626', bg:'rgba(220,38,38,0.08)' },
+              { label:'Announcements',   icon:'volume2'    as IconName, path:'/onepi/announcements',color:'#64748b',bg:'rgba(100,116,139,0.08)' },
+              { label:'Org Chart',       icon:'users'      as IconName, path:'/onepi/org-chart',   color:'#0891b2', bg:'rgba(8,145,178,0.08)' },
+              { label:'Invitations',     icon:'userPlus'   as IconName, path:'/onepi/invitations', color:'#7c3aed', bg:'rgba(124,58,237,0.08)' },
             ].map(m => (
-              <button key={m.path} type="button" onClick={() => navigate(m.path)}
-                style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, cursor:'pointer', fontFamily:'var(--font)', textAlign:'left' }}
+              <Link key={m.path} to={m.path}
+                style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, cursor:'pointer', fontFamily:'var(--font)', textAlign:'left', textDecoration:'none' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = m.bg; (e.currentTarget as HTMLElement).style.borderColor = m.color; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg)'; (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; }}>
                 <div style={{ width:30, height:30, borderRadius:7, background:m.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                   <Icon name={m.icon} size={14} color={m.color} />
                 </div>
                 <span style={{ fontSize:12.5, fontWeight:500, color:'var(--ink)', lineHeight:1.3 }}>{m.label}</span>
-              </button>
+              </Link>
             ))}
           </div>
         </div>
@@ -2266,158 +2826,3 @@ function HrmDashboard() {
   );
 }
 
-const PAGES: Record<string, { fn: React.FC; icon: IconName; title: string }> = {
-  dashboard:         { fn: HrmDashboard,       icon: 'activity',     title: 'Dashboard'           },
-  employees:         { fn: EmployeesPage,      icon: 'users',        title: 'Manage Users'        },
-  roles:             { fn: RolesPage,           icon: 'shield',       title: 'Roles & Permissions' },
-  permissions:       { fn: PermissionsPage,      icon: 'key',          title: 'Permission Matrix'    },
-  'delete-requests': { fn: DeleteRequestsPage,  icon: 'userMinus',    title: 'Delete Requests'     },
-  departments:       { fn: DepartmentsPage,     icon: 'building',     title: 'Departments'         },
-  teams:             { fn: TeamsPage,           icon: 'users',        title: 'Teams'               },
-  invitations:       { fn: InvitationsPage,     icon: 'userPlus',     title: 'Invitations'         },
-  'staff-directory': { fn: StaffDirectoryPage,  icon: 'contact',      title: 'Staff Directory'     },
-  'activity-logs':   { fn: ActivityLogsPage,    icon: 'activity',     title: 'Activity Logs'       },
-  'login-history':   { fn: LoginHistoryPage,    icon: 'lock',         title: 'Login History'       },
-  'device-management':{ fn: DeviceManagementPage, icon: 'smartphone', title: 'Device Management'  },
-  leaves:            { fn: LeavesPage,          icon: 'calendar',     title: 'Leave Management'    },
-  attendance:        { fn: AttendancePage,      icon: 'clock',        title: 'Attendance'          },
-  shifts:            { fn: ShiftsPage,          icon: 'timer',        title: 'Shifts'              },
-  holidays:          { fn: HolidaysPage,        icon: 'sun',          title: 'Holidays'            },
-  designations:      { fn: DesignationsPage,    icon: 'award',        title: 'Designations'        },
-  payroll:           { fn: PayrollPage,         icon: 'dollarSign',   title: 'Payroll'             },
-  announcements:     { fn: AnnouncementsPage,   icon: 'volume2',      title: 'Announcements'       },
-  'org-chart':       { fn: OrgChartPage,        icon: 'users',        title: 'Org Chart'           },
-};
-
-const HRM_NAV = [
-  { group: 'Overview', items: [
-    { key: 'dashboard',    label: 'Dashboard',       icon: 'activity'   as IconName },
-  ]},
-  { group: 'People', items: [
-    { key: 'employees',    label: 'Manage Staff',    icon: 'users'      as IconName },
-    { key: 'departments',  label: 'Departments',     icon: 'building'   as IconName },
-    { key: 'designations', label: 'Designations',    icon: 'award'      as IconName },
-    { key: 'teams',        label: 'Teams',           icon: 'users'      as IconName },
-    { key: 'staff-directory', label: 'Staff Directory', icon: 'contact' as IconName },
-    { key: 'org-chart',    label: 'Org Chart',       icon: 'users'      as IconName },
-  ]},
-  { group: 'Time & Leave', items: [
-    { key: 'attendance',   label: 'Attendance',      icon: 'clock'      as IconName },
-    { key: 'leaves',       label: 'Leave Requests',  icon: 'calendar'   as IconName },
-    { key: 'shifts',       label: 'Shift Roster',    icon: 'timer'      as IconName },
-    { key: 'holidays',     label: 'Holidays',        icon: 'sun'        as IconName },
-  ]},
-  { group: 'Finance', items: [
-    { key: 'payroll',      label: 'Payroll',         icon: 'dollarSign' as IconName },
-  ]},
-  { group: 'Access & Security', items: [
-    { key: 'roles',        label: 'Roles & Permissions', icon: 'shield' as IconName },
-    { key: 'permissions',  label: 'Permission Matrix',   icon: 'key'    as IconName },
-    { key: 'activity-logs',label: 'Activity Logs',   icon: 'activity'   as IconName },
-    { key: 'login-history',label: 'Login History',   icon: 'lock'       as IconName },
-    { key: 'device-management', label: 'Devices',    icon: 'smartphone' as IconName },
-    { key: 'delete-requests',   label: 'Delete Requests', icon: 'userMinus' as IconName },
-    { key: 'invitations',  label: 'Invitations',     icon: 'userPlus'   as IconName },
-  ]},
-  { group: 'Communications', items: [
-    { key: 'announcements',label: 'Announcements',   icon: 'volume2'    as IconName },
-  ]},
-];
-
-export const HRM: React.FC = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const sub = location.pathname.split('/').slice(2).join('/') || 'dashboard';
-  const page = PAGES[sub] || PAGES['dashboard'];
-  const Comp = page.fn;
-  const isDashboard = sub === 'dashboard' || !PAGES[sub];
-
-  return (
-    <div style={{ display:'flex', height:'100%', overflow:'hidden' }}>
-
-      {/* ── HRM Sidebar ── */}
-      <div style={{
-        width: 210, flexShrink: 0,
-        background: 'var(--white)', borderRight: '1px solid var(--border)',
-        display: 'flex', flexDirection: 'column', overflowY: 'auto',
-      }}>
-        {/* Sidebar header */}
-        <div style={{ padding:'14px 16px 10px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8 }}>
-          <div style={{ width:28, height:28, borderRadius:7, background:'var(--teal)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-            <Icon name="briefcase" size={14} color="#fff" />
-          </div>
-          <div>
-            <div style={{ fontSize:12, fontWeight:700, color:'var(--ink)', lineHeight:1.2 }}>Human Resources</div>
-            <div style={{ fontSize:10, color:'var(--ink3)' }}>People & Workforce</div>
-          </div>
-        </div>
-
-        {/* Nav groups */}
-        <div style={{ flex:1, padding:'8px 0 16px' }}>
-          {HRM_NAV.map(section => (
-            <div key={section.group}>
-              <div style={{ fontSize:9.5, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.09em', padding:'10px 16px 4px' }}>
-                {section.group}
-              </div>
-              {section.items.map(item => {
-                const isActive = item.key === sub || (isDashboard && item.key === 'dashboard');
-                return (
-                  <button
-                    key={item.key}
-                    type="button"
-                    onClick={() => navigate(item.key === 'dashboard' ? '/hrm' : `/hrm/${item.key}`)}
-                    style={{
-                      width: '100%', display: 'flex', alignItems: 'center', gap: 9,
-                      padding: '9px 12px 9px 16px',
-                      background: isActive ? 'rgba(20,184,166,0.08)' : 'none',
-                      border: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
-                      borderLeft: isActive ? '3px solid var(--teal)' : '3px solid transparent',
-                      transition: 'background 0.12s',
-                    }}
-                    onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'var(--bg)'; }}
-                    onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLElement).style.background = 'none'; }}
-                  >
-                    <Icon name={item.icon} size={14} color={isActive ? 'var(--teal)' : 'var(--ink3)'} strokeWidth={isActive ? 2.4 : 2} />
-                    <span style={{ fontSize: 12.5, fontWeight: isActive ? 600 : 400, color: isActive ? 'var(--teal)' : 'var(--ink2)', whiteSpace: 'nowrap' }}>
-                      {item.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Main content ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-        {/* Breadcrumb bar */}
-        {!isDashboard && (
-          <div style={{
-            padding: '8px 20px', background: 'var(--white)', borderBottom: '1px solid var(--border)',
-            display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0,
-          }}>
-            <button type="button" onClick={() => navigate('/hrm')}
-              style={{ background:'var(--bg)', border:'1px solid var(--border)', cursor:'pointer', fontSize:12, color:'var(--ink2)', fontFamily:'var(--font)', padding:'4px 10px 4px 8px', display:'flex', alignItems:'center', gap:5, borderRadius:6, transition:'background 0.1s', fontWeight:500 }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background='var(--border)'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background='var(--bg)'}>
-              <Icon name="briefcase" size={12} color="var(--ink3)" />
-              <span>HRM</span>
-            </button>
-            <Icon name="chevronRight" size={12} color="var(--ink3)" />
-            <div style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 10px', background:'rgba(20,184,166,0.08)', border:'1px solid rgba(20,184,166,0.2)', borderRadius:6 }}>
-              <Icon name={page.icon} size={12} color="var(--teal)" />
-              <span style={{ fontSize:12, color:'var(--teal)', fontWeight:600 }}>{page.title}</span>
-            </div>
-          </div>
-        )}
-
-        {/* Page */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
-          <Comp />
-        </div>
-      </div>
-    </div>
-  );
-};

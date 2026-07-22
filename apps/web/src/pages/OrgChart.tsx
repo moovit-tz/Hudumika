@@ -24,6 +24,7 @@ import dagre from 'dagre';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
+import { Combobox } from '../components/ui/combobox.js';
 
 /* ─── Types ─────────────────────────────────────────────── */
 interface OrgNode {
@@ -283,15 +284,10 @@ function Sidebar({ node, allNodes, onClose, onSave, onDelete, saving }: SidebarP
         {/* Reports to */}
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>Reports To</label>
-          <select value={form.parent_id} onChange={set('parent_id')}
-            style={{ width: '100%', padding: '8px 10px', fontSize: 13, borderRadius: 7,
-              border: '1px solid var(--border)', fontFamily: 'var(--font)', color: 'var(--ink)',
-              background: 'var(--bg)', outline: 'none' }}>
-            <option value="">— No parent (top level) —</option>
-            {possibleParents.map(n => (
-              <option key={n.id} value={n.id}>{n.data.label}</option>
-            ))}
-          </select>
+          <Combobox
+            options={[{ value: '', label: '— No parent (top level) —' }, ...possibleParents.map(n => ({ value: n.id, label: n.data.label }))]}
+            value={form.parent_id} onChange={v => setForm(f => ({ ...f, parent_id: v }))}
+          />
         </div>
       </div>
 
@@ -323,6 +319,7 @@ export const OrgChart: React.FC = () => {
   const [dirty, setDirty] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [addForm, setAddForm] = useState({ label: '', job_title: '', department: '', color: '#0891b2', parent_id: '' });
+  const [error, setError] = useState<string | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   /* ── Load ── */
@@ -335,7 +332,7 @@ export const OrgChart: React.FC = () => {
         setNodes(n);
         setEdges(e);
       })
-      .catch(() => {})
+      .catch((err: any) => setError(err?.message || 'Failed to load the org chart.'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -353,7 +350,10 @@ export const OrgChart: React.FC = () => {
           }),
         });
         setDirty(false);
-      } catch { /* silent */ }
+      } catch (err: any) {
+        setDirty(false);
+        setError(err?.message || 'Failed to save node positions.');
+      }
     }, 1500);
   }, []);
 
@@ -373,7 +373,7 @@ export const OrgChart: React.FC = () => {
     apiFetch(`/v1/org-chart/${connection.target}`, {
       method: 'PATCH',
       body: JSON.stringify({ parent_id: connection.source }),
-    }).then(() => load()).catch(() => {});
+    }).then(() => load()).catch((err: any) => setError(err?.message || 'Failed to update reporting line.'));
   }, [load]);
 
   /* ── Node click → open sidebar ── */
@@ -402,7 +402,7 @@ export const OrgChart: React.FC = () => {
       });
       load();
       setSelected(null);
-    } catch { /* silent */ }
+    } catch (err: any) { setError(err?.message || 'Failed to save changes.'); }
     finally { setSaving(false); }
   }, [load]);
 
@@ -414,7 +414,7 @@ export const OrgChart: React.FC = () => {
       await apiFetch(`/v1/org-chart/${id}`, { method: 'DELETE' });
       load();
       setSelected(null);
-    } catch { /* silent */ }
+    } catch (err: any) { setError(err?.message || 'Failed to delete node.'); }
     finally { setSaving(false); }
   }, [load]);
 
@@ -440,7 +440,7 @@ export const OrgChart: React.FC = () => {
       setAddForm({ label: '', job_title: '', department: '', color: '#0891b2', parent_id: '' });
       setShowAdd(false);
       load();
-    } catch { /* silent */ }
+    } catch (err: any) { setError(err?.message || 'Failed to add node.'); }
     finally { setSaving(false); }
   }, [addForm, load]);
 
@@ -499,6 +499,19 @@ export const OrgChart: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* ── Error banner ── */}
+      {error && (
+        <div style={{ padding: '9px 20px', background: 'rgba(239,68,68,0.08)', borderBottom: '1px solid rgba(239,68,68,0.2)',
+          display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, zIndex: 5 }}>
+          <Icon name="alertCircle" size={14} color="var(--red)" />
+          <span style={{ fontSize: 12.5, color: 'var(--red)', flex: 1 }}>{error}</span>
+          <button type="button" title="Dismiss" onClick={() => setError(null)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', padding: 2 }}>
+            <Icon name="x" size={14} color="var(--red)" />
+          </button>
+        </div>
+      )}
 
       {/* ── Canvas + Sidebar ── */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
@@ -612,15 +625,10 @@ export const OrgChart: React.FC = () => {
 
             <div style={{ marginBottom: 18 }}>
               <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 5 }}>Reports To</label>
-              <select value={addForm.parent_id} onChange={e => setAddForm(f => ({ ...f, parent_id: e.target.value }))}
-                style={{ width: '100%', padding: '9px 11px', fontSize: 13, borderRadius: 7,
-                  border: '1px solid var(--border)', fontFamily: 'var(--font)', color: 'var(--ink)',
-                  background: 'var(--bg)', outline: 'none' }}>
-                <option value="">— No parent (top level) —</option>
-                {nodes.map(n => (
-                  <option key={n.id} value={n.id}>{n.data.label}</option>
-                ))}
-              </select>
+              <Combobox
+                options={[{ value: '', label: '— No parent (top level) —' }, ...nodes.map(n => ({ value: n.id, label: n.data.label }))]}
+                value={addForm.parent_id} onChange={v => setAddForm(f => ({ ...f, parent_id: v }))}
+              />
             </div>
 
             <div style={{ display: 'flex', gap: 10 }}>

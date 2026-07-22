@@ -1,4 +1,4 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
@@ -15,7 +15,7 @@ const SEED_NODES = (tenantId: string) => [
 
 export async function orgChartRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('onepi'));
+  fastify.addHook('preHandler', requireEntitlement('onepi'));
 
   // GET /org-chart — returns all nodes for the tenant
   fastify.get('/', async (req) => {
