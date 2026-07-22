@@ -1,6 +1,11 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { apiFetch } from '../lib/api.js';
+import { RichTextEditor } from '../components/RichTextEditor.js';
+import { useAuth } from '../hooks/useAuth.js';
+import type { CmsPage, CmsPost, CmsComment, CmsSiteSettings } from '@hudumika/types';
 
 /* ── Types ── */
 interface Post {
@@ -11,21 +16,15 @@ interface Post {
 }
 interface Page {
   id: string; title: string; slug: string; content: string;
-  status: 'published' | 'draft'; author: string; created_at: string;
+  status: 'published' | 'draft'; author: string; created_at: string; updated_at: string;
 }
 interface Comment {
   id: string; author: string; email: string; content: string;
   status: 'approved' | 'pending' | 'spam'; created_at: string;
 }
-interface Activity { id: string; user: string; initials: string; color: string; action: string; time: string; }
 
-/* ── Storage helpers ── */
-const LS = { posts: 'clearos_cms_posts', pages: 'clearos_cms_pages', comments: 'clearos_cms_comments', activity: 'clearos_cms_activity' };
-function loadLS<T>(key: string, fallback: T): T {
-  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
-}
-function saveLS(key: string, val: unknown) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+function now() { return new Date().toISOString(); }
 function ago(iso: string) {
   const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
   if (s < 60) return `${s}s ago`; if (s < 3600) return `${Math.floor(s / 60)}m ago`;
@@ -33,39 +32,18 @@ function ago(iso: string) {
 }
 function fmtDate(iso: string) { return new Date(iso).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
 
-/* ── Seed data ── */
-const now = () => new Date().toISOString();
-const daysAgo = (n: number) => new Date(Date.now() - 86400000 * n).toISOString();
-const SEED_POSTS: Post[] = [
-  { id: uid(), title: 'Company Updates Q2 2026', content: 'This quarter we expanded our customs clearance network across East Africa…', status: 'published', author: 'Admin', category: 'Updates', tags: 'company,news', created_at: daysAgo(3), updated_at: daysAgo(3) },
-  { id: uid(), title: 'New Feature: TANCIS Integration', content: 'We are pleased to announce full TANCIS/TANESW integration for all declarations…', status: 'published', author: 'Editor', category: 'Features', tags: 'tancis,customs', created_at: daysAgo(7), updated_at: daysAgo(6) },
-  { id: uid(), title: 'Maintenance Notice – June 2026', content: 'Scheduled maintenance window from 02:00 to 04:00 EAT…', status: 'published', author: 'Admin', category: 'Notices', tags: 'maintenance', created_at: daysAgo(10), updated_at: daysAgo(10) },
-  { id: uid(), title: 'Draft: Port Procedures Guide', content: 'Step-by-step guide for clearing cargo at Dar es Salaam port…', status: 'draft', author: 'Editor', category: 'Guides', tags: 'port', created_at: daysAgo(1), updated_at: daysAgo(1) },
-  { id: uid(), title: 'Agent Network Expansion', content: 'Moovit ClearOS now has clearing agents at all 6 major TZ ports…', status: 'published', author: 'Admin', category: 'Updates', tags: 'network', created_at: daysAgo(14), updated_at: daysAgo(14) },
-];
-const SEED_PAGES: Page[] = [
-  { id: uid(), title: 'Home', slug: '/', content: 'Welcome to Moovit ClearOS.', status: 'published', author: 'Admin', created_at: daysAgo(30) },
-  { id: uid(), title: 'About Us', slug: '/about', content: 'Moovit ClearOS is built by logistics professionals.', status: 'published', author: 'Admin', created_at: daysAgo(25) },
-  { id: uid(), title: 'Services', slug: '/services', content: 'End-to-end customs clearance and freight forwarding.', status: 'published', author: 'Admin', created_at: daysAgo(20) },
-  { id: uid(), title: 'Contact', slug: '/contact', content: 'Reach us at info@moovit.co.tz', status: 'published', author: 'Admin', created_at: daysAgo(15) },
-];
-const SEED_COMMENTS: Comment[] = [
-  { id: uid(), author: 'Keith Jensen', email: 'k.jensen@email.com', content: 'Great article, very helpful for understanding the TANCIS process!', status: 'approved', created_at: new Date(Date.now() - 7200000).toISOString() },
-  { id: uid(), author: 'Harry Simpson', email: 'h.simpson@email.com', content: 'When will the Tanga port integration be available?', status: 'pending', created_at: new Date(Date.now() - 7200000).toISOString() },
-  { id: uid(), author: 'Stephanie Moore', email: 's.moore@email.com', content: 'This is exactly what we needed for our import operations.', status: 'approved', created_at: new Date(Date.now() - 10800000).toISOString() },
-];
-const SEED_ACTIVITY: Activity[] = [
-  { id: uid(), user: 'Keith Jensen',   initials: 'KJ', color: '#9333ea', action: 'posted a comment.', time: new Date(Date.now() - 7200000).toISOString() },
-  { id: uid(), user: 'Harry Simpson',  initials: 'HS', color: '#f59e0b', action: 'posted a comment.', time: new Date(Date.now() - 7200000).toISOString() },
-  { id: uid(), user: 'Stephanie Moore',initials: 'SM', color: 'var(--teal)', action: 'edited a post.',    time: new Date(Date.now() - 10800000).toISOString() },
-  { id: uid(), user: 'Timothy Moreno', initials: 'TM', color: '#ec4899', action: 'added a new post.', time: new Date(Date.now() - 10800000).toISOString() },
-];
-const PAGE_VIEWS = [
-  { page: '/', views: 2879 }, { page: '/subscription/index.html', views: 2094 },
-  { page: '/general/index.html', views: 1634 }, { page: '/crypto/index.html', views: 1497 },
-  { page: '/invest/index.html', views: 1349 }, { page: '/subscription/profile.html', views: 984 },
-  { page: '/general/index-crypto.html', views: 879 },
-];
+/* ── API ↔ local shape mappers ── */
+// Posts, Pages, and Comments are all real and tenant-scoped (see
+// cms.service.ts / cms.routes.ts) — loaded from the API, not localStorage.
+function cmsPageToLocal(cp: CmsPage): Page {
+  return { id: cp.id, title: cp.title, slug: cp.slug, content: cp.content, status: cp.status, author: 'You', created_at: cp.created_at, updated_at: cp.updated_at };
+}
+function cmsPostToLocal(cp: CmsPost): Post {
+  return { id: cp.id, title: cp.title, content: cp.content, status: cp.status, author: 'You', category: cp.category || '', tags: cp.tags || '', created_at: cp.created_at, updated_at: cp.updated_at };
+}
+function cmsCommentToLocal(cc: CmsComment): Comment {
+  return { id: cc.id, author: cc.author, email: cc.email || '', content: cc.content, status: cc.status, created_at: cc.created_at };
+}
 
 /* ── Avatar ── */
 function Av({ initials, color, size = 36 }: { initials: string; color: string; size?: number }) {
@@ -130,14 +108,17 @@ function PostEditor({ post, onSave, onCancel }: { post: Partial<Post> | null; on
         <div style={{ padding: '24px 28px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 14 }}>
           <input value={form.title || ''} onChange={e => set('title', e.target.value)} placeholder="Add title"
             style={{ fontSize: 26, fontWeight: 700, border: 'none', borderBottom: '2px solid var(--border)', padding: '6px 0', outline: 'none', background: 'transparent', fontFamily: 'var(--font)', color: 'var(--ink)', width: '100%' }} />
-          <textarea value={form.content || ''} onChange={e => set('content', e.target.value)} placeholder="Start writing…" rows={22}
-            style={{ border: '1px solid var(--border)', borderRadius: 9, padding: 14, fontSize: 14, lineHeight: 1.75, outline: 'none', resize: 'vertical', fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)' }} />
+          <RichTextEditor value={form.content || ''} onChange={html => set('content', html)} placeholder="Start writing…" />
         </div>
         <div style={{ borderLeft: '1px solid var(--border)', overflowY: 'auto', background: 'var(--bg)', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <FL label="Status">
-            <select value={form.status} onChange={e => set('status', e.target.value)} className="input-field" style={{ fontSize: 12 }}>
-              <option value="draft">Draft</option><option value="published">Published</option>
-            </select>
+            <Select value={form.status} onValueChange={v => set('status', v)}>
+              <SelectTrigger className="input-field" style={{ fontSize: 12 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="published">Published</SelectItem>
+              </SelectContent>
+            </Select>
           </FL>
           <FL label="Author"><input value={form.author || ''} onChange={e => set('author', e.target.value)} className="input-field" style={{ fontSize: 12 }} /></FL>
           <FL label="Category"><input value={form.category || ''} onChange={e => set('category', e.target.value)} placeholder="e.g. Updates" className="input-field" style={{ fontSize: 12 }} /></FL>
@@ -155,7 +136,7 @@ function PageEditor({ page, onSave, onCancel }: { page: Partial<Page> | null; on
   const handleSave = (status: Page['status']) => {
     if (!form.title?.trim()) return alert('Title required');
     const n = now();
-    onSave({ id: form.id || uid(), title: form.title!, slug: form.slug || `/${form.title!.toLowerCase().replace(/\s+/g, '-')}`, content: form.content || '', status, author: form.author || 'Admin', created_at: form.created_at || n });
+    onSave({ id: form.id || uid(), title: form.title!, slug: form.slug || `/${form.title!.toLowerCase().replace(/\s+/g, '-')}`, content: form.content || '', status, author: form.author || 'Admin', created_at: form.created_at || n, updated_at: n });
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -172,8 +153,7 @@ function PageEditor({ page, onSave, onCancel }: { page: Partial<Page> | null; on
         <input value={form.title || ''} onChange={e => set('title', e.target.value)} placeholder="Page Title"
           style={{ fontSize: 24, fontWeight: 700, border: 'none', borderBottom: '2px solid var(--border)', padding: '6px 0', outline: 'none', background: 'transparent', fontFamily: 'var(--font)', color: 'var(--ink)', width: '100%' }} />
         <FL label="Slug"><input value={form.slug || ''} onChange={e => set('slug', e.target.value)} placeholder="/page-slug" className="input-field" style={{ fontFamily: 'var(--mono)', fontSize: 13 }} /></FL>
-        <textarea value={form.content || ''} onChange={e => set('content', e.target.value)} placeholder="Page content…" rows={16}
-          style={{ border: '1px solid var(--border)', borderRadius: 9, padding: 14, fontSize: 14, lineHeight: 1.75, outline: 'none', resize: 'vertical', fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)' }} />
+        <RichTextEditor value={form.content || ''} onChange={html => set('content', html)} placeholder="Page content…" />
       </div>
     </div>
   );
@@ -183,64 +163,150 @@ function PageEditor({ page, onSave, onCancel }: { page: Partial<Page> | null; on
 export const CMS: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const view = (searchParams.get('v') || 'dashboard') as string;
   const goTo = (v: string) => navigate(`/cms?v=${v}`, { replace: true });
 
-  const [posts,    setPosts]    = useState<Post[]>(() => loadLS(LS.posts, SEED_POSTS));
-  const [pages,    setPages]    = useState<Page[]>(() => loadLS(LS.pages, SEED_PAGES));
-  const [comments, setComments] = useState<Comment[]>(() => loadLS(LS.comments, SEED_COMMENTS));
-  const [activity, setActivity] = useState<Activity[]>(() => loadLS(LS.activity, SEED_ACTIVITY));
+  const [posts,    setPosts]    = useState<Post[]>([]);
+  const [pages,    setPages]    = useState<Page[]>([]);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [siteSettings, setSiteSettings] = useState<CmsSiteSettings | null>(null);
   const [editPost, setEditPost] = useState<Partial<Post> | null>(null);
   const [editPage, setEditPage] = useState<Partial<Page> | null>(null);
   const [draftTitle, setDraftTitle]   = useState('');
   const [draftContent, setDraftContent] = useState('');
   const [pFilter, setPFilter] = useState<'all'|'published'|'draft'|'trash'>('all');
   const [pSearch, setPSearch] = useState('');
-  const [period, setPeriod] = useState('30 Days');
 
-  useEffect(() => saveLS(LS.posts, posts), [posts]);
-  useEffect(() => saveLS(LS.pages, pages), [pages]);
-  useEffect(() => saveLS(LS.comments, comments), [comments]);
-  useEffect(() => saveLS(LS.activity, activity), [activity]);
-
-  const pushActivity = useCallback((action: string, user = 'Admin') => {
-    const colors = ['#0d7a6b','#0550ae','#9333ea','#ec4899','#f59e0b'];
-    const initials = user.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-    setActivity(a => [{ id: uid(), user, initials, color: colors[user.charCodeAt(0) % colors.length], action, time: now() }, ...a].slice(0, 20));
+  useEffect(() => {
+    apiFetch('/v1/cms/pages').then((res: CmsPage[]) => setPages(res.map(cmsPageToLocal))).catch(() => {});
+    apiFetch('/v1/cms/posts').then((res: CmsPost[]) => setPosts(res.map(cmsPostToLocal))).catch(() => {});
+    apiFetch('/v1/cms/comments').then((res: CmsComment[]) => setComments(res.map(cmsCommentToLocal))).catch(() => {});
+    apiFetch('/v1/cms/site-settings').then(setSiteSettings).catch(() => {});
   }, []);
 
-  /* Post ops */
-  const savePost = (p: Post) => {
-    setPosts(ps => ps.find(x => x.id === p.id) ? ps.map(x => x.id === p.id ? p : x) : [p, ...ps]);
-    pushActivity(p.status === 'published' ? 'published a post.' : 'saved a draft.');
+  /* Post ops — real, DB-backed via /v1/cms/posts */
+  const savePost = async (p: Post) => {
+    const isExisting = posts.some(x => x.id === p.id);
+    const payload = { title: p.title, content: p.content, status: p.status, category: p.category, tags: p.tags };
+    try {
+      const saved: CmsPost = isExisting
+        ? await apiFetch(`/v1/cms/posts/${p.id}`, { method: 'PATCH', body: JSON.stringify(payload) })
+        : await apiFetch('/v1/cms/posts', { method: 'POST', body: JSON.stringify(payload) });
+      const mapped = cmsPostToLocal(saved);
+      setPosts(ps => ps.find(x => x.id === mapped.id) ? ps.map(x => x.id === mapped.id ? mapped : x) : [mapped, ...ps]);
+    } catch (e: any) {
+      alert(`Failed to save post: ${e.message}`);
+      return;
+    }
     setEditPost(null); goTo('posts');
   };
-  const trashPost   = (id: string) => { if (!confirm('Move to trash?')) return; setPosts(ps => ps.map(p => p.id === id ? { ...p, status: 'trash' } : p)); };
-  const restorePost = (id: string) => setPosts(ps => ps.map(p => p.id === id ? { ...p, status: 'draft' } : p));
-  const togglePub   = (id: string) => setPosts(ps => ps.map(p => { if (p.id !== id) return p; const s = p.status === 'published' ? 'draft' : 'published'; pushActivity(s === 'published' ? 'published a post.' : 'unpublished a post.'); return { ...p, status: s, updated_at: now() }; }));
+  const setPostStatus = async (id: string, status: Post['status']) => {
+    try {
+      const saved: CmsPost = await apiFetch(`/v1/cms/posts/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+      const mapped = cmsPostToLocal(saved);
+      setPosts(ps => ps.map(p => p.id === id ? mapped : p));
+    } catch (e: any) {
+      alert(`Failed to update post: ${e.message}`);
+    }
+  };
+  const trashPost   = (id: string) => { if (confirm('Move to trash?')) setPostStatus(id, 'trash'); };
+  const restorePost = (id: string) => setPostStatus(id, 'draft');
+  const togglePub    = (id: string) => {
+    const p = posts.find(x => x.id === id);
+    if (p) setPostStatus(id, p.status === 'published' ? 'draft' : 'published');
+  };
 
-  /* Quick draft */
-  const saveDraft = () => {
+  /* Quick draft — real, creates an actual draft post */
+  const saveDraft = async () => {
     if (!draftTitle.trim()) return alert('Title required');
-    const n = now();
-    setPosts(ps => [{ id: uid(), title: draftTitle, content: draftContent, status: 'draft', author: 'Admin', category: 'General', tags: '', created_at: n, updated_at: n }, ...ps]);
-    pushActivity('saved a quick draft.'); setDraftTitle(''); setDraftContent('');
+    try {
+      const saved: CmsPost = await apiFetch('/v1/cms/posts', {
+        method: 'POST',
+        body: JSON.stringify({ title: draftTitle, content: draftContent, status: 'draft', category: 'General' }),
+      });
+      setPosts(ps => [cmsPostToLocal(saved), ...ps]);
+      setDraftTitle(''); setDraftContent('');
+    } catch (e: any) {
+      alert(`Failed to save draft: ${e.message}`);
+    }
   };
 
-  /* Page ops */
-  const savePage = (pg: Page) => {
-    setPages(ps => ps.find(x => x.id === pg.id) ? ps.map(x => x.id === pg.id ? pg : x) : [pg, ...ps]);
-    pushActivity('saved a page.'); setEditPage(null); goTo('pages');
+  /* Page ops — real, DB-backed via /v1/cms/pages */
+  const savePage = async (pg: Page) => {
+    const isExisting = pages.some(x => x.id === pg.id);
+    const payload = { slug: pg.slug.replace(/^\//, ''), title: pg.title, content: pg.content, status: pg.status };
+    try {
+      const saved: CmsPage = isExisting
+        ? await apiFetch(`/v1/cms/pages/${pg.id}`, { method: 'PATCH', body: JSON.stringify(payload) })
+        : await apiFetch('/v1/cms/pages', { method: 'POST', body: JSON.stringify(payload) });
+      const mapped = cmsPageToLocal(saved);
+      setPages(ps => ps.find(x => x.id === mapped.id) ? ps.map(x => x.id === mapped.id ? mapped : x) : [mapped, ...ps]);
+    } catch (e: any) {
+      alert(`Failed to save page: ${e.message}`);
+      return;
+    }
+    setEditPage(null); goTo('pages');
+  };
+  const deletePage = async (id: string) => {
+    if (!confirm('Delete page?')) return;
+    try {
+      await apiFetch(`/v1/cms/pages/${id}`, { method: 'DELETE' });
+      setPages(ps => ps.filter(p => p.id !== id));
+    } catch (e: any) {
+      alert(`Failed to delete page: ${e.message}`);
+    }
   };
 
-  /* Comment ops */
-  const approveCmt = (id: string) => setComments(cs => cs.map(c => c.id === id ? { ...c, status: 'approved' } : c));
-  const spamCmt    = (id: string) => setComments(cs => cs.map(c => c.id === id ? { ...c, status: 'spam' } : c));
-  const deleteCmt  = (id: string) => { if (!confirm('Delete?')) return; setComments(cs => cs.filter(c => c.id !== id)); };
+  /* Comment ops — real, DB-backed via /v1/cms/comments */
+  const setCommentStatus = async (id: string, status: Comment['status']) => {
+    try {
+      await apiFetch(`/v1/cms/comments/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+      setComments(cs => cs.map(c => c.id === id ? { ...c, status } : c));
+    } catch (e: any) {
+      alert(`Failed to update comment: ${e.message}`);
+    }
+  };
+  const approveCmt = (id: string) => setCommentStatus(id, 'approved');
+  const spamCmt    = (id: string) => setCommentStatus(id, 'spam');
+  const deleteCmt  = async (id: string) => {
+    if (!confirm('Delete?')) return;
+    try {
+      await apiFetch(`/v1/cms/comments/${id}`, { method: 'DELETE' });
+      setComments(cs => cs.filter(c => c.id !== id));
+    } catch (e: any) {
+      alert(`Failed to delete comment: ${e.message}`);
+    }
+  };
+
+  /* Site settings — real, DB-backed via /v1/cms/site-settings */
+  const saveSiteSettings = async (patch: Partial<CmsSiteSettings>) => {
+    try {
+      const saved = await apiFetch('/v1/cms/site-settings', { method: 'PUT', body: JSON.stringify(patch) });
+      setSiteSettings(saved);
+      return true;
+    } catch (e: any) {
+      alert(`Failed to save: ${e.message}`);
+      return false;
+    }
+  };
 
   /* Stats */
   const pubCount  = posts.filter(p => p.status === 'published').length;
   const pending   = comments.filter(c => c.status === 'pending').length;
+
+  /* Derived, real activity feed — no fabricated names, just what actually happened */
+  const recentActivity = useMemo(() => {
+    type Item = { key: string; icon: 'edit' | 'file' | 'message'; text: string; time: string };
+    const items: Item[] = [
+      ...posts.map(p => ({ key: `post-${p.id}`, icon: 'edit' as const, text: `Post "${p.title}" ${p.status === 'published' ? 'was published' : p.status === 'trash' ? 'was moved to trash' : 'was saved as a draft'}`, time: p.updated_at })),
+      ...pages.map(p => ({ key: `page-${p.id}`, icon: 'file' as const, text: `Page "${p.title}" ${p.status === 'published' ? 'was published' : 'was saved as a draft'}`, time: p.updated_at })),
+      ...comments.map(c => ({ key: `cmt-${c.id}`, icon: 'message' as const, text: `Comment from ${c.author} is ${c.status}`, time: c.created_at })),
+    ];
+    return items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime()).slice(0, 8);
+  }, [posts, pages, comments]);
+
+  const recentPages = useMemo(() => [...pages].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()).slice(0, 7), [pages]);
 
   /* ── Post editor full-screen overlay ── */
   if (view === 'post-editor') {
@@ -302,9 +368,12 @@ export const CMS: React.FC = () => {
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)', marginBottom: 12 }}>Next Steps</div>
                   {[
-                    { icon: 'edit' as const,  label: 'Write a blog post',  fn: () => { setEditPost(null); goTo('post-editor'); } },
-                    { icon: 'file' as const,  label: 'Add an about page',  fn: () => { setEditPage({ title: 'About Us', slug: '/about', content: '', status: 'draft', author: 'Admin' }); goTo('page-editor'); } },
-                    { icon: 'eye' as const,   label: 'View your site',     fn: () => {} },
+                    { icon: 'edit' as const, label: 'Write a blog post', fn: () => { setEditPost(null); goTo('post-editor'); } },
+                    { icon: 'file' as const, label: 'Add an about page', fn: () => { setEditPage({ title: 'About Us', slug: '/about', content: '', status: 'draft', author: 'Admin' }); goTo('page-editor'); } },
+                    {
+                      icon: 'eye' as const, label: 'View your site',
+                      fn: () => { if (siteSettings?.tenantSlug) window.open(`/site/${siteSettings.tenantSlug}`, '_blank', 'noopener'); },
+                    },
                   ].map(item => (
                     <button key={item.label} onClick={item.fn} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--teal)', fontWeight: 500, padding: '5px 0', fontFamily: 'var(--font)', width: '100%' }}>
                       <Icon name={item.icon} size={13} /> {item.label}
@@ -330,14 +399,18 @@ export const CMS: React.FC = () => {
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)', marginBottom: 12 }}>More Actions</div>
                   {[
-                    { icon: 'grid' as const,           label: 'Manage widgets or menu', fn: () => goTo('customize') },
-                    { icon: 'message' as const,        label: 'Turn comments off or on', fn: () => goTo('comments') },
-                    { icon: 'moreHorizontal' as const, label: 'More about getting started', fn: () => {} },
+                    { icon: 'grid' as const,    label: 'Site Identity & Appearance', fn: () => goTo('customize') },
+                    { icon: 'message' as const, label: 'Moderate comments',          fn: () => goTo('comments') },
                   ].map(item => (
                     <button key={item.label} onClick={item.fn} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink2)', fontWeight: 500, padding: '5px 0', fontFamily: 'var(--font)', width: '100%' }}>
                       <Icon name={item.icon} size={13} /> {item.label}
                     </button>
                   ))}
+                  {user?.role === 'SUPER_ADMIN' && (
+                    <button onClick={() => navigate('/admin/cms-pages')} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink2)', fontWeight: 500, padding: '5px 0', fontFamily: 'var(--font)', width: '100%' }}>
+                      <Icon name="shield" size={13} /> Manage Hudumika's own pages (Privacy, Terms, ...)
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -371,43 +444,37 @@ export const CMS: React.FC = () => {
                 )}
               </div>
 
-              {/* Page views */}
+              {/* Recent Pages — real data, no fabricated traffic numbers */}
               <div className="card" style={{ padding: '20px 22px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="activity" size={14} /> Viewed pages by users</div>
-                  <div style={{ position: 'relative' }}>
-                    <select value={period} onChange={e => setPeriod(e.target.value)} className="input-field" style={{ fontSize: 12, paddingRight: 24, cursor: 'pointer' }}>
-                      {['7 Days', '30 Days', '90 Days'].map(p => <option key={p}>{p}</option>)}
-                    </select>
-                  </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', display: 'flex', alignItems: 'center', gap: 7, marginBottom: 16 }}>
+                  <Icon name="file" size={14} /> Recent Pages
                 </div>
+                {recentPages.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No pages yet — create one from the Pages tab.</div>}
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                      <th style={{ textAlign: 'left', padding: '5px 0', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Page</th>
-                      <th style={{ textAlign: 'right', padding: '5px 0', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Views</th>
-                    </tr>
-                  </thead>
                   <tbody>
-                    {PAGE_VIEWS.map((row, i) => (
-                      <tr key={i} style={{ borderBottom: '1px solid var(--bg)' }}>
-                        <td style={{ padding: '7px 0', fontSize: 12.5, color: 'var(--teal)', fontFamily: 'var(--mono)', fontWeight: 500 }}>{row.page}</td>
-                        <td style={{ padding: '7px 0', fontSize: 13, fontWeight: 700, textAlign: 'right', color: 'var(--ink)' }}>{row.views.toLocaleString()}</td>
+                    {recentPages.map(p => (
+                      <tr key={p.id} style={{ borderBottom: '1px solid var(--bg)' }}>
+                        <td style={{ padding: '7px 0', fontSize: 12.5, color: 'var(--ink)', fontWeight: 500 }}>{p.title}</td>
+                        <td style={{ padding: '7px 0' }}><StatusBadge status={p.status} /></td>
+                        <td style={{ padding: '7px 0', fontSize: 11.5, textAlign: 'right', color: 'var(--ink3)' }}>{fmtDate(p.updated_at)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              {/* Recent Activities */}
+              {/* Recent Activities — derived from real posts/pages/comments */}
               <div className="card" style={{ padding: '20px 22px', overflowY: 'auto' }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="clock" size={14} /> Recent Activities</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="clock" size={14} /> Recent Activity</div>
+                {recentActivity.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Nothing yet — activity shows up here as you create posts and pages.</div>}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                  {activity.map((act, i) => (
-                    <div key={act.id} style={{ display: 'flex', gap: 11, paddingBottom: 14, borderBottom: i < activity.length - 1 ? '1px solid var(--border)' : 'none', marginBottom: i < activity.length - 1 ? 14 : 0 }}>
-                      <Av initials={act.initials} color={act.color} size={36} />
+                  {recentActivity.map((act, i) => (
+                    <div key={act.key} style={{ display: 'flex', gap: 11, paddingBottom: 14, borderBottom: i < recentActivity.length - 1 ? '1px solid var(--border)' : 'none', marginBottom: i < recentActivity.length - 1 ? 14 : 0 }}>
+                      <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon name={act.icon} size={13} />
+                      </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{act.user} <span style={{ fontWeight: 400, color: 'var(--ink2)' }}>{act.action}</span></div>
+                        <div style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{act.text}</div>
                         <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{ago(act.time)}</div>
                       </div>
                     </div>
@@ -512,7 +579,7 @@ export const CMS: React.FC = () => {
                         {pg.title}
                         <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                           <button onClick={() => { setEditPage(pg); goTo('page-editor'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--teal)', fontFamily: 'var(--font)', padding: 0, fontWeight: 600 }}>Edit</button>
-                          <button onClick={() => { if (confirm('Delete page?')) setPages(ps => ps.filter(p => p.id !== pg.id)); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)', fontFamily: 'var(--font)', padding: 0 }}>Delete</button>
+                          <button onClick={() => deletePage(pg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--red)', fontFamily: 'var(--font)', padding: 0 }}>Delete</button>
                         </div>
                       </td>
                       <td style={{ padding: '11px 16px', fontFamily: 'var(--mono)', color: 'var(--ink3)', fontSize: 12 }}>{pg.slug}</td>
@@ -526,6 +593,9 @@ export const CMS: React.FC = () => {
                       </td>
                     </tr>
                   ))}
+                  {pages.length === 0 && (
+                    <tr><td colSpan={6} style={{ padding: '48px 20px', textAlign: 'center', color: 'var(--ink3)' }}>No pages yet.</td></tr>
+                  )}
                 </tbody>
               </table>
               </div>
@@ -536,7 +606,11 @@ export const CMS: React.FC = () => {
         {/* ══ COMMENTS ══ */}
         {view === 'comments' && (
           <div style={{ padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {comments.length === 0 && <div style={{ textAlign: 'center', padding: 48, color: 'var(--ink3)', background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)' }}>No comments yet.</div>}
+            {comments.length === 0 && (
+              <div style={{ textAlign: 'center', padding: 48, color: 'var(--ink3)', background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)' }}>
+                No comments yet — there's no visitor-facing comment form on your site yet, so this fills up once one exists.
+              </div>
+            )}
             {comments.map(c => (
               <div key={c.id} className="card" style={{ padding: '16px 20px', display: 'flex', gap: 14, borderLeftWidth: 3, borderLeftStyle: 'solid', borderLeftColor: c.status === 'pending' ? 'var(--gold)' : c.status === 'spam' ? 'var(--red)' : 'var(--teal)' }}>
                 <Av initials={c.author.split(' ').map(w => w[0]).join('').slice(0, 2)} color={c.status === 'approved' ? '#0d7a6b' : c.status === 'spam' ? '#dc2626' : '#d97706'} size={40} />
@@ -560,33 +634,91 @@ export const CMS: React.FC = () => {
 
         {/* ══ CUSTOMIZE ══ */}
         {view === 'customize' && (
-          <div style={{ padding: '18px 24px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, maxWidth: 860 }}>
-              {[
-                { title: 'Site Identity',       desc: 'Logo, site title, tagline and favicon.',   icon: 'star' as const },
-                { title: 'Colors & Typography', desc: 'Brand colours and font preferences.',       icon: 'edit' as const },
-                { title: 'Header & Footer',     desc: 'Customise navigation and footer layout.',   icon: 'layers' as const },
-                { title: 'Menus',               desc: 'Create and manage navigation menus.',       icon: 'list' as const },
-                { title: 'Widgets',             desc: 'Add widgets to sidebars and areas.',        icon: 'grid' as const },
-                { title: 'Homepage Settings',   desc: 'Control what is shown on your homepage.',   icon: 'home' as const },
-              ].map(({ title, desc, icon }) => (
-                <div key={title} className="card" style={{ padding: 20, display: 'flex', gap: 14, cursor: 'pointer', transition: 'box-shadow 0.12s' }}
-                  onMouseEnter={e => (e.currentTarget.style.boxShadow = 'var(--shadow-lg)')}
-                  onMouseLeave={e => (e.currentTarget.style.boxShadow = '')}>
-                  <div style={{ width: 40, height: 40, borderRadius: 9, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--teal)' }}>
-                    <Icon name={icon} size={20} strokeWidth={1.75} />
-                  </div>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--navy)', marginBottom: 4 }}>{title}</div>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.45 }}>{desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <CustomizeView settings={siteSettings} onSave={saveSiteSettings} />
         )}
 
       </div>
     </div>
   );
 };
+
+/* ── Customize: Site Identity + Appearance (real, PUT /v1/cms/site-settings) ── */
+function CustomizeView({ settings, onSave }: { settings: CmsSiteSettings | null; onSave: (patch: Partial<CmsSiteSettings>) => Promise<boolean> }) {
+  const [form, setForm] = useState<CmsSiteSettings | null>(settings);
+  const [saving, setSaving] = useState<'identity' | 'appearance' | null>(null);
+  const [savedFlash, setSavedFlash] = useState<'identity' | 'appearance' | null>(null);
+
+  useEffect(() => { if (settings) setForm(settings); }, [settings]);
+
+  if (!form) return <div style={{ padding: '18px 24px', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>;
+  const set = (k: keyof CmsSiteSettings, v: string) => setForm(f => f ? { ...f, [k]: v } : f);
+
+  async function handleSave(section: 'identity' | 'appearance', patch: Partial<CmsSiteSettings>) {
+    setSaving(section);
+    const ok = await onSave(patch);
+    setSaving(null);
+    if (ok) { setSavedFlash(section); setTimeout(() => setSavedFlash(null), 2000); }
+  }
+
+  return (
+    <div style={{ padding: '18px 24px', display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 560 }}>
+      <div className="card" style={{ padding: 22 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
+            <Icon name="star" size={17} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--navy)' }}>Site Identity</div>
+            <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Shown on your public site at /site/{form.tenantSlug || '…'}</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <FL label="Site Title"><input value={form.siteTitle} onChange={e => set('siteTitle', e.target.value)} className="input-field" placeholder="Your company name" /></FL>
+          <FL label="Tagline"><input value={form.tagline} onChange={e => set('tagline', e.target.value)} className="input-field" placeholder="A short description" /></FL>
+          <FL label="Logo URL"><input value={form.logoUrl} onChange={e => set('logoUrl', e.target.value)} className="input-field" placeholder="https://…" /></FL>
+          <FL label="Favicon URL"><input value={form.faviconUrl} onChange={e => set('faviconUrl', e.target.value)} className="input-field" placeholder="https://…" /></FL>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              onClick={() => handleSave('identity', { siteTitle: form.siteTitle, tagline: form.tagline, logoUrl: form.logoUrl, faviconUrl: form.faviconUrl })}
+              disabled={saving === 'identity'}
+              className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }}
+            >
+              {saving === 'identity' ? 'Saving…' : 'Save'}
+            </button>
+            {savedFlash === 'identity' && <span style={{ fontSize: 12, color: 'var(--green)' }}>Saved</span>}
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 22 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal)' }}>
+            <Icon name="edit" size={17} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--navy)' }}>Appearance</div>
+            <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Accent colour for your public site</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <FL label="Accent Colour">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <input type="color" value={form.accentColor} onChange={e => set('accentColor', e.target.value)} style={{ width: 44, height: 34, border: '1px solid var(--border)', borderRadius: 6, padding: 2, cursor: 'pointer' }} />
+              <input value={form.accentColor} onChange={e => set('accentColor', e.target.value)} className="input-field" style={{ fontFamily: 'var(--mono)', fontSize: 12, maxWidth: 120 }} />
+            </div>
+          </FL>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              onClick={() => handleSave('appearance', { accentColor: form.accentColor })}
+              disabled={saving === 'appearance'}
+              className="btn btn-primary btn-sm" style={{ alignSelf: 'flex-start' }}
+            >
+              {saving === 'appearance' ? 'Saving…' : 'Save'}
+            </button>
+            {savedFlash === 'appearance' && <span style={{ fontSize: 12, color: 'var(--green)' }}>Saved</span>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
