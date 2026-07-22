@@ -1,10 +1,11 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MetricsRow, spark } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// -- Types ---------------------------------------------------------------------
 
 export interface Product {
   id: string;
@@ -30,7 +31,7 @@ interface ProductForm {
 
 type CatFilter = 'ALL' | string;
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// -- Constants -----------------------------------------------------------------
 
 const CATEGORIES = ['FREIGHT','CLEARANCE','HANDLING','TRANSPORT','DUTY','INSURANCE','OTHER'];
 const CAT_CFG: Record<string, { label: string; color: string; bg: string }> = {
@@ -43,21 +44,21 @@ const CAT_CFG: Record<string, { label: string; color: string; bg: string }> = {
   OTHER:     { label: 'Other',          color: 'var(--ink3)',   bg: 'var(--bg)'       },
 };
 
-const UNITS = ['shipment','container','kg','CBM','trip','day','hour','set','certificate','%','unit','m³','ton'];
+const UNITS = ['shipment','container','kg','CBM','trip','day','hour','set','certificate','%','unit','m�','ton'];
 const CURRENCIES = ['USD','TZS','EUR','GBP','KES','ZAR','AED'];
 const STORAGE_KEY = 'cls_products';
 
-// ── Seed data (freight industry service catalog) ───────────────────────────────
+// -- Seed data (freight industry service catalog) -------------------------------
 
 const SEED_PRODUCTS: Product[] = [
-  { id:'p-sf1',  name:'Sea Freight – 20ft FCL',           code:'SF-FCL-20',   category:'FREIGHT',   unit:'container', unit_price:1200, currency:'USD', tax_rate:0,  status:'ACTIVE', description:'Full container load sea freight – 20ft standard container',              created_at:'2024-01-01T00:00:00Z' },
-  { id:'p-sf2',  name:'Sea Freight – 40ft FCL',           code:'SF-FCL-40',   category:'FREIGHT',   unit:'container', unit_price:1800, currency:'USD', tax_rate:0,  status:'ACTIVE', description:'Full container load sea freight – 40ft standard container',              created_at:'2024-01-01T00:00:00Z' },
-  { id:'p-sf3',  name:'Sea Freight – 40ft HC',            code:'SF-FCL-40H',  category:'FREIGHT',   unit:'container', unit_price:2000, currency:'USD', tax_rate:0,  status:'ACTIVE', description:'Full container load sea freight – 40ft high cube container',              created_at:'2024-01-01T00:00:00Z' },
-  { id:'p-sf4',  name:'Sea Freight – LCL',                code:'SF-LCL',      category:'FREIGHT',   unit:'CBM',       unit_price:85,   currency:'USD', tax_rate:0,  status:'ACTIVE', description:'Less than container load sea freight (per CBM)',                          created_at:'2024-01-01T00:00:00Z' },
+  { id:'p-sf1',  name:'Sea Freight � 20ft FCL',           code:'SF-FCL-20',   category:'FREIGHT',   unit:'container', unit_price:1200, currency:'USD', tax_rate:0,  status:'ACTIVE', description:'Full container load sea freight � 20ft standard container',              created_at:'2024-01-01T00:00:00Z' },
+  { id:'p-sf2',  name:'Sea Freight � 40ft FCL',           code:'SF-FCL-40',   category:'FREIGHT',   unit:'container', unit_price:1800, currency:'USD', tax_rate:0,  status:'ACTIVE', description:'Full container load sea freight � 40ft standard container',              created_at:'2024-01-01T00:00:00Z' },
+  { id:'p-sf3',  name:'Sea Freight � 40ft HC',            code:'SF-FCL-40H',  category:'FREIGHT',   unit:'container', unit_price:2000, currency:'USD', tax_rate:0,  status:'ACTIVE', description:'Full container load sea freight � 40ft high cube container',              created_at:'2024-01-01T00:00:00Z' },
+  { id:'p-sf4',  name:'Sea Freight � LCL',                code:'SF-LCL',      category:'FREIGHT',   unit:'CBM',       unit_price:85,   currency:'USD', tax_rate:0,  status:'ACTIVE', description:'Less than container load sea freight (per CBM)',                          created_at:'2024-01-01T00:00:00Z' },
   { id:'p-af1',  name:'Air Freight',                      code:'AF-KG',       category:'FREIGHT',   unit:'kg',        unit_price:4.5,  currency:'USD', tax_rate:0,  status:'ACTIVE', description:'Air freight charge per kilogram (chargeable weight)',                     created_at:'2024-01-01T00:00:00Z' },
-  { id:'p-af2',  name:'Air Freight – Minimum',            code:'AF-MIN',      category:'FREIGHT',   unit:'shipment',  unit_price:350,  currency:'USD', tax_rate:0,  status:'ACTIVE', description:'Air freight minimum charge per shipment',                                 created_at:'2024-01-01T00:00:00Z' },
-  { id:'p-rd1',  name:'Road Transport – Local',           code:'RT-LOCAL',    category:'TRANSPORT', unit:'trip',      unit_price:450,  currency:'USD', tax_rate:18, status:'ACTIVE', description:'Local inland transport and delivery',                                     created_at:'2024-01-01T00:00:00Z' },
-  { id:'p-rd2',  name:'Road Transport – Upcountry',       code:'RT-UPCTRY',   category:'TRANSPORT', unit:'trip',      unit_price:850,  currency:'USD', tax_rate:18, status:'ACTIVE', description:'Upcountry delivery to inland destination',                               created_at:'2024-01-01T00:00:00Z' },
+  { id:'p-af2',  name:'Air Freight � Minimum',            code:'AF-MIN',      category:'FREIGHT',   unit:'shipment',  unit_price:350,  currency:'USD', tax_rate:0,  status:'ACTIVE', description:'Air freight minimum charge per shipment',                                 created_at:'2024-01-01T00:00:00Z' },
+  { id:'p-rd1',  name:'Road Transport � Local',           code:'RT-LOCAL',    category:'TRANSPORT', unit:'trip',      unit_price:450,  currency:'USD', tax_rate:18, status:'ACTIVE', description:'Local inland transport and delivery',                                     created_at:'2024-01-01T00:00:00Z' },
+  { id:'p-rd2',  name:'Road Transport � Upcountry',       code:'RT-UPCTRY',   category:'TRANSPORT', unit:'trip',      unit_price:850,  currency:'USD', tax_rate:18, status:'ACTIVE', description:'Upcountry delivery to inland destination',                               created_at:'2024-01-01T00:00:00Z' },
   { id:'p-cl1',  name:'Customs Clearance',                code:'CL-BASIC',    category:'CLEARANCE', unit:'shipment',  unit_price:350,  currency:'USD', tax_rate:18, status:'ACTIVE', description:'Customs clearance and entry lodgement at port',                          created_at:'2024-01-01T00:00:00Z' },
   { id:'p-cl2',  name:'Documentation Fee',                code:'CL-DOCS',     category:'CLEARANCE', unit:'set',       unit_price:75,   currency:'USD', tax_rate:18, status:'ACTIVE', description:'Preparation of shipping documentation and certificates',                  created_at:'2024-01-01T00:00:00Z' },
   { id:'p-cl3',  name:'Bill of Lading Processing',        code:'CL-BL',       category:'CLEARANCE', unit:'set',       unit_price:60,   currency:'USD', tax_rate:18, status:'ACTIVE', description:'Bill of lading processing and handling fee',                             created_at:'2024-01-01T00:00:00Z' },
@@ -67,16 +68,16 @@ const SEED_PRODUCTS: Product[] = [
   { id:'p-ph2',  name:'Port Scanning / X-Ray',            code:'PH-SCAN',     category:'HANDLING',  unit:'container', unit_price:50,   currency:'USD', tax_rate:0,  status:'ACTIVE', description:'Port scanner / X-ray inspection fee',                                   created_at:'2024-01-01T00:00:00Z' },
   { id:'p-ph3',  name:'Weighbridge Certificate',          code:'PH-WGH',      category:'HANDLING',  unit:'truck',     unit_price:30,   currency:'USD', tax_rate:18, status:'ACTIVE', description:'Weighbridge measurement and certificate fee',                            created_at:'2024-01-01T00:00:00Z' },
   { id:'p-ph4',  name:'Fumigation Treatment',             code:'PH-FUM',      category:'HANDLING',  unit:'container', unit_price:150,  currency:'USD', tax_rate:18, status:'ACTIVE', description:'Fumigation treatment and phytosanitary certificate',                     created_at:'2024-01-01T00:00:00Z' },
-  { id:'p-dt1',  name:'Import Duty',                      code:'DT-IMP',      category:'DUTY',      unit:'%',         unit_price:0,    currency:'USD', tax_rate:0,  status:'ACTIVE', description:'Customs import duty (percentage of CIF value) — rate varies by HS code', created_at:'2024-01-01T00:00:00Z' },
+  { id:'p-dt1',  name:'Import Duty',                      code:'DT-IMP',      category:'DUTY',      unit:'%',         unit_price:0,    currency:'USD', tax_rate:0,  status:'ACTIVE', description:'Customs import duty (percentage of CIF value) � rate varies by HS code', created_at:'2024-01-01T00:00:00Z' },
   { id:'p-dt2',  name:'VAT on Import',                    code:'DT-VAT',      category:'DUTY',      unit:'%',         unit_price:0,    currency:'USD', tax_rate:0,  status:'ACTIVE', description:'Value added tax assessed on imported goods',                             created_at:'2024-01-01T00:00:00Z' },
   { id:'p-dt3',  name:'Excise Duty',                      code:'DT-EXC',      category:'DUTY',      unit:'%',         unit_price:0,    currency:'USD', tax_rate:0,  status:'INACTIVE', description:'Excise duty applicable on specific commodities',                      created_at:'2024-01-01T00:00:00Z' },
-  { id:'p-ins1', name:'Marine Cargo Insurance',           code:'INS-CARGO',   category:'INSURANCE', unit:'%',         unit_price:0,    currency:'USD', tax_rate:18, status:'ACTIVE', description:'Marine cargo insurance — percentage of insured cargo value',             created_at:'2024-01-01T00:00:00Z' },
+  { id:'p-ins1', name:'Marine Cargo Insurance',           code:'INS-CARGO',   category:'INSURANCE', unit:'%',         unit_price:0,    currency:'USD', tax_rate:18, status:'ACTIVE', description:'Marine cargo insurance � percentage of insured cargo value',             created_at:'2024-01-01T00:00:00Z' },
   { id:'p-ot1',  name:'Storage / Demurrage',              code:'OT-STOR',     category:'OTHER',     unit:'day',       unit_price:25,   currency:'USD', tax_rate:18, status:'ACTIVE', description:'Container or cargo storage charge per day',                              created_at:'2024-01-01T00:00:00Z' },
   { id:'p-ot2',  name:'Port Congestion Surcharge',        code:'OT-CONG',     category:'OTHER',     unit:'container', unit_price:150,  currency:'USD', tax_rate:0,  status:'ACTIVE', description:'Port congestion surcharge (applied when applicable)',                   created_at:'2024-01-01T00:00:00Z' },
   { id:'p-ot3',  name:'Dangerous Goods / IMO Fee',        code:'OT-DG',       category:'OTHER',     unit:'shipment',  unit_price:120,  currency:'USD', tax_rate:18, status:'ACTIVE', description:'Handling surcharge for IMO / DG classified cargo',                      created_at:'2024-01-01T00:00:00Z' },
 ];
 
-// ── Local store (falls back when API unavailable) ─────────────────────────────
+// -- Local store (falls back when API unavailable) -----------------------------
 
 function loadLocal(): Product[] {
   try {
@@ -100,31 +101,31 @@ function genCode(name: string, category: string): string {
   return `${abbr}-${slug}`;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// -- Helpers -------------------------------------------------------------------
 
 function fmt(amount: number, currency = 'USD') {
-  if (amount === 0) return '—';
+  if (amount === 0) return '�';
   try {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount);
   } catch { return `${currency} ${amount}`; }
 }
 
 function fmtDate(d: string | null | undefined) {
-  if (!d) return '—';
+  if (!d) return '�';
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
-const ACOLORS = ['#0d7a6b','#0550ae','#6e40c9','#1a7f37','#9a6700','#cf222e','#d05c30'];
+const ACOLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30'];
 function acolor(s: string) { return ACOLORS[s.charCodeAt(0) % ACOLORS.length]; }
 
-// ── Category badge ────────────────────────────────────────────────────────────
+// -- Category badge ------------------------------------------------------------
 
 function CatBadge({ cat }: { cat: string }) {
   const c = CAT_CFG[cat] ?? CAT_CFG.OTHER;
   return <span style={{ padding: '2px 9px', borderRadius: 9, fontSize: 11, fontWeight: 700, background: c.bg, color: c.color, whiteSpace: 'nowrap' }}>{c.label}</span>;
 }
 
-// ── Status toggle ─────────────────────────────────────────────────────────────
+// -- Status toggle -------------------------------------------------------------
 
 function StatusPill({ status }: { status: 'ACTIVE' | 'INACTIVE' }) {
   return (
@@ -135,7 +136,7 @@ function StatusPill({ status }: { status: 'ACTIVE' | 'INACTIVE' }) {
   );
 }
 
-// ── Delete confirm modal ──────────────────────────────────────────────────────
+// -- Delete confirm modal ------------------------------------------------------
 
 function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: () => void; onCancel: () => void }) {
   return (
@@ -154,7 +155,7 @@ function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: (
   );
 }
 
-// ── Product Form (slide-in panel) ─────────────────────────────────────────────
+// -- Product Form (slide-in panel) ---------------------------------------------
 
 function ProductForm({ initial, onSave, onClose, isMobile }: {
   initial?: Product;
@@ -216,7 +217,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
           <div style={row}>
             <label style={lbl}>Service Name *</label>
-            <input type="text" title="Service name" placeholder="e.g. Sea Freight – 20ft FCL" value={f.name} onChange={e => set('name', e.target.value)} style={inp} />
+            <input type="text" title="Service name" placeholder="e.g. Sea Freight � 20ft FCL" value={f.name} onChange={e => set('name', e.target.value)} style={inp} />
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
@@ -226,15 +227,18 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
             </div>
             <div>
               <label style={lbl}>Category</label>
-              <select title="Category" value={f.category} onChange={e => set('category', e.target.value)} style={inp}>
-                {CATEGORIES.map(c => <option key={c} value={c}>{CAT_CFG[c].label}</option>)}
-              </select>
+              <Select value={f.category} onValueChange={v => set('category', v)}>
+                <SelectTrigger aria-label="Category" style={inp}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map(c => <SelectItem key={c} value={c}>{CAT_CFG[c].label}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           <div style={row}>
             <label style={lbl}>Description</label>
-            <textarea title="Description" placeholder="Brief description of the service…" value={f.description} onChange={e => set('description', e.target.value)} rows={3}
+            <textarea title="Description" placeholder="Brief description of the service�" value={f.description} onChange={e => set('description', e.target.value)} rows={3}
               style={{ ...inp, resize: 'vertical' }} />
           </div>
 
@@ -252,17 +256,23 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
               </div>
               <div>
                 <label style={lbl}>Currency</label>
-                <select title="Currency" value={f.currency} onChange={e => set('currency', e.target.value)} style={inp}>
-                  {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <Select value={f.currency} onValueChange={v => set('currency', v)}>
+                  <SelectTrigger aria-label="Currency" style={inp}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={lbl}>Unit of Measure</label>
-                <select title="Unit" value={f.unit} onChange={e => set('unit', e.target.value)} style={inp}>
-                  {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-                </select>
+                <Select value={f.unit} onValueChange={v => set('unit', v)}>
+                  <SelectTrigger aria-label="Unit" style={inp}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div>
                 <label style={lbl}>Tax Rate (%)</label>
@@ -286,7 +296,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
 
           <div style={row}>
             <label style={lbl}>Internal Notes</label>
-            <textarea title="Notes" placeholder="Any internal notes about this service…" value={f.notes} onChange={e => set('notes', e.target.value)} rows={2}
+            <textarea title="Notes" placeholder="Any internal notes about this service�" value={f.notes} onChange={e => set('notes', e.target.value)} rows={2}
               style={{ ...inp, resize: 'vertical' }} />
           </div>
 
@@ -296,11 +306,11 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
                 <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{f.name || 'Service Name'}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2, fontFamily: 'var(--mono)' }}>{f.code || '—'} · {CAT_CFG[f.category]?.label}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2, fontFamily: 'var(--mono)' }}>{f.code || '�'} � {CAT_CFG[f.category]?.label}</div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--teal)' }}>{f.unit_price > 0 ? fmt(f.unit_price, f.currency) : '—'}</div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)' }}>per {f.unit}{f.tax_rate > 0 ? ` · ${f.tax_rate}% tax` : ' · no tax'}</div>
+                <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--teal)' }}>{f.unit_price > 0 ? fmt(f.unit_price, f.currency) : '�'}</div>
+                <div style={{ fontSize: 11, color: 'var(--ink3)' }}>per {f.unit}{f.tax_rate > 0 ? ` � ${f.tax_rate}% tax` : ' � no tax'}</div>
               </div>
             </div>
           </div>
@@ -311,7 +321,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
           <button type="button" title="Cancel" onClick={onClose} style={{ padding: '9px 18px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)' }}>Cancel</button>
           <button type="button" title="Save service" onClick={submit} disabled={saving}
             style={{ padding: '9px 20px', border: 'none', borderRadius: 9, background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Icon name="save" size={13} /> {saving ? 'Saving…' : initial ? 'Update Service' : 'Add Service'}
+            <Icon name="save" size={13} /> {saving ? 'Saving�' : initial ? 'Update Service' : 'Add Service'}
           </button>
         </div>
       </div>
@@ -319,7 +329,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
   );
 }
 
-// ── Detail Panel (right slide-in) ─────────────────────────────────────────────
+// -- Detail Panel (right slide-in) ---------------------------------------------
 
 function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
   product: Product;
@@ -348,8 +358,8 @@ function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
           <div style={{ background: 'var(--bg)', borderRadius: 9, padding: '18px 20px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Unit Price</div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--teal)', letterSpacing: '-0.5px' }}>{product.unit_price > 0 ? fmt(product.unit_price, product.currency) : '—'}</div>
-              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>per {product.unit}{product.tax_rate > 0 ? ` · +${product.tax_rate}% tax` : ''}</div>
+              <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--teal)', letterSpacing: '-0.5px' }}>{product.unit_price > 0 ? fmt(product.unit_price, product.currency) : '�'}</div>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>per {product.unit}{product.tax_rate > 0 ? ` � +${product.tax_rate}% tax` : ''}</div>
             </div>
             <StatusPill status={product.status} />
           </div>
@@ -405,7 +415,7 @@ function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
   );
 }
 
-// ── Main Page ─────────────────────────────────────────────────────────────────
+// -- Main Page -----------------------------------------------------------------
 
 export const ProductsServices: React.FC = () => {
   const isMobile = useIsMobile();
@@ -420,7 +430,7 @@ export const ProductsServices: React.FC = () => {
   const [sortBy, setSortBy]       = useState<'name' | 'price' | 'category' | 'created'>('name');
   const [sortDir, setSortDir]     = useState<'asc' | 'desc'>('asc');
 
-  // ── Load ───────────────────────────────────────────────────────────────────
+  // -- Load -------------------------------------------------------------------
 
   useEffect(() => {
     (async () => {
@@ -442,7 +452,7 @@ export const ProductsServices: React.FC = () => {
     })();
   }, []);
 
-  // ── CRUD ───────────────────────────────────────────────────────────────────
+  // -- CRUD -------------------------------------------------------------------
 
   async function handleSave(data: ProductForm) {
     const isNew = editing === 'new';
@@ -480,7 +490,7 @@ export const ProductsServices: React.FC = () => {
     try { await apiFetch(`/v1/products/${product.id}`, { method: 'PATCH', body: JSON.stringify({ status: updated.status }) }); } catch {}
   }
 
-  // ── Filter + Sort ──────────────────────────────────────────────────────────
+  // -- Filter + Sort ----------------------------------------------------------
 
   const displayed = products
     .filter(p => {
@@ -511,7 +521,7 @@ export const ProductsServices: React.FC = () => {
     return <Icon name={sortDir === 'asc' ? 'arrowUp' : 'arrowDown'} size={10} color="var(--teal)" />;
   }
 
-  // ── Metrics ────────────────────────────────────────────────────────────────
+  // -- Metrics ----------------------------------------------------------------
 
   const active    = products.filter(p => p.status === 'ACTIVE').length;
   const inactive  = products.filter(p => p.status === 'INACTIVE').length;
@@ -520,7 +530,7 @@ export const ProductsServices: React.FC = () => {
     : 0;
   const topCat    = CATEGORIES.reduce((best, c) => products.filter(p => p.category === c).length > products.filter(p => p.category === best).length ? c : best, 'FREIGHT');
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // -- Render -----------------------------------------------------------------
 
   return (
     <>
@@ -554,7 +564,7 @@ export const ProductsServices: React.FC = () => {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: '0 0 4px' }}>Products &amp; Services</h1>
-            <p style={{ fontSize: 13, color: 'var(--ink3)', margin: 0 }}>Manage your freight service catalog — used in quotations, invoices, and purchase orders.</p>
+            <p style={{ fontSize: 13, color: 'var(--ink3)', margin: 0 }}>Manage your freight service catalog � used in quotations, invoices, and purchase orders.</p>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" title="Reset to default catalog" onClick={() => { if (confirm('Reset to the default freight services catalog? Custom items will be lost.')) { const d = SEED_PRODUCTS.map(p => ({ ...p })); setProducts(d); saveLocal(d); } }}
@@ -572,7 +582,7 @@ export const ProductsServices: React.FC = () => {
         <MetricsRow cards={[
           { title: 'Total Services', value: String(products.length), trend: 0, sub1Label: 'ACTIVE', sub1Value: String(active), sub2Label: 'INACTIVE', sub2Value: String(inactive), bars: spark(10, 15, 'flat'), barColor: 'var(--blue-l)', barHighlight: 'var(--blue)' },
           { title: 'Active Services', value: String(active), trend: 0, sub1Label: 'WITH PRICE', sub1Value: String(products.filter(p => p.unit_price > 0).length), sub2Label: 'FREE/DUTY', sub2Value: String(products.filter(p => p.unit_price === 0).length), bars: spark(11, 15, 'flat'), barColor: 'var(--green-l)', barHighlight: 'var(--green)' },
-          { title: 'Avg Unit Price', value: avgPrice > 0 ? `$${Math.round(avgPrice)}` : '—', trend: 0, sub1Label: 'CATEGORIES', sub1Value: String(new Set(products.map(p => p.category)).size), sub2Label: 'TOP CAT', sub2Value: CAT_CFG[topCat]?.label ?? '—', bars: spark(12, 15, 'flat'), barColor: 'var(--gold-l)', barHighlight: 'var(--gold)' },
+          { title: 'Avg Unit Price', value: avgPrice > 0 ? `$${Math.round(avgPrice)}` : '�', trend: 0, sub1Label: 'CATEGORIES', sub1Value: String(new Set(products.map(p => p.category)).size), sub2Label: 'TOP CAT', sub2Value: CAT_CFG[topCat]?.label ?? '�', bars: spark(12, 15, 'flat'), barColor: 'var(--gold-l)', barHighlight: 'var(--gold)' },
         ]} />
 
         {/* Filters */}
@@ -596,7 +606,7 @@ export const ProductsServices: React.FC = () => {
             </div>
             <div style={{ position: 'relative' }}>
               <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
-              <input type="text" title="Search services" placeholder="Search services…" value={search} onChange={e => setSearch(e.target.value)}
+              <input type="text" title="Search services" placeholder="Search services�" value={search} onChange={e => setSearch(e.target.value)}
                 style={{ paddingLeft: 32, paddingRight: 12, paddingTop: 8, paddingBottom: 8, border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, outline: 'none', background: 'var(--white)', width: 220, boxSizing: 'border-box' as const }} />
             </div>
           </div>
@@ -605,7 +615,7 @@ export const ProductsServices: React.FC = () => {
         {/* Table */}
         <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
           {loading ? (
-            <div style={{ padding: '60px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading services…</div>
+            <div style={{ padding: '60px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading services�</div>
           ) : displayed.length === 0 ? (
             <div style={{ padding: '60px 20px', textAlign: 'center' }}>
               <div style={{ marginBottom: 12 }}><Icon name="package" size={44} color="var(--border)" /></div>
@@ -653,8 +663,8 @@ export const ProductsServices: React.FC = () => {
                       </td>
                       <td style={{ padding: '11px 14px' }}><CatBadge cat={p.category} /></td>
                       <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--ink2)' }}>{p.unit}</td>
-                      <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 700 }}>{p.unit_price > 0 ? fmt(p.unit_price, p.currency) : <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>—</span>}</td>
-                      <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--ink3)' }}>{p.tax_rate > 0 ? `${p.tax_rate}%` : '—'}</td>
+                      <td style={{ padding: '11px 14px', textAlign: 'right', fontWeight: 700 }}>{p.unit_price > 0 ? fmt(p.unit_price, p.currency) : <span style={{ color: 'var(--ink3)', fontWeight: 400 }}>�</span>}</td>
+                      <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--ink3)' }}>{p.tax_rate > 0 ? `${p.tax_rate}%` : '�'}</td>
                       <td style={{ padding: '11px 14px' }}><StatusPill status={p.status} /></td>
                       <td style={{ padding: '11px 14px', fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(p.created_at)}</td>
                       <td style={{ padding: '11px 10px' }} onClick={e => e.stopPropagation()}>
@@ -678,7 +688,7 @@ export const ProductsServices: React.FC = () => {
               </table>
               <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--ink3)', display: 'flex', justifyContent: 'space-between' }}>
                 <span>Showing {displayed.length} of {products.length} services</span>
-                <span>{active} active · {inactive} inactive</span>
+                <span>{active} active � {inactive} inactive</span>
               </div>
             </div>
           )}
