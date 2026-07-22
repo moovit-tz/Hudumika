@@ -1,0 +1,65 @@
+.bliss-notif-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.bliss-notif-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 4px 10px;
+  margin-right: 20px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink3);
+  font-family: var(--font);
+  border-bottom: 2px solid transparent;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.bliss-notif-tab:hover { color: var(--ink); }
+
+.bliss-notif-tab--active {
+  color: var(--teal);
+  border-bottom-color: var(--teal);
+}
+
+.bliss-notif-tab-count {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+  color: var(--ink3);
+}
+
+.bliss-notif-tab--active .bliss-notif-tab-count {
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+.bliss-notif-list {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+/* Rows reuse .notif-panel-item* from NotificationCentre.css, but they're
+   wider here than in the popup — relax the fixed 292px assumptions. */
+.bliss-notif-list .notif-panel-item {
+  padding: 14px 20px;
+}
+
+.bliss-notif-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 4px 0;
+  font-size: 12.5px;
+  color: var(--ink3);
+}

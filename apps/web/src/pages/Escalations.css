@@ -1,0 +1,17 @@
+.esc-page {
+  padding: 24px 28px;
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+.esc-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 600px) {
+  .esc-page { padding: 16px; }
+  .esc-stats { grid-template-columns: repeat(2, 1fr); }
+}

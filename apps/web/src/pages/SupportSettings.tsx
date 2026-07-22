@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { PageHeader } from '../components/PageHeader.jsx';
+import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
 import './SupportSettings.css';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 type RuleType = 'auto_assign' | 'sla_escalation' | 'status_automation' | 'notification_trigger';
 
@@ -72,11 +73,14 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
         <>
           <div className="ssg-field">
             <label>Strategy</label>
-            <select className="input-field" value={strategy} onChange={e => setStrategy(e.target.value)}>
-              <option value="round_robin">Round robin</option>
-              <option value="load_based">Least open tickets</option>
-              <option value="category_match">By category</option>
-            </select>
+            <Select value={strategy} onValueChange={setStrategy}>
+              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="round_robin">Round robin</SelectItem>
+                <SelectItem value="load_based">Least open tickets</SelectItem>
+                <SelectItem value="category_match">By category</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="ssg-field">
             <label>Eligible agents</label>
@@ -101,11 +105,14 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
           </div>
           <div className="ssg-field">
             <label>Escalate to role</label>
-            <select className="input-field" value={escalateToRole} onChange={e => setEscalateToRole(e.target.value)}>
-              <option value="MANAGER">Manager</option>
-              <option value="TENANT_ADMIN">Tenant Admin</option>
-              <option value="SENIOR">Senior</option>
-            </select>
+            <Select value={escalateToRole} onValueChange={setEscalateToRole}>
+              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="MANAGER">Manager</SelectItem>
+                <SelectItem value="TENANT_ADMIN">Tenant Admin</SelectItem>
+                <SelectItem value="SENIOR">Senior</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </>
       )}
@@ -121,19 +128,25 @@ function RuleForm({ type, agents, onCancel, onSave, saving }: {
         <>
           <div className="ssg-field">
             <label>Event</label>
-            <select className="input-field" value={event} onChange={e => setEvent(e.target.value)}>
-              <option value="new_ticket">New ticket</option>
-              <option value="sla_breach">SLA breach</option>
-              <option value="reassigned">Reassigned</option>
-              <option value="status_changed">Status changed</option>
-            </select>
+            <Select value={event} onValueChange={setEvent}>
+              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new_ticket">New ticket</SelectItem>
+                <SelectItem value="sla_breach">SLA breach</SelectItem>
+                <SelectItem value="reassigned">Reassigned</SelectItem>
+                <SelectItem value="status_changed">Status changed</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="ssg-field">
             <label>Notify</label>
-            <select className="input-field" value={notify} onChange={e => setNotify(e.target.value)}>
-              <option value="assignee">The ticket's assignee</option>
-              <option value="manager_role">All managers</option>
-            </select>
+            <Select value={notify} onValueChange={setNotify}>
+              <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="assignee">The ticket's assignee</SelectItem>
+                <SelectItem value="manager_role">All managers</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </>
       )}

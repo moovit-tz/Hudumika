@@ -1,44 +1,61 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import '../pages/Bliss.css';
-import { WorkspaceApp } from './WorkspaceApp.jsx';
-import { BlissRail } from '../components/BlissRail.jsx';
-import { RequireRoles } from '../components/RequireRoles.jsx';
-import { PageLayout } from '../components/PageLayout.jsx';
+import { WorkspaceApp } from './WorkspaceApp.js';
+import { AppSidebar } from '../components/AppSidebar.js';
+import type { SidebarSection } from '../components/AppSidebar.js';
+import { AppHeader } from '../components/AppHeader.js';
+import { RequireRoles } from '../components/RequireRoles.js';
+import { PageLayout } from '../components/PageLayout.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
 
-import { Support }         from '../pages/Support.jsx';
-import { SupportOverview } from '../pages/SupportOverview.jsx';
-import { Escalations }     from '../pages/Escalations.jsx';
-import { SupportChat }     from '../pages/SupportChat.jsx';
-import { SupportKB }       from '../pages/SupportKB.jsx';
-import { SupportSettings } from '../pages/SupportSettings.jsx';
+import { Support }         from '../pages/Support.js';
+import { SupportOverview } from '../pages/SupportOverview.js';
+import { Escalations }     from '../pages/Escalations.js';
+import { SupportChat }     from '../pages/SupportChat.js';
+import { SupportKB }       from '../pages/SupportKB.js';
+import { SupportSettings } from '../pages/SupportSettings.js';
+import { BlissNotifications } from '../pages/BlissNotifications.js';
 
-// Bliss uses its own Bedesk-style icon rail (BlissRail) instead of the
-// shared AppHeader + AppSidebar every other app uses — see
-// components/BlissRail.tsx for why (matching Bedesk's layout without
-// touching the chrome shared by every other app).
+const NAV: SidebarSection[] = [
+  {
+    items: [
+      { label: 'Overview',       icon: 'activity',     path: '/bliss', exact: true },
+      { label: 'All Tickets',    icon: 'headphones',    path: '/bliss/tickets' },
+      { label: 'Live Chat',      icon: 'messageSquare', path: '/bliss/chat' },
+      { label: 'Knowledge Base', icon: 'fileText',      path: '/bliss/kb' },
+      { label: 'Escalations',    icon: 'arrowUpRight',  path: '/bliss/escalations' },
+      { label: 'Notifications',  icon: 'bell',          path: '/bliss/notifications' },
+      { label: 'Settings',       icon: 'settings',      path: '/bliss/settings' },
+    ],
+  },
+];
+
 export function BlissShell() {
   return (
     <WorkspaceApp appId="bliss">
-      <div className="app-shell bliss-shell" data-bliss="true">
-        <BlissRail />
-        <div className="app-shell-content bliss-shell-content">
-          <Routes>
-            <Route index element={<SupportOverview />} />
+      <div className="app-shell" data-bliss="true">
+        <AppSidebar appId="bliss" sections={NAV} />
+        <div className="app-main">
+          <AppHeader />
+          <div className="app-shell-content">
+            <Routes>
+              <Route index element={<Navigate to="overview" replace />} />
 
-            <Route path="tickets" element={<Support />} />
-            <Route path="chat"    element={<SupportChat />} />
+              <Route path="tickets" element={<Support />} />
+              <Route path="chat"    element={<SupportChat />} />
 
-            <Route element={<PageLayout />}>
-              <Route path="overview"    element={<SupportOverview />} />
-              <Route path="kb"          element={<SupportKB />} />
-              <Route path="settings"    element={<SupportSettings />} />
-              <Route path="escalations" element={<RequireRoles roles={[...MGMT_ROLES, 'SENIOR']}><Escalations /></RequireRoles>} />
-            </Route>
+              <Route element={<PageLayout />}>
+                <Route path="overview"    element={<SupportOverview />} />
+                <Route path="kb"          element={<SupportKB />} />
+                <Route path="notifications" element={<BlissNotifications />} />
+                <Route path="settings"    element={<SupportSettings />} />
+                <Route path="escalations" element={<RequireRoles roles={[...MGMT_ROLES, 'SENIOR']}><Escalations /></RequireRoles>} />
+              </Route>
 
-            <Route path="*" element={<Navigate to="/bliss" replace />} />
-          </Routes>
+              <Route path="*" element={<Navigate to="/bliss" replace />} />
+            </Routes>
+          </div>
         </div>
       </div>
     </WorkspaceApp>

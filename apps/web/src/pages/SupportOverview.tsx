@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
-import { PageHeader } from '../components/PageHeader.jsx';
+import { PageHeader } from '../components/PageHeader.js';
 import { useFullLayout } from '../hooks/useFullLayout.js';
 import './SupportOverview.css';
 
@@ -22,7 +22,7 @@ interface AgentStat {
   avgResolutionHours: number | null; csat: number | null; resolutionRate: number;
 }
 
-const AVT_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#1a7f37','#9a6700','#cf222e','#d05c30','#0e7490'];
+const AVT_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30','#0e7490'];
 const initials = (n: string) => n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
 const avtColor = (n: string) => AVT_COLORS[n.charCodeAt(0) % AVT_COLORS.length];
 
@@ -456,7 +456,7 @@ export const SupportOverview: React.FC = () => {
                         <td className="sov-td-center">{a.avgResolutionHours != null ? `${a.avgResolutionHours}h` : '—'}</td>
                         <td className="sov-td-center">
                           {a.csat != null
-                            ? <span style={{ fontWeight: 700, color: a.csat >= 4.5 ? 'var(--green)' : a.csat >= 4.0 ? 'var(--gold)' : 'var(--red)' }}>★ {a.csat}</span>
+                            ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 700, color: a.csat >= 4.5 ? 'var(--green)' : a.csat >= 4.0 ? 'var(--gold)' : 'var(--red)' }}><Icon name="star" size={12} duotone /> {a.csat}</span>
                             : <span className="sov-td-muted">—</span>}
                         </td>
                         <td className="sov-td-center">

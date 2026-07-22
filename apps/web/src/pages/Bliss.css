@@ -12,6 +12,18 @@
   min-height: 0;
 }
 
+/* The ticket workspace (Support.tsx, .spt-shell) and Live Chat (SupportChat.tsx,
+   .spc-shell) are inbox-style UIs, not padded dashboard pages — they should run
+   edge-to-edge against the app sidebar and browser edge rather than sit inside
+   app-shell-content's default 1380px-capped, 24px-padded, centered box. Other
+   Bliss routes (Overview, KB, Settings, Escalations) keep the default padding. */
+[data-bliss] .app-shell-content:has(> .spt-shell),
+[data-bliss] .app-shell-content:has(> .spc-shell) {
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}
+
 .spt-shell {
   flex: 1;
   min-height: 0;
@@ -167,7 +179,7 @@
 }
 .spt-ch-pill-sm[data-ch="inapp"]    { background: var(--teal-l); color: var(--teal); border-color: var(--teal); }
 .spt-ch-pill-sm[data-ch="email"]    { background: #eff6ff;       color: #2563eb;     border-color: #2563eb88; }
-.spt-ch-pill-sm[data-ch="whatsapp"] { background: #f0fdf4;       color: #15803d;     border-color: #15803d88; }
+.spt-ch-pill-sm[data-ch="whatsapp"] { background: #ecfdf5;       color: #047857;     border-color: #04785788; }
 .spt-ch-pill-sm[data-ch="sms"]      { background: #f5f3ff;       color: #7c3aed;     border-color: #7c3aed88; }
 .spt-ch-pill-sm[data-ch="note"]     { background: #fefce8;       color: #92400e;     border-color: #92400e88; }
 
@@ -816,7 +828,7 @@
 }
 .spt-msg--officer .spt-bubble {
   border-radius: 12px 2px 12px 12px;
-  background: var(--navy);
+  background: var(--nav-header-bg);
   color: #fff;
   border: none;
 }
@@ -858,7 +870,7 @@
   white-space: nowrap;
   transition: all 0.12s;
 }
-.spt-ch-pill--active[data-ch="whatsapp"] { border-color: #15803d; background: #dcfce7; color: #15803d; }
+.spt-ch-pill--active[data-ch="whatsapp"] { border-color: #047857; background: #ecfdf5; color: #047857; }
 .spt-ch-pill--active[data-ch="email"]    { border-color: #1d4ed8; background: #dbeafe; color: #1d4ed8; }
 .spt-ch-pill--active[data-ch="note"]     { border-color: #92400e; background: #fef9c3; color: #92400e; }
 .spt-ch-pill--active[data-ch="inapp"]    { border-color: var(--teal); background: var(--teal-l); color: var(--teal); }
@@ -995,11 +1007,82 @@
   transition: background 0.12s;
 }
 .spt-send-btn--disabled  { background: var(--border); color: var(--ink3); cursor: not-allowed; }
-.spt-send-btn--whatsapp  { background: #15803d; }
+.spt-send-btn--whatsapp  { background: #047857; }
 .spt-send-btn--email     { background: #1d4ed8; }
 .spt-send-btn--note      { background: #92400e; }
 .spt-send-btn--sms       { background: #7c3aed; }
 .spt-send-btn--inapp     { background: var(--teal); }
+
+/* ── Broadcast success toast ── */
+.spt-broadcast-toast {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--green-l);
+  border-bottom: 1px solid var(--green);
+  flex-wrap: wrap;
+}
+.spt-broadcast-toast-chip {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--green);
+  background: var(--white);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.spt-broadcast-toast-chip--fail { color: var(--red); }
+.spt-broadcast-toast-label { font-size: 10px; color: var(--green); font-weight: 600; margin-left: 4px; }
+
+/* ── Broadcast channel toggles + Internal Note toggle ── */
+.spt-broadcast-row {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.spt-broadcast-label { font-size: 11px; font-weight: 700; color: var(--ink3); flex-shrink: 0; }
+.spt-broadcast-chs { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+
+.spt-broadcast-btn {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--white);
+  color: var(--ink3);
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s;
+}
+.spt-broadcast-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+.spt-broadcast-btn[data-ch="inapp"].spt-broadcast-btn--active    { background: var(--teal-l); color: var(--teal); border-color: var(--teal); }
+.spt-broadcast-btn[data-ch="email"].spt-broadcast-btn--active    { background: #eff6ff;       color: #2563eb;     border-color: #2563eb; }
+.spt-broadcast-btn[data-ch="whatsapp"].spt-broadcast-btn--active { background: #ecfdf5;       color: #047857;     border-color: #047857; }
+.spt-broadcast-btn[data-ch="sms"].spt-broadcast-btn--active      { background: #f5f3ff;       color: #7c3aed;     border-color: #7c3aed; }
+
+.spt-note-toggle-btn {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--white);
+  color: var(--ink3);
+  font-family: var(--font);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.spt-note-toggle-btn--active { background: #fefce8; color: #92400e; border-color: #92400e; }
 
 /* ══════════════════════════════════════════════════════════════════
    DetailsPanel — right column
@@ -1199,11 +1282,11 @@
   flex-shrink: 0;
   background: var(--border);
 }
-.spt-rule-dot[data-rule="dailyStatusWa"]    { background: #15803d; }
+.spt-rule-dot[data-rule="dailyStatusWa"]    { background: #047857; }
 .spt-rule-dot[data-rule="dailyStatusEmail"] { background: #2563eb; }
 .spt-rule-dot[data-rule="missingDoc"]       { background: #d97706; }
 .spt-rule-dot[data-rule="demurrageAlert"]   { background: #dc2626; }
-.spt-rule-dot[data-rule="stageAdvance"]     { background: #15803d; }
+.spt-rule-dot[data-rule="stageAdvance"]     { background: #047857; }
 .spt-rule-dot[data-rule="paymentRequest"]   { background: #6b7280; }
 
 .spt-rule-label { flex: 1; font-size: 12px; color: var(--ink); }
@@ -1342,8 +1425,43 @@
     flex-direction: column;
   }
 
-  /* Hide the right-side customer 360 sidebar on small screens to save space */
-  .spt-rcol {
-    display: none !important;
+  /* Customer 360 sidebar becomes a drawer (see .spt-details-* below) instead
+     of a permanent 3rd column on small screens. */
+  .spt-details-toggle {
+    display: flex !important;
   }
+}
+
+/* ── Mobile customer-details drawer (Customer360Sidebar), triggered by
+   .spt-details-toggle in the thread header ── */
+.spt-details-toggle { display: none; }
+
+.spt-details-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 60;
+}
+
+.spt-details-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(400px, 88vw);
+  background: var(--white);
+  box-shadow: -8px 0 24px rgba(0, 0, 0, 0.15);
+  z-index: 61;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.spt-details-drawer-close {
+  position: sticky;
+  top: 8px;
+  align-self: flex-end;
+  margin: 8px 8px 0 0;
+  z-index: 1;
+  background: var(--white);
 }

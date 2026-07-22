@@ -1,8 +1,11 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
-import { useAuth } from '../hooks/useAuth.jsx';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
+import './Escalations.css';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Combobox } from '../components/ui/combobox.js';
 
-// ── Types ──────────────────────────────────────────────────────
+// -- Types ------------------------------------------------------
 export interface Escalation {
   id: string;
   caseId: string;
@@ -47,11 +50,11 @@ export function escalateCase(params: {
   saveEscalations(items);
 }
 
-// ── UI helpers ─────────────────────────────────────────────────
+// -- UI helpers -------------------------------------------------
 const STATUS_CFG = {
   PENDING:     { label: 'Pending',     bg: '#fef3c7', color: '#92400e' },
   IN_PROGRESS: { label: 'In Progress', bg: '#dbeafe', color: '#1e40af' },
-  RESOLVED:    { label: 'Resolved',    bg: '#dcfce7', color: '#166534' },
+  RESOLVED:    { label: 'Resolved',    bg: '#ecfdf5', color: '#065f46' },
 };
 
 const REASONS = [
@@ -68,7 +71,7 @@ function fmt(iso: string): string {
   return new Date(iso).toLocaleString('en-TZ', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-// ── Escalation card ────────────────────────────────────────────
+// -- Escalation card --------------------------------------------
 function EscCard({ esc, canResolve, onResolve }: {
   esc: Escalation;
   canResolve: boolean;
@@ -90,12 +93,12 @@ function EscCard({ esc, canResolve, onResolve }: {
       </div>
       <div style={{ fontSize: 13, color: 'var(--ink2)' }}>{esc.goodsDesc}</div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px', color: 'var(--ink)' }}>
+        <span style={{ fontSize: 12, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, padding: '2px 8px', color: 'var(--ink)' }}>
           {esc.reason}
         </span>
       </div>
       {esc.note && (
-        <div style={{ fontSize: 12, color: 'var(--ink2)', background: 'var(--bg)', borderRadius: 6, padding: '6px 10px', borderLeft: '3px solid var(--teal)' }}>
+        <div style={{ fontSize: 12, color: 'var(--ink2)', background: 'var(--bg)', borderRadius: 9, padding: '6px 10px', borderLeft: '3px solid var(--teal)' }}>
           {esc.note}
         </div>
       )}
@@ -105,7 +108,7 @@ function EscCard({ esc, canResolve, onResolve }: {
           <button type="button" title="Mark in progress"
             onClick={() => onResolve(esc.id)}
             style={{
-              fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 6, cursor: 'pointer',
+              fontSize: 12, fontWeight: 600, padding: '5px 14px', borderRadius: 9, cursor: 'pointer',
               background: 'var(--teal)', color: '#fff', border: 'none', fontFamily: 'var(--font)',
             }}>
             {esc.status === 'PENDING' ? 'Accept & Work' : 'Mark Resolved'}
@@ -116,7 +119,7 @@ function EscCard({ esc, canResolve, onResolve }: {
   );
 }
 
-// ── Create escalation modal ────────────────────────────────────
+// -- Create escalation modal ------------------------------------
 function EscalateModal({ onClose, onSubmit }: {
   onClose: () => void;
   onSubmit: (params: { caseId: string; caseRef: string; goodsDesc: string; reason: string; note: string }) => void;
@@ -159,32 +162,32 @@ function EscalateModal({ onClose, onSubmit }: {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Case</label>
-            <select title="Select case" value={selectedCase} onChange={e => setSelectedCase(e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)' }}>
-              {cases.map(c => (
-                <option key={c.id} value={c.id}>{c.ref_number} — {c.goods_desc}</option>
-              ))}
-            </select>
+            <Combobox
+              options={cases.map(c => ({ value: c.id, label: `${c.ref_number} � ${c.goods_desc}` }))}
+              value={selectedCase} onChange={setSelectedCase}
+            />
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Reason</label>
-            <select title="Select reason" value={reason} onChange={e => setReason(e.target.value)}
-              style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)' }}>
-              {REASONS.map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
+            <Select value={reason} onValueChange={setReason}>
+              <SelectTrigger aria-label="Select reason" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {REASONS.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Additional note</label>
-            <textarea title="Add note" placeholder="Describe the issue…" value={note} onChange={e => setNote(e.target.value)} rows={3}
-              style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', resize: 'vertical', boxSizing: 'border-box' }} />
+            <textarea title="Add note" placeholder="Describe the issue�" value={note} onChange={e => setNote(e.target.value)} rows={3}
+              style={{ width: '100%', padding: '8px 10px', borderRadius: 9, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', resize: 'vertical', boxSizing: 'border-box' }} />
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" title="Cancel" onClick={onClose}
-              style={{ padding: '8px 18px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13 }}>
+              style={{ padding: '8px 18px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13 }}>
               Cancel
             </button>
             <button type="submit" title="Submit escalation"
-              style={{ padding: '8px 18px', borderRadius: 6, border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
+              style={{ padding: '8px 18px', borderRadius: 9, border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
               Escalate
             </button>
           </div>
@@ -194,7 +197,7 @@ function EscalateModal({ onClose, onSubmit }: {
   );
 }
 
-// ── Main page ──────────────────────────────────────────────────
+// -- Main page --------------------------------------------------
 export const Escalations: React.FC = () => {
   const { user } = useAuth();
   const isJunior = user?.role === 'JUNIOR' || user?.role === 'OFFICER';
@@ -236,7 +239,7 @@ export const Escalations: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 780, margin: '0 auto' }}>
+    <div className="esc-page">
       {showModal && (
         <EscalateModal onClose={() => setShowModal(false)} onSubmit={handleSubmit} />
       )}
@@ -261,7 +264,7 @@ export const Escalations: React.FC = () => {
       </div>
 
       {/* Status stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginBottom: 20 }}>
+      <div className="esc-stats">
         {(Object.entries(STATUS_CFG) as [keyof typeof STATUS_CFG, typeof STATUS_CFG[keyof typeof STATUS_CFG]][]).map(([status, cfg]) => (
           <button key={status} type="button" title={cfg.label}
             onClick={() => setFilter(filter === status ? 'ALL' : status)}
