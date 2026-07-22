@@ -39,6 +39,7 @@ const P: Record<string, string | string[]> = {
   fileText:     'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm0 0v6h6M9 13h6M9 17h4',
   clipboard:    'M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2M9 2h6a1 1 0 010 2H9a1 1 0 010-2z',
   clipboardList:'M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2M9 2h6a1 1 0 010 2H9a1 1 0 010-2zM9 12h6M9 16h4',
+  calculator:   ['M4 2h16a2 2 0 012 2v16a2 2 0 01-2 2H4a2 2 0 01-2-2V4a2 2 0 012-2z', 'M8 6h8', 'M8 10h.01M12 10h.01M16 10h.01', 'M8 14h.01M12 14h.01M16 14h.01', 'M8 18h.01M12 18h.01M16 18h.01'],
   folder:       'M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z',
   folderOpen:   'M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2zM2 10h20',
   paperclip:    'M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48',
@@ -66,6 +67,8 @@ const P: Record<string, string | string[]> = {
   ship:         ['M2 20h20', 'M5 20V9.5L12 5l7 4.5V20', 'M9 20v-5h6v5'],
   anchor:       ['M12 2a3 3 0 110 6 3 3 0 010-6z', 'M12 8v14', 'M5 15A7 7 0 0019 15'],
   truck:        ['M1 3h15v13H1z', 'M16 8h4l3 3v5h-7V8z', 'M5.5 19a1.5 1.5 0 100-3 1.5 1.5 0 000 3z', 'M18.5 19a1.5 1.5 0 100-3 1.5 1.5 0 000 3z'],
+  train:        ['M4 3h16v11a4 4 0 01-4 4H8a4 4 0 01-4-4V3z', 'M4 11h16', 'M8 3v4M16 3v4', 'M7.5 21l1.5-3M16.5 21L15 18'],
+  plane:        ['M17 21l-5-4-5 4V14l-7-4V8l7 2V4l3-2 3 2v6l7-2v2l-7 4v7z'],
   package:      ['M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 001 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z', 'M3.27 6.96L12 12.01l8.73-5.05', 'M12 22.08V12'],
   container:    ['M2 7h20v13H2z', 'M2 7l3-4h14l3 4', 'M7 7v13', 'M12 7v13', 'M17 7v13'],
   warehouse:    ['M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z', 'M9 22V12h6v10'],
@@ -99,6 +102,7 @@ const P: Record<string, string | string[]> = {
   send:         'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z',
   headphones:   ['M3 18v-6a9 9 0 0118 0v6', 'M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z'],
   zap:          'M13 2L3 14h9l-1 8 10-12h-9l1-8z',
+  play:         'M5 3l14 9-14 9V3z',
   target:       ['M12 22a10 10 0 100-20 10 10 0 000 20z', 'M12 18a6 6 0 100-12 6 6 0 000 12z', 'M12 14a2 2 0 100-4 2 2 0 000 4z'],
   eye:          ['M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z', 'M12 9a3 3 0 100 6 3 3 0 000-6z'],
 
@@ -189,12 +193,24 @@ interface IconProps {
   style?: React.CSSProperties;
   color?: string;
   duotone?: boolean;
+  onClick?: () => void;
 }
 
-export function Icon({ name, size = 16, strokeWidth = 1.75, className, style, color, duotone = true }: IconProps) {
+export function Icon({ name, size = 16, strokeWidth = 1.75, className, style, color, duotone = false, onClick }: IconProps) {
   const paths = P[name];
   if (!paths) return null;
   const arr = Array.isArray(paths) ? paths : [paths];
+  const interactiveProps = onClick
+    ? { onClick, role: 'button' as const, style: { color, cursor: 'pointer', ...style } }
+    : { 'aria-hidden': 'true' as const, style: color ? { color, ...style } : style };
+  // Callers that never pass their own strokeWidth land on the 1.75 default —
+  // for those (and any caller that happens to ask for 1.75 explicitly, which
+  // is the same thing), drive the actual paint from the design system's
+  // --icon-stroke-width token instead of a hardcoded number, so SuperAdmin's
+  // Icons control affects every icon that hasn't deliberately opted into a
+  // different weight (e.g. a bold 2.5 for an active nav icon).
+  const pathStyle: React.CSSProperties | undefined =
+    strokeWidth === 1.75 ? ({ strokeWidth: 'var(--icon-stroke-width, 1.75)' } as React.CSSProperties) : undefined;
   return (
     <svg
       width={size}
@@ -204,18 +220,17 @@ export function Icon({ name, size = 16, strokeWidth = 1.75, className, style, co
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
-      style={color ? { color, ...style } : style}
-      aria-hidden="true"
+      {...interactiveProps}
     >
       {duotone
         ? arr.map((d, i) => (
             <React.Fragment key={i}>
               <path d={d} fill="currentColor" fillOpacity="0.15" stroke="none" />
-              <path d={d} fill="none" stroke="currentColor" strokeWidth={strokeWidth} />
+              <path d={d} fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={pathStyle} />
             </React.Fragment>
           ))
         : arr.map((d, i) => (
-            <path key={i} d={d} fill="none" stroke="currentColor" strokeWidth={strokeWidth} />
+            <path key={i} d={d} fill="none" stroke="currentColor" strokeWidth={strokeWidth} style={pathStyle} />
           ))
       }
     </svg>
