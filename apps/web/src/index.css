@@ -1,9 +1,83 @@
-﻿/* ── Local font: Google Sans Flex (served from /public/fonts/) ── */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Bridged from the app's real palette (--bg/--ink/--white/--border below),
+       not the shadcn template's placeholder zinc theme, so shadcn components
+       (Card, Badge, Dialog, Table, ...) match the rest of the app instead of
+       sitting on an unrelated static color scheme. Dark-mode equivalents live
+       in the [data-theme="dark"] block further down, the app's real dark-mode
+       selector (see AppHeader.tsx/AppSidebar.tsx) — not .dark, which nothing
+       here ever applies. */
+    --background: 220.0 15.8% 96.3%;
+    --foreground: 216.0 27.8% 7.1%;
+    --card: 0.0 0.0% 100.0%;
+    --card-foreground: 216.0 27.8% 7.1%;
+    --popover: 0.0 0.0% 100.0%;
+    --popover-foreground: 216.0 27.8% 7.1%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 220.0 15.8% 96.3%;
+    --secondary-foreground: 216.0 27.8% 7.1%;
+    --muted: 220.0 15.8% 96.3%;
+    --muted-foreground: 211.6 9.8% 37.8%;
+    --accent: 220.0 15.8% 96.3%;
+    --accent-foreground: 216.0 27.8% 7.1%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    /* Named --shadcn-* (not --border/--input) — the app's own --border is a
+       literal hex color (index.css:73), declared unlayered so it always wins
+       this @layer base block regardless of source order; reusing that name
+       here for an HSL triple meant only for hsl(var(...)) would make every
+       Tailwind border and ring utility resolve to invalid CSS (hsl of a hex). */
+    --shadcn-border: 214.3 13.2% 89.6%;
+    --shadcn-input: 214.3 13.2% 89.6%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+ 
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ── Local font: Google Sans Flex (served from /public/fonts/) ── */
 @font-face {
   font-family: 'Google Sans Flex';
   src: url('/fonts/GoogleSansFlex.ttf') format('truetype');
   font-weight: 100 900;
   font-style: normal;
+  font-display: swap;
+}
+
+/* ── Local font: Atlassian Sans (served from /public/fonts/) ── */
+@font-face {
+  font-family: 'Atlassian Sans';
+  src: url('/fonts/AtlassianSans.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Atlassian Sans';
+  src: url('/fonts/AtlassianSansItalic.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: italic;
   font-display: swap;
 }
 
@@ -47,6 +121,10 @@
   --r:    9px;
   --r-lg: 9px;
 
+  --ds-btn-py:   7px;
+  --ds-input-py: 8px;
+  --ds-cell-py:  11px;
+
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
   --shadow:    0 2px 8px rgba(0,0,0,0.07);
   --shadow-lg: 0 6px 20px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
@@ -58,6 +136,32 @@
 
   /* Page header warm cream — borrowed from editorial reference */
   --page-header-bg: #f5f2ea;
+
+  /* ── Design system tokens (overridden live by DesignSystemProvider) ── */
+  --card-bg:      var(--white);
+  --card-border:  1px solid var(--border);
+  --card-shadow:  none;
+  --card-padding: 16px;
+  --card-radius:  var(--r);
+
+  --badge-radius: 20px;
+
+  --page-padding: 24px;
+  --content-gap:  16px;
+
+  --dur-fast: 80ms;
+  --dur:      150ms;
+  --dur-slow: 300ms;
+  --ease:     cubic-bezier(0.4, 0, 0.2, 1);
+
+  --text-xs:   11px;
+  --text-sm:   12px;
+  --text-base: 13px;
+  --text-md:   14px;
+  --text-lg:   16px;
+  --text-xl:   20px;
+  --text-2xl:  24px;
+  --text-3xl:  30px;
 }
 
 /* Logo visibility by theme */
@@ -68,13 +172,13 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
 [data-theme="dark"] {
   color-scheme: dark;
 
-  --ink:    #dde5f0;
-  --ink2:   #96adc4;
-  --ink3:   #7090aa;
-  --bg:     #0f1623;
-  --white:  #18243a;
-  --border: rgba(255,255,255,0.08);
-  --border2:rgba(255,255,255,0.15);
+  --ink:    #e2e8f0;
+  --ink2:   #94a3b8;
+  --ink3:   #64748b;
+  --bg:     #080b10;
+  --white:  #111218;
+  --border: rgba(255,255,255,0.07);
+  --border2:rgba(255,255,255,0.13);
 
   --navy:          #d8e4f4;
   --navy2:         #b8ccdf;
@@ -98,6 +202,29 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
   --shadow-sm: 0 1px 4px rgba(0,0,0,0.5);
   --shadow:    0 4px 16px rgba(0,0,0,0.6);
   --shadow-lg: 0 12px 40px rgba(0,0,0,0.72);
+
+  /* shadcn theme — bridged to the same dark palette as above, so shadcn
+     components pick up dark colors through this real theme selector
+     instead of the unreachable .dark class. */
+  --background: 217.5 33.3% 4.7%;
+  --foreground: 214.3 31.8% 91.4%;
+  --card: 231.4 17.1% 8.0%;
+  --card-foreground: 214.3 31.8% 91.4%;
+  --popover: 231.4 17.1% 8.0%;
+  --popover-foreground: 214.3 31.8% 91.4%;
+  --primary: 217.2 91.2% 59.8%;
+  --primary-foreground: 222.2 47.4% 11.2%;
+  --secondary: 217.5 33.3% 4.7%;
+  --secondary-foreground: 214.3 31.8% 91.4%;
+  --muted: 217.5 33.3% 4.7%;
+  --muted-foreground: 215.0 20.2% 65.1%;
+  --accent: 217.5 33.3% 4.7%;
+  --accent-foreground: 214.3 31.8% 91.4%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 210 40% 98%;
+  --shadcn-border: 220 13% 20%;
+  --shadcn-input: 220 13% 20%;
+  --ring: 212.7 26.8% 83.9%;
 }
 
 /* ── Hidden scrollbars (scroll still works) ── */
@@ -160,7 +287,7 @@ body, .lnav, .card, .modal-overlay,
 *, *::before, *::after { font-family: var(--font); }
 input, select, textarea, button { font-family: var(--font); }
 
-html, body { height: 100%; }
+html, body, #root { height: 100%; }
 
 body {
   font-family: var(--font);
@@ -1115,13 +1242,11 @@ body {
 
 .main-content {
   flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  overflow-y: auto;
-  min-width: 0;
-  padding-bottom: 20px;
-  background: var(--bg);
 }
 
 /* Every page component is a direct flex child — ensure it fills the area */
@@ -1135,8 +1260,11 @@ body {
 .scroll-area {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: var(--page-padding, 24px);
 }
+
+/* ── App color scope wrapper — flex passthrough so height chain is unbroken ── */
+.app-color-scope { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; }
 
 /* ── BUTTONS ── */
 .btn {
@@ -1144,19 +1272,19 @@ body {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 7px 16px;
+  padding: var(--ds-btn-py, 9px) 18px;
   font-family: var(--font);
   font-weight: 600;
   border-radius: var(--r-sm);
   border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.12s;
+  transition: all var(--dur-fast, 80ms) var(--ease, ease);
   white-space: nowrap;
-  font-size: 13px;
+  font-size: var(--text-base, 14px);
 }
-.btn-sm  { padding: 5px 10px; font-size: 12px; }
-.btn-md  { padding: 7px 16px; font-size: 13px; }
-.btn-lg  { padding: 10px 22px; font-size: 14px; }
+.btn-sm  { padding: 6px 14px; font-size: 13px; }
+.btn-md  { padding: var(--ds-btn-py, 9px) 20px; font-size: 14px; }
+.btn-lg  { padding: 11px 24px; font-size: 15px; }
 
 .btn-primary   { background: var(--teal); color: #fff; border-color: var(--teal); }
 .btn-primary:hover { filter: brightness(0.88); }
@@ -1176,8 +1304,8 @@ body {
   align-items: center;
   gap: 3px;
   padding: 2px 8px;
-  border-radius: 20px;
-  font-size: 11px;
+  border-radius: var(--badge-radius, 20px);
+  font-size: var(--text-xs, 11px);
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -1225,11 +1353,11 @@ body {
 
 /* ── CARD ── */
 .card {
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  padding: 16px;
-  box-shadow: var(--shadow-sm);
+  background: var(--card-bg, var(--white));
+  border: var(--card-border, 1px solid var(--border));
+  border-radius: var(--card-radius, var(--r));
+  padding: var(--card-padding, 16px);
+  box-shadow: var(--card-shadow, none);
 }
 .card-interactive { cursor: pointer; }
 .card-interactive:hover { box-shadow: var(--shadow); }
@@ -1237,15 +1365,15 @@ body {
 /* ── INPUT ── */
 .input-field {
   width: 100%;
-  padding: 8px 12px;
+  padding: var(--ds-input-py, 8px) 12px;
   border: 1px solid var(--border);
   border-radius: var(--r-sm);
   font-family: var(--font);
-  font-size: 13px;
+  font-size: var(--text-base, 13px);
   outline: none;
   background: var(--white);
   color: var(--ink);
-  transition: border-color 0.15s;
+  transition: border-color var(--dur, 150ms) var(--ease, ease);
 }
 .input-field:focus { border-color: var(--teal); }
 
@@ -1292,8 +1420,8 @@ select.input-field { cursor: pointer; }
 /* ── FILTER BAR CHIPS ── */
 .fc {
   padding: 4px 10px;
-  border-radius: 20px;
-  font-size: 11.5px;
+  border-radius: var(--badge-radius, 20px);
+  font-size: var(--text-xs, 11.5px);
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
@@ -1301,7 +1429,7 @@ select.input-field { cursor: pointer; }
   background: var(--bg);
   color: var(--ink3);
   border: 1px solid var(--border);
-  transition: all 0.1s;
+  transition: all var(--dur-fast, 80ms) var(--ease, ease);
   font-family: var(--font);
 }
 .fc:hover  { color: var(--ink2); border-color: var(--border2); }
@@ -1498,7 +1626,7 @@ select.input-field { cursor: pointer; }
   color: var(--ink3);
   cursor: pointer;
   border-bottom: 2px solid transparent;
-  transition: all 0.12s;
+  transition: all var(--dur-fast, 80ms) var(--ease, ease);
 }
 .dpt:hover { color: var(--ink2); }
 .dpt.on    { color: var(--teal); border-bottom-color: var(--teal); }
@@ -1626,7 +1754,7 @@ select.input-field { cursor: pointer; }
   color: var(--ink3);
   cursor: pointer;
   border-bottom: 2px solid transparent;
-  transition: all 0.12s;
+  transition: all var(--dur-fast, 80ms) var(--ease, ease);
 }
 .segment-tab:hover { color: var(--ink2); }
 .segment-tab.active { color: var(--teal); border-bottom-color: var(--teal); }
@@ -1938,6 +2066,7 @@ select.input-field { cursor: pointer; }
 .hnav-cat {
   flex: 1;
   min-width: 120px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1950,6 +2079,8 @@ select.input-field { cursor: pointer; }
   border-right: 1px solid var(--border);
   cursor: pointer;
   font-family: var(--font);
+  text-decoration: none;
+  color: inherit;
   transition: background 0.15s ease, color 0.15s ease;
   text-align: center;
   position: relative;
@@ -2034,6 +2165,7 @@ select.input-field { cursor: pointer; }
   font-size: 13px;
   font-weight: 500;
   color: var(--ink2);
+  text-decoration: none;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -2504,6 +2636,8 @@ select.input-field { cursor: pointer; }
   gap: 6px;
   transition: background 0.15s ease;
   border-top: 3px solid transparent;
+  text-decoration: none;
+  color: inherit;
 }
 .ent-kpi-card:last-child { border-right: none; }
 .ent-kpi-card:hover { background: var(--bg); }
@@ -2613,10 +2747,13 @@ select.input-field { cursor: pointer; }
 .ent-kpi-pill-neutral { background: var(--bg);       color: var(--ink2);   border: 1px solid var(--border); }
 
 .ent-kpi-link {
+  position: relative;
+  z-index: 1;
   margin-left: auto;
   font-size: 11px;
   font-weight: 600;
   color: var(--teal);
+  text-decoration: none;
   background: none;
   border: none;
   cursor: pointer;
@@ -3505,7 +3642,7 @@ html:not([data-theme="dark"]) .page-layout {
   white-space: nowrap;
 }
 .rtbl td {
-  padding: 11px 13px;
+  padding: var(--ds-cell-py, 11px) 13px;
   border-bottom: 1px solid var(--border);
   color: var(--ink);
   vertical-align: middle;
@@ -5691,6 +5828,8 @@ html:not([data-theme="dark"]) .page-layout {
 .mc-icon-badge[data-color="default"] { background: #f1f5f9; }
 .mc-title      { font-size: 11.5px; font-weight: 700; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.06em; }
 .mc-dots       { color: var(--ink3); cursor: pointer; flex-shrink: 0; margin-top: 2px; }
+.mc-dots-btn   { background: none; border: none; padding: 3px; border-radius: 5px; display: flex; }
+.mc-dots-btn:hover { background: var(--bg); color: var(--ink); }
 .mc-value-row  { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
 .mc-value      { font-size: 26px; font-weight: 800; color: var(--navy); letter-spacing: -0.5px; line-height: 1; white-space: nowrap; }
 .mc-sub-row    { display: flex; gap: 18px; margin-bottom: 12px; }

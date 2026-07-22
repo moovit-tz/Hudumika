@@ -1,8 +1,10 @@
+import { requireAppEnabled } from '../middleware/appGate.js';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { demurrageService } from '../services/demurrage.service.js';
 
 export async function demurrageRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate);
+  app.addHook('preHandler', requireAppEnabled('clearos'));
 
   // ── Tariffs ──
 

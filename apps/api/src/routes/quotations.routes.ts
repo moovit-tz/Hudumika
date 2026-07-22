@@ -1,9 +1,11 @@
+import { requireAppEnabled } from '../middleware/appGate.js';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { quotationService } from '../services/quotation.service.js';
 import { withTenant } from '../db/client.js';
 
 export async function quotationRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate);
+  app.addHook('preHandler', requireAppEnabled('clearos'));
 
   app.get('/', async (req: FastifyRequest, reply: FastifyReply) => {
     const user = (req as any).user;

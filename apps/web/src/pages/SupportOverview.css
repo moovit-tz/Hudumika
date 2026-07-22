@@ -1,0 +1,291 @@
+/* ══════════════════════════════════════════════════
+   Support Overview — Overview / Analytics / Team tabs.
+   Mobile-first responsive rewrite (was 100% inline styles, no breakpoints).
+══════════════════════════════════════════════════ */
+
+.sov-loading {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  color: var(--ink3); font-size: 14px; font-family: var(--font);
+}
+
+.sov-root {
+  flex: 1;
+  overflow: auto;
+  background: var(--bg);
+  font-family: var(--font);
+}
+
+.sov-container {
+  padding: 22px 26px 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.sov-actions {
+  display: flex;
+  gap: 7px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.sov-period-btn {
+  padding: 7px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 9px;
+  background: var(--white);
+  color: var(--ink3);
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.sov-period-btn--active {
+  border-color: var(--teal);
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+.sov-all-tickets-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  background: var(--teal);
+  border: none;
+  border-radius: 9px;
+  color: #fff;
+  cursor: pointer;
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 13px;
+  text-decoration: none;
+}
+
+/* ── Tabs ── */
+.sov-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  width: fit-content;
+  margin-bottom: 18px;
+}
+
+.sov-tab {
+  padding: 7px 18px;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  color: var(--ink3);
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.sov-tab:hover { color: var(--ink); }
+.sov-tab--active { background: var(--teal-l); color: var(--teal); }
+
+/* ── KPI cards ── */
+.sov-kpi-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.sov-kpi {
+  background: var(--white);
+  border-radius: 9px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  flex: 1 1 170px;
+  min-width: 150px;
+}
+
+.sov-kpi-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.sov-kpi-icon {
+  width: 36px; height: 36px;
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.sov-kpi-trend {
+  display: flex; align-items: center; gap: 3px;
+  font-size: 11px; font-weight: 700;
+  padding: 2px 7px; border-radius: 9px;
+}
+.sov-kpi-trend--up { color: var(--green); background: var(--green-l); }
+.sov-kpi-trend--down { color: var(--red); background: var(--red-l); }
+
+.sov-kpi-value { font-size: 26px; font-weight: 900; color: var(--navy); line-height: 1; margin-bottom: 4px; }
+.sov-kpi-label { font-size: 12.5px; font-weight: 600; color: var(--ink2); }
+.sov-kpi-sub { font-size: 11.5px; color: var(--ink3); margin-top: 2px; }
+
+/* ── Cards & chart rows ── */
+.sov-charts-row {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.sov-charts-row--2 { grid-template-columns: 1.3fr 1fr; }
+.sov-charts-row--3 { grid-template-columns: 1fr 1fr 1fr; }
+
+.sov-card {
+  background: var(--white);
+  border-radius: 9px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  min-width: 0;
+}
+
+.sov-shdr {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.sov-shdr-title { font-size: 13.5px; font-weight: 800; color: var(--navy); }
+.sov-shdr-action { font-size: 12px; color: var(--teal); font-weight: 600; text-decoration: none; }
+
+.sov-empty { font-size: 12.5px; color: var(--ink3); padding: 8px 0; }
+
+/* ── Bars ── */
+.sov-bar-track { height: 7px; border-radius: 4px; background: var(--border); overflow: hidden; }
+.sov-bar-track--sm { height: 6px; }
+.sov-bar-track--rate { width: 80px; height: 6px; }
+.sov-bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+
+.sov-stat-row { margin-bottom: 11px; }
+.sov-stat-row-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.sov-stat-row-label { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+.sov-stat-row-value { font-size: 12.5px; font-weight: 700; }
+.sov-stat-row-pct { color: var(--ink3); font-weight: 400; }
+
+.sov-total-pill {
+  margin-top: 14px; padding: 10px 12px;
+  background: var(--bg); border-radius: 9px;
+  display: flex; justify-content: space-between;
+}
+.sov-total-pill-val { font-size: 13px; font-weight: 800; color: var(--navy); }
+
+/* ── Daily volume bars ── */
+.sov-daybars { display: flex; align-items: flex-end; gap: 4px; height: 80px; margin-bottom: 8px; }
+.sov-daybar { flex: 1; background: var(--teal-l); border-radius: 3px 3px 0 0; transition: height 0.4s; }
+.sov-daybar--today { background: var(--teal); }
+.sov-daybars-foot { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--ink3); margin-bottom: 10px; }
+.sov-daybars-today { font-weight: 700; color: var(--teal); }
+.sov-daybars-stats { display: flex; gap: 20px; padding-top: 8px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+.sov-daybars-stat-label { font-size: 10px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+.sov-daybars-stat-val { font-size: 15px; font-weight: 800; color: var(--navy); }
+
+/* ── NPS card ── */
+.sov-nps-row { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 16px; }
+.sov-nps-score-col { text-align: center; padding-right: 14px; border-right: 1px solid var(--border); flex-shrink: 0; }
+.sov-nps-score { font-size: 42px; font-weight: 900; line-height: 1; }
+.sov-nps-total { font-size: 11px; color: var(--ink3); margin-top: 3px; }
+.sov-nps-band { font-size: 10.5px; font-weight: 700; margin-top: 4px; }
+.sov-nps-breakdown { flex: 1; min-width: 0; }
+.sov-nps-bar-row { margin-bottom: 9px; }
+.sov-nps-bar-top { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 12px; color: var(--ink); font-weight: 500; }
+.sov-nps-bar-note { color: var(--ink3); font-size: 10.5px; }
+.sov-nps-segbar { display: flex; border-radius: 6px; overflow: hidden; height: 10px; }
+
+/* ── Category / tag lists ── */
+.sov-cat-list { display: flex; flex-direction: column; gap: 8px; }
+.sov-cat-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+.sov-cat-label { font-size: 12px; color: var(--ink); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
+.sov-cat-count { font-size: 12px; font-weight: 700; color: var(--ink); flex-shrink: 0; }
+
+/* ── Time & quality ── */
+.sov-tq-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); gap: 10px; }
+.sov-tq-label { font-size: 12px; font-weight: 600; color: var(--ink); }
+.sov-tq-note { font-size: 10.5px; color: var(--ink3); }
+.sov-tq-value { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 900; flex-shrink: 0; }
+
+/* ── Histogram ── */
+.sov-hist { display: flex; align-items: flex-end; gap: 14px; height: 110px; }
+.sov-hist-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.sov-hist-val { font-size: 12px; font-weight: 800; color: var(--navy); }
+.sov-hist-bar-wrap { width: 100%; display: flex; align-items: flex-end; height: 70px; }
+.sov-hist-bar { width: 100%; border-radius: 4px 4px 0 0; transition: height 0.4s; }
+.sov-hist-bar--fast { background: var(--green); opacity: 0.85; }
+.sov-hist-bar--slow { background: var(--red); opacity: 0.7; }
+.sov-hist-label { font-size: 11px; color: var(--ink3); font-weight: 600; }
+
+/* ── Heatmap ── */
+.sov-heatmap-card { margin-bottom: 16px; }
+.sov-heatmap-scroll { overflow-x: auto; }
+.sov-heatmap-grid { display: grid; gap: 4px; min-width: 640px; }
+.sov-heatmap-bucket { font-size: 9.5px; color: var(--ink3); text-align: center; font-weight: 600; }
+.sov-heatmap-day { font-size: 11px; color: var(--ink2); font-weight: 700; display: flex; align-items: center; }
+.sov-heatmap-cell { height: 22px; border-radius: 4px; }
+
+/* ── Agent table ── */
+.sov-table-scroll { overflow-x: auto; }
+.sov-table { border-collapse: collapse; width: 100%; }
+.sov-table th {
+  padding: 8px 12px; text-align: center; font-size: 10.5px; font-weight: 700;
+  color: var(--ink3); background: var(--bg); border-bottom: 1px solid var(--border);
+  text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap;
+}
+.sov-th-left { text-align: left; }
+.sov-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.sov-table tr:hover td { background: var(--bg); }
+.sov-td-center { text-align: center; }
+.sov-td-resolved { font-weight: 700; color: var(--green); }
+.sov-td-open-high { font-weight: 700; color: var(--red); }
+.sov-td-muted { color: var(--ink3); }
+
+.sov-agent-cell { display: flex; align-items: center; gap: 9px; }
+.sov-agent-name { font-weight: 600; color: var(--navy); }
+.sov-av { border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; flex-shrink: 0; font-family: var(--font); }
+
+.sov-rate-cell { display: flex; align-items: center; gap: 7px; justify-content: center; }
+.sov-rate-pct { font-size: 11.5px; font-weight: 700; color: var(--ink3); min-width: 30px; }
+
+/* ══════════════════════════════════════════════════
+   Responsive
+══════════════════════════════════════════════════ */
+@media (max-width: 1100px) {
+  .sov-charts-row--3 { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 900px) {
+  .sov-container { padding: 16px 16px 32px; }
+  .sov-charts-row--2,
+  .sov-charts-row--3 { grid-template-columns: 1fr; }
+  .sov-kpi { flex: 1 1 140px; }
+}
+
+@media (max-width: 600px) {
+  .sov-kpi-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .sov-kpi { flex: 0 0 62%; }
+  .sov-tabs { width: 100%; }
+  .sov-tab { flex: 1; text-align: center; }
+  .sov-nps-row { flex-direction: column; }
+  .sov-nps-score-col { border-right: none; border-bottom: 1px solid var(--border); padding-right: 0; padding-bottom: 12px; width: 100%; }
+  .sov-actions { width: 100%; }
+}
+
+/* ── Dark mode ── */
+[data-theme="dark"] .sov-kpi-value,
+[data-theme="dark"] .sov-shdr-title,
+[data-theme="dark"] .sov-total-pill-val,
+[data-theme="dark"] .sov-daybars-stat-val,
+[data-theme="dark"] .sov-agent-name {
+  color: var(--ink);
+}

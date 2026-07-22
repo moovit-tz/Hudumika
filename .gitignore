@@ -1,6 +1,8 @@
 # Dependencies
 node_modules/
 
+.claude/
+
 # Build outputs
 dist/
 build/
@@ -29,6 +31,9 @@ logs/
 pgdata/
 redisdata/
 miniodata/
+
+# Uploaded files (runtime data, not source)
+apps/api/uploads/
 
 # Coverage
 coverage/

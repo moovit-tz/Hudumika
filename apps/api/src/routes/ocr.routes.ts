@@ -1,3 +1,4 @@
+import { requireAppEnabled } from '../middleware/appGate.js';
 import type { FastifyInstance } from 'fastify';
 import Anthropic from '@anthropic-ai/sdk';
 
@@ -102,6 +103,7 @@ Rules:
 
 export async function ocrRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', requireAppEnabled('clearos'));
 
   /**
    * POST /v1/ocr/scan

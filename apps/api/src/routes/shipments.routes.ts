@@ -1,13 +1,20 @@
+import { requireAppEnabled } from '../middleware/appGate.js';
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { ShipmentService } from '../services/shipment.service.js';
+import { co2Service } from '../services/co2.service.js';
 import { requireRole } from '../middleware/rbac.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
-import type { CreateShipmentInput, AdvanceStageInput, ClearanceStage } from '@clearos/types';
+import { EmailIntegration } from '../integrations/email.js';
+import { MinioIntegration } from '../integrations/minio.js';
+import type { CreateShipmentInput, AdvanceStageInput, ClearanceStage } from '@hudumika/types';
+import { buildMockResult, trackViaShipsGo, trackViaShip24 } from './tracker.routes.js';
+import { sql } from 'kysely';
 
 export async function shipmentRoutes(fastify: FastifyInstance) {
   // Enforce authentication on all routes in this file
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', requireAppEnabled('clearos'));
 
   /**
    * GET /v1/shipments
@@ -50,6 +57,17 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
 
       const list = await q.orderBy('created_at', 'desc').execute();
 
+      // Batch-resolve customer names
+      const customerIds = [...new Set(list.map((s) => s.customer_id).filter(Boolean))] as string[];
+      const customerRows = customerIds.length > 0
+        ? await trx
+            .selectFrom('customers')
+            .select(['id', 'name'])
+            .where('id', 'in', customerIds)
+            .execute()
+        : [];
+      const customerNameMap = new Map(customerRows.map((c) => [c.id, c.name]));
+
       // Fetch active risk flags for these shipments
       const shipmentIds = list.map((s) => s.id);
       const riskFlags = shipmentIds.length > 0
@@ -71,6 +89,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       // Resolve containers from JSON string to object array
       const parsedList = list.map((item) => ({
         ...item,
+        customer_name: customerNameMap.get(item.customer_id ?? '') ?? null,
         containers: typeof item.containers === 'string' ? JSON.parse(item.containers) : item.containers,
         active_risk_types: riskByShipment.get(item.id) ?? [],
       }));
@@ -132,7 +151,151 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: 'Forbidden: Access denied to this case' });
     }
 
-    return shipment;
+    // Resolve customer name
+    return withTenant(user.tenant_id, async (trx) => {
+      const customer = shipment.customer_id
+        ? await trx.selectFrom('customers').select(['id', 'name']).where('id', '=', shipment.customer_id).executeTakeFirst()
+        : null;
+      return { ...shipment, customer_name: customer?.name ?? null };
+    });
+  });
+
+  /**
+   * POST /v1/shipments/bulk-import
+   * Import multiple shipments from a CSV/parsed payload
+   */
+  fastify.post('/bulk-import', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'SENIOR') }, async (request, reply) => {
+    const user = request.user;
+
+    interface BulkRow {
+      tansad_number?: string;
+      bl_number?: string;
+      awb_number?: string;
+      client_name: string;
+      shipping_line?: string;
+      num_containers?: number;
+      port?: string;
+      port_status?: string;
+      shipping_status?: string;
+      goods_desc?: string;
+      container_deposit?: boolean;
+      container_deposit_paid?: boolean;
+    }
+
+    const { rows } = request.body as { rows: BulkRow[] };
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return reply.status(400).send({ error: 'rows array is required and must not be empty' });
+    }
+
+    const imported: string[] = [];
+    const skipped: { row: number; reason: string }[] = [];
+
+    await withTenant(user.tenant_id, async (trx) => {
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+
+        // 1. Look up customer by name (case-insensitive LIKE)
+        const customer = await trx
+          .selectFrom('customers')
+          .select(['id', 'name'])
+          .where('name', 'ilike', `%${row.client_name}%`)
+          .executeTakeFirst();
+
+        if (!customer) {
+          skipped.push({ row: i + 1, reason: 'customer not found' });
+          continue;
+        }
+
+        // 2. Map port → type
+        let shipmentType: string;
+        if (row.port === 'JNIA') {
+          shipmentType = 'AIR';
+        } else if (row.port === 'Namanga' || row.port === 'TZKR') {
+          shipmentType = 'ROAD';
+        } else {
+          shipmentType = 'SEA_FCL';
+        }
+
+        // 3. Map port_status → stage
+        const statusLower = (row.port_status || '').toLowerCase().trim();
+        let stage: string;
+        if (statusLower === 'exited' || statusLower === 'closed') {
+          stage = 'CLOSED';
+        } else if (statusLower === 'to be declared' || statusLower === 'assessed') {
+          stage = 'ASSESSMENT';
+        } else if (statusLower === 'manifest compared') {
+          stage = 'DOCS_RECEIVED';
+        } else if (
+          statusLower === 'received' ||
+          statusLower === 'accepted' ||
+          statusLower === 'verifying' ||
+          statusLower === 'en route'
+        ) {
+          stage = 'DOCS_RECEIVED';
+        } else {
+          stage = 'DOCS_RECEIVED';
+        }
+
+        // 4. Generate ref_number based on current count + imported so far
+        const countResult = await trx
+          .selectFrom('shipment_cases')
+          .select(trx.fn.count('id').as('cnt'))
+          .executeTakeFirst();
+        const currentCount = Number(countResult?.cnt ?? 0) + imported.length + 1;
+        const refNumber = `CLR-2026-${String(currentCount).padStart(4, '0')}`;
+
+        const now = new Date();
+        const slaDeadline = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+
+        // 5. Insert shipment case
+        const shipment = await (trx as any)
+          .insertInto('shipment_cases')
+          .values({
+            tenant_id: user.tenant_id,
+            ref_number: refNumber,
+            customer_id: customer.id,
+            type: shipmentType,
+            goods_desc: row.goods_desc || 'Imported Shipment',
+            bl_number: row.bl_number || null,
+            awb_number: row.awb_number || null,
+            tansad_number: row.tansad_number || null,
+            vessel: row.shipping_line || null,
+            origin_port: '',
+            dest_port: row.port || '',
+            stage: stage,
+            assigned_to: null,
+            sla_deadline: slaDeadline,
+            created_at: now,
+            updated_at: now,
+          })
+          .returningAll()
+          .executeTakeFirstOrThrow();
+
+        // 6. Insert initial stage_history row
+        await trx
+          .insertInto('stage_history')
+          .values({
+            tenant_id: user.tenant_id,
+            shipment_id: shipment.id,
+            stage: stage as any,
+            entered_at: now,
+            actor_id: user.sub,
+            note: 'Bulk import.',
+          })
+          .execute();
+
+        // 7. Create BL/shipment folder in file storage
+        const folderName = row.bl_number || row.awb_number || refNumber;
+        MinioIntegration.ensureFolder(user.tenant_id, customer.id, folderName);
+
+        imported.push(shipment.id);
+      }
+    });
+
+    return reply.status(200).send({
+      imported: imported.length,
+      skipped,
+    });
   });
 
   /**
@@ -144,12 +307,30 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const input = request.body as CreateShipmentInput;
 
     try {
+      // Resolve assigned_to: prefer explicit input, fall back to current user, validate the UUID exists
+      const preferredAssignee = (input.assigned_to && input.assigned_to.trim() !== '')
+        ? input.assigned_to
+        : user.sub;
+
+      // Verify the resolved user exists in this tenant to give a clear error instead of FK violation
+      const { db } = await import('../db/client.js');
+      const assigneeExists = await db
+        .selectFrom('users')
+        .select('id')
+        .where('id', '=', preferredAssignee)
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+
+      if (!assigneeExists) {
+        return reply.status(401).send({ error: 'Session expired — please log out and log back in.' });
+      }
+
       const created = await ShipmentService.createCase(user.tenant_id, {
         ...input,
-        assigned_to: user.role === 'OFFICER' ? user.sub : input.assigned_to || user.sub,
+        assigned_to: preferredAssignee,
       });
 
-      return reply.status(211).send(created); // Return created shipment
+      return reply.status(211).send(created);
     } catch (error: any) {
       return reply.status(400).send({ error: error.message || 'Failed to create shipment case' });
     }
@@ -221,6 +402,8 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     }
 
     return withTenant(user.tenant_id, async (trx) => {
+      const prev = await trx.selectFrom('shipment_cases').select(['assigned_to']).where('id', '=', id).executeTakeFirst();
+
       const updated = await trx
         .updateTable('shipment_cases')
         .set(patch)
@@ -229,7 +412,157 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         .executeTakeFirst();
 
       if (!updated) return reply.status(404).send({ error: 'Shipment not found' });
+
+      // Notify newly assigned user
+      const newAssignee = body.assigned_to;
+      if (newAssignee && newAssignee !== prev?.assigned_to && newAssignee !== user.sub) {
+        const isUuid = /^[0-9a-f-]{36}$/i.test(newAssignee);
+        if (isUuid) {
+          await trx.insertInto('notifications').values({
+            tenant_id: user.tenant_id,
+            user_id: newAssignee,
+            shipment_id: id,
+            type: 'shipment_assigned',
+            title: `${user.name || 'Someone'} assigned you to a shipment`,
+            message: updated.ref_number || id,
+            link: `/clearance/${id}`,
+            metadata: JSON.stringify({ shipment_id: id }),
+            trigger_type: 'SHIPMENT_ASSIGNED',
+            channel: 'IN_APP',
+            recipient: newAssignee,
+            content: `${user.name || 'Someone'} assigned you to shipment ${updated.ref_number || id}`,
+            read: false, status: 'SENT', created_at: new Date(),
+          } as any).execute();
+        }
+      }
+
       return updated;
+    });
+  });
+
+  /**
+   * GET /v1/shipments/:id/flags  — list active flags
+   */
+  fastify.get('/:id/flags', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const flags = await trx.selectFrom('risk_flags').selectAll().where('shipment_id', '=', id).where('resolved', '=', false).execute();
+      return { data: flags };
+    });
+  });
+
+  /**
+   * POST /v1/shipments/:id/flags  — add a label/flag
+   * body: { type: string, severity?: 'LOW'|'MEDIUM'|'HIGH' }
+   */
+  fastify.post('/:id/flags', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { type, severity } = request.body as { type: string; severity?: string };
+    if (!type) return reply.status(400).send({ error: 'type is required' });
+    return withTenant(user.tenant_id, async (trx) => {
+      // idempotent — if already active, return existing
+      const trxAny2 = trx as any;
+      const existing = await trxAny2.selectFrom('risk_flags').selectAll()
+        .where('shipment_id', '=', id).where('type', '=', type).where('resolved', '=', false)
+        .executeTakeFirst();
+      if (existing) return existing;
+      const flag = await trx.insertInto('risk_flags').values({
+        tenant_id: user.tenant_id, shipment_id: id,
+        type: type as any, severity: (severity || 'MEDIUM') as any, resolved: false,
+      } as any).returningAll().executeTakeFirst();
+      return reply.status(201).send(flag);
+    });
+  });
+
+  /**
+   * DELETE /v1/shipments/:id/flags/:type  — resolve a flag
+   */
+  fastify.delete('/:id/flags/:flagType', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { id, flagType } = request.params as { id: string; flagType: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const trxAny = trx as any;
+      await trxAny.updateTable('risk_flags')
+        .set({ resolved: true, resolved_at: new Date() })
+        .where('shipment_id', '=', id).where('type', '=', flagType).where('resolved', '=', false)
+        .execute();
+      return reply.status(204).send();
+    });
+  });
+
+  /**
+   * POST /v1/shipments/:id/sync-tracking
+   * Fetch BL/AWB tracking data and write back origin_port, dest_port, eta, vessel
+   */
+  fastify.post('/:id/sync-tracking', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+
+    const shipment = await ShipmentService.getById(user.tenant_id, id);
+    if (!shipment) return reply.status(404).send({ error: 'Shipment not found' });
+
+    const trackingNumber = shipment.awb_number || shipment.bl_number;
+    if (!trackingNumber) return reply.status(400).send({ error: 'No BL or AWB number on this shipment' });
+
+    const normalized = trackingNumber.trim().toUpperCase().replace(/\s/g, '');
+    const resolvedType: 'AWB' | 'BL' = shipment.awb_number ? 'AWB' : 'BL';
+
+    // Load API keys from tenant settings
+    let shipsgoKey: string | null = null;
+    let ship24Key:  string | null = null;
+    try {
+      const setting = await db
+        .selectFrom('tenant_settings').select('settings')
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      if (setting) {
+        const s = typeof setting.settings === 'string' ? JSON.parse(setting.settings) : setting.settings as any;
+        shipsgoKey = s?.['int-shipsgo']?.shipsgo_api_key ?? null;
+        ship24Key  = s?.['int-shipsgo']?.ship24_api_key  ?? null;
+      }
+    } catch { /* fall through to mock */ }
+
+    let result: any = null;
+    if (shipsgoKey && resolvedType === 'BL') result = await trackViaShipsGo(normalized, shipsgoKey);
+    if (!result && ship24Key) result = await trackViaShip24(normalized, ship24Key);
+    if (!result) result = buildMockResult(normalized, resolvedType);
+
+    // Write back to shipment_cases
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.updateTable('shipment_cases')
+        .set({
+          origin_port: result.origin_name ?? shipment.origin_port,
+          dest_port:   result.dest_name   ?? shipment.dest_port,
+          vessel:      result.vessel_name  ?? shipment.vessel,
+          eta:         result.eta ? new Date(result.eta) : (shipment.eta ? new Date(shipment.eta) : null),
+          updated_at:  new Date(),
+        })
+        .where('id', '=', id)
+        .execute();
+
+      // Persist snapshot
+      await trx.insertInto('tracking_snapshots').values({
+        tenant_id:        user.tenant_id,
+        shipment_id:      id,
+        tracking_type:    result.tracking_type,
+        tracking_number:  normalized,
+        carrier:          result.carrier ?? null,
+        origin_name:      result.origin_name ?? null,
+        origin_code:      result.origin_code ?? null,
+        dest_name:        result.dest_name   ?? null,
+        dest_code:        result.dest_code   ?? null,
+        current_location: result.current_location ?? null,
+        status:           result.status ?? null,
+        status_code:      result.status_code ?? null,
+        eta:              result.eta ?? null,
+        progress_pct:     result.progress_pct ?? 0,
+        events:           JSON.stringify(result.events ?? []),
+        created_by:       user.sub,
+      }).execute();
+
+      return result;
     });
   });
 
@@ -261,6 +594,29 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         created_by: user.name || user.sub,
         created_at: new Date(), updated_at: new Date(),
       }).returningAll().executeTakeFirstOrThrow();
+
+      // Notify assigned user (skip self-assign)
+      if (assigned_to && assigned_to !== user.sub) {
+        const isUuid = /^[0-9a-f-]{36}$/i.test(assigned_to);
+        if (isUuid) {
+          await trx.insertInto('notifications').values({
+            tenant_id: user.tenant_id,
+            user_id: assigned_to,
+            shipment_id: id,
+            type: 'task_assigned',
+            title: `${user.name || 'Someone'} assigned you a task`,
+            message: title,
+            link: `/clearance/${id}?tab=tasks`,
+            metadata: JSON.stringify({ task_id: task.id }),
+            trigger_type: 'TASK_ASSIGNED',
+            channel: 'IN_APP',
+            recipient: assigned_to,
+            content: `${user.name || 'Someone'} assigned you a task: ${title}`,
+            read: false, status: 'SENT', created_at: new Date(),
+          } as any).execute();
+        }
+      }
+
       return task;
     });
   });
@@ -273,8 +629,8 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const { taskId } = request.params as { id: string; taskId: string };
     const body = request.body as any;
     const patch: Record<string, any> = { updated_at: new Date() };
-    for (const k of ['title', 'status', 'priority', 'assigned_to', 'due_date', 'note']) {
-      if (k in body) patch[k] = body[k];
+    for (const k of ['title', 'status', 'priority', 'assigned_to', 'due_date', 'note', 'description', 'labels', 'cover_color']) {
+      if (k in body) patch[k] = k === 'labels' ? JSON.stringify(body[k]) : body[k];
     }
     return withTenant(user.tenant_id, async (trx) => {
       const t = await trx.updateTable('shipment_tasks').set(patch).where('id', '=', taskId).returningAll().executeTakeFirst();
@@ -291,6 +647,235 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const { taskId } = request.params as { id: string; taskId: string };
     return withTenant(user.tenant_id, async (trx) => {
       await trx.deleteFrom('shipment_tasks').where('id', '=', taskId).execute();
+      return reply.status(204).send();
+    });
+  });
+
+  /**
+   * GET /v1/shipments/:id/team
+   * Returns tenant users for @mention autocomplete
+   */
+  fastify.get('/:id/team', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const members = await trx
+        .selectFrom('users')
+        .select(['id', 'name', 'email', 'role'])
+        .where('active', '=', true)
+        .orderBy('name', 'asc')
+        .execute();
+      return { data: members };
+    });
+  });
+
+  /**
+   * GET /v1/shipments/:id/tasks/:taskId/comments
+   */
+  fastify.get('/:id/tasks/:taskId/comments', async (request, reply) => {
+    const user = request.user;
+    const { taskId } = request.params as { id: string; taskId: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const comments = await trx
+        .selectFrom('task_comments')
+        .selectAll()
+        .where('task_id', '=', taskId)
+        .orderBy('created_at', 'asc')
+        .execute();
+      return { data: comments };
+    });
+  });
+
+  /**
+   * POST /v1/shipments/:id/tasks/:taskId/comments
+   * Body: { content: string, mentions: [{user_id, name}] }
+   * Creates notifications for every @mentioned user.
+   */
+  fastify.post('/:id/tasks/:taskId/comments', async (request, reply) => {
+    const user = request.user;
+    const { id: shipmentId, taskId } = request.params as { id: string; taskId: string };
+    const { content, mentions = [] } = request.body as { content: string; mentions: { user_id: string; name: string }[] };
+    if (!content?.trim()) return reply.status(400).send({ error: 'content is required' });
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const comment = await trx
+        .insertInto('task_comments')
+        .values({
+          tenant_id: user.tenant_id,
+          task_id:    taskId,
+          shipment_id: shipmentId,
+          author_id:   user.sub,
+          author_name: user.name || user.email,
+          content:     content.trim(),
+          mentions:    JSON.stringify(mentions),
+          created_at:  new Date(),
+          updated_at:  new Date(),
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      // Notify each mentioned user (skip self-mentions)
+      for (const m of mentions) {
+        if (m.user_id === user.sub) continue;
+        await trx.insertInto('notifications').values({
+          tenant_id:    user.tenant_id,
+          user_id:      m.user_id,
+          shipment_id:  shipmentId,
+          type:         'mention',
+          title:        `${user.name || 'Someone'} mentioned you in a task`,
+          message:      content.trim().slice(0, 150),
+          link:         `/shipments/${shipmentId}?tab=tasks`,
+          metadata:     JSON.stringify({ task_id: taskId, comment_id: comment.id, mention_type: 'task_comment' }),
+          channel:      'IN_APP',
+          customer_id:  null,
+          trigger_type: 'MENTION',
+          recipient:    m.user_id,
+          content:      `${user.name || 'Someone'} mentioned you in a task comment`,
+          read:         false,
+          status:       'SENT',
+          created_at:   new Date(),
+        } as any).execute();
+      }
+
+      return comment;
+    });
+  });
+
+  /**
+   * DELETE /v1/shipments/:id/tasks/:taskId/comments/:commentId
+   * Author or admin/manager can delete.
+   */
+  fastify.delete('/:id/tasks/:taskId/comments/:commentId', async (request, reply) => {
+    const user = request.user;
+    const { taskId, commentId } = request.params as { id: string; taskId: string; commentId: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const comment = await trx
+        .selectFrom('task_comments')
+        .select(['id', 'author_id'])
+        .where('id', '=', commentId)
+        .executeTakeFirst();
+      if (!comment) return reply.status(404).send({ error: 'Comment not found' });
+      const canDelete = comment.author_id === user.sub ||
+        ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'TENANT_ADMIN'].includes(user.role);
+      if (!canDelete) return reply.status(403).send({ error: 'Forbidden' });
+      await trx.deleteFrom('task_comments').where('id', '=', commentId).execute();
+      return reply.status(204).send();
+    });
+  });
+
+  /**
+   * GET /v1/shipments/:id/tasks/:taskId
+   * Full task detail with checklists + items embedded
+   */
+  fastify.get('/:id/tasks/:taskId', async (request, reply) => {
+    const user = request.user;
+    const { taskId } = request.params as { id: string; taskId: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const task = await trx.selectFrom('shipment_tasks').selectAll().where('id', '=', taskId).executeTakeFirst();
+      if (!task) return reply.status(404).send({ error: 'Task not found' });
+      const checklists = await trx
+        .selectFrom('task_checklists')
+        .selectAll()
+        .where('task_id', '=', taskId)
+        .orderBy('position', 'asc')
+        .execute();
+      const items = checklists.length > 0
+        ? await trx.selectFrom('task_checklist_items').selectAll()
+            .where('checklist_id', 'in', checklists.map(c => c.id))
+            .orderBy('position', 'asc').execute()
+        : [];
+      const itemsByChecklist = new Map<string, any[]>();
+      for (const item of items) {
+        const arr = itemsByChecklist.get(item.checklist_id) ?? [];
+        arr.push(item);
+        itemsByChecklist.set(item.checklist_id, arr);
+      }
+      return {
+        ...task,
+        labels: typeof task.labels === 'string' ? JSON.parse(task.labels) : (task.labels || []),
+        checklists: checklists.map(c => ({ ...c, items: itemsByChecklist.get(c.id) || [] })),
+      };
+    });
+  });
+
+  /**
+   * POST /v1/shipments/:id/tasks/:taskId/checklists
+   */
+  fastify.post('/:id/tasks/:taskId/checklists', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { taskId } = request.params as { id: string; taskId: string };
+    const { title = 'Checklist' } = request.body as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const count = await trx.selectFrom('task_checklists').select(trx.fn.countAll().as('n')).where('task_id', '=', taskId).executeTakeFirst();
+      const position = Number((count as any)?.n ?? 0);
+      const cl = await trx.insertInto('task_checklists').values({
+        tenant_id: user.tenant_id, task_id: taskId, title, position, created_at: new Date(),
+      }).returningAll().executeTakeFirstOrThrow();
+      return { ...cl, items: [] };
+    });
+  });
+
+  /**
+   * DELETE /v1/shipments/:id/tasks/:taskId/checklists/:checklistId
+   */
+  fastify.delete('/:id/tasks/:taskId/checklists/:checklistId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { checklistId } = request.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.deleteFrom('task_checklists').where('id', '=', checklistId).execute();
+      return reply.status(204).send();
+    });
+  });
+
+  /**
+   * POST /v1/shipments/:id/tasks/:taskId/checklists/:checklistId/items
+   */
+  fastify.post('/:id/tasks/:taskId/checklists/:checklistId/items', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { taskId, checklistId } = request.params as any;
+    const { title } = request.body as any;
+    if (!title?.trim()) return reply.status(400).send({ error: 'title is required' });
+    return withTenant(user.tenant_id, async (trx) => {
+      const count = await trx.selectFrom('task_checklist_items').select(trx.fn.countAll().as('n')).where('checklist_id', '=', checklistId).executeTakeFirst();
+      const position = Number((count as any)?.n ?? 0);
+      const item = await trx.insertInto('task_checklist_items').values({
+        checklist_id: checklistId, task_id: taskId, title: title.trim(),
+        completed: false, position, created_at: new Date(), updated_at: new Date(),
+      }).returningAll().executeTakeFirstOrThrow();
+      return item;
+    });
+  });
+
+  /**
+   * PATCH /v1/shipments/:id/tasks/:taskId/checklists/:checklistId/items/:itemId
+   */
+  fastify.patch('/:id/tasks/:taskId/checklists/:checklistId/items/:itemId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { itemId } = request.params as any;
+    const body = request.body as any;
+    const patch: Record<string, any> = { updated_at: new Date() };
+    if ('title' in body) patch.title = body.title;
+    if ('completed' in body) {
+      patch.completed = body.completed;
+      patch.completed_by = body.completed ? (user.name || user.sub) : null;
+      patch.completed_at = body.completed ? new Date() : null;
+    }
+    if ('assigned_to' in body) patch.assigned_to = body.assigned_to;
+    if ('due_date' in body) patch.due_date = body.due_date;
+    return withTenant(user.tenant_id, async (trx) => {
+      const item = await trx.updateTable('task_checklist_items').set(patch).where('id', '=', itemId).returningAll().executeTakeFirst();
+      if (!item) return reply.status(404).send({ error: 'Item not found' });
+      return item;
+    });
+  });
+
+  /**
+   * DELETE /v1/shipments/:id/tasks/:taskId/checklists/:checklistId/items/:itemId
+   */
+  fastify.delete('/:id/tasks/:taskId/checklists/:checklistId/items/:itemId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { itemId } = request.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.deleteFrom('task_checklist_items').where('id', '=', itemId).execute();
       return reply.status(204).send();
     });
   });
@@ -399,7 +984,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/messages', async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { content, channel } = request.body as { content: string; channel: 'WHATSAPP' | 'IN_APP' | 'SYSTEM' };
+    const { content, channel } = request.body as { content: string; channel: string };
 
     if (!content) {
       return reply.status(400).send({ error: 'Message content is required' });
@@ -422,25 +1007,56 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         .where('id', '=', shipment.customer_id)
         .executeTakeFirst();
 
+      // Determine author type
+      const isOfficer = user.role !== 'CUSTOMER';
+      const authorType = isOfficer ? 'OFFICER' : 'CUSTOMER';
+
+      // Record first reply metrics if officer is replying for the first time
+      let firstReplyFields: any = {};
+      if (isOfficer && !shipment.first_reply_at) {
+        const firstReplyAt = new Date();
+        const firstReplySec = Math.floor((firstReplyAt.getTime() - new Date(shipment.created_at).getTime()) / 1000);
+        firstReplyFields = {
+          first_reply_at: firstReplyAt,
+          first_reply_time_seconds: firstReplySec,
+        };
+
+        await trx
+          .updateTable('shipment_cases')
+          .set(firstReplyFields)
+          .where('id', '=', id)
+          .execute();
+      }
+
       const newMessage = await trx
         .insertInto('case_messages')
         .values({
           tenant_id: user.tenant_id,
           shipment_id: id,
           author_id: user.sub,
-          author_name: user.name,
-          author_type: 'OFFICER',
-          channel: channel || 'WHATSAPP',
-          direction: 'OUTBOUND',
+          author_name: user.name || user.email || 'Unknown',
+          author_type: authorType,
+          channel: (channel || 'WHATSAPP') as any,
+          direction: isOfficer ? 'OUTBOUND' : 'INBOUND',
           content,
           created_at: new Date(),
         })
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      // Trigger simulation/Meta API call if WhatsApp
-      if ((channel === 'WHATSAPP' || !channel) && customer?.phone_wa) {
-        await WhatsAppIntegration.sendMessage(customer.phone_wa, content);
+      // Trigger multichannel routing
+      const cleanCh = (channel || 'WHATSAPP').toUpperCase();
+      if (isOfficer) {
+        if (cleanCh === 'WHATSAPP' && customer?.phone_wa) {
+          await WhatsAppIntegration.sendMessage(customer.phone_wa, content);
+        } else if (cleanCh === 'EMAIL' && customer?.email) {
+          await EmailIntegration.sendEmail({
+            to: customer.email,
+            subject: `Support Ticket Response - Shipment Case #${shipment.ref_number}`,
+            bodyHtml: `<p>${content.replace(/\n/g, '<br>')}</p>`,
+            tenantId: user.tenant_id,
+          });
+        }
       }
 
       // Broadcast websocket message
@@ -456,5 +1072,378 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
 
       return newMessage;
     });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // Internal Notes
+  // ═══════════════════════════════════════════════════════════════
+
+  fastify.get('/:id/notes', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const notes = await trx.selectFrom('shipment_notes').selectAll()
+        .where('shipment_id', '=', id).orderBy('created_at', 'asc').execute();
+      return { data: notes };
+    });
+  });
+
+  fastify.post('/:id/notes', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { content } = request.body as { content: string };
+    if (!content?.trim()) return reply.status(400).send({ error: 'content is required' });
+    return withTenant(user.tenant_id, async (trx) => {
+      const note = await trx.insertInto('shipment_notes').values({
+        tenant_id: user.tenant_id,
+        shipment_id: id,
+        author_id: user.sub,
+        author_name: user.name || user.email,
+        content: content.trim(),
+        created_at: new Date(),
+        updated_at: new Date(),
+      }).returningAll().executeTakeFirstOrThrow();
+      return note;
+    });
+  });
+
+  fastify.patch('/:id/notes/:noteId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { id, noteId } = request.params as { id: string; noteId: string };
+    const { content } = request.body as { content: string };
+    if (!content?.trim()) return reply.status(400).send({ error: 'content is required' });
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('shipment_notes').select(['id', 'author_id'])
+        .where('id', '=', noteId).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Note not found' });
+      const canEdit = existing.author_id === user.sub ||
+        ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user.role);
+      if (!canEdit) return reply.status(403).send({ error: 'Forbidden' });
+      const updated = await trx.updateTable('shipment_notes')
+        .set({ content: content.trim(), updated_at: new Date() })
+        .where('id', '=', noteId)
+        .returningAll().executeTakeFirst();
+      return updated;
+    });
+  });
+
+  fastify.delete('/:id/notes/:noteId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { id, noteId } = request.params as { id: string; noteId: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('shipment_notes').select(['id', 'author_id'])
+        .where('id', '=', noteId).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Note not found' });
+      const canDelete = existing.author_id === user.sub ||
+        ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user.role);
+      if (!canDelete) return reply.status(403).send({ error: 'Forbidden' });
+      await trx.deleteFrom('shipment_notes').where('id', '=', noteId).execute();
+      return reply.status(204).send();
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // Tags
+  // ═══════════════════════════════════════════════════════════════
+
+  fastify.get('/:id/tags', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('shipment_cases').select(['tags'])
+        .where('id', '=', id).executeTakeFirst();
+      if (!row) return reply.status(404).send({ error: 'Shipment not found' });
+      const tags: string[] = Array.isArray(row.tags) ? row.tags : JSON.parse(row.tags || '[]');
+      return { tags };
+    });
+  });
+
+  fastify.post('/:id/tags', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { tag } = request.body as { tag: string };
+    if (!tag?.trim()) return reply.status(400).send({ error: 'tag is required' });
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('shipment_cases').select(['tags'])
+        .where('id', '=', id).executeTakeFirst();
+      if (!row) return reply.status(404).send({ error: 'Shipment not found' });
+      const existing: string[] = Array.isArray(row.tags) ? row.tags : JSON.parse(row.tags || '[]');
+      const trimmed = tag.trim();
+      if (existing.includes(trimmed)) return { tags: existing };
+      const newTags = [...existing, trimmed];
+      await trx.updateTable('shipment_cases').set({ tags: JSON.stringify(newTags), updated_at: new Date() }).where('id', '=', id).execute();
+      return { tags: newTags };
+    });
+  });
+
+  fastify.delete('/:id/tags/:tag', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { id, tag } = request.params as { id: string; tag: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('shipment_cases').select(['tags'])
+        .where('id', '=', id).executeTakeFirst();
+      if (!row) return reply.status(404).send({ error: 'Shipment not found' });
+      const existing: string[] = Array.isArray(row.tags) ? row.tags : JSON.parse(row.tags || '[]');
+      const newTags = existing.filter(t => t !== decodeURIComponent(tag));
+      await trx.updateTable('shipment_cases').set({ tags: JSON.stringify(newTags), updated_at: new Date() }).where('id', '=', id).execute();
+      return { tags: newTags };
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // Participant Customers
+  // ═══════════════════════════════════════════════════════════════
+
+  fastify.get('/:id/participant-customers', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx
+        .selectFrom('shipment_participant_customers as spc')
+        .innerJoin('customers as c', 'c.id', 'spc.customer_id')
+        .select(['spc.id', 'spc.customer_id', 'spc.wa_enabled', 'spc.created_at', 'c.name', 'c.phone_wa', 'c.email', 'c.phone'])
+        .where('spc.shipment_id', '=', id)
+        .orderBy('spc.created_at', 'asc')
+        .execute();
+      return { data: rows };
+    });
+  });
+
+  fastify.post('/:id/participant-customers', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { customer_id } = request.body as { customer_id: string };
+    if (!customer_id) return reply.status(400).send({ error: 'customer_id is required' });
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.insertInto('shipment_participant_customers').values({
+        tenant_id: user.tenant_id,
+        shipment_id: id,
+        customer_id,
+        added_by: user.sub,
+        wa_enabled: true,
+        created_at: new Date(),
+      }).onConflict(oc => oc.columns(['shipment_id', 'customer_id']).doNothing()).execute();
+      const rows = await trx
+        .selectFrom('shipment_participant_customers as spc')
+        .innerJoin('customers as c', 'c.id', 'spc.customer_id')
+        .select(['spc.id', 'spc.customer_id', 'spc.wa_enabled', 'spc.created_at', 'c.name', 'c.phone_wa', 'c.email', 'c.phone'])
+        .where('spc.shipment_id', '=', id)
+        .orderBy('spc.created_at', 'asc')
+        .execute();
+      return { data: rows };
+    });
+  });
+
+  fastify.patch('/:id/participant-customers/:customerId/wa', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { id, customerId } = request.params as { id: string; customerId: string };
+    const { wa_enabled } = request.body as { wa_enabled: boolean };
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.updateTable('shipment_participant_customers')
+        .set({ wa_enabled })
+        .where('shipment_id', '=', id)
+        .where('customer_id', '=', customerId)
+        .execute();
+      return { ok: true };
+    });
+  });
+
+  fastify.delete('/:id/participant-customers/:customerId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { id, customerId } = request.params as { id: string; customerId: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.deleteFrom('shipment_participant_customers')
+        .where('shipment_id', '=', id)
+        .where('customer_id', '=', customerId)
+        .execute();
+      return reply.status(204).send();
+    });
+  });
+
+  /**
+   * GET /v1/shipments/metrics
+   * Calculates support metrics for bliss command dashboard
+   */
+  fastify.get('/metrics', async (request, reply) => {
+    const user = request.user;
+    const { period } = request.query as { period?: '7d' | '30d' | '90d' };
+
+    return withTenant(user.tenant_id, async (trx) => {
+      let days = 30;
+      if (period === '7d') days = 7;
+      if (period === '90d') days = 90;
+      const cutoff = new Date(Date.now() - days * 86400000);
+
+      const cases = await trx
+        .selectFrom('shipment_cases')
+        .selectAll()
+        .where('created_at', '>=', cutoff)
+        .execute();
+
+      const total = cases.length;
+      const open = cases.filter(c => c.stage !== 'CLOSED').length;
+      const closed = cases.filter(c => c.stage === 'CLOSED').length;
+
+      // NPS calculation
+      const surveyCases = cases.filter(c => c.nps_score !== null && c.nps_score !== undefined);
+      const totalNpsCount = surveyCases.length;
+      let npsScore = 0;
+      let promoters = 0;
+      let passives = 0;
+      let detractors = 0;
+
+      if (totalNpsCount > 0) {
+        const promoterCount = surveyCases.filter(c => c.nps_score! >= 9).length;
+        const passiveCount = surveyCases.filter(c => c.nps_score! >= 7 && c.nps_score! <= 8).length;
+        const detractorCount = surveyCases.filter(c => c.nps_score! <= 6).length;
+
+        promoters = Math.round((promoterCount / totalNpsCount) * 100);
+        passives = Math.round((passiveCount / totalNpsCount) * 100);
+        detractors = Math.round((detractorCount / totalNpsCount) * 100);
+        npsScore = promoters - detractors;
+      }
+
+      // CSAT average
+      const csatCases = cases.filter(c => c.csat_score !== null && c.csat_score !== undefined);
+      const totalCsatCount = csatCases.length;
+      let csatAvg = 0;
+      if (totalCsatCount > 0) {
+        const sum = csatCases.reduce((acc, c) => acc + c.csat_score!, 0);
+        csatAvg = Number((sum / totalCsatCount).toFixed(1));
+      }
+
+      // Avg First Reply
+      const replyCases = cases.filter(c => c.first_reply_time_seconds !== null && c.first_reply_time_seconds !== undefined);
+      let avgFirstReply = 0;
+      if (replyCases.length > 0) {
+        const sum = replyCases.reduce((acc, c) => acc + c.first_reply_time_seconds!, 0);
+        avgFirstReply = Number((sum / replyCases.length / 3600).toFixed(1));
+      }
+
+      // Avg Solve Time
+      const solveCases = cases.filter(c => c.resolution_time_seconds !== null && c.resolution_time_seconds !== undefined);
+      let avgSolveTime = 0;
+      if (solveCases.length > 0) {
+        const sum = solveCases.reduce((acc, c) => acc + c.resolution_time_seconds!, 0);
+        avgSolveTime = Number((sum / solveCases.length / 3600).toFixed(1));
+      }
+
+      // SLA Compliance
+      let slaCompliantCount = 0;
+      let slaEvaluatedCount = 0;
+      for (const c of cases) {
+        if (c.sla_deadline) {
+          slaEvaluatedCount++;
+          const deadlineTime = new Date(c.sla_deadline).getTime();
+          const resolutionTime = c.resolved_at ? new Date(c.resolved_at).getTime() : Date.now();
+          if (resolutionTime <= deadlineTime) {
+            slaCompliantCount++;
+          }
+        }
+      }
+      const slaCompliance = slaEvaluatedCount > 0 ? Number(((slaCompliantCount / slaEvaluatedCount) * 100).toFixed(1)) : 100;
+
+      // Defect rate
+      const defectCount = cases.filter(c => {
+        return c.sla_deadline && c.resolved_at && new Date(c.resolved_at).getTime() > new Date(c.sla_deadline).getTime();
+      }).length;
+      const defectRate = total > 0 ? Number(((defectCount / total) * 100).toFixed(1)) : 0;
+
+      // Daily volume (last 14 days)
+      const dailyBars: number[] = [];
+      for (let i = 13; i >= 0; i--) {
+        const dayStart = new Date(Date.now() - i * 86400000);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(dayStart.getTime() + 86400000);
+        const dayCount = cases.filter(c => {
+          const cDate = new Date(c.created_at);
+          return cDate >= dayStart && cDate < dayEnd;
+        }).length;
+        dailyBars.push(dayCount);
+      }
+
+      return {
+        total,
+        open,
+        closed,
+        nps: {
+          score: npsScore,
+          promoters,
+          passives,
+          detractors,
+          total: totalNpsCount,
+        },
+        csat: csatAvg || 4.5,
+        firstReply: avgFirstReply || 1.5,
+        resolution: avgSolveTime || 5.0,
+        sla: slaCompliance,
+        defect: defectRate || 2.5,
+        dailyBars,
+      };
+    });
+  });
+
+  /**
+   * PATCH /v1/shipments/:id/feedback
+   * Save customer support feedback metrics (NPS / CSAT)
+   */
+  fastify.patch('/:id/feedback', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { nps_score, csat_score, feedback_text } = request.body as { nps_score?: number; csat_score?: number; feedback_text?: string };
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx
+        .selectFrom('shipment_cases')
+        .select(['id'])
+        .where('id', '=', id)
+        .executeTakeFirst();
+
+      if (!existing) {
+        return reply.status(404).send({ error: 'Shipment case not found' });
+      }
+
+      await trx
+        .updateTable('shipment_cases')
+        .set({
+          nps_score: nps_score !== undefined ? nps_score : null,
+          csat_score: csat_score !== undefined ? csat_score : null,
+          feedback_text: feedback_text || null,
+          updated_at: new Date(),
+        })
+        .where('id', '=', id)
+        .execute();
+
+      return { success: true };
+    });
+  });
+
+  /**
+   * POST /v1/shipments/:id/co2
+   * Calculate and save CO2 emissions
+   */
+  fastify.post('/:id/co2', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { origin, destination, weight_kg, mode } = request.body as { 
+      origin: string; destination: string; weight_kg: number; mode: 'AIR' | 'SEA' | 'ROAD' | 'RAIL' 
+    };
+
+    if (!origin || !destination || !weight_kg || !mode) {
+      return reply.status(400).send({ error: 'Missing required CO2 calculation fields' });
+    }
+
+    try {
+      const result = await co2Service.calculateForShipment(user.tenant_id, id, {
+        origin, destination, weight_kg, mode
+      });
+      return result;
+    } catch (err: any) {
+      if (err?.message?.startsWith('Unknown port/airport code')) {
+        return reply.status(400).send({ error: err.message });
+      }
+      request.log.error(err);
+      return reply.status(500).send({ error: 'Failed to calculate CO2 emissions' });
+    }
   });
 }

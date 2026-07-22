@@ -1,0 +1,826 @@
+/* ══════════════════════════════════════════════════
+   AppHeader — slim 57px strip (matches sidebar brand)
+══════════════════════════════════════════════════ */
+
+/* ── Header shell ── */
+.app-header {
+  height: 57px;
+  min-height: 57px;
+  background: var(--white);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.09);
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 10;
+}
+
+/* ── Inner wrapper — constrained in boxed mode ── */
+.app-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 16px;
+  width: 100%;
+  max-width: 1380px;
+  margin: 0 auto;
+  transition: max-width 0.25s ease;
+}
+
+[data-layout="full"] .app-header-inner {
+  max-width: 100%;
+}
+
+/* ── Search bar (kept for reference, now hidden) ── */
+.app-header-search-kbd {
+  font-size: 11px;
+  color: var(--ink3);
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 6px;
+  border-radius: 5px;
+  font-family: var(--mono);
+  flex-shrink: 0;
+}
+
+/* ── Right actions row ── */
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Relative wrapper for dropdowns ── */
+.app-header-rel {
+  position: relative;
+}
+
+/* ── Icon buttons (36×36 rounded square) ── */
+.app-header-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink2);
+  transition: background 0.12s;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.app-header-icon-btn:hover {
+  background: var(--bg);
+}
+
+.app-header-icon-btn--active {
+  background: var(--teal-l);
+  color: var(--teal);
+}
+
+.app-header-icon-btn--open {
+  background: var(--bg);
+}
+
+/* ── Hamburger (mobile only) ── */
+.app-header-hamburger {
+  display: none;
+}
+
+/* ── Clock dot (green, shown when checked in) ── */
+.app-header-clock-dot {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #16a34a;
+  border: 1.5px solid var(--white);
+}
+
+/* ── Notification badge ── */
+.app-header-badge {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  background: var(--red);
+  border: 2px solid var(--white);
+  font-size: 9px;
+  font-weight: 700;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  font-family: var(--font);
+  pointer-events: none;
+}
+
+/* ── User avatar circle ── */
+.app-header-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--avatar-color, #64748b);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  flex-shrink: 0;
+  font-family: var(--font);
+  transition: opacity 0.12s;
+}
+
+.app-header-avatar:hover {
+  opacity: 0.88;
+}
+
+/* ── Dropdown panels (shared base) ── */
+.app-header-user-dropdown,
+.app-header-launcher,
+.app-header-clock-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--white);
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  z-index: 300;
+}
+
+/* ── User dropdown ── */
+.app-header-user-dropdown {
+  width: 220px;
+  overflow: hidden;
+}
+
+.app-header-user-info {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.app-header-user-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: var(--font);
+}
+
+.app-header-user-email {
+  font-size: 12px;
+  color: var(--ink3);
+  font-family: var(--font);
+}
+
+.app-header-user-role {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink3);
+  font-family: var(--font);
+  margin-top: 2px;
+}
+
+.app-header-user-actions {
+  padding: 6px;
+}
+
+.app-header-user-action {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13.5px;
+  color: var(--ink2);
+  font-family: var(--font);
+  text-decoration: none;
+  border-radius: 7px;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.app-header-user-action:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.app-header-user-action--signout:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* ── Brand left section ── */
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  margin-right: 16px;
+  text-decoration: none;
+}
+
+.app-header-brand-img {
+  height: 48px;
+  max-width: 180px;
+  object-fit: contain;
+}
+
+.app-header-brand-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-header-brand-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2px;
+  width: 18px;
+  height: 18px;
+}
+
+.app-header-brand-sq {
+  border-radius: 1.5px;
+}
+
+.app-header-brand-sq--r { background: #ea4335; }
+.app-header-brand-sq--b { background: #4285f4; }
+.app-header-brand-sq--y { background: #fbbc05; }
+.app-header-brand-sq--g { background: #34a853; }
+
+.app-header-brand-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1f1f1f;
+  letter-spacing: -0.5px;
+  font-family: var(--font);
+}
+
+[data-theme="dark"] .app-header-brand-name {
+  color: #e3e3e3;
+}
+
+.app-header-brand-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  font-family: var(--mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: var(--teal-l);
+  color: var(--teal);
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Clock dropdown ── */
+.app-header-clock-dropdown {
+  width: 200px;
+  padding: 10px;
+}
+
+.app-header-clock-task {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 6px 10px;
+  font-size: 13px;
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+
+.app-header-clock-action {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--ink2);
+  font-family: var(--font);
+  border-radius: 6px;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.app-header-clock-action:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* ── AI Search overlay ── */
+.app-header-search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px;
+}
+
+.app-header-search-modal {
+  width: 100%;
+  max-width: 580px;
+  background: var(--white);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.app-header-search-modal-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+  height: 52px;
+}
+
+.app-header-search-modal-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 15px;
+  color: var(--ink);
+  font-family: var(--font);
+}
+
+.app-header-search-modal-input::placeholder {
+  color: var(--ink3);
+}
+
+.app-header-search-modal-close {
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink3);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-family: var(--mono);
+  flex-shrink: 0;
+}
+
+.app-header-search-modal-close:hover {
+  background: var(--border);
+}
+
+/* ── Dark mode ── */
+[data-theme="dark"] .app-header {
+  background: #111218;
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .app-header-search {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .app-header-search:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: none;
+}
+
+[data-theme="dark"] .app-header-search-text {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] .app-header-search-kbd {
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.35);
+}
+
+[data-theme="dark"] .app-header-icon-btn {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="dark"] .app-header-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+
+[data-theme="dark"] .app-header-icon-btn--active {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+[data-theme="dark"] .app-header-user-dropdown,
+[data-theme="dark"] .app-header-clock-dropdown {
+  background: #1a1d26;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="dark"] .app-header-user-info {
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+[data-theme="dark"] .app-header-user-action {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+[data-theme="dark"] .app-header-user-action:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+
+[data-theme="dark"] .app-header-user-action--signout:hover {
+  background: rgba(220, 38, 38, 0.18);
+  color: #f87171;
+}
+
+
+[data-theme="dark"] .app-header-clock-action {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+[data-theme="dark"] .app-header-clock-action:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: #fff;
+}
+
+[data-theme="dark"] .app-header-clock-task {
+  border-bottom-color: rgba(255, 255, 255, 0.07);
+}
+
+[data-theme="dark"] .app-header-search-overlay {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .app-header-search-modal {
+  background: #1a1d26;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="dark"] .app-header-search-modal-input {
+  color: #fff;
+}
+
+[data-theme="dark"] .app-header-search-modal-close {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="dark"] .app-header-badge {
+  border-color: #111218;
+}
+
+[data-theme="dark"] .app-header-user-name {
+  color: #fff;
+}
+
+[data-theme="dark"] .app-header-user-email,
+[data-theme="dark"] .app-header-user-role {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+/* ── Hub layout — 3-column grid: brand | search | actions ──
+   The header sits above .app-shell-content, so its own 24px gutter
+   (AppSidebar.css) never applies here — it has to be replicated by hand.
+   Body content is inset by that 24px shell gutter *plus* .wh-new-container's
+   own 40px padding (64px total); matching that here lines up the brand logo
+   and the right-side action icons with the page body's left/right edges. */
+.app-header-inner--hub {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 0 64px;
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-header-inner--hub .app-header-left {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.app-header-inner--hub .app-header-actions {
+  justify-self: end;
+}
+
+/* Hub search now lives in a flexible (1fr) middle column, so it fills the
+   remaining space between the brand logo and the action icons instead of
+   sitting at a small fixed width. Capped so it doesn't stretch edge-to-edge
+   on very wide screens. */
+.app-header-inner--hub .app-header-hub-search {
+  width: 100%;
+  max-width: 640px;
+  height: 40px;
+  margin: 0 auto;
+}
+
+.app-header-inner--hub .app-header-hub-search:focus-within {
+  width: 100%;
+}
+
+/* ── App layout — left-anchored search: hamburger | search→ | actions ── */
+.app-header-inner--app {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-header-inner--app .app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.app-header-inner--app .app-header-actions {
+  justify-self: end;
+}
+
+/* Search anchored at left, expands rightward on focus — no jump */
+.app-header-inner--app .app-header-hub-search {
+  width: 260px;
+  max-width: 100%;
+  justify-self: start;
+}
+
+.app-header-inner--app .app-header-hub-search:focus-within {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* ── Mobile app name (hidden on desktop) ── */
+.app-header-mobile-name {
+  display: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: var(--font);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 769px) {
+  .app-header-mobile-name--visible-desktop {
+    display: block;
+    margin-left: 4px;
+  }
+}
+
+/* ── App icon shown in the header once the sidebar collapses to a rail —
+   restores the identity the sidebar's own (now icon-only) brand header
+   loses its label for. Desktop only; mobile already shows this via the
+   hamburger button. Click re-expands the sidebar. ── */
+.app-header-collapsed-app-icon {
+  display: none;
+}
+
+@media (min-width: 769px) {
+  .app-header-collapsed-app-icon {
+    display: flex;
+    width: 30px;
+    height: 30px;
+  }
+
+  .app-header-collapsed-app-icon .app-lnch-svg-icon {
+    border-radius: 7px;
+  }
+}
+
+/* ── Hub center search ── */
+.app-header-hub-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 22px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--ink3);
+  width: 220px;
+  max-width: 480px;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.15s ease,
+              box-shadow 0.15s ease,
+              background 0.15s ease;
+}
+
+.app-header-hub-search:focus-within {
+  width: 380px;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+  background: var(--white);
+  color: var(--ink);
+}
+
+.app-header-hub-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  font-family: var(--font);
+  color: var(--ink);
+  min-width: 0;
+}
+
+.app-header-hub-search-input::placeholder {
+  color: var(--ink3);
+}
+
+.app-header-hub-search-clear {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink3);
+  font-size: 11px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  line-height: 1;
+  transition: color 0.1s;
+}
+
+.app-header-hub-search-clear:hover {
+  color: var(--ink);
+}
+
+/* ── Dark mode — hub search ── */
+[data-theme="dark"] .app-header-hub-search {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.35);
+}
+
+[data-theme="dark"] .app-header-hub-search:focus-within {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme="dark"] .app-header-hub-search-input {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme="dark"] .app-header-hub-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="dark"] .app-header-hub-search-clear {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+[data-theme="dark"] .app-header-hub-search-clear:hover {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ── App context indicator (desktop, non-hub) ── */
+.app-header-app-ctx {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+  padding: 4px 10px 4px 4px;
+  border-radius: 10px;
+  transition: background 0.12s;
+  cursor: default;
+}
+
+.app-header-app-ctx-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.app-header-app-ctx-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+}
+
+.app-header-app-ctx-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  font-family: var(--font);
+  white-space: nowrap;
+}
+
+.app-header-app-ctx-sub {
+  font-size: 10.5px;
+  color: var(--ink3);
+  font-family: var(--font);
+  white-space: nowrap;
+}
+
+/* ── AppSidebar brand logo image (custom logo override) ── */
+.app-sb-brand-logo-img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+  display: block;
+}
+
+/* ── Mobile (<768px) ── */
+@media (max-width: 767px) {
+  .app-header-app-ctx {
+    display: none;
+  }
+
+  .app-header-hamburger {
+    display: flex;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  /* App icon in mobile hamburger — rounded square, no extra padding */
+  .app-header-hamburger .app-lnch-svg-icon {
+    border-radius: 8px;
+  }
+
+  .app-header-search {
+    max-width: none;
+    flex: 1;
+  }
+
+  .app-header-search-kbd {
+    display: none;
+  }
+
+  /* Hub: collapse to auto | search | actions */
+  .app-header-inner--hub {
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+  }
+
+  /* Hub search: fill full width */
+  .app-header-inner--hub .app-header-hub-search {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .app-header-inner--hub .app-header-hub-search:focus-within {
+    width: 100%;
+  }
+
+  /* App mode: search fills full center column */
+  .app-header-inner--app .app-header-hub-search {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Show app name on mobile */
+  .app-header-mobile-name {
+    display: inline-block;
+  }
+
+  /* Hide layout toggle on mobile to save space */
+  .app-header-layout-toggle {
+    display: none;
+  }
+}

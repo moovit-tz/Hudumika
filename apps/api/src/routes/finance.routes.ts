@@ -1,11 +1,13 @@
+import { requireAppEnabled } from '../middleware/appGate.js';
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { FinanceService } from '../services/finance.service.js';
 import { requireRole } from '../middleware/rbac.js';
-import type { RecordExpenseInput } from '@clearos/types';
+import type { RecordExpenseInput } from '@hudumika/types';
 
 export async function financeRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', requireAppEnabled('finops'));
 
   /**
    * GET /v1/shipments/:id/pnl

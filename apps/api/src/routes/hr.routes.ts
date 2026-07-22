@@ -1,9 +1,18 @@
+import { requireAppEnabled } from '../middleware/appGate.js';
 import type { FastifyInstance } from 'fastify';
+import crypto from 'crypto';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { EmailIntegration } from '../integrations/email.js';
+import { env } from '../config/env.js';
+
+async function logActivity(trx: any, tenantId: string, userId: string | null, action: string, module = 'HR') {
+  await trx.insertInto('hr_activity_log').values({ tenant_id: tenantId, user_id: userId, action, module }).execute();
+}
 
 export async function hrRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', requireAppEnabled('onepi'));
 
   // ── Departments ───────────────────────────────────────────────
 
@@ -14,7 +23,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
         .selectFrom('hr_departments as d')
         .leftJoin('users as u', 'u.id', 'd.head_user_id')
         .select([
-          'd.id', 'd.name', 'd.status', 'd.created_at',
+          'd.id', 'd.name', 'd.status', 'd.created_at', 'd.head_user_id',
           'u.name as head_name',
         ])
         .where('d.tenant_id', '=', user.tenant_id)
@@ -71,7 +80,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       return trx.selectFrom('hr_designations as d')
         .leftJoin('hr_departments as dept', 'dept.id', 'd.department_id')
-        .select(['d.id', 'd.title', 'd.created_at', 'dept.name as department_name'])
+        .select(['d.id', 'd.title', 'd.department_id', 'd.created_at', 'dept.name as department_name'])
         .where('d.tenant_id', '=', user.tenant_id)
         .orderBy('d.title')
         .execute();
@@ -87,6 +96,20 @@ export async function hrRoutes(fastify: FastifyInstance) {
         title: body.title,
         department_id: body.department_id || null,
       }).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  fastify.patch('/designations/:id', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    const body = req.body as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const allowed: Record<string, any> = {};
+      if (body.title         !== undefined) allowed.title         = body.title;
+      if (body.department_id !== undefined) allowed.department_id = body.department_id || null;
+      return trx.updateTable('hr_designations').set(allowed)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirstOrThrow();
     });
   });
 
@@ -317,13 +340,15 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const { id } = req.params as any;
     const body = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.updateTable('hr_leaves').set({
+      const updated = await trx.updateTable('hr_leaves').set({
         status: body.status,
         approved_by: body.status === 'APPROVED' ? user.sub : null,
         approved_at: body.status === 'APPROVED' ? new Date() : null,
         updated_at: new Date(),
       }).where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow();
+      await logActivity(trx, user.tenant_id, user.sub, `${body.status === 'APPROVED' ? 'Approved' : body.status === 'REJECTED' ? 'Rejected' : 'Updated'} leave request (${updated.type})`);
+      return updated;
     });
   });
 
@@ -394,9 +419,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
       if (body.basic_pay  !== undefined) upd.basic_pay  = Number(body.basic_pay);
       if (body.allowances !== undefined) upd.allowances = Number(body.allowances);
       if (body.deductions !== undefined) upd.deductions = Number(body.deductions);
-      return trx.updateTable('hr_payroll').set(upd)
+      const updated = await trx.updateTable('hr_payroll').set(upd)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow();
+      if (body.status !== undefined) await logActivity(trx, user.tenant_id, user.sub, `Marked payroll ${body.status.toLowerCase()} for ${updated.period_month}/${updated.period_year}`);
+      return updated;
     });
   });
 
@@ -813,10 +840,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const { id } = req.params as any;
     const { role } = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.updateTable('users').set({ role, updated_at: new Date() })
+      const updated = await trx.updateTable('users').set({ role, updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returning(['id', 'name', 'email', 'role'])
         .executeTakeFirstOrThrow();
+      await logActivity(trx, user.tenant_id, user.sub, `Changed role for ${updated.name} to ${role}`);
+      return updated;
     });
   });
 
@@ -825,10 +854,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const { id } = req.params as any;
     const { active } = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.updateTable('users').set({ active, updated_at: new Date() })
+      const updated = await trx.updateTable('users').set({ active, updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returning(['id', 'name', 'active'])
         .executeTakeFirstOrThrow();
+      await logActivity(trx, user.tenant_id, user.sub, `${active ? 'Reactivated' : 'Deactivated'} staff member ${updated.name}`);
+      return updated;
     });
   });
 
@@ -955,6 +986,232 @@ export async function hrRoutes(fastify: FastifyInstance) {
         },
         fetched_at: new Date().toISOString(),
       };
+    });
+  });
+
+  // ── Teams ─────────────────────────────────────────────────────
+
+  fastify.get('/teams', async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const teams = await trx.selectFrom('hr_teams as t')
+        .leftJoin('users as u', 'u.id', 't.lead_user_id')
+        .select(['t.id', 't.name', 't.lead_user_id', 'u.name as lead_name', 't.created_at'])
+        .where('t.tenant_id', '=', user.tenant_id)
+        .orderBy('t.name')
+        .execute();
+      const members = await trx.selectFrom('hr_team_members as m')
+        .innerJoin('users as u', 'u.id', 'm.user_id')
+        .select(['m.team_id', 'm.user_id', 'u.name as user_name'])
+        .execute();
+      return teams.map(t => ({ ...t, members: members.filter(m => m.team_id === t.id) }));
+    });
+  });
+
+  fastify.post('/teams', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const body = req.body as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const team = await trx.insertInto('hr_teams').values({
+        tenant_id: user.tenant_id, name: body.name, lead_user_id: body.lead_user_id || null,
+      }).returningAll().executeTakeFirstOrThrow();
+      await logActivity(trx, user.tenant_id, user.sub, `Created team ${team.name}`);
+      return team;
+    });
+  });
+
+  fastify.post('/teams/:id/members', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    const { user_id } = req.body as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const team = await trx.selectFrom('hr_teams').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!team) throw Object.assign(new Error('Team not found'), { statusCode: 404 });
+      return trx.insertInto('hr_team_members').values({ team_id: id, user_id })
+        .onConflict(oc => oc.columns(['team_id', 'user_id']).doNothing())
+        .returningAll().executeTakeFirst();
+    });
+  });
+
+  fastify.delete('/teams/:id/members/:userId', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const { id, userId } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const team = await trx.selectFrom('hr_teams').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!team) throw Object.assign(new Error('Team not found'), { statusCode: 404 });
+      await trx.deleteFrom('hr_team_members').where('team_id', '=', id).where('user_id', '=', userId).execute();
+      return { ok: true };
+    });
+  });
+
+  // ── Invitations ───────────────────────────────────────────────
+
+  fastify.get('/invitations', async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      return trx.selectFrom('hr_invitations as i')
+        .leftJoin('users as u', 'u.id', 'i.invited_by')
+        .select(['i.id', 'i.email', 'i.role', 'i.status', 'i.expires_at', 'i.created_at', 'u.name as invited_by_name'])
+        .where('i.tenant_id', '=', user.tenant_id)
+        .orderBy('i.created_at', 'desc')
+        .execute();
+    });
+  });
+
+  fastify.post('/invitations', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const body = req.body as { email: string; role: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const token = crypto.randomBytes(24).toString('hex');
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const invite = await trx.insertInto('hr_invitations').values({
+        tenant_id: user.tenant_id, email: body.email, role: body.role,
+        token, invited_by: user.sub, expires_at: expiresAt,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const acceptUrl = `${env.OPS_BOARD_URL}/accept-invite?token=${token}`;
+      await EmailIntegration.sendEmail({
+        to: body.email,
+        subject: "You're invited to join Hudumika",
+        bodyHtml: `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+          <p>You've been invited to join Hudumika as <strong>${body.role}</strong>.</p>
+          <p><a href="${acceptUrl}">Accept the invitation</a> to set up your account. This link expires in 7 days.</p>
+        </div>`,
+        tenantId: user.tenant_id,
+      }).catch(() => { /* invite row exists regardless; resend is available */ });
+
+      await logActivity(trx, user.tenant_id, user.sub, `Invited ${body.email} as ${body.role}`);
+      return invite;
+    });
+  });
+
+  fastify.post('/invitations/:id/resend', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      const invite = await trx.selectFrom('hr_invitations').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!invite) throw Object.assign(new Error('Invitation not found'), { statusCode: 404 });
+      const acceptUrl = `${env.OPS_BOARD_URL}/accept-invite?token=${invite.token}`;
+      await EmailIntegration.sendEmail({
+        to: invite.email,
+        subject: "Reminder: you're invited to join Hudumika",
+        bodyHtml: `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+          <p><a href="${acceptUrl}">Accept the invitation</a> to set up your account.</p>
+        </div>`,
+        tenantId: user.tenant_id,
+      }).catch(() => {});
+      return { ok: true };
+    });
+  });
+
+  fastify.delete('/invitations/:id', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.updateTable('hr_invitations').set({ status: 'REVOKED' })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+      return { ok: true };
+    });
+  });
+
+  // ── Delete Requests ───────────────────────────────────────────
+
+  fastify.get('/delete-requests', async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      return trx.selectFrom('hr_delete_requests as d')
+        .innerJoin('users as u', 'u.id', 'd.user_id')
+        .leftJoin('users as r', 'r.id', 'd.requested_by')
+        .select(['d.id', 'd.reason', 'd.status', 'd.created_at', 'u.name as user_name', 'u.email as user_email', 'r.name as requested_by_name'])
+        .where('d.tenant_id', '=', user.tenant_id)
+        .orderBy('d.created_at', 'desc')
+        .execute();
+    });
+  });
+
+  fastify.post('/delete-requests', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const body = req.body as { user_id: string; reason?: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      return trx.insertInto('hr_delete_requests').values({
+        tenant_id: user.tenant_id, user_id: body.user_id, requested_by: user.sub, reason: body.reason || null,
+      }).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  fastify.patch('/delete-requests/:id', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    const { status } = req.body as { status: 'APPROVED' | 'REJECTED' };
+    return withTenant(user.tenant_id, async (trx) => {
+      const reqRow = await trx.selectFrom('hr_delete_requests').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!reqRow) throw Object.assign(new Error('Delete request not found'), { statusCode: 404 });
+
+      const updated = await trx.updateTable('hr_delete_requests').set({
+        status, decided_by: user.sub, decided_at: new Date(),
+      }).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+
+      if (status === 'APPROVED') {
+        await trx.updateTable('users').set({ active: false, updated_at: new Date() })
+          .where('id', '=', reqRow.user_id).where('tenant_id', '=', user.tenant_id).execute();
+      }
+      await logActivity(trx, user.tenant_id, user.sub, `${status === 'APPROVED' ? 'Approved' : 'Rejected'} delete request for user ${reqRow.user_id}`);
+      return updated;
+    });
+  });
+
+  // ── Login History & Devices ───────────────────────────────────
+
+  fastify.get('/login-history', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      return trx.selectFrom('hr_login_history as l')
+        .innerJoin('users as u', 'u.id', 'l.user_id')
+        .select(['l.id', 'l.ip', 'l.user_agent', 'l.status', 'l.created_at', 'u.name as user_name'])
+        .where('l.tenant_id', '=', user.tenant_id)
+        .orderBy('l.created_at', 'desc')
+        .limit(200)
+        .execute();
+    });
+  });
+
+  fastify.get('/devices', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      return trx.selectFrom('hr_devices as d')
+        .innerJoin('users as u', 'u.id', 'd.user_id')
+        .select(['d.id', 'd.device_label', 'd.device_type', 'd.trusted', 'd.last_used_at', 'u.name as user_name'])
+        .where('d.tenant_id', '=', user.tenant_id)
+        .orderBy('d.last_used_at', 'desc')
+        .execute();
+    });
+  });
+
+  fastify.patch('/devices/:id', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    const { trusted } = req.body as { trusted: boolean };
+    return withTenant(user.tenant_id, async (trx) => {
+      return trx.updateTable('hr_devices').set({ trusted })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  // ── Activity Log ──────────────────────────────────────────────
+
+  fastify.get('/activity-log', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      return trx.selectFrom('hr_activity_log as a')
+        .leftJoin('users as u', 'u.id', 'a.user_id')
+        .select(['a.id', 'a.action', 'a.module', 'a.created_at', 'u.name as user_name'])
+        .where('a.tenant_id', '=', user.tenant_id)
+        .orderBy('a.created_at', 'desc')
+        .limit(200)
+        .execute();
     });
   });
 }

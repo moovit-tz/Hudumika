@@ -1,9 +1,9 @@
-﻿import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
+import './SuperAdmin.css';
 
 /* ══════════════════════════════════════════════════
    TYPES
@@ -116,39 +116,6 @@ const TRANSACTIONS: Transaction[] = [
   { id:'T12', txRef:'TXN-2025-0131', companyId:'C4', plan:'enterprise',   amount:3990, date:'2024-12-01', method:'bank',   status:'completed' },
 ];
 
-const ROLE_CFG: Record<UserRole,{label:string;color:string;bg:string}> = {
-  ADMIN:        { label:'Admin',    color:'#0d7a6b', bg:'#ccfbf1' },
-  TENANT_ADMIN: { label:'Admin',    color:'#0d7a6b', bg:'#ccfbf1' },
-  MANAGER:      { label:'Manager',  color:'#7c3aed', bg:'#ede9fe' },
-  FINANCE:      { label:'Finance',  color:'#d97706', bg:'#fef3c7' },
-  SALES:        { label:'Sales',    color:'#0891b2', bg:'#ecfeff' },
-  SENIOR:       { label:'Senior',   color:'#1a7f37', bg:'#dcfce7' },
-  JUNIOR:       { label:'Junior',   color:'#6e40c9', bg:'#f3e8ff' },
-  OFFICER:      { label:'Junior',   color:'#6e40c9', bg:'#f3e8ff' },
-  CUSTOMER:     { label:'Customer', color:'#6b7280', bg:'#f3f4f6' },
-};
-const SUSTATUS_CFG: Record<SAUserStatus,{label:string;color:string;bg:string}> = {
-  active:    { label:'Active',    color:'#16a34a', bg:'#dcfce7' },
-  inactive:  { label:'Inactive',  color:'#6b7280', bg:'#f3f4f6' },
-  suspended: { label:'Suspended', color:'#ef4444', bg:'#fef2f2' },
-};
-
-const MOCK_USERS: SAUser[] = [
-  { id:'U1',  name:'Amina Hassan',      email:'admin@summit.co.tz',       role:'ADMIN',    companyId:'C1', status:'active',    lastLogin:'2026-06-14T09:23:00', phone:'+255 712 345 678' },
-  { id:'U2',  name:'James Okello',      email:'james@summit.co.tz',       role:'MANAGER',  companyId:'C1', status:'active',    lastLogin:'2026-06-13T14:10:00' },
-  { id:'U3',  name:'Grace Wanjiku',     email:'grace@summit.co.tz',       role:'FINANCE',  companyId:'C1', status:'active',    lastLogin:'2026-06-12T08:45:00' },
-  { id:'U4',  name:'Baraka Kimweri',    email:'baraka@summit.co.tz',      role:'SALES',    companyId:'C1', status:'active',    lastLogin:'2026-06-14T08:10:00' },
-  { id:'U5',  name:'Fredrick Msemwa',   email:'senior@summit.co.tz',      role:'SENIOR',   companyId:'C1', status:'active',    lastLogin:'2026-06-14T07:30:00' },
-  { id:'U6',  name:'John Mwangi',       email:'info@serengeti.co.tz',     role:'ADMIN',    companyId:'C2', status:'active',    lastLogin:'2026-06-14T11:00:00', phone:'+255 754 987 321' },
-  { id:'U7',  name:'Peter Njoroge',     email:'peter@serengeti.co.tz',    role:'JUNIOR',   companyId:'C2', status:'inactive',  lastLogin:'2026-05-20T16:30:00' },
-  { id:'U8',  name:'Grace Osei',        email:'ops@karibu.co.tz',         role:'ADMIN',    companyId:'C3', status:'active',    lastLogin:'2026-06-10T10:15:00', phone:'+255 767 111 222' },
-  { id:'U9',  name:'Peter Kimani',      email:'admin@eal.co.tz',          role:'ADMIN',    companyId:'C4', status:'active',    lastLogin:'2026-06-14T07:55:00', phone:'+255 788 456 789' },
-  { id:'U10', name:'Susan Achieng',     email:'susan@eal.co.tz',          role:'MANAGER',  companyId:'C4', status:'active',    lastLogin:'2026-06-13T13:40:00' },
-  { id:'U11', name:'Brian Otieno',      email:'brian@eal.co.tz',          role:'JUNIOR',   companyId:'C4', status:'suspended', lastLogin:'2026-04-01T09:00:00' },
-  { id:'U12', name:'Fatuma Ally',       email:'info@kilimining.co.tz',    role:'ADMIN',    companyId:'C5', status:'active',    lastLogin:'2026-06-13T15:20:00', phone:'+255 745 333 444' },
-  { id:'U13', name:'David Odhiambo',    email:'ops@darport.co.tz',        role:'ADMIN',    companyId:'C6', status:'inactive',  lastLogin:'2026-03-12T09:10:00', phone:'+255 712 999 888' },
-  { id:'U14', name:'Beatrice Njoroge',  email:'info@coastal.co.tz',       role:'ADMIN',    companyId:'C8', status:'suspended', lastLogin:'2026-01-05T11:00:00', phone:'+255 754 555 444' },
-];
 
 const ACT_CFG: Record<ActivityType,{color:string;icon:string}> = {
   company: { color:'#3b82f6', icon:'building'   },
@@ -177,7 +144,6 @@ const MOCK_ACTIVITY: ActivityLog[] = [
 ══════════════════════════════════════════════════ */
 function fmtCurrency(n: number) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 }); }
 function fmtDate(d: string) { return new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); }
-function initials(n: string) { return n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
 const AV_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#1a7f37','#9a6700','#cf222e','#d05c30','#0e7490'];
 function avColor(n: string) { return AV_COLORS[n.charCodeAt(0) % AV_COLORS.length]; }
 function coByID(id: string) { return COMPANIES.find(c=>c.id===id)!; }
@@ -188,10 +154,12 @@ function Badge({ cfg }: { cfg:{label:string;color:string;bg:string} }) {
 }
 
 /* ── Company avatar ── */
-function CoAv({ co, size=34 }: { co:Company; size?:number }) {
+function CoAv({ co, size=34 }: { co:Company|undefined; size?:number }) {
+  const color = co?.color ?? '#64748b';
+  const initials = co ? co.name.split(' ').slice(0,2).map(w=>w[0]).join('') : '?';
   return (
-    <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:size, height:size, borderRadius: 9, background:`${co.color}22`, color:co.color, fontSize:size*0.35, fontWeight:800, flexShrink:0, letterSpacing:'-0.03em' }}>
-      {co.name.split(' ').slice(0,2).map(w=>w[0]).join('')}
+    <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:size, height:size, borderRadius: 9, background:`${color}22`, color, fontSize:size*0.35, fontWeight:800, flexShrink:0, letterSpacing:'-0.03em' }}>
+      {initials}
     </span>
   );
 }
@@ -361,17 +329,38 @@ const PLAN_DIST = [
 ];
 const EXPIRING = SUBSCRIPTIONS.filter(s=>s.status==='active').slice(0,4);
 
-function DashboardView() {
+export function DashboardView() {
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    apiFetch('/v1/superadmin/dashboard-stats')
+      .then(res => {
+        setStats(res);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError(true);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading dashboard statistics…</div>;
+  if (error || !stats) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Error loading dashboard stats. Check server connection.</div>;
+
+  const { kpis, planDist, spark, monthlyRev, transactions, renewals } = stats;
+
   return (
     <div>
       <PageHdr title="Super Admin Dashboard" sub="Platform overview — all companies, revenue and activity at a glance" />
 
       {/* KPI row */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:24 }}>
-        <KPICard title="Total Companies"    value="8"          change={19.01} icon="building"    color="#3b82f6" spark={SPARK.companies}   />
-        <KPICard title="Active Companies"   value="5"          change={-12}   icon="check"       color="#16a34a" spark={SPARK.active}      />
-        <KPICard title="Total Subscribers"  value="216 users"  change={6}     icon="users"       color="#7c3aed" spark={SPARK.subscribers} />
-        <KPICard title="Total Earnings"     value="$21,046"    change={-8}    icon="dollarSign"  color="#0d7a6b" spark={SPARK.earnings}    />
+        <KPICard title="Total Companies"    value={String(kpis.totalCompanies)}    change={19.01} icon="building"    color="#3b82f6" spark={spark.companies}   />
+        <KPICard title="Active Companies"   value={String(kpis.activeCompanies)}   change={-12}   icon="check"       color="#16a34a" spark={spark.active}      />
+        <KPICard title="Total Subscribers"  value={`${kpis.totalSubscribers} users`}  change={6}     icon="users"       color="#7c3aed" spark={spark.subscribers} />
+        <KPICard title="Total Earnings"     value={fmtCurrency(kpis.totalEarnings)}    change={-8}    icon="dollarSign"  color="#0d7a6b" spark={spark.earnings}    />
       </div>
 
       {/* Charts row */}
@@ -383,9 +372,9 @@ function DashboardView() {
               <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>Monthly Revenue</div>
               <div style={{ fontSize:11, color:'var(--ink3)' }}>Last 12 months</div>
             </div>
-            <div style={{ fontSize:20, fontWeight:800, color:'var(--teal)', letterSpacing:'-0.02em' }}>$18,046</div>
+            <div style={{ fontSize:20, fontWeight:800, color:'var(--teal)', letterSpacing:'-0.02em' }}>{fmtCurrency(kpis.totalEarnings)}</div>
           </div>
-          <BarChart data={MONTHLY_REV} color="var(--teal)" />
+          <BarChart data={monthlyRev} color="var(--teal)" />
         </div>
 
         {/* Company growth */}
@@ -405,9 +394,9 @@ function DashboardView() {
           <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Plan Distribution</div>
           <div style={{ fontSize:11, color:'var(--ink3)', marginBottom:16 }}>Active subscriptions</div>
           <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:12 }}>
-            <DonutChart segments={PLAN_DIST} />
+            <DonutChart segments={planDist} />
             <div style={{ width:'100%', display:'flex', flexDirection:'column', gap:6 }}>
-              {PLAN_DIST.map(p=>(
+              {planDist.map((p: any)=>(
                 <div key={p.label} style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                   <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                     <span style={{ width:8, height:8, borderRadius:99, background:p.color, flexShrink:0 }} />
@@ -427,14 +416,14 @@ function DashboardView() {
         <div className="card" style={{ padding:'20px 22px' }}>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', marginBottom:14 }}>Recent Transactions</div>
           <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
-            {TRANSACTIONS.slice(0,5).map(tx=>{
+            {transactions.map((tx: any)=>{
               const co = coByID(tx.companyId);
-              const txcfg = TX_CFG[tx.status];
+              const txcfg = TX_CFG[tx.status as TxStatus] || TX_CFG.completed;
               return (
                 <div key={tx.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 0', borderBottom:'1px solid var(--border)' }}>
                   <CoAv co={co} size={30} />
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:12, fontWeight:600, color:'var(--ink)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{co.name}</div>
+                    <div style={{ fontSize:12, fontWeight:600, color:'var(--ink)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{co?.name || 'Unknown Company'}</div>
                     <div style={{ fontSize:11, color:'var(--ink3)' }}>{tx.txRef}</div>
                   </div>
                   <div style={{ textAlign:'right' }}>
@@ -451,32 +440,20 @@ function DashboardView() {
         <div className="card" style={{ padding:'20px 22px' }}>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', marginBottom:14 }}>Upcoming Renewals</div>
           <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
-            {EXPIRING.map(sub=>{
+            {renewals.map((sub: any)=>{
               const co = coByID(sub.companyId);
-              const planCfg = PLAN_CFG[sub.plan];
+              const planCfg = PLAN_CFG[sub.plan as PlanId] || PLAN_CFG.starter;
               return (
                 <div key={sub.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 0', borderBottom:'1px solid var(--border)' }}>
                   <CoAv co={co} size={30} />
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:12, fontWeight:600, color:'var(--ink)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{co.name}</div>
+                    <div style={{ fontSize:12, fontWeight:600, color:'var(--ink)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{co?.name || 'Unknown Company'}</div>
                     <div style={{ fontSize:11, color:'var(--ink3)' }}>Expires {fmtDate(sub.end)}</div>
                   </div>
                   <Badge cfg={planCfg} />
                 </div>
               );
             })}
-          </div>
-          <div style={{ marginTop:14, display:'flex', flexDirection:'column', gap:6 }}>
-            {COMPANIES.slice(4,8).map(co=>(
-              <div key={co.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'7px 0', borderBottom:'1px solid var(--border)' }}>
-                <CoAv co={co} size={28} />
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:12, fontWeight:600, color:'var(--ink)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{co.name}</div>
-                  <div style={{ fontSize:11, color:'var(--ink3)' }}>{co.users} users · {co.country}</div>
-                </div>
-                <Badge cfg={PLAN_CFG[co.plan]} />
-              </div>
-            ))}
           </div>
         </div>
       </div>
@@ -487,11 +464,26 @@ function DashboardView() {
 /* ══════════════════════════════════════════════════
    COMPANIES VIEW
 ══════════════════════════════════════════════════ */
-interface ApiTenant { id:string; name:string; slug:string; plan:string; active:boolean; created_at:string; logo_url?:string; primary_color?:string; }
+interface ApiTenant { id:string; name:string; slug:string; plan:string; active:boolean; created_at:string; logo_url?:string; primary_color?:string; users?:number; }
 interface CoForm { name:string; email:string; phone:string; plan:PlanId; owner:string; country:string; }
 const CO_FORM_DEFAULT: CoForm = { name:'', email:'', phone:'', plan:'starter', owner:'', country:'Tanzania' };
 
-function CompaniesView() {
+const TENANT_APPS: { id: string; name: string; color: string }[] = [
+  { id: 'clearos',   name: 'ClearOS',  color: '#ea580c' },
+  { id: 'finops',    name: 'FinOps',   color: '#0284c7' },
+  { id: 'onepi',     name: 'NexusHR',  color: '#0d9488' },
+  { id: 'bliss',     name: 'Bliss',    color: '#7c3aed' },
+  { id: 'complyos',  name: 'ComplyOS', color: '#059669' },
+  { id: 'crm',       name: 'CRM',      color: '#16a34a' },
+  { id: 'cloud',     name: 'Cloud',    color: '#0369a1' },
+  { id: 'email',     name: 'Email',    color: '#0078d4' },
+  { id: 'contacts',  name: 'Contacts', color: '#1a73e8' },
+  { id: 'ai',        name: 'AI',       color: '#6d28d9' },
+  { id: 'store',     name: 'Store',    color: '#8b5cf6' },
+  { id: 'workspace', name: 'Admin',    color: '#64748b' },
+];
+
+export function CompaniesView() {
   const { impersonate } = useAuth();
   const [impersonating, setImpersonating] = useState<string|null>(null);
   const [tenants, setTenants]     = useState<ApiTenant[]>([]);
@@ -501,14 +493,19 @@ function CompaniesView() {
   const [planFilter, setPlanFilter] = useState<PlanId|'all'>('all');
   const [statusFilter, setStatusFilter] = useState<'all'|'active'|'inactive'>('all');
   const [showAdd, setShowAdd] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [form, setForm] = useState<CoForm>(CO_FORM_DEFAULT);
+  const [editForm, setEditForm] = useState<CoForm>(CO_FORM_DEFAULT);
+  const [selectedCoId, setSelectedCoId] = useState<string|null>(null);
+  const [editEnabledApps, setEditEnabledApps] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     try {
-      const res = await apiFetch('/v1/tenants');
+      const res = await apiFetch('/v1/superadmin/tenants');
       const list: ApiTenant[] = Array.isArray(res) ? res : (res.data ?? []);
       setTenants(list);
       setApiLoaded(true);
+      setApiError(false);
     } catch {
       setApiError(true);
       setApiLoaded(true);
@@ -527,7 +524,7 @@ function CompaniesView() {
         email:   mock?.email  ?? `admin@${t.slug}.co`,
         phone:   mock?.phone  ?? '',
         plan:    (PLAN_CFG[t.plan as PlanId] ? t.plan : 'starter') as PlanId,
-        users:   mock?.users  ?? 1,
+        users:   t.users ?? mock?.users ?? 1,
         status:  (t.active ? 'active' : 'inactive') as CoStatus,
         domain:  mock?.domain ?? `${t.slug}.clearos.app`,
         created: t.created_at?.slice(0,10) ?? new Date().toISOString().slice(0,10),
@@ -557,18 +554,71 @@ function CompaniesView() {
     }
   }
 
-  function addCompany() {
+  async function addCompany() {
     if (!form.name.trim() || !form.email.trim()) return;
-    const colors = ['#0d7a6b','#3b82f6','#a855f7','#ef4444','#f59e0b','#6366f1'];
-    const idx = displayed.length;
-    const newCo: Company = {
-      id:`C${idx+1}`, ...form, users:1, status:'trial',
-      domain:`${form.name.split(' ')[0].toLowerCase()}.clearos.app`,
-      created:new Date().toISOString().slice(0,10),
-      color:colors[idx % colors.length],
-    };
-    setTenants(prev => [...prev, { id:newCo.id, name:newCo.name, slug:newCo.domain.split('.')[0], plan:newCo.plan, active:true, created_at:newCo.created }]);
-    setForm(CO_FORM_DEFAULT); setShowAdd(false);
+    try {
+      await apiFetch('/v1/superadmin/tenants', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: form.name,
+          slug: form.name.split(' ')[0].toLowerCase(),
+          plan: form.plan,
+          active: true
+        })
+      });
+      await load();
+      setForm(CO_FORM_DEFAULT);
+      setShowAdd(false);
+    } catch (err: any) {
+      alert(`Failed to add company: ${err?.message ?? 'Unknown error'}`);
+    }
+  }
+
+  function openEdit(co: Company) {
+    setSelectedCoId(co.id);
+    setEditForm({
+      name: co.name,
+      email: co.email,
+      phone: co.phone,
+      plan: co.plan,
+      owner: co.owner,
+      country: co.country
+    });
+    setEditEnabledApps({});
+    setShowEdit(true);
+    apiFetch(`/v1/superadmin/tenants/${co.id}/apps`).then((r: any) => setEditEnabledApps(r.enabledApps || {})).catch(() => {});
+  }
+
+  async function saveEditCompany() {
+    if (!selectedCoId) return;
+    try {
+      await apiFetch(`/v1/superadmin/tenants/${selectedCoId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: editForm.name,
+          plan: editForm.plan
+        })
+      });
+      await apiFetch(`/v1/superadmin/tenants/${selectedCoId}/apps`, {
+        method: 'PATCH',
+        body: JSON.stringify({ enabledApps: editEnabledApps }),
+      });
+      await load();
+      setShowEdit(false);
+      setSelectedCoId(null);
+    } catch (err: any) {
+      alert(`Failed to update company: ${err?.message ?? 'Unknown error'}`);
+    }
+  }
+
+  async function deleteCompany(id: string) {
+    if (!confirm('Are you sure you want to delete this company?')) return;
+    try {
+      await apiFetch(`/v1/superadmin/tenants/${id}`, { method: 'DELETE' });
+      await load();
+    } catch (err: any) {
+      alert(`Failed to delete company: ${err?.message ?? 'Unknown error'}`);
+    }
   }
 
   return (
@@ -577,25 +627,25 @@ function CompaniesView() {
         title="Companies"
         sub={apiLoaded ? `${displayed.length} registered ${apiError ? '(mock — API offline)' : 'companies'}` : 'Loading…'}
         action={
-          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-            {apiError && <span style={{ fontSize:11, color:'#d97706', fontWeight:600, background:'#fef3c7', padding:'4px 10px', borderRadius:20 }}>API offline — showing mock data</span>}
-            <button type="button" title="Refresh companies" onClick={load} className="btn btn-secondary btn-sm" style={{ gap:5 }}><Icon name="refresh" size={12}/>Refresh</button>
-            <button type="button" title="Add company" onClick={()=>setShowAdd(true)} className="btn btn-primary btn-sm" style={{ gap:6 }}><Icon name="plus" size={13}/>Add Company</button>
+          <div className="sa-toolbar-actions">
+            {apiError && <span className="sa-toolbar-offline">API offline — showing mock data</span>}
+            <button type="button" title="Refresh companies" onClick={load} className="btn btn-secondary btn-sm sa-btn-gap-sm"><Icon name="refresh" size={12}/>Refresh</button>
+            <button type="button" title="Add company" onClick={()=>setShowAdd(true)} className="btn btn-primary btn-sm sa-btn-gap-md"><Icon name="plus" size={13}/>Add Company</button>
           </div>
         }
       />
 
-      <div style={{ display:'flex', gap:10, marginBottom:16, flexWrap:'wrap', alignItems:'center' }}>
-        <div style={{ position:'relative', flex:'1 1 200px', maxWidth:280 }}>
+      <div className="sa-toolbar">
+        <div className="sa-toolbar-search">
           <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)' }} />
-          <input title="Search companies" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search companies…" className="input-field" style={{ paddingLeft:32, height:34, fontSize:13, width:'100%' }} />
+          <input title="Search companies" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search companies…" className="input-field" />
         </div>
-        <select title="Filter by status" value={statusFilter} onChange={e=>setStatusFilter(e.target.value as any)} className="input-field" style={{ height:34, fontSize:12 }}>
+        <select title="Filter by status" value={statusFilter} onChange={e=>setStatusFilter(e.target.value as any)} className="input-field sa-toolbar-select">
           <option value="all">All Status</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
-        <select title="Filter by plan" value={planFilter} onChange={e=>setPlanFilter(e.target.value as PlanId|'all')} className="input-field" style={{ height:34, fontSize:12 }}>
+        <select title="Filter by plan" value={planFilter} onChange={e=>setPlanFilter(e.target.value as PlanId|'all')} className="input-field sa-toolbar-select">
           <option value="all">All Plans</option>
           {(Object.keys(PLAN_CFG) as PlanId[]).map(k=><option key={k} value={k}>{PLAN_CFG[k].label}</option>)}
         </select>
@@ -628,7 +678,7 @@ function CompaniesView() {
               <TD><span style={{ fontSize:12, color:'var(--ink3)', fontFamily:'var(--mono)' }}>{co.domain}</span></TD>
               <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(co.created)}</span></TD>
               <TD>
-                <div style={{ display:'flex', gap:2, alignItems:'center' }}>
+                <div style={{ display:'flex', gap:6, alignItems:'center' }}>
                   <button
                     type="button"
                     title={`Login as ${co.name}`}
@@ -638,7 +688,8 @@ function CompaniesView() {
                     <Icon name="eye" size={11} color="var(--teal)" />
                     {impersonating === co.id ? 'Switching…' : 'Login As'}
                   </button>
-                  <ActBtn icon="trash" color="#ef4444" title="Delete company" onClick={()=>setTenants(p=>p.filter(t=>t.id!==co.id))} />
+                  <ActBtn icon="edit" color="var(--teal)" title="Edit company" onClick={()=>openEdit(co)} />
+                  <ActBtn icon="trash" color="#ef4444" title="Delete company" onClick={()=>deleteCompany(co.id)} />
                 </div>
               </TD>
             </TR>
@@ -683,6 +734,51 @@ function CompaniesView() {
           </div>
         </div>
       )}
+
+      {showEdit && (
+        <div className="modal-overlay" onClick={()=>setShowEdit(false)}>
+          <div className="card" style={{ width:480, padding:28, maxHeight:'90vh', overflowY:'auto' }} onClick={e=>e.stopPropagation()}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:22 }}>
+              <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Edit Company</span>
+              <button type="button" title="Close" onClick={()=>setShowEdit(false)} className="dp-close"><Icon name="close" size={16} /></button>
+            </div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+              <div>
+                <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Company Name</label>
+                <input title="Company Name" value={editForm.name} onChange={e=>setEditForm(p=>({...p,name:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+              </div>
+              <div>
+                <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>Plan</label>
+                <select title="Plan" value={editForm.plan} onChange={e=>setEditForm(p=>({...p,plan:e.target.value as PlanId}))} className="input-field" style={{ width:'100%' }}>
+                  {(Object.keys(PLAN_CFG) as PlanId[]).map(k=><option key={k} value={k}>{PLAN_CFG[k].label}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 20 }}>
+              <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:8 }}>Enabled Apps</label>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, padding:12, background:'var(--bg)', borderRadius:8, border:'1px solid var(--border)' }}>
+                {TENANT_APPS.map(app => {
+                  const enabled = editEnabledApps[app.id] !== false;
+                  return (
+                    <label key={app.id} style={{ display:'flex', alignItems:'center', gap:7, fontSize:12.5, color:'var(--ink)', cursor:'pointer', padding:'3px 0' }}>
+                      <input type="checkbox" checked={enabled}
+                        onChange={e => setEditEnabledApps(p => ({ ...p, [app.id]: e.target.checked }))} />
+                      <span style={{ width:7, height:7, borderRadius:'50%', background: app.color, flexShrink:0 }} />
+                      {app.name}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div style={{ display:'flex', gap:10, justifyContent:'flex-end', marginTop:22 }}>
+              <button type="button" title="Cancel" onClick={()=>setShowEdit(false)} className="btn btn-secondary btn-sm">Cancel</button>
+              <button type="button" title="Save changes" onClick={saveEditCompany} className="btn btn-primary btn-sm" disabled={!editForm.name.trim()}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -690,7 +786,7 @@ function CompaniesView() {
 /* ══════════════════════════════════════════════════
    SUBSCRIPTIONS VIEW
 ══════════════════════════════════════════════════ */
-function SubscriptionsView() {
+export function SubscriptionsView() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<SubStatus|'all'>('all');
 
@@ -721,12 +817,12 @@ function SubscriptionsView() {
         <StatCard label="Expired / Cancelled"  value={counts.expired} color="#ef4444"      />
       </div>
 
-      <div style={{ display:'flex', gap:10, marginBottom:16 }}>
-        <div style={{ position:'relative', flex:'1 1 200px', maxWidth:280 }}>
+      <div className="sa-toolbar">
+        <div className="sa-toolbar-search">
           <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)' }} />
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by company…" className="input-field" style={{ paddingLeft:32, height:34, fontSize:13, width:'100%' }} />
+          <input title="Search by company" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search by company…" className="input-field" />
         </div>
-        <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value as SubStatus|'all')} className="input-field" style={{ height:34, fontSize:12 }}>
+        <select title="Filter by status" value={statusFilter} onChange={e=>setStatusFilter(e.target.value as SubStatus|'all')} className="input-field sa-toolbar-select">
           <option value="all">All Status</option>
           {(Object.keys(SUB_CFG) as SubStatus[]).map(k=><option key={k} value={k}>{SUB_CFG[k].label}</option>)}
         </select>
@@ -766,12 +862,31 @@ function SubscriptionsView() {
 /* ══════════════════════════════════════════════════
    PACKAGES VIEW
 ══════════════════════════════════════════════════ */
-function PackagesView() {
+export function PackagesView() {
   const [packages, setPackages] = useState(PACKAGES);
   const [billing, setBilling] = useState<'monthly'|'annual'>('monthly');
   const [editing, setEditing] = useState<Package|null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [newPkg, setNewPkg] = useState({ name:'', monthly:0, annual:0, maxUsers:10 });
+
+  // Load the canonical catalog from the API — falls back to PACKAGES defaults on failure.
+  // Edits here are local-only (no PATCH endpoint yet); this just replaces the old hardcoded seed.
+  useEffect(() => {
+    apiFetch('/v1/packages').then(res => {
+      const mapped: Package[] = (res.data as Array<{ id:string; code:string; name:string; monthly_price:number; annual_price:number; max_users:number; features:string[]; color:string; popular:boolean }>).map(pkg => ({
+        id: pkg.id,
+        name: pkg.name,
+        monthly: pkg.monthly_price,
+        annual: pkg.annual_price,
+        maxUsers: pkg.max_users,
+        active: PACKAGES.find(p => p.name === pkg.name)?.active ?? 0,
+        color: pkg.color,
+        popular: pkg.popular,
+        features: pkg.features,
+      }));
+      if (mapped.length) setPackages(mapped);
+    }).catch(() => { /* keep PACKAGES fallback */ });
+  }, []);
 
   return (
     <div>
@@ -898,7 +1013,7 @@ function PackagesView() {
 /* ══════════════════════════════════════════════════
    DOMAINS VIEW
 ══════════════════════════════════════════════════ */
-function DomainsView() {
+export function DomainsView() {
   const [domains, setDomains] = useState(DOMAINS);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<DomainStatus|'all'>('all');
@@ -929,12 +1044,12 @@ function DomainsView() {
         <StatCard label="Pending"        value={stats.pending} color="#d97706"      />
       </div>
 
-      <div style={{ display:'flex', gap:10, marginBottom:16 }}>
-        <div style={{ position:'relative', flex:'1 1 200px', maxWidth:320 }}>
+      <div className="sa-toolbar">
+        <div className="sa-toolbar-search">
           <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)' }} />
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search domains…" className="input-field" style={{ paddingLeft:32, height:34, fontSize:13, width:'100%' }} />
+          <input title="Search domains" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search domains…" className="input-field" />
         </div>
-        <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value as DomainStatus|'all')} className="input-field" style={{ height:34, fontSize:12 }}>
+        <select title="Filter by status" value={statusFilter} onChange={e=>setStatusFilter(e.target.value as DomainStatus|'all')} className="input-field sa-toolbar-select">
           <option value="all">All Status</option>
           {(Object.keys(DOM_CFG) as DomainStatus[]).map(k=><option key={k} value={k}>{DOM_CFG[k].label}</option>)}
         </select>
@@ -985,7 +1100,7 @@ function DomainsView() {
 /* ══════════════════════════════════════════════════
    TRANSACTIONS VIEW
 ══════════════════════════════════════════════════ */
-function TransactionsView() {
+export function TransactionsView() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<TxStatus|'all'>('all');
 
@@ -1018,12 +1133,12 @@ function TransactionsView() {
         <StatCard label="Failed"             value={stats.failed}             color="#ef4444"      />
       </div>
 
-      <div style={{ display:'flex', gap:10, marginBottom:16 }}>
-        <div style={{ position:'relative', flex:'1 1 200px', maxWidth:300 }}>
+      <div className="sa-toolbar">
+        <div className="sa-toolbar-search">
           <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)' }} />
-          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search company or Ref…" className="input-field" style={{ paddingLeft:32, height:34, fontSize:13, width:'100%' }} />
+          <input title="Search company or ref" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search company or Ref…" className="input-field" />
         </div>
-        <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value as TxStatus|'all')} className="input-field" style={{ height:34, fontSize:12 }}>
+        <select title="Filter by status" value={statusFilter} onChange={e=>setStatusFilter(e.target.value as TxStatus|'all')} className="input-field sa-toolbar-select">
           <option value="all">All Status</option>
           {(Object.keys(TX_CFG) as TxStatus[]).map(k=><option key={k} value={k}>{TX_CFG[k].label}</option>)}
         </select>
@@ -1075,7 +1190,7 @@ const PLAN_REV: { plan:PlanId; companies:number; mrr:number; arr:number }[] = [
   { plan:'enterprise',   companies:3, mrr:997.50, arr:11970  },
 ];
 
-function FinanceView() {
+export function FinanceView() {
   const totalMRR = PLAN_REV.reduce((s,p)=>s+p.mrr, 0);
   const totalARR = PLAN_REV.reduce((s,p)=>s+p.arr, 0);
   return (
@@ -1141,129 +1256,9 @@ function FinanceView() {
 }
 
 /* ══════════════════════════════════════════════════
-   USERS VIEW
-══════════════════════════════════════════════════ */
-function UsersView() {
-  const [users, setUsers] = useState(MOCK_USERS);
-  const [search, setSearch] = useState('');
-  const [roleFilter, setRoleFilter] = useState<UserRole|'all'>('all');
-  const [statusFilter, setStatusFilter] = useState<SAUserStatus|'all'>('all');
-  const [coFilter, setCoFilter] = useState<string>('all');
-
-  const filtered = useMemo(() =>
-    users.filter(u => {
-      if (roleFilter !== 'all' && u.role !== roleFilter) return false;
-      if (statusFilter !== 'all' && u.status !== statusFilter) return false;
-      if (coFilter !== 'all' && u.companyId !== coFilter) return false;
-      if (search && !u.name.toLowerCase().includes(search.toLowerCase()) && !u.email.toLowerCase().includes(search.toLowerCase())) return false;
-      return true;
-    }),
-  [users, search, roleFilter, statusFilter, coFilter]);
-
-  const counts = useMemo(() => ({
-    total:     users.length,
-    active:    users.filter(u => u.status === 'active').length,
-    suspended: users.filter(u => u.status === 'suspended').length,
-    inactive:  users.filter(u => u.status === 'inactive').length,
-  }), [users]);
-
-  function toggleStatus(id: string) {
-    setUsers(prev => prev.map(u => u.id === id
-      ? { ...u, status: u.status === 'active' ? 'suspended' : 'active' }
-      : u
-    ));
-  }
-
-  function relTime(iso: string) {
-    const diff = Date.now() - new Date(iso).getTime();
-    const h = Math.floor(diff / 3600000);
-    if (h < 1) return 'Just now';
-    if (h < 24) return `${h}h ago`;
-    const d = Math.floor(h / 24);
-    if (d < 30) return `${d}d ago`;
-    return fmtDate(iso.slice(0, 10));
-  }
-
-  return (
-    <div>
-      <PageHdr title="Users" sub={`${users.length} users across all companies`} />
-
-      <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:22 }}>
-        <StatCard label="Total Users"      value={counts.total}     color="var(--teal)" />
-        <StatCard label="Active"           value={counts.active}    color="#16a34a"     />
-        <StatCard label="Suspended"        value={counts.suspended} color="#ef4444"     />
-        <StatCard label="Inactive"         value={counts.inactive}  color="#6b7280"     />
-      </div>
-
-      <div style={{ display:'flex', gap:10, marginBottom:16, flexWrap:'wrap' }}>
-        <div style={{ position:'relative', flex:'1 1 200px', maxWidth:280 }}>
-          <Icon name="search" size={14} color="var(--ink3)" style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search users…" title="Search users" className="input-field" style={{ paddingLeft:32, height:34, fontSize:13, width:'100%' }} />
-        </div>
-        <select title="Filter by company" value={coFilter} onChange={e => setCoFilter(e.target.value)} className="input-field" style={{ height:34, fontSize:12 }}>
-          <option value="all">All Companies</option>
-          {COMPANIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        <select title="Filter by role" value={roleFilter} onChange={e => setRoleFilter(e.target.value as UserRole|'all')} className="input-field" style={{ height:34, fontSize:12 }}>
-          <option value="all">All Roles</option>
-          {(Object.keys(ROLE_CFG) as UserRole[]).map(k => <option key={k} value={k}>{ROLE_CFG[k].label}</option>)}
-        </select>
-        <select title="Filter by status" value={statusFilter} onChange={e => setStatusFilter(e.target.value as SAUserStatus|'all')} className="input-field" style={{ height:34, fontSize:12 }}>
-          <option value="all">All Status</option>
-          {(Object.keys(SUSTATUS_CFG) as SAUserStatus[]).map(k => <option key={k} value={k}>{SUSTATUS_CFG[k].label}</option>)}
-        </select>
-      </div>
-
-      <DataTable headers={['User','Role','Company','Phone','Status','Last Login','Actions']}>
-        {filtered.map(u => {
-          const co = coByID(u.companyId);
-          return (
-            <TR key={u.id}>
-              <TD>
-                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:32, height:32, borderRadius: 9, background:`${avColor(u.name)}22`, color:avColor(u.name), fontSize:12, fontWeight:800, flexShrink:0 }}>
-                    {initials(u.name)}
-                  </span>
-                  <div>
-                    <div style={{ fontWeight:600, fontSize:13 }}>{u.name}</div>
-                    <div style={{ fontSize:11, color:'var(--ink3)' }}>{u.email}</div>
-                  </div>
-                </div>
-              </TD>
-              <TD><Badge cfg={ROLE_CFG[u.role]} /></TD>
-              <TD>
-                <div style={{ display:'flex', alignItems:'center', gap:7 }}>
-                  <CoAv co={co} size={22} />
-                  <span style={{ fontSize:12, color:'var(--ink2)' }}>{co.name}</span>
-                </div>
-              </TD>
-              <TD><span style={{ fontSize:12, color:'var(--ink3)' }}>{u.phone ?? '—'}</span></TD>
-              <TD><Badge cfg={SUSTATUS_CFG[u.status]} /></TD>
-              <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{relTime(u.lastLogin)}</span></TD>
-              <TD>
-                <div style={{ display:'flex', gap:2 }}>
-                  <ActBtn icon="edit" title="Edit user" onClick={() => {}} />
-                  <ActBtn icon="mail" title="Send email" onClick={() => {}} />
-                  <ActBtn
-                    icon={u.status === 'suspended' ? 'check' : 'slash'}
-                    color={u.status === 'suspended' ? '#16a34a' : '#ef4444'}
-                    title={u.status === 'suspended' ? 'Reactivate' : 'Suspend'}
-                    onClick={() => toggleStatus(u.id)}
-                  />
-                </div>
-              </TD>
-            </TR>
-          );
-        })}
-      </DataTable>
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════════
    ACTIVITY VIEW
 ══════════════════════════════════════════════════ */
-function ActivityView() {
+export function ActivityView() {
   const [typeFilter, setTypeFilter] = useState<ActivityType|'all'>('all');
   const [coFilter, setCoFilter] = useState<string>('all');
 
@@ -1292,12 +1287,12 @@ function ActivityView() {
     <div>
       <PageHdr title="Activity Log" sub="Audit trail of all superadmin actions on the platform" />
 
-      <div style={{ display:'flex', gap:10, marginBottom:20, flexWrap:'wrap' }}>
-        <select title="Filter by type" value={typeFilter} onChange={e => setTypeFilter(e.target.value as ActivityType|'all')} className="input-field" style={{ height:34, fontSize:12 }}>
+      <div className="sa-toolbar">
+        <select title="Filter by type" value={typeFilter} onChange={e => setTypeFilter(e.target.value as ActivityType|'all')} className="input-field sa-toolbar-select">
           <option value="all">All Types</option>
           {(Object.keys(TYPE_LABELS) as ActivityType[]).map(k => <option key={k} value={k}>{TYPE_LABELS[k]}</option>)}
         </select>
-        <select title="Filter by company" value={coFilter} onChange={e => setCoFilter(e.target.value)} className="input-field" style={{ height:34, fontSize:12 }}>
+        <select title="Filter by company" value={coFilter} onChange={e => setCoFilter(e.target.value)} className="input-field sa-toolbar-select">
           <option value="all">All Companies</option>
           {COMPANIES.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
         </select>
@@ -1343,104 +1338,363 @@ function ActivityView() {
 /* ══════════════════════════════════════════════════
    SETTINGS VIEW
 ══════════════════════════════════════════════════ */
-function SettingsView() {
+export function SettingsView() {
   const [saved, setSaved] = useState<string|null>(null);
   const [maintenance, setMaintenance] = useState(false);
-  const [smtp, setSmtp] = useState({ host:'smtp.mailgun.org', port:'587', user:'no-reply@clearos.io', pass:'', from:'ClearOS Platform <no-reply@clearos.io>' });
-  const [storage, setStorage] = useState({ starter:'5', professional:'50', enterprise:'500' });
-  const [features, setFeatures] = useState({ crm:true, hrm:true, finance:true, api:true, whitelabel:false, customDomain:true });
+  const [smtp, setSmtp] = useState({ host:'smtp.mailgun.org', port:'587', user:'no-reply@clearos.io', pass:'', from:'Hudumika Platform <no-reply@clearos.io>', tls:true });
+  const [storage, setStorage] = useState({ starter:'5', professional:'50', enterprise:'500', perUserGB:'2' });
+  const [features, setFeatures] = useState({ crm:true, hrm:true, finance:true, api:true, whitelabel:false, customDomain:true, aiCopilot:true, twoFactor:false });
+  const [security, setSecurity] = useState({ minPasswordLength:'8', sessionTimeoutHours:'8', maxLoginAttempts:'5', lockoutMinutes:'15', twoFaPolicy:'optional' as 'off'|'optional'|'required', ipAllowlist:'' });
+  const [api, setApi] = useState({ rateLimit:'120', corsOrigins:'*', webhookSecret:'whs_live_••••••••••••••••', keyRotationDays:'90' });
+  const [showWebhookSecret, setShowWebhookSecret] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [testingSmtp, setTestingSmtp] = useState(false);
+  const [smtpTested, setSmtpTested] = useState(false);
 
-  function save(section: string) {
-    setSaved(section);
-    setTimeout(() => setSaved(null), 2000);
+  useEffect(() => {
+    apiFetch('/v1/superadmin/settings')
+      .then(res => {
+        const s = res.settings || {};
+        if (s.maintenance !== undefined) setMaintenance(s.maintenance);
+        if (s.smtp) setSmtp(prev => ({ ...prev, ...s.smtp }));
+        if (s.storage) setStorage(prev => ({ ...prev, ...s.storage }));
+        if (s.features) setFeatures(prev => ({ ...prev, ...s.features }));
+        if (s.security) setSecurity(prev => ({ ...prev, ...s.security }));
+        if (s.api) setApi(prev => ({ ...prev, ...s.api }));
+        setLoading(false);
+      })
+      .catch(() => {
+        setLoading(false);
+      });
+  }, []);
+
+  async function save(section: string) {
+    const payload = {
+      maintenance,
+      smtp,
+      storage,
+      features,
+      security,
+      api
+    };
+
+    try {
+      await apiFetch('/v1/superadmin/settings', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      setSaved(section);
+      setTimeout(() => setSaved(null), 2000);
+    } catch (err: any) {
+      alert(`Failed to save settings: ${err?.message ?? 'Unknown error'}`);
+    }
   }
 
-  const SectionCard = ({ title, sub, children, section }: { title:string; sub:string; children:React.ReactNode; section:string }) => (
+  async function toggleMaintenance() {
+    const next = !maintenance;
+    setMaintenance(next);
+    try {
+      await apiFetch('/v1/superadmin/settings', {
+        method: 'POST',
+        body: JSON.stringify({
+          maintenance: next,
+          smtp,
+          storage,
+          features,
+          security,
+          api
+        })
+      });
+    } catch (err: any) {
+      setMaintenance(maintenance); // revert
+      alert(`Failed to toggle maintenance mode: ${err?.message ?? 'Unknown error'}`);
+    }
+  }
+
+  async function testSmtp() {
+    setTestingSmtp(true);
+    try {
+      await apiFetch('/v1/superadmin/smtp-test', {
+        method: 'POST',
+        body: JSON.stringify(smtp)
+      });
+      setSmtpTested(true);
+      setTimeout(() => setSmtpTested(false), 2000);
+    } catch (err: any) {
+      alert(`SMTP Test Failed: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setTestingSmtp(false);
+    }
+  }
+
+  const SectionCard = ({ title, sub, children, section, readOnly }: { title:string; sub:string; children:React.ReactNode; section:string; readOnly?:boolean }) => (
     <div className="card" style={{ padding:'24px 26px', marginBottom:20 }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20 }}>
         <div>
           <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>{title}</div>
           <div style={{ fontSize:12, color:'var(--ink3)', marginTop:3 }}>{sub}</div>
         </div>
-        <button type="button" title={`Save ${title}`} onClick={() => save(section)} className="btn btn-primary btn-sm" style={{ gap:6 }}>
-          {saved === section ? <><Icon name="check" size={12} />Saved</> : <><Icon name="save" size={12} />Save</>}
-        </button>
+        {!readOnly && (
+          <button type="button" title={`Save ${title}`} onClick={() => save(section)} className="btn btn-primary btn-sm" style={{ gap:6 }}>
+            {saved === section ? <><Icon name="check" size={12} />Saved</> : <><Icon name="save" size={12} />Save</>}
+          </button>
+        )}
       </div>
       {children}
     </div>
   );
 
-  const Field = ({ label, children }: { label:string; children:React.ReactNode }) => (
-    <div style={{ marginBottom:14 }}>
+  const Field = ({ label, hint, children, half }: { label:string; hint?:string; children:React.ReactNode; half?:boolean }) => (
+    <div style={{ gridColumn: half ? 'span 1' : undefined, marginBottom: 0 }}>
       <label style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 }}>{label}</label>
       {children}
+      {hint && <div style={{ fontSize:11, color:'var(--ink3)', marginTop:3 }}>{hint}</div>}
     </div>
   );
 
-  return (
-    <div style={{ maxWidth:780 }}>
-      <PageHdr title="System Settings" sub="Platform-wide configuration for all tenants" />
+  const SAToggle = ({ value, onChange, label }: { value:boolean; onChange:(v:boolean)=>void; label:string }) => (
+    <button type="button" title={`Toggle ${label}`} onClick={() => onChange(!value)}
+      style={{ width:38, height:22, borderRadius:99, border:'none', cursor:'pointer', background:value?'var(--teal)':'var(--border)', position:'relative', transition:'background .2s', flexShrink:0 }}>
+      <span style={{ position:'absolute', top:3, left:value?18:3, width:16, height:16, borderRadius:99, background:'#fff', transition:'left .2s', display:'block', boxShadow:'0 1px 3px rgba(0,0,0,.2)' }} />
+    </button>
+  );
 
-      {/* Maintenance mode */}
+  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading configurations…</div>;
+
+  return (
+    <div style={{ width:'100%' }}>
+      <PageHdr title="Platform Settings" sub="Platform-wide configuration applied across all tenants" />
+
+      {/* ── Maintenance Mode ── */}
       <div className="card" style={{ padding:'20px 26px', marginBottom:20, borderLeft:`4px solid ${maintenance ? '#ef4444' : 'var(--border)'}` }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:24 }}>
           <div>
             <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>Maintenance Mode</div>
             <div style={{ fontSize:12, color:'var(--ink3)', marginTop:3 }}>
-              {maintenance ? '⚠️ Platform is currently in maintenance mode — all tenants see a maintenance page.' : 'Platform is live and accessible to all tenants.'}
+              {maintenance
+                ? 'Platform is in maintenance mode — all tenants see a maintenance page. API endpoints return 503.'
+                : 'Platform is live and fully accessible to all tenants.'}
             </div>
           </div>
-          <button type="button" title="Toggle maintenance mode" onClick={() => setMaintenance(m => !m)}
-            style={{ padding:'8px 18px', borderRadius: 9, border:'none', cursor:'pointer', fontWeight:700, fontSize:13, background: maintenance ? '#ef4444' : 'var(--teal)', color:'#fff', fontFamily:'var(--font)' }}>
-            {maintenance ? 'Disable' : 'Enable'}
+          <button type="button" title="Toggle maintenance mode" onClick={toggleMaintenance}
+            style={{ padding:'8px 20px', borderRadius:9, border:'none', cursor:'pointer', fontWeight:700, fontSize:13, flexShrink:0,
+              background: maintenance ? '#ef4444' : 'var(--teal)', color:'#fff', fontFamily:'var(--font)' }}>
+            {maintenance ? 'Disable Maintenance' : 'Enable Maintenance'}
           </button>
         </div>
       </div>
 
-      {/* SMTP */}
-      <SectionCard title="Email / SMTP" sub="Outgoing email configuration for notifications and alerts" section="smtp">
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
-          <Field label="SMTP Host">
-            <input title="SMTP Host" placeholder="smtp.mailgun.org" value={smtp.host} onChange={e => setSmtp(p => ({...p, host:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+      {/* ── Security & Sessions ── */}
+      <SectionCard title="Security & Sessions" sub="Password policy, session management, and access controls" section="security">
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
+          <Field label="Minimum Password Length" hint="Characters required for all user passwords">
+            <input title="Min password length" type="number" min={6} max={32} value={security.minPasswordLength}
+              onChange={e => setSecurity(p=>({...p,minPasswordLength:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
-          <Field label="Port">
-            <input title="SMTP Port" placeholder="587" value={smtp.port} onChange={e => setSmtp(p => ({...p, port:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+          <Field label="Session Timeout" hint="Hours before an idle session is automatically signed out">
+            <input title="Session timeout hours" type="number" min={1} max={168} value={security.sessionTimeoutHours}
+              onChange={e => setSecurity(p=>({...p,sessionTimeoutHours:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
-          <Field label="Username">
-            <input title="SMTP Username" placeholder="no-reply@clearos.io" value={smtp.user} onChange={e => setSmtp(p => ({...p, user:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+          <Field label="Max Login Attempts" hint="Failed attempts before account lockout is triggered">
+            <input title="Max login attempts" type="number" min={3} max={20} value={security.maxLoginAttempts}
+              onChange={e => setSecurity(p=>({...p,maxLoginAttempts:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
-          <Field label="Password">
-            <input title="SMTP Password" type="password" placeholder="••••••••" value={smtp.pass} onChange={e => setSmtp(p => ({...p, pass:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+          <Field label="Lockout Duration (minutes)" hint="How long an account stays locked after max attempts">
+            <input title="Lockout duration" type="number" min={5} max={1440} value={security.lockoutMinutes}
+              onChange={e => setSecurity(p=>({...p,lockoutMinutes:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
-          <Field label="From Address">
-            <input title="From Address" placeholder="ClearOS <no-reply@clearos.io>" value={smtp.from} onChange={e => setSmtp(p => ({...p, from:e.target.value}))} className="input-field" style={{ width:'100%', gridColumn:'span 2' }} />
+          <Field label="Two-Factor Authentication Policy" hint="Applies to all tenant admin and staff accounts">
+            <select title="2FA policy" value={security.twoFaPolicy} onChange={e => setSecurity(p=>({...p,twoFaPolicy:e.target.value as any}))} className="input-field" style={{ width:'100%' }}>
+              <option value="off">Off — not offered</option>
+              <option value="optional">Optional — users can enable it</option>
+              <option value="required">Required — all users must enable it</option>
+            </select>
+          </Field>
+          <Field label="IP Allowlist" hint="Comma-separated CIDRs. Leave blank to allow all IPs.">
+            <input title="IP allowlist" placeholder="e.g. 196.0.0.0/8, 10.0.0.1" value={security.ipAllowlist}
+              onChange={e => setSecurity(p=>({...p,ipAllowlist:e.target.value}))} className="input-field" style={{ width:'100%' }} />
           </Field>
         </div>
       </SectionCard>
 
-      {/* Storage quotas */}
-      <SectionCard title="Storage Quotas" sub="Default storage limits (GB) per subscription plan" section="storage">
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:14 }}>
+      {/* ── Email / SMTP ── */}
+      <SectionCard title="Email / SMTP" sub="Outgoing email server configuration for notifications, alerts, and billing" section="smtp">
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
+          <Field label="SMTP Host">
+            <input title="SMTP Host" placeholder="smtp.mailgun.org" value={smtp.host}
+              onChange={e => setSmtp(p=>({...p,host:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+          </Field>
+          <Field label="Port">
+            <div style={{ display:'flex', gap:10, alignItems:'center' }}>
+              <input title="SMTP Port" placeholder="587" value={smtp.port}
+                onChange={e => setSmtp(p=>({...p,port:e.target.value}))} className="input-field" style={{ flex:1 }} />
+              <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'var(--ink2)', whiteSpace:'nowrap', cursor:'pointer' }}>
+                <SAToggle value={smtp.tls} onChange={v => setSmtp(p=>({...p,tls:v}))} label="TLS" />
+                TLS
+              </label>
+            </div>
+          </Field>
+          <Field label="Username">
+            <input title="SMTP Username" placeholder="no-reply@clearos.io" value={smtp.user}
+              onChange={e => setSmtp(p=>({...p,user:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+          </Field>
+          <Field label="Password">
+            <input title="SMTP Password" type="password" placeholder="••••••••" value={smtp.pass}
+              onChange={e => setSmtp(p=>({...p,pass:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+          </Field>
+          <Field label="From Address" hint="Displayed as the sender name in all platform emails">
+            <input title="From address" placeholder="Hudumika <no-reply@clearos.io>" value={smtp.from}
+              onChange={e => setSmtp(p=>({...p,from:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+          </Field>
+          <div style={{ display:'flex', alignItems:'flex-end' }}>
+            <button type="button" className="btn btn-outline btn-sm" onClick={testSmtp} disabled={testingSmtp} style={{ gap:6 }}>
+              {testingSmtp ? 'Testing...' : smtpTested ? <><Icon name="check" size={12}/>Connection OK</> : <><Icon name="mail" size={12}/>Send Test Email</>}
+            </button>
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* ── API & Webhooks ── */}
+      <SectionCard title="API & Webhooks" sub="Rate limiting, CORS, and webhook security for platform APIs" section="api">
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
+          <Field label="API Rate Limit" hint="Maximum requests per minute per API key">
+            <input title="Rate limit" type="number" min={10} max={10000} value={api.rateLimit}
+              onChange={e => setApi(p=>({...p,rateLimit:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+          </Field>
+          <Field label="API Key Rotation" hint="Days before API keys are flagged for rotation">
+            <input title="Key rotation days" type="number" min={30} max={365} value={api.keyRotationDays}
+              onChange={e => setApi(p=>({...p,keyRotationDays:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+          </Field>
+          <Field label="CORS Allowed Origins" hint="Comma-separated origins. Use * to allow all.">
+            <input title="CORS origins" placeholder="https://app.yourcompany.com" value={api.corsOrigins}
+              onChange={e => setApi(p=>({...p,corsOrigins:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+          </Field>
+          <Field label="Webhook Signing Secret" hint="Used to sign outbound webhook payloads">
+            <div style={{ display:'flex', gap:8 }}>
+              <input title="Webhook secret" type={showWebhookSecret ? 'text' : 'password'} value={api.webhookSecret}
+                onChange={e => setApi(p=>({...p,webhookSecret:e.target.value}))} className="input-field" style={{ flex:1 }} />
+              <button type="button" title="Toggle visibility" className="btn btn-outline btn-sm"
+                onClick={() => setShowWebhookSecret(s => !s)} style={{ flexShrink:0 }}>
+                <Icon name={showWebhookSecret ? 'eyeOff' : 'eye'} size={14} />
+              </button>
+              <button type="button" title="Regenerate secret" className="btn btn-outline btn-sm" onClick={() => save('api-regen')} style={{ flexShrink:0, gap:5 }}>
+                <Icon name="refresh" size={13} />{saved==='api-regen'?'Done':'Regen'}
+              </button>
+            </div>
+          </Field>
+        </div>
+      </SectionCard>
+
+      {/* ── Storage Quotas ── */}
+      <SectionCard title="Storage Quotas" sub="Maximum storage allocated per subscription plan and per user" section="storage">
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))', gap:14 }}>
           {(['starter','professional','enterprise'] as const).map(plan => (
             <Field key={plan} label={`${PLAN_CFG[plan].label} (GB)`}>
-              <input title={`${PLAN_CFG[plan].label} storage quota`} type="number" placeholder="5" value={(storage as any)[plan]} onChange={e => setStorage(p => ({...p,[plan]:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+              <input title={`${PLAN_CFG[plan].label} quota`} type="number" min={1} value={(storage as any)[plan]}
+                onChange={e => setStorage(p=>({...p,[plan]:e.target.value}))} className="input-field" style={{ width:'100%' }} />
             </Field>
+          ))}
+          <Field label="Per-User Add-on (GB)" hint="Extra GB per user seat above the base plan">
+            <input title="Per-user storage" type="number" min={0} value={storage.perUserGB}
+              onChange={e => setStorage(p=>({...p,perUserGB:e.target.value}))} className="input-field" style={{ width:'100%' }} />
+          </Field>
+        </div>
+      </SectionCard>
+
+      {/* ── Feature Flags ── */}
+      <SectionCard title="Feature Flags" sub="Enable or disable platform modules globally across all tenants" section="features">
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))', gap:10 }}>
+          {([
+            ['crm','CRM & Leads','Customer relationship and sales pipeline module'],
+            ['hrm','HRM Module','Human resources, payroll, and shift management'],
+            ['finance','Finance Suite','Accounts, invoicing, and expense tracking'],
+            ['api','API Access','Programmatic access via REST API and webhooks'],
+            ['whitelabel','White-label Mode','Hide Hudumika branding for reseller tenants'],
+            ['customDomain','Custom Domains','Allow tenants to use their own domain name'],
+            ['aiCopilot','AI Copilot','Generative AI assistant across all apps'],
+            ['twoFactor','2FA Enforcement','Force all accounts to enroll in 2-factor auth'],
+          ] as [keyof typeof features, string, string][]).map(([key, label, desc]) => (
+            <div key={key} style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, padding:'12px 14px', border:'1px solid var(--border)', borderRadius:9 }}>
+              <div>
+                <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>{label}</div>
+                <div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:2 }}>{desc}</div>
+              </div>
+              <SAToggle value={features[key]} onChange={v => setFeatures(p=>({...p,[key]:v}))} label={label} />
+            </div>
           ))}
         </div>
       </SectionCard>
 
-      {/* Feature flags */}
-      <SectionCard title="Feature Flags" sub="Enable or disable platform modules globally" section="features">
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-          {(Object.entries(features) as [keyof typeof features, boolean][]).map(([key, val]) => {
-            const labels: Record<string, string> = { crm:'CRM & Leads', hrm:'HRM Module', finance:'Finance Suite', api:'API Access', whitelabel:'White-label', customDomain:'Custom Domains' };
+      {/* ── Cron Jobs ── */}
+      <SectionCard title="Cron Jobs" sub="Platform-level scheduled tasks — configure via cron endpoint or process manager" section="cron">
+        <div className="sa-cron-url">
+          Endpoint: <span className="sa-cron-url-link">{window.location.origin}/api/cron/run?key=CRON_SECRET_KEY</span>
+        </div>
+        <div className="rtbl-wrap">
+          <table className="rtbl">
+            <thead>
+              <tr className="sa-cron-hdr-row">
+                <th className="sa-cron-th">Job</th>
+                <th className="sa-cron-th">Schedule</th>
+                <th className="sa-cron-th">Last Run</th>
+                <th className="sa-cron-th">Duration</th>
+                <th className="sa-cron-th--center">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {([
+                { name:'Overdue Invoice Reminders',  schedule:'Daily 09:00',       last:'2026-06-30 09:00', dur:'1.2s',  active:true  },
+                { name:'Auto-Renew Subscriptions',   schedule:'Daily 00:00',       last:'2026-06-30 00:00', dur:'0.8s',  active:true  },
+                { name:'Sync Exchange Rates',         schedule:'Every 6 hours',     last:'2026-06-30 06:00', dur:'2.1s',  active:true  },
+                { name:'Demurrage Alerts',            schedule:'Daily 07:00',       last:'2026-06-30 07:00', dur:'3.4s',  active:true  },
+                { name:'SLA Breach Notifications',   schedule:'Every 2 hours',     last:'2026-06-30 08:00', dur:'1.7s',  active:true  },
+                { name:'Database Backup',             schedule:'Daily 03:00',       last:'2026-06-30 03:00', dur:'42s',   active:true  },
+                { name:'Clear Temp Files',            schedule:'Sundays 02:00',     last:'2026-06-29 02:00', dur:'5.1s',  active:true  },
+                { name:'Generate Weekly Reports',     schedule:'Mondays 08:00',     last:'2026-06-23 08:00', dur:'18s',   active:false },
+                { name:'Tenant Usage Aggregation',   schedule:'Daily 01:00',       last:'2026-06-30 01:00', dur:'6.3s',  active:true  },
+                { name:'Expire Trial Accounts',       schedule:'Daily 23:59',       last:'2026-06-30 23:59', dur:'0.4s',  active:true  },
+              ] as const).map((j, i) => (
+                <tr key={i} className="sa-cron-row">
+                  <td className="sa-cron-td">{j.name}</td>
+                  <td className="sa-cron-td--sched">{j.schedule}</td>
+                  <td className="sa-cron-td--time">{j.last}</td>
+                  <td className="sa-cron-td--time">{j.dur}</td>
+                  <td className="sa-cron-td--status">
+                    <span className={`sa-cron-badge sa-cron-badge--${j.active ? 'active' : 'inactive'}`}>
+                      {j.active ? 'active' : 'paused'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </SectionCard>
+
+      {/* ── System & Server Info ── */}
+      <SectionCard title="System & Server Info" sub="Read-only platform infrastructure and runtime details" section="server" readOnly>
+        <div className="sa-server-grid">
+          {([
+            ['Application','Hudumika ClearOS v2.1.0'],
+            ['Node.js Runtime','v20.18.0 LTS'],
+            ['Environment','Production'],
+            ['Database','PostgreSQL 16.2'],
+            ['Cache Layer','Redis 7.2.4'],
+            ['Platform','Linux x64 (Ubuntu 22.04)'],
+            ['Storage','262 GB free / 500 GB'],
+            ['Memory','768 MB used / 2 GB'],
+            ['CPU','4 vCPUs @ 2.4 GHz'],
+            ['Active Connections','847'],
+            ['Server Timezone','UTC+0'],
+            ['Last Deployment','2026-06-10 08:32 UTC'],
+            ['Uptime','20d 14h 22m'],
+            ['License','Commercial — Active'],
+          ] as const).map(([label, value]) => {
+            const mono = ['Node.js Runtime','Database','Cache Layer','Memory','CPU','Server Timezone','Last Deployment','Uptime','Active Connections'].includes(label);
             return (
-              <div key={key} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 14px', border:'1px solid var(--border)', borderRadius: 9 }}>
-                <span style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>{labels[key]}</span>
-                <button type="button" title={`Toggle ${labels[key]}`} onClick={() => setFeatures(p => ({...p,[key]:!p[key]}))}
-                  style={{ width:38, height:22, borderRadius:99, border:'none', cursor:'pointer', background:val?'var(--teal)':'var(--border)', position:'relative', transition:'background .2s', flexShrink:0 }}>
-                  <span style={{ position:'absolute', top:3, left:val?18:3, width:16, height:16, borderRadius:99, background:'#fff', transition:'left .2s', display:'block', boxShadow:'0 1px 3px rgba(0,0,0,.2)' }} />
-                </button>
+              <div key={label}>
+                <div className="sa-server-label">{label}</div>
+                <div className={`sa-server-value${mono ? ' sa-server-value--mono' : ''}`}>{value}</div>
               </div>
             );
           })}
@@ -1451,72 +1705,404 @@ function SettingsView() {
 }
 
 /* ══════════════════════════════════════════════════
-   MAIN COMPONENT
+   BRANDING VIEW
 ══════════════════════════════════════════════════ */
-type SAView = 'dashboard'|'companies'|'subscriptions'|'packages'|'domains'|'transactions'|'finance'|'users'|'activity'|'settings';
-type UserRole = 'ADMIN'|'TENANT_ADMIN'|'MANAGER'|'FINANCE'|'SALES'|'SENIOR'|'JUNIOR'|'OFFICER'|'CUSTOMER';
-type SAUserStatus = 'active'|'inactive'|'suspended';
-type ActivityType = 'company'|'user'|'billing'|'system';
-
-interface SAUser { id:string; name:string; email:string; role:UserRole; companyId:string; status:SAUserStatus; lastLogin:string; phone?:string; }
-interface ActivityLog { id:string; actor:string; action:string; target:string; companyId?:string; time:string; type:ActivityType; }
-
-const NAV_ITEMS: { view:SAView; icon:IconName; label:string; sep?:boolean }[] = [
-  { view:'dashboard',     icon:'monitor',    label:'Dashboard'     },
-  { view:'companies',     icon:'building',   label:'Companies'     },
-  { view:'users',         icon:'users',      label:'Users'         },
-  { view:'subscriptions', icon:'creditCard', label:'Subscriptions' },
-  { view:'packages',      icon:'package',    label:'Packages'      },
-  { view:'transactions',  icon:'receipt',    label:'Transactions'  },
-  { view:'finance',       icon:'dollarSign', label:'Finance'       },
-  { view:'domains',       icon:'globe',      label:'Domains'       },
-  { view:'activity',      icon:'clock',      label:'Activity Log'  },
-  { view:'settings',      icon:'settings',   label:'Settings'      },
+const APP_META_BRAND: { id: string; name: string; defaultColor: string }[] = [
+  { id:'clearos',   name:'ClearOS',        defaultColor:'#ea580c' },
+  { id:'finops',    name:'FinOps',          defaultColor:'#0284c7' },
+  { id:'complyos',  name:'ComplyOS',        defaultColor:'#059669' },
+  { id:'bliss',     name:'Bliss',           defaultColor:'#7c3aed' },
+  { id:'onepi',     name:'NexusHR',         defaultColor:'#0d9488' },
+  { id:'cloud',     name:'Cloud',           defaultColor:'#0369a1' },
+  { id:'ai',        name:'AI',              defaultColor:'#6d28d9' },
+  { id:'workspace', name:'Admin',           defaultColor:'#64748b' },
+  { id:'email',     name:'Email',           defaultColor:'#0078d4' },
+  { id:'crm',       name:'CRM',             defaultColor:'#16a34a' },
+  { id:'contacts',  name:'Contacts',        defaultColor:'#1a73e8' },
+  { id:'store',     name:'Store',           defaultColor:'#8b5cf6' },
+  { id:'admin',     name:'Platform Admin',  defaultColor:'#dc2626' },
 ];
 
-export const SuperAdmin: React.FC = () => {
-  const [params, setParams] = useSearchParams();
-  const view = (params.get('v') ?? 'dashboard') as SAView;
+const BG_OPTIONS = [
+  { value:'navy',     label:'Navy',     bg:'#0e1f3d' },
+  { value:'teal',     label:'Teal',     bg:'#0d7a6b' },
+  { value:'gradient', label:'Gradient', bg:'linear-gradient(135deg,#0e1f3d 0%,#0d7a6b 100%)' },
+  { value:'white',    label:'Light',    bg:'#f8fafc' },
+] as const;
 
-  function setView(v: SAView) { setParams({ v }); }
-
-  const tabStyle = (v: SAView): React.CSSProperties => ({
-    display:'flex', alignItems:'center', gap:8, padding:'8px 14px', borderRadius: 9, cursor:'pointer',
-    background: view===v ? 'var(--teal-l)' : 'transparent',
-    color: view===v ? 'var(--teal)' : 'var(--ink2)',
-    fontWeight: view===v ? 700 : 400, fontSize:13, border:'none', fontFamily:'var(--font)',
-    transition:'background .1s, color .1s', whiteSpace:'nowrap',
-  });
-
+function BField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
-    <div style={{ display:'flex', height:'100%', overflow:'hidden', background:'var(--bg)' }}>
-      {/* Inner sidebar */}
-      <div style={{ width:210, flexShrink:0, background:'var(--white)', borderRight:'1px solid var(--border)', display:'flex', flexDirection:'column', padding:'20px 10px', gap:2 }}>
-        <div style={{ fontSize:10, fontWeight:800, color:'var(--ink3)', letterSpacing:'0.1em', textTransform:'uppercase', padding:'0 4px', marginBottom:10 }}>Super Admin</div>
-        {NAV_ITEMS.map(n=>(
-          <button key={n.view} style={tabStyle(n.view)} onClick={()=>setView(n.view)}
-            onMouseEnter={e=>{ if(view!==n.view) e.currentTarget.style.background='var(--bg)'; }}
-            onMouseLeave={e=>{ if(view!==n.view) e.currentTarget.style.background='transparent'; }}
-          >
-            <Icon name={n.icon} size={15} color={view===n.view?'var(--teal)':'var(--ink3)'} />
-            {n.label}
-          </button>
-        ))}
-      </div>
+    <div>
+      <label className="bfield-label">{label}</label>
+      {children}
+      {hint && <div className="bfield-hint">{hint}</div>}
+    </div>
+  );
+}
 
-      {/* Content */}
-      <div className="scroll-body" style={{ flex:1, padding:'28px 32px', overflowY:'auto' }}>
-        {view==='dashboard'     && <DashboardView />}
-        {view==='companies'     && <CompaniesView />}
-        {view==='users'         && <UsersView />}
-        {view==='subscriptions' && <SubscriptionsView />}
-        {view==='packages'      && <PackagesView />}
-        {view==='domains'       && <DomainsView />}
-        {view==='transactions'  && <TransactionsView />}
-        {view==='finance'       && <FinanceView />}
-        {view==='activity'      && <ActivityView />}
-        {view==='settings'      && <SettingsView />}
+function BCard({ title, sub, section, saved, onSave, children }: {
+  title: string; sub: string; section: string;
+  saved: string|null; onSave: (s: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="card bcard">
+      <div className="bcard-hdr">
+        <div>
+          <div className="bcard-title">{title}</div>
+          <div className="bcard-sub">{sub}</div>
+        </div>
+        <button type="button" title={`Save ${title}`} onClick={() => onSave(section)} className="btn btn-primary btn-sm">
+          {saved===section ? <><Icon name="check" size={13}/>Saved</> : <><Icon name="save" size={13}/>Save</>}
+        </button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function LogoSlot({ variant, preview, onUpload, onClear }: {
+  variant: 'light'|'dark';
+  preview: string;
+  onUpload: (v: 'light'|'dark', e: React.ChangeEvent<HTMLInputElement>) => void;
+  onClear: (v: 'light'|'dark') => void;
+}) {
+  return (
+    <div className="logo-slot">
+      <div className="logo-slot-label">
+        {variant === 'light' ? 'Light Mode Logo' : 'Dark Mode Logo'}
+      </div>
+      <div className={`logo-slot-preview logo-slot-preview--${variant}`}>
+        {preview
+          ? <img src={preview} alt={`${variant} logo`} className="logo-slot-img" />
+          : <span className={`logo-slot-empty--${variant}`}>No logo</span>
+        }
+      </div>
+      <div className="logo-slot-actions">
+        <label className="logo-slot-upload-btn">
+          <Icon name="upload" size={12}/>{preview ? 'Replace' : 'Upload'}
+          <input type="file" accept="image/*,image/svg+xml" className="logo-slot-file-input" onChange={e => onUpload(variant, e)} />
+        </label>
+        {preview && (
+          <button type="button" title="Remove" onClick={() => onClear(variant)} className="logo-slot-remove-btn">
+            <Icon name="x" size={12}/>
+          </button>
+        )}
       </div>
     </div>
   );
-};
+}
+
+export function BrandingView() {
+  const [saved, setSaved] = useState<string|null>(null);
+
+  const [identity, setIdentity] = useState({
+    name:         localStorage.getItem('hudumika_platform_name')     ?? 'Hudumika',
+    tagline:      localStorage.getItem('hudumika_platform_tagline')  ?? 'Smart Business, Simplified.',
+    supportEmail: localStorage.getItem('hudumika_support_email')     ?? 'support@hudumika.io',
+    supportUrl:   localStorage.getItem('hudumika_support_url')       ?? 'https://support.hudumika.io',
+    websiteUrl:   localStorage.getItem('hudumika_website_url')       ?? 'https://hudumika.io',
+  });
+
+  const [logoLight, setLogoLight] = useState<string>(localStorage.getItem('hudumika_brand_logo_light') ?? '');
+  const [logoDark,  setLogoDark]  = useState<string>(localStorage.getItem('hudumika_brand_logo_dark')  ?? '');
+  const [favicon,   setFavicon]   = useState<string>(localStorage.getItem('hudumika_brand_favicon')    ?? '');
+
+  const [login, setLogin] = useState({
+    headline: localStorage.getItem('hudumika_login_headline') ?? 'Welcome back',
+    subtext:  localStorage.getItem('hudumika_login_subtext')  ?? 'Sign in to your Hudumika workspace',
+    bgStyle:  (localStorage.getItem('hudumika_login_bg') ?? 'navy') as 'navy'|'teal'|'gradient'|'white',
+  });
+
+  const [colors, setColors] = useState<Record<string, string>>(
+    Object.fromEntries(APP_META_BRAND.map(a => [a.id, localStorage.getItem(`hudumika_app_color_${a.id}`) ?? a.defaultColor]))
+  );
+
+  const [appLogos, setAppLogos] = useState<Record<string, string>>(
+    Object.fromEntries(APP_META_BRAND.map(a => [a.id, localStorage.getItem(`hudumika_app_logo_${a.id}`) ?? '']))
+  );
+  const [savedApp, setSavedApp] = useState<string|null>(null);
+
+  const [emailBrand, setEmailBrand] = useState({
+    headerText:  localStorage.getItem('hudumika_email_header')  ?? 'Hudumika Platform',
+    footerText:  localStorage.getItem('hudumika_email_footer')  ?? '© 2026 Hudumika LLC. All rights reserved.',
+    accentColor: localStorage.getItem('hudumika_email_accent')  ?? '#0d7a6b',
+  });
+
+  function readFile(file: File): Promise<string> {
+    return new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result as string); r.readAsDataURL(file); });
+  }
+
+  async function handleLogoFile(which: 'light'|'dark', e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    const data = await readFile(file);
+    const key  = which === 'light' ? 'hudumika_brand_logo_light' : 'hudumika_brand_logo_dark';
+    localStorage.setItem(key, data);
+    which === 'light' ? setLogoLight(data) : setLogoDark(data);
+    window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
+  }
+
+  async function handleFaviconFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    const data = await readFile(file);
+    localStorage.setItem('hudumika_brand_favicon', data);
+    setFavicon(data);
+  }
+
+  function clearLogo(which: 'light'|'dark') {
+    const key = which === 'light' ? 'hudumika_brand_logo_light' : 'hudumika_brand_logo_dark';
+    localStorage.removeItem(key);
+    which === 'light' ? setLogoLight('') : setLogoDark('');
+    window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
+  }
+
+  async function handleAppLogoFile(appId: string, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; if (!file) return;
+    const data = await readFile(file);
+    setAppLogos(p => ({ ...p, [appId]: data }));
+  }
+
+  function saveApp(appId: string) {
+    localStorage.setItem(`hudumika_app_color_${appId}`, colors[appId]);
+    const logo = appLogos[appId];
+    if (logo) localStorage.setItem(`hudumika_app_logo_${appId}`, logo);
+    else localStorage.removeItem(`hudumika_app_logo_${appId}`);
+    window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
+    setSavedApp(appId);
+    setTimeout(() => setSavedApp(null), 2000);
+  }
+
+  function save(section: string) {
+    if (section === 'identity') {
+      localStorage.setItem('hudumika_platform_name',    identity.name);
+      localStorage.setItem('hudumika_platform_tagline', identity.tagline);
+      localStorage.setItem('hudumika_support_email',    identity.supportEmail);
+      localStorage.setItem('hudumika_support_url',      identity.supportUrl);
+      localStorage.setItem('hudumika_website_url',      identity.websiteUrl);
+      window.dispatchEvent(new CustomEvent('hudumika-brand-updated'));
+    }
+    if (section === 'login') {
+      localStorage.setItem('hudumika_login_headline', login.headline);
+      localStorage.setItem('hudumika_login_subtext',  login.subtext);
+      localStorage.setItem('hudumika_login_bg',       login.bgStyle);
+    }
+    if (section === 'colors') {
+      APP_META_BRAND.forEach(a => localStorage.setItem(`hudumika_app_color_${a.id}`, colors[a.id]));
+    }
+    if (section === 'email') {
+      localStorage.setItem('hudumika_email_header', emailBrand.headerText);
+      localStorage.setItem('hudumika_email_footer', emailBrand.footerText);
+      localStorage.setItem('hudumika_email_accent', emailBrand.accentColor);
+    }
+    setSaved(section);
+    setTimeout(() => setSaved(null), 2000);
+  }
+
+  const loginBg = BG_OPTIONS.find(o => o.value === login.bgStyle)?.bg ?? '#0e1f3d';
+  const loginDark = login.bgStyle !== 'white';
+
+  return (
+    <div style={{ width:'100%' }}>
+      <PageHdr title="Platform Branding" sub="Visual identity applied across all tenant interfaces, login pages, and communications" />
+
+      {/* ── Platform Identity ── */}
+      <BCard title="Platform Identity" sub="Name, tagline, and support links shown on the workspace home, login page, and error pages" section="identity" saved={saved} onSave={save}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))', gap:16 }}>
+          <BField label="Platform Name" hint="Appears in the AppHeader and on the login page">
+            <input title="Platform name" value={identity.name} onChange={e => setIdentity(p=>({...p,name:e.target.value}))} placeholder="Hudumika" className="input-field" style={{ width:'100%' }} />
+          </BField>
+          <BField label="Tagline" hint="Short slogan on the workspace home welcome bar">
+            <input title="Tagline" value={identity.tagline} onChange={e => setIdentity(p=>({...p,tagline:e.target.value}))} placeholder="Smart Business, Simplified." className="input-field" style={{ width:'100%' }} />
+          </BField>
+          <BField label="Support Email" hint="Linked on error pages and the footer">
+            <input title="Support email" type="email" value={identity.supportEmail} onChange={e => setIdentity(p=>({...p,supportEmail:e.target.value}))} placeholder="support@clearos.io" className="input-field" style={{ width:'100%' }} />
+          </BField>
+          <BField label="Help / Documentation URL" hint="Help desk or knowledge base link">
+            <input title="Support URL" type="url" value={identity.supportUrl} onChange={e => setIdentity(p=>({...p,supportUrl:e.target.value}))} placeholder="https://support.clearos.io" className="input-field" style={{ width:'100%' }} />
+          </BField>
+          <BField label="Website URL" hint="Linked in email footers and the login page">
+            <input title="Website URL" type="url" value={identity.websiteUrl} onChange={e => setIdentity(p=>({...p,websiteUrl:e.target.value}))} placeholder="https://clearos.io" className="input-field" style={{ width:'100%' }} />
+          </BField>
+        </div>
+      </BCard>
+
+      {/* ── Logos & Favicon ── */}
+      <BCard title="Logos & Favicon" sub="Upload both logo variants for light/dark mode support. SVG or PNG recommended." section="logos" saved={saved} onSave={save}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))', gap:16 }}>
+          <LogoSlot variant="light" preview={logoLight} onUpload={handleLogoFile} onClear={clearLogo} />
+          <LogoSlot variant="dark"  preview={logoDark}  onUpload={handleLogoFile} onClear={clearLogo} />
+          {/* Favicon */}
+          <div style={{ border:'1px solid var(--border)', borderRadius:10, padding:16 }}>
+            <div style={{ fontSize:12, fontWeight:600, color:'var(--ink2)', marginBottom:10 }}>Favicon</div>
+            <div style={{ height:72, borderRadius:8, marginBottom:12, display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)', border:'1px solid var(--border)' }}>
+              {favicon
+                ? <img src={favicon} alt="favicon" style={{ width:32, height:32, objectFit:'contain', imageRendering:'pixelated' }} />
+                : <span style={{ fontSize:11, color:'var(--ink3)' }}>No favicon</span>
+              }
+            </div>
+            <div style={{ display:'flex', gap:8 }}>
+              <label style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', gap:5, height:32, borderRadius:7, border:'1px solid var(--border)', cursor:'pointer', fontSize:12, fontWeight:600, color:'var(--ink2)', background:'var(--bg)' }}>
+                <Icon name="upload" size={12}/>{favicon ? 'Replace' : 'Upload ICO/PNG'}
+                <input type="file" accept="image/x-icon,image/png,image/svg+xml" style={{ display:'none' }} onChange={handleFaviconFile} />
+              </label>
+              {favicon && (
+                <button type="button" title="Remove favicon" onClick={() => { setFavicon(''); localStorage.removeItem('hudumika_brand_favicon'); }} style={{ width:32, height:32, borderRadius:7, border:'1px solid var(--border)', background:'var(--bg)', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--ink3)' }}>
+                  <Icon name="x" size={12}/>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </BCard>
+
+      {/* ── Login Page ── */}
+      <BCard title="Login Page" sub="Headline text and background shown to all users on the sign-in screen" section="login" saved={saved} onSave={save}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))', gap:20 }}>
+          <div style={{ display:'grid', gap:16, alignContent:'start' }}>
+            <BField label="Headline" hint="Large text displayed above the sign-in form">
+              <input title="Login headline" value={login.headline} onChange={e => setLogin(p=>({...p,headline:e.target.value}))} placeholder="Welcome back" className="input-field" style={{ width:'100%' }} />
+            </BField>
+            <BField label="Sub-text" hint="Descriptive text below the headline">
+              <input title="Login subtext" value={login.subtext} onChange={e => setLogin(p=>({...p,subtext:e.target.value}))} placeholder="Sign in to your workspace" className="input-field" style={{ width:'100%' }} />
+            </BField>
+            <BField label="Background Style">
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:8, marginBottom:6 }}>
+                {BG_OPTIONS.map(opt => (
+                  <button key={opt.value} type="button" title={opt.label} onClick={() => setLogin(p=>({...p,bgStyle:opt.value}))}
+                    style={{ height:36, borderRadius:8, border: login.bgStyle===opt.value ? '2.5px solid var(--teal)' : '2px solid var(--border)', cursor:'pointer', background:opt.bg, outline:'none' }} />
+                ))}
+              </div>
+              <div style={{ display:'flex', gap:8 }}>
+                {BG_OPTIONS.map(opt => (
+                  <span key={opt.value} style={{ flex:1, fontSize:10, color: login.bgStyle===opt.value ? 'var(--teal)':'var(--ink3)', textAlign:'center', fontWeight: login.bgStyle===opt.value ? 700:400 }}>{opt.label}</span>
+                ))}
+              </div>
+            </BField>
+          </div>
+          {/* Live preview */}
+          <div style={{ borderRadius:12, overflow:'hidden', border:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'center', minHeight:180, background:loginBg }}>
+            <div style={{ textAlign:'center', padding:'0 24px' }}>
+              <div style={{ width:32, height:32, borderRadius:8, background: loginDark?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.08)', margin:'0 auto 12px', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <Icon name="shield" size={16} color={loginDark ? '#fff' : 'var(--ink2)'} />
+              </div>
+              <div style={{ fontSize:15, fontWeight:800, color: loginDark?'#fff':'var(--ink)', marginBottom:6 }}>
+                {login.headline || 'Welcome back'}
+              </div>
+              <div style={{ fontSize:11, color: loginDark?'rgba(255,255,255,0.55)':'var(--ink3)' }}>
+                {login.subtext || 'Sign in to your workspace'}
+              </div>
+            </div>
+          </div>
+        </div>
+      </BCard>
+
+      {/* ── App Branding ── */}
+      <div className="card sa-app-brand-card">
+        <div className="sa-app-brand-hdr">
+          <div className="sa-app-brand-title">App Branding</div>
+          <div className="sa-app-brand-sub">Logo and accent color for each app — saved individually</div>
+        </div>
+        <div className="sa-app-brand-list">
+          {APP_META_BRAND.map(app => {
+            const logo  = appLogos[app.id];
+            const color = colors[app.id];
+            return (
+              <div key={app.id} className="sa-app-brand-row">
+
+                {/* Preview */}
+                <div className={`sa-app-preview${logo ? ' sa-app-preview--logo' : ''}`}
+                  style={logo ? undefined : { background: color }}>
+                  {logo
+                    ? <img src={logo} alt={app.name} />
+                    : <span className="sa-app-preview-init">{app.name.slice(0,1)}</span>
+                  }
+                </div>
+
+                {/* Name + id */}
+                <div className="sa-app-info">
+                  <div className="sa-app-info-name">{app.name}</div>
+                  <div className="sa-app-info-id">{app.id}</div>
+                </div>
+
+                {/* Color picker */}
+                <div className="sa-app-color-row">
+                  <input type="color" title={`${app.name} color`} className="sa-brand-color-input"
+                    value={color} onChange={e => setColors(p=>({...p,[app.id]:e.target.value}))} />
+                  <button type="button" title="Reset color" className="btn btn-sm sa-brand-reset-app-btn"
+                    onClick={() => setColors(p=>({...p,[app.id]:app.defaultColor}))}>↺</button>
+                </div>
+
+                {/* Logo upload */}
+                <div className="sa-app-logo-row">
+                  <label className="sa-app-logo-label">
+                    <Icon name="upload" size={12}/>{logo ? 'Replace Logo' : 'Upload Logo'}
+                    <input type="file" accept="image/*,image/svg+xml" onChange={e => handleAppLogoFile(app.id, e)} />
+                  </label>
+                  {logo && (
+                    <button type="button" title="Remove logo" className="sa-app-logo-remove"
+                      onClick={() => setAppLogos(p=>({...p,[app.id]:''}))}>
+                      <Icon name="x" size={12}/>
+                    </button>
+                  )}
+                </div>
+
+                {/* Per-app save */}
+                <button type="button" onClick={() => saveApp(app.id)} className="btn btn-primary btn-sm sa-app-save-btn">
+                  {savedApp===app.id ? <><Icon name="check" size={12}/>Saved</> : <><Icon name="save" size={12}/>Save</>}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Email Branding ── */}
+      <BCard title="Email Branding" sub="Header, footer, and accent color rendered in all platform-generated emails" section="email" saved={saved} onSave={save}>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(320px,1fr))', gap:20 }}>
+          <div style={{ display:'grid', gap:16, alignContent:'start' }}>
+            <BField label="Email Header Text" hint="Brand name shown at the top of every outgoing email">
+              <input title="Email header" value={emailBrand.headerText} onChange={e => setEmailBrand(p=>({...p,headerText:e.target.value}))} placeholder="Hudumika Platform" className="input-field" style={{ width:'100%' }} />
+            </BField>
+            <BField label="Email Footer Text" hint="Copyright or legal line at the bottom of emails">
+              <input title="Email footer" value={emailBrand.footerText} onChange={e => setEmailBrand(p=>({...p,footerText:e.target.value}))} placeholder="© 2026 Hudumika LLC." className="input-field" style={{ width:'100%' }} />
+            </BField>
+            <BField label="Accent Color" hint="Button and link color in email templates">
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <input type="color" title="Email accent color" className="sa-brand-color-input"
+                  value={emailBrand.accentColor} onChange={e => setEmailBrand(p=>({...p,accentColor:e.target.value}))} />
+                <span style={{ fontSize:12, color:'var(--ink3)', fontFamily:'var(--mono)' }}>{emailBrand.accentColor}</span>
+              </div>
+            </BField>
+          </div>
+          {/* Email preview */}
+          <div style={{ border:'1px solid var(--border)', borderRadius:10, overflow:'hidden', fontSize:12, background:'var(--white)' }}>
+            <div style={{ padding:'12px 16px', borderBottom:`3px solid ${emailBrand.accentColor}`, background:'var(--bg)', fontWeight:700, color:'var(--ink)', display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ width:8, height:8, borderRadius:'50%', background:emailBrand.accentColor, display:'inline-block', flexShrink:0 }} />
+              {emailBrand.headerText || 'Platform'}
+            </div>
+            <div style={{ padding:'18px 16px' }}>
+              <div style={{ width:48, height:7, background:emailBrand.accentColor, borderRadius:3, marginBottom:12 }} />
+              <div style={{ width:'75%', height:5, background:'var(--border)', borderRadius:3, marginBottom:7 }} />
+              <div style={{ width:'55%', height:5, background:'var(--border)', borderRadius:3, marginBottom:18 }} />
+              <div style={{ display:'inline-block', padding:'7px 16px', background:emailBrand.accentColor, color:'#fff', borderRadius:6, fontSize:11, fontWeight:700 }}>
+                View in App →
+              </div>
+            </div>
+            <div style={{ padding:'10px 16px', background:'var(--bg)', borderTop:'1px solid var(--border)', color:'var(--ink3)', fontSize:10, lineHeight:1.5 }}>
+              {emailBrand.footerText || '© 2026 Hudumika LLC.'}
+            </div>
+          </div>
+        </div>
+      </BCard>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   MAIN COMPONENT
+══════════════════════════════════════════════════ */
+type ActivityType = 'company'|'user'|'billing'|'system';
+
+interface ActivityLog { id:string; actor:string; action:string; target:string; companyId?:string; time:string; type:ActivityType; }
+
+// View components are exported individually above and composed in SuperAdminShell
