@@ -1,24 +1,38 @@
 import { withTenant } from '../db/client.js';
-import { WORKFLOW_CONFIGS } from '../config/workflow.config.js';
-import type { ClearanceStage } from '@clearos/types';
+import { co2Service } from './co2.service.js';
+import { loadResolvedWorkflow, evaluateEntryConditions } from './workflow-resolver.service.js';
+import { dispatchAutoComms, cancelPendingComms } from './workflow-comms.service.js';
+
+const CO2_MODE_MAP: Record<string, 'AIR' | 'SEA' | 'ROAD' | 'RAIL'> = {
+  AIR: 'AIR', SEA_FCL: 'SEA', SEA_LCL: 'SEA', BULK: 'SEA', ROAD: 'ROAD', RAIL: 'RAIL',
+};
 
 export class WorkflowService {
   /**
-   * Transition a shipment case to a new stage, checking prerequisites and logging history
+   * Transition a shipment case to a new step, checking entry conditions and
+   * logging history. Works identically whether the shipment is on the
+   * legacy fixed 18-stage system (nextStage is a ClearanceStage literal,
+   * synthesized into the same step shape by workflow-resolver.service.ts)
+   * or a tenant-defined custom workflow (nextStage is a workflow_steps.id).
    */
   static async transitionStage(
     tenantId: string,
     shipmentId: string,
-    nextStage: ClearanceStage,
+    nextStage: string,
     actorId: string,
     note?: string,
     blocker?: string
   ) {
-    return withTenant(tenantId, async (trx) => {
+    type Co2Trigger = { type: string; origin_port: string; dest_port: string; gross_weight_kg: number };
+    const co2TriggerBox: { current: Co2Trigger | null } = { current: null };
+    const commsBox: { current: { stepId: string; stepName: string; comms: any[] } | null } = { current: null };
+    let exitedStepId: string | null = null;
+
+    const result = await withTenant(tenantId, async (trx) => {
       // 1. Get current shipment case
       const shipment = await trx
         .selectFrom('shipment_cases')
-        .select(['id', 'stage'])
+        .select(['id', 'stage', 'workflow_id', 'workflow_step_id', 'created_at', 'resolved_at', 'type', 'origin_port', 'dest_port', 'gross_weight_kg'])
         .where('id', '=', shipmentId)
         .executeTakeFirst();
 
@@ -31,32 +45,46 @@ export class WorkflowService {
         return { success: true, message: 'Already in this stage', from: currentStage, to: nextStage };
       }
 
-      // 2. Validate target stage exists
-      const nextConfig = WORKFLOW_CONFIGS[nextStage];
-      if (!nextConfig) {
+      // 2. Resolve the shipment's governing workflow (legacy or custom) and
+      // find the current + target step within it.
+      const resolved = await loadResolvedWorkflow(trx, tenantId, shipment.workflow_id);
+      const currentStep = resolved.steps.find((s) => s.id === (shipment.workflow_step_id ?? shipment.stage));
+      const nextStep = resolved.steps.find((s) => s.id === nextStage);
+
+      if (!nextStep) {
         throw new Error(`Invalid target stage: ${nextStage}`);
       }
 
-      // 3. Verify required documents are present and verified
-      if (nextConfig.requiredDocuments.length > 0) {
+      // 3. Transition legality: forward moves must be an allowed next step;
+      // backward moves to any earlier step in the same workflow stay
+      // permitted (re-validation), matching the old (never-enforced) intent.
+      if (currentStep) {
+        const isForwardAllowed = currentStep.nextStepIds.includes(nextStep.id);
+        const isBackward = nextStep.order < currentStep.order;
+        if (!isForwardAllowed && !isBackward) {
+          throw new Error(`Stage transition not permitted: "${nextStep.name}" is not reachable from "${currentStep.name}".`);
+        }
+      }
+
+      // 4. Verify entry conditions are met (generalizes the old
+      // required-documents-only check; document: fields work identically)
+      if (nextStep.entryConditions.length > 0) {
         const documents = await trx
           .selectFrom('case_documents')
           .select(['type', 'status'])
           .where('shipment_id', '=', shipmentId)
-          .where('type', 'in', nextConfig.requiredDocuments)
           .execute();
 
-        for (const reqDoc of nextConfig.requiredDocuments) {
-          const doc = documents.find((d) => d.type === reqDoc);
-          if (!doc || doc.status !== 'VERIFIED') {
-            throw new Error(`Prerequisite document "${reqDoc}" is missing or not VERIFIED.`);
-          }
+        const shipmentRow = await trx.selectFrom('shipment_cases').selectAll().where('id', '=', shipmentId).executeTakeFirstOrThrow();
+        const evalResult = evaluateEntryConditions(shipmentRow as any, documents as any, nextStep.entryConditions);
+        if (!evalResult.valid) {
+          throw new Error(`Prerequisite not met: ${evalResult.failures.join(', ')}`);
         }
       }
 
       const now = new Date();
 
-      // 4. Update the active history log entry (exit it)
+      // 5. Update the active history log entry (exit it)
       const currentHistory = await trx
         .selectFrom('stage_history')
         .selectAll()
@@ -79,13 +107,13 @@ export class WorkflowService {
           .execute();
       }
 
-      // 5. Create new stage history entry
+      // 6. Create new stage history entry
       await trx
         .insertInto('stage_history')
         .values({
           tenant_id: tenantId,
           shipment_id: shipmentId,
-          stage: nextStage,
+          stage: nextStep.id,
           entered_at: now,
           actor_id: actorId,
           note: note || null,
@@ -93,26 +121,72 @@ export class WorkflowService {
         })
         .execute();
 
-      // 6. Update the main shipment case stage
-      // Also update ETA/SLA calculations based on the new stage SLA
-      const slaDeadline = new Date(now.getTime() + nextConfig.slaHours * 60 * 60 * 1000);
+      // 7. Update the main shipment case stage
+      const slaDeadline = new Date(now.getTime() + nextStep.slaHours * 60 * 60 * 1000);
+
+      const updateFields: any = {
+        stage: nextStep.id,
+        workflow_step_id: nextStep.id,
+        sla_deadline: nextStep.isTerminal ? null : slaDeadline,
+        updated_at: now,
+      };
+
+      if (nextStep.isTerminal && !shipment.resolved_at) {
+        updateFields.resolved_at = now;
+        updateFields.resolution_time_seconds = Math.floor((now.getTime() - new Date(shipment.created_at).getTime()) / 1000);
+      }
 
       await trx
         .updateTable('shipment_cases')
-        .set({
-          stage: nextStage,
-          sla_deadline: nextStage === 'CLOSED' ? null : slaDeadline,
-          updated_at: now,
-        })
+        .set(updateFields)
         .where('id', '=', shipmentId)
         .execute();
+
+      if (nextStep.isTerminal && shipment.origin_port && shipment.dest_port && shipment.gross_weight_kg) {
+        co2TriggerBox.current = {
+          type: shipment.type,
+          origin_port: shipment.origin_port,
+          dest_port: shipment.dest_port,
+          gross_weight_kg: shipment.gross_weight_kg,
+        };
+      }
+
+      if (nextStep.autoComms.length > 0) {
+        commsBox.current = { stepId: nextStep.id, stepName: nextStep.name, comms: nextStep.autoComms };
+      }
+      if (currentStep) exitedStepId = currentStep.id;
 
       return {
         success: true,
         from: currentStage,
-        to: nextStage,
-        slaDeadline: nextStage === 'CLOSED' ? null : slaDeadline.toISOString(),
+        to: nextStep.id,
+        slaDeadline: nextStep.isTerminal ? null : slaDeadline.toISOString(),
       };
     });
+
+    // CO2 auto-calc and automated comms run as detached side-effects after
+    // the stage transition has committed — never block or fail the actual
+    // transition.
+    const co2Trigger = co2TriggerBox.current;
+    if (co2Trigger) {
+      co2Service.calculateForShipment(tenantId, shipmentId, {
+        origin: co2Trigger.origin_port,
+        destination: co2Trigger.dest_port,
+        weight_kg: co2Trigger.gross_weight_kg,
+        mode: CO2_MODE_MAP[co2Trigger.type] ?? 'SEA',
+      }).catch(err => console.error(`[CO2] auto-calc failed for shipment ${shipmentId}:`, err.message));
+    }
+
+    if (exitedStepId) {
+      cancelPendingComms(tenantId, shipmentId, exitedStepId).catch(err =>
+        console.error(`[WorkflowComms] failed to cancel pending comms for shipment ${shipmentId}:`, err.message));
+    }
+    const comms = commsBox.current;
+    if (comms) {
+      dispatchAutoComms(tenantId, shipmentId, comms.stepId, comms.stepName, comms.comms).catch(err =>
+        console.error(`[WorkflowComms] dispatch failed for shipment ${shipmentId}:`, err.message));
+    }
+
+    return result;
   }
 }
