@@ -116,17 +116,21 @@ export const demurrageService = {
   async listContainers(tenantId: string, filters?: {
     shipment_id?: string;
     status?: string;
+    container_numbers?: string[];
   }) {
     return withTenant(tenantId, async (trx) => {
       let query = trx
         .selectFrom('container_tracking')
         .where('container_tracking.tenant_id', '=', tenantId);
-      
+
       if (filters?.shipment_id) {
         query = query.where('shipment_id', '=', filters.shipment_id);
       }
       if (filters?.status) {
         query = query.where('status', '=', filters.status);
+      }
+      if (filters?.container_numbers && filters.container_numbers.length > 0) {
+        query = query.where('container_number', 'in', filters.container_numbers);
       }
 
       return query.orderBy('created_at', 'desc').selectAll().execute();
@@ -244,6 +248,94 @@ export const demurrageService = {
         .where('tenant_id', '=', tenantId)
         .returningAll()
         .executeTakeFirstOrThrow();
+    });
+  },
+
+  async updateContainer(tenantId: string, containerId: string, data: {
+    container_number?: string;
+    container_size?: string;
+    seal_number?: string | null;
+    carrier_name?: string | null;
+    shipment_id?: string | null;
+    discharge_date?: string | null;
+    free_days?: number;
+  }) {
+    return withTenant(tenantId, async (trx) => {
+      const existing = await trx
+        .selectFrom('container_tracking')
+        .where('id', '=', containerId)
+        .where('tenant_id', '=', tenantId)
+        .selectAll()
+        .executeTakeFirstOrThrow();
+
+      const patch: Record<string, any> = { updated_at: new Date() };
+      for (const k of ['container_number', 'container_size', 'seal_number', 'carrier_name', 'shipment_id'] as const) {
+        if (k in data) patch[k] = (data as any)[k] ?? null;
+      }
+      if ('free_days' in data) patch.free_days = data.free_days ?? 7;
+      if ('discharge_date' in data) patch.discharge_date = data.discharge_date ? new Date(data.discharge_date) : null;
+
+      // Recompute running days/cost from the edited values for containers
+      // still on the clock (COMPLETED ones keep their final settled figures).
+      const dischargeDate = 'discharge_date' in data
+        ? (data.discharge_date ? new Date(data.discharge_date) : null)
+        : existing.discharge_date;
+      const freeDays = ('free_days' in data ? data.free_days : existing.free_days) ?? 7;
+      const carrier = 'carrier_name' in data ? data.carrier_name : existing.carrier_name;
+      const size = ('container_size' in data ? data.container_size : existing.container_size)!;
+
+      if (existing.status === 'ACTIVE' && dischargeDate) {
+        const totalDays = daysBetween(new Date(dischargeDate), new Date());
+        const demurrageDays = Math.max(0, totalDays - freeDays);
+        let demurrageCost = 0;
+        if (demurrageDays > 0 && carrier) {
+          const tariff = await trx
+            .selectFrom('demurrage_tariffs')
+            .where('tenant_id', '=', tenantId)
+            .where('carrier_name', '=', carrier)
+            .where('container_size', '=', size)
+            .where('active', '=', true)
+            .selectAll()
+            .executeTakeFirst();
+          if (tariff) {
+            const tiers = (typeof tariff.rate_tiers === 'string' ? JSON.parse(tariff.rate_tiers) : tariff.rate_tiers) as RateTier[];
+            demurrageCost = calculateDemurrageCost(demurrageDays, tiers);
+          }
+        }
+        patch.total_days = totalDays;
+        patch.demurrage_days = demurrageDays;
+        patch.demurrage_cost = demurrageCost;
+      }
+
+      return trx
+        .updateTable('container_tracking')
+        .set(patch)
+        .where('id', '=', containerId)
+        .where('tenant_id', '=', tenantId)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    });
+  },
+
+  async deleteContainer(tenantId: string, containerId: string) {
+    return withTenant(tenantId, async (trx) => {
+      await trx
+        .deleteFrom('container_tracking')
+        .where('id', '=', containerId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+      return { ok: true };
+    });
+  },
+
+  async deleteTariff(tenantId: string, tariffId: string) {
+    return withTenant(tenantId, async (trx) => {
+      await trx
+        .deleteFrom('demurrage_tariffs')
+        .where('id', '=', tariffId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+      return { ok: true };
     });
   },
 
