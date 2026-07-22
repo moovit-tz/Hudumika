@@ -1,4 +1,4 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { GLService } from '../services/gl.service.js';
 import { db } from '../db/client.js';
@@ -6,7 +6,7 @@ import { db } from '../db/client.js';
 export async function glRoutes(fastify: FastifyInstance) {
   // Ensure user is authenticated for all GL routes
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('finops'));
+  fastify.addHook('preHandler', requireEntitlement('finops'));
 
   // Chart of Accounts
   fastify.get('/chart-of-accounts', async (request: any, reply) => {

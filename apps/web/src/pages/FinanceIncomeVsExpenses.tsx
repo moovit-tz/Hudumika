@@ -1,20 +1,26 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
-
-const fmtM = (n: number) => `TZS ${(n / 1_000_000).toFixed(1)}M`;
-const fmtFull = (n: number) => `TZS ${n.toLocaleString()}`;
+import { apiFetch } from '../lib/api.js';
+import { useCompany } from '../data/companyStore.js';
+import type { ProfitLossReport } from '@hudumika/types';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const INCOME   = [8200000, 9100000, 11400000, 10800000, 13200000, 12600000, 0, 0, 0, 0, 0, 0];
-const EXPENSES = [3100000, 3800000,  4200000,  3900000,  4800000,  4100000, 0, 0, 0, 0, 0, 0];
+const YEARS = ['2026', '2025', '2024'];
+
+function monthRangeInYear(year: number, monthIndex: number) {
+  const from = new Date(year, monthIndex, 1);
+  const to = new Date(year, monthIndex + 1, 0);
+  return { from: from.toISOString().split('T')[0], to: to.toISOString().split('T')[0] };
+}
 
 function GroupedBarChart({ labels, income, expenses }: {
   labels: string[]; income: number[]; expenses: number[];
 }) {
   const maxVal = Math.max(...income, ...expenses, 1);
   const active = labels.filter((_, i) => income[i] > 0 || expenses[i] > 0);
-  const activeIncome   = income.filter(v => v > 0);
-  const activeExpenses = expenses.filter(v => v > 0);
+  const activeIncome   = income.filter((_, i) => income[i] > 0 || expenses[i] > 0);
+  const activeExpenses = expenses.filter((_, i) => income[i] > 0 || expenses[i] > 0);
 
   return (
     <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 200, paddingTop: 20 }}>
@@ -31,22 +37,47 @@ function GroupedBarChart({ labels, income, expenses }: {
   );
 }
 
-const YEARS = ['2026', '2025', '2024'];
-
 export const FinanceIncomeVsExpenses: React.FC = () => {
-  const [year, setYear] = useState('2026');
+  const co = useCompany();
+  const cur = co.currency ?? 'TZS';
+  const fmtM = (n: number) => `${cur} ${(n / 1_000_000).toFixed(1)}M`;
+  const fmtFull = (n: number) => `${cur} ${n.toLocaleString()}`;
 
-  const totalIncome   = INCOME.reduce((a, b) => a + b, 0);
-  const totalExpenses = EXPENSES.reduce((a, b) => a + b, 0);
+  const [year, setYear] = useState('2026');
+  const [income, setIncome] = useState<number[]>(Array(12).fill(0));
+  const [expenses, setExpenses] = useState<number[]>(Array(12).fill(0));
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    setError(null);
+    const y = Number(year);
+    Promise.all(
+      Array.from({ length: 12 }, (_, i) => {
+        const { from, to } = monthRangeInYear(y, i);
+        return apiFetch(`/v1/finance/profit-loss?from=${from}&to=${to}`) as Promise<ProfitLossReport>;
+      })
+    )
+      .then(reports => {
+        if (!alive) return;
+        setIncome(reports.map(r => r.totals.revenue));
+        setExpenses(reports.map(r => r.totals.expenses));
+      })
+      .catch((err: any) => { if (alive) setError(err?.message ?? 'Failed to load income vs expenses'); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [year]);
+
+  const totalIncome   = income.reduce((a, b) => a + b, 0);
+  const totalExpenses = expenses.reduce((a, b) => a + b, 0);
   const netProfit     = totalIncome - totalExpenses;
   const profitMargin  = totalIncome > 0 ? ((netProfit / totalIncome) * 100).toFixed(1) : '0.0';
 
-  const monthlyRows = MONTHS.filter((_, i) => INCOME[i] > 0 || EXPENSES[i] > 0).map((m, i) => ({
-    month: m,
-    income:  INCOME[i],
-    expense: EXPENSES[i],
-    net:     INCOME[i] - EXPENSES[i],
-  }));
+  const monthlyRows = MONTHS
+    .map((m, i) => ({ month: m, income: income[i], expense: expenses[i], net: income[i] - expenses[i] }))
+    .filter(row => row.income > 0 || row.expense > 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
@@ -57,16 +88,23 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
           <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Comparative revenue and cost analysis</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <select value={year} onChange={e => setYear(e.target.value)}
-            style={{ padding: '7px 10px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-            {YEARS.map(y => <option key={y}>{y}</option>)}
-          </select>
+          <Select value={year} onValueChange={setYear}>
+            <SelectTrigger aria-label="Year" style={{ width: 'auto', height: 'auto', padding: '7px 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             <Icon name="download" size={13} /> Export
           </button>
         </div>
       </div>
 
+      {loading ? (
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading income vs expenses…</div>
+      ) : error ? (
+        <div style={{ padding: '48px 0', textAlign: 'center', color: '#ef4444' }}>{error}</div>
+      ) : (
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Summary cards */}
@@ -74,7 +112,7 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
           {[
             { label: 'Total Income',   value: fmtM(totalIncome),   color: 'var(--teal)',   bg: 'var(--teal-l)', icon: 'trendingUp'  },
             { label: 'Total Expenses', value: fmtM(totalExpenses), color: 'var(--red)',    bg: '#fef2f2',       icon: 'trendingDown' },
-            { label: 'Net Profit',     value: fmtM(netProfit),     color: 'var(--green)',  bg: '#f0fdf4',       icon: 'dollarSign'  },
+            { label: 'Net Profit',     value: fmtM(netProfit),     color: 'var(--green)',  bg: '#ecfdf5',       icon: 'dollarSign'  },
             { label: 'Profit Margin',  value: `${profitMargin}%`,  color: 'var(--purple)', bg: '#f5f3ff',       icon: 'percent'     },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
@@ -107,7 +145,7 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
               </div>
             </div>
           </div>
-          <GroupedBarChart labels={MONTHS} income={INCOME} expenses={EXPENSES} />
+          <GroupedBarChart labels={MONTHS} income={income} expenses={expenses} />
         </div>
 
         {/* Monthly breakdown table */}
@@ -135,7 +173,7 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
                     <td style={{ padding: '10px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ width: 60, height: 4, borderRadius: 2, background: 'var(--border)', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${Math.min(100, parseFloat(margin))}%`, background: 'var(--green)', borderRadius: 2 }} />
+                          <div style={{ height: '100%', width: `${Math.min(100, Math.max(0, parseFloat(margin)))}%`, background: 'var(--green)', borderRadius: 2 }} />
                         </div>
                         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)' }}>{margin}%</span>
                       </div>
@@ -143,6 +181,9 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
                   </tr>
                 );
               })}
+              {monthlyRows.length === 0 && (
+                <tr><td colSpan={5} style={{ padding: '20px 16px', textAlign: 'center', color: 'var(--ink3)' }}>No activity for {year}.</td></tr>
+              )}
               <tr style={{ background: 'var(--bg)' }}>
                 <td style={{ padding: '10px 16px', fontWeight: 700, color: 'var(--ink)', borderTop: '2px solid var(--border)' }}>Total {year}</td>
                 <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totalIncome)}</td>
@@ -154,6 +195,7 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
           </table></div>
         </div>
       </div>
+      )}
     </div>
   );
 };

@@ -1,56 +1,96 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
+import { apiFetch } from '../lib/api.js';
+import { useCompany } from '../data/companyStore.js';
+import type { ProfitLossReport, ProfitLossLine } from '@hudumika/types';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
-const fmt = (n: number) => `TZS ${n.toLocaleString()}`;
-const fmtM = (n: number) => `TZS ${(n / 1_000_000).toFixed(1)}M`;
+interface PLRow { label: string; amount: number; sub?: boolean; bold?: boolean; separator?: boolean }
 
-interface PLRow { label: string; amount: number; sub?: boolean; bold?: boolean; separator?: boolean; negative?: boolean }
+function iso(d: Date) { return d.toISOString().split('T')[0]; }
 
-const INCOME: PLRow[] = [
-  { label: 'Revenue',                         amount: 0,         bold: true  },
-  { label: 'Clearance & Declaration Fees',    amount: 21400000,  sub: true   },
-  { label: 'Freight Forwarding Income',       amount: 18300000,  sub: true   },
-  { label: 'Port Agency Services',            amount: 7200000,   sub: true   },
-  { label: 'Document Handling Fees',          amount: 3100000,   sub: true   },
-  { label: 'Warehousing & Storage Income',    amount: 2600000,   sub: true   },
-  { label: 'Other Income',                    amount: 900000,    sub: true   },
-  { label: 'Total Revenue',                   amount: 53500000,  bold: true  },
-  { label: '',                                amount: 0,         separator: true },
-];
+function periodRange(key: string): { from: string; to: string } {
+  const now = new Date();
+  const y = now.getFullYear();
+  switch (key) {
+    case 'Last Month': {
+      const start = new Date(y, now.getMonth() - 1, 1);
+      const end = new Date(y, now.getMonth(), 0);
+      return { from: iso(start), to: iso(end) };
+    }
+    case 'This Quarter': {
+      const qStartMonth = Math.floor(now.getMonth() / 3) * 3;
+      return { from: iso(new Date(y, qStartMonth, 1)), to: iso(now) };
+    }
+    case 'Last Year':
+      return { from: iso(new Date(y - 1, 0, 1)), to: iso(new Date(y - 1, 11, 31)) };
+    case 'This Year (YTD)':
+      return { from: iso(new Date(y, 0, 1)), to: iso(now) };
+    case 'This Month':
+    default:
+      return { from: iso(new Date(y, now.getMonth(), 1)), to: iso(now) };
+  }
+}
 
-const EXPENSES: PLRow[] = [
-  { label: 'Cost of Revenue',                 amount: 0,         bold: true  },
-  { label: 'Customs Duties Paid on Behalf',   amount: 9800000,   sub: true   },
-  { label: 'Port & Terminal Charges',         amount: 4800000,   sub: true   },
-  { label: 'Ocean Freight Costs',             amount: 6100000,   sub: true   },
-  { label: 'Total Cost of Revenue',           amount: 20700000,  bold: true  },
-  { label: '',                                amount: 0,         separator: true },
-  { label: 'Gross Profit',                    amount: 32800000,  bold: true  },
-  { label: '',                                amount: 0,         separator: true },
-  { label: 'Operating Expenses',              amount: 0,         bold: true  },
-  { label: 'Staff Salaries & Benefits',       amount: 8400000,   sub: true   },
-  { label: 'Vehicle Running Costs',           amount: 1900000,   sub: true   },
-  { label: 'Office Rent & Utilities',         amount: 1800000,   sub: true   },
-  { label: 'IT Systems & Software',           amount: 620000,    sub: true   },
-  { label: 'Marketing & Business Dev',        amount: 480000,    sub: true   },
-  { label: 'Professional Fees',               amount: 350000,    sub: true   },
-  { label: 'Insurance',                       amount: 290000,    sub: true   },
-  { label: 'Total Operating Expenses',        amount: 13840000,  bold: true  },
-  { label: '',                                amount: 0,         separator: true },
-  { label: 'Operating Profit (EBIT)',         amount: 18960000,  bold: true  },
-  { label: '',                                amount: 0,         separator: true },
-  { label: 'Finance Costs',                   amount: 0,         bold: true  },
-  { label: 'Loan Interest',                   amount: 680000,    sub: true   },
-  { label: 'Bank Charges',                    amount: 120000,    sub: true   },
-  { label: 'Total Finance Costs',             amount: 800000,    bold: true  },
-  { label: '',                                amount: 0,         separator: true },
-  { label: 'Tax',                             amount: 0,         bold: true  },
-  { label: 'Corporation Tax (30%)',           amount: 4848000,   sub: true   },
-  { label: '',                                amount: 0,         separator: true },
-  { label: 'NET PROFIT AFTER TAX',            amount: 13312000,  bold: true  },
-];
+const PERIODS = ['This Month', 'Last Month', 'This Quarter', 'This Year (YTD)', 'Last Year'];
 
-function PLSection({ rows, highlightColor }: { rows: PLRow[]; highlightColor: string }) {
+function buildIncomeRows(revenue: ProfitLossLine[], total: number): PLRow[] {
+  const rows: PLRow[] = [{ label: 'Revenue', amount: 0, bold: true }];
+  revenue.forEach(r => rows.push({ label: r.account_name, amount: r.amount, sub: true }));
+  rows.push({ label: 'Total Revenue', amount: total, bold: true });
+  rows.push({ label: '', amount: 0, separator: true });
+  return rows;
+}
+
+function buildCostsProfitRows(revenueTotal: number, expenses: ProfitLossLine[]) {
+  const cogs = expenses.filter(e => e.subtype === 'COST_OF_SERVICES');
+  const opex = expenses.filter(e => e.subtype === 'OPERATING_EXPENSE' || e.subtype === 'ADMIN_EXPENSE');
+  const finance = expenses.filter(e => e.subtype === 'FINANCE_COST');
+  const other = expenses.filter(e => !['COST_OF_SERVICES', 'OPERATING_EXPENSE', 'ADMIN_EXPENSE', 'FINANCE_COST'].includes(e.subtype as string));
+
+  const cogsTotal = cogs.reduce((s, e) => s + e.amount, 0);
+  const grossProfit = revenueTotal - cogsTotal;
+  const opexTotal = opex.reduce((s, e) => s + e.amount, 0);
+  const operatingProfit = grossProfit - opexTotal;
+  const financeTotal = finance.reduce((s, e) => s + e.amount, 0);
+  const otherTotal = other.reduce((s, e) => s + e.amount, 0);
+  const netProfit = operatingProfit - financeTotal - otherTotal;
+
+  const rows: PLRow[] = [];
+  if (cogs.length) {
+    rows.push({ label: 'Cost of Revenue', amount: 0, bold: true });
+    cogs.forEach(e => rows.push({ label: e.account_name, amount: e.amount, sub: true }));
+    rows.push({ label: 'Total Cost of Revenue', amount: cogsTotal, bold: true });
+    rows.push({ label: '', amount: 0, separator: true });
+  }
+  rows.push({ label: 'Gross Profit', amount: grossProfit, bold: true });
+  rows.push({ label: '', amount: 0, separator: true });
+  if (opex.length) {
+    rows.push({ label: 'Operating Expenses', amount: 0, bold: true });
+    opex.forEach(e => rows.push({ label: e.account_name, amount: e.amount, sub: true }));
+    rows.push({ label: 'Total Operating Expenses', amount: opexTotal, bold: true });
+    rows.push({ label: '', amount: 0, separator: true });
+  }
+  rows.push({ label: 'Operating Profit (EBIT)', amount: operatingProfit, bold: true });
+  rows.push({ label: '', amount: 0, separator: true });
+  if (finance.length) {
+    rows.push({ label: 'Finance Costs', amount: 0, bold: true });
+    finance.forEach(e => rows.push({ label: e.account_name, amount: e.amount, sub: true }));
+    rows.push({ label: 'Total Finance Costs', amount: financeTotal, bold: true });
+    rows.push({ label: '', amount: 0, separator: true });
+  }
+  if (other.length) {
+    rows.push({ label: 'Other Expenses', amount: 0, bold: true });
+    other.forEach(e => rows.push({ label: e.account_name, amount: e.amount, sub: true }));
+    rows.push({ label: 'Total Other Expenses', amount: otherTotal, bold: true });
+    rows.push({ label: '', amount: 0, separator: true });
+  }
+  rows.push({ label: 'NET PROFIT AFTER TAX', amount: netProfit, bold: true });
+  return { rows, grossProfit, operatingProfit, netProfit };
+}
+
+function PLSection({ rows, highlightColor, cur }: { rows: PLRow[]; highlightColor: string; cur: string }) {
+  const fmt = (n: number) => `${cur} ${n.toLocaleString()}`;
   return (
     <div>
       {rows.map((row, i) => {
@@ -69,7 +109,7 @@ function PLSection({ rows, highlightColor }: { rows: PLRow[]; highlightColor: st
             }}>
               {row.label}
             </span>
-            {row.amount > 0 && (
+            {row.amount !== 0 && (
               <span style={{
                 fontSize: row.bold ? 13 : 12,
                 fontWeight: row.bold ? 700 : 400,
@@ -86,17 +126,37 @@ function PLSection({ rows, highlightColor }: { rows: PLRow[]; highlightColor: st
   );
 }
 
-const PERIODS = ['This Month', 'Last Month', 'This Quarter', 'This Year (YTD)', 'Last Year'];
-
 export const FinanceProfitLoss: React.FC = () => {
+  const co = useCompany();
+  const cur = co.currency ?? 'TZS';
   const [period, setPeriod] = useState('This Year (YTD)');
+  const [report, setReport] = useState<ProfitLossReport | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const revenue   = 53500000;
-  const costOfRev = 20700000;
-  const grossProfit = revenue - costOfRev;
-  const netProfit = 13312000;
-  const grossMargin = ((grossProfit / revenue) * 100).toFixed(1);
-  const netMargin   = ((netProfit / revenue) * 100).toFixed(1);
+  const range = periodRange(period);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    setError(null);
+    apiFetch(`/v1/finance/profit-loss?from=${range.from}&to=${range.to}`)
+      .then((res: ProfitLossReport) => { if (alive) setReport(res); })
+      .catch((err: any) => { if (alive) setError(err?.message ?? 'Failed to load P&L'); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [range.from, range.to]);
+
+  const revenueTotal = report?.totals.revenue ?? 0;
+  const incomeRows = useMemo(() => buildIncomeRows(report?.revenue ?? [], revenueTotal), [report, revenueTotal]);
+  const { rows: costRows, grossProfit, netProfit } = useMemo(
+    () => buildCostsProfitRows(revenueTotal, report?.expenses ?? []),
+    [report, revenueTotal]
+  );
+
+  const fmtM = (n: number) => `${cur} ${(n / 1_000_000).toFixed(1)}M`;
+  const grossMargin = revenueTotal !== 0 ? ((grossProfit / revenueTotal) * 100).toFixed(1) : '0.0';
+  const netMargin = revenueTotal !== 0 ? ((netProfit / revenueTotal) * 100).toFixed(1) : '0.0';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
@@ -107,24 +167,31 @@ export const FinanceProfitLoss: React.FC = () => {
           <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Income statement — freight &amp; customs clearing operations</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <select value={period} onChange={e => setPeriod(e.target.value)}
-            style={{ padding: '7px 10px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-            {PERIODS.map(p => <option key={p}>{p}</option>)}
-          </select>
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 'auto', padding: '7px 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             <Icon name="download" size={13} /> Export
           </button>
         </div>
       </div>
 
+      {loading ? (
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading profit &amp; loss…</div>
+      ) : error ? (
+        <div style={{ padding: '48px 0', textAlign: 'center', color: '#ef4444' }}>{error}</div>
+      ) : (
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* KPI summary */}
         <div style={{ display: 'flex', gap: 14 }}>
           {[
-            { label: 'Total Revenue',   value: fmtM(revenue),       color: 'var(--teal)',   bg: 'var(--teal-l)', icon: 'trendingUp'   },
+            { label: 'Total Revenue',   value: fmtM(revenueTotal),  color: 'var(--teal)',   bg: 'var(--teal-l)', icon: 'trendingUp'   },
             { label: 'Gross Profit',    value: fmtM(grossProfit),   color: 'var(--blue)',   bg: '#eff6ff',       icon: 'dollarSign'   },
-            { label: 'Net Profit',      value: fmtM(netProfit),     color: 'var(--green)',  bg: '#f0fdf4',       icon: 'checkCircle'  },
+            { label: 'Net Profit',      value: fmtM(netProfit),     color: 'var(--green)',  bg: '#ecfdf5',       icon: 'checkCircle'  },
             { label: 'Gross Margin',    value: `${grossMargin}%`,   color: '#f59e0b',       bg: '#fffbeb',       icon: 'percent'      },
             { label: 'Net Margin',      value: `${netMargin}%`,     color: 'var(--purple)', bg: '#f5f3ff',       icon: 'pieChart'     },
           ].map(s => (
@@ -149,7 +216,7 @@ export const FinanceProfitLoss: React.FC = () => {
               <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink3)' }}>{period}</span>
             </div>
             <div style={{ padding: '8px 20px 16px' }}>
-              <PLSection rows={INCOME} highlightColor="var(--teal)" />
+              <PLSection rows={incomeRows} highlightColor="var(--teal)" cur={cur} />
             </div>
           </div>
 
@@ -160,11 +227,12 @@ export const FinanceProfitLoss: React.FC = () => {
               <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink3)' }}>{period}</span>
             </div>
             <div style={{ padding: '8px 20px 16px' }}>
-              <PLSection rows={EXPENSES} highlightColor="var(--green)" />
+              <PLSection rows={costRows} highlightColor="var(--green)" cur={cur} />
             </div>
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };

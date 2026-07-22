@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { MetricsRow, spark } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
@@ -24,7 +24,6 @@ const DEFAULT = { title: 'Finance Module', desc: 'This module is under construct
 
 export const FinancePlaceholder: React.FC = () => {
   const location = useLocation();
-  const navigate = useNavigate();
   const meta = TITLES[location.pathname] ?? DEFAULT;
 
   return (
@@ -32,14 +31,13 @@ export const FinancePlaceholder: React.FC = () => {
       {/* Header */}
       <div style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <button
-            type="button"
-            onClick={() => navigate('/finance')}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, border: 'none', background: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--ink3)', fontFamily: 'var(--font)', padding: 0 }}
+          <Link
+            to="/finance"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, border: 'none', background: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--ink3)', fontFamily: 'var(--font)', padding: 0, textDecoration: 'none' }}
           >
             <Icon name="chevronLeft" size={13} strokeWidth={2} />
             Finance Dashboard
-          </button>
+          </Link>
           <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.3px', display: 'flex', alignItems: 'center', gap: 10 }}>
             <Icon name={meta.iconName} size={22} strokeWidth={2.2} color="var(--teal)" />
             {meta.title}
@@ -75,17 +73,17 @@ export const FinancePlaceholder: React.FC = () => {
         <div style={{ fontSize: 14, color: 'var(--ink3)', maxWidth: 420, margin: '0 auto 28px' }}>
           {meta.desc} This module is currently being built and will be available in an upcoming release.
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/finance')}
+        <Link
+          to="/finance"
           style={{
+            display: 'inline-block',
             padding: '10px 24px', borderRadius: 9, border: 'none', cursor: 'pointer',
             background: 'var(--teal)', color: '#fff', fontSize: 13.5, fontWeight: 600,
-            fontFamily: 'var(--font)',
+            fontFamily: 'var(--font)', textDecoration: 'none',
           }}
         >
           Back to Finance Dashboard
-        </button>
+        </Link>
       </div>
     </div>
   );

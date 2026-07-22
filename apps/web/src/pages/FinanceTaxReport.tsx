@@ -1,41 +1,103 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
-
-const fmtFull = (n: number) => `TZS ${n.toLocaleString()}`;
-
-const TAX_SUMMARY = [
-  { name: 'Value Added Tax (VAT)',      rate: 18, taxableAmt: 14800000, taxAmt: 2664000, invoices: 24 },
-  { name: 'Withholding Tax (WHT-5%)',   rate:  5, taxableAmt:  6200000, taxAmt:  310000, invoices: 12 },
-  { name: 'Withholding Tax (WHT-10%)', rate: 10, taxableAmt:  4100000, taxAmt:  410000, invoices:  7 },
-  { name: 'Customs Excise Duty',        rate:  0, taxableAmt:  9800000, taxAmt:  735000, invoices: 18 },
-  { name: 'PAYE (Employee Tax)',         rate:  0, taxableAmt:  5500000, taxAmt:  950000, invoices:  6 },
-];
-
-const TRANSACTIONS = [
-  { ref: 'INV-2024', client: 'Simba Logistics Ltd',    date: '10 Jun 2026', taxType: 'VAT',     taxable: 2415254, taxAmt: 434745, rate: 18 },
-  { ref: 'INV-2022', client: 'Dar Freight Solutions',  date: '05 Jun 2026', taxType: 'VAT',     taxable: 2627119, taxAmt: 472881, rate: 18 },
-  { ref: 'INV-2020', client: 'Mombasa Gate Clearers',  date: '01 Jun 2026', taxType: 'WHT-5%',  taxable: 1480000, taxAmt:  74000, rate:  5 },
-  { ref: 'INV-2019', client: 'TanzaPort Logistics',    date: '28 May 2026', taxType: 'VAT',     taxable: 1864407, taxAmt: 335593, rate: 18 },
-  { ref: 'INV-2018', client: 'East Africa Freight',    date: '25 May 2026', taxType: 'WHT-10%', taxable: 1650000, taxAmt: 165000, rate: 10 },
-  { ref: 'INV-2016', client: 'Nairobi Express Cargo',  date: '18 May 2026', taxType: 'VAT',     taxable: 1118644, taxAmt: 201356, rate: 18 },
-  { ref: 'INV-2015', client: 'Arusha Port Agents',     date: '14 May 2026', taxType: 'WHT-5%',  taxable:  540000, taxAmt:  27000, rate:  5 },
-  { ref: 'INV-2014', client: 'Ocean Bridge Clearing',  date: '10 May 2026', taxType: 'VAT',     taxable:  737288, taxAmt: 132712, rate: 18 },
-];
-
-const TAX_COLORS: Record<string, { color: string; bg: string }> = {
-  'VAT':     { color: 'var(--blue)',   bg: '#eff6ff' },
-  'WHT-5%':  { color: '#f59e0b',      bg: '#fffbeb' },
-  'WHT-10%': { color: 'var(--purple)', bg: '#f5f3ff' },
-};
+import { apiFetch } from '../lib/api.js';
+import { useCompany } from '../data/companyStore.js';
+import type { LedgerReport } from '@hudumika/types';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 const PERIODS = ['This Month', 'Last Month', 'This Quarter', 'This Year', 'Last Year'];
 
-export const FinanceTaxReport: React.FC = () => {
-  const [period, setPeriod] = useState('This Year');
+function iso(d: Date) { return d.toISOString().split('T')[0]; }
+function periodRange(key: string): { from: string; to: string } {
+  const now = new Date();
+  const y = now.getFullYear();
+  switch (key) {
+    case 'Last Month': {
+      const start = new Date(y, now.getMonth() - 1, 1);
+      const end = new Date(y, now.getMonth(), 0);
+      return { from: iso(start), to: iso(end) };
+    }
+    case 'This Quarter': {
+      const qStartMonth = Math.floor(now.getMonth() / 3) * 3;
+      return { from: iso(new Date(y, qStartMonth, 1)), to: iso(now) };
+    }
+    case 'Last Year':
+      return { from: iso(new Date(y - 1, 0, 1)), to: iso(new Date(y - 1, 11, 31)) };
+    case 'This Year':
+      return { from: iso(new Date(y, 0, 1)), to: iso(now) };
+    case 'This Month':
+    default:
+      return { from: iso(new Date(y, now.getMonth(), 1)), to: iso(now) };
+  }
+}
 
-  const totalTaxable = TAX_SUMMARY.reduce((a, b) => a + b.taxableAmt, 0);
-  const totalTax     = TAX_SUMMARY.reduce((a, b) => a + b.taxAmt, 0);
-  const totalInv     = TAX_SUMMARY.reduce((a, b) => a + b.invoices, 0);
+/** Tax accounts from the standard seeded chart of accounts (021_finance_gl.sql).
+ *  Taxable base is derived (taxAmt / rate) since only the tax amount itself is
+ *  posted to the GL — there's no separately stored taxable-base figure. */
+const TAX_TYPES = [
+  { code: '2200', label: 'Value Added Tax (VAT)', short: 'VAT', rate: 18, color: 'var(--blue)', bg: '#eff6ff' },
+  { code: '2300', label: 'Withholding Tax (WHT)',  short: 'WHT', rate: 5,  color: '#f59e0b',     bg: '#fffbeb' },
+];
+
+interface TaxTxn { ref: string; description: string; date: string; taxType: string; taxable: number; taxAmt: number; rate: number; color: string; bg: string }
+
+export const FinanceTaxReport: React.FC = () => {
+  const co = useCompany();
+  const cur = co.currency ?? 'TZS';
+  const fmtFull = (n: number) => `${cur} ${n.toLocaleString()}`;
+
+  const [period, setPeriod] = useState('This Year');
+  const [ledgers, setLedgers] = useState<Record<string, LedgerReport | null>>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const range = periodRange(period);
+
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    setError(null);
+    Promise.all(
+      TAX_TYPES.map(t =>
+        apiFetch(`/v1/finance/ledger?account=${t.code}&from=${range.from}&to=${range.to}`)
+          .then((res: LedgerReport) => [t.code, res] as const)
+          .catch(() => [t.code, null] as const)
+      )
+    )
+      .then(pairs => { if (alive) setLedgers(Object.fromEntries(pairs)); })
+      .catch((err: any) => { if (alive) setError(err?.message ?? 'Failed to load tax report'); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [range.from, range.to]);
+
+  const { summary, transactions } = useMemo(() => {
+    const summaryRows: { name: string; rate: number; taxableAmt: number; taxAmt: number; invoices: number; short: string; color: string; bg: string }[] = [];
+    const txns: TaxTxn[] = [];
+
+    TAX_TYPES.forEach(t => {
+      const ledger = ledgers[t.code];
+      if (!ledger) return;
+      const accrued = ledger.entries.filter(e => e.credit > 0);
+      const taxAmt = accrued.reduce((s, e) => s + e.credit, 0);
+      if (taxAmt <= 0) return;
+      summaryRows.push({
+        name: t.label, rate: t.rate, taxAmt,
+        taxableAmt: taxAmt / (t.rate / 100), invoices: accrued.length, short: t.short, color: t.color, bg: t.bg,
+      });
+      accrued.forEach(e => txns.push({
+        ref: e.entry_number, description: e.description || '—', date: e.date,
+        taxType: t.short, taxAmt: e.credit, taxable: e.credit / (t.rate / 100), rate: t.rate,
+        color: t.color, bg: t.bg,
+      }));
+    });
+
+    txns.sort((a, b) => b.date.localeCompare(a.date));
+    return { summary: summaryRows, transactions: txns };
+  }, [ledgers]);
+
+  const totalTaxable = summary.reduce((a, b) => a + b.taxableAmt, 0);
+  const totalTax = summary.reduce((a, b) => a + b.taxAmt, 0);
+  const totalInv = summary.reduce((a, b) => a + b.invoices, 0);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
@@ -43,28 +105,35 @@ export const FinanceTaxReport: React.FC = () => {
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Tax Report</div>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>VAT, withholding tax and customs duty summary</div>
+          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>VAT and withholding tax accrued to the general ledger</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <select value={period} onChange={e => setPeriod(e.target.value)}
-            style={{ padding: '7px 10px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-            {PERIODS.map(p => <option key={p}>{p}</option>)}
-          </select>
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 'auto', padding: '7px 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             <Icon name="download" size={13} /> Export
           </button>
         </div>
       </div>
 
+      {loading ? (
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading tax report…</div>
+      ) : error ? (
+        <div style={{ padding: '48px 0', textAlign: 'center', color: '#ef4444' }}>{error}</div>
+      ) : (
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Summary cards */}
         <div style={{ display: 'flex', gap: 14 }}>
           {[
-            { label: 'Total Taxable Amount', value: fmtFull(totalTaxable), icon: 'dollarSign', color: 'var(--blue)',   bg: '#eff6ff' },
-            { label: 'Total Tax Collected',  value: fmtFull(totalTax),     icon: 'percent',    color: 'var(--teal)',   bg: 'var(--teal-l)' },
-            { label: 'Effective Tax Rate',   value: `${((totalTax / totalTaxable) * 100).toFixed(1)}%`, icon: 'barChart2', color: '#f59e0b', bg: '#fffbeb' },
-            { label: 'Taxable Transactions', value: String(totalInv),      icon: 'file',       color: 'var(--purple)', bg: '#f5f3ff' },
+            { label: 'Total Taxable Base (est.)', value: fmtFull(totalTaxable), icon: 'dollarSign', color: 'var(--blue)',   bg: '#eff6ff' },
+            { label: 'Total Tax Accrued',         value: fmtFull(totalTax),     icon: 'percent',    color: 'var(--teal)',   bg: 'var(--teal-l)' },
+            { label: 'Effective Tax Rate',         value: totalTaxable > 0 ? `${((totalTax / totalTaxable) * 100).toFixed(1)}%` : '—', icon: 'barChart2', color: '#f59e0b', bg: '#fffbeb' },
+            { label: 'Taxable Transactions',       value: String(totalInv),      icon: 'file',       color: 'var(--purple)', bg: '#f5f3ff' },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -83,21 +152,24 @@ export const FinanceTaxReport: React.FC = () => {
           <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Tax Summary by Type</span>
           </div>
+          {summary.length === 0 ? (
+            <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No tax activity for this period.</div>
+          ) : (
           <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
-                {['Tax Name', 'Rate', 'Taxable Amount', 'Tax Collected', 'Invoices', 'Share'].map(h => (
+                {['Tax Name', 'Rate', 'Taxable Base (est.)', 'Tax Accrued', 'Entries', 'Share'].map(h => (
                   <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {TAX_SUMMARY.map((row, i) => {
-                const share = ((row.taxAmt / totalTax) * 100).toFixed(1);
+              {summary.map((row, i) => {
+                const share = totalTax > 0 ? ((row.taxAmt / totalTax) * 100).toFixed(1) : '0.0';
                 return (
-                  <tr key={row.name} style={{ borderBottom: i < TAX_SUMMARY.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                  <tr key={row.name} style={{ borderBottom: i < summary.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 600 }}>{row.name}</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>{row.rate > 0 ? `${row.rate}%` : 'Variable'}</td>
+                    <td style={{ padding: '10px 16px', color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>{row.rate}%</td>
                     <td style={{ padding: '10px 16px', color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{fmtFull(row.taxableAmt)}</td>
                     <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 700, fontFamily: 'var(--mono)' }}>{fmtFull(row.taxAmt)}</td>
                     <td style={{ padding: '10px 16px', color: 'var(--ink2)', textAlign: 'center' }}>{row.invoices}</td>
@@ -121,6 +193,7 @@ export const FinanceTaxReport: React.FC = () => {
               </tr>
             </tbody>
           </table></div>
+          )}
         </div>
 
         {/* Transaction detail table */}
@@ -128,35 +201,37 @@ export const FinanceTaxReport: React.FC = () => {
           <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Taxable Transactions</span>
           </div>
+          {transactions.length === 0 ? (
+            <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No taxable transactions for this period.</div>
+          ) : (
           <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
-                {['Reference', 'Client', 'Date', 'Tax Type', 'Taxable Amount', 'Tax Amount', 'Rate'].map(h => (
+                {['Reference', 'Description', 'Date', 'Tax Type', 'Taxable Base (est.)', 'Tax Amount', 'Rate'].map(h => (
                   <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {TRANSACTIONS.map((tx, i) => {
-                const tc = TAX_COLORS[tx.taxType] ?? { color: 'var(--ink3)', bg: 'var(--bg)' };
-                return (
-                  <tr key={tx.ref} style={{ borderBottom: i < TRANSACTIONS.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                    <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 600, fontFamily: 'var(--mono)', fontSize: 11 }}>{tx.ref}</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 500 }}>{tx.client}</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{tx.date}</td>
-                    <td style={{ padding: '10px 16px' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: tc.color, background: tc.bg, borderRadius: 5, padding: '2px 7px' }}>{tx.taxType}</span>
-                    </td>
-                    <td style={{ padding: '10px 16px', color: 'var(--ink)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(tx.taxable)}</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 600, fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(tx.taxAmt)}</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>{tx.rate > 0 ? `${tx.rate}%` : 'Var'}</td>
-                  </tr>
-                );
-              })}
+              {transactions.map((tx, i) => (
+                <tr key={`${tx.ref}-${i}`} style={{ borderBottom: i < transactions.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                  <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 600, fontFamily: 'var(--mono)', fontSize: 11 }}>{tx.ref}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 500 }}>{tx.description}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{new Date(tx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                  <td style={{ padding: '10px 16px' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: tx.color, background: tx.bg, borderRadius: 5, padding: '2px 7px' }}>{tx.taxType}</span>
+                  </td>
+                  <td style={{ padding: '10px 16px', color: 'var(--ink)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(tx.taxable)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 600, fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(tx.taxAmt)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>{tx.rate}%</td>
+                </tr>
+              ))}
             </tbody>
           </table></div>
+          )}
         </div>
       </div>
+      )}
     </div>
   );
 };

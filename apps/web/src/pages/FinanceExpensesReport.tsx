@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { Icon } from '../components/Icon.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 const fmtM = (n: number) => `TZS ${(n / 1_000_000).toFixed(1)}M`;
 const fmtFull = (n: number) => `TZS ${n.toLocaleString()}`;
@@ -66,15 +67,19 @@ export const FinanceExpensesReport: React.FC = () => {
           <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Operational costs by category and period</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <select value={category} onChange={e => setCategory(e.target.value)}
-            style={{ padding: '7px 10px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-            <option>All Categories</option>
-            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-          </select>
-          <select value={period} onChange={e => setPeriod(e.target.value)}
-            style={{ padding: '7px 10px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-            {PERIODS.map(p => <option key={p}>{p}</option>)}
-          </select>
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger aria-label="Category" style={{ width: 'auto', height: 'auto', padding: '7px 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="All Categories">All Categories</SelectItem>
+              {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select value={period} onValueChange={setPeriod}>
+            <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 'auto', padding: '7px 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+            </SelectContent>
+          </Select>
           <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             <Icon name="download" size={13} /> Export
           </button>

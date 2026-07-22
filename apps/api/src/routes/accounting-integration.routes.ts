@@ -1,11 +1,11 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { AccountingIntegrationService } from '../services/accounting-integration.service.js';
 import { requireRole } from '../middleware/rbac.js';
 
 export async function accountingIntegrationRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('finops'));
+  fastify.addHook('preHandler', requireEntitlement('finops'));
 
   // GET /v1/accounting-integrations
   fastify.get('/', async (request: any, reply) => {

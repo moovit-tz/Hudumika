@@ -1,15 +1,16 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { MetricsRow, MiniBar, Trend, spark } from '../components/MetricCard.js';
-import { PageHeader } from '../components/PageHeader.jsx';
+import { PageHeader } from '../components/PageHeader.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { useLocale } from '../hooks/useLocale.js';
 
-/* ── Helpers ── */
+/* -- Helpers -- */
 function pct(n: number) { return (n > 0 ? '+' : '') + n.toFixed(2) + '%'; }
 
-/* ── Avatar ── */
+/* -- Avatar -- */
 function Av({ name, color, size = 38, img }: { name: string; color?: string; size?: number; img?: string }) {
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   const colors = ['#0d7a6b','#4f46e5','#ec4899','#f59e0b','#8b5cf6','#0550ae','#059669'];
@@ -24,7 +25,7 @@ function Av({ name, color, size = 38, img }: { name: string; color?: string; siz
 
 /* MiniBar and Trend are imported from MetricCard */
 
-/* ── Progress bar ── */
+/* -- Progress bar -- */
 function ProgressBar({ pct: p, color }: { pct: number; color: string }) {
   return (
     <div style={{ height: 7, background: 'var(--border)', borderRadius: 4, overflow: 'hidden', marginTop: 5 }}>
@@ -33,7 +34,7 @@ function ProgressBar({ pct: p, color }: { pct: number; color: string }) {
   );
 }
 
-/* ── Full-width bar chart ── */
+/* -- Full-width bar chart -- */
 function BarChart({ data, color = '#c7d8f5', height = 60 }: { data: number[]; color?: string; height?: number }) {
   const max = Math.max(...data, 1);
   const bw = 10, gap = 5;
@@ -50,7 +51,7 @@ function BarChart({ data, color = '#c7d8f5', height = 60 }: { data: number[]; co
 
 /* Trend imported from MetricCard */
 
-/* ── Section header ── */
+/* -- Section header -- */
 function SHdr({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -60,7 +61,7 @@ function SHdr({ title, action, onAction }: { title: string; action?: string; onA
   );
 }
 
-/* ── Static seed data ── */
+/* -- Static seed data -- */
 const SPARK = [18,22,15,30,25,38,28,42,35,55,48,60,52,70,65];
 const BAR_MONTHLY = [30,45,28,60,42,55,38,70,50,65,48,75,55,82,60,70,52,65,45,72,58,80,65,90,72,85,68,95,78,88];
 const PLAN_BARS   = [20,35,15,45,30,55,40,60,45,65,50,70,55,75,60,80,65,85,70,90,75,95,80,100,85,90,80,75,70,65];
@@ -75,17 +76,17 @@ const ACTIVITIES = [
 
 const NOTIFICATIONS = [
   { date: '13 Jun', color: 'var(--ink3)', title: 'Invoice #INV-2026-0541 Issued', desc: 'Clearance completed for GALCO. 09:30am' },
-  { date: '13 Jun', color: 'var(--teal)', title: 'Payment Received — TZS 4.2M',   desc: 'Wire from Acme Imports. 09:15am' },
+  { date: '13 Jun', color: 'var(--teal)', title: 'Payment Received � TZS 4.2M',   desc: 'Wire from Acme Imports. 09:15am' },
   { date: '12 Jun', color: '#4f46e5', title: 'Demurrage Charge Applied',       desc: 'Container CSNU8734521. 14:00pm' },
   { date: '12 Jun', color: '#ec4899', title: 'Duty Payment Pending',           desc: 'Ref: CLR-2026-0912. 11:00am' },
 ];
 
 const RECENT_INVOICES = [
-  { plan: 'P1', planName: 'Standard Clearance · 2.5%',  who: 'Janice Carroll',    date: '10/06/2026', amount: '4,850.00', currency: 'USD', status: 'Pending',   color: '#4f46e5' },
-  { plan: 'P2', planName: 'Express Clearance · 4.5%',   who: 'Victoria Aguilar',  date: '10/06/2026', amount: '8,340.00', currency: 'USD', status: 'Completed', color: '#ec4899' },
-  { plan: 'P3', planName: 'AEO Clearance · 1.8%',       who: 'Emma Henry',        date: '10/06/2026', amount: '3,120.00', currency: 'USD', status: 'Completed', color: '#f59e0b' },
-  { plan: 'P1', planName: 'Standard Clearance · 2.5%',  who: 'Alice Ford',        date: '10/06/2026', amount: '6,780.00', currency: 'USD', status: 'Completed', color: '#4f46e5' },
-  { plan: 'P3', planName: 'AEO Clearance · 1.8%',       who: 'Harold Walker',     date: '10/06/2026', amount: '5,490.00', currency: 'USD', status: 'Completed', color: '#f59e0b' },
+  { plan: 'P1', planName: 'Standard Clearance � 2.5%',  who: 'Janice Carroll',    date: '10/06/2026', amount: '4,850.00', currency: 'USD', status: 'Pending',   color: '#4f46e5' },
+  { plan: 'P2', planName: 'Express Clearance � 4.5%',   who: 'Victoria Aguilar',  date: '10/06/2026', amount: '8,340.00', currency: 'USD', status: 'Completed', color: '#ec4899' },
+  { plan: 'P3', planName: 'AEO Clearance � 1.8%',       who: 'Emma Henry',        date: '10/06/2026', amount: '3,120.00', currency: 'USD', status: 'Completed', color: '#f59e0b' },
+  { plan: 'P1', planName: 'Standard Clearance � 2.5%',  who: 'Alice Ford',        date: '10/06/2026', amount: '6,780.00', currency: 'USD', status: 'Completed', color: '#4f46e5' },
+  { plan: 'P3', planName: 'AEO Clearance � 1.8%',       who: 'Harold Walker',     date: '10/06/2026', amount: '5,490.00', currency: 'USD', status: 'Completed', color: '#f59e0b' },
 ];
 
 const TOP_PLANS = [
@@ -96,12 +97,13 @@ const TOP_PLANS = [
   { name: 'Transit / T1',       pct: 33,    color: 'var(--blue)' },
 ];
 
-/* ═══════════════════════════════════════════════════
+/* ---------------------------------------------------
    Main dashboard component
-═══════════════════════════════════════════════════ */
+--------------------------------------------------- */
 export const FinanceDashboard: React.FC = () => {
   const isMobile = useIsMobile();
   const { fmt } = useCurrency();
+  const { t } = useLocale();
   const [overviewTab, setOverviewTab] = useState<'overview'|'year'|'alltime'>('overview');
   const [actFilter, setActFilter] = useState<'all'|'cancel'>('all');
   const [metrics, setMetrics] = useState({
@@ -130,13 +132,13 @@ export const FinanceDashboard: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  /* ──────────────────────────────────────────
+  /* ------------------------------------------
      TOP STAT CARDS
-  ────────────────────────────────────────── */
+  ------------------------------------------ */
   const metricCards = [
-    { title: 'Total Revenue',       value: fmt(metrics.totalRevenue, 'USD'),  trend: +metrics.trend, sub1Value: fmt(metrics.monthRevenue, 'USD'),  sub2Value: fmt(metrics.weekRevenue, 'USD'),  bars: spark(1,15,'up'),   barColor: 'var(--purple-l)', barHighlight: 'var(--purple)' },
-    { title: 'Total Disbursements', value: fmt(metrics.totalWithdraw, 'USD'), trend: -metrics.trend, sub1Value: fmt(metrics.monthWithdraw, 'USD'), sub2Value: fmt(metrics.weekWithdraw, 'USD'), bars: spark(2,15,'flat'), barColor: 'var(--red-l)',    barHighlight: 'var(--red)', invertTrend: true },
-    { title: 'Balance in Account',  value: fmt(metrics.balance, 'USD'),       trend: +metrics.trend, sub1Value: fmt(metrics.monthBalance, 'USD'),  sub2Value: fmt(metrics.weekBalance, 'USD'),  bars: spark(3,15,'up'),   barColor: 'var(--green-l)', barHighlight: 'var(--green)' },
+    { title: t('finance.totalRevenue'),       value: fmt(metrics.totalRevenue, 'USD'),  trend: +metrics.trend, sub1Value: fmt(metrics.monthRevenue, 'USD'),  sub2Value: fmt(metrics.weekRevenue, 'USD'),  bars: spark(1,15,'up'),   barColor: 'var(--purple-l)', barHighlight: 'var(--purple)' },
+    { title: t('finance.totalDisbursements'), value: fmt(metrics.totalWithdraw, 'USD'), trend: -metrics.trend, sub1Value: fmt(metrics.monthWithdraw, 'USD'), sub2Value: fmt(metrics.weekWithdraw, 'USD'), bars: spark(2,15,'flat'), barColor: 'var(--red-l)',    barHighlight: 'var(--red)', invertTrend: true },
+    { title: t('finance.balanceInAccount'),   value: fmt(metrics.balance, 'USD'),       trend: +metrics.trend, sub1Value: fmt(metrics.monthBalance, 'USD'),  sub2Value: fmt(metrics.weekBalance, 'USD'),  bars: spark(3,15,'up'),   barColor: 'var(--green-l)', barHighlight: 'var(--green)' },
   ];
 
   return (
@@ -144,33 +146,33 @@ export const FinanceDashboard: React.FC = () => {
 
       <PageHeader
         crumbs={['Finance', 'Dashboard']}
-        titlePlain="Financial"
-        titleEm="overview"
-        subtitle="Revenue, disbursements, balance and clearance activity — at the workspace and gateway level."
+        titlePlain={t('finance.financial')}
+        titleEm={t('finance.overview')}
+        subtitle={t('finance.dashboardSubtitle')}
       />
 
       <div style={{ padding: isMobile ? '0 16px 24px' : '0 0 24px' }}>
 
-        {/* ══ ROW 1: Stat cards ══ */}
+        {/* -- ROW 1: Stat cards -- */}
         <MetricsRow cards={metricCards} />
 
-        {/* ══ ROW 2: Overview + Top Plans + Activities ══ */}
+        {/* -- ROW 2: Overview + Top Plans + Activities -- */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1.3fr 1fr', gap: 16, marginBottom: 16 }}>
 
           {/* Investment Overview */}
           <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>Clearance Overview</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>{t('finance.clearanceOverview')}</div>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>
-              Revenue overview of your platform.{' '}
-              <span style={{ color: 'var(--teal)', fontWeight: 600, cursor: 'pointer' }}>All Shipments</span>
+              {t('finance.revenueOverviewOf')}{' '}
+              <span style={{ color: 'var(--teal)', fontWeight: 600, cursor: 'pointer' }}>{t('finance.allShipments')}</span>
             </div>
 
             {/* Tabs */}
             <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: 18 }}>
-              {(['overview', 'year', 'alltime'] as const).map((t, i) => {
-                const labels = ['Overview', 'This Year', 'All Time'];
+              {(['overview', 'year', 'alltime'] as const).map((tabKey, i) => {
+                const labels = [t('finance.tabOverview'), t('finance.tabThisYear'), t('finance.tabAllTime')];
                 return (
-                  <button key={t} onClick={() => setOverviewTab(t)} style={{ padding: '6px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font)', color: overviewTab === t ? 'var(--teal)' : 'var(--ink3)', borderBottom: overviewTab === t ? '2px solid var(--teal)' : '2px solid transparent', marginBottom: -1, transition: 'all 0.12s' }}>
+                  <button key={tabKey} onClick={() => setOverviewTab(tabKey)} style={{ padding: '6px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font)', color: overviewTab === tabKey ? 'var(--teal)' : 'var(--ink3)', borderBottom: overviewTab === tabKey ? '2px solid var(--teal)' : '2px solid transparent', marginBottom: -1, transition: 'all 0.12s' }}>
                     {labels[i]}
                   </button>
                 );
@@ -179,38 +181,38 @@ export const FinanceDashboard: React.FC = () => {
 
             {/* Currently Active */}
             <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Currently Active Clearances</div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t('finance.currentlyActiveClearances')}</div>
               <div style={{ display: 'flex', gap: 28, marginBottom: 10, flexWrap: 'wrap' }}>
                 <div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.5px' }}>{fmt(metrics.activeAmount, 'TZS')}</div>
-                  <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginTop: 2 }}>AMOUNT</div>
+                  <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginTop: 2 }}>{t('finance.amount')}</div>
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>
                     {metrics.activePlans}
                     <Trend val={metrics.trend} />
                   </div>
-                  <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginTop: 2 }}>CASES</div>
+                  <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginTop: 2 }}>{t('finance.cases')}</div>
                 </div>
               </div>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{fmt(metrics.paidProfit, 'TZS')}</div>
-              <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginTop: 2 }}>DUTIES PAID</div>
+              <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginTop: 2 }}>{t('finance.dutiesPaid')}</div>
             </div>
 
             {/* This Month */}
             <div>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Clearances This Month</div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t('finance.clearancesThisMonth')}</div>
               <div style={{ display: 'flex', gap: 28 }}>
                 <div>
                   <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.5px' }}>{fmt(metrics.monthAmount, 'TZS')}</div>
-                  <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginTop: 2 }}>AMOUNT</div>
+                  <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginTop: 2 }}>{t('finance.amount')}</div>
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>
                     {metrics.monthPlans}
                     <Trend val={-metrics.trend} />
                   </div>
-                  <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginTop: 2 }}>CASES</div>
+                  <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginTop: 2 }}>{t('finance.cases')}</div>
                 </div>
               </div>
             </div>
@@ -219,10 +221,10 @@ export const FinanceDashboard: React.FC = () => {
           {/* Top Service Plans */}
           <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>Top Service Plans</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{t('finance.topServicePlans')}</div>
               <Icon name="moreHorizontal" size={16} strokeWidth={1.75} style={{ color: 'var(--ink3)', flexShrink: 0, marginTop: 2 } as React.CSSProperties} />
             </div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>In last 30 days top cleared service schemes.</div>
+            <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>{t('finance.topServicePlansSub')}</div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {TOP_PLANS.map(plan => (
@@ -242,11 +244,11 @@ export const FinanceDashboard: React.FC = () => {
           {/* Recent Activities */}
           <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>Recent Activities</div>
+              <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{t('finance.recentActivities')}</div>
               <div style={{ display: 'flex', gap: 2 }}>
                 {(['all', 'cancel'] as const).map(f => (
                   <button key={f} onClick={() => setActFilter(f)} style={{ padding: '3px 11px', border: 'none', borderRadius: 20, background: actFilter === f ? 'var(--navy)' : 'transparent', color: actFilter === f ? '#fff' : 'var(--ink3)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
-                    {f.charAt(0).toUpperCase() + f.slice(1)}
+                    {f === 'all' ? t('finance.all') : t('finance.cancel')}
                   </button>
                 ))}
               </div>
@@ -269,12 +271,12 @@ export const FinanceDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* ══ ROW 3: Notifications + Recent Invoices ══ */}
+        {/* -- ROW 3: Notifications + Recent Invoices -- */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '360px 1fr', gap: 16 }}>
 
           {/* Notifications */}
           <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
-            <SHdr title="Notifications" action="View All" />
+            <SHdr title={t('finance.notifications')} action={t('finance.viewAll')} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {/* Month label */}
               <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--teal)', marginBottom: 14 }}>June, 2026</div>
@@ -302,12 +304,12 @@ export const FinanceDashboard: React.FC = () => {
 
           {/* Recent Invoices / Transactions */}
           <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
-            <SHdr title="Recent Invoices" action="View All" />
+            <SHdr title={t('finance.recentInvoices')} action={t('finance.viewAll')} />
 
             <div style={{ overflowX: 'auto' }}>
             {/* Table header */}
             <div style={{ display: 'grid', gridTemplateColumns: '2.2fr 1.6fr 1fr 1.4fr 1fr 32px', gap: 8, padding: '7px 10px', background: 'var(--bg)', borderRadius: 7, marginBottom: 6, minWidth: 480 }}>
-              {['Plan', 'Who', 'Date', 'Amount', 'Status', ''].map(h => (
+              {[t('finance.colPlan'), t('finance.colWho'), t('finance.colDate'), t('finance.colAmount'), t('finance.colStatus'), ''].map(h => (
                 <div key={h} style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</div>
               ))}
             </div>

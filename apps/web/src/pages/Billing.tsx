@@ -1,11 +1,15 @@
-﻿import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { Icon } from '../components/Icon.js';
 import { getCompany, subscribeCompany } from '../data/companyStore.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch } from '../lib/api.js';
+import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import './Billing.css';
 
 /* ── Types ── */
 export type Status = 'Draft' | 'Partial' | 'Paid' | 'Credited' | 'Unpaid' | 'Overdue';
@@ -24,14 +28,16 @@ export interface LineItem {
   currency: Currency;
 }
 
-export interface InvNote     { id: string; ts: string; text: string; }
-export interface InvTask     { id: string; desc: string; assignee: string; dueDate?: string; done: boolean; ts: string; }
-export interface InvReminder { id: string; date: string; msg: string; done: boolean; }
-export interface InvAuditEntry { id: string; ts: string; action: string; }
+export interface InvNote       { id: string; author_name: string; content: string; created_at: string; }
+export interface InvTask       { id: string; description: string; assignee: string | null; due_date: string | null; done: boolean; created_at: string; }
+export interface InvReminder   { id: string; remind_date: string; message: string; done: boolean; }
+export interface InvAuditEntry { id: string; action: string; detail: string | null; actor_name: string | null; created_at: string; }
 
 export interface Invoice {
   id: string;
   _dbId?: string;
+  customerId?: string;
+  shipmentRef?: string;
   client: string;
   clientAddress: string[];
   blNumber: string;
@@ -49,10 +55,16 @@ export interface Invoice {
   status: Status;
   received: number;
   hasNote?: boolean;
-  notes?: InvNote[];
-  tasks?: InvTask[];
-  reminders?: InvReminder[];
-  auditLog?: InvAuditEntry[];
+  // TRA VFD fiscalization
+  traStatus?: string;       // 'pending' | 'submitted' | 'failed' | 'skipped'
+  traRctvnum?: string;      // Verification number printed/QR-encoded on the receipt
+  traQrUrl?: string;        // Real TRA verify-portal URL for the QR code
+  traAckCode?: number;      // 0 = accepted by TRA
+  traAckMsg?: string;
+  // Carbon segment — resolved live from the linked shipment (by shipment_ref
+  // → ref_number match), not stored on the invoice. Internal ESG estimate,
+  // not a registry-issued tradeable credit.
+  shipmentCarbon?: { co2_emissions_kg: number; carbon_credits_saved: number; distance_km: number | null; mode: string | null } | null;
 }
 
 /* ── Helpers ── */
@@ -99,6 +111,8 @@ export function mapApiInvoice(d: any): Invoice {
   return {
     id: d.invoice_number || d.id,
     _dbId: d.id,
+    customerId: d.customer_id || undefined,
+    shipmentRef: d.shipment_ref || undefined,
     client: d.client_name || '',
     clientAddress: (() => { try { return Array.isArray(d.client_address) ? d.client_address : JSON.parse(d.client_address || '[]'); } catch { return []; } })(),
     blNumber: d.bl_number || '',
@@ -114,6 +128,12 @@ export function mapApiInvoice(d: any): Invoice {
     received: Number(d.received) || 0,
     version: Number(d.version) || 1,
     refCode: d.ref_code || genRefCode(d.invoice_number || d.id, Number(d.version) || 1),
+    traStatus: d.tra_status || 'pending',
+    traRctvnum: d.tra_rctvnum || undefined,
+    traQrUrl: d.tra_qr_url || undefined,
+    traAckCode: d.tra_ack_code ?? undefined,
+    traAckMsg: d.tra_ack_msg || undefined,
+    shipmentCarbon: d.shipment_carbon ?? null,
     items: Array.isArray(d.items) ? d.items.map((it: any) => ({
       name: it.name, unit: it.unit || 'PER BIL', rate: Number(it.rate),
       qty: Number(it.qty), taxPct: Number(it.tax_pct),
@@ -308,7 +328,7 @@ export function openPrintWindow(inv: Invoice) {
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Google Sans Flex',Arial,sans-serif;color:#111;padding:24px 32px;font-size:11px}
 .top{display:flex;justify-content:space-between;margin-bottom:16px}
-.inv-no{font-size:18px;font-weight:900;color:#e8461a;margin-bottom:4px}
+.inv-no{font-size:18px;font-weight:900;color:#0b1e3a;margin-bottom:4px}
 .from{line-height:1.6;color:#555}.from strong{color:#111;font-size:12px}
 .bill{text-align:right}.bill .lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:2px}
 .bill .client{font-size:12px;font-weight:700;color:#2563eb;margin-bottom:2px}.bill .addr{color:#555;line-height:1.6}
@@ -323,13 +343,13 @@ body{font-family:'Google Sans Flex',Arial,sans-serif;color:#111;padding:24px 32p
 .ship{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px;padding:6px 10px;background:#f9fafb;border-radius:6px;margin-bottom:12px;font-size:10px}
 .ship strong{color:#374151}
 .section{margin-bottom:8px}
-.sec-hdr{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#374151;padding:4px 8px;background:#f3f4f6;border-left:3px solid #e8461a;margin-bottom:0}
+.sec-hdr{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#374151;padding:4px 8px;background:#f3f4f6;border-left:3px solid #0b1e3a;margin-bottom:0}
 table{width:100%;border-collapse:collapse}
 thead tr{background:#f9fafb;border-bottom:1px solid #e5e7eb}
 th{padding:4px 6px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;letter-spacing:.04em}
 td{padding:4px 6px;border-bottom:1px solid #f3f4f6;vertical-align:top;font-size:10.5px}
 .subtotal{display:flex;justify-content:space-between;padding:4px 8px;background:#f9fafb;font-weight:700;font-size:11px;border-top:2px solid #e5e7eb}
-.grand{display:flex;justify-content:flex-end;gap:32px;align-items:center;margin:8px 0;padding:8px 10px;background:#e8461a;color:#fff;border-radius:6px;font-size:12px;font-weight:800}
+.grand{display:flex;justify-content:flex-end;gap:32px;align-items:center;margin:8px 0;padding:8px 10px;background:#0b1e3a;color:#fff;border-radius:6px;font-size:12px;font-weight:800}
 .due{display:flex;justify-content:flex-end;gap:32px;margin-bottom:12px;font-size:12px;font-weight:700;color:#dc2626}
 .terms{padding-top:8px;border-top:1px solid #e5e7eb}
 .terms h4{font-size:10px;font-weight:700;margin-bottom:4px;color:#374151}
@@ -373,8 +393,18 @@ ${sectionHtml('Shipping Line Charges — Paid in USD', 'USD', T.sh, T.sub(T.sh),
 ${sectionHtml('Other Charges — Paid in TZS', 'TZS', T.ot, T.sub(T.ot), T.tax(T.ot), T.otherTotal)}
 <div class="grand"><span>GRAND TOTAL</span><span>${fmtTZS(T.grandTotalTZS)}</span></div>
 ${inv.exchangeRate > 0 && T.shippingTotal > 0 ? `<div style="text-align:right;font-size:11px;color:#6b7280;margin-bottom:12px">USD shipping converted at 1 USD = TZS ${inv.exchangeRate.toLocaleString()}</div>` : ''}
-${inv.received > 0 ? `<div class="due"><span>Less: Amount Received</span><span style="color:#16a34a">(${fmtTZS(inv.received)})</span></div>` : ''}
+${inv.received > 0 ? `<div class="due"><span>Less: Amount Received</span><span style="color:#059669">(${fmtTZS(inv.received)})</span></div>` : ''}
 <div class="due"><span>Amount Due</span><span>${fmtTZS(Math.max(0, due))}</span></div>
+${inv.shipmentCarbon ? `
+<div style="margin-top:12px;padding:12px;background:#ecfdf5;border-radius:6px;font-size:10px;color:#374151;border:1px solid #a7f3d0">
+  <div style="font-weight:800;text-transform:uppercase;margin-bottom:6px;color:#111">Carbon Footprint (Estimate)</div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;line-height:1.6">
+    <div><strong>CO₂ Emissions:</strong> ${Number(inv.shipmentCarbon.co2_emissions_kg).toLocaleString()} kg</div>
+    <div><strong style="color:#059669">Credits Saved:</strong> ${Number(inv.shipmentCarbon.carbon_credits_saved).toFixed(2)}</div>
+    ${inv.shipmentCarbon.distance_km ? `<div><strong>Distance:</strong> ${inv.shipmentCarbon.distance_km} km</div>` : ''}
+  </div>
+  <div style="font-size:8.5px;color:#9ca3af;margin-top:6px;font-style:italic">GLEC v3.2 / ISO 14083 methodology. Internal ESG estimate — not a registry-issued or tradeable carbon credit.</div>
+</div>` : ''}
 <div style="margin-top:20px;padding:12px;background:#f9fafb;border-radius:6px;font-size:10px;color:#374151;border:1px solid #e5e7eb">
   <div style="font-weight:800;text-transform:uppercase;margin-bottom:6px;color:#111">Payment Information</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;line-height:1.6">
@@ -460,6 +490,92 @@ function ChargeSectionView({ title, color, currency, items, subTotal, taxAmt, se
   );
 }
 
+/* ── Import Timesheets Modal ── */
+function ImportTimesheetsModal({ shipmentId, shipmentRef, onImport, onClose }: {
+  shipmentId: string; shipmentRef: string;
+  onImport: (lines: Omit<EditItem, 'uid'>[]) => void;
+  onClose: () => void;
+}) {
+  const [entries, setEntries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [rate, setRate] = useState(50000);
+
+  useEffect(() => {
+    // Attempt to fetch shipment details to get timeEntries
+    apiFetch(`/v1/shipments/${shipmentId}`)
+      .then((r: any) => {
+        const timesheets = (r.timeEntries || []).filter((t: any) => t.billable);
+        setEntries(timesheets);
+        setSelected(new Set(timesheets.map((t: any) => t.id)));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [shipmentId]);
+
+  function handleImport() {
+    const toImport = entries.filter(e => selected.has(e.id));
+    const lines = toImport.map(t => ({
+      name: `Consulting: ${t.taskTitle || 'General'} (${t.memberName || 'Staff'})`,
+      unit: 'PER HR',
+      rate: rate,
+      qty: Number(t.hours) || 1,
+      taxPct: 18,
+      group: 'other' as ChargeGroup,
+      currency: 'TZS' as Currency,
+    }));
+    onImport(lines);
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: 20 }}>
+      <div style={{ background: 'var(--white)', borderRadius: 12, width: '100%', maxWidth: 500, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '90vh', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg)' }}>
+          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>Import Timesheets</span>
+          <button type="button" onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><Icon name="x" size={16} color="var(--ink2)" /></button>
+        </div>
+        <div style={{ padding: 20, overflowY: 'auto' }}>
+          <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 16 }}>
+            Found {entries.length} billable time entries for shipment <strong style={{ color: 'var(--ink)' }}>{shipmentRef}</strong>.
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>Hourly Rate (TZS)</label>
+            <input type="number" value={rate} onChange={e => setRate(Number(e.target.value))} style={{ width: '100%', padding: '8px 12px', borderRadius: 7, border: '1px solid var(--border)', fontFamily: 'var(--mono)' }} />
+          </div>
+          {loading ? (
+            <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)' }}>Loading timesheets...</div>
+          ) : entries.length === 0 ? (
+            <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)' }}>No billable time entries found.</div>
+          ) : (
+            <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+              {entries.map(e => (
+                <label key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderBottom: '1px solid var(--border)', cursor: 'pointer', background: selected.has(e.id) ? 'var(--teal-l)' : 'var(--white)' }}>
+                  <input type="checkbox" checked={selected.has(e.id)} onChange={() => {
+                    setSelected(prev => {
+                      const next = new Set(prev);
+                      if (next.has(e.id)) next.delete(e.id); else next.add(e.id);
+                      return next;
+                    });
+                  }} />
+                  <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>
+                    <div style={{ fontWeight: 600 }}>{e.taskTitle || 'General Task'}</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{e.memberName} · {new Date(e.date || e.started_at).toLocaleDateString()}</div>
+                  </div>
+                  <div style={{ fontWeight: 700, fontFamily: 'var(--mono)', fontSize: 13 }}>{Number(e.hours).toFixed(1)} hrs</div>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+        <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 10, background: 'var(--bg)' }}>
+          <button type="button" onClick={onClose} style={{ padding: '8px 16px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--white)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button type="button" onClick={handleImport} disabled={selected.size === 0} style={{ padding: '8px 16px', borderRadius: 7, border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, cursor: selected.size ? 'pointer' : 'default', opacity: selected.size ? 1 : 0.5 }}>Import {selected.size} Entries</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Charge section editor ── */
 export type EditItem = LineItem & { uid: string };
 
@@ -472,6 +588,28 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange }:
   const remove = (uid: string) => onChange(items.filter(i => i.uid !== uid));
   const update = (uid: string, k: keyof EditItem, v: string | number) =>
     onChange(items.map(i => i.uid === uid ? { ...i, [k]: v } : i));
+
+  const productCacheRef = useRef<Map<string, any>>(new Map());
+  async function searchProducts(q: string): Promise<PickerItem[]> {
+    const qs = q.trim() ? `?search=${encodeURIComponent(q.trim())}` : '';
+    const res: any = await apiFetch(`/v1/products${qs}`).catch(() => []);
+    const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
+    list.forEach((p) => productCacheRef.current.set(p.id, p));
+    return list.slice(0, 25).map((p) => ({
+      id: p.id, label: p.name,
+      sublabel: [p.code, `${fmtAmt(Number(p.sale_price) || 0, (p.currency || 'TZS') as Currency)}/${p.unit}`].filter(Boolean).join(' · '),
+    }));
+  }
+  function addFromProduct(item: PickerItem | null) {
+    if (!item) return;
+    const p = productCacheRef.current.get(item.id);
+    if (!p) return;
+    onChange([...items, {
+      uid: String(Date.now()), name: p.name, unit: p.unit || 'PER BIL',
+      rate: Number(p.sale_price) || 0, qty: 1, taxPct: Number(p.tax_rate) || 0,
+      group, currency,
+    }]);
+  }
 
   const inpS: React.CSSProperties = { padding: '6px 8px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12, fontFamily: 'var(--font)', outline: 'none', width: '100%', boxSizing: 'border-box' as const };
 
@@ -502,18 +640,24 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange }:
                 <td style={{ padding: '6px 8px', fontSize: 12, color: 'var(--ink3)', textAlign: 'center', verticalAlign: 'middle' }}>{i + 1}</td>
                 <td style={{ padding: '6px 4px' }}><input value={item.name} onChange={e => update(item.uid, 'name', e.target.value)} placeholder="Item name" style={{ ...inpS, fontWeight: 600 }} /></td>
                 <td style={{ padding: '6px 4px' }}>
-                  <select title="Unit type" value={item.unit} onChange={e => update(item.uid, 'unit', e.target.value)} style={{ ...inpS, cursor: 'pointer' }}>
-                    {UNIT_OPTIONS.map(u => <option key={u}>{u}</option>)}
-                    {!UNIT_OPTIONS.includes(item.unit) && <option>{item.unit}</option>}
-                  </select>
+                  <Select value={item.unit} onValueChange={v => update(item.uid, 'unit', v)}>
+                    <SelectTrigger className="h-7 px-2 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {UNIT_OPTIONS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                      {!UNIT_OPTIONS.includes(item.unit) && <SelectItem value={item.unit}>{item.unit}</SelectItem>}
+                    </SelectContent>
+                  </Select>
                 </td>
                 <td style={{ padding: '6px 4px' }}><input type="number" min={0} value={item.rate || ''} onChange={e => update(item.uid, 'rate', parseFloat(e.target.value) || 0)} placeholder="0" style={{ ...inpS, textAlign: 'right', fontFamily: 'var(--mono)' }} /></td>
                 <td style={{ padding: '6px 4px' }}><input type="number" min={1} value={item.qty} onChange={e => update(item.uid, 'qty', Math.max(1, parseInt(e.target.value) || 1))} style={{ ...inpS, textAlign: 'right' }} /></td>
                 <td style={{ padding: '6px 4px' }}>
-                  <select title="VAT rate" value={item.taxPct} onChange={e => update(item.uid, 'taxPct', parseInt(e.target.value))} style={{ ...inpS, cursor: 'pointer' }}>
-                    <option value={0}>0%</option>
-                    <option value={18}>18%</option>
-                  </select>
+                  <Select value={String(item.taxPct)} onValueChange={v => update(item.uid, 'taxPct', parseInt(v))}>
+                    <SelectTrigger className="h-7 px-2 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">0%</SelectItem>
+                      <SelectItem value="18">18%</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </td>
                 <td style={{ padding: '6px 10px 6px 4px', textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                   {(lineSub + lineTax) > 0 ? fmt(lineSub + lineTax) : '—'}
@@ -535,12 +679,17 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange }:
         <tfoot>
           <tr style={{ background: 'var(--bg)', borderTop: '2px solid var(--border)' }}>
             <td colSpan={7} style={{ padding: '8px 10px' }}>
-              <button type="button" onClick={add}
-                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', border: `1px dashed ${color}`, borderRadius: 6, background: 'none', color, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--teal-l)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
-                <Icon name="plus" size={12} color={color} /> Add Line Item
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <button type="button" onClick={add}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', border: `1px dashed ${color}`, borderRadius: 6, background: 'none', color, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--teal-l)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                  <Icon name="plus" size={12} color={color} /> Add Line Item
+                </button>
+                <div style={{ width: 220 }}>
+                  <EntityPicker value={null} onChange={addFromProduct} search={searchProducts} placeholder="Add from catalog…" />
+                </div>
+              </div>
             </td>
             <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 800, color }} colSpan={2}>
               {fmt(items.reduce((s, i) => s + i.qty * i.rate * (1 + i.taxPct / 100), 0))}
@@ -571,12 +720,86 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   const [exRate, setExRate]       = useState(String(initial?.exchangeRate ?? 2650));
   const [terms, setTerms]         = useState(initial?.terms ?? 'Payment due within 14 days. All 3rd party charges are estimates and subject to actuals.');
 
+  const [customer, setCustomer] = useState<PickerItem | null>(
+    initial?.customerId ? { id: initial.customerId, label: initial.client } : null,
+  );
+  const [shipment, setShipment] = useState<PickerItem | null>(
+    initial?.shipmentRef ? { id: initial.shipmentRef, label: initial.shipmentRef } : null,
+  );
+  const customerCacheRef = useRef<Map<string, any>>(new Map());
+  const shipmentCacheRef = useRef<Map<string, any>>(new Map());
+
+  async function searchCustomers(q: string): Promise<PickerItem[]> {
+    const res = await apiFetch('/v1/customers').catch(() => ({ data: [] }));
+    const raw: any[] = Array.isArray(res) ? res : (res.data ?? []);
+    // Excludes draft companies (active===false) — e.g. BRELA imports still
+    // sitting in Company Directory that haven't been marked complete yet —
+    // from the invoice/bill customer picker.
+    const list = raw.filter((c) => c.active !== false);
+    const ql = q.trim().toLowerCase();
+    const filtered = ql
+      ? list.filter((c) => (c.name || '').toLowerCase().includes(ql) || (c.email || '').toLowerCase().includes(ql) || (c.phone || '').includes(ql))
+      : list;
+    filtered.forEach((c) => customerCacheRef.current.set(c.id, c));
+    return filtered.slice(0, 25).map((c) => ({ id: c.id, label: c.name, sublabel: c.email || c.phone || undefined }));
+  }
+
+  async function createCustomer(name: string): Promise<PickerItem> {
+    const created = await apiFetch('/v1/customers', { method: 'POST', body: JSON.stringify({ name }) });
+    customerCacheRef.current.set(created.id, created);
+    return { id: created.id, label: created.name };
+  }
+
+  function handleCustomerChange(item: PickerItem | null) {
+    setCustomer(item);
+    if (!item) return;
+    setClient(item.label);
+    const full = customerCacheRef.current.get(item.id);
+    if (full && !addr.trim()) {
+      const lines = [
+        full.contact_name ? `Attn: ${full.contact_name}` : null,
+        full.email || null,
+        full.phone || full.phone_wa || null,
+        full.tax_id ? `VAT: ${full.tax_id}` : null,
+      ].filter(Boolean);
+      if (lines.length) setAddr(lines.join('\n'));
+    }
+  }
+
+  async function searchShipments(q: string): Promise<PickerItem[]> {
+    const qs = q.trim() ? `?search=${encodeURIComponent(q.trim())}` : '';
+    const res = await apiFetch(`/v1/shipments${qs}`).catch(() => ({ data: [] }));
+    const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
+    list.forEach((s) => shipmentCacheRef.current.set(s.ref_number, s));
+    return list.slice(0, 25).map((s) => ({
+      id: s.ref_number, label: s.ref_number,
+      sublabel: [s.bl_number || s.awb_number, s.customer_name, s.goods_desc].filter(Boolean).join(' · '),
+    }));
+  }
+
+  function handleShipmentChange(item: PickerItem | null) {
+    setShipment(item);
+    if (!item) return;
+    const full = shipmentCacheRef.current.get(item.id);
+    if (!full) return;
+    if (!blNo.trim()) setBlNo(full.bl_number || full.awb_number || '');
+    if (!origin.trim()) setOrigin(full.origin_port || '');
+    if (!dest.trim()) setDest(full.dest_port || '');
+    const t = String(full.type || '');
+    if (t.startsWith('SEA')) setMode('SEA'); else if (t.startsWith('AIR')) setMode('AIR'); else if (t.startsWith('ROAD')) setMode('ROAD');
+    if (!client.trim() && full.customer_name) handleCustomerChange({ id: full.customer_id, label: full.customer_name });
+  }
+
   const toEditItems = (g: ChargeGroup) =>
     (initial?.items.filter(i => i.group === g) ?? []).map((it, i) => ({ ...it, uid: `${g}-${i}` }));
 
   const [clearing, setClearing] = useState<EditItem[]>(toEditItems('clearing'));
   const [shipping, setShipping] = useState<EditItem[]>(toEditItems('shipping'));
   const [other, setOther]       = useState<EditItem[]>(toEditItems('other'));
+
+  const [showTimesheets, setShowTimesheets] = useState(false);
+
+  const activeShipmentFull = shipment ? shipmentCacheRef.current.get(shipment.id) : null;
 
   const allItems: LineItem[] = [...clearing, ...shipping, ...other].map(({ uid: _uid, ...rest }) => rest);
   const exRateNum = parseFloat(exRate) || 2650;
@@ -593,6 +816,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
     const newVersion = (initial?.version ?? 0) + 1;
     const inv: Invoice = {
       id: invId, client: client || 'Unknown Client',
+      customerId: customer?.id || undefined, shipmentRef: shipment?.id || undefined,
       clientAddress: addr.split('\n').filter(Boolean),
       blNumber: blNo, origin, destination: dest, mode,
       billDate, dueDate: dueDate || null,
@@ -623,7 +847,12 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
         {/* Top grid */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '12px 20px', marginBottom: 18 }}>
           <FormField label="Invoice #" value={invId} disabled />
-          <FormField label="Client / Company" value={client} onChange={setClient} placeholder="Client name" />
+          <EntityPicker
+            label="Client / Company" value={customer ?? (client ? { id: '', label: client } : null)} onChange={handleCustomerChange}
+            search={searchCustomers} onCreate={createCustomer}
+            createLabel={(q) => `Create new customer "${q}"`}
+            placeholder="Search customers…"
+          />
           <FormField label="Sale Agent" value={agent} onChange={setAgent} placeholder="Agent name" />
           <FormField label="Invoice Date" value={billDate} onChange={setBillDate} placeholder="DD-MM-YYYY" />
           <FormField label="Due Date (optional)" value={dueDate} onChange={setDueDate} placeholder="DD-MM-YYYY" />
@@ -640,26 +869,59 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
         {/* Shipment details */}
         <div style={{ background: 'var(--bg)', borderRadius: 9, padding: '12px 16px', marginBottom: 22, border: '1px solid var(--border)' }}>
           <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink3)', marginBottom: 10 }}>Shipment Details</div>
+          <div style={{ marginBottom: 10 }}>
+            <EntityPicker
+              label="Linked Shipment (optional)" value={shipment} onChange={handleShipmentChange}
+              search={searchShipments}
+              placeholder="Search by ref, BL number or goods description…"
+              hint={shipment ? undefined : 'Link a shipment to auto-fill BL/AWB, origin, destination and mode below.'}
+            />
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : '1fr 1fr 1fr 120px', gap: '10px 16px' }}>
             <FormField label="BL / AWB Number" value={blNo} onChange={setBlNo} placeholder="e.g. MSCU2456789" />
             <FormField label="Origin" value={origin} onChange={setOrigin} placeholder="e.g. SINGAPORE" />
             <FormField label="Destination" value={dest} onChange={setDest} placeholder="e.g. DAR ES SALAAM" />
             <div>
               <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5 }}>Mode</label>
-              <select title="Transport mode" value={mode} onChange={e => setMode(e.target.value as Invoice['mode'])}
-                style={{ width: '100%', padding: '8px 10px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--font)', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' as const }}>
-                <option value="SEA">SEA</option>
-                <option value="AIR">AIR</option>
-                <option value="ROAD">ROAD</option>
-              </select>
+              <Select value={mode} onValueChange={v => setMode(v as Invoice['mode'])}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SEA">SEA</SelectItem>
+                  <SelectItem value="AIR">AIR</SelectItem>
+                  <SelectItem value="ROAD">ROAD</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </div>
 
+        {/* Timesheet Import Modal */}
+        {showTimesheets && activeShipmentFull && (
+          <ImportTimesheetsModal
+            shipmentId={activeShipmentFull.id}
+            shipmentRef={activeShipmentFull.ref_number}
+            onClose={() => setShowTimesheets(false)}
+            onImport={(lines) => {
+              setOther(prev => [
+                ...prev,
+                ...lines.map((l, i) => ({ ...l, uid: `ts-${Date.now()}-${i}` }))
+              ]);
+              setShowTimesheets(false);
+            }}
+          />
+        )}
+
         {/* Three charge sections */}
         <ChargeSectionEditor title="Clearing Charges — Paid in TZS" color="#0d9488" group="clearing" currency="TZS" items={clearing} onChange={setClearing} />
         <ChargeSectionEditor title="Shipping Line Charges — Paid in USD" color="#2563eb" group="shipping" currency="USD" items={shipping} onChange={setShipping} />
-        <ChargeSectionEditor title="Other Charges — Paid in TZS" color="#7c3aed" group="other" currency="TZS" items={other} onChange={setOther} />
+        <div style={{ position: 'relative' }}>
+          {shipment && activeShipmentFull && (
+            <button type="button" onClick={() => setShowTimesheets(true)} style={{ position: 'absolute', top: 3, right: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 6, background: '#f3e8ff', color: '#7c3aed', border: '1px solid #e9d5ff', fontSize: 11, fontWeight: 700, cursor: 'pointer', zIndex: 10 }}>
+              <Icon name="clock" size={12} color="#7c3aed" /> Import Unbilled Time
+            </button>
+          )}
+          <ChargeSectionEditor title="Other Charges — Paid in TZS" color="#7c3aed" group="other" currency="TZS" items={other} onChange={setOther} />
+        </div>
 
         {/* Grand total */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, paddingRight: 8, marginBottom: 24 }}>
@@ -701,27 +963,41 @@ export interface DetailPanelProps {
   inv: Invoice;
   onClose: () => void; onEdit: () => void; onCopy: () => void;
   onDelete: () => void; onRecordPayment: (amount: number, method: string, date: string) => void;
-  onUpdate?: (inv: Invoice) => void;
+  onSubmitTRA?: () => Promise<void>;
 }
 
-function auditEntry(action: string): InvAuditEntry {
-  return { id: `al-${Date.now()}-${Math.random().toString(36).slice(2,6)}`, ts: new Date().toLocaleString('en-GB'), action };
-}
-function withAudit(inv: Invoice, action: string): Invoice {
-  return { ...inv, auditLog: [auditEntry(action), ...(inv.auditLog ?? [])] };
-}
-
-export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onRecordPayment, onUpdate, isMobile = false }: DetailPanelProps & { isMobile?: boolean }) {
+export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onRecordPayment, onSubmitTRA, isMobile = false }: DetailPanelProps & { isMobile?: boolean }) {
   const { fmt } = useCurrency();
   const [co, setCo] = useState(getCompany);
   useEffect(() => subscribeCompany(() => setCo(getCompany())), []);
   const [tab, setTab]                 = useState<DetailTab>('invoice');
   const [showMore, setShowMore]       = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [traSubmitting, setTraSubmitting] = useState(false);
+  const [traError, setTraError]           = useState<string | null>(null);
   const today = new Date().toLocaleDateString('en-GB').split('/').join('-');
   const [payAmt, setPayAmt]     = useState('');
   const [payDate, setPayDate]   = useState(today);
   const [payMethod, setPayMethod] = useState('Bank Transfer');
+
+  /* ── Notes/Tasks/Reminders/Activity — real, persisted per invoice ── */
+  const [notes, setNotes]         = useState<InvNote[]>([]);
+  const [tasks, setTasks]         = useState<InvTask[]>([]);
+  const [reminders, setReminders] = useState<InvReminder[]>([]);
+  const [activity, setActivity]   = useState<InvAuditEntry[]>([]);
+
+  const dbId = inv._dbId;
+
+  function loadNotes()     { if (dbId) apiFetch(`/v1/invoices/${dbId}/notes`).then((r: any) => setNotes(r?.data ?? [])).catch(() => {}); }
+  function loadTasks()     { if (dbId) apiFetch(`/v1/invoices/${dbId}/tasks`).then((r: any) => setTasks(r?.data ?? [])).catch(() => {}); }
+  function loadReminders() { if (dbId) apiFetch(`/v1/invoices/${dbId}/reminders`).then((r: any) => setReminders(r?.data ?? [])).catch(() => {}); }
+  function loadActivity()  { if (dbId) apiFetch(`/v1/invoices/${dbId}/activity`).then((r: any) => setActivity(r?.data ?? [])).catch(() => {}); }
+
+  useEffect(() => {
+    setNotes([]); setTasks([]); setReminders([]); setActivity([]);
+    if (!dbId) return;
+    loadNotes(); loadTasks(); loadReminders(); loadActivity();
+  }, [dbId]); // eslint-disable-line
 
   /* ── Notes state ── */
   const [newNote, setNewNote] = useState('');
@@ -737,44 +1013,54 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
   const [newRemMsg, setNewRemMsg]   = useState('');
   const [showRemForm, setShowRemForm] = useState(false);
 
-  function update(updated: Invoice) { onUpdate?.(updated); }
-
   function addNote() {
-    if (!newNote.trim()) return;
-    const note: InvNote = { id: `n-${Date.now()}`, ts: new Date().toLocaleString('en-GB'), text: newNote.trim() };
-    update(withAudit({ ...inv, notes: [note, ...(inv.notes ?? [])] }, 'Note added'));
+    if (!newNote.trim() || !dbId) return;
+    apiFetch(`/v1/invoices/${dbId}/notes`, { method: 'POST', body: JSON.stringify({ content: newNote.trim() }) })
+      .then(() => { loadNotes(); loadActivity(); }).catch(() => {});
     setNewNote('');
   }
   function deleteNote(id: string) {
-    update(withAudit({ ...inv, notes: (inv.notes ?? []).filter(n => n.id !== id) }, 'Note deleted'));
+    if (!dbId) return;
+    apiFetch(`/v1/invoices/${dbId}/notes/${id}`, { method: 'DELETE' }).then(loadNotes).catch(() => {});
   }
 
   function addTask() {
-    if (!newTaskDesc.trim()) return;
-    const task: InvTask = { id: `t-${Date.now()}`, desc: newTaskDesc.trim(), assignee: newTaskAssignee.trim(), dueDate: newTaskDue || undefined, done: false, ts: new Date().toLocaleString('en-GB') };
-    update(withAudit({ ...inv, tasks: [...(inv.tasks ?? []), task] }, `Task added: ${task.desc}`));
+    if (!newTaskDesc.trim() || !dbId) return;
+    apiFetch(`/v1/invoices/${dbId}/tasks`, {
+      method: 'POST',
+      body: JSON.stringify({ description: newTaskDesc.trim(), assignee: newTaskAssignee.trim() || null, due_date: newTaskDue || null }),
+    }).then(() => { loadTasks(); loadActivity(); }).catch(() => {});
     setNewTaskDesc(''); setNewTaskAssignee(''); setNewTaskDue(''); setShowTaskForm(false);
   }
   function toggleTask(id: string) {
-    const tasks = (inv.tasks ?? []).map(t => t.id === id ? { ...t, done: !t.done } : t);
-    const done = tasks.find(t => t.id === id)?.done;
-    update(withAudit({ ...inv, tasks }, `Task marked ${done ? 'complete' : 'incomplete'}`));
+    if (!dbId) return;
+    const t = tasks.find(x => x.id === id);
+    if (!t) return;
+    apiFetch(`/v1/invoices/${dbId}/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ done: !t.done }) })
+      .then(() => { loadTasks(); loadActivity(); }).catch(() => {});
   }
   function deleteTask(id: string) {
-    update(withAudit({ ...inv, tasks: (inv.tasks ?? []).filter(t => t.id !== id) }, 'Task deleted'));
+    if (!dbId) return;
+    apiFetch(`/v1/invoices/${dbId}/tasks/${id}`, { method: 'DELETE' }).then(loadTasks).catch(() => {});
   }
 
   function addReminder() {
-    if (!newRemDate || !newRemMsg.trim()) return;
-    const rem: InvReminder = { id: `r-${Date.now()}`, date: newRemDate, msg: newRemMsg.trim(), done: false };
-    update(withAudit({ ...inv, reminders: [...(inv.reminders ?? []), rem] }, `Reminder set for ${newRemDate}`) );
+    if (!newRemDate || !newRemMsg.trim() || !dbId) return;
+    apiFetch(`/v1/invoices/${dbId}/reminders`, {
+      method: 'POST', body: JSON.stringify({ remind_date: newRemDate, message: newRemMsg.trim() }),
+    }).then(() => { loadReminders(); loadActivity(); }).catch(() => {});
     setNewRemDate(''); setNewRemMsg(''); setShowRemForm(false);
   }
   function toggleReminder(id: string) {
-    update({ ...inv, reminders: (inv.reminders ?? []).map(r => r.id === id ? { ...r, done: !r.done } : r) });
+    if (!dbId) return;
+    const r = reminders.find(x => x.id === id);
+    if (!r) return;
+    apiFetch(`/v1/invoices/${dbId}/reminders/${id}`, { method: 'PATCH', body: JSON.stringify({ done: !r.done }) })
+      .then(loadReminders).catch(() => {});
   }
   function deleteReminder(id: string) {
-    update(withAudit({ ...inv, reminders: (inv.reminders ?? []).filter(r => r.id !== id) }, 'Reminder deleted'));
+    if (!dbId) return;
+    apiFetch(`/v1/invoices/${dbId}/reminders/${id}`, { method: 'DELETE' }).then(loadReminders).catch(() => {});
   }
 
   function sendEmail() {
@@ -783,7 +1069,6 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
       `Dear ${inv.client},\n\nPlease find attached Invoice ${inv.id} for ${fmtTZS(T.grandTotalTZS)}.\n\nBL/AWB: ${inv.blNumber}\nDue Date: ${inv.dueDate ?? 'Upon receipt'}\n\nKind regards,\n${co.name}`
     );
     window.open(`mailto:?subject=Invoice ${inv.id} – ${inv.client}&body=${body}`, '_blank');
-    update(withAudit(inv, 'Email composed'));
   }
 
   const T = invoiceTotals(inv);
@@ -799,6 +1084,21 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
     setShowPayment(false); setPayAmt('');
   }
 
+  const traFiscalized = inv.traStatus === 'submitted' && inv.traAckCode === 0;
+
+  async function submitToTRA() {
+    if (!onSubmitTRA || traSubmitting) return;
+    setTraSubmitting(true);
+    setTraError(null);
+    try {
+      await onSubmitTRA();
+    } catch (err: any) {
+      setTraError(err?.message || 'TRA submission failed');
+    } finally {
+      setTraSubmitting(false);
+    }
+  }
+
   const TABS: { id: DetailTab; label: string }[] = [
     { id: 'invoice', label: 'Invoice' }, { id: 'tasks', label: 'Tasks' },
     { id: 'activity', label: 'Activity Log' }, { id: 'reminders', label: 'Reminders' }, { id: 'notes', label: 'Notes' },
@@ -810,34 +1110,54 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
 
       {/* Tab bar */}
       <div style={{ display: 'flex', alignItems: 'center', borderBottom: '1px solid var(--border)', padding: '0 16px', flexShrink: 0 }}>
-        {TABS.map(t => (
-          <button key={t.id} type="button" onClick={() => setTab(t.id)}
-            style={{ padding: '11px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: tab === t.id ? 'var(--ink)' : 'var(--ink3)', borderBottom: tab === t.id ? '2px solid var(--ink)' : '2px solid transparent', marginBottom: -1, whiteSpace: 'nowrap' }}>
-            {t.label}
-          </button>
-        ))}
-        <div style={{ flex: 1 }} />
-        {(['mail', 'eye', 'maximize'] as const).map((icon, i) => (
-          <button key={icon} type="button"
-            title={i === 0 ? 'Send email' : i === 1 ? 'View / Print' : 'Export PDF'}
-            onClick={() => i === 0 ? (window.location.href = `mailto:?subject=${inv.id}`) : openPrintWindow(inv)}
-            style={{ width: 32, height: 32, borderRadius: 6, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+        <div style={{ display: 'flex', overflowX: 'auto', flex: 1, minWidth: 0 }}>
+          {TABS.map(t => (
+            <button key={t.id} type="button" onClick={() => setTab(t.id)}
+              style={{ padding: '11px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: tab === t.id ? 'var(--ink)' : 'var(--ink3)', borderBottom: tab === t.id ? '2px solid var(--ink)' : '2px solid transparent', marginBottom: -1, whiteSpace: 'nowrap', flexShrink: 0 }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
+          {!isMobile && (['mail', 'eye', 'maximize'] as const).map((icon, i) => (
+            <button key={icon} type="button"
+              title={i === 0 ? 'Send email' : i === 1 ? 'View / Print' : 'Export PDF'}
+              onClick={() => i === 0 ? (window.location.href = `mailto:?subject=${inv.id}`) : openPrintWindow(inv)}
+              style={{ width: 32, height: 32, borderRadius: 6, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+              <Icon name={icon} size={15} color="var(--ink3)" />
+            </button>
+          ))}
+          <button type="button" onClick={onClose}
+            style={{ width: 32, height: 32, borderRadius: 6, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 2 }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-l)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
-            <Icon name={icon} size={15} color="var(--ink3)" />
+            <Icon name="x" size={15} color="var(--ink3)" />
           </button>
-        ))}
-        <button type="button" onClick={onClose}
-          style={{ width: 32, height: 32, borderRadius: 6, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 2 }}
-          onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-l)')}
-          onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
-          <Icon name="x" size={15} color="var(--ink3)" />
-        </button>
+        </div>
       </div>
 
       {/* Action bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: st.bg, color: st.color }}>{st.label}</span>
+        {traFiscalized ? (
+          <span title={`Verification #: ${inv.traRctvnum}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#e6f4ea', color: '#059669' }}>
+            <Icon name="checkCircle" size={12} color="#059669" /> TRA Fiscalized
+          </span>
+        ) : onSubmitTRA ? (
+          <button type="button" onClick={submitToTRA} disabled={traSubmitting || inv.status === 'Draft' || !inv._dbId}
+            title={
+              inv.status === 'Draft' ? 'Save & Send this invoice first — drafts cannot be fiscalized'
+              : !inv._dbId ? 'This invoice only exists locally and was never saved to the server'
+              : inv.traStatus === 'failed' ? (inv.traAckMsg || 'Previous submission failed — retry')
+              : 'Submit this invoice to TRA EFDMS for fiscalization'
+            }
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: (traSubmitting || inv.status === 'Draft' || !inv._dbId) ? 'default' : 'pointer', background: inv.status === 'Draft' || !inv._dbId ? 'var(--bg)' : inv.traStatus === 'failed' ? '#fee2e2' : '#fff8e1', color: inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? '#cf222e' : '#9a6700', opacity: traSubmitting ? 0.7 : 1 }}>
+            <Icon name={inv.traStatus === 'failed' ? 'refresh' : 'send'} size={12} color={inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? '#cf222e' : '#9a6700'} />
+            {traSubmitting ? 'Submitting…' : inv.traStatus === 'failed' ? 'Retry TRA Submission' : 'Submit to TRA'}
+          </button>
+        ) : null}
         <div style={{ flex: 1 }} />
         <button type="button" onClick={onEdit} style={tbBtn} title="Edit"><Icon name="edit" size={13} color="var(--ink2)" /></button>
         <button type="button" onClick={onCopy} style={tbBtn} title="Duplicate"><Icon name="copy" size={13} color="var(--ink2)" /></button>
@@ -847,7 +1167,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             <div onClick={e => e.stopPropagation()} className="billing-more-menu">
               <MoreItem icon="mail"        label="Send by Email" onClick={() => { sendEmail(); setShowMore(false); }} />
               <MoreItem icon="eye"         label="View / Print"  onClick={() => { openPrintWindow(inv); setShowMore(false); }} />
-              <MoreItem icon="fileText"    label="Export PDF"    onClick={() => { openPrintWindow(inv); update(withAudit(inv, 'PDF exported')); setShowMore(false); }} />
+              <MoreItem icon="fileText"    label="Export PDF"    onClick={() => { openPrintWindow(inv); setShowMore(false); }} />
               <div className="billing-more-sep" />
               <MoreItem icon="clipboard"   label="Add Note"      onClick={() => { setShowMore(false); setTab('notes');     }} />
               <MoreItem icon="bell"        label="Add Reminder"  onClick={() => { setShowMore(false); setTab('reminders'); setShowRemForm(true); }} />
@@ -859,10 +1179,16 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           )}
         </div>
         <button type="button" onClick={() => { setShowPayment(v => !v); setPayAmt(String(Math.round(due))); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 9, border: 'none', background: showPayment ? '#15803d' : '#16a34a', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 9, border: 'none', background: showPayment ? '#047857' : '#059669', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
           <Icon name="dollarSign" size={13} color="#fff" /> Payment
         </button>
       </div>
+
+      {traError && (
+        <div style={{ padding: '8px 20px', background: '#fdecea', color: '#cf222e', fontSize: 12, fontWeight: 600, borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+          TRA submission failed: {traError}
+        </div>
+      )}
 
       {/* Payment form */}
       {showPayment && (
@@ -879,15 +1205,17 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             ))}
             <div>
               <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Method</label>
-              <select title="Payment method" value={payMethod} onChange={e => setPayMethod(e.target.value)}
-                style={{ width: '100%', padding: '7px 9px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--font)', outline: 'none', cursor: 'pointer', boxSizing: 'border-box' as const }}>
-                {['Bank Transfer', 'Cash', 'Cheque', 'Mobile Money'].map(m => <option key={m}>{m}</option>)}
-              </select>
+              <Select value={payMethod} onValueChange={setPayMethod}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {['Bank Transfer', 'Cash', 'Cheque', 'Mobile Money'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>Outstanding: <strong style={{ color: due > 0 ? 'var(--red)' : 'var(--green)', fontFamily: 'var(--mono)' }}>{fmt(due, 'TZS')}</strong></div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={submitPayment} style={{ padding: '7px 18px', borderRadius: 7, border: 'none', background: '#16a34a', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>Save Payment</button>
+            <button type="button" onClick={submitPayment} style={{ padding: '7px 18px', borderRadius: 7, border: 'none', background: '#059669', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>Save Payment</button>
             <button type="button" onClick={() => setShowPayment(false)} style={tbBtn}>Cancel</button>
           </div>
         </div>
@@ -895,10 +1223,10 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
 
       {/* Tab content */}
       {tab === 'invoice' ? (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', fontFamily: 'var(--font)' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '16px' : '24px 28px', fontFamily: 'var(--font)' }}>
 
           {/* Header: from company ← QR code → bill-to */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 20 }}>
+          <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', gap: 16, marginBottom: 20 }}>
             {/* From */}
             <div>
               <div style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ink3)', marginBottom: 4 }}>From</div>
@@ -911,24 +1239,34 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               </div>
             </div>
 
-            {/* QR Code — center */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--bg)', alignSelf: 'flex-start', minWidth: 116 }}>
-              <QRCodeSVG value={qrData} size={88} level="M" />
+            {/* QR Code — center. Once fiscalized, this must be the TRA verify-portal
+                URL (what a real EFD receipt prints), not an internal reference code. */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px', border: '1px solid var(--border)', borderRadius: 9, background: traFiscalized ? '#e6f4ea' : 'var(--bg)', alignSelf: 'flex-start', minWidth: 116 }}>
+              <QRCodeSVG value={traFiscalized ? inv.traQrUrl! : qrData} size={88} level="M" />
               <div style={{ fontSize: 9, color: 'var(--ink3)', textAlign: 'center', lineHeight: 1.4 }}>
-                <div style={{ fontWeight: 700 }}>Ref: {inv.refCode}</div>
-                <div>v{inv.version}</div>
+                {traFiscalized ? (
+                  <>
+                    <div style={{ fontWeight: 700, color: '#059669' }}>TRA Verified</div>
+                    <div>{inv.traRctvnum}</div>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontWeight: 700 }}>Ref: {inv.refCode}</div>
+                    <div>v{inv.version}{inv.status !== 'Draft' ? ' · not fiscalized' : ''}</div>
+                  </>
+                )}
               </div>
             </div>
 
             {/* Bill To */}
-            <div style={{ textAlign: 'right' }}>
+            <div style={{ textAlign: isMobile ? 'left' : 'right' }}>
               <div style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ink3)', marginBottom: 4 }}>Bill To</div>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--blue)', marginBottom: 4 }}>{inv.client}</div>
               <div style={{ fontSize: 11, color: 'var(--ink2)', lineHeight: 1.8, marginBottom: 12 }}>
                 {inv.clientAddress.map((l, i) => <React.Fragment key={i}>{l}{i < inv.clientAddress.length - 1 && <br />}</React.Fragment>)}
               </div>
               <div style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--ink3)', marginBottom: 4 }}>Invoice Details</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: isMobile ? 'flex-start' : 'flex-end' }}>
                 <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: 'var(--ink3)', fontWeight: 700 }}>Invoice #:</span><span style={{ color: 'var(--teal)', fontWeight: 700 }}>{inv.id}</span></div>
                 <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: 'var(--ink3)', fontWeight: 700 }}>Invoice Date:</span><span style={{ color: 'var(--ink)', fontWeight: 600 }}>{inv.billDate}</span></div>
                 {inv.dueDate && <div style={{ display: 'flex', gap: 8, fontSize: 12 }}><span style={{ color: 'var(--ink3)', fontWeight: 700 }}>Due Date:</span><span style={{ color: inv.status === 'Overdue' ? 'var(--red)' : 'var(--ink)', fontWeight: inv.status === 'Overdue' ? 700 : 600 }}>{inv.dueDate}</span></div>}
@@ -966,16 +1304,45 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                 <span style={{ fontSize: 15, fontWeight: 900, fontFamily: 'var(--mono)' }}>{fmt(T.grandTotalTZS, 'TZS')}</span>
               </div>
               {inv.received > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#16a34a', marginBottom: 4, paddingLeft: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#059669', marginBottom: 4, paddingLeft: 4 }}>
                   <span>Less: Received</span><span style={{ fontFamily: 'var(--mono)' }}>({fmt(inv.received, 'TZS')})</span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 800, color: due > 0 ? 'var(--red)' : '#16a34a', borderTop: '2px solid var(--border)', paddingTop: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 800, color: due > 0 ? 'var(--red)' : '#059669', borderTop: '2px solid var(--border)', paddingTop: 8 }}>
                 <span>Amount Due</span>
                 <span style={{ fontFamily: 'var(--mono)' }}>{fmt(Math.max(0, due), 'TZS')}</span>
               </div>
             </div>
           </div>
+
+          {/* Carbon segment — live from the linked shipment, not a tradeable credit */}
+          {inv.shipmentCarbon && (
+            <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 9, padding: '16px 20px', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <Icon name="globe" size={15} color="#059669" strokeWidth={1.75} />
+                <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)' }}>Carbon Footprint (Estimate)</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 16 }}>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{Number(inv.shipmentCarbon.co2_emissions_kg).toLocaleString('en')} kg</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>CO₂ emissions</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#059669' }}>{Number(inv.shipmentCarbon.carbon_credits_saved).toFixed(2)}</div>
+                  <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Credits saved (est.)</div>
+                </div>
+                {inv.shipmentCarbon.distance_km != null && (
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{inv.shipmentCarbon.distance_km} km</div>
+                    <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Route distance</div>
+                  </div>
+                )}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 10, fontStyle: 'italic' }}>
+                GLEC v3.2 / ISO 14083 methodology. Internal ESG estimate — not a registry-issued or tradeable carbon credit.
+              </div>
+            </div>
+          )}
 
           {/* Payment Info */}
           <div style={{ background: 'var(--bg)', borderRadius: 9, padding: '16px 20px', marginBottom: 24, border: '1px solid var(--border)' }}>
@@ -1021,11 +1388,11 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             </div>
           </div>
           <div className="inv-tab-list">
-            {(inv.notes ?? []).length === 0 && <div className="inv-tab-empty">No notes yet.</div>}
-            {(inv.notes ?? []).map(n => (
+            {notes.length === 0 && <div className="inv-tab-empty">No notes yet.</div>}
+            {notes.map(n => (
               <div key={n.id} className="inv-note-item">
-                <div className="inv-note-meta">{n.ts}</div>
-                <div className="inv-note-text">{n.text}</div>
+                <div className="inv-note-meta">{n.author_name} · {new Date(n.created_at).toLocaleString('en-GB')}</div>
+                <div className="inv-note-text">{n.content}</div>
                 <button type="button" className="inv-note-del" title="Delete note" onClick={() => deleteNote(n.id)}>
                   <Icon name="x" size={12} color="var(--ink3)" />
                 </button>
@@ -1041,7 +1408,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               <input className="inv-tab-input" placeholder="Task description…" value={newTaskDesc} onChange={e => setNewTaskDesc(e.target.value)} />
               <div className="inv-task-form-row">
                 <input className="inv-tab-input" placeholder="Assignee" value={newTaskAssignee} onChange={e => setNewTaskAssignee(e.target.value)} />
-                <input className="inv-tab-input" type="date" value={newTaskDue} onChange={e => setNewTaskDue(e.target.value)} title="Due date" />
+                <DatePicker date={parseDateOnly(newTaskDue)} onChange={d => setNewTaskDue(toDateOnlyString(d))} />
               </div>
               <div className="inv-tab-compose-foot">
                 <button type="button" className="inv-tab-cancel" onClick={() => setShowTaskForm(false)}>Cancel</button>
@@ -1056,14 +1423,14 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             </div>
           )}
           <div className="inv-tab-list">
-            {(inv.tasks ?? []).length === 0 && <div className="inv-tab-empty">No tasks yet.</div>}
-            {(inv.tasks ?? []).map(t => (
+            {tasks.length === 0 && <div className="inv-tab-empty">No tasks yet.</div>}
+            {tasks.map(t => (
               <div key={t.id} className={`inv-task-item${t.done ? ' inv-task-item--done' : ''}`}>
                 <input type="checkbox" checked={t.done} onChange={() => toggleTask(t.id)} className="inv-task-check" title="Toggle task" />
                 <div className="inv-task-body">
-                  <span className="inv-task-desc">{t.desc}</span>
+                  <span className="inv-task-desc">{t.description}</span>
                   {t.assignee && <span className="inv-task-assignee">→ {t.assignee}</span>}
-                  {t.dueDate  && <span className="inv-task-due">Due {t.dueDate}</span>}
+                  {t.due_date && <span className="inv-task-due">Due {t.due_date}</span>}
                 </div>
                 <button type="button" className="inv-note-del" title="Delete task" onClick={() => deleteTask(t.id)}>
                   <Icon name="x" size={12} color="var(--ink3)" />
@@ -1078,7 +1445,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           {showRemForm ? (
             <div className="inv-task-form">
               <div className="inv-task-form-row">
-                <input className="inv-tab-input" type="date" value={newRemDate} onChange={e => setNewRemDate(e.target.value)} title="Reminder date" />
+                <DatePicker date={parseDateOnly(newRemDate)} onChange={d => setNewRemDate(toDateOnlyString(d))} />
                 <input className="inv-tab-input" placeholder="Reminder message…" value={newRemMsg} onChange={e => setNewRemMsg(e.target.value)} />
               </div>
               <div className="inv-tab-compose-foot">
@@ -1094,13 +1461,13 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             </div>
           )}
           <div className="inv-tab-list">
-            {(inv.reminders ?? []).length === 0 && <div className="inv-tab-empty">No reminders set.</div>}
-            {(inv.reminders ?? []).sort((a, b) => a.date.localeCompare(b.date)).map(r => (
+            {reminders.length === 0 && <div className="inv-tab-empty">No reminders set.</div>}
+            {[...reminders].sort((a, b) => a.remind_date.localeCompare(b.remind_date)).map(r => (
               <div key={r.id} className={`inv-task-item${r.done ? ' inv-task-item--done' : ''}`}>
                 <input type="checkbox" checked={r.done} onChange={() => toggleReminder(r.id)} className="inv-task-check" title="Mark done" />
                 <div className="inv-task-body">
-                  <span className="inv-task-due">{r.date}</span>
-                  <span className="inv-task-desc">{r.msg}</span>
+                  <span className="inv-task-due">{r.remind_date}</span>
+                  <span className="inv-task-desc">{r.message}</span>
                 </div>
                 <button type="button" className="inv-note-del" title="Delete reminder" onClick={() => deleteReminder(r.id)}>
                   <Icon name="x" size={12} color="var(--ink3)" />
@@ -1113,13 +1480,13 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
       ) : tab === 'activity' ? (
         <div className="inv-tab-panel">
           <div className="inv-tab-list">
-            {(inv.auditLog ?? []).length === 0 && <div className="inv-tab-empty">No activity recorded yet.</div>}
-            {(inv.auditLog ?? []).map(e => (
+            {activity.length === 0 && <div className="inv-tab-empty">No activity recorded yet.</div>}
+            {activity.map(e => (
               <div key={e.id} className="inv-audit-item">
                 <Icon name="activity" size={13} color="var(--teal)" />
                 <div className="inv-audit-body">
-                  <span className="inv-audit-action">{e.action}</span>
-                  <span className="inv-audit-ts">{e.ts}</span>
+                  <span className="inv-audit-action">{e.action.replace(/_/g, ' ')}{e.detail ? `: ${e.detail}` : ''}</span>
+                  <span className="inv-audit-ts">{e.actor_name ? `${e.actor_name} · ` : ''}{new Date(e.created_at).toLocaleString('en-GB')}</span>
                 </div>
               </div>
             ))}
@@ -1134,24 +1501,36 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
 export const Billing: React.FC = () => {
   const isMobile = useIsMobile();
   const { fmt } = useCurrency();
-  const navigate = useNavigate();
-  const [invoices, setInvoices]         = useState<Invoice[]>(INITIAL_INVOICES);
-  const [apiLoading, setApiLoading] = useState(false);
+  const [invoices, setInvoices]         = useState<Invoice[]>([]);
+  const [apiLoading, setApiLoading] = useState(true);
   const [selectedId, setSelectedId]     = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch('/v1/invoices')
       .then((data: any) => {
-        if (Array.isArray(data) && data.length > 0) {
-          setInvoices(data.map(mapApiInvoice));
-        }
+        setInvoices(Array.isArray(data) ? data.map(mapApiInvoice) : []);
       })
-      .catch(() => {});
+      .catch(() => setInvoices([]))
+      .finally(() => setApiLoading(false));
   }, []);
   const [mode, setMode]                 = useState<PageMode>('list');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [search, setSearch]             = useState('');
   const [sortAsc, setSortAsc]           = useState(false);
+
+  /* ── Filters popover ── */
+  const [showFilters, setShowFilters]     = useState(false);
+  const [filterMode, setFilterMode]       = useState<'all' | Invoice['mode']>('all');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo]     = useState('');
+  const activeFilterCount = (filterMode !== 'all' ? 1 : 0) + (filterDateFrom ? 1 : 0) + (filterDateTo ? 1 : 0);
+
+  /* ── Batch payments modal ── */
+  const [showBatchPayment, setShowBatchPayment] = useState(false);
+  const [batchSelected, setBatchSelected]       = useState<Set<string>>(new Set());
+  const [batchMethod, setBatchMethod]           = useState('Bank Transfer');
+  const [batchDate, setBatchDate]               = useState(() => new Date().toLocaleDateString('en-GB').split('/').join('-'));
+  const [batchSubmitting, setBatchSubmitting]   = useState(false);
 
   const selectedInvoice = selectedId ? (invoices.find(i => i.id === selectedId) ?? null) : null;
   const isSplit = mode !== 'list';
@@ -1159,10 +1538,60 @@ export const Billing: React.FC = () => {
   const maxNumber = Math.max(...invoices.map(i => parseInt(i.id.match(/\d{4}/g)?.pop() || '0')), 0);
   const nextId = `CLR-2026-${String(maxNumber + 1).padStart(4, '0')} INV`;
 
+  const billDateToIso = (d: string) => { const [dd, mm, yyyy] = d.split('-'); return `${yyyy}-${mm}-${dd}`; };
+
   const filtered = invoices
     .filter(inv => filterStatus === 'all' || inv.status === filterStatus)
+    .filter(inv => filterMode === 'all' || inv.mode === filterMode)
+    .filter(inv => !filterDateFrom || (inv.billDate && billDateToIso(inv.billDate) >= filterDateFrom))
+    .filter(inv => !filterDateTo || (inv.billDate && billDateToIso(inv.billDate) <= filterDateTo))
     .filter(inv => !search || [inv.client, inv.id, inv.blNumber].some(s => s.toLowerCase().includes(search.toLowerCase())))
     .sort((a, b) => sortAsc ? a.id.localeCompare(b.id) : b.id.localeCompare(a.id));
+
+  const outstandingInvoices = invoices.filter(inv => (inv.status === 'Unpaid' || inv.status === 'Partial' || inv.status === 'Overdue') && inv._dbId);
+
+  function toggleBatchSelect(id: string) {
+    setBatchSelected(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
+  }
+
+  async function submitBatchPayment() {
+    if (batchSelected.size === 0 || batchSubmitting) return;
+    setBatchSubmitting(true);
+    const targets = outstandingInvoices.filter(inv => batchSelected.has(inv.id));
+    for (const inv of targets) {
+      const balance = Math.max(0, invoiceTotal(inv) - inv.received);
+      if (balance <= 0 || !inv._dbId) continue;
+      try {
+        await apiFetch(`/v1/invoices/${inv._dbId}/payment`, {
+          method: 'POST',
+          body: JSON.stringify({ amount: balance, method: batchMethod, payment_date: billDateToIso(batchDate) }),
+        });
+      } catch { /* continue with remaining invoices */ }
+    }
+    const data: any = await apiFetch('/v1/invoices').catch(() => null);
+    if (Array.isArray(data)) setInvoices(data.map(mapApiInvoice));
+    setBatchSubmitting(false);
+    setShowBatchPayment(false);
+    setBatchSelected(new Set());
+  }
+
+  function exportCsv() {
+    const rows = [
+      ['Invoice ID', 'Client', 'BL/AWB', 'Origin', 'Destination', 'Mode', 'Date', 'Due Date', 'Status', 'Grand Total (TZS)', 'Received (TZS)', 'Balance Due (TZS)'],
+      ...invoices.map(inv => {
+        const total = invoiceTotal(inv);
+        return [inv.id, inv.client, inv.blNumber, inv.origin, inv.destination, inv.mode, inv.billDate, inv.dueDate ?? '', inv.status, Math.round(total), Math.round(inv.received), Math.round(Math.max(0, total - inv.received))];
+      }),
+    ];
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invoices-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   function handleSaveInvoice(inv: Invoice) {
     const isCreate = mode === 'create';
@@ -1238,113 +1667,166 @@ export const Billing: React.FC = () => {
     }
   }
 
+  async function handleSubmitTRA() {
+    if (!selectedInvoice?._dbId) return;
+    try {
+      const res: any = await apiFetch(`/v1/tra/invoices/${selectedInvoice._dbId}/submit`, { method: 'POST' });
+      setInvoices(prev => prev.map(i => i.id === selectedInvoice.id ? {
+        ...i,
+        traStatus: 'submitted',
+        traRctvnum: res.rctvNum,
+        traQrUrl: res.qrUrl,
+        traAckCode: res.ackCode,
+        traAckMsg: res.ackMsg
+      } : i));
+    } catch (err) {
+      throw err;
+    }
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
+    <div className="inv-shell" onClick={() => showFilters && setShowFilters(false)}>
 
       {/* Top bar */}
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '10px 20px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button type="button" onClick={() => { setSelectedId(null); setMode('create'); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: 'none', background: '#111827', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
-          <Icon name="plus" size={13} color="#fff" /> Create New Invoice
+      <div className="inv-topbar">
+        <button type="button" className="inv-btn inv-btn--primary" onClick={() => { setSelectedId(null); setMode('create'); }}>
+          <Icon name="plus" size={15} color="#fff" /> Create New Invoice
         </button>
-        <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
-          <Icon name="creditCard" size={13} color="var(--ink3)" /> Batch Payments
+        <button type="button" className="inv-btn" onClick={() => setShowBatchPayment(true)} disabled={outstandingInvoices.length === 0} title={outstandingInvoices.length === 0 ? 'No outstanding invoices' : undefined}>
+          <Icon name="creditCard" size={14} color="var(--ink3)" /> Batch Payments
         </button>
-        <button type="button" onClick={() => { setSearch(''); setFilterStatus('all'); }} style={{ width: 32, height: 32, borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Reset filters">
-          <Icon name="refresh" size={14} color="var(--ink3)" />
+        <button type="button" className="inv-btn inv-btn--icon" onClick={() => { setSearch(''); setFilterStatus('all'); setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }} title="Reset filters">
+          <Icon name="refresh" size={15} color="var(--ink3)" />
         </button>
-        <div style={{ flex: 1 }} />
-        <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 13px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
-          <Icon name="filter" size={13} color="var(--ink3)" /> Filters
+        <div className="inv-topbar-spacer" />
+        <button type="button" className="inv-btn" onClick={exportCsv}>
+          <Icon name="download" size={14} color="var(--ink3)" /> Export CSV
         </button>
+        <button type="button" className={`inv-btn${activeFilterCount > 0 ? ' inv-btn--active' : ''}`} onClick={e => { e.stopPropagation(); setShowFilters(v => !v); }}>
+          <Icon name="filter" size={14} color={activeFilterCount > 0 ? 'var(--teal)' : 'var(--ink3)'} /> Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+        </button>
+        {showFilters && (
+          <div className="inv-filters-popover" onClick={e => e.stopPropagation()}>
+            <div className="inv-filters-field">
+              <label>Mode</label>
+              <Select value={filterMode} onValueChange={v => setFilterMode(v as any)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All modes</SelectItem>
+                  <SelectItem value="SEA">SEA</SelectItem>
+                  <SelectItem value="AIR">AIR</SelectItem>
+                  <SelectItem value="ROAD">ROAD</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="inv-filters-row">
+              <div className="inv-filters-field">
+                <label>From</label>
+                <DatePicker date={parseDateOnly(filterDateFrom)} onChange={d => setFilterDateFrom(toDateOnlyString(d))} />
+              </div>
+              <div className="inv-filters-field">
+                <label>To</label>
+                <DatePicker date={parseDateOnly(filterDateTo)} onChange={d => setFilterDateTo(toDateOnlyString(d))} />
+              </div>
+            </div>
+            <div className="inv-filters-foot">
+              <button type="button" className="inv-btn" onClick={() => { setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }}>Clear</button>
+              <button type="button" className="inv-btn inv-btn--primary" onClick={() => setShowFilters(false)}>Done</button>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <div className={`inv-body${isSplit ? ' inv-body--split' : ''}${selectedInvoice || mode === 'create' ? ' inv-body--has-selection' : ''}`}>
         {/* List panel */}
-        <div style={{ width: isSplit ? 420 : '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--white)', borderRight: isSplit ? '1px solid var(--border)' : 'none', transition: 'width 0.18s ease' }}>
+        <div className="inv-list-panel">
 
           {/* Toolbar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderBottom: '1px solid var(--border)', flexShrink: 0, flexWrap: 'wrap' }}>
+          <div className="inv-list-toolbar">
             {!isSplit && (
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              <div className="inv-status-chips">
                 {(['all', 'Draft', 'Unpaid', 'Partial', 'Paid', 'Overdue', 'Credited'] as FilterStatus[]).map(s => {
                   const cnt = s === 'all' ? invoices.length : invoices.filter(i => i.status === s).length;
                   const active = filterStatus === s;
                   return (
-                    <button key={s} type="button" onClick={() => setFilterStatus(s)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', border: active ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: active ? 'var(--teal-l)' : 'var(--bg)', color: active ? 'var(--teal)' : 'var(--ink2)' }}>
+                    <button key={s} type="button" className={`inv-status-chip${active ? ' inv-status-chip--active' : ''}`} onClick={() => setFilterStatus(s)}>
                       {s === 'all' ? 'All' : STATUS_STYLE[s as Status].label}
-                      {cnt > 0 && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 5px', borderRadius: 9, background: active ? 'var(--teal)' : 'var(--border)', color: active ? '#fff' : 'var(--ink2)' }}>{cnt}</span>}
+                      {cnt > 0 && <span className="inv-status-chip-count">{cnt}</span>}
                     </button>
                   );
                 })}
               </div>
             )}
-            <div style={{ flex: 1 }} />
-            <div style={{ position: 'relative' }}>
-              <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoice, client, BL…"
-                style={{ paddingLeft: 28, paddingRight: 8, paddingTop: 5, paddingBottom: 5, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12, fontFamily: 'var(--font)', width: isSplit ? 160 : 220, outline: 'none' }} />
+            <div className="inv-topbar-spacer" />
+            <div className="inv-search-wrap">
+              <Icon name="search" size={13} color="var(--ink3)" className="inv-search-icon" />
+              <input className="inv-search-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoice, client, BL…" />
             </div>
           </div>
 
           {/* Table */}
-          <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto' }}>
-            <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 13 }}>
+          <div className="inv-table-wrap">
+            <table className="rtbl inv-table">
               <thead>
-                <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', position: 'sticky', top: 0, zIndex: 5 }}>
-                  <th style={{ ...thS, cursor: 'pointer' }} onClick={() => setSortAsc(v => !v)}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>Invoice # <Icon name={sortAsc ? 'arrowUp' : 'arrowDown'} size={11} color="var(--ink3)" /></span>
+                <tr>
+                  <th className="th--sortable" onClick={() => setSortAsc(v => !v)}>
+                    <span>Invoice # <Icon name={sortAsc ? 'arrowUp' : 'arrowDown'} size={11} color="var(--ink3)" /></span>
                   </th>
-                  {!isSplit && <th style={thS}>BL / AWB</th>}
-                  <th style={thS}>Customer</th>
-                  {!isSplit && <th style={thS}>Mode</th>}
-                  <th style={{ ...thS, textAlign: 'right' }}>Total (TZS)</th>
-                  <th style={thS}>Date</th>
-                  {!isSplit && <th style={thS}>Due</th>}
-                  <th style={thS}>Status</th>
+                  {!isSplit && <th>BL / AWB</th>}
+                  <th>Customer</th>
+                  {!isSplit && <th>Mode</th>}
+                  <th className="th--right">Total (TZS)</th>
+                  <th>Date</th>
+                  {!isSplit && <th>Due</th>}
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((inv, i) => {
+                {filtered.map(inv => {
                   const isSelected = inv.id === selectedId;
                   const st = STATUS_STYLE[inv.status];
                   const total = invoiceTotal(inv);
                   return (
                     <tr key={inv.id}
-                      onClick={() => { if (mode !== 'edit' && mode !== 'create') { setSelectedId(inv.id); setMode('view'); } }}
-                      style={{ background: isSelected ? 'var(--teal-l)' : i % 2 === 0 ? 'var(--white)' : 'var(--bg)', borderBottom: '1px solid var(--border)', cursor: 'pointer', borderLeft: isSelected ? '3px solid var(--teal)' : '3px solid transparent' }}
-                      onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--bg)'; }}
-                      onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = i % 2 === 0 ? 'var(--white)' : 'var(--bg)'; }}>
-                      <td style={tdS}><span style={{ color: 'var(--teal)', fontWeight: 600, fontFamily: 'var(--mono)', fontSize: 12 }}>{inv.id}</span></td>
+                      className={isSelected ? 'inv-row--selected' : ''}
+                      onClick={() => { if (mode !== 'edit' && mode !== 'create') { setSelectedId(inv.id); setMode('view'); } }}>
+                      <td><span className="inv-cell-id">{inv.id}</span></td>
                       {!isSplit && (
-                        <td style={{ ...tdS, fontSize: 11.5 }}>
-                          <button type="button"
-                            onClick={e => { e.stopPropagation(); navigate(`/?search=${encodeURIComponent(inv.blNumber)}`); }}
-                            title={`Open shipment ${inv.blNumber} in Ops Command`}
-                            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--blue)', fontWeight: 600, textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3 }}>
+                        <td>
+                          <Link to={`/?search=${encodeURIComponent(inv.blNumber)}`} onClick={e => e.stopPropagation()}
+                            title={`Open shipment ${inv.blNumber} in Ops Command`} className="inv-cell-link">
                             {inv.blNumber}
-                          </button>
+                          </Link>
                         </td>
                       )}
-                      <td style={{ ...tdS, ...(isSplit ? { maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } : {}) }}>
-                        <button type="button"
-                          onClick={e => { e.stopPropagation(); navigate(`/customers?search=${encodeURIComponent(inv.client)}`); }}
-                          title={`View ${inv.client} profile`}
-                          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'var(--font)', fontSize: 13, color: 'var(--blue)', fontWeight: 600, textAlign: 'left', textDecoration: 'underline', textDecorationStyle: 'dotted', textUnderlineOffset: 3 }}>
+                      <td className="inv-cell-client">
+                        <Link to={`/customers?search=${encodeURIComponent(inv.client)}`} onClick={e => e.stopPropagation()}
+                          title={`View ${inv.client} profile`} className="inv-cell-client-link">
                           {inv.client}
-                        </button>
+                        </Link>
                       </td>
-                      {!isSplit && <td style={{ ...tdS, fontSize: 11 }}><span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 10.5, fontWeight: 700, background: inv.mode === 'SEA' ? '#dbeafe' : inv.mode === 'AIR' ? '#fce7f3' : '#dcfce7', color: inv.mode === 'SEA' ? '#1d4ed8' : inv.mode === 'AIR' ? '#be185d' : '#15803d' }}>{inv.mode}</span></td>}
-                      <td style={{ ...tdS, textAlign: 'right', fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600 }}>{fmt(total, 'TZS')}</td>
-                      <td style={{ ...tdS, color: 'var(--ink2)', whiteSpace: 'nowrap', fontSize: 12 }}>{inv.billDate}</td>
-                      {!isSplit && <td style={{ ...tdS, color: inv.status === 'Overdue' ? 'var(--red)' : 'var(--ink2)', fontSize: 12, fontWeight: inv.status === 'Overdue' ? 700 : 400 }}>{inv.dueDate ?? '—'}</td>}
-                      <td style={tdS}><span style={{ padding: '3px 8px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: st.bg, color: st.color, whiteSpace: 'nowrap' }}>{st.label}</span></td>
+                      {!isSplit && <td><span className="inv-mode-badge" data-mode={inv.mode}>{inv.mode}</span></td>}
+                      <td className="inv-cell-total">{fmt(total, 'TZS')}</td>
+                      <td className="inv-cell-date">{inv.billDate}</td>
+                      {!isSplit && <td className={`inv-cell-due${inv.status === 'Overdue' ? ' inv-cell-due--overdue' : ''}`}>{inv.dueDate ?? '—'}</td>}
+                      <td><span className="inv-status-badge" style={{ background: st.bg, color: st.color }}>{st.label}</span></td>
                     </tr>
                   );
                 })}
-                {filtered.length === 0 && (
-                  <tr><td colSpan={9} style={{ padding: '48px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No invoices found</td></tr>
+                {apiLoading && (
+                  <tr><td colSpan={9} className="inv-table-msg">Loading invoices…</td></tr>
+                )}
+                {!apiLoading && filtered.length === 0 && invoices.length === 0 && (
+                  <tr><td colSpan={9} className="inv-table-msg">
+                    <div className="inv-empty-title">No invoices yet</div>
+                    <div className="inv-empty-sub">Create your first invoice to start billing customers.</div>
+                    <button type="button" className="inv-btn inv-btn--primary" onClick={() => { setSelectedId(null); setMode('create'); }}>
+                      <Icon name="plus" size={14} color="#fff" /> Create New Invoice
+                    </button>
+                  </td></tr>
+                )}
+                {!apiLoading && filtered.length === 0 && invoices.length > 0 && (
+                  <tr><td colSpan={9} className="inv-table-msg">No invoices match your filters</td></tr>
                 )}
               </tbody>
             </table>
@@ -1352,29 +1834,83 @@ export const Billing: React.FC = () => {
 
           {/* Footer summary */}
           {!isSplit && filtered.length > 0 && (
-            <div style={{ background: 'var(--bg)', borderTop: '1px solid var(--border)', padding: '9px 14px', display: 'flex', gap: 24, flexShrink: 0, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{filtered.length} invoices</span>
-              <span style={{ fontSize: 12, color: 'var(--ink2)' }}>Total: <strong style={{ fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{fmt(filtered.reduce((s, i) => s + invoiceTotal(i), 0), 'TZS')}</strong></span>
-              <span style={{ fontSize: 12, color: 'var(--ink2)' }}>Received: <strong style={{ fontFamily: 'var(--mono)', color: 'var(--green)' }}>{fmt(filtered.reduce((s, i) => s + i.received, 0), 'TZS')}</strong></span>
-              <span style={{ fontSize: 12, color: 'var(--ink2)' }}>Outstanding: <strong style={{ fontFamily: 'var(--mono)', color: 'var(--red)' }}>{fmt(filtered.reduce((s, i) => s + Math.max(0, invoiceTotal(i) - i.received), 0), 'TZS')}</strong></span>
+            <div className="inv-list-footer">
+              <span style={{ color: 'var(--ink3)' }}>{filtered.length} invoices</span>
+              <span style={{ color: 'var(--ink2)' }}>Total: <strong style={{ fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{fmt(filtered.reduce((s, i) => s + invoiceTotal(i), 0), 'TZS')}</strong></span>
+              <span style={{ color: 'var(--ink2)' }}>Received: <strong style={{ fontFamily: 'var(--mono)', color: 'var(--green)' }}>{fmt(filtered.reduce((s, i) => s + i.received, 0), 'TZS')}</strong></span>
+              <span style={{ color: 'var(--ink2)' }}>Outstanding: <strong style={{ fontFamily: 'var(--mono)', color: 'var(--red)' }}>{fmt(filtered.reduce((s, i) => s + Math.max(0, invoiceTotal(i) - i.received), 0), 'TZS')}</strong></span>
             </div>
           )}
         </div>
 
         {/* Right panel */}
-        {mode === 'view' && selectedInvoice && (
-          <InvoiceDetailPanel inv={selectedInvoice} onClose={() => { setMode('list'); setSelectedId(null); }} onEdit={() => setMode('edit')} onCopy={handleCopyInvoice} onDelete={handleDeleteInvoice} onRecordPayment={handleRecordPayment} isMobile={isMobile} />
-        )}
-        {mode === 'edit' && selectedInvoice && (
-          <InvoiceEditor initial={selectedInvoice} nextId={nextId} onSave={handleSaveInvoice} onCancel={() => setMode('view')} isMobile={isMobile} />
-        )}
-        {mode === 'create' && (
-          <InvoiceEditor initial={null} nextId={nextId} onSave={handleSaveInvoice} onCancel={() => { setMode('list'); setSelectedId(null); }} isMobile={isMobile} />
-        )}
+        <div className="inv-detail-panel" style={{ flex: 1, display: 'flex', overflow: 'hidden', minWidth: 0 }}>
+          {mode === 'view' && selectedInvoice && (
+            <InvoiceDetailPanel inv={selectedInvoice} onClose={() => { setMode('list'); setSelectedId(null); }} onEdit={() => setMode('edit')} onCopy={handleCopyInvoice} onDelete={handleDeleteInvoice} onRecordPayment={handleRecordPayment} onSubmitTRA={handleSubmitTRA} isMobile={isMobile} />
+          )}
+          {mode === 'edit' && selectedInvoice && (
+            <InvoiceEditor initial={selectedInvoice} nextId={nextId} onSave={handleSaveInvoice} onCancel={() => setMode('view')} isMobile={isMobile} />
+          )}
+          {mode === 'create' && (
+            <InvoiceEditor initial={null} nextId={nextId} onSave={handleSaveInvoice} onCancel={() => { setMode('list'); setSelectedId(null); }} isMobile={isMobile} />
+          )}
+        </div>
       </div>
+
+      {/* Batch Payments modal */}
+      {showBatchPayment && (
+        <div className="spt-modal-overlay" onClick={e => e.target === e.currentTarget && setShowBatchPayment(false)}>
+          <div className="spt-modal" style={{ maxWidth: 480 }}>
+            <div className="spt-modal-hdr">
+              <h2 className="spt-modal-title">Batch Payments</h2>
+              <button type="button" className="spt-icon-btn" onClick={() => setShowBatchPayment(false)} title="Close">
+                <Icon name="x" size={18} strokeWidth={2} />
+              </button>
+            </div>
+            <div style={{ padding: '0 2px' }}>
+              <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 8 }}>
+                Select outstanding invoices to record a full payment against. Each invoice is marked paid in full using the method and date below.
+              </div>
+              <div className="inv-batch-list">
+                {outstandingInvoices.length === 0 && <div className="inv-tab-empty">No outstanding invoices.</div>}
+                {outstandingInvoices.map(inv => {
+                  const balance = Math.max(0, invoiceTotal(inv) - inv.received);
+                  return (
+                    <label key={inv.id} className="inv-batch-row">
+                      <input type="checkbox" checked={batchSelected.has(inv.id)} onChange={() => toggleBatchSelect(inv.id)} />
+                      <span className="inv-cell-id">{inv.id}</span>
+                      <span>{inv.client}</span>
+                      <span className="inv-batch-row-amt">{fmtTZS(balance)}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 8 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Method</label>
+                  <Select value={batchMethod} onValueChange={setBatchMethod}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {['Bank Transfer', 'Cash', 'Cheque', 'Mobile Money'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Payment Date</label>
+                  <input value={batchDate} onChange={e => setBatchDate(e.target.value)} placeholder="DD-MM-YYYY"
+                    style={{ width: '100%', padding: '7px 9px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--mono)', outline: 'none', boxSizing: 'border-box' }} />
+                </div>
+              </div>
+              <div className="spt-modal-actions">
+                <button type="button" className="spt-modal-cancel" onClick={() => setShowBatchPayment(false)}>Cancel</button>
+                <button type="button" className="spt-modal-submit" onClick={submitBatchPayment} disabled={batchSelected.size === 0 || batchSubmitting}>
+                  {batchSubmitting ? 'Recording…' : `Record payment for ${batchSelected.size} invoice${batchSelected.size === 1 ? '' : 's'}`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
-const thS: React.CSSProperties = { padding: '9px 12px', textAlign: 'left', fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', letterSpacing: '0.02em', whiteSpace: 'nowrap' };
-const tdS: React.CSSProperties = { padding: '11px 12px', verticalAlign: 'middle', fontSize: 13, color: 'var(--ink)' };

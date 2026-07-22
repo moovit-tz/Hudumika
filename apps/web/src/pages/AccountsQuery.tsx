@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { apiFetch } from '../lib/api.js';
-import { Icon } from '../components/Icon.jsx';
+import { Icon } from '../components/Icon.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 
 type ReportType = 'receivables' | 'payables' | 'revenue' | 'expenses' | 'summary';
 
@@ -232,31 +233,11 @@ export function AccountsQuery() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               <div>
                 <label style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 3, display: 'block' }}>From</label>
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={e => setDateFrom(e.target.value)}
-                  style={{
-                    width: '100%', boxSizing: 'border-box', padding: '7px 10px',
-                    border: '1.5px solid var(--border)', borderRadius: 7,
-                    fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)',
-                    background: 'var(--bg)',
-                  }}
-                />
+                <DatePicker date={parseDateOnly(dateFrom)} onChange={d => setDateFrom(toDateOnlyString(d))} />
               </div>
               <div>
                 <label style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 3, display: 'block' }}>To</label>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={e => setDateTo(e.target.value)}
-                  style={{
-                    width: '100%', boxSizing: 'border-box', padding: '7px 10px',
-                    border: '1.5px solid var(--border)', borderRadius: 7,
-                    fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)',
-                    background: 'var(--bg)',
-                  }}
-                />
+                <DatePicker date={parseDateOnly(dateTo)} onChange={d => setDateTo(toDateOnlyString(d))} />
               </div>
             </div>
           </div>

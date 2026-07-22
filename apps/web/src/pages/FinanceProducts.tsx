@@ -9,6 +9,7 @@ import {
   Product, ProductType, ProductStatus,
   PRODUCT_UNITS, PRODUCT_CATEGORIES, PRODUCT_TYPE_COLOR, TAX_RATES,
 } from '../data/productData.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 function newId() { return 'PRD-' + Date.now().toString(36).toUpperCase(); }
 function autoCode(name: string) { return 'SVC-' + name.trim().toUpperCase().replace(/\s+/g, '-').slice(0, 8); }
@@ -43,7 +44,7 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
             <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, fontWeight: 700, ...tc }}>
               {product.type === 'service' ? 'SERVICE' : 'PRODUCT'}
             </span>
-            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, fontWeight: 700, background: product.status === 'active' ? '#dcfce7' : '#f1f5f9', color: product.status === 'active' ? '#166534' : '#64748b' }}>
+            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, fontWeight: 700, background: product.status === 'active' ? '#ecfdf5' : '#f1f5f9', color: product.status === 'active' ? '#065f46' : '#64748b' }}>
               {product.status.toUpperCase()}
             </span>
           </div>
@@ -79,9 +80,9 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
 
         {/* Margin & Tax row */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-          <div style={{ padding: '10px 12px', background: margin !== null && margin > 0 ? '#dcfce7' : 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)', textAlign: 'center' }}>
+          <div style={{ padding: '10px 12px', background: margin !== null && margin > 0 ? '#ecfdf5' : 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)', textAlign: 'center' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Margin</div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: margin !== null && margin > 0 ? '#16a34a' : 'var(--ink3)' }}>{margin !== null ? `${margin}%` : '—'}</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: margin !== null && margin > 0 ? '#059669' : 'var(--ink3)' }}>{margin !== null ? `${margin}%` : '—'}</div>
           </div>
           <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)', textAlign: 'center' }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>VAT Rate</div>
@@ -160,34 +161,49 @@ function ProductForm({ product, onSave, onClose }: {
             <input style={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Standard Customs Clearance" />
           </F>
           <F label="Type *">
-            <select style={sel} value={form.type} onChange={e => set('type', e.target.value as ProductType)}>
-              <option value="service">Service</option>
-              <option value="product">Product</option>
-            </select>
+            <Select value={form.type} onValueChange={v => set('type', v as ProductType)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="service">Service</SelectItem>
+                <SelectItem value="product">Product</SelectItem>
+              </SelectContent>
+            </Select>
           </F>
           <F label="Status">
-            <select style={sel} value={form.status} onChange={e => set('status', e.target.value as ProductStatus)}>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+            <Select value={form.status} onValueChange={v => set('status', v as ProductStatus)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
           </F>
           <F label="Code">
             <input style={inp} value={form.code} onChange={e => set('code', e.target.value)} placeholder="Auto-generated if blank" />
           </F>
           <F label="Category *">
-            <select style={sel} value={form.category} onChange={e => set('category', e.target.value)}>
-              {PRODUCT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <Select value={form.category} onValueChange={v => set('category', v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PRODUCT_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </F>
           <F label="Unit *">
-            <select style={sel} value={form.unit} onChange={e => set('unit', e.target.value)}>
-              {PRODUCT_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-            </select>
+            <Select value={form.unit} onValueChange={v => set('unit', v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PRODUCT_UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </F>
           <F label="Currency">
-            <select style={sel} value={form.currency} onChange={e => set('currency', e.target.value)}>
-              {['TZS', 'USD', 'EUR', 'KES'].map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <Select value={form.currency} onValueChange={v => set('currency', v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['TZS', 'USD', 'EUR', 'KES'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </F>
           <F label="Sale Price (TZS) *">
             <input style={inp} type="number" min={0} value={form.salePrice} onChange={e => set('salePrice', +e.target.value)} />
@@ -196,9 +212,12 @@ function ProductForm({ product, onSave, onClose }: {
             <input style={inp} type="number" min={0} value={form.purchasePrice} onChange={e => set('purchasePrice', +e.target.value)} />
           </F>
           <F label="VAT Rate (%)">
-            <select style={sel} value={form.taxRate} onChange={e => set('taxRate', +e.target.value)}>
-              {TAX_RATES.map(r => <option key={r} value={r}>{r}%{r === 18 ? ' (Standard)' : ' (Exempt)'}</option>)}
-            </select>
+            <Select value={String(form.taxRate)} onValueChange={v => set('taxRate', +v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {TAX_RATES.map(r => <SelectItem key={r} value={String(r)}>{r}%{r === 18 ? ' (Standard)' : ' (Exempt)'}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </F>
           <F label="Description" col2>
             <textarea style={{ ...inp, minHeight: 72, resize: 'vertical' } as React.CSSProperties}
@@ -323,23 +342,29 @@ export function FinanceProducts() {
             placeholder="Search products & services…"
             style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
         </div>
-        <select value={filterType} onChange={e => setFilterType(e.target.value as ProductType | '')}
-          style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', cursor: 'pointer' }}>
-          <option value="">All Types</option>
-          <option value="service">Service</option>
-          <option value="product">Product</option>
-        </select>
-        <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
-          style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', cursor: 'pointer' }}>
-          <option value="">All Categories</option>
-          {PRODUCT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as 'active' | 'inactive' | '')}
-          style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', cursor: 'pointer' }}>
-          <option value="">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
+        <Select value={filterType || '__all__'} onValueChange={v => setFilterType(v === '__all__' ? '' : v as ProductType)}>
+          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All Types</SelectItem>
+            <SelectItem value="service">Service</SelectItem>
+            <SelectItem value="product">Product</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={filterCat || '__all__'} onValueChange={v => setFilterCat(v === '__all__' ? '' : v)}>
+          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All Categories</SelectItem>
+            {PRODUCT_CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus || '__all__'} onValueChange={v => setFilterStatus(v === '__all__' ? '' : v as 'active' | 'inactive')}>
+          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All Statuses</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
         <button type="button"
           onClick={() => { setEditProduct(null); setShowForm(true); }}
           style={{ padding: '8px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
@@ -385,7 +410,7 @@ export function FinanceProducts() {
                     <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--teal)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmt(p.salePrice)}</td>
                     <td style={{ padding: '11px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{p.taxRate}%</td>
                     <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
-                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, fontWeight: 700, background: p.status === 'active' ? '#dcfce7' : '#f1f5f9', color: p.status === 'active' ? '#166534' : '#64748b' }}>
+                      <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, fontWeight: 700, background: p.status === 'active' ? '#ecfdf5' : '#f1f5f9', color: p.status === 'active' ? '#065f46' : '#64748b' }}>
                         {p.status.toUpperCase()}
                       </span>
                     </td>

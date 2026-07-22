@@ -4,17 +4,30 @@ import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow, spark } from '../components/MetricCard.js';
+import { apiFetch } from '../lib/api.js';
 import {
-  useVendors, addVendor, updateVendor, deleteVendor,
   Vendor, VendorCategory, VendorStatus, PaymentTerms,
   VENDOR_CATEGORY_LABEL, PAYMENT_TERMS_LABEL, VENDOR_STATUS_COLOR,
 } from '../data/vendorData.js';
+import type { ExpenseListItem } from './Expenses.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+
+function mapApiSupplier(s: any, balancesById: Map<string, { balance: number; totalPaid: number }>): Vendor {
+  const b = balancesById.get(s.id);
+  return {
+    id: s.id, name: s.name || '', contactPerson: s.contact_name || '', email: s.email || '', phone: s.phone || '',
+    address: s.address || '', city: s.city || '', country: s.country || 'Tanzania', taxId: s.tax_id || '',
+    category: (s.category || 'other') as VendorCategory, currency: s.currency || 'TZS',
+    paymentTerms: (s.payment_terms || 'net_30') as PaymentTerms, status: (s.status || 'active') as VendorStatus,
+    balance: b?.balance ?? 0, totalPaid: b?.totalPaid ?? 0,
+    bankName: s.bank_name || '', bankAccount: s.bank_account || '',
+    createdAt: s.created_at ? String(s.created_at).slice(0, 10) : '', notes: s.notes || '',
+  };
+}
 
 const CATEGORIES: VendorCategory[] = ['port_services', 'customs', 'freight', 'warehouse', 'transport', 'consulting', 'utility', 'other'];
 const STATUSES: VendorStatus[] = ['active', 'inactive', 'blocked'];
 const TERMS: PaymentTerms[] = ['cod', 'net_15', 'net_30', 'net_60', 'net_90', 'prepaid'];
-
-function newId() { return 'VND-' + Date.now().toString(36).toUpperCase(); }
 
 const EMPTY_VENDOR: Vendor = {
   id: '', name: '', contactPerson: '', email: '', phone: '',
@@ -24,12 +37,33 @@ const EMPTY_VENDOR: Vendor = {
   bankName: '', bankAccount: '', createdAt: '', notes: '',
 };
 
+const BILL_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
+  DRAFT:   { bg: '#f1f5f9', color: '#64748b' },
+  POSTED:  { bg: '#dbeafe', color: '#1d4ed8' },
+  PARTIAL: { bg: '#fef3c7', color: '#b45309' },
+  PAID:    { bg: '#ecfdf5', color: '#065f46' },
+  OVERDUE: { bg: '#fee2e2', color: '#dc2626' },
+  VOID:    { bg: '#f1f5f9', color: '#64748b' },
+};
+
 /* ── Detail Panel ───────────────────────────────────────────────────────────── */
-function VendorDetail({ vendor, onClose, onEdit, isMobile }: {
-  vendor: Vendor; onClose: () => void; onEdit: (v: Vendor) => void; isMobile?: boolean;
+const PO_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
+  DRAFT:     { bg: '#f1f5f9', color: '#64748b' },
+  SENT:      { bg: '#dbeafe', color: '#1d4ed8' },
+  PARTIAL:   { bg: '#fef3c7', color: '#b45309' },
+  RECEIVED:  { bg: '#ecfdf5', color: '#065f46' },
+  CANCELLED: { bg: '#fee2e2', color: '#dc2626' },
+};
+
+function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit, isMobile }: {
+  vendor: Vendor; bills: any[]; expenses: ExpenseListItem[]; purchaseOrders: any[];
+  onClose: () => void; onEdit: (v: Vendor) => void; isMobile?: boolean;
 }) {
   const { fmt } = useCurrency();
   const sc = VENDOR_STATUS_COLOR[vendor.status];
+  const vendorBills = bills.filter(b => b.supplier_id === vendor.id);
+  const vendorExpenses = expenses.filter(e => e.supplier_id === vendor.id);
+  const vendorPOs = purchaseOrders.filter(po => po.supplier_id === vendor.id);
 
   return (
     <div style={{
@@ -62,7 +96,7 @@ function VendorDetail({ vendor, onClose, onEdit, isMobile }: {
         {/* Balance summary */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
           {[
-            { label: 'Outstanding', value: fmt(vendor.balance), color: vendor.balance > 0 ? '#dc2626' : '#16a34a' },
+            { label: 'Outstanding', value: fmt(vendor.balance), color: vendor.balance > 0 ? '#dc2626' : '#059669' },
             { label: 'Total Paid', value: fmt(vendor.totalPaid), color: 'var(--ink)' },
           ].map(c => (
             <div key={c.label} style={{ padding: '14px 16px', background: 'var(--bg)', borderRadius: 9, border: '1px solid var(--border)' }}>
@@ -113,6 +147,86 @@ function VendorDetail({ vendor, onClose, onEdit, isMobile }: {
           ))}
         </div>
 
+        {/* Bills */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
+            Bills ({vendorBills.length})
+          </div>
+          {vendorBills.length === 0 ? (
+            <div style={{ fontSize: 12, color: 'var(--ink3)', fontStyle: 'italic', padding: '10px 0' }}>No bills recorded for this supplier yet.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {vendorBills.map((b) => {
+                const bc = BILL_STATUS_COLOR[b.status] || BILL_STATUS_COLOR.DRAFT;
+                return (
+                  <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 7 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{b.bill_number}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{b.bill_date ? String(b.bill_date).slice(0, 10) : '—'}</div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{fmt(Number(b.total) || 0, b.currency)}</div>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 5, ...bc }}>{b.status}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Purchase Orders */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
+            Purchase Orders ({vendorPOs.length})
+          </div>
+          {vendorPOs.length === 0 ? (
+            <div style={{ fontSize: 12, color: 'var(--ink3)', fontStyle: 'italic', padding: '10px 0' }}>No purchase orders placed with this supplier yet.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {vendorPOs.map((po) => {
+                const pc = PO_STATUS_COLOR[po.status] || PO_STATUS_COLOR.DRAFT;
+                return (
+                  <div key={po.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 7 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{po.po_number}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{po.order_date ? String(po.order_date).slice(0, 10) : '—'}</div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{fmt(Number(po.total) || 0, po.currency)}</div>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 5, ...pc }}>{po.status}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Expenses */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
+            Expenses ({vendorExpenses.length})
+          </div>
+          {vendorExpenses.length === 0 ? (
+            <div style={{ fontSize: 12, color: 'var(--ink3)', fontStyle: 'italic', padding: '10px 0' }}>No expenses logged for this supplier yet.</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {vendorExpenses.map((e) => (
+                <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 10px', background: 'var(--bg)', borderRadius: 7 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{e.name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{e.date.split('T')[0]}</div>
+                  </div>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: e.is_revenue ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--mono)', flexShrink: 0 }}>
+                    {e.is_revenue ? '+' : '-'}{fmt(e.amount, 'TZS')}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         {vendor.notes && (
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Notes</div>
@@ -126,7 +240,7 @@ function VendorDetail({ vendor, onClose, onEdit, isMobile }: {
 
 /* ── Add / Edit Modal ───────────────────────────────────────────────────────── */
 function VendorForm({ vendor, onSave, onClose }: {
-  vendor: Vendor | null; onSave: (v: Vendor) => void; onClose: () => void;
+  vendor: Vendor | null; onSave: (v: Vendor) => void | Promise<void>; onClose: () => void;
 }) {
   const [form, setForm] = useState<Vendor>(vendor ?? { ...EMPTY_VENDOR });
   const [saving, setSaving] = useState(false);
@@ -136,9 +250,7 @@ function VendorForm({ vendor, onSave, onClose }: {
   async function handleSave() {
     if (!form.name.trim()) return;
     setSaving(true);
-    const now = new Date().toISOString().split('T')[0];
-    const saved: Vendor = { ...form, id: form.id || newId(), createdAt: form.createdAt || now };
-    onSave(saved);
+    await onSave(form);
     setSaving(false);
   }
 
@@ -169,14 +281,20 @@ function VendorForm({ vendor, onSave, onClose }: {
             </F>
           </div>
           <F label="Category *">
-            <select style={sel} value={form.category} onChange={e => set('category', e.target.value as VendorCategory)}>
-              {CATEGORIES.map(c => <option key={c} value={c}>{VENDOR_CATEGORY_LABEL[c]}</option>)}
-            </select>
+            <Select value={form.category} onValueChange={v => set('category', v as VendorCategory)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {CATEGORIES.map(c => <SelectItem key={c} value={c}>{VENDOR_CATEGORY_LABEL[c]}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </F>
           <F label="Status">
-            <select style={sel} value={form.status} onChange={e => set('status', e.target.value as VendorStatus)}>
-              {STATUSES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-            </select>
+            <Select value={form.status} onValueChange={v => set('status', v as VendorStatus)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {STATUSES.map(s => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </F>
           <F label="Contact Person">
             <input style={inp} value={form.contactPerson} onChange={e => set('contactPerson', e.target.value)} placeholder="Full name" />
@@ -188,9 +306,12 @@ function VendorForm({ vendor, onSave, onClose }: {
             <input style={inp} value={form.phone} onChange={e => set('phone', e.target.value)} placeholder="+255 700 000 000" />
           </F>
           <F label="Payment Terms *">
-            <select style={sel} value={form.paymentTerms} onChange={e => set('paymentTerms', e.target.value as PaymentTerms)}>
-              {TERMS.map(t => <option key={t} value={t}>{PAYMENT_TERMS_LABEL[t]}</option>)}
-            </select>
+            <Select value={form.paymentTerms} onValueChange={v => set('paymentTerms', v as PaymentTerms)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {TERMS.map(t => <SelectItem key={t} value={t}>{PAYMENT_TERMS_LABEL[t]}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </F>
           <F label="Address">
             <input style={inp} value={form.address} onChange={e => set('address', e.target.value)} placeholder="Street address" />
@@ -205,9 +326,12 @@ function VendorForm({ vendor, onSave, onClose }: {
             <input style={inp} value={form.taxId} onChange={e => set('taxId', e.target.value)} placeholder="TIN-300000000" />
           </F>
           <F label="Currency">
-            <select style={sel} value={form.currency} onChange={e => set('currency', e.target.value)}>
-              {['TZS', 'USD', 'EUR', 'KES', 'GBP'].map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <Select value={form.currency} onValueChange={v => set('currency', v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {['TZS', 'USD', 'EUR', 'KES', 'GBP'].map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </F>
           <F label="Bank Name">
             <input style={inp} value={form.bankName} onChange={e => set('bankName', e.target.value)} placeholder="CRDB Bank" />
@@ -241,7 +365,14 @@ function VendorForm({ vendor, onSave, onClose }: {
 export function FinanceVendors() {
   const { fmt } = useCurrency();
   const isMobile = useIsMobile();
-  const vendors = useVendors();
+  const [vendors, setVendors] = useState<Vendor[]>([]);
+  const [bills, setBills] = useState<any[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<ExpenseListItem[]>([]);
+
+  useEffect(() => {
+    apiFetch('/v1/finance/expenses').then((res: any) => setExpenses(res?.data ?? [])).catch(() => {});
+  }, []);
 
   const [search, setSearch]           = useState('');
   const [filterCat, setFilterCat]     = useState<VendorCategory | ''>('');
@@ -249,6 +380,32 @@ export function FinanceVendors() {
   const [selected, setSelected]       = useState<Vendor | null>(null);
   const [showForm, setShowForm]       = useState(false);
   const [editVendor, setEditVendor]   = useState<Vendor | null>(null);
+
+  function loadVendors() {
+    Promise.all([
+      apiFetch('/v1/suppliers').catch(() => []),
+      apiFetch('/v1/bills').catch(() => []),
+      apiFetch('/v1/purchase-orders').catch(() => ({ purchase_orders: [] })),
+    ]).then(([suppliers, fetchedBills, posRes]: [any[], any[], any]) => {
+      const billList = Array.isArray(fetchedBills) ? fetchedBills : [];
+      setBills(billList);
+      setPurchaseOrders(Array.isArray(posRes?.purchase_orders) ? posRes.purchase_orders : []);
+      const balancesById = new Map<string, { balance: number; totalPaid: number }>();
+      for (const b of billList) {
+        if (!b.supplier_id) continue;
+        const prev = balancesById.get(b.supplier_id) ?? { balance: 0, totalPaid: 0 };
+        const total = Number(b.total) || 0;
+        const paid = Number(b.paid_amount) || 0;
+        balancesById.set(b.supplier_id, {
+          balance: prev.balance + Math.max(0, total - paid),
+          totalPaid: prev.totalPaid + paid,
+        });
+      }
+      if (Array.isArray(suppliers)) setVendors(suppliers.map((s) => mapApiSupplier(s, balancesById)));
+    });
+  }
+
+  useEffect(() => { loadVendors(); }, []);
 
   /* fin:new-doc listener */
   useEffect(() => {
@@ -273,17 +430,25 @@ export function FinanceVendors() {
     totalPaid:   vendors.reduce((s, v) => s + v.totalPaid, 0),
   }), [vendors]);
 
-  function handleSave(v: Vendor) {
-    if (vendors.find(x => x.id === v.id)) updateVendor(v);
-    else addVendor(v);
+  async function handleSave(v: Vendor) {
+    const payload = {
+      name: v.name, contact_name: v.contactPerson, email: v.email, phone: v.phone,
+      address: v.address, city: v.city, country: v.country, tax_id: v.taxId,
+      category: v.category, currency: v.currency, payment_terms: v.paymentTerms, status: v.status,
+      bank_name: v.bankName, bank_account: v.bankAccount, notes: v.notes,
+    };
+    if (v.id) await apiFetch(`/v1/suppliers/${v.id}`, { method: 'PATCH', body: JSON.stringify(payload) }).catch(() => {});
+    else await apiFetch('/v1/suppliers', { method: 'POST', body: JSON.stringify(payload) }).catch(() => {});
     setShowForm(false);
     setEditVendor(null);
+    loadVendors();
   }
 
   function handleDelete(id: string) {
     if (!confirm('Delete this vendor? This cannot be undone.')) return;
-    deleteVendor(id);
-    if (selected?.id === id) setSelected(null);
+    apiFetch(`/v1/suppliers/${id}`, { method: 'DELETE' })
+      .then(() => { setVendors(prev => prev.filter(v => v.id !== id)); if (selected?.id === id) setSelected(null); })
+      .catch(() => {});
   }
 
   return (
@@ -338,16 +503,20 @@ export function FinanceVendors() {
             placeholder="Search vendors…"
             style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
         </div>
-        <select value={filterCat} onChange={e => setFilterCat(e.target.value as VendorCategory | '')}
-          style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', cursor: 'pointer' }}>
-          <option value="">All Categories</option>
-          {CATEGORIES.map(c => <option key={c} value={c}>{VENDOR_CATEGORY_LABEL[c]}</option>)}
-        </select>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value as VendorStatus | '')}
-          style={{ padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', cursor: 'pointer' }}>
-          <option value="">All Statuses</option>
-          {STATUSES.map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
-        </select>
+        <Select value={filterCat || '__all__'} onValueChange={v => setFilterCat(v === '__all__' ? '' : v as VendorCategory)}>
+          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All Categories</SelectItem>
+            {CATEGORIES.map(c => <SelectItem key={c} value={c}>{VENDOR_CATEGORY_LABEL[c]}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filterStatus || '__all__'} onValueChange={v => setFilterStatus(v === '__all__' ? '' : v as VendorStatus)}>
+          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All Statuses</SelectItem>
+            {STATUSES.map(s => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
+          </SelectContent>
+        </Select>
         <button type="button"
           onClick={() => { setEditVendor(null); setShowForm(true); }}
           style={{ padding: '8px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
@@ -417,6 +586,9 @@ export function FinanceVendors() {
         {selected && (
           <VendorDetail
             vendor={selected}
+            bills={bills}
+            expenses={expenses}
+            purchaseOrders={purchaseOrders}
             onClose={() => setSelected(null)}
             onEdit={v => { setEditVendor(v); setShowForm(true); }}
             isMobile={isMobile}

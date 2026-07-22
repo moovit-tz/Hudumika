@@ -1,8 +1,7 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow, spark } from '../components/MetricCard.js';
-import { useExpenses, addExpense, deleteExpense, Expense } from '../data/expenseData.js';
-import { getJobs } from './clearanceData.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { useCurrency } from '../hooks/useCurrency.js';
@@ -14,31 +13,118 @@ const CATS: Record<string, { label: string; color: string }> = {
   FREIGHT:         { label: 'Freight',         color: 'var(--teal)' },
   HANDLING:        { label: 'Handling',        color: '#9a6700' },
   TRANSPORT:       { label: 'Transport',       color: '#6e40c9' },
-  INSPECTION_FEE:  { label: 'Inspection Fee',  color: '#1a7f37' },
+  INSPECTION_FEE:  { label: 'Inspection Fee',  color: '#059669' },
   AGENT_FEE:       { label: 'Agent Fee',       color: '#cf222e' },
   MISCELLANEOUS:   { label: 'Miscellaneous',   color: 'var(--ink3)' },
+  FUEL:            { label: 'Fuel',            color: '#0891b2' },
+  MAINTENANCE:     { label: 'Maintenance',     color: '#7c3aed' },
 };
+
+const SOURCE_LABEL: Record<string, string> = {
+  fleet_vehicle: 'Fleet', fleet_fuel: 'Fleet · Fuel', fleet_maintenance: 'Fleet · Maintenance',
+};
+
+export type ExpenseSource = 'finance' | 'fleet_vehicle' | 'fleet_fuel' | 'fleet_maintenance';
+
+export interface ExpenseListItem {
+  id: string;
+  source: ExpenseSource;
+  name: string;
+  amount: number;
+  date: string;
+  category: string;
+  is_revenue: boolean;
+  shipment_id: string | null;
+  customer_id: string | null;
+  supplier_id: string | null;
+  vehicle_id: string | null;
+  vehicle_label: string | null;
+  editable: boolean;
+}
+
+export interface ExpenseDetail {
+  id: string;
+  name: string;
+  amount: number;
+  expense_date: string;
+  category: string;
+  shipment_id: string | null;
+  customer_id: string | null;
+  supplier_id: string | null;
+  payment_mode: string | null;
+  reference: string | null;
+  note: string | null;
+  is_revenue: boolean;
+  attachment_data: string | null;
+  efd_verified: boolean | null;
+  efd_verified_at: string | null;
+  efd_error: string | null;
+}
 
 function fmt(n: number) {
   return 'TZS ' + n.toLocaleString();
 }
 
-// ── Detail Panel (Aside) ───────────────────────────────────────────────────────
-function ExpenseDetailPanel({ expense, onClose, customers, isMobile }: { expense: Expense; onClose: () => void; customers: any[]; isMobile?: boolean }) {
+// ── Detail Panel (Aside) — only ever shown for editable ('finance') rows ──────
+function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers, suppliers, isMobile }: {
+  expense: ExpenseDetail; onClose: () => void; onChanged: () => void;
+  shipments: any[]; customers: any[]; suppliers: any[]; isMobile?: boolean;
+}) {
   const { fmt } = useCurrency();
   const cat = CATS[expense.category];
-  const jobs = getJobs();
-  const job = jobs.find(j => j.id === expense.shipmentId);
-  const client = customers.find(c => c.id === expense.clientId);
+  const job = shipments.find(j => j.id === expense.shipment_id);
+  const client = customers.find(c => c.id === expense.customer_id);
+  const supplier = suppliers.find(s => s.id === expense.supplier_id);
+  const [efdChecking, setEfdChecking] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function verifyEfdReceipt() {
+    if (!expense.reference?.trim() || efdChecking) return;
+    setEfdChecking(true);
+    try {
+      const result = await apiFetch('/v1/tra/verify-receipt', {
+        method: 'POST',
+        body: JSON.stringify({ rctvnum: expense.reference.trim() }),
+      });
+      await apiFetch(`/v1/finance/expenses/${expense.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          efd_verified: !!result.verified,
+          efd_error: result.verified ? undefined : (result.error || 'Receipt could not be verified against TRA'),
+        }),
+      });
+      onChanged();
+    } catch (err: any) {
+      await apiFetch(`/v1/finance/expenses/${expense.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ efd_verified: false, efd_error: err?.message || 'Verification request failed' }),
+      }).catch(() => {});
+      onChanged();
+    } finally {
+      setEfdChecking(false);
+    }
+  }
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await apiFetch(`/v1/finance/expenses/${expense.id}`, { method: 'DELETE' });
+      onClose();
+      onChanged();
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete expense');
+      setDeleting(false);
+    }
+  }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--white)', minWidth: 0, overflow: 'hidden' }}>
-      
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Expense Details</div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button type="button" onClick={() => { deleteExpense(expense.id); onClose(); }} title="Delete" style={{ background: '#fee2e2', border: 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: 'var(--red)' }}>
+          <button type="button" onClick={handleDelete} disabled={deleting} title="Delete" style={{ background: '#fee2e2', border: 'none', borderRadius: 6, padding: '6px 8px', cursor: deleting ? 'wait' : 'pointer', color: 'var(--red)' }}>
             <Icon name="trash" size={14} />
           </button>
           <button type="button" onClick={onClose} title="Close" style={{ background: 'var(--bg)', border: 'none', borderRadius: 6, padding: '6px 8px', cursor: 'pointer', color: 'var(--ink)' }}>
@@ -48,19 +134,19 @@ function ExpenseDetailPanel({ expense, onClose, customers, isMobile }: { expense
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 20 }}>
-        
+
         {/* Title Block */}
         <div style={{ marginBottom: 24 }}>
           <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', marginBottom: 6 }}>{expense.name}</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: expense.isRevenue ? 'var(--green)' : 'var(--red)' }}>
-            {expense.isRevenue ? '+' : '-'}{fmt(expense.amount, 'TZS')}
+          <div style={{ fontSize: 28, fontWeight: 800, color: expense.is_revenue ? 'var(--green)' : 'var(--red)' }}>
+            {expense.is_revenue ? '+' : '-'}{fmt(expense.amount, 'TZS')}
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
             <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 4, background: cat ? `${cat.color}18` : 'var(--bg)', color: cat?.color || 'var(--ink)' }}>
               {cat?.label || expense.category}
             </span>
             <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 4, background: 'var(--bg)', color: 'var(--ink)' }}>
-              {expense.date}
+              {expense.expense_date.split('T')[0]}
             </span>
           </div>
         </div>
@@ -69,25 +155,49 @@ function ExpenseDetailPanel({ expense, onClose, customers, isMobile }: { expense
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 24 }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Payment Mode</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{expense.paymentMode}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{expense.payment_mode || '—'}</div>
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Reference / Receipt #</div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{expense.reference || '—'}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>{expense.reference || '—'}</div>
+            {expense.reference && (
+              expense.efd_verified ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <Icon name="checkCircle" size={13} color="#059669" />
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#059669' }}>EFD Verified</span>
+                </div>
+              ) : (
+                <div>
+                  <button type="button" onClick={verifyEfdReceipt} disabled={efdChecking}
+                    style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)', fontSize: 11.5, fontWeight: 700, cursor: efdChecking ? 'default' : 'pointer' }}>
+                    {efdChecking ? 'Checking with TRA…' : 'Verify with TRA'}
+                  </button>
+                  {expense.efd_error && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>{expense.efd_error}</div>}
+                </div>
+              )
+            )}
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Linked Shipment (Job)</div>
             {job ? (
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)', background: '#f1f5f9', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
-                📦 {job.bl || job.customer}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--navy)', background: '#f1f5f9', padding: '4px 8px', borderRadius: 6 }}>
+                <Icon name="package" size={12} /> {job.bl_number || job.ref_number}
               </div>
             ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>—</div>}
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Linked Client</div>
             {client ? (
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#166534', background: '#dcfce7', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
-                🏢 {client.name}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#065f46', background: '#ecfdf5', padding: '4px 8px', borderRadius: 6 }}>
+                <Icon name="building" size={12} /> {client.name}
+              </div>
+            ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>—</div>}
+          </div>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Paid To Supplier</div>
+            {supplier ? (
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#9a6700', background: '#fff8e1', padding: '4px 8px', borderRadius: 6 }}>
+                <Icon name="warehouse" size={12} /> {supplier.name}
               </div>
             ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>—</div>}
           </div>
@@ -102,9 +212,9 @@ function ExpenseDetailPanel({ expense, onClose, customers, isMobile }: { expense
 
         <div>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 8 }}>Receipt Attachment</div>
-          {expense.attachmentUrl ? (
+          {expense.attachment_data ? (
             <div style={{ border: '1.5px solid var(--border)', borderRadius: 9, padding: 4, background: 'var(--bg)' }}>
-              <img src={expense.attachmentUrl} alt="Receipt Attachment" style={{ width: '100%', height: 'auto', borderRadius: 4, display: 'block' }} />
+              <img src={expense.attachment_data} alt="Receipt Attachment" style={{ width: '100%', height: 'auto', borderRadius: 4, display: 'block' }} />
             </div>
           ) : (
             <div style={{ border: '1.5px dashed var(--border)', borderRadius: 9, padding: 30, textAlign: 'center', background: 'var(--bg)', color: 'var(--ink3)' }}>
@@ -122,118 +232,115 @@ function ExpenseDetailPanel({ expense, onClose, customers, isMobile }: { expense
 // ── Main Page ──────────────────────────────────────────────────────────────────
 export const Expenses: React.FC = () => {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const { fmt } = useCurrency();
-  const expenses = useExpenses();
-  const jobs = getJobs();
-  const [customers, setCustomers] = React.useState<any[]>([]);
+  const [items, setItems] = useState<ExpenseListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [shipments, setShipments] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
 
-  React.useEffect(() => {
+  function refresh() {
+    setLoading(true);
+    return apiFetch('/v1/finance/expenses')
+      .then((res: any) => setItems(res?.data ?? []))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    refresh();
+    apiFetch('/v1/shipments').then((res: any) => setShipments(res?.data ?? res ?? [])).catch(() => {});
     apiFetch('/v1/customers').then((res: any) => setCustomers(res.data ?? res ?? [])).catch(() => {});
-  }, []);
-  React.useEffect(() => {
-    function handler(e: Event) {
-      if ((e as CustomEvent).detail?.section === 'expenses') setShowAdd(true);
-    }
-    window.addEventListener('fin:new-doc', handler);
-    return () => window.removeEventListener('fin:new-doc', handler);
+    apiFetch('/v1/suppliers').then((res: any) => setSuppliers(Array.isArray(res) ? res : [])).catch(() => {});
   }, []);
 
   const [filterCat, setFilterCat] = useState('');
-  const [showAdd, setShowAdd] = useState(false);
   const [showBulkUpload, setShowBulkUpload] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedDetail, setSelectedDetail] = useState<ExpenseDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
 
-  const isSplit = selectedExpense !== null;
-
-  // Form State
-  const [fName, setFName] = useState('');
-  const [fAmount, setFAmount] = useState('');
-  const [fDate, setFDate] = useState(new Date().toISOString().split('T')[0]);
-  const [fCategory, setFCategory] = useState('PORT_CHARGES');
-  const [fShipment, setFShipment] = useState('');
-  const [fClient, setFClient] = useState('');
-  const [fPaymentMode, setFPaymentMode] = useState('Bank Transfer');
-  const [fReference, setFReference] = useState('');
-  const [fNote, setFNote] = useState('');
-  const [fIsRevenue, setFIsRevenue] = useState(false);
-  const [fAttachment, setFAttachment] = useState<string | undefined>();
+  const isSplit = selectedId !== null;
 
   // Bulk Upload State
   const [bulkCsv, setBulkCsv] = useState('');
 
-  const filtered = filterCat ? expenses.filter(e => e.category === filterCat) : expenses;
-  const totalExp = filtered.filter(e => !e.isRevenue).reduce((s, e) => s + e.amount, 0);
-  const totalRev = filtered.filter(e => e.isRevenue).reduce((s, e) => s + e.amount, 0);
+  const filtered = filterCat ? items.filter(e => e.category === filterCat) : items;
+  const totalExp = filtered.filter(e => !e.is_revenue).reduce((s, e) => s + e.amount, 0);
+  const totalRev = filtered.filter(e => e.is_revenue).reduce((s, e) => s + e.amount, 0);
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => { if (typeof ev.target?.result === 'string') setFAttachment(ev.target.result); };
-    reader.readAsDataURL(file);
+  function exportCsv() {
+    const rows = [
+      ['Description', 'Date', 'Category', 'Type', 'Amount (TZS)', 'Source'],
+      ...filtered.map(e => [
+        e.name, e.date.split('T')[0], CATS[e.category]?.label ?? e.category,
+        e.is_revenue ? 'Revenue' : 'Expense', e.amount, SOURCE_LABEL[e.source] || 'Finance',
+      ]),
+    ];
+    const csv = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `expenses-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    await new Promise(r => setTimeout(r, 400));
-    
-    addExpense({
-      name: fName,
-      amount: Number(fAmount),
-      date: fDate,
-      category: fCategory,
-      shipmentId: fShipment,
-      clientId: fClient,
-      paymentMode: fPaymentMode,
-      reference: fReference,
-      note: fNote,
-      isRevenue: fIsRevenue,
-      attachmentUrl: fAttachment,
-    });
-    
-    setShowAdd(false);
-    setSaving(false);
-    
-    // Reset Form
-    setFName(''); setFAmount(''); setFDate(new Date().toISOString().split('T')[0]);
-    setFCategory('PORT_CHARGES'); setFShipment(''); setFClient('');
-    setFPaymentMode('Bank Transfer'); setFReference(''); setFNote(''); setFIsRevenue(false); setFAttachment(undefined);
-  };
+  async function selectRow(item: ExpenseListItem) {
+    if (!item.editable) {
+      if (item.vehicle_id) navigate(`/tracking/vehicles/${item.vehicle_id}`);
+      return;
+    }
+    setSelectedId(item.id);
+    setDetailLoading(true);
+    try {
+      const detail = await apiFetch(`/v1/finance/expenses/${item.id}`);
+      setSelectedDetail(detail);
+    } catch {
+      setSelectedDetail(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  }
+
+  function closeDetail() {
+    setSelectedId(null);
+    setSelectedDetail(null);
+  }
 
   const handleBulkUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-    await new Promise(r => setTimeout(r, 400));
-    
+    setBulkSaving(true);
+
     const lines = bulkCsv.split('\n').map(l => l.trim()).filter(Boolean);
-    // Ignore header if present
     if (lines[0].toLowerCase().includes('name') || lines[0].toLowerCase().includes('amount')) {
       lines.shift();
     }
-    
+
     for (const line of lines) {
       const cols = line.split(',');
       if (cols.length >= 2) {
-        addExpense({
-          name: cols[0].trim(),
-          amount: Number(cols[1].trim()) || 0,
-          date: cols[2] ? cols[2].trim() : new Date().toISOString().split('T')[0],
-          category: cols[3] ? cols[3].trim() : 'MISCELLANEOUS',
-          shipmentId: '',
-          clientId: '',
-          paymentMode: cols[4] ? cols[4].trim() : 'Cash',
-          reference: '',
-          note: 'Imported via Bulk Upload',
-          isRevenue: false,
-        });
+        await apiFetch('/v1/finance/expenses', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: cols[0].trim(),
+            amount: Number(cols[1].trim()) || 0,
+            expense_date: cols[2] ? cols[2].trim() : new Date().toISOString().split('T')[0],
+            category: cols[3] ? cols[3].trim() : 'MISCELLANEOUS',
+            payment_mode: cols[4] ? cols[4].trim() : 'Cash',
+            note: 'Imported via Bulk Upload',
+          }),
+        }).catch(() => {});
       }
     }
-    
+
     setShowBulkUpload(false);
     setBulkCsv('');
-    setSaving(false);
+    setBulkSaving(false);
+    refresh();
   };
 
   return (
@@ -243,9 +350,27 @@ export const Expenses: React.FC = () => {
           crumbs={['Finance', 'Expenses']}
           titlePlain="Expense"
           titleEm="tracking"
-          subtitle="Costs and revenue across all shipments and operations."
+          subtitle="Costs and revenue across all shipments and operations — including fleet fuel, maintenance, and vehicle costs."
         />
       </div>
+
+      {/* Action bar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'var(--white)' }}>
+        <Link to="/finance/expenses/new"
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '11px 22px', borderRadius: 10, border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'none' }}>
+          <Icon name="plus" size={15} color="#fff" /> Add Expense
+        </Link>
+        <button type="button" onClick={() => setShowBulkUpload(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+          <Icon name="upload" size={14} color="var(--ink3)" /> Bulk Upload
+        </button>
+        <div style={{ flex: 1 }} />
+        <button type="button" onClick={exportCsv}
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+          <Icon name="download" size={14} color="var(--ink3)" /> Export CSV
+        </button>
+      </div>
+
       <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
 
       {/* ── Left: List Panel ── */}
@@ -260,8 +385,8 @@ export const Expenses: React.FC = () => {
                 value: fmt(totalExp, 'TZS'),
                 trend: -4.2,
                 invertTrend: true,
-                sub1Label: 'LINE ITEMS', sub1Value: String(expenses.filter(e => !e.isRevenue).length),
-                sub2Label: 'AVG COST', sub2Value: fmt(expenses.filter(e => !e.isRevenue).length ? Math.round(totalExp / expenses.filter(e => !e.isRevenue).length) : 0, 'TZS'),
+                sub1Label: 'LINE ITEMS', sub1Value: String(items.filter(e => !e.is_revenue).length),
+                sub2Label: 'AVG COST', sub2Value: fmt(items.filter(e => !e.is_revenue).length ? Math.round(totalExp / items.filter(e => !e.is_revenue).length) : 0, 'TZS'),
                 bars: spark(70, 15, 'down'), barColor: 'var(--red-l)', barHighlight: 'var(--red)',
               },
               {
@@ -277,7 +402,7 @@ export const Expenses: React.FC = () => {
                 value: fmt(totalRev - totalExp, 'TZS'),
                 trend: !totalRev ? 0 : parseFloat(((totalRev - totalExp) / totalRev * 100).toFixed(1)),
                 sub1Label: 'MARGIN %', sub1Value: !totalRev ? '—' : `${Math.round(((totalRev - totalExp) / totalRev) * 100)}%`,
-                sub2Label: 'ALL ITEMS', sub2Value: String(expenses.length),
+                sub2Label: 'ALL ITEMS', sub2Value: String(items.length),
                 bars: spark(72, 15, 'up'), barColor: 'var(--purple-l)', barHighlight: 'var(--purple)',
               },
             ]} />
@@ -297,52 +422,57 @@ export const Expenses: React.FC = () => {
           <div className="th" style={{ flex: 2 }}>Description</div>
           {!isSplit && <div className="th" style={{ flex: 1 }}>Date</div>}
           <div className="th" style={{ flex: 1 }}>Category</div>
-          {!isSplit && <div className="th" style={{ flex: 1 }}>Links</div>}
+          {!isSplit && <div className="th" style={{ flex: 1 }}>Source</div>}
           <div className="th" style={{ flex: 1, textAlign: 'right' }}>Amount (TZS)</div>
         </div>
 
         {/* Table Body */}
         <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
-          {filtered.length === 0 && <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>No expense records found.</div>}
+          {!loading && filtered.length === 0 && <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>No expense records found.</div>}
           {filtered.map(e => {
             const cat = CATS[e.category];
-            const isSel = selectedExpense?.id === e.id;
+            const isSel = selectedId === e.id;
             return (
-              <div 
-                key={e.id} 
-                onClick={() => setSelectedExpense(e)}
+              <div
+                key={`${e.source}-${e.id}`}
+                onClick={() => selectRow(e)}
                 style={{ display: 'flex', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid var(--border)', background: isSel ? '#f0f9ff' : 'var(--white)', cursor: 'pointer', transition: 'background 0.15s' }}
               >
-                
+
                 {/* Description */}
                 <div style={{ flex: 2 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{e.name}</div>
-                  {isSplit && e.date && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{e.date}</div>}
-                  {e.attachmentUrl && !isSplit && <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 4, fontSize: 10, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', padding: '2px 6px', borderRadius: 4 }}><Icon name="paperclip" size={10} /> Attached</div>}
+                  {isSplit && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{e.date.split('T')[0]}</div>}
+                  {e.vehicle_label && !isSplit && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{e.vehicle_label}</div>}
                 </div>
 
                 {/* Date */}
-                {!isSplit && <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{e.date}</div>}
+                {!isSplit && <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{e.date.split('T')[0]}</div>}
 
                 {/* Category */}
                 <div style={{ flex: 1 }}>
                   <span style={{ fontFamily: 'var(--font)', fontWeight: 600, fontSize: 10, padding: '2px 8px', borderRadius: 4, background: cat ? `${cat.color}18` : 'var(--bg)', color: cat?.color || 'var(--ink3)' }}>
                     {cat?.label || e.category}
                   </span>
-                  {!isSplit && <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 4 }}>{e.paymentMode}</div>}
                 </div>
 
-                {/* Links */}
+                {/* Source */}
                 {!isSplit && (
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {e.shipmentId && <div style={{ fontSize: 11, color: 'var(--navy)', background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, width: 'fit-content' }}>📦 Job Link</div>}
-                    {e.clientId && <div style={{ fontSize: 11, color: '#166534', background: '#dcfce7', padding: '2px 6px', borderRadius: 4, width: 'fit-content' }}>🏢 Client Link</div>}
+                  <div style={{ flex: 1 }}>
+                    {e.source !== 'finance' ? (
+                      <span style={{ fontSize: 11, color: '#0891b2', background: '#ecfeff', padding: '2px 6px', borderRadius: 4, width: 'fit-content' }}>{SOURCE_LABEL[e.source]}</span>
+                    ) : (
+                      <>
+                        {e.shipment_id && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--navy)', background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, width: 'fit-content', marginBottom: 2 }}><Icon name="package" size={10} /> Job Link</div>}
+                        {e.customer_id && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#065f46', background: '#ecfdf5', padding: '2px 6px', borderRadius: 4, width: 'fit-content' }}><Icon name="building" size={10} /> Client Link</div>}
+                      </>
+                    )}
                   </div>
                 )}
 
                 {/* Amount */}
-                <div style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 700, color: e.isRevenue ? 'var(--green)' : 'var(--red)', textAlign: 'right' }}>
-                  {e.isRevenue ? '+' : '-'}{(e.amount || 0).toLocaleString()}
+                <div style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 700, color: e.is_revenue ? 'var(--green)' : 'var(--red)', textAlign: 'right' }}>
+                  {e.is_revenue ? '+' : '-'}{(e.amount || 0).toLocaleString()}
                 </div>
 
               </div>
@@ -352,127 +482,19 @@ export const Expenses: React.FC = () => {
       </div>
 
       {/* ── Right: Aside Detail Panel ── */}
-      {isSplit && selectedExpense && (
+      {isSplit && selectedDetail && !detailLoading && (
         <ExpenseDetailPanel
-          expense={selectedExpense}
-          onClose={() => setSelectedExpense(null)}
+          expense={selectedDetail}
+          onClose={closeDetail}
+          onChanged={() => { refresh(); apiFetch(`/v1/finance/expenses/${selectedDetail.id}`).then(setSelectedDetail).catch(() => {}); }}
+          shipments={shipments}
           customers={customers}
+          suppliers={suppliers}
           isMobile={isMobile}
         />
       )}
 
-      {/* ── Add Expense Modal ── */}
-      {showAdd && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowAdd(false)}>
-          <div className="card" style={{ width: '90%', maxWidth: 540, padding: 24, borderRadius: 9, boxShadow: 'var(--shadow-lg)', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>Add Expense / Revenue</h2>
-              <button type="button" className="dp-close" onClick={() => setShowAdd(false)}>×</button>
-            </div>
-            
-            <form onSubmit={handleAdd} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              
-              <div style={{ display: 'flex', gap: 14 }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Expense Name</label>
-                  <input type="text" className="input-field" placeholder="e.g. Forklift Hire" required value={fName} onChange={e => setFName(e.target.value)} />
-                </div>
-                <div style={{ width: 140 }}>
-                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Amount (TZS)</label>
-                  <input type="number" className="input-field" placeholder="0" required value={fAmount} onChange={e => setFAmount(e.target.value)} />
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 14 }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Date</label>
-                  <input type="date" className="input-field" required value={fDate} onChange={e => setFDate(e.target.value)} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Category</label>
-                  <select className="input-field" value={fCategory} onChange={e => setFCategory(e.target.value)}>
-                    {Object.entries(CATS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
-
-              <div style={{ display: 'flex', gap: 14 }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Link to Shipment (Job)</label>
-                  <select className="input-field" value={fShipment} onChange={e => setFShipment(e.target.value)}>
-                    <option value="">-- None --</option>
-                    {jobs.map(j => <option key={j.id} value={j.id}>{j.bl ? `BL: ${j.bl}` : j.customer}</option>)}
-                  </select>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Link to Client</label>
-                  <select className="input-field" value={fClient} onChange={e => setFClient(e.target.value)}>
-                    <option value="">-- None --</option>
-                    {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', gap: 14 }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Payment Mode</label>
-                  <select className="input-field" value={fPaymentMode} onChange={e => setFPaymentMode(e.target.value)}>
-                    <option>Bank Transfer</option>
-                    <option>Cash</option>
-                    <option>Mobile Money</option>
-                    <option>Cheque</option>
-                    <option>Credit Card</option>
-                  </select>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Reference #</label>
-                  <input type="text" className="input-field" placeholder="Receipt / Cheque no" value={fReference} onChange={e => setFReference(e.target.value)} />
-                </div>
-              </div>
-
-              {/* Attachment */}
-              <div>
-                <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Attach Receipt (Image)</label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px', border: '1.5px dashed var(--border)', borderRadius: 9, cursor: 'pointer', background: 'var(--bg)' }}>
-                  {fAttachment ? (
-                    <>
-                      <img src={fAttachment} alt="Attachment" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 4 }} />
-                      <div style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--teal)' }}>File attached! Click to change.</div>
-                    </>
-                  ) : (
-                    <>
-                      <div style={{ width: 40, height: 40, borderRadius: 4, background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="uploadCloud" size={16} /></div>
-                      <div style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--ink3)' }}>Click to upload receipt image (PNG, JPG)</div>
-                    </>
-                  )}
-                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleFileChange} />
-                </label>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Note / Description</label>
-                <textarea className="input-field" rows={2} placeholder="Optional notes about this expense..." value={fNote} onChange={e => setFNote(e.target.value)} style={{ resize: 'none' }}></textarea>
-              </div>
-
-              <div style={{ display: 'flex', gap: 16, marginTop: 4 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, cursor: 'pointer' }}>
-                  <input type="checkbox" checked={fIsRevenue} onChange={e => setFIsRevenue(e.target.checked)} />
-                  Record as Revenue / Income instead
-                </label>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
-                <button type="button" className="btn btn-secondary" onClick={() => setShowAdd(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save Expense'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ── Bulk Upload Modal ── */}
+      {/* ── Bulk Upload Modal — bulk CSV paste stays a dialog, unlike single Add Expense ── */}
       {showBulkUpload && (
         <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowBulkUpload(false)}>
           <div className="card" style={{ width: '90%', maxWidth: 540, padding: 24, borderRadius: 9, boxShadow: 'var(--shadow-lg)' }}>
@@ -480,25 +502,25 @@ export const Expenses: React.FC = () => {
               <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>Bulk Upload Expenses</h2>
               <button type="button" className="dp-close" onClick={() => setShowBulkUpload(false)}>×</button>
             </div>
-            
+
             <form onSubmit={handleBulkUpload} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Paste CSV Data</label>
                 <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 8 }}>Format: <code style={{ background: 'var(--bg)', padding: '2px 4px', borderRadius: 4 }}>Name, Amount, Date, Category, PaymentMode</code></div>
-                <textarea 
-                  className="input-field" 
-                  rows={8} 
-                  placeholder={"Port Charges, 250000, 2026-06-14, PORT_CHARGES, Bank Transfer\nLunch, 15000, 2026-06-14, MISCELLANEOUS, Cash"} 
-                  required 
-                  value={bulkCsv} 
-                  onChange={e => setBulkCsv(e.target.value)} 
+                <textarea
+                  className="input-field"
+                  rows={8}
+                  placeholder={"Port Charges, 250000, 2026-06-14, PORT_CHARGES, Bank Transfer\nLunch, 15000, 2026-06-14, MISCELLANEOUS, Cash"}
+                  required
+                  value={bulkCsv}
+                  onChange={e => setBulkCsv(e.target.value)}
                   style={{ resize: 'none', fontFamily: 'monospace', fontSize: 12 }}
                 ></textarea>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setShowBulkUpload(false)}>Cancel</button>
-                <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Importing…' : 'Import Data'}</button>
+                <button type="submit" className="btn btn-primary" disabled={bulkSaving}>{bulkSaving ? 'Importing…' : 'Import Data'}</button>
               </div>
             </form>
           </div>
