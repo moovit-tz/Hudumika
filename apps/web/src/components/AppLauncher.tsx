@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from './Icon.js';
 import { useBranding } from '../hooks/useBranding.js';
+import { useLocale } from '../hooks/useLocale.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 import { LAUNCHER_APPS, LauncherAppSvg } from './LauncherApps.js';
 import './AppLauncher.css';
@@ -17,6 +18,7 @@ interface AppLauncherProps {
 
 export function AppLauncher({ renderTrigger }: AppLauncherProps) {
   const branding = useBranding();
+  const { t } = useLocale();
   const enabledApps = useEnabledApps();
 
   const [launcherOpen, setLauncherOpen] = useState(false);
@@ -95,7 +97,7 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
         type="button"
         className={`app-header-icon-btn${launcherOpen ? ' app-header-icon-btn--open' : ''}`}
         onClick={() => setLauncherOpen(d => !d)}
-        title="All apps"
+        title={t('header.allApps')}
       >
         <Icon name="grid" size={17} />
       </button>
@@ -111,16 +113,16 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
 
       <div className={`app-lnch-panel${launcherOpen ? ' app-lnch-panel--open' : ''}`}>
         <div className="app-lnch-panel-hdr">
-          <span className="app-lnch-panel-title">Your apps</span>
+          <span className="app-lnch-panel-title">{t('launcher.yourApps')}</span>
           <div className="app-lnch-panel-hdr-btns">
             <button
               type="button"
               className={`app-lnch-edit-toggle${editMode ? ' app-lnch-edit-toggle--active' : ''}`}
               onClick={() => setEditMode(m => !m)}
-              title={editMode ? 'Done' : 'Rearrange apps'}
+              title={editMode ? t('launcher.done') : t('launcher.rearrange')}
             >
               {editMode ? (
-                <span>Done</span>
+                <span>{t('launcher.done')}</span>
               ) : (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
@@ -128,7 +130,7 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
                 </svg>
               )}
             </button>
-            <button type="button" className="app-lnch-panel-close" onClick={closeLauncher} title="Close">
+            <button type="button" className="app-lnch-panel-close" onClick={closeLauncher} title={t('launcher.close')}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
@@ -137,14 +139,14 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
         </div>
 
         {editMode && (
-          <p className="app-lnch-edit-hint">Drag apps to rearrange</p>
+          <p className="app-lnch-edit-hint">{t('launcher.dragHint')}</p>
         )}
 
         <div className="app-lnch-panel-scroll">
           {/* Recently viewed */}
           {recentApps.length > 0 && (
             <>
-              <p className="app-lnch-section-label">Recently viewed</p>
+              <p className="app-lnch-section-label">{t('launcher.recentlyViewed')}</p>
               <div className="app-lnch-recent-row">
                 {recentApps.map(app => (
                   <Link
@@ -163,7 +165,7 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
           )}
 
           {/* All apps */}
-          <p className="app-lnch-section-label">Your apps</p>
+          <p className="app-lnch-section-label">{t('launcher.yourApps')}</p>
           <div className={`app-lnch-panel-grid${editMode ? ' app-lnch-panel-grid--edit' : ''}`}>
             {orderedApps.map(app => (
               <Link
@@ -190,7 +192,7 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
             className="app-lnch-panel-all-btn"
             onClick={() => closeLauncher()}
           >
-            All applications
+            {t('launcher.allApplications')}
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/>
             </svg>

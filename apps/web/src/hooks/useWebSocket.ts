@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import type { ServerEvent } from '@clearos/types';
+import type { ServerEvent } from '@hudumika/types';
 
 export function useWebSocket(onEvent: (event: ServerEvent) => void) {
   const callbackRef = useRef(onEvent);
@@ -13,7 +13,7 @@ export function useWebSocket(onEvent: (event: ServerEvent) => void) {
     let reconnectTimer: NodeJS.Timeout;
 
     const connect = () => {
-      ws = new WebSocket('ws://localhost:3000/ws');
+      ws = new WebSocket('ws://localhost:3001/ws');
 
       ws.onmessage = (event) => {
         try {

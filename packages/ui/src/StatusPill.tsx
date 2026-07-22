@@ -1,8 +1,11 @@
 import React from 'react';
-import type { ClearanceStage } from '@clearos/types';
+import type { ClearanceStage } from '@hudumika/types';
 
 export interface StatusPillProps {
-  stage: ClearanceStage;
+  // ClearanceStage literal for legacy shipments, or a workflow_steps.id
+  // (UUID) for custom-workflow shipments — the lookups below already fall
+  // back to a neutral pill + humanized string for any unrecognized value.
+  stage: string;
 }
 
 const STAGE_MAP: Record<ClearanceStage, string> = {
@@ -50,7 +53,7 @@ const STAGE_LABEL: Partial<Record<ClearanceStage, string>> = {
 };
 
 export const StatusPill: React.FC<StatusPillProps> = ({ stage }) => (
-  <span className={`stage-pill ${STAGE_MAP[stage] ?? 'sp-grey'}`}>
-    {STAGE_LABEL[stage] ?? stage.replace(/_/g, ' ')}
+  <span className={`stage-pill ${STAGE_MAP[stage as ClearanceStage] ?? 'sp-grey'}`}>
+    {STAGE_LABEL[stage as ClearanceStage] ?? stage.replace(/_/g, ' ')}
   </span>
 );

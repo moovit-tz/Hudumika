@@ -1,4 +1,4 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
@@ -9,7 +9,7 @@ import { TRAService } from '../services/tra.service.js';
 
 export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('finops'));
+  fastify.addHook('preHandler', requireEntitlement('finops'));
 
   // GET /v1/invoices/stats
   fastify.get('/stats', async (request) => {
@@ -29,18 +29,41 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   });
 
   // GET /v1/invoices
-  fastify.get('/', async (request) => {
+  fastify.get('/', async (request, reply) => {
     const user = request.user;
-    const { status, search } = request.query as { status?: string; search?: string };
+    const { status, search, customer_id } = request.query as { status?: string; search?: string; customer_id?: string };
+    // A CUSTOMER-role user's own record is customers.id === user.sub (same
+    // convention used elsewhere, e.g. shipment ownership checks) — they may
+    // only ever see their own invoices, never the whole tenant's.
+    if (user.role === 'CUSTOMER' && customer_id && customer_id !== user.sub) {
+      return reply.status(403).send({ error: 'Forbidden' });
+    }
+    const scopedCustomerId = user.role === 'CUSTOMER' ? user.sub : customer_id;
     return withTenant(user.tenant_id, async (trx) => {
       let q = trx.selectFrom('sales_invoices').selectAll().where('tenant_id', '=', user.tenant_id);
       if (status) q = q.where('status', '=', status);
-      const rows = await q.orderBy('created_at', 'desc').execute();
+      if (scopedCustomerId) q = q.where('customer_id', '=', scopedCustomerId);
+      let rows = await q.orderBy('created_at', 'desc').execute();
       if (search) {
         const s = search.toLowerCase();
-        return rows.filter(r => (r.client_name || '').toLowerCase().includes(s) || (r.invoice_number || '').toLowerCase().includes(s));
+        rows = rows.filter(r => (r.client_name || '').toLowerCase().includes(s) || (r.invoice_number || '').toLowerCase().includes(s));
       }
-      return rows;
+
+      // The list view needs each invoice's grand total, which requires its
+      // line items — batch-fetch all lines for the visible invoices in one
+      // query instead of a per-row lookup.
+      const ids = rows.map(r => r.id);
+      const lines = ids.length > 0
+        ? await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', 'in', ids).orderBy('sort_order', 'asc').execute()
+        : [];
+      const linesByInvoice = new Map<string, typeof lines>();
+      for (const l of lines) {
+        const arr = linesByInvoice.get(l.invoice_id) ?? [];
+        arr.push(l);
+        linesByInvoice.set(l.invoice_id, arr);
+      }
+
+      return rows.map(r => ({ ...r, items: linesByInvoice.get(r.id) ?? [] }));
     });
   });
 
@@ -242,7 +265,29 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       if (!inv) return reply.status(404).send({ error: 'Invoice not found' });
       const lines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', id).orderBy('sort_order', 'asc').execute();
       const payments = await trx.selectFrom('invoice_payments').selectAll().where('invoice_id', '=', id).orderBy('created_at', 'desc').execute();
-      return { ...inv, items: lines, payments };
+
+      // Carbon segment — invoices don't carry an FK to shipment_cases, only a
+      // text ref_number match (shipment_ref). Looked up live (not snapshotted
+      // at invoice creation) so a shipment's CO2 recalculation is reflected.
+      let shipment_carbon = null;
+      if (inv.shipment_ref) {
+        const ship = await trx.selectFrom('shipment_cases')
+          .select(['co2_emissions_kg', 'carbon_credits_saved', 'co2_calc_details'])
+          .where('ref_number', '=', inv.shipment_ref)
+          .where('tenant_id', '=', user.tenant_id)
+          .executeTakeFirst();
+        if (ship?.co2_emissions_kg != null) {
+          const details = typeof ship.co2_calc_details === 'string' ? JSON.parse(ship.co2_calc_details) : ship.co2_calc_details;
+          shipment_carbon = {
+            co2_emissions_kg: Number(ship.co2_emissions_kg),
+            carbon_credits_saved: Number(ship.carbon_credits_saved ?? 0),
+            distance_km: details?.distance_km ?? null,
+            mode: details?.mode ?? null,
+          };
+        }
+      }
+
+      return { ...inv, items: lines, payments, shipment_carbon };
     });
   });
 
@@ -316,6 +361,11 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       if (inv.status !== 'Draft') {
         AccountingIntegrationService.syncInvoice(user.tenant_id, inv.id).catch(console.error);
       }
+
+      await trx.insertInto('invoice_activity_log').values({
+        tenant_id: user.tenant_id, invoice_id: inv.id, actor_id: user.sub, actor_name: user.name || user.email,
+        action: 'created', detail: `Invoice ${inv.invoice_number} created as ${inv.status}`, created_at: new Date(),
+      }).execute();
 
       return reply.status(201).send(inv);
     });
@@ -398,6 +448,11 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         AccountingIntegrationService.syncInvoice(user.tenant_id, inv.id).catch(console.error);
       }
 
+      await trx.insertInto('invoice_activity_log').values({
+        tenant_id: user.tenant_id, invoice_id: id, actor_id: user.sub, actor_name: user.name || user.email,
+        action: 'updated', detail: `Invoice ${inv.invoice_number} updated`, created_at: new Date(),
+      }).execute();
+
       return inv;
     });
   });
@@ -462,6 +517,11 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
 
       // Trigger accounting integration payment sync in background
       AccountingIntegrationService.syncPayment(user.tenant_id, id, 'INVOICE').catch(console.error);
+
+      await trx.insertInto('invoice_activity_log').values({
+        tenant_id: user.tenant_id, invoice_id: id, actor_id: user.sub, actor_name: user.name || user.email,
+        action: 'payment_recorded', detail: `${method || 'Payment'} of ${Number(amount).toLocaleString()} recorded`, created_at: new Date(),
+      }).execute();
 
       return { success: true, received: totalPaid, status: newStatus };
     });
@@ -534,6 +594,188 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       qrDataUrl,
       isSubmitted: inv.tra_status === 'submitted' && inv.tra_ack_code === 0,
     };
+  });
+
+  const FIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'] as const;
+
+  // ═══════════════════════════════════════════════════════════════
+  // Notes
+  // ═══════════════════════════════════════════════════════════════
+
+  fastify.get('/:id/notes', async (request) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const notes = await trx.selectFrom('invoice_notes').selectAll()
+        .where('invoice_id', '=', id).orderBy('created_at', 'desc').execute();
+      return { data: notes };
+    });
+  });
+
+  fastify.post('/:id/notes', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { content } = request.body as { content: string };
+    if (!content?.trim()) return reply.status(400).send({ error: 'content is required' });
+    return withTenant(user.tenant_id, async (trx) => {
+      const note = await trx.insertInto('invoice_notes').values({
+        tenant_id: user.tenant_id,
+        invoice_id: id,
+        author_id: user.sub,
+        author_name: user.name || user.email,
+        content: content.trim(),
+        created_at: new Date(),
+      }).returningAll().executeTakeFirstOrThrow();
+      await trx.insertInto('invoice_activity_log').values({
+        tenant_id: user.tenant_id, invoice_id: id, actor_id: user.sub, actor_name: user.name || user.email,
+        action: 'note_added', detail: content.trim().slice(0, 140), created_at: new Date(),
+      }).execute();
+      return note;
+    });
+  });
+
+  fastify.delete('/:id/notes/:noteId', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { noteId } = request.params as { id: string; noteId: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('invoice_notes').select('id').where('id', '=', noteId).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Note not found' });
+      await trx.deleteFrom('invoice_notes').where('id', '=', noteId).execute();
+      return reply.status(204).send();
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // Tasks
+  // ═══════════════════════════════════════════════════════════════
+
+  fastify.get('/:id/tasks', async (request) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const tasks = await trx.selectFrom('invoice_tasks').selectAll()
+        .where('invoice_id', '=', id).orderBy('created_at', 'asc').execute();
+      return { data: tasks };
+    });
+  });
+
+  fastify.post('/:id/tasks', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { description, assignee, due_date } = request.body as any;
+    if (!description?.trim()) return reply.status(400).send({ error: 'description is required' });
+    return withTenant(user.tenant_id, async (trx) => {
+      const task = await trx.insertInto('invoice_tasks').values({
+        tenant_id: user.tenant_id, invoice_id: id,
+        description: description.trim(), assignee: assignee || null, due_date: due_date || null,
+        done: false, created_by: user.name || user.sub, created_at: new Date(),
+      }).returningAll().executeTakeFirstOrThrow();
+      await trx.insertInto('invoice_activity_log').values({
+        tenant_id: user.tenant_id, invoice_id: id, actor_id: user.sub, actor_name: user.name || user.email,
+        action: 'task_added', detail: description.trim().slice(0, 140), created_at: new Date(),
+      }).execute();
+      return task;
+    });
+  });
+
+  fastify.patch('/:id/tasks/:taskId', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { id, taskId } = request.params as { id: string; taskId: string };
+    const body = request.body as any;
+    const patch: Record<string, any> = {};
+    for (const k of ['description', 'assignee', 'due_date', 'done']) {
+      if (k in body) patch[k] = body[k];
+    }
+    return withTenant(user.tenant_id, async (trx) => {
+      const t = await trx.updateTable('invoice_tasks').set(patch).where('id', '=', taskId).returningAll().executeTakeFirst();
+      if (!t) return reply.status(404).send({ error: 'Task not found' });
+      if ('done' in body) {
+        await trx.insertInto('invoice_activity_log').values({
+          tenant_id: user.tenant_id, invoice_id: id, actor_id: user.sub, actor_name: user.name || user.email,
+          action: body.done ? 'task_completed' : 'task_reopened', detail: t.description.slice(0, 140), created_at: new Date(),
+        }).execute();
+      }
+      return t;
+    });
+  });
+
+  fastify.delete('/:id/tasks/:taskId', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { taskId } = request.params as { id: string; taskId: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.deleteFrom('invoice_tasks').where('id', '=', taskId).execute();
+      return reply.status(204).send();
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // Reminders
+  // ═══════════════════════════════════════════════════════════════
+
+  fastify.get('/:id/reminders', async (request) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const reminders = await trx.selectFrom('invoice_reminders').selectAll()
+        .where('invoice_id', '=', id).orderBy('remind_date', 'asc').execute();
+      return { data: reminders };
+    });
+  });
+
+  fastify.post('/:id/reminders', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { remind_date, message } = request.body as any;
+    if (!remind_date || !message?.trim()) return reply.status(400).send({ error: 'remind_date and message are required' });
+    return withTenant(user.tenant_id, async (trx) => {
+      const rem = await trx.insertInto('invoice_reminders').values({
+        tenant_id: user.tenant_id, invoice_id: id,
+        remind_date, message: message.trim(), done: false, created_at: new Date(),
+      }).returningAll().executeTakeFirstOrThrow();
+      await trx.insertInto('invoice_activity_log').values({
+        tenant_id: user.tenant_id, invoice_id: id, actor_id: user.sub, actor_name: user.name || user.email,
+        action: 'reminder_set', detail: `${remind_date}: ${message.trim().slice(0, 120)}`, created_at: new Date(),
+      }).execute();
+      return rem;
+    });
+  });
+
+  fastify.patch('/:id/reminders/:reminderId', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { reminderId } = request.params as { id: string; reminderId: string };
+    const body = request.body as any;
+    const patch: Record<string, any> = {};
+    for (const k of ['remind_date', 'message', 'done']) {
+      if (k in body) patch[k] = body[k];
+    }
+    return withTenant(user.tenant_id, async (trx) => {
+      const r = await trx.updateTable('invoice_reminders').set(patch).where('id', '=', reminderId).returningAll().executeTakeFirst();
+      if (!r) return reply.status(404).send({ error: 'Reminder not found' });
+      return r;
+    });
+  });
+
+  fastify.delete('/:id/reminders/:reminderId', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { reminderId } = request.params as { id: string; reminderId: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.deleteFrom('invoice_reminders').where('id', '=', reminderId).execute();
+      return reply.status(204).send();
+    });
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // Activity Log (read-only — populated automatically by other routes)
+  // ═══════════════════════════════════════════════════════════════
+
+  fastify.get('/:id/activity', async (request) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const log = await trx.selectFrom('invoice_activity_log').selectAll()
+        .where('invoice_id', '=', id).orderBy('created_at', 'desc').execute();
+      return { data: log };
+    });
   });
 }
 

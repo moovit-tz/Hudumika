@@ -1,5 +1,5 @@
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import type { UserRole } from '@clearos/types';
+import type { UserRole } from '@hudumika/types';
 
 /**
  * Route preHandler hook to restrict access to specific user roles

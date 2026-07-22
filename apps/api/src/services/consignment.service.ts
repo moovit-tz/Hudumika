@@ -86,7 +86,35 @@ export const consignmentService = {
         .selectAll()
         .execute();
 
-      return { ...consignment, trips, border_crossings: borders };
+      // Real transport leg, handled by the HuduFreight (Tracking) app — a
+      // consignment's customs clearance stays in ClearOS via shipment_id,
+      // while the physical trip (driver, vehicle, GPS status) lives in
+      // Tracking's own `trips` table, already linked via trips.shipment_id
+      // (see migration 066_trips_shipment_link.sql). Wrapped in try/catch
+      // since a tenant might not have Tracking provisioned at all.
+      let hudufreightTrips: any[] = [];
+      if (consignment.shipment_id) {
+        try {
+          hudufreightTrips = await trx
+            .selectFrom('trips')
+            .leftJoin('vehicles', 'vehicles.id', 'trips.vehicle_id')
+            .leftJoin('drivers', 'drivers.id', 'trips.driver_id')
+            .where('trips.tenant_id', '=', tenantId)
+            .where('trips.shipment_id', '=', consignment.shipment_id)
+            .select([
+              'trips.id', 'trips.status', 'trips.job_type',
+              'trips.origin', 'trips.destination',
+              'trips.scheduled_start', 'trips.scheduled_end',
+              'trips.actual_start', 'trips.actual_end',
+              'vehicles.name as vehicle_name', 'vehicles.plate_number',
+              'drivers.name as driver_name', 'drivers.phone as driver_phone',
+            ])
+            .orderBy('trips.created_at', 'desc')
+            .execute();
+        } catch { /* tracking not provisioned for this tenant */ }
+      }
+
+      return { ...consignment, trips, border_crossings: borders, hudufreight_trips: hudufreightTrips };
     });
   },
 

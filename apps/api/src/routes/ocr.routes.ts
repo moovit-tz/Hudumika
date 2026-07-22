@@ -1,8 +1,20 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenAI } from '@google/genai';
+import { db } from '../db/client.js';
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
+
+// Superadmin-configurable key (Platform Settings → OCR / Document Scanning) takes
+// priority over the env var, so it can be rotated from the UI without a redeploy.
+async function getGeminiApiKey(): Promise<string | null> {
+  const row = await db.selectFrom('tenant_settings')
+    .select('settings')
+    .where('tenant_id', '=', GLOBAL_TENANT_ID)
+    .executeTakeFirst();
+  const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+  return settings?.ocr?.geminiApiKey || process.env.GEMINI_API_KEY || null;
+}
 
 const SYSTEM_PROMPT = `You are a freight / customs document OCR specialist. Extract structured data from shipping and customs documents.
 
@@ -103,12 +115,12 @@ Rules:
 
 export async function ocrRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('clearos'));
+  fastify.addHook('preHandler', requireEntitlement('clearos'));
 
   /**
    * POST /v1/ocr/scan
    * Body: { image_base64: string, media_type: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' }
-   * Returns structured OCR extraction from Claude vision
+   * Returns structured OCR extraction from Gemini vision
    */
   fastify.post('/scan', async (request, reply) => {
     const { image_base64, media_type = 'image/jpeg' } = request.body as {
@@ -120,8 +132,10 @@ export async function ocrRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'image_base64 is required' });
     }
 
-    if (!process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY === 'your-anthropic-api-key') {
-      // Return simulated OCR result for demo/dev environments without a real key
+    const apiKey = await getGeminiApiKey();
+    if (!apiKey) {
+      // Return simulated OCR result for demo/dev environments without a key configured.
+      // A superadmin can set a real key under Platform Settings → OCR / Document Scanning.
       return {
         success: true,
         simulated: true,
@@ -130,35 +144,28 @@ export async function ocrRoutes(fastify: FastifyInstance) {
     }
 
     try {
-      const msg = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2048,
-        system: SYSTEM_PROMPT,
-        messages: [
+      const ai = new GoogleGenAI({ apiKey });
+      const response = await ai.models.generateContent({
+        model: 'gemini-flash-latest',
+        contents: [
           {
             role: 'user',
-            content: [
+            parts: [
+              { inlineData: { mimeType: media_type, data: image_base64 } },
               {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: media_type as any,
-                  data: image_base64,
-                },
-              },
-              {
-                type: 'text',
                 text: 'Identify the document type, then extract all available data from this document and return only the JSON. If this is a TANSAD or TRA Assessment Document, set doc_type to "TANSAD" and extract all tax/duty lines per HS item.',
               },
             ],
           },
         ],
+        config: {
+          systemInstruction: SYSTEM_PROMPT,
+          responseMimeType: 'application/json',
+        },
       });
 
-      const raw = msg.content[0]?.type === 'text' ? msg.content[0].text.trim() : '{}';
-      // Strip any accidental markdown fences
-      const clean = raw.replace(/^```[a-z]*\n?/i, '').replace(/\n?```$/i, '').trim();
-      const result = JSON.parse(clean);
+      const raw = (response.text ?? '{}').trim();
+      const result = JSON.parse(raw);
 
       return { success: true, simulated: false, result };
     } catch (err: any) {

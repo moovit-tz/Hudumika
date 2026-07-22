@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import { db, withTenant } from './client.js';
+import { MinioIntegration } from '../integrations/minio.js';
 
 function hashPassword(password: string): string {
   const salt = crypto.randomBytes(16).toString('hex');
@@ -18,12 +19,12 @@ function hoursAgo(h: number): Date {
 }
 
 async function runSeed() {
-  console.log('🌱 Starting ClearOS database seeding...');
+  console.log('🌱 Starting Hudumika database seeding...');
 
   try {
     // Idempotent: wipe existing tenants
     await db.deleteFrom('tenants').where('slug', '=', 'msomi-freight').execute();
-    await db.deleteFrom('tenants').where('slug', '=', 'clearos-system').execute();
+    await db.deleteFrom('tenants').where('slug', '=', 'hudumika-system').execute();
 
     const now = new Date();
     const passHash = hashPassword('password123');
@@ -32,8 +33,8 @@ async function runSeed() {
     const systemTenant = await db
       .insertInto('tenants')
       .values({
-        name: 'ClearOS System',
-        slug: 'clearos-system',
+        name: 'Hudumika System',
+        slug: 'hudumika-system',
         plan: 'enterprise',
         primary_color: '#0b7264',
         active: true,
@@ -45,7 +46,7 @@ async function runSeed() {
 
     await db.insertInto('users').values({
       tenant_id: systemTenant.id,
-      email: 'superadmin@clearos.io',
+      email: 'superadmin@hudumika.tz',
       password_hash: passHash,
       role: 'SUPER_ADMIN',
       name: 'Super Admin',
@@ -62,7 +63,7 @@ async function runSeed() {
       .values({
         name: 'Msomi Freight Ltd',
         slug: 'msomi-freight',
-        plan: 'professional',
+        plan: 'scale',
         primary_color: '#0b7264',
         active: true,
         created_at: now,
@@ -216,7 +217,67 @@ async function runSeed() {
 
       console.log('✅ Customers seeded (8)');
 
+      // ── PDF-imported Aleka Logistics client list ───────────────────────────
+      const yionx = await trx.insertInto('customers').values({
+        tenant_id: tenant.id, name: 'YIONX Trading Company Limited', contact_name: 'YIONX Logistics',
+        email: 'imports@yionxtrading.co.tz', phone: '+255782100001', phone_wa: '+255782100001',
+        category: 'sme', preferred_channel: 'WHATSAPP', tax_id: '500-100-001',
+        avatar_initials: 'YT', avatar_color: '#dc2626',
+        assigned_officer_id: officerJohn.id, active: true, created_at: now, updated_at: now,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const newHeavy = await trx.insertInto('customers').values({
+        tenant_id: tenant.id, name: 'New Heavy Company Limited', contact_name: 'New Heavy Ltd',
+        email: 'imports@newheavy.co.tz', phone: '+255782100002', phone_wa: '+255782100002',
+        category: 'sme', preferred_channel: 'WHATSAPP', tax_id: '500-100-002',
+        avatar_initials: 'NH', avatar_color: '#7c3aed',
+        assigned_officer_id: officerAmina.id, active: true, created_at: now, updated_at: now,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const decatech = await trx.insertInto('customers').values({
+        tenant_id: tenant.id, name: 'Decatech Limited', contact_name: 'Decatech Imports',
+        email: 'imports@decatech.co.tz', phone: '+255782100003', phone_wa: '+255782100003',
+        category: 'sme', preferred_channel: 'EMAIL', tax_id: '500-100-003',
+        avatar_initials: 'DT', avatar_color: '#0891b2',
+        assigned_officer_id: officerFredrick.id, active: true, created_at: now, updated_at: now,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const lnFuture = await trx.insertInto('customers').values({
+        tenant_id: tenant.id, name: 'LN Future Building Materials Co. Limited', contact_name: 'LN Future Ltd',
+        email: 'imports@lnfuture.co.tz', phone: '+255782100004', phone_wa: '+255782100004',
+        category: 'enterprise', preferred_channel: 'WHATSAPP', tax_id: '500-100-004',
+        avatar_initials: 'LN', avatar_color: '#d97706',
+        assigned_officer_id: officerJohn.id, active: true, created_at: now, updated_at: now,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const burnMfg = await trx.insertInto('customers').values({
+        tenant_id: tenant.id, name: 'Burn Manufacturing TZ Limited', contact_name: 'Burn Mfg TZ',
+        email: 'imports@burnmfg.co.tz', phone: '+255782100005', phone_wa: '+255782100005',
+        category: 'enterprise', preferred_channel: 'WHATSAPP', tax_id: '500-100-005',
+        avatar_initials: 'BM', avatar_color: '#166534',
+        assigned_officer_id: officerAmina.id, active: true, created_at: now, updated_at: now,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const negelo = await trx.insertInto('customers').values({
+        tenant_id: tenant.id, name: 'Negelo Investment Tanzania Limited', contact_name: 'Negelo Investment',
+        email: 'imports@negelo.co.tz', phone: '+255782100006', phone_wa: '+255782100006',
+        category: 'sme', preferred_channel: 'WHATSAPP', tax_id: '500-100-006',
+        avatar_initials: 'NI', avatar_color: '#be123c',
+        assigned_officer_id: officerFredrick.id, active: true, created_at: now, updated_at: now,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const aleka = await trx.insertInto('customers').values({
+        tenant_id: tenant.id, name: 'Aleka Holdings Limited', contact_name: 'Aleka Holdings',
+        email: 'imports@aleka.tech', phone: '+255782100007', phone_wa: '+255782100007',
+        category: 'enterprise', preferred_channel: 'EMAIL', tax_id: '500-100-007',
+        avatar_initials: 'AH', avatar_color: '#0b7264',
+        assigned_officer_id: officerJohn.id, active: true, created_at: now, updated_at: now,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      console.log('✅ PDF Aleka client customers seeded (+7)');
+
       // ── 5. SHIPMENT CASES ────────────────────────────────────────────────────
+      // Helper to insert a case + its initial stage history
       // Helper to insert a case + its initial stage history
       const makeCase = async (data: {
         ref: string; customer_id: string; type: string; goods: string;
@@ -225,8 +286,51 @@ async function runSeed() {
         eta?: Date; free_time?: Date; sla?: Date;
         containers: object[]; createdDaysAgo: number;
         tancis?: string; tansad?: string; channel?: string;
+        nps_score?: number;
+        csat_score?: number;
+        feedback_text?: string;
+        first_reply_time_seconds?: number;
+        resolution_time_seconds?: number;
       }) => {
         const createdAt = daysAgo(data.createdDaysAgo);
+        
+        let nps = data.nps_score;
+        let csat = data.csat_score;
+        let feedback = data.feedback_text;
+        let replyAt: Date | null = null;
+        let replySec = data.first_reply_time_seconds;
+        let resolvedAt: Date | null = null;
+        let resolvedSec = data.resolution_time_seconds;
+
+        if (data.stage === 'CLOSED') {
+          if (nps === undefined) {
+            // Generate some deterministic scores: promoters (9-10), passives (7-8), detractors (0-6)
+            const r = (data.ref.charCodeAt(data.ref.length - 1) + data.createdDaysAgo) % 10;
+            nps = r < 5 ? 9 + (r % 2) : r < 8 ? 7 + (r % 2) : 2 + (r % 4);
+          }
+          if (csat === undefined) {
+            csat = nps >= 9 ? 5 : nps >= 7 ? 4 : 2 + (nps % 2);
+          }
+          if (feedback === undefined) {
+            feedback = nps >= 9 
+              ? 'Excellent support! Quick clearance and very helpful agent.' 
+              : nps >= 7 
+              ? 'Good service, minor delays but overall satisfactory.'
+              : 'Had long wait times at the border and communication was lacking.';
+          }
+          if (resolvedSec === undefined) {
+            resolvedSec = (2 + (data.createdDaysAgo % 5)) * 86400 + (data.createdDaysAgo % 12) * 3600;
+          }
+          resolvedAt = new Date(createdAt.getTime() + resolvedSec * 1000);
+        }
+
+        if (data.createdDaysAgo > 1) {
+          if (replySec === undefined) {
+            replySec = (900 + (data.createdDaysAgo % 8) * 1800);
+          }
+          replyAt = new Date(createdAt.getTime() + replySec * 1000);
+        }
+
         const c = await trx.insertInto('shipment_cases').values({
           tenant_id: tenant.id,
           ref_number: data.ref,
@@ -248,6 +352,13 @@ async function runSeed() {
           selectivity_channel: data.channel || undefined,
           created_at: createdAt,
           updated_at: now,
+          nps_score: nps ?? null,
+          csat_score: csat ?? null,
+          feedback_text: feedback ?? null,
+          first_reply_at: replyAt,
+          first_reply_time_seconds: replySec ?? null,
+          resolved_at: resolvedAt,
+          resolution_time_seconds: resolvedSec ?? null,
         }).returningAll().executeTakeFirstOrThrow();
         return c;
       };
@@ -533,7 +644,118 @@ async function runSeed() {
         createdDaysAgo: 10, tancis: '137644169-26-9900036',
       });
 
-      console.log(`✅ Shipment cases seeded (23)`);
+      // ── PDF-imported Aleka Logistics sample shipments ─────────────────────
+      const y1 = await makeCase({
+        ref: 'CLR-2025-0024', customer_id: yionx.id, type: 'SEA_FCL',
+        goods: 'General Merchandise', vessel: 'HAPAG EXPRESS',
+        origin: 'Shanghai, China', dest: 'Dar es Salaam Port', stage: 'CLOSED',
+        officer: officerJohn.id, location_id: dsmPort.id,
+        eta: daysAgo(280), free_time: daysAgo(266),
+        sla: daysAgo(272),
+        containers: [{ number: 'HLXU1234567', size: '20FT', seal_number: 'HL-99001', weight_kg: 18000 }],
+        createdDaysAgo: 300, tansad: 'TZDL251626205',
+      });
+
+      const nh1 = await makeCase({
+        ref: 'CLR-2025-0025', customer_id: newHeavy.id, type: 'SEA_FCL',
+        goods: 'Heavy Machinery & Equipment', vessel: 'COSCO STAR',
+        origin: 'Shanghai, China', dest: 'Dar es Salaam Port', stage: 'CLOSED',
+        officer: officerAmina.id, location_id: dsmPort.id,
+        eta: daysAgo(250), free_time: daysAgo(236),
+        sla: daysAgo(245),
+        containers: [{ number: 'CXDU3245678', size: '40FT', seal_number: 'CO-88002', weight_kg: 26000 }],
+        createdDaysAgo: 260, tansad: 'TZDL251729311',
+      });
+
+      const dt1 = await makeCase({
+        ref: 'CLR-2026-0026', customer_id: decatech.id, type: 'AIR',
+        goods: 'Electronics & IT Equipment', vessel: 'KLM CARGO',
+        origin: 'Nairobi, Kenya', dest: 'JNIA', stage: 'CLOSED',
+        officer: officerFredrick.id, location_id: dsmPort.id,
+        eta: daysAgo(168), free_time: daysAgo(154),
+        sla: daysAgo(164),
+        containers: [],
+        createdDaysAgo: 175, tansad: 'TZDA261045896',
+      });
+
+      const lf1 = await makeCase({
+        ref: 'CLR-2025-0027', customer_id: lnFuture.id, type: 'SEA_FCL',
+        goods: 'Building Materials & Hardware (20 containers)', vessel: 'EMIRATES SHIPPING',
+        origin: 'Guangzhou, China', dest: 'Dar es Salaam Port', stage: 'CLOSED',
+        officer: officerJohn.id, location_id: dsmPort.id,
+        eta: daysAgo(141), free_time: daysAgo(127),
+        sla: daysAgo(137),
+        containers: [],
+        createdDaysAgo: 150, tansad: 'TZDL261157116',
+      });
+
+      const bm1 = await makeCase({
+        ref: 'CLR-2026-0028', customer_id: burnMfg.id, type: 'ROAD',
+        goods: 'Clean Cookstoves & Accessories', vessel: 'ROAD FREIGHT',
+        origin: 'Nairobi, Kenya', dest: 'Namanga Border', stage: 'CLOSED',
+        officer: officerAmina.id, location_id: dsmPort.id,
+        eta: daysAgo(100), free_time: daysAgo(86),
+        sla: daysAgo(95),
+        containers: [],
+        createdDaysAgo: 110, tansad: 'TZNG-26-1279118',
+      });
+
+      await makeCase({
+        ref: 'CLR-2026-0029', customer_id: burnMfg.id, type: 'AIR',
+        goods: 'Clean Cookstoves (Air Freight)', vessel: 'KENYA AIRWAYS',
+        origin: 'Nairobi, Kenya', dest: 'JNIA', stage: 'ASSESSMENT',
+        officer: officerAmina.id, location_id: dsmPort.id,
+        eta: daysAgo(55), free_time: daysFromNow(2),
+        sla: daysFromNow(4),
+        containers: [],
+        createdDaysAgo: 60, tansad: 'TZDA-26-1379802',
+      });
+
+      await makeCase({
+        ref: 'CLR-2026-0030', customer_id: lnFuture.id, type: 'SEA_FCL',
+        goods: 'Building Materials & Tiles (16 containers)', vessel: 'EMIRATES CARRIER',
+        origin: 'Guangzhou, China', dest: 'Dar es Salaam Port', stage: 'DOCS_RECEIVED',
+        officer: officerJohn.id, location_id: dsmPort.id,
+        eta: daysFromNow(3), free_time: daysFromNow(17),
+        sla: daysFromNow(6),
+        containers: [],
+        createdDaysAgo: 45,
+      });
+
+      await makeCase({
+        ref: 'CLR-2026-0031', customer_id: negelo.id, type: 'SEA_FCL',
+        goods: 'Mixed Cargo — General Merchandise', vessel: 'COSCO PACIFIC',
+        origin: 'Shanghai, China', dest: 'Dar es Salaam Port', stage: 'DOCS_RECEIVED',
+        officer: officerFredrick.id, location_id: dsmPort.id,
+        eta: daysAgo(5), free_time: daysFromNow(9),
+        sla: daysAgo(1),
+        containers: [{ number: 'COSU4512301', size: '20FT', seal_number: 'CO-31001', weight_kg: 19500 }],
+        createdDaysAgo: 36, tansad: 'TZDL-26-1419576',
+      });
+
+      await makeCase({
+        ref: 'CLR-2026-0032', customer_id: burnMfg.id, type: 'AIR',
+        goods: 'Spare Parts & Components (UPS Express)', vessel: 'UPS AIR',
+        origin: 'Atlanta, USA', dest: 'JNIA', stage: 'ASSESSMENT',
+        officer: officerAmina.id, location_id: dsmPort.id,
+        eta: daysAgo(28), free_time: daysFromNow(5),
+        sla: daysFromNow(3),
+        containers: [],
+        createdDaysAgo: 32, tansad: 'TZDA-26-1424026',
+      });
+
+      await makeCase({
+        ref: 'CLR-2026-0033', customer_id: aleka.id, type: 'SEA_FCL',
+        goods: 'Office Equipment & Supplies', vessel: 'MSC HARMONY',
+        origin: 'Dubai, UAE', dest: 'Dar es Salaam Port', stage: 'VALIDATION',
+        officer: officerJohn.id, location_id: dsmPort.id,
+        eta: daysAgo(3), free_time: daysFromNow(11),
+        sla: daysFromNow(2),
+        containers: [{ number: 'MSCU9900033', size: '20FT', seal_number: 'MS-33001', weight_kg: 12000 }],
+        createdDaysAgo: 18,
+      });
+
+      console.log(`✅ Shipment cases seeded (23 + 10 PDF samples = 33)`);
 
       // ── 6. STAGE HISTORY ─────────────────────────────────────────────────────
       // Add stage history for the most important cases
@@ -582,6 +804,29 @@ async function runSeed() {
         { tenant_id: tenant.id, shipment_id: m3.id, stage: 'DELIVERY', entered_at: daysAgo(10), exited_at: daysAgo(8), duration_h: 24, actor_id: officerFredrick.id },
         { tenant_id: tenant.id, shipment_id: m3.id, stage: 'INVOICING', entered_at: daysAgo(8), exited_at: daysAgo(7), duration_h: 12, actor_id: finance.id },
         { tenant_id: tenant.id, shipment_id: m3.id, stage: 'CLOSED', entered_at: daysAgo(7), actor_id: admin.id, note: 'Invoice paid. Case closed.' },
+
+        // Other closed cases — minimal but real history so cycle-time/officer
+        // metrics are computed from actual rows, not left at zero. Only the
+        // first (short, realistic) stage gets a duration_h — the CLOSED row
+        // marks the real close date without polluting stage-duration stats
+        // with the case's entire multi-week lifetime.
+        { tenant_id: tenant.id, shipment_id: n1.id,  stage: 'DOCS_RECEIVED', entered_at: daysAgo(22),  exited_at: daysAgo(21.7), duration_h: 6, actor_id: officerFredrick.id },
+        { tenant_id: tenant.id, shipment_id: n1.id,  stage: 'CLOSED',        entered_at: daysAgo(10),  actor_id: admin.id, note: 'Case closed.' },
+
+        { tenant_id: tenant.id, shipment_id: y1.id,  stage: 'DOCS_RECEIVED', entered_at: daysAgo(300), exited_at: daysAgo(299.8), duration_h: 5, actor_id: officerJohn.id },
+        { tenant_id: tenant.id, shipment_id: y1.id,  stage: 'CLOSED',        entered_at: daysAgo(275), actor_id: admin.id, note: 'Invoice paid. Case closed.' },
+
+        { tenant_id: tenant.id, shipment_id: nh1.id, stage: 'DOCS_RECEIVED', entered_at: daysAgo(260), exited_at: daysAgo(259.7), duration_h: 7, actor_id: officerAmina.id },
+        { tenant_id: tenant.id, shipment_id: nh1.id, stage: 'CLOSED',        entered_at: daysAgo(235), actor_id: admin.id, note: 'Invoice paid. Case closed.' },
+
+        { tenant_id: tenant.id, shipment_id: dt1.id, stage: 'DOCS_RECEIVED', entered_at: daysAgo(175), exited_at: daysAgo(174.8), duration_h: 4, actor_id: officerFredrick.id },
+        { tenant_id: tenant.id, shipment_id: dt1.id, stage: 'CLOSED',        entered_at: daysAgo(155), actor_id: admin.id, note: 'Invoice paid. Case closed.' },
+
+        { tenant_id: tenant.id, shipment_id: lf1.id, stage: 'DOCS_RECEIVED', entered_at: daysAgo(150), exited_at: daysAgo(149.75), duration_h: 6, actor_id: officerJohn.id },
+        { tenant_id: tenant.id, shipment_id: lf1.id, stage: 'CLOSED',        entered_at: daysAgo(125), actor_id: admin.id, note: 'Invoice paid. Case closed.' },
+
+        { tenant_id: tenant.id, shipment_id: bm1.id, stage: 'DOCS_RECEIVED', entered_at: daysAgo(110), exited_at: daysAgo(109.8), duration_h: 5, actor_id: officerAmina.id },
+        { tenant_id: tenant.id, shipment_id: bm1.id, stage: 'CLOSED',        entered_at: daysAgo(88),  actor_id: admin.id, note: 'Invoice paid. Case closed.' },
       ];
 
       for (const row of stageRows) {
@@ -692,12 +937,429 @@ async function runSeed() {
         await trx.insertInto('case_documents').values(row as any).execute();
       }
       console.log('✅ Documents seeded');
+
+      // ── 10b. PRODUCTS & SERVICES CATALOG ──────────────────────────────────────
+      // Real, persisted catalog — previously a browser-only localStorage store
+      // in productData.ts. Same seed data, now backing both /finance/products
+      // and the invoice line-item "add from catalog" picker.
+      const PRODUCT_SEED = [
+        { id: 'PRD-001', code: 'SVC-CLR-STD', name: 'Standard Customs Clearance', type: 'service', description: 'End-to-end customs clearance for standard import/export shipments.', category: 'Clearance Services', unit: 'shipment', sale_price: 850000, purchase_price: 400000, tax_rate: 18 },
+        { id: 'PRD-002', code: 'SVC-CLR-EXP', name: 'Express Customs Clearance', type: 'service', description: 'Priority processing for time-sensitive shipments. 24-hr turnaround.', category: 'Clearance Services', unit: 'shipment', sale_price: 1500000, purchase_price: 750000, tax_rate: 18 },
+        { id: 'PRD-003', code: 'SVC-DOC-PKG', name: 'Documentation Package', type: 'service', description: 'Preparation of all import/export documentation (BOL, C23, Form M, etc.).', category: 'Documentation', unit: 'set', sale_price: 250000, purchase_price: 80000, tax_rate: 18 },
+        { id: 'PRD-004', code: 'SVC-PORT-HDL', name: 'Port Handling & Supervision', type: 'service', description: 'On-site port supervision, container examination attendance, and cargo tracking.', category: 'Port & Handling', unit: 'container', sale_price: 400000, purchase_price: 180000, tax_rate: 18 },
+        { id: 'PRD-005', code: 'SVC-STR-DAY', name: 'Bonded Warehouse Storage', type: 'service', description: 'Secure bonded storage per day per CBM. Climate-controlled facility.', category: 'Storage', unit: 'day', sale_price: 15000, purchase_price: 7000, tax_rate: 18 },
+        { id: 'PRD-006', code: 'SVC-FRT-AIR', name: 'Air Freight Coordination', type: 'service', description: 'Coordination and arrangement of air freight shipments via JNIA.', category: 'Freight', unit: 'shipment', sale_price: 600000, purchase_price: 300000, tax_rate: 18 },
+        { id: 'PRD-007', code: 'SVC-CST-ADV', name: 'Customs Classification Advisory', type: 'service', description: 'HS code classification and tariff advice for specific goods categories.', category: 'Consulting', unit: 'hour', sale_price: 120000, purchase_price: 60000, tax_rate: 18 },
+        { id: 'PRD-008', code: 'PRD-SEAL-CTR', name: 'Container Seal Kit', type: 'product', description: 'Official tamper-evident seal kit for containers (set of 5).', category: 'Port & Handling', unit: 'set', sale_price: 45000, purchase_price: 22000, tax_rate: 18 },
+        { id: 'PRD-009', code: 'SVC-INS-CARGO', name: 'Cargo Insurance Facilitation', type: 'service', description: 'Arrangement of marine/cargo insurance cover for shipments in transit.', category: 'Insurance', unit: 'shipment', sale_price: 0, purchase_price: 0, tax_rate: 0 },
+        { id: 'PRD-010', code: 'SVC-TRK-LOCAL', name: 'Local Trucking & Delivery', type: 'service', description: 'Last-mile delivery within Dar es Salaam metropolitan area.', category: 'Freight', unit: 'shipment', sale_price: 180000, purchase_price: 95000, tax_rate: 18 },
+      ];
+      for (const p of PRODUCT_SEED) {
+        await trx.insertInto('products').values({
+          ...p, tenant_id: tenant.id, currency: 'TZS', status: 'active',
+        }).execute();
+      }
+      console.log('✅ Products & Services catalog seeded (10)');
+
+      // ── 11. SALES INVOICES (Finance / TRA demo data) ─────────────────────────
+      // These match the invoices previously shown as client-side mock data in
+      // Billing.tsx (INITIAL_INVOICES) — now real, persisted rows with real
+      // customers so they can actually be edited, paid, and submitted to TRA.
+      const karibu = await trx.insertInto('customers').values({
+        tenant_id: tenant.id, name: 'Karibu Traders Ltd', contact_name: 'Amani Mwangi',
+        email: 'accounts@kaributraders.co.tz', phone: '+255782200001', phone_wa: '+255782200001',
+        category: 'sme', preferred_channel: 'WHATSAPP', tax_id: '600-200-001',
+        avatar_initials: 'KT', avatar_color: '#0d9488',
+        assigned_officer_id: officerJohn.id, active: true, created_at: now, updated_at: now,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const tangaCement = await trx.insertInto('customers').values({
+        tenant_id: tenant.id, name: 'Tanga Cement Co.', contact_name: 'Fatuma Ally',
+        email: 'accounts@tangacement.co.tz', phone: '+255782200002', phone_wa: '+255782200002',
+        category: 'enterprise', preferred_channel: 'EMAIL', tax_id: '600-200-002',
+        avatar_initials: 'TC', avatar_color: '#7c3aed',
+        assigned_officer_id: officerAmina.id, active: true, created_at: now, updated_at: now,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const mombasaFreight = await trx.insertInto('customers').values({
+        tenant_id: tenant.id, name: 'Mombasa Freight Ltd', contact_name: 'Bakari Juma',
+        email: 'accounts@mombasafreight.co.ke', phone: '+255782200003', phone_wa: '+255782200003',
+        category: 'enterprise', preferred_channel: 'EMAIL', tax_id: '600-200-003',
+        avatar_initials: 'MF', avatar_color: '#d97706',
+        assigned_officer_id: officerFredrick.id, active: true, created_at: now, updated_at: now,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const darEngineering = await trx.insertInto('customers').values({
+        tenant_id: tenant.id, name: 'Dar Engineering Co.', contact_name: 'Amani Mwangi',
+        email: 'accounts@darengineering.co.tz', phone: '+255782200004', phone_wa: '+255782200004',
+        category: 'sme', preferred_channel: 'WHATSAPP', tax_id: '600-200-004',
+        avatar_initials: 'DE', avatar_color: '#0891b2',
+        assigned_officer_id: officerJohn.id, active: true, created_at: now, updated_at: now,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const arushaSupplies = await trx.insertInto('customers').values({
+        tenant_id: tenant.id, name: 'Arusha Supplies Ltd', contact_name: 'Amani Mwangi',
+        email: 'accounts@arushasupplies.co.tz', phone: '+255782200005', phone_wa: '+255782200005',
+        category: 'sme', preferred_channel: 'WHATSAPP', tax_id: '600-200-005',
+        avatar_initials: 'AS', avatar_color: '#be123c',
+        assigned_officer_id: officerAmina.id, active: true, created_at: now, updated_at: now,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const moshiTea = await trx.insertInto('customers').values({
+        tenant_id: tenant.id, name: 'Moshi Tea Exporters', contact_name: 'Bakari Juma',
+        email: 'accounts@moshitea.co.tz', phone: '+255782200006', phone_wa: '+255782200006',
+        category: 'sme', preferred_channel: 'EMAIL', tax_id: '600-200-006',
+        avatar_initials: 'MT', avatar_color: '#166534',
+        assigned_officer_id: officerFredrick.id, active: true, created_at: now, updated_at: now,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const dodomaAgri = await trx.insertInto('customers').values({
+        tenant_id: tenant.id, name: 'Dodoma Agri Exports', contact_name: 'Fatuma Ally',
+        email: 'accounts@dodomaagri.co.tz', phone: '+255782200007', phone_wa: '+255782200007',
+        category: 'sme', preferred_channel: 'WHATSAPP', tax_id: '600-200-007',
+        avatar_initials: 'DA', avatar_color: '#be185d',
+        assigned_officer_id: officerJohn.id, active: true, created_at: now, updated_at: now,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      console.log('✅ Finance-demo customers seeded (7)');
+
+      type InvLine = {
+        name: string; unit: string; rate: number; qty: number; taxPct: number;
+        group: 'clearing' | 'shipping' | 'other'; currency: 'TZS' | 'USD';
+      };
+      type InvSpec = {
+        invoice_number: string; customer: { id: string; name: string };
+        clientAddress: string[]; bl_number: string; origin: string; destination: string;
+        mode: string; bill_date: Date; due_date: Date; sale_agent: string; payment_terms: string;
+        exchange_rate: number; status: string; received: number; version?: number; lines: InvLine[];
+        payment?: { amount: number; method: string; date: Date; note?: string };
+        shipmentRef: string;
+      };
+
+      async function makeInvoice(spec: InvSpec) {
+        // Real shipment for this invoice to link to (shipment_ref), rather
+        // than leaving invoices unlinked to the shipments module.
+        const shipmentType = spec.mode === 'AIR' ? 'AIR' : spec.mode === 'ROAD' ? 'ROAD' : 'SEA_FCL';
+        const shipmentStage = spec.status === 'Paid' ? 'CLOSED' : spec.status === 'Draft' ? 'DOCS_RECEIVED' : 'INVOICING';
+        await trx.insertInto('shipment_cases').values({
+          tenant_id: tenant.id,
+          ref_number: spec.shipmentRef,
+          customer_id: spec.customer.id,
+          type: shipmentType as any,
+          goods_desc: 'General cargo',
+          vessel: '',
+          bl_number: spec.mode === 'AIR' ? null : spec.bl_number,
+          awb_number: spec.mode === 'AIR' ? spec.bl_number : null,
+          origin_port: spec.origin,
+          dest_port: spec.destination,
+          stage: shipmentStage as any,
+          containers: JSON.stringify([]),
+          created_at: spec.bill_date,
+          updated_at: now,
+        }).execute();
+
+        const inv = await trx.insertInto('sales_invoices').values({
+          tenant_id: tenant.id,
+          invoice_number: spec.invoice_number,
+          customer_id: spec.customer.id,
+          shipment_ref: spec.shipmentRef,
+          client_name: spec.customer.name,
+          client_address: JSON.stringify(spec.clientAddress),
+          bl_number: spec.bl_number,
+          origin: spec.origin,
+          destination: spec.destination,
+          mode: spec.mode,
+          bill_date: spec.bill_date,
+          due_date: spec.due_date,
+          sale_agent: spec.sale_agent,
+          payment_terms: spec.payment_terms,
+          exchange_rate: spec.exchange_rate,
+          status: spec.status,
+          received: spec.received,
+          version: spec.version ?? 1,
+          created_by: finance.id,
+          created_at: spec.bill_date,
+          updated_at: now,
+        }).returningAll().executeTakeFirstOrThrow();
+
+        for (let i = 0; i < spec.lines.length; i++) {
+          const l = spec.lines[i];
+          await trx.insertInto('sales_invoice_lines').values({
+            invoice_id: inv.id, name: l.name, unit: l.unit, rate: l.rate, qty: l.qty,
+            tax_pct: l.taxPct, line_group: l.group, currency: l.currency, sort_order: i,
+          }).execute();
+        }
+
+        if (spec.payment) {
+          await trx.insertInto('invoice_payments').values({
+            tenant_id: tenant.id, invoice_id: inv.id, amount: spec.payment.amount,
+            method: spec.payment.method, payment_date: spec.payment.date,
+            note: spec.payment.note ?? null, created_by: finance.id, created_at: spec.payment.date,
+          }).execute();
+        }
+
+        return inv;
+      }
+
+      await makeInvoice({
+        invoice_number: 'CLR-2026-0028 INV', customer: karibu, shipmentRef: 'CLR-2026-0041',
+        clientAddress: ['P.O. Box 4521', 'Kariakoo, Dar es Salaam', 'Tanzania', 'VAT: TZ 1234561-C'],
+        bl_number: 'MSCU2456789', origin: 'SINGAPORE', destination: 'DAR ES SALAAM, TANZANIA', mode: 'SEA',
+        bill_date: new Date(2026, 5, 13), due_date: new Date(2026, 5, 27),
+        sale_agent: 'Amani Mwangi', payment_terms: 'Payment due within 14 days. All 3rd party charges are estimates and subject to actuals.',
+        exchange_rate: 2650, status: 'Draft', received: 0,
+        lines: [
+          { name: 'DOCUMENTATION',          unit: 'PER BIL',       rate: 132000, qty: 1, taxPct: 0,  group: 'clearing', currency: 'TZS' },
+          { name: 'AGENCY FEES – SEA 20"',  unit: 'PER CONT',      rate: 400000, qty: 2, taxPct: 0,  group: 'clearing', currency: 'TZS' },
+          { name: 'TRANSPORTATION',         unit: 'PER CONT',      rate: 700000, qty: 2, taxPct: 0,  group: 'clearing', currency: 'TZS' },
+          { name: 'DELIVERY ORDER CHARGES', unit: 'PER BIL',       rate: 15,     qty: 1, taxPct: 18, group: 'shipping', currency: 'USD' },
+          { name: 'SHIPPING FEES',          unit: 'PER CONTAINER', rate: 49.84,  qty: 2, taxPct: 0,  group: 'shipping', currency: 'USD' },
+          { name: 'FACILITATION',           unit: 'PER BIL',       rate: 950000, qty: 1, taxPct: 0,  group: 'other',    currency: 'TZS' },
+          { name: 'TBS CHARGES',            unit: 'PER BIL',       rate: 180000, qty: 1, taxPct: 0,  group: 'other',    currency: 'TZS' },
+          { name: 'WHARFAGE CHARGES',       unit: 'PER BIL',       rate: 320000, qty: 1, taxPct: 18, group: 'other',    currency: 'TZS' },
+        ],
+      });
+
+      await makeInvoice({
+        invoice_number: 'CLR-2026-0027 INV', customer: tangaCement, shipmentRef: 'CLR-2026-0042',
+        clientAddress: ['Industrial Area, Plot 14', 'Tanga, Tanzania', 'TZ 30100', 'VAT: TZ 9876543-B'],
+        bl_number: 'TRHU3456789', origin: 'CHINA (GUANGZHOU)', destination: 'DAR ES SALAAM, TANZANIA', mode: 'SEA',
+        bill_date: new Date(2026, 5, 8), due_date: new Date(2026, 5, 22),
+        sale_agent: 'Fatuma Ally', payment_terms: 'Payment due 14 days from invoice date.',
+        exchange_rate: 2650, status: 'Draft', received: 0,
+        lines: [
+          { name: 'DOCUMENTATION',          unit: 'PER BIL',  rate: 132000, qty: 1, taxPct: 0,  group: 'clearing', currency: 'TZS' },
+          { name: 'AGENCY FEES – BULK',     unit: 'PER CONT', rate: 350000, qty: 4, taxPct: 0,  group: 'clearing', currency: 'TZS' },
+          { name: 'TRANSPORTATION',         unit: 'PER CONT', rate: 700000, qty: 4, taxPct: 0,  group: 'clearing', currency: 'TZS' },
+          { name: 'DELIVERY ORDER CHARGES', unit: 'PER BIL',  rate: 15,     qty: 1, taxPct: 18, group: 'shipping', currency: 'USD' },
+          { name: 'DEMURRAGE (2 DAYS)',     unit: 'PER BILL', rate: 470,    qty: 1, taxPct: 0,  group: 'shipping', currency: 'USD' },
+          { name: 'TBS CHARGES',            unit: 'PER BIL',  rate: 180000, qty: 1, taxPct: 0,  group: 'other',    currency: 'TZS' },
+          { name: 'WHARFAGE CHARGES',       unit: 'PER BIL',  rate: 477696, qty: 1, taxPct: 18, group: 'other',    currency: 'TZS' },
+        ],
+      });
+
+      await makeInvoice({
+        invoice_number: 'CLR-2026-0024 INV', customer: mombasaFreight, shipmentRef: 'CLR-2026-0043',
+        clientAddress: ['Moi Avenue, Floor 3', 'Mombasa, Kenya', 'KE 80100', 'VAT: KE P051234567A'],
+        bl_number: 'MAEU5678901', origin: 'DUBAI (UAE)', destination: 'MOMBASA, KENYA', mode: 'SEA',
+        bill_date: new Date(2026, 5, 13), due_date: new Date(2026, 5, 26),
+        sale_agent: 'Bakari Juma', payment_terms: 'Remaining balance due immediately. A surcharge applies after 7 days.',
+        exchange_rate: 2650, status: 'Partial', received: 1550000,
+        lines: [
+          { name: 'DOCUMENTATION',          unit: 'PER BIL',       rate: 132000, qty: 1, taxPct: 0,  group: 'clearing', currency: 'TZS' },
+          { name: 'AGENCY FEES – SEA 20"',  unit: 'PER CONT',      rate: 400000, qty: 2, taxPct: 0,  group: 'clearing', currency: 'TZS' },
+          { name: 'TRANSPORTATION',         unit: 'PER CONT',      rate: 600000, qty: 2, taxPct: 0,  group: 'clearing', currency: 'TZS' },
+          { name: 'DELIVERY ORDER CHARGES', unit: 'PER BIL',       rate: 15,     qty: 1, taxPct: 18, group: 'shipping', currency: 'USD' },
+          { name: 'SHIPPING FEES',          unit: 'PER CONTAINER', rate: 49.84,  qty: 2, taxPct: 0,  group: 'shipping', currency: 'USD' },
+          { name: 'FACILITATION',           unit: 'PER BIL',       rate: 200000, qty: 1, taxPct: 0,  group: 'other',    currency: 'TZS' },
+          { name: 'WHARFAGE CHARGES',       unit: 'PER BIL',       rate: 180000, qty: 1, taxPct: 18, group: 'other',    currency: 'TZS' },
+        ],
+        payment: { amount: 1550000, method: 'Bank Transfer', date: new Date(2026, 5, 18), note: 'Partial settlement' },
+      });
+
+      await makeInvoice({
+        invoice_number: 'CLR-2026-0023 INV', customer: darEngineering, shipmentRef: 'CLR-2026-0044',
+        clientAddress: ['Pugu Road, Block C', 'Dar es Salaam, Tanzania', 'TZ 11101', 'VAT: TZ 1122334-A'],
+        bl_number: 'HLCU6789012', origin: 'CHINA (SHANGHAI)', destination: 'DAR ES SALAAM, TANZANIA', mode: 'SEA',
+        bill_date: new Date(2026, 5, 7), due_date: new Date(2026, 5, 21),
+        sale_agent: 'Amani Mwangi', payment_terms: 'Payment received in full. Thank you.',
+        exchange_rate: 2650, status: 'Paid', received: 1738905,
+        lines: [
+          { name: 'DOCUMENTATION',          unit: 'PER BIL',  rate: 132000, qty: 1, taxPct: 0,  group: 'clearing', currency: 'TZS' },
+          { name: 'AGENCY FEES – FCL 20"',  unit: 'PER CONT', rate: 400000, qty: 1, taxPct: 0,  group: 'clearing', currency: 'TZS' },
+          { name: 'TRANSPORTATION',         unit: 'PER CONT', rate: 700000, qty: 1, taxPct: 0,  group: 'clearing', currency: 'TZS' },
+          { name: 'DELIVERY ORDER CHARGES', unit: 'PER BIL',  rate: 15,     qty: 1, taxPct: 18, group: 'shipping', currency: 'USD' },
+          { name: 'FACILITATION',           unit: 'PER BIL',  rate: 280000, qty: 1, taxPct: 0,  group: 'other',    currency: 'TZS' },
+          { name: 'TBS CHARGES',            unit: 'PER BIL',  rate: 180000, qty: 1, taxPct: 0,  group: 'other',    currency: 'TZS' },
+        ],
+        payment: { amount: 1738905, method: 'Bank Transfer', date: new Date(2026, 5, 10), note: 'Paid in full' },
+      });
+
+      await makeInvoice({
+        invoice_number: 'CLR-2026-0019 INV', customer: arushaSupplies, shipmentRef: 'CLR-2026-0045',
+        clientAddress: ['Sokoine Road, Shop 22', 'Arusha, Tanzania', 'TZ 23100', 'VAT: TZ 5566778-D'],
+        bl_number: 'CMDU7890123', origin: 'INDIA (MUMBAI)', destination: 'DAR ES SALAAM, TANZANIA', mode: 'SEA',
+        bill_date: new Date(2026, 5, 5), due_date: new Date(2026, 5, 17),
+        sale_agent: 'Amani Mwangi', payment_terms: 'Payment is overdue. Please settle immediately.',
+        exchange_rate: 2650, status: 'Unpaid', received: 0,
+        lines: [
+          { name: 'DOCUMENTATION',        unit: 'PER BIL', rate: 132000, qty: 1, taxPct: 0,  group: 'clearing', currency: 'TZS' },
+          { name: 'AGENCY FEES – LCL',    unit: 'PER BIL', rate: 350000, qty: 1, taxPct: 0,  group: 'clearing', currency: 'TZS' },
+          { name: 'TRANSPORTATION',       unit: 'PER BIL', rate: 450000, qty: 1, taxPct: 0,  group: 'clearing', currency: 'TZS' },
+          { name: 'DELIVERY ORDER',       unit: 'PER BIL', rate: 15,     qty: 1, taxPct: 18, group: 'shipping', currency: 'USD' },
+          { name: 'CFS HANDLING CHARGES', unit: 'PER BIL', rate: 85,     qty: 1, taxPct: 0,  group: 'shipping', currency: 'USD' },
+          { name: 'FACILITATION',         unit: 'PER BIL', rate: 280000, qty: 1, taxPct: 0,  group: 'other',    currency: 'TZS' },
+          { name: 'TBS CHARGES',          unit: 'PER BIL', rate: 180000, qty: 1, taxPct: 0,  group: 'other',    currency: 'TZS' },
+        ],
+      });
+
+      await makeInvoice({
+        invoice_number: 'CLR-2026-0014 INV', customer: moshiTea, shipmentRef: 'CLR-2026-0046',
+        clientAddress: ['Old Moshi Road, Unit 7', 'Moshi, Tanzania', 'TZ 25100', 'VAT: TZ 7788990-E'],
+        bl_number: 'JKIA20240601', origin: 'NAIROBI (JKIA)', destination: 'MOSHI, TANZANIA', mode: 'AIR',
+        bill_date: new Date(2026, 5, 1), due_date: new Date(2026, 5, 15),
+        sale_agent: 'Bakari Juma', payment_terms: 'This invoice is overdue. Please contact our accounts team immediately.',
+        exchange_rate: 2650, status: 'Overdue', received: 0, version: 2,
+        lines: [
+          { name: 'AIR FREIGHT CLEARANCE', unit: 'PER AWB', rate: 420000, qty: 1, taxPct: 0, group: 'clearing', currency: 'TZS' },
+          { name: 'DOCUMENTATION',         unit: 'PER AWB', rate: 80000,  qty: 1, taxPct: 0, group: 'clearing', currency: 'TZS' },
+          { name: 'AIRLINE DELIVERY FEE',  unit: 'PER AWB', rate: 45,     qty: 1, taxPct: 0, group: 'shipping', currency: 'USD' },
+          { name: 'FACILITATION',          unit: 'PER AWB', rate: 200000, qty: 1, taxPct: 0, group: 'other',    currency: 'TZS' },
+          { name: 'PHYTOSANITARY CERT',    unit: 'PER AWB', rate: 220000, qty: 1, taxPct: 0, group: 'other',    currency: 'TZS' },
+        ],
+      });
+
+      await makeInvoice({
+        invoice_number: 'CLR-2026-0010 INV', customer: dodomaAgri, shipmentRef: 'CLR-2026-0047',
+        clientAddress: ['Dodoma Municipal Road', 'Dodoma, Tanzania', 'TZ 41000', 'VAT: TZ 4433221-G'],
+        bl_number: 'RDTUND20240522', origin: 'DODOMA, TANZANIA', destination: 'LUSAKA, ZAMBIA', mode: 'ROAD',
+        bill_date: new Date(2026, 4, 22), due_date: new Date(2026, 5, 5),
+        sale_agent: 'Fatuma Ally', payment_terms: 'Balance due immediately. Account on hold pending payment.',
+        exchange_rate: 2650, status: 'Partial', received: 320000,
+        lines: [
+          { name: 'ROAD TRANSIT BOND',  unit: 'PER BIL', rate: 280000, qty: 1, taxPct: 0, group: 'clearing', currency: 'TZS' },
+          { name: 'DOCUMENTATION',      unit: 'PER BIL', rate: 80000,  qty: 1, taxPct: 0, group: 'clearing', currency: 'TZS' },
+          { name: 'BORDER AGENCY FEES', unit: 'PER BIL', rate: 250,    qty: 1, taxPct: 0, group: 'shipping', currency: 'USD' },
+          { name: 'FACILITATION',       unit: 'PER BIL', rate: 180000, qty: 1, taxPct: 0, group: 'other',    currency: 'TZS' },
+          { name: 'TBS EXPORT CERT',    unit: 'PER BIL', rate: 120000, qty: 1, taxPct: 0, group: 'other',    currency: 'TZS' },
+        ],
+        payment: { amount: 320000, method: 'Mobile Money', date: new Date(2026, 4, 28), note: 'Partial settlement' },
+      });
+
+      console.log('✅ Sales invoices seeded (7, matching Finance UI demo data)');
+
+      // ── Seed Support Tickets, Messages, and Customer Assets ───────────────
+      console.log('🎫 Seeding Multichannel Support tickets and assets...');
+      
+      const customersList = await trx.selectFrom('customers').select(['id', 'name']).execute();
+      
+      const dangoteCust = customersList.find(c => c.name.toLowerCase().includes('dangote'));
+      const simbaCust = customersList.find(c => c.name.toLowerCase().includes('simba'));
+      const eabCust = customersList.find(c => c.name.toLowerCase().includes('eab'));
+
+      if (dangoteCust && simbaCust && eabCust) {
+        // Seed Customer Assets
+        const assetsToInsert = [
+          {
+            tenant_id: tenant.id,
+            customer_id: dangoteCust.id,
+            asset_type: 'BANK_ACCOUNT' as any,
+            asset_ref: 'TZS-1002-9938-12',
+            status: 'ACTIVE',
+            metadata: JSON.stringify({ balance: 4500000000, currency: 'TZS' }),
+          },
+          {
+            tenant_id: tenant.id,
+            customer_id: dangoteCust.id,
+            asset_type: 'LOAN' as any,
+            asset_ref: 'LN-2026-8831',
+            status: 'ACTIVE',
+            metadata: JSON.stringify({ balance: 1200000000, currency: 'TZS', rate: 0.12 }),
+          },
+          {
+            tenant_id: tenant.id,
+            customer_id: simbaCust.id,
+            asset_type: 'INSURANCE_POLICY' as any,
+            asset_ref: 'POL-MTR-99823',
+            status: 'ACTIVE',
+            metadata: JSON.stringify({ expires_at: '2027-12-31' }),
+          },
+          {
+            tenant_id: tenant.id,
+            customer_id: eabCust.id,
+            asset_type: 'CREDIT_CARD' as any,
+            asset_ref: 'CC-4111-XXXX-XXXX-9921',
+            status: 'ACTIVE',
+            metadata: JSON.stringify({ balance: 15000, currency: 'USD' }),
+          }
+        ];
+
+        for (const asset of assetsToInsert) {
+          await trx.insertInto('customer_assets').values(asset).execute();
+        }
+
+        // Seed Support Tickets
+        const tkt1 = await trx.insertInto('support_tickets').values({
+          tenant_id: tenant.id,
+          customer_id: dangoteCust.id,
+          ref_number: 'SUP-1092',
+          subject: 'Discrepancy in Bank Balance',
+          description: 'The ledger balance does not match the dashboard balance for TZS account.',
+          channel: 'IN_APP',
+          status: 'OPEN',
+          priority: 'URGENT',
+          category: 'Bank Account Dispute',
+          tags: JSON.stringify(['finance', 'discrepancy']),
+        }).returningAll().executeTakeFirstOrThrow();
+
+        const tkt2 = await trx.insertInto('support_tickets').values({
+          tenant_id: tenant.id,
+          customer_id: simbaCust.id,
+          ref_number: 'SUP-1093',
+          subject: 'Claim Status Enquiry',
+          description: 'Looking to check the status of motor insurance claim POL-MTR-99823.',
+          channel: 'WHATSAPP',
+          status: 'IN_PROGRESS',
+          priority: 'HIGH',
+          category: 'Insurance Claim',
+          tags: JSON.stringify(['insurance', 'claim']),
+        }).returningAll().executeTakeFirstOrThrow();
+
+        // Seed Support Messages
+        await trx.insertInto('support_messages').values({
+          tenant_id: tenant.id,
+          ticket_id: tkt1.id,
+          channel: 'IN_APP',
+          direction: 'INBOUND',
+          author_id: dangoteCust.id,
+          author_name: dangoteCust.name,
+          author_type: 'CUSTOMER',
+          content: 'Hello, my dashboard is showing a balance of TZS 4.5B but our physical bank statement shows TZS 4.7B. Please look into this immediately.',
+        }).execute();
+
+        await trx.insertInto('support_messages').values({
+          tenant_id: tenant.id,
+          ticket_id: tkt1.id,
+          channel: 'IN_APP',
+          direction: 'OUTBOUND',
+          author_id: 'system',
+          author_name: 'Hudumika Support',
+          author_type: 'OFFICER',
+          content: 'Hi Aliko, thank you for reaching out. We have logged this query and our finance reconciliation team is reviewing the transaction logs.',
+        }).execute();
+
+        await trx.insertInto('support_messages').values({
+          tenant_id: tenant.id,
+          ticket_id: tkt2.id,
+          channel: 'WHATSAPP',
+          direction: 'INBOUND',
+          author_id: simbaCust.id,
+          author_name: simbaCust.name,
+          author_type: 'CUSTOMER',
+          content: 'Hi, did anyone check on the motor claim for POL-MTR-99823?',
+        }).execute();
+      }
     });
 
-    console.log('\n🎉 ClearOS seed complete!');
+    // ── Backfill storage folders for all seeded customers & shipments ─────────
+    console.log('📁 Creating storage folders...');
+    const allCustomers = await db.selectFrom('customers').select(['id', 'name', 'tenant_id']).execute();
+    for (const c of allCustomers) {
+      MinioIntegration.ensureCustomerFolder(c.tenant_id, c.id, c.name);
+    }
+    const allShipments = await db.selectFrom('shipment_cases')
+      .select(['id', 'customer_id', 'tenant_id', 'bl_number', 'awb_number', 'ref_number'])
+      .execute();
+    for (const s of allShipments) {
+      const folder = (s as any).bl_number || (s as any).awb_number || s.ref_number || s.id;
+      MinioIntegration.ensureFolder(s.tenant_id, s.customer_id, folder);
+    }
+    console.log(`✅ Storage folders created (${allCustomers.length} customers, ${allShipments.length} shipments)`);
+
+    console.log('\n🎉 Hudumika seed complete!');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('  Login credentials (all use password123):');
-    console.log('  superadmin@clearos.io → SUPER_ADMIN  ← platform superadmin');
+    console.log('  superadmin@hudumika.tz → SUPER_ADMIN  ← platform superadmin');
     console.log('  admin@msomi.co        → TENANT_ADMIN (Admin)');
     console.log('  manager@msomi.co      → MANAGER');
     console.log('  senior@msomi.co       → SENIOR  (Fredrick Msemwa)');

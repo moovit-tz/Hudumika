@@ -11,24 +11,59 @@ export async function notificationRoutes(fastify: FastifyInstance) {
    */
   fastify.get('/', async (request, reply) => {
     const user = request.user;
+    // Dropdown keeps its historical 50-row cap by default; the full-page
+    // Notification Centre (apps/web/src/pages/BlissNotifications.tsx) passes
+    // a real limit/offset to page through everything instead of only ever
+    // seeing the 50 most recent — that mismatch was why the "Unread" tab
+    // count could exceed what the dropdown actually showed.
+    const { limit: limitRaw, offset: offsetRaw, unread_only } = request.query as { limit?: string; offset?: string; unread_only?: string };
+    const limit = Math.min(parseInt(limitRaw ?? '50', 10) || 50, 200);
+    const offset = Math.max(parseInt(offsetRaw ?? '0', 10) || 0, 0);
 
     return withTenant(user.tenant_id, async (trx) => {
+      // Only surface in-app-relevant rows: legacy direct inserts use channel=null,
+      // matrix-driven inserts (NotificationService.triggerNotification) set channel='IN_APP'
+      // for the bell row and leave WHATSAPP/EMAIL rows as delivery-log-only (no title/link).
+      const inAppFilter = (eb: any) => eb.or([eb('channel', 'is', null), eb('channel', '=', 'IN_APP')]);
+
       let q = trx
         .selectFrom('notifications')
         .selectAll()
-        .where('title', 'is not', null); // Only in-app notifications have a title
+        .where('title', 'is not', null) // Only in-app notifications have a title
+        .where(inAppFilter);
+
+      let countQ = trx
+        .selectFrom('notifications')
+        .select(trx.fn.count('id').as('cnt'))
+        .where('read', '=', false)
+        .where('title', 'is not', null)
+        .where(inAppFilter);
+
+      let totalQ = trx
+        .selectFrom('notifications')
+        .select(trx.fn.count('id').as('cnt'))
+        .where('title', 'is not', null)
+        .where(inAppFilter);
 
       if (user.role === 'CUSTOMER') {
         q = q.where('customer_id', '=', user.sub);
+        countQ = countQ.where('customer_id', '=', user.sub);
+        totalQ = totalQ.where('customer_id', '=', user.sub);
       } else {
         q = q.where('user_id', '=', user.sub);
+        countQ = countQ.where('user_id', '=', user.sub);
+        totalQ = totalQ.where('user_id', '=', user.sub);
       }
 
-      const list = await q.orderBy('created_at', 'desc').limit(50).execute();
+      if (unread_only === 'true') q = q.where('read', '=', false);
 
-      const unread_count = list.filter((n) => !n.read).length;
+      const list = await q.orderBy('created_at', 'desc').limit(limit).offset(offset).execute();
+      const countResult = await countQ.executeTakeFirst();
+      const totalResult = await totalQ.executeTakeFirst();
+      const unread_count = Number(countResult?.cnt ?? 0);
+      const total_count = Number(totalResult?.cnt ?? 0);
 
-      return { notifications: list, unread_count };
+      return { notifications: list, unread_count, total_count };
     });
   });
 
@@ -44,7 +79,8 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         .selectFrom('notifications')
         .select(trx.fn.count('id').as('cnt'))
         .where('read', '=', false)
-        .where('title', 'is not', null);
+        .where('title', 'is not', null)
+        .where((eb) => eb.or([eb('channel', 'is', null), eb('channel', '=', 'IN_APP')]));
 
       if (user.role === 'CUSTOMER') {
         q = q.where('customer_id', '=', user.sub);
@@ -117,11 +153,15 @@ export async function notificationRoutes(fastify: FastifyInstance) {
     const body = request.body as {
       user_id: string;
       tenant_id?: string;
+      app?: string;
       type?: string;
       title: string;
       message?: string;
       link?: string;
       metadata?: any;
+      entity_type?: string;
+      entity_id?: string;
+      entity_label?: string;
     };
 
     const tenant_id = body.tenant_id ?? user.tenant_id;
@@ -132,11 +172,15 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         .values({
           tenant_id,
           user_id: body.user_id,
+          app: body.app ?? 'clearos',
           type: body.type ?? 'info',
           title: body.title,
           message: body.message ?? null,
           link: body.link ?? null,
           metadata: body.metadata ? JSON.stringify(body.metadata) : '{}',
+          entity_type: body.entity_type ?? null,
+          entity_id: body.entity_id ?? null,
+          entity_label: body.entity_label ?? null,
           // legacy fields — null for in-app notifications
           shipment_id: null,
           customer_id: null,

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { KPIResponse } from '@clearos/types';
+import type { KPIResponse } from '@hudumika/types';
 
 interface KPIBarProps {
   kpis: KPIResponse | null;

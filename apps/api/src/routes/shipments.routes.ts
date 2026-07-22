@@ -1,4 +1,4 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { ShipmentService } from '../services/shipment.service.js';
@@ -7,14 +7,15 @@ import { requireRole } from '../middleware/rbac.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { EmailIntegration } from '../integrations/email.js';
 import { MinioIntegration } from '../integrations/minio.js';
-import type { CreateShipmentInput, AdvanceStageInput, ClearanceStage } from '@hudumika/types';
+import { NotificationService } from '../services/notification.service.js';
+import type { CreateShipmentInput, AdvanceStageInput } from '@hudumika/types';
 import { buildMockResult, trackViaShipsGo, trackViaShip24 } from './tracker.routes.js';
 import { sql } from 'kysely';
 
 export async function shipmentRoutes(fastify: FastifyInstance) {
   // Enforce authentication on all routes in this file
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('clearos'));
+  fastify.addHook('preHandler', requireEntitlement('clearos'));
 
   /**
    * GET /v1/shipments
@@ -25,7 +26,14 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const query = request.query as any;
 
     return withTenant(user.tenant_id, async (trx) => {
-      let q = trx.selectFrom('shipment_cases').selectAll();
+      // Explicit tenant filter — withTenant()'s SET LOCAL app.tenant_id only
+      // enforces RLS for a non-owner DB role; this connection uses a role
+      // that owns the tables (see db/client.ts), which Postgres always lets
+      // bypass RLS regardless of session settings. Every query here must
+      // filter tenant_id itself rather than relying on RLS alone.
+      let q = trx.selectFrom('shipment_cases').selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('deleted_at', 'is', null);
 
       // Enforce RBAC filters
       if (user.role === 'OFFICER') {
@@ -39,7 +47,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         q = q.where('customer_id', '=', query.customer_id);
       }
       if (query.stage) {
-        q = q.where('stage', '=', query.stage as ClearanceStage);
+        q = q.where('stage', '=', query.stage as string);
       }
       if (query.type) {
         q = q.where('type', '=', query.type);
@@ -51,6 +59,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
             eb('ref_number', 'ilike', searchVal),
             eb('goods_desc', 'ilike', searchVal),
             eb('bl_number', 'ilike', searchVal),
+            eb('awb_number', 'ilike', searchVal),
           ])
         );
       }
@@ -125,6 +134,10 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     }
 
     if (query.stage) filters.stage = query.stage;
+    // 'legacy' means shipments still on the fixed stage system (workflow_id
+    // IS NULL); any other value scopes to that specific custom workflow.
+    if (query.workflow_id === 'legacy') filters.workflow_id = null;
+    else if (query.workflow_id) filters.workflow_id = query.workflow_id;
 
     const groupedData = await ShipmentService.listGroupedByCustomer(user.tenant_id, filters);
     return { data: groupedData };
@@ -154,9 +167,85 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     // Resolve customer name
     return withTenant(user.tenant_id, async (trx) => {
       const customer = shipment.customer_id
-        ? await trx.selectFrom('customers').select(['id', 'name']).where('id', '=', shipment.customer_id).executeTakeFirst()
+        ? await trx.selectFrom('customers').select(['id', 'name']).where('id', '=', shipment.customer_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst()
         : null;
       return { ...shipment, customer_name: customer?.name ?? null };
+    });
+  });
+
+  /**
+   * DELETE /v1/shipments/:id
+   * Soft-delete a shipment case — sets deleted_at, keeps the row and every
+   * child record (documents, expenses, messages, stage history) intact for
+   * audit purposes, and removes it from every listing/detail view.
+   */
+  fastify.delete('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const deleted = await trx
+        .updateTable('shipment_cases')
+        .set({ deleted_at: new Date(), deleted_by: user.sub, updated_at: new Date() })
+        .where('id', '=', id)
+        .where('tenant_id', '=', user.tenant_id)
+        .where('deleted_at', 'is', null)
+        .returningAll()
+        .executeTakeFirst();
+      if (!deleted) return reply.status(404).send({ error: 'Shipment not found' });
+      reply.status(204);
+      return null;
+    });
+  });
+
+  /**
+   * GET /v1/shipments/:id/linked
+   * Real cross-app data tied to this shipment: sales invoices (finance),
+   * demurrage containers, AWB/BL tracker snapshots, and the HuduFreight
+   * transport trip — each app's own table, joined here by shipment_id (or
+   * ref_number for invoices, which link by text ref rather than FK).
+   * Every sub-query is wrapped since a tenant may not have that app
+   * provisioned at all.
+   */
+  fastify.get('/:id/linked', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const shipment = await trx.selectFrom('shipment_cases')
+        .select(['id', 'ref_number'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).where('deleted_at', 'is', null)
+        .executeTakeFirst();
+      if (!shipment) return reply.status(404).send({ error: 'Shipment not found' });
+
+      const [invoices, containers, trackerSnapshots, trips] = await Promise.all([
+        trx.selectFrom('sales_invoices')
+          .select(['id', 'invoice_number', 'status', 'due_date', 'tra_total_incl'])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('shipment_ref', '=', shipment.ref_number)
+          .orderBy('created_at', 'desc')
+          .execute().catch(() => []),
+        trx.selectFrom('container_tracking')
+          .select(['id', 'container_number', 'demurrage_days', 'demurrage_cost', 'demurrage_currency', 'status'])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('shipment_id', '=', id)
+          .execute().catch(() => []),
+        trx.selectFrom('tracking_snapshots')
+          .select(['id', 'tracking_type', 'tracking_number', 'status', 'eta', 'progress_pct'])
+          .where('tenant_id', '=', user.tenant_id)
+          .where('shipment_id', '=', id)
+          .execute().catch(() => []),
+        trx.selectFrom('trips')
+          .leftJoin('vehicles', 'vehicles.id', 'trips.vehicle_id')
+          .leftJoin('drivers', 'drivers.id', 'trips.driver_id')
+          .select(['trips.id', 'trips.status', 'trips.job_type', 'trips.scheduled_start', 'trips.actual_start',
+                    'vehicles.name as vehicle_name', 'vehicles.plate_number', 'drivers.name as driver_name'])
+          .where('trips.tenant_id', '=', user.tenant_id)
+          .where('trips.shipment_id', '=', id)
+          .orderBy('trips.created_at', 'desc')
+          .execute().catch(() => []),
+      ]);
+
+      return { invoices, demurrage_containers: containers, tracker_snapshots: trackerSnapshots, transport_trips: trips };
     });
   });
 
@@ -343,7 +432,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id/stage', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { stage, note, blocker } = request.body as AdvanceStageInput & { stage: ClearanceStage };
+    const { stage, note, blocker } = request.body as AdvanceStageInput & { stage: string };
 
     if (!stage) {
       return reply.status(400).send({ error: 'Missing target stage parameter' });
@@ -380,7 +469,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
    * PATCH /v1/shipments/:id
    * Update editable fields: BL, vessel, TANSAD, containers, ETA, notes, etc.
    */
-  fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+  fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     const body = request.body as Record<string, any>;
@@ -390,6 +479,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       'origin_port', 'port_of_loading', 'dest_port', 'port_of_discharge',
       'eta', 'free_time_end', 'sla_deadline', 'assigned_to',
       'gross_weight_kg', 'cif_value_usd', 'container_numbers', 'internal_notes',
+      'whatsapp_bot_active',
     ];
 
     const patch: Record<string, any> = { updated_at: new Date() };
@@ -402,12 +492,14 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     }
 
     return withTenant(user.tenant_id, async (trx) => {
-      const prev = await trx.selectFrom('shipment_cases').select(['assigned_to']).where('id', '=', id).executeTakeFirst();
+      const prev = await trx.selectFrom('shipment_cases').select(['assigned_to'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
 
       const updated = await trx
         .updateTable('shipment_cases')
         .set(patch)
         .where('id', '=', id)
+        .where('tenant_id', '=', user.tenant_id)
         .returningAll()
         .executeTakeFirst();
 
@@ -622,6 +714,65 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * GET /v1/shipments/:id/listeners
+   * Staff/customer contacts tagged to this shipment for notifications
+   * ("Tag Staff" / "Add Customer" on the Shipment Detail sidebar).
+   */
+  fastify.get('/:id/listeners', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx.selectFrom('shipment_listeners').selectAll()
+        .where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .orderBy('created_at', 'asc').execute();
+      return { data: rows.map((l) => ({ ...l, channels: typeof l.channels === 'string' ? JSON.parse(l.channels) : l.channels })) };
+    });
+  });
+
+  /**
+   * POST /v1/shipments/:id/listeners
+   * Tags one or more staff/customer contacts. Body: { type: 'internal'|'customer',
+   * people: [{ id?, name, role? }], channels: string[] }. Re-assigning who's
+   * tagged/notified is a management decision — same role gate as PATCH /:id.
+   */
+  fastify.post('/:id/listeners', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { type, people, channels } = request.body as { type: 'internal' | 'customer'; people: { id?: string; name: string; role?: string }[]; channels: string[] };
+    if (type !== 'internal' && type !== 'customer') return reply.status(400).send({ error: 'type must be internal or customer' });
+    if (!Array.isArray(people) || people.length === 0) return reply.status(400).send({ error: 'people is required' });
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx.insertInto('shipment_listeners').values(
+        people.map((p) => ({
+          tenant_id: user.tenant_id, shipment_id: id, type,
+          user_id: p.id || null, name: p.name, role: p.role || null,
+          channels: JSON.stringify(channels || []), created_by: user.sub,
+        }))
+      ).returningAll().execute();
+      return { data: rows.map((l) => ({ ...l, channels: typeof l.channels === 'string' ? JSON.parse(l.channels) : l.channels })) };
+    });
+  });
+
+  /**
+   * PATCH /v1/shipments/:id/listeners/:listenerId
+   * Updates a single listener's notification channel preferences. Body: { channels: string[] }.
+   */
+  fastify.patch('/:id/listeners/:listenerId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
+    const user = request.user;
+    const { id, listenerId } = request.params as { id: string; listenerId: string };
+    const { channels } = request.body as { channels: string[] };
+    if (!Array.isArray(channels)) return reply.status(400).send({ error: 'channels must be an array' });
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.updateTable('shipment_listeners')
+        .set({ channels: JSON.stringify(channels) })
+        .where('id', '=', listenerId).where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirst();
+      if (!row) return reply.status(404).send({ error: 'Listener not found' });
+      return { ...row, channels: typeof row.channels === 'string' ? JSON.parse(row.channels) : row.channels };
+    });
+  });
+
+  /**
    * PATCH /v1/shipments/:id/tasks/:taskId
    */
   fastify.patch('/:id/tasks/:taskId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
@@ -723,7 +874,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
           type:         'mention',
           title:        `${user.name || 'Someone'} mentioned you in a task`,
           message:      content.trim().slice(0, 150),
-          link:         `/shipments/${shipmentId}?tab=tasks`,
+          link:         `/clearance/${shipmentId}?tab=tasks`,
           metadata:     JSON.stringify({ task_id: taskId, comment_id: comment.id, mention_type: 'task_comment' }),
           channel:      'IN_APP',
           customer_id:  null,
@@ -1069,6 +1220,10 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
           })
         );
       });
+
+      NotificationService.notifyListeners(user.tenant_id, id, 'MESSAGE_RECEIVED', {
+        messageContent: content,
+      }).catch(console.error);
 
       return newMessage;
     });
@@ -1425,12 +1580,30 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/co2', async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { origin, destination, weight_kg, mode } = request.body as { 
-      origin: string; destination: string; weight_kg: number; mode: 'AIR' | 'SEA' | 'ROAD' | 'RAIL' 
-    };
+    const body = (request.body ?? {}) as Partial<{
+      origin: string; destination: string; weight_kg: number; mode: 'AIR' | 'SEA' | 'ROAD' | 'RAIL';
+    }>;
 
+    // Pull straight from the shipment's own stored fields — a caller only
+    // needs to override something if the auto-derived value is wrong, not
+    // re-type origin/destination/weight that the shipment already has.
+    let { origin, destination, weight_kg, mode } = body;
     if (!origin || !destination || !weight_kg || !mode) {
-      return reply.status(400).send({ error: 'Missing required CO2 calculation fields' });
+      const shipment = await withTenant(user.tenant_id, (trx) =>
+        trx.selectFrom('shipment_cases')
+          .select(['type', 'origin_port', 'dest_port', 'port_of_loading', 'port_of_discharge', 'gross_weight_kg'])
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+          .executeTakeFirst()
+      );
+      if (!shipment) return reply.status(404).send({ error: 'Shipment not found' });
+      origin      = origin      ?? shipment.port_of_loading   ?? shipment.origin_port ?? undefined;
+      destination = destination ?? shipment.port_of_discharge ?? shipment.dest_port   ?? undefined;
+      weight_kg   = weight_kg   ?? (shipment.gross_weight_kg ? Number(shipment.gross_weight_kg) : undefined);
+      mode        = mode        ?? (shipment.type === 'AIR' ? 'AIR' : shipment.type === 'ROAD' ? 'ROAD' : shipment.type === 'RAIL' ? 'RAIL' : 'SEA');
+    }
+
+    if (!origin || !destination || !weight_kg) {
+      return reply.status(400).send({ error: 'This shipment is missing origin, destination, or gross weight — add those on the Edit page first, or provide them for a one-off calculation.' });
     }
 
     try {
@@ -1439,7 +1612,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       });
       return result;
     } catch (err: any) {
-      if (err?.message?.startsWith('Unknown port/airport code')) {
+      if (err?.message?.startsWith('Could not resolve')) {
         return reply.status(400).send({ error: err.message });
       }
       request.log.error(err);

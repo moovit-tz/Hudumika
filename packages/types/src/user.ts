@@ -1,4 +1,35 @@
-// ─── ClearOS User & Auth Types ───────────────────────────────
+// ─── Hudumika User & Auth Types ───────────────────────────────
+
+// ── Hudumika App IDs ─────────────────────────────────────────
+
+export type AppId =
+  | 'clearos'    // Customs Clearance & Freight
+  | 'finops'     // Finance & Accounts
+  | 'complyos'   // Compliance
+  | 'bliss'      // Support & Helpdesk
+  | 'onepi'      // People & HR
+  | 'onesite'    // Web & CMS
+  | 'oneid'      // Identity & Access
+  | 'tracking'   // Vehicle GPS & Geospatial Tracking
+  | 'cloud'      // File Storage
+  | 'ai'         // AI Assistant
+  | 'workspace'  // Tenant Admin & Settings
+  | 'admin'      // Platform Super Admin Console
+  | 'email'      // Hudumika Email
+  | 'crm'        // Customers & Leads
+  | 'contacts'   // Google Contacts Clone
+  | 'store'      // Hudumika Marketplace — add-ons & plugins
+  | 'calendar'   // Calendar — free app
+  | 'tasks'      // Tasks / To-do — free app
+  | 'demurrage'    // Container demurrage tariffs & tracking (split out of ClearOS)
+  | 'cargotracker'; // AWB/BL shipment tracking (split out of ClearOS)
+
+export const ALL_APP_IDS: AppId[] = [
+  'clearos', 'finops', 'complyos', 'bliss',
+  'onepi', 'onesite', 'oneid', 'tracking', 'cloud', 'ai', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
+  'calendar', 'tasks',
+  'demurrage', 'cargotracker',
+];
 
 // ── Roles ────────────────────────────────────────────────────
 export type UserRole =
@@ -24,6 +55,19 @@ export const ALL_ROLES: UserRole[] = [
 
 // ── User ─────────────────────────────────────────────────────
 
+// Optional self-service profile fields with no dedicated columns — stored as
+// one JSONB blob on users.profile rather than one column each, since none of
+// these are ever filtered/joined on.
+export interface UserProfileFields {
+  bio?: string;
+  job_title?: string;
+  city?: string;
+  country?: string;
+  timezone?: string;
+  language?: string;
+  website?: string;
+}
+
 export interface User {
   id: string;
   tenant_id: string;
@@ -34,7 +78,9 @@ export interface User {
   phone?: string;
   avatar_url?: string;        // base64 or URL of profile photo
   avatar_initials?: string;   // computed from name, e.g. 'MK'
+  profile?: UserProfileFields;
   location_id?: string;       // assigned location for officers
+  app_permissions?: AppId[];  // null/undefined = access to all apps; array = restricted set
   active: boolean;
   last_login_at?: string;
   created_at: string;
@@ -58,16 +104,20 @@ export type SafeUser = Omit<User, 'password_hash'>;
  */
 export type TenantPlan =
   | 'starter'
-  | 'operations'
-  | 'finance'
+  | 'growth'
+  | 'scale'
   | 'enterprise'
-  | 'professional'; // @deprecated — treated as finance
+  | 'operations' // legacy
+  | 'finance'    // legacy
+  | 'professional'; // legacy
 
 export const PLAN_LEVELS: Record<TenantPlan, number> = {
   starter:      1,
   operations:   2,
+  growth:       2,
   professional: 3, // legacy alias
-  finance:      3,
+  finance:      3, // legacy alias
+  scale:        3,
   enterprise:   4,
 };
 
@@ -83,8 +133,10 @@ export function planHas(userPlan: TenantPlan, required: TenantPlan): boolean {
 export const PLAN_ROLES: Record<TenantPlan, UserRole[]> = {
   starter:      ['ADMIN', 'SALES', 'CUSTOMER'],
   operations:   ['ADMIN', 'SALES', 'CUSTOMER', 'JUNIOR', 'SENIOR'],
+  growth:       ['ADMIN', 'SALES', 'CUSTOMER', 'JUNIOR', 'SENIOR'],
   professional: ['ADMIN', 'SALES', 'CUSTOMER', 'JUNIOR', 'SENIOR', 'FINANCE', 'MANAGER'],
   finance:      ['ADMIN', 'SALES', 'CUSTOMER', 'JUNIOR', 'SENIOR', 'FINANCE', 'MANAGER'],
+  scale:        ['ADMIN', 'SALES', 'CUSTOMER', 'JUNIOR', 'SENIOR', 'FINANCE', 'MANAGER'],
   enterprise:   ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR', 'JUNIOR', 'CUSTOMER'],
 };
 
@@ -126,6 +178,15 @@ export interface Customer {
   active: boolean;
   created_at: string;
   updated_at: string;
+  // BRELA-derived company profile fields — only populated for companies
+  // imported via ComplyOS's BRELA Search ('brela_import'), left undefined
+  // for ordinary manually-created customers.
+  source?: string;                   // 'manual' | 'brela_import'
+  registry_number?: string;          // BRELA registration/incorporation number (dedup key)
+  entity_type?: string;              // e.g. "Private Limited Company", "Business Name"
+  registration_status?: string;      // e.g. "Registered", "Pending Annual Return"
+  registered_address?: string;
+  incorporation_date?: string;
 }
 
 // ── Auth Types ───────────────────────────────────────────────

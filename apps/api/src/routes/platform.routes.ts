@@ -89,4 +89,77 @@ export async function platformRoutes(fastify: FastifyInstance) {
 
     return mergedTokens;
   });
+
+  // Same sentinel-row pattern as branding/design-tokens above, stored under a
+  // sibling 'seo' key. GET is public — tracking tags and verification meta
+  // tags must render on pre-login pages (/signup, /track/shared/:token) too.
+  fastify.get('/seo', async (request, reply) => {
+    const row = await db.selectFrom('tenant_settings')
+      .select('settings')
+      .where('tenant_id', '=', GLOBAL_TENANT_ID)
+      .executeTakeFirst();
+    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+    return settings.seo || {};
+  });
+
+  // Writes execute arbitrary script platform-wide via customHeadScripts/
+  // customBodyScripts by design (that's the point of a tag-manager feature) —
+  // SUPER_ADMIN-only must never be loosened to a tenant/company-admin role.
+  fastify.put('/seo', {
+    preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
+  }, async (request, reply) => {
+    const body = request.body as Record<string, any>;
+
+    const row = await db.selectFrom('tenant_settings')
+      .select('settings')
+      .where('tenant_id', '=', GLOBAL_TENANT_ID)
+      .executeTakeFirst();
+    const existing = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+    const existingSeo = existing.seo || {};
+
+    const mergedSeo = { ...existingSeo, ...body };
+    const patch = JSON.stringify({ seo: mergedSeo });
+
+    const exists = await db.selectFrom('tenant_settings').select('id').where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
+    if (exists) {
+      await sql`UPDATE tenant_settings SET settings = settings || ${patch}::jsonb, updated_at = NOW() WHERE tenant_id = ${GLOBAL_TENANT_ID}`.execute(db);
+    } else {
+      await db.insertInto('tenant_settings').values({ tenant_id: GLOBAL_TENANT_ID, settings: patch }).execute();
+    }
+
+    return mergedSeo;
+  });
+
+  // ── Workspaces — platform-wide application list
+  fastify.get('/workspaces', async (request, reply) => {
+    const row = await db.selectFrom('tenant_settings')
+      .select('settings')
+      .where('tenant_id', '=', GLOBAL_TENANT_ID)
+      .executeTakeFirst();
+    const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+    return settings['workspaces'] || [];
+  });
+
+  fastify.put('/workspaces', {
+    preHandler: [fastify.authenticate, requireRole('SUPER_ADMIN')],
+  }, async (request, reply) => {
+    const body = request.body as any[];
+
+    const row = await db.selectFrom('tenant_settings')
+      .select('settings')
+      .where('tenant_id', '=', GLOBAL_TENANT_ID)
+      .executeTakeFirst();
+    
+    // We just overwrite the existing array with the new one
+    const patch = JSON.stringify({ 'workspaces': body });
+
+    const exists = await db.selectFrom('tenant_settings').select('id').where('tenant_id', '=', GLOBAL_TENANT_ID).executeTakeFirst();
+    if (exists) {
+      await sql`UPDATE tenant_settings SET settings = settings || ${patch}::jsonb, updated_at = NOW() WHERE tenant_id = ${GLOBAL_TENANT_ID}`.execute(db);
+    } else {
+      await db.insertInto('tenant_settings').values({ tenant_id: GLOBAL_TENANT_ID, settings: patch }).execute();
+    }
+
+    return body;
+  });
 }

@@ -1,12 +1,18 @@
-﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch } from '../lib/api.js';
-import { StatusPill } from '@clearos/ui';
+import { StatusPill } from '@hudumika/ui';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
-import { PageHeader } from '../components/PageHeader.jsx';
-import { useExpenses } from '../data/expenseData.js';
+import { PageHeader } from '../components/PageHeader.js';
+import { mapApiInvoice, invoiceTotals } from './Billing.js';
+import type { ExpenseListItem } from './Expenses.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuCheckboxItem,
+} from '../components/ui/dropdown-menu.js';
 
 /* ── Types ── */
 interface Customer {
@@ -34,7 +40,7 @@ interface Customer {
 }
 
 /* ── Avatar helper ── */
-const AVATAR_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#1a7f37','#9a6700','#cf222e','#d05c30'];
+const AVATAR_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30'];
 function initials(name: string) {
   return name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 }
@@ -111,7 +117,7 @@ function TinChip({ tin }: { tin?: string }) {
 /* ── Table header cell ── */
 function Th({ children, align = 'left', width }: { children?: React.ReactNode; align?: 'left'|'right'|'center'; width?: number | string }) {
   return (
-    <th style={{ padding: '10px 14px', textAlign: align, fontSize: 11.5, fontWeight: 600, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap', width }}>
+    <th style={{ textAlign: align, width }}>
       {children}
     </th>
   );
@@ -119,37 +125,20 @@ function Th({ children, align = 'left', width }: { children?: React.ReactNode; a
 
 /* ── Actions dropdown ── */
 function ActionsMenu({ onView, onEdit, onSuspend, onDelete }: { onView: () => void; onEdit: () => void; onSuspend: () => void; onDelete: () => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function close(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }
-    if (open) document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, [open]);
-
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
-      <button aria-label="More actions" onClick={e => { e.stopPropagation(); setOpen(o => !o); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6, color: 'var(--ink3)', display: 'flex', alignItems: 'center' }}>
-        <Icon name="moreHorizontal" size={16} strokeWidth={1.75} />
-      </button>
-      {open && (
-        <div style={{ position: 'absolute', right: 0, top: '100%', zIndex: 50, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: 'var(--shadow-lg)', minWidth: 150, padding: '4px 0', marginTop: 4 }}>
-          {[
-            { label: 'View Profile', icon: 'eye'   as IconName, action: onView    },
-            { label: 'Edit',         icon: 'edit'  as IconName, action: onEdit    },
-            { label: 'Suspend',      icon: 'lock'  as IconName, action: onSuspend },
-            { label: 'Delete',       icon: 'trash' as IconName, action: onDelete, danger: true  },
-          ].map(item => (
-            <button key={item.label} onClick={() => { item.action(); setOpen(false); }} style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: item.danger ? 'var(--red)' : 'var(--ink)', fontFamily: 'var(--font)', textAlign: 'left' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
-              onMouseLeave={e => (e.currentTarget.style.background = '')}>
-              <Icon name={item.icon} size={13} strokeWidth={1.75} /> {item.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button aria-label="More actions" onClick={e => e.stopPropagation()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6, color: 'var(--ink3)', display: 'flex', alignItems: 'center' }}>
+          <Icon name="moreHorizontal" size={16} strokeWidth={1.75} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40" onClick={e => e.stopPropagation()}>
+        <DropdownMenuItem onClick={onView} className="cursor-pointer"><Icon name="eye" size={13} className="text-muted-foreground" /> View Profile</DropdownMenuItem>
+        <DropdownMenuItem onClick={onEdit} className="cursor-pointer"><Icon name="edit" size={13} className="text-muted-foreground" /> Edit</DropdownMenuItem>
+        <DropdownMenuItem onClick={onSuspend} className="cursor-pointer"><Icon name="lock" size={13} className="text-muted-foreground" /> Suspend</DropdownMenuItem>
+        <DropdownMenuItem onClick={onDelete} className="cursor-pointer text-destructive focus:text-destructive"><Icon name="trash" size={13} /> Delete</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -180,22 +169,21 @@ function HeroStat({ label, value }: { label: string; value: string | number }) {
 ══════════════════════════════════════════ */
 export const Customers: React.FC = () => {
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
   const [view, setView]           = useState<'list' | 'profile'>('list');
   const [searchParams] = useSearchParams();
   const deepLinkId = searchParams.get('id');
 
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const expenses                  = useExpenses();
+  const [expenses, setExpenses]   = useState<ExpenseListItem[]>([]);
+
+  useEffect(() => {
+    apiFetch('/v1/finance/expenses').then((res: any) => setExpenses(res?.data ?? [])).catch(() => {});
+  }, []);
   const [loading, setLoading]     = useState(true);
   const [search, setSearch]       = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [colOpen, setColOpen]      = useState(false);
   const [visibleCols, setVisibleCols] = useState({ email: true, phone: true, contact: true, tin: true, joined: true });
   const [selected, setSelected]   = useState<Customer | null>(null);
-  const filterRef = useRef<HTMLDivElement>(null);
-  const colRef    = useRef<HTMLDivElement>(null);
 
   /* Profile navigation */
   const [mainTab, setMainTab]     = useState('overview');
@@ -274,8 +262,10 @@ export const Customers: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (selected && mainTab === 'shipments') loadShipments(selected.id);
-  }, [selected, mainTab, loadShipments]);
+    // Loaded as soon as a customer is selected (not gated to the Shipments
+    // tab) since Overview's KPIs and Carbon Footprint card need it immediately.
+    if (selected) loadShipments(selected.id);
+  }, [selected, loadShipments]);
 
   const loadFinance = useCallback(async (customerId: string) => {
     setFinLoading(true);
@@ -290,8 +280,10 @@ export const Customers: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (selected && mainTab === 'finance') loadFinance(selected.id);
-  }, [selected, mainTab, loadFinance]);
+    // Loaded as soon as a customer is selected — Overview's Invoices/Outstanding
+    // KPIs need real totals immediately, not only once the Finance tab is opened.
+    if (selected) loadFinance(selected.id);
+  }, [selected, loadFinance]);
 
   const loadTickets = useCallback(async (customerId: string) => {
     setSupplyLoading(true);
@@ -334,15 +326,6 @@ export const Customers: React.FC = () => {
       setContactForm({ name: '', email: '', phone: '', role: '' });
     } catch (err: any) { alert(err.message || 'Failed to save contact'); } finally { setContactSaving(false); }
   }
-
-  useEffect(() => {
-    function onClickOutside(e: MouseEvent) {
-      if (filterRef.current && !filterRef.current.contains(e.target as Node)) setFilterOpen(false);
-      if (colRef.current    && !colRef.current.contains(e.target as Node))    setColOpen(false);
-    }
-    document.addEventListener('mousedown', onClickOutside);
-    return () => document.removeEventListener('mousedown', onClickOutside);
-  }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -447,10 +430,13 @@ export const Customers: React.FC = () => {
           subtitle={`${customers.length.toLocaleString()} customers registered in this workspace.`}
           actions={
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <button type="button" onClick={() => exportCSV(filtered)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)' }}>
-                <Icon name="download" size={15} strokeWidth={2} /> Export
+              <button type="button" onClick={() => exportCSV(filtered)} className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)' }}>
+                <Icon name="download" size={14} strokeWidth={2} /> Export CSV
               </button>
-              <button type="button" onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 9, border: 'none', background: '#4f46e5', cursor: 'pointer', fontSize: 13.5, fontWeight: 700, color: '#fff', fontFamily: 'var(--font)' }}>
+              <button type="button" className="btn btn-secondary btn-sm" style={{ fontFamily: 'var(--font)' }}>
+                Import
+              </button>
+              <button type="button" onClick={() => setShowCreate(true)} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'var(--teal)', fontFamily: 'var(--font)' }}>
                 <Icon name="plus" size={15} strokeWidth={2.5} color="#fff" /> Add Customer
               </button>
             </div>
@@ -458,19 +444,22 @@ export const Customers: React.FC = () => {
         />
 
         {/* Main card */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+        <div className="crm-card">
 
           {/* Toolbar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
+          <div className="crm-toolbar">
             {/* Bulk actions */}
-            <select value={bulkAction} onChange={e => setBulkAction(e.target.value)} style={{ padding: '6px 28px 6px 10px', border: '1.5px solid var(--border)', borderRadius: 7, fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)', cursor: 'pointer', appearance: 'none', backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'10\' height=\'6\'%3E%3Cpath d=\'M0 0l5 6 5-6z\' fill=\'%2364748b\'/%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center' }}>
-              <option value="">Bulk Action</option>
-              <option value="delete">Delete Selected</option>
-              <option value="export">Export Selected</option>
-              <option value="active">Mark as Active</option>
-              <option value="inactive">Mark as Inactive</option>
-              <option value="suspend">Suspend</option>
-            </select>
+            <Select value={bulkAction || '__none__'} onValueChange={v => setBulkAction(v === '__none__' ? '' : v)}>
+              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Bulk Action</SelectItem>
+                <SelectItem value="delete">Delete Selected</SelectItem>
+                <SelectItem value="export">Export Selected</SelectItem>
+                <SelectItem value="active">Mark as Active</SelectItem>
+                <SelectItem value="inactive">Mark as Inactive</SelectItem>
+                <SelectItem value="suspend">Suspend</SelectItem>
+              </SelectContent>
+            </Select>
             <button type="button" onClick={handleBulkApply} disabled={!bulkAction || selectedIds.length === 0}
               style={{ padding: '6px 14px', border: '1.5px solid var(--border)', borderRadius: 7, background: bulkAction && selectedIds.length > 0 ? 'var(--teal)' : 'var(--white)', cursor: bulkAction && selectedIds.length > 0 ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: bulkAction && selectedIds.length > 0 ? '#fff' : 'var(--ink3)', transition: 'all .15s' }}>
               Apply
@@ -494,80 +483,73 @@ export const Customers: React.FC = () => {
             </div>
 
             {/* Filter */}
-            <div ref={filterRef} style={{ position: 'relative' }}>
-              <button type="button" onClick={() => { setFilterOpen(o => !o); setColOpen(false); }}
-                style={{ width: 34, height: 34, border: `1.5px solid ${filterOpen || statusFilter !== 'all' ? 'var(--teal)' : 'var(--border)'}`, background: filterOpen || statusFilter !== 'all' ? 'var(--teal-l)' : 'none', borderRadius: 7, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: filterOpen || statusFilter !== 'all' ? 'var(--teal)' : 'var(--ink3)', position: 'relative' }}>
-                <Icon name="filter" size={15} strokeWidth={1.75} />
-                {statusFilter !== 'all' && <span style={{ position: 'absolute', top: 5, right: 5, width: 6, height: 6, borderRadius: '50%', background: 'var(--teal)', border: '1.5px solid var(--white)' }} />}
-              </button>
-              {filterOpen && (
-                <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 60, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: '0 8px 30px rgba(0,0,0,.12)', minWidth: 180, padding: '8px 0', overflow: 'hidden' }}>
-                  <div style={{ padding: '6px 14px 8px', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Status</div>
-                  {[
-                    { value: 'all',       label: 'All Statuses' },
-                    { value: 'Active',    label: 'Active' },
-                    { value: 'Inactive',  label: 'Inactive' },
-                    { value: 'Suspended', label: 'Suspended' },
-                  ].map(opt => (
-                    <button key={opt.value} type="button"
-                      onClick={() => { setStatusFilter(opt.value); setPage(1); setFilterOpen(false); }}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 14px', border: 'none', background: statusFilter === opt.value ? 'var(--teal-l)' : 'none', color: statusFilter === opt.value ? 'var(--teal)' : 'var(--ink)', fontSize: 13, fontFamily: 'var(--font)', cursor: 'pointer', fontWeight: statusFilter === opt.value ? 700 : 400 }}
-                      onMouseEnter={e => { if (statusFilter !== opt.value) e.currentTarget.style.background = 'var(--bg)'; }}
-                      onMouseLeave={e => { if (statusFilter !== opt.value) e.currentTarget.style.background = ''; }}>
-                      {statusFilter === opt.value && <Icon name="check" size={12} strokeWidth={2.5} />}
-                      {opt.label}
-                    </button>
-                  ))}
-                  {statusFilter !== 'all' && (
-                    <>
-                      <div style={{ height: 1, background: 'var(--border)', margin: '6px 0' }} />
-                      <button type="button" onClick={() => { setStatusFilter('all'); setPage(1); setFilterOpen(false); }}
-                        style={{ display: 'flex', width: '100%', padding: '7px 14px', border: 'none', background: 'none', color: 'var(--red)', fontSize: 12, fontFamily: 'var(--font)', cursor: 'pointer', fontWeight: 600 }}>
-                        Clear filter
-                      </button>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button"
+                  style={{ width: 34, height: 34, border: `1.5px solid ${statusFilter !== 'all' ? 'var(--teal)' : 'var(--border)'}`, background: statusFilter !== 'all' ? 'var(--teal-l)' : 'none', borderRadius: 7, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: statusFilter !== 'all' ? 'var(--teal)' : 'var(--ink3)', position: 'relative' }}>
+                  <Icon name="filter" size={15} strokeWidth={1.75} />
+                  {statusFilter !== 'all' && <span style={{ position: 'absolute', top: 5, right: 5, width: 6, height: 6, borderRadius: '50%', background: 'var(--teal)', border: '1.5px solid var(--white)' }} />}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44">
+                <div style={{ padding: '4px 10px 6px', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Status</div>
+                {[
+                  { value: 'all',       label: 'All Statuses' },
+                  { value: 'Active',    label: 'Active' },
+                  { value: 'Inactive',  label: 'Inactive' },
+                  { value: 'Suspended', label: 'Suspended' },
+                ].map(opt => (
+                  <DropdownMenuItem key={opt.value} onClick={() => { setStatusFilter(opt.value); setPage(1); }}
+                    className={statusFilter === opt.value ? 'bg-accent text-accent-foreground font-semibold' : ''}>
+                    {statusFilter === opt.value && <Icon name="check" size={12} strokeWidth={2.5} />}
+                    {opt.label}
+                  </DropdownMenuItem>
+                ))}
+                {statusFilter !== 'all' && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => { setStatusFilter('all'); setPage(1); }} className="text-destructive focus:text-destructive">
+                      Clear filter
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Column settings */}
-            <div ref={colRef} style={{ position: 'relative' }}>
-              <button type="button" aria-label="Column settings" onClick={() => { setColOpen(o => !o); setFilterOpen(false); }}
-                style={{ width: 34, height: 34, border: `1.5px solid ${colOpen ? 'var(--teal)' : 'var(--border)'}`, background: colOpen ? 'var(--teal-l)' : 'none', borderRadius: 7, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: colOpen ? 'var(--teal)' : 'var(--ink3)' }}>
-                <Icon name="settings" size={15} strokeWidth={1.75} />
-              </button>
-              {colOpen && (
-                <div style={{ position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 60, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: '0 8px 30px rgba(0,0,0,.12)', minWidth: 190, padding: '8px 0' }}>
-                  <div style={{ padding: '6px 14px 8px', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Columns</div>
-                  {([
-                    { key: 'email',   label: 'Email' },
-                    { key: 'phone',   label: 'Phone' },
-                    { key: 'contact', label: 'Contact Person' },
-                    { key: 'tin',     label: 'TIN Number' },
-                    { key: 'joined',  label: 'Joined' },
-                  ] as { key: keyof typeof visibleCols; label: string }[]).map(col => (
-                    <label key={col.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 14px', cursor: 'pointer', fontSize: 13, color: 'var(--ink)', fontFamily: 'var(--font)' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = '')}>
-                      <input type="checkbox" checked={visibleCols[col.key]}
-                        onChange={() => setVisibleCols(v => ({ ...v, [col.key]: !v[col.key] }))}
-                        style={{ accentColor: 'var(--teal)', width: 14, height: 14, cursor: 'pointer' }} />
-                      {col.label}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" aria-label="Column settings"
+                  style={{ width: 34, height: 34, border: '1.5px solid var(--border)', background: 'none', borderRadius: 7, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)' }}>
+                  <Icon name="settings" size={15} strokeWidth={1.75} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <div style={{ padding: '4px 10px 6px', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Columns</div>
+                {([
+                  { key: 'email',   label: 'Email' },
+                  { key: 'phone',   label: 'Phone' },
+                  { key: 'contact', label: 'Contact Person' },
+                  { key: 'tin',     label: 'TIN Number' },
+                  { key: 'joined',  label: 'Joined' },
+                ] as { key: keyof typeof visibleCols; label: string }[]).map(col => (
+                  <DropdownMenuCheckboxItem key={col.key} checked={visibleCols[col.key]}
+                    onSelect={e => e.preventDefault()}
+                    onCheckedChange={() => setVisibleCols(v => ({ ...v, [col.key]: !v[col.key] }))}>
+                    {col.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Table */}
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 860 }}>
+            <table className="crm-table">
               <thead>
                 <tr>
                   <Th width={40}>
-                    <input type="checkbox" checked={allChecked} ref={el => { if (el) el.indeterminate = someChecked && !allChecked; }} onChange={toggleAll} style={{ cursor: 'pointer', accentColor: '#4f46e5', width: 14, height: 14 }} />
+                    <input type="checkbox" className="crm-checkbox" checked={allChecked} ref={el => { if (el) el.indeterminate = someChecked && !allChecked; }} onChange={toggleAll} />
                   </Th>
                   <Th>Customer</Th>
                   {visibleCols.email   && <Th>Email</Th>}
@@ -597,26 +579,24 @@ export const Customers: React.FC = () => {
                       const isChecked = selectedIds.includes(c.id);
                       const status = c.account_status || 'Active';
                       return (
-                        <tr key={c.id} style={{ borderBottom: '1px solid var(--border)', background: isChecked ? 'var(--bg)' : 'var(--white)', transition: 'background 0.1s', cursor: 'pointer' }}
-                          onMouseEnter={e => { if (!isChecked) e.currentTarget.style.background = 'var(--bg)'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = isChecked ? 'var(--bg)' : 'var(--white)'; }}
+                        <tr key={c.id} style={{ background: isChecked ? 'var(--bg)' : 'var(--white)' }}
                           onClick={() => openProfile(c)}>
-                          <td style={{ padding: '13px 14px', width: 40 }} onClick={e => e.stopPropagation()}>
-                            <input type="checkbox" aria-label={`Select ${c.name}`} checked={isChecked} onChange={() => toggleRow(c.id)} style={{ cursor: 'pointer', accentColor: '#4f46e5', width: 14, height: 14 }} />
+                          <td style={{ width: 40 }} onClick={e => e.stopPropagation()}>
+                            <input type="checkbox" className="crm-checkbox" aria-label={`Select ${c.name}`} checked={isChecked} onChange={() => toggleRow(c.id)} />
                           </td>
-                          <td style={{ padding: '13px 14px' }}>
+                          <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                               <Avatar name={c.name} size={36} />
                               <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--navy)' }}>{c.name}</span>
                             </div>
                           </td>
-                          {visibleCols.email   && <td style={{ padding: '13px 14px', fontSize: 13, color: 'var(--ink2)' }}>{c.email || <span style={{ color: 'var(--ink3)' }}>—</span>}</td>}
-                          {visibleCols.phone   && <td style={{ padding: '13px 14px', fontSize: 13, color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>{c.phone_wa || <span style={{ color: 'var(--ink3)', fontFamily: 'var(--font)' }}>—</span>}</td>}
-                          {visibleCols.contact && <td style={{ padding: '13px 14px', fontSize: 13, color: 'var(--ink2)' }}>{c.contact_person || <span style={{ color: 'var(--ink3)' }}>—</span>}</td>}
-                          {visibleCols.tin     && <td style={{ padding: '13px 14px' }}><TinChip tin={c.tin_number} /></td>}
-                          {visibleCols.joined  && <td style={{ padding: '13px 14px', fontSize: 12.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fmtDate(c.created_at)}</td>}
-                          <td style={{ padding: '13px 14px' }}><StatusBadge status={status} /></td>
-                          <td style={{ padding: '13px 14px', textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                          {visibleCols.email   && <td style={{ fontSize: 13, color: 'var(--ink2)' }}>{c.email || <span style={{ color: 'var(--ink3)' }}>—</span>}</td>}
+                          {visibleCols.phone   && <td style={{ fontSize: 13, color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>{c.phone_wa || <span style={{ color: 'var(--ink3)', fontFamily: 'var(--font)' }}>—</span>}</td>}
+                          {visibleCols.contact && <td style={{ fontSize: 13, color: 'var(--ink2)' }}>{c.contact_person || <span style={{ color: 'var(--ink3)' }}>—</span>}</td>}
+                          {visibleCols.tin     && <td><TinChip tin={c.tin_number} /></td>}
+                          {visibleCols.joined  && <td style={{ fontSize: 12.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fmtDate(c.created_at)}</td>}
+                          <td><StatusBadge status={status} /></td>
+                          <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
                             <ActionsMenu
                               onView={() => openProfile(c)}
                               onEdit={() => { openProfile(c); setTimeout(() => setEditMode(true), 0); }}
@@ -720,17 +700,21 @@ export const Customers: React.FC = () => {
   function renderTabContent() {
     /* ── Overview ── */
     if (mainTab === 'overview') {
+      const activeShipmentsCount = custShipments.filter(s => s.stage !== 'CLOSED').length;
+      const ovTotalInvoiced = custInvoices.reduce((s: number, i: any) => s + invoiceTotals(mapApiInvoice(i)).grandTotalTZS, 0);
+      const ovTotalPaid     = custPayments.reduce((s: number, p: any) => s + (parseFloat(p.amount ?? 0)), 0);
+      const ovOutstanding   = ovTotalInvoiced - ovTotalPaid;
       return (
         <div style={{ padding: '24px 28px' }}>
           {/* KPI row */}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 14, marginBottom: 24 }}>
             {[
-              { label: 'Total Shipments', value: shipCount, icon: 'ship'      as IconName, color: '#2563eb', bg: '#dbeafe' },
-              { label: 'Active Shipments',value: Math.max(0, Math.floor(shipCount * 0.4)), icon: 'activity' as IconName, color: '#0d9488', bg: '#ccfbf1' },
-              { label: 'Invoices',         value: '—',       icon: 'fileText' as IconName, color: '#7c3aed', bg: '#ede9fe' },
-              { label: 'Outstanding (TZS)',value: '—',       icon: 'alertCircle' as IconName, color: '#dc2626', bg: '#fee2e2' },
+              { label: 'Total Shipments', value: shipCount, icon: 'ship'      as IconName, color: 'var(--blue)', bg: 'var(--blue-l)' },
+              { label: 'Active Shipments',value: shipLoading ? '…' : activeShipmentsCount, icon: 'activity' as IconName, color: 'var(--teal)', bg: 'var(--teal-l)' },
+              { label: 'Invoices',         value: finLoading ? '…' : custInvoices.length, icon: 'fileText' as IconName, color: 'var(--purple)', bg: 'var(--purple-l)' },
+              { label: 'Outstanding (TZS)',value: finLoading ? '…' : ovOutstanding.toLocaleString('en'), icon: 'alertCircle' as IconName, color: 'var(--red)', bg: 'var(--red-l)' },
             ].map(kpi => (
-              <div key={kpi.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+              <div key={kpi.label} className="crm-card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <div style={{ width: 38, height: 38, borderRadius: 9, background: kpi.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name={kpi.icon} size={18} color={kpi.color} strokeWidth={1.75} />
                 </div>
@@ -742,11 +726,44 @@ export const Customers: React.FC = () => {
             ))}
           </div>
 
+          {/* Carbon footprint — summed live from this customer's own shipments
+              (co2_emissions_kg / carbon_credits_saved, already returned by the
+              shipments fetch above; not a registry-issued tradeable credit). */}
+          {(() => {
+            const calc = custShipments.filter(s => s.co2_emissions_kg != null);
+            const totalCo2 = calc.reduce((s, sh) => s + Number(sh.co2_emissions_kg || 0), 0);
+            const totalCredits = calc.reduce((s, sh) => s + Number(sh.carbon_credits_saved || 0), 0);
+            return (
+              <div className="crm-card" style={{ padding: '16px 18px', marginBottom: 24, display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 9, background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon name="globe" size={18} color="var(--green)" strokeWidth={1.75} />
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>Carbon Footprint</div>
+                </div>
+                <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+                  <div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>{totalCo2.toLocaleString('en')} kg</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Total CO₂ emissions</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--green)' }}>{totalCredits.toFixed(2)}</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Credits saved (est.)</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{calc.length} / {custShipments.length}</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Shipments calculated</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 340px', gap: 20 }}>
             {/* Recent shipments */}
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
-              <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--navy)' }}>Recent Shipments</span>
+            <div className="crm-card">
+              <div className="crm-card-header">
+                <span className="crm-card-title">Recent Shipments</span>
                 <button type="button" onClick={() => setMainTab('shipments')} style={{ fontSize: 12, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', fontWeight: 600 }}>View all →</button>
               </div>
               {shipLoading ? (
@@ -757,7 +774,8 @@ export const Customers: React.FC = () => {
                   <div style={{ fontSize: 13, marginTop: 8 }}>No shipments yet</div>
                 </div>
               ) : custShipments.slice(0, 6).map(s => (
-                <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
+                <Link key={s.id} to={`/clearos/clearance/${s.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 18px', borderBottom: '1px solid var(--border)', textDecoration: 'none', color: 'inherit' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                   <div style={{ width: 32, height: 32, borderRadius: 9, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name="ship" size={14} color="var(--teal)" strokeWidth={1.75} />
                   </div>
@@ -767,13 +785,13 @@ export const Customers: React.FC = () => {
                   </div>
                   <StatusPill stage={s.stage} />
                   <span style={{ fontSize: 11.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{new Date(s.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</span>
-                </div>
+                </Link>
               ))}
             </div>
 
             {/* Info card */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '18px' }}>
+              <div className="crm-card" style={{ padding: '18px' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', marginBottom: 14 }}>Key Information</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {[
@@ -793,22 +811,30 @@ export const Customers: React.FC = () => {
                 </div>
               </div>
 
-              <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '18px' }}>
+              <div className="crm-card" style={{ padding: '18px' }}>
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', marginBottom: 12 }}>Quick Actions</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {([
-                    { label: 'Create Invoice',    icon: 'fileText'   as IconName, action: () => navigate(`/billing?customer_id=${sel.id}`) },
+                    { label: 'Create Invoice',    icon: 'fileText'   as IconName, path: `/billing?customer_id=${sel.id}` },
                     { label: 'Add Shipment',      icon: 'ship'       as IconName, action: () => setMainTab('shipments') },
                     { label: 'Record Payment',    icon: 'creditCard' as IconName, action: () => { setMainTab('finance'); setFinanceTab('payments'); } },
                     { label: 'Generate Statement',icon: 'barChart'   as IconName, action: () => { setMainTab('finance'); setFinanceTab('statement'); } },
-                  ]).map(action => (
-                    <button key={action.label} type="button" onClick={action.action}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--white)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg)')}>
-                      <Icon name={action.icon} size={13} color="var(--teal)" strokeWidth={1.75} /> {action.label}
-                    </button>
-                  ))}
+                  ] as { label: string; icon: IconName; path?: string; action?: () => void }[]).map(action => {
+                    const itemStyle = { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' as const, textDecoration: 'none' };
+                    const hoverHandlers = {
+                      onMouseEnter: (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.background = 'var(--white)'),
+                      onMouseLeave: (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.background = 'var(--bg)'),
+                    };
+                    return action.path ? (
+                      <Link key={action.label} to={action.path} style={itemStyle} {...hoverHandlers}>
+                        <Icon name={action.icon} size={13} color="var(--teal)" strokeWidth={1.75} /> {action.label}
+                      </Link>
+                    ) : (
+                      <button key={action.label} type="button" onClick={action.action} style={itemStyle} {...hoverHandlers}>
+                        <Icon name={action.icon} size={13} color="var(--teal)" strokeWidth={1.75} /> {action.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -880,21 +906,43 @@ export const Customers: React.FC = () => {
                 <div className="prof-field"><label className="prof-label">Contact Person</label><input className="prof-input" value={form.contact_person || ''} onChange={e => setForm(p => ({ ...p, contact_person: e.target.value }))} /></div>
                 <div className="prof-field"><label className="prof-label">Website</label><input className="prof-input" value={form.website || ''} onChange={e => setForm(p => ({ ...p, website: e.target.value }))} placeholder="https://" /></div>
                 <div className="prof-field"><label className="prof-label">Client Type</label>
-                  <select className="prof-select" value={form.client_type || ''} onChange={e => setForm(p => ({ ...p, client_type: e.target.value }))}>
-                    <option value="">Select type…</option>
-                    <option>Importer</option><option>Exporter</option><option>Importer & Exporter</option>
-                    <option>Manufacturer</option><option>Trader</option><option>Embassy / NGO</option><option>Government Agency</option>
-                  </select>
+                  <Select value={form.client_type || '__none__'} onValueChange={v => setForm(p => ({ ...p, client_type: v === '__none__' ? '' : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select type…" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Select type…</SelectItem>
+                      <SelectItem value="Importer">Importer</SelectItem>
+                      <SelectItem value="Exporter">Exporter</SelectItem>
+                      <SelectItem value="Importer & Exporter">Importer & Exporter</SelectItem>
+                      <SelectItem value="Manufacturer">Manufacturer</SelectItem>
+                      <SelectItem value="Trader">Trader</SelectItem>
+                      <SelectItem value="Embassy / NGO">Embassy / NGO</SelectItem>
+                      <SelectItem value="Government Agency">Government Agency</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="prof-field"><label className="prof-label">Currency</label>
-                  <select className="prof-select"><option>TZS — Tanzanian Shilling</option><option>USD — US Dollar</option><option>EUR — Euro</option><option>KES — Kenyan Shilling</option></select>
+                  <Select defaultValue="TZS">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="TZS">TZS — Tanzanian Shilling</SelectItem>
+                      <SelectItem value="USD">USD — US Dollar</SelectItem>
+                      <SelectItem value="EUR">EUR — Euro</SelectItem>
+                      <SelectItem value="KES">KES — Kenyan Shilling</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="prof-field"><label className="prof-label">Credit Terms</label>
-                  <select className="prof-select" value={form.credit_days || ''} onChange={e => setForm(p => ({ ...p, credit_days: e.target.value }))}>
-                    <option value="">Select terms…</option>
-                    <option value="0">Cash on Delivery</option><option value="15">Net 15 days</option>
-                    <option value="30">Net 30 days</option><option value="45">Net 45 days</option><option value="60">Net 60 days</option>
-                  </select>
+                  <Select value={form.credit_days || '__none__'} onValueChange={v => setForm(p => ({ ...p, credit_days: v === '__none__' ? '' : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select terms…" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Select terms…</SelectItem>
+                      <SelectItem value="0">Cash on Delivery</SelectItem>
+                      <SelectItem value="15">Net 15 days</SelectItem>
+                      <SelectItem value="30">Net 30 days</SelectItem>
+                      <SelectItem value="45">Net 45 days</SelectItem>
+                      <SelectItem value="60">Net 60 days</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </Section>
@@ -912,9 +960,14 @@ export const Customers: React.FC = () => {
                 <div className="prof-field full"><label className="prof-label">Street Address</label><input className="prof-input" value={form.address || ''} onChange={e => setForm(p => ({ ...p, address: e.target.value }))} /></div>
                 <div className="prof-field"><label className="prof-label">City / Town</label><input className="prof-input" value={form.city || ''} onChange={e => setForm(p => ({ ...p, city: e.target.value }))} placeholder="Dar es Salaam" /></div>
                 <div className="prof-field"><label className="prof-label">Country</label>
-                  <select className="prof-select" value={form.country || 'Tanzania'} onChange={e => setForm(p => ({ ...p, country: e.target.value }))}>
-                    <option>Tanzania</option><option>Kenya</option><option>Uganda</option><option>Rwanda</option><option>Burundi</option><option>Zambia</option><option>Malawi</option><option>Mozambique</option><option>DRC Congo</option><option>Ethiopia</option><option>Other</option>
-                  </select>
+                  <Select value={form.country || 'Tanzania'} onValueChange={v => setForm(p => ({ ...p, country: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {['Tanzania','Kenya','Uganda','Rwanda','Burundi','Zambia','Malawi','Mozambique','DRC Congo','Ethiopia','Other'].map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </Section>
@@ -922,25 +975,39 @@ export const Customers: React.FC = () => {
             <Section title="Clearing & Forwarding">
               <div className="prof-grid">
                 <div className="prof-field"><label className="prof-label">Preferred Port</label>
-                  <select className="prof-select" value={form.preferred_port || ''} onChange={e => setForm(p => ({ ...p, preferred_port: e.target.value }))}>
-                    <option value="">Select port…</option>
-                    <option value="DSM">Dar es Salaam (DSM)</option><option value="MOM">Mombasa (MOM)</option>
-                    <option value="TNG">Tanga (TNG)</option><option value="ARU">Arusha Dry Port</option>
-                  </select>
+                  <Select value={form.preferred_port || '__none__'} onValueChange={v => setForm(p => ({ ...p, preferred_port: v === '__none__' ? '' : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select port…" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Select port…</SelectItem>
+                      <SelectItem value="DSM">Dar es Salaam (DSM)</SelectItem>
+                      <SelectItem value="MOM">Mombasa (MOM)</SelectItem>
+                      <SelectItem value="TNG">Tanga (TNG)</SelectItem>
+                      <SelectItem value="ARU">Arusha Dry Port</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="prof-field"><label className="prof-label">Default Freight Terms</label>
-                  <select className="prof-select" value={form.freight_terms || ''} onChange={e => setForm(p => ({ ...p, freight_terms: e.target.value }))}>
-                    <option value="">Select terms…</option>
-                    <option value="CIF">CIF — Cost, Insurance, Freight</option><option value="FOB">FOB — Free on Board</option>
-                    <option value="EXW">EXW — Ex Works</option><option value="DDP">DDP — Delivered Duty Paid</option>
-                  </select>
+                  <Select value={form.freight_terms || '__none__'} onValueChange={v => setForm(p => ({ ...p, freight_terms: v === '__none__' ? '' : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select terms…" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Select terms…</SelectItem>
+                      <SelectItem value="CIF">CIF — Cost, Insurance, Freight</SelectItem>
+                      <SelectItem value="FOB">FOB — Free on Board</SelectItem>
+                      <SelectItem value="EXW">EXW — Ex Works</SelectItem>
+                      <SelectItem value="DDP">DDP — Delivered Duty Paid</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="prof-field"><label className="prof-label">Primary Commodity</label>
-                  <select className="prof-select" value={form.commodity_type || ''} onChange={e => setForm(p => ({ ...p, commodity_type: e.target.value }))}>
-                    <option value="">Select category…</option>
-                    <option>General Merchandise</option><option>Food & Agriculture</option><option>Electronics & ICT</option>
-                    <option>Machinery & Equipment</option><option>Chemicals & Pharmaceuticals</option><option>Motor Vehicles & Parts</option><option>Construction Materials</option>
-                  </select>
+                  <Select value={form.commodity_type || '__none__'} onValueChange={v => setForm(p => ({ ...p, commodity_type: v === '__none__' ? '' : v }))}>
+                    <SelectTrigger><SelectValue placeholder="Select category…" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Select category…</SelectItem>
+                      {['General Merchandise','Food & Agriculture','Electronics & ICT','Machinery & Equipment','Chemicals & Pharmaceuticals','Motor Vehicles & Parts','Construction Materials'].map(c => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="prof-field"><label className="prof-label">TANCIS Registration</label><input className="prof-input" placeholder="TANCIS importer code…" style={{ fontFamily: 'var(--mono)' }} /></div>
               </div>
@@ -1066,9 +1133,9 @@ export const Customers: React.FC = () => {
         { key: 'expenses',     label: 'Expenses'     },
       ];
 
-      const custExpenses = expenses.filter(e => e.clientId === sel.id);
+      const custExpenses = expenses.filter(e => e.customer_id === sel.id);
 
-      const totalInvoiced = custInvoices.reduce((s: number, i: any) => s + (parseFloat(i.amount ?? i.total ?? 0)), 0);
+      const totalInvoiced = custInvoices.reduce((s: number, i: any) => s + invoiceTotals(mapApiInvoice(i)).grandTotalTZS, 0);
       const totalPaid     = custPayments.reduce((s: number, p: any) => s + (parseFloat(p.amount ?? 0)), 0);
       const outstanding   = totalInvoiced - totalPaid;
 
@@ -1091,7 +1158,7 @@ export const Customers: React.FC = () => {
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>
                   {finLoading ? 'Loading…' : `${custInvoices.length} invoice${custInvoices.length !== 1 ? 's' : ''}`}
                 </span>
-                <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate(`/billing?customer_id=${sel.id}`)}>+ Create Invoice</button>
+                <Link to={`/billing?customer_id=${sel.id}`} className="btn btn-primary btn-sm">+ Create Invoice</Link>
               </div>
               {finLoading && <div style={{ padding: '32px 28px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading invoices…</div>}
               {!finLoading && custInvoices.length === 0 && (
@@ -1100,26 +1167,36 @@ export const Customers: React.FC = () => {
                 </div>
               )}
               {!finLoading && custInvoices.length > 0 && (
-                <div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 130px 110px', padding: '10px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    <span>Invoice</span><span>Date</span><span>Due</span><span style={{ textAlign: 'right' }}>Amount</span><span style={{ textAlign: 'center' }}>Status</span>
-                  </div>
-                  {custInvoices.map((inv: any) => {
-                    const st = (inv.status || 'draft').toLowerCase();
-                    const sc = INV_STATUS[st] || INV_STATUS.draft;
-                    return (
-                      <div key={inv.id} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 130px 110px', padding: '13px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)', alignItems: 'center' }}>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', fontFamily: 'var(--mono)' }}>{inv.invoice_number || inv.ref || `INV-${inv.id?.slice(-5)}`}</div>
-                          {inv.description && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{inv.description}</div>}
-                        </div>
-                        <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{inv.date ? new Date(inv.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</span>
-                        <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</span>
-                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)', textAlign: 'right' }}>{Number(inv.amount ?? inv.total ?? 0).toLocaleString()}</span>
-                        <span style={{ textAlign: 'center' }}><span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color }}>{st.charAt(0).toUpperCase() + st.slice(1)}</span></span>
-                      </div>
-                    );
-                  })}
+                <div className="rtbl-wrap">
+                  <table className="rtbl" style={{ minWidth: 560 }}>
+                    <thead>
+                      <tr>
+                        <th>Invoice</th>
+                        <th className="col-hide-sm">Date</th>
+                        <th className="col-hide-sm">Due</th>
+                        <th style={{ textAlign: 'right' }}>Amount</th>
+                        <th style={{ textAlign: 'center' }}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {custInvoices.map((inv: any) => {
+                        const st = (inv.status || 'draft').toLowerCase();
+                        const sc = INV_STATUS[st] || INV_STATUS.draft;
+                        return (
+                          <tr key={inv.id}>
+                            <td>
+                              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', fontFamily: 'var(--mono)' }}>{inv.invoice_number || inv.ref || `INV-${inv.id?.slice(-5)}`}</div>
+                              {inv.description && <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{inv.description}</div>}
+                            </td>
+                            <td className="col-hide-sm">{inv.bill_date ? new Date(inv.bill_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                            <td className="col-hide-sm">{inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                            <td style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)', textAlign: 'right' }}>{invoiceTotals(mapApiInvoice(inv)).grandTotalTZS.toLocaleString()}</td>
+                            <td style={{ textAlign: 'center' }}><span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color }}>{st.charAt(0).toUpperCase() + st.slice(1)}</span></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -1141,18 +1218,27 @@ export const Customers: React.FC = () => {
                 </div>
               )}
               {!finLoading && custPayments.length > 0 && (
-                <div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 140px 120px', padding: '10px 28px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    <span>Reference</span><span>Date</span><span>Method</span><span style={{ textAlign: 'right' }}>Amount</span>
-                  </div>
-                  {custPayments.map((p: any) => (
-                    <div key={p.id} style={{ display: 'grid', gridTemplateColumns: '1fr 140px 140px 120px', padding: '13px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)', alignItems: 'center' }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{p.reference || p.payment_reference || `PAY-${p.id?.slice(-5)}`}</span>
-                      <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{p.date ? new Date(p.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</span>
-                      <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{p.payment_method || p.method || '—'}</span>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--green)', fontFamily: 'var(--mono)', textAlign: 'right' }}>+{Number(p.amount ?? 0).toLocaleString()}</span>
-                    </div>
-                  ))}
+                <div className="rtbl-wrap">
+                  <table className="rtbl" style={{ minWidth: 520 }}>
+                    <thead>
+                      <tr>
+                        <th>Reference</th>
+                        <th className="col-hide-sm">Date</th>
+                        <th className="col-hide-sm">Method</th>
+                        <th style={{ textAlign: 'right' }}>Amount</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {custPayments.map((p: any) => (
+                        <tr key={p.id}>
+                          <td style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{p.invoice_number || `PAY-${p.id?.slice(-5)}`}</td>
+                          <td className="col-hide-sm">{p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                          <td className="col-hide-sm">{p.payment_method || p.method || '—'}</td>
+                          <td style={{ fontSize: 14, fontWeight: 700, color: 'var(--green)', fontFamily: 'var(--mono)', textAlign: 'right' }}>+{Number(p.amount ?? 0).toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -1180,8 +1266,8 @@ export const Customers: React.FC = () => {
                 <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
                   <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Transaction History</div>
                   {[
-                    ...custInvoices.map((i: any) => ({ type: 'invoice', date: i.date, ref: i.invoice_number || `INV-${i.id?.slice(-5)}`, amount: parseFloat(i.amount ?? i.total ?? 0), debit: true })),
-                    ...custPayments.map((p: any) => ({ type: 'payment', date: p.date, ref: p.reference || `PAY-${p.id?.slice(-5)}`, amount: parseFloat(p.amount ?? 0), debit: false })),
+                    ...custInvoices.map((i: any) => ({ type: 'invoice', date: i.bill_date, ref: i.invoice_number || `INV-${i.id?.slice(-5)}`, amount: invoiceTotals(mapApiInvoice(i)).grandTotalTZS, debit: true })),
+                    ...custPayments.map((p: any) => ({ type: 'payment', date: p.payment_date, ref: p.invoice_number || `PAY-${p.id?.slice(-5)}`, amount: parseFloat(p.amount ?? 0), debit: false })),
                   ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()).map((tx, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid var(--border)', gap: 14 }}>
                       <div style={{ width: 32, height: 32, borderRadius: 8, background: tx.debit ? 'var(--red-l)' : 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -1214,11 +1300,10 @@ export const Customers: React.FC = () => {
                   <div key={e.id} style={{ display: 'flex', alignItems: 'center', padding: '14px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
                     <div style={{ flex: 2 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{e.name}</div>
-                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{e.paymentMode}</div>
                     </div>
-                    <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{e.date}</div>
+                    <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{e.date.split('T')[0]}</div>
                     <div style={{ flex: 1 }}><span style={{ fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'var(--bg)', color: 'var(--ink3)' }}>{e.category}</span></div>
-                    <div style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 700, color: e.isRevenue ? 'var(--green)' : 'var(--red)', textAlign: 'right' }}>{e.isRevenue ? '+' : '-'}{(e.amount || 0).toLocaleString()}</div>
+                    <div style={{ flex: 1, fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 700, color: e.is_revenue ? 'var(--green)' : 'var(--red)', textAlign: 'right' }}>{e.is_revenue ? '+' : '-'}{(e.amount || 0).toLocaleString()}</div>
                   </div>
                 ))}
               </div>
@@ -1342,7 +1427,7 @@ export const Customers: React.FC = () => {
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>
                   {supplyLoading ? 'Loading…' : `${custTickets.length} ticket${custTickets.length !== 1 ? 's' : ''}`}
                 </span>
-                <button type="button" className="btn btn-primary btn-sm" onClick={() => navigate('/support/tickets')}>+ New Ticket</button>
+                <Link to="/support/tickets" className="btn btn-primary btn-sm">+ New Ticket</Link>
               </div>
               {supplyLoading && <div style={{ padding: '32px 28px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading tickets…</div>}
               {!supplyLoading && custTickets.length === 0 && (
@@ -1500,12 +1585,11 @@ export const Customers: React.FC = () => {
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')} onMouseLeave={e => (e.currentTarget.style.background = 'var(--white)')}>
                 <Icon name="send" size={13} strokeWidth={1.75} /> WhatsApp
               </button>
-              <button type="button"
-                style={{ ...btnS, background: 'var(--teal)', border: 'none', color: '#fff' }}
-                onClick={() => navigate(`/shipments?customer_id=${sel.id}`)}
+              <Link to={`/shipments?customer_id=${sel.id}`}
+                style={{ ...btnS, background: 'var(--teal)', border: 'none', color: '#fff', textDecoration: 'none' }}
                 onMouseEnter={e => (e.currentTarget.style.opacity = '0.9')} onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
                 + New Shipment
-              </button>
+              </Link>
             </div>
           </div>
         </div>

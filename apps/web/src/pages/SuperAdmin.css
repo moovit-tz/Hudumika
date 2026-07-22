@@ -1,0 +1,415 @@
+/* ── SuperAdmin — Branding section ── */
+
+.sa-brand-logo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.sa-brand-logo-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  margin-bottom: 8px;
+}
+
+.sa-brand-logo-card {
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sa-brand-logo-card--light { background: var(--white); }
+.sa-brand-logo-card--dark  { background: #1e293b; }
+
+.sa-brand-logo-preview {
+  height: 34px;
+  object-fit: contain;
+  align-self: flex-start;
+  max-width: 100%;
+}
+
+.sa-brand-logo-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.sa-brand-file-label {
+  cursor: pointer;
+  flex: 1;
+}
+
+.sa-brand-file-input {
+  display: none;
+}
+
+.sa-brand-upload-btn {
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  padding: 5px 10px;
+}
+
+.sa-brand-reset-logo-btn {
+  font-size: 11px;
+  padding: 5px 10px;
+  background: var(--bg);
+  color: var(--ink2);
+  border: 1px solid var(--border);
+}
+
+.sa-brand-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink2);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.sa-brand-app-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.sa-brand-app-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 8px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--white);
+}
+
+.sa-brand-app-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.sa-brand-app-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink2);
+  text-align: center;
+}
+
+.sa-brand-color-input {
+  width: 38px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 2px;
+  background: none;
+}
+
+.sa-brand-reset-app-btn {
+  font-size: 10px;
+  padding: 2px 8px;
+  background: var(--bg);
+  color: var(--ink3);
+  border: 1px solid var(--border);
+}
+
+.sa-brand-logo-empty {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  color: var(--ink3);
+  font-style: italic;
+}
+
+.sa-brand-icon-label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--ink3);
+  flex-shrink: 0;
+}
+
+/* ── SuperAdmin toolbar (filter bar + actions in one row) ── */
+
+.sa-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.sa-toolbar-search {
+  position: relative;
+  flex: 1 1 200px;
+  min-width: 180px;
+}
+
+.sa-toolbar-search .input-field {
+  padding-left: 36px;
+  font-size: 13px;
+  width: 100%;
+}
+
+/* Higher specificity (0,2,0) beats .input-field (0,1,0) — prevents width:100% from winning.
+   No explicit height: let padding (from .input-field) control size to avoid text clipping. */
+.sa-toolbar .sa-toolbar-select {
+  font-size: 13px;
+  width: auto;
+  min-width: 160px;
+  flex-shrink: 0;
+  padding-right: 30px;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  cursor: pointer;
+}
+
+.sa-toolbar-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sa-toolbar .btn-sm {
+  padding-left: 14px;
+  padding-right: 14px;
+  font-size: 13px;
+}
+
+.sa-toolbar-offline {
+  font-size: 11px;
+  color: #d97706;
+  font-weight: 600;
+  background: #fef3c7;
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.sa-btn-gap-sm { gap: 5px; }
+.sa-btn-gap-md { gap: 6px; }
+
+/* ── BField ── */
+.bfield-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  display: block;
+  margin-bottom: 5px;
+}
+.bfield-hint {
+  font-size: 11px;
+  color: var(--ink3);
+  margin-top: 3px;
+}
+
+/* ── BCard ── */
+.bcard {
+  padding: 24px 26px;
+  margin-bottom: 20px;
+}
+.bcard-hdr {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+.bcard-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.bcard-sub {
+  font-size: 12px;
+  color: var(--ink3);
+  margin-top: 3px;
+}
+
+/* ── LogoSlot ── */
+.logo-slot {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+.logo-slot-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  margin-bottom: 10px;
+}
+.logo-slot-preview {
+  height: 72px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+}
+.logo-slot-preview--light { background: #fff; }
+.logo-slot-preview--dark  { background: #0e1f3d; }
+.logo-slot-img { max-height: 48px; max-width: 80%; object-fit: contain; }
+.logo-slot-empty--light { font-size: 11px; color: var(--ink3); }
+.logo-slot-empty--dark  { font-size: 11px; color: rgba(255,255,255,0.3); }
+.logo-slot-actions { display: flex; gap: 8px; }
+.logo-slot-upload-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 34px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  background: var(--bg);
+}
+.logo-slot-file-input { display: none; }
+.logo-slot-remove-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink3);
+}
+
+/* ── Cron Jobs section ─────────────────────────────────────── */
+.sa-cron-url {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink3);
+  padding: 8px 12px;
+  background: var(--bg);
+  border-radius: 6px;
+  margin-bottom: 16px;
+  word-break: break-all;
+}
+
+.sa-cron-url-link {
+  color: var(--teal);
+  -webkit-user-select: all;
+  user-select: all;
+}
+
+.sa-cron-hdr-row {
+  background: var(--bg);
+  border-bottom: 2px solid var(--border);
+}
+
+.sa-cron-th {
+  padding: 9px 12px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.sa-cron-th--center {
+  padding: 9px 12px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.sa-cron-row { border-bottom: 1px solid var(--border); }
+
+.sa-cron-td         { padding: 10px 12px; }
+.sa-cron-td--sched  { padding: 10px 12px; color: var(--ink3); font-size: 12px; }
+.sa-cron-td--time   { padding: 10px 12px; font-family: var(--mono); font-size: 11.5px; color: var(--ink3); }
+.sa-cron-td--status { padding: 10px 12px; text-align: center; }
+
+.sa-cron-badge            { font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+.sa-cron-badge--active    { background: var(--green-l); color: var(--green); }
+.sa-cron-badge--inactive  { background: var(--border);  color: var(--ink3);  }
+
+/* ── Branding view ────────────────────────────────────────── */
+.sa-brand-hdr  { font-size: 17px; font-weight: 700; color: var(--ink); margin: 0 0 4px; }
+.sa-brand-desc { font-size: 13px; color: var(--ink3); margin: 0 0 28px; }
+.sa-brand-logo-empty--dark { color: rgba(255,255,255,0.3); }
+.sa-brand-logo-label--dark { color: rgba(255,255,255,0.55); }
+
+/* ── App Branding section ─────────────────────────────────── */
+.sa-app-brand-card   { padding: 24px 26px; margin-bottom: 20px; }
+.sa-app-brand-hdr    { margin-bottom: 20px; }
+.sa-app-brand-title  { font-size: 15px; font-weight: 700; color: var(--ink); }
+.sa-app-brand-sub    { font-size: 12px; color: var(--ink3); margin-top: 3px; }
+.sa-app-brand-list   { display: flex; flex-direction: column; gap: 10px; }
+.sa-app-brand-row    { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px; flex-wrap: wrap; }
+
+.sa-app-preview      { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow: hidden; }
+.sa-app-preview--logo { background: var(--bg); border: 1px solid var(--border); }
+.sa-app-preview img  { width: 100%; height: 100%; object-fit: contain; }
+.sa-app-preview-init { font-size: 16px; font-weight: 800; color: #fff; }
+
+.sa-app-info         { flex: 1; min-width: 80px; }
+.sa-app-info-name    { font-size: 13px; font-weight: 700; color: var(--ink); }
+.sa-app-info-id      { font-size: 10px; color: var(--ink3); font-family: var(--mono); margin-top: 1px; }
+
+.sa-app-color-row    { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.sa-app-logo-row     { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+.sa-app-logo-label   {
+  display: flex; align-items: center; gap: 5px;
+  height: 32px; padding: 0 10px; border-radius: 7px;
+  border: 1px solid var(--border); cursor: pointer;
+  font-size: 12px; font-weight: 600; color: var(--ink2);
+  background: var(--bg); white-space: nowrap;
+}
+.sa-app-logo-label input[type="file"] { display: none; }
+
+.sa-app-logo-remove  {
+  width: 32px; height: 32px; border-radius: 7px;
+  border: 1px solid var(--border); background: var(--bg);
+  cursor: pointer; display: flex; align-items: center;
+  justify-content: center; color: var(--ink3);
+}
+
+.sa-app-save-btn     { gap: 6px; flex-shrink: 0; }
+
+/* ── System & Server Info section ─────────────────────────── */
+.sa-server-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 28px;
+}
+
+.sa-server-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 2px;
+}
+
+.sa-server-value       { font-size: 13px; font-weight: 600; color: var(--ink); }
+.sa-server-value--mono { font-family: var(--mono); }

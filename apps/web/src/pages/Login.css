@@ -306,7 +306,7 @@
 .reg-strength-label     { font-size: 11px; font-weight: 700; color: var(--reg-strength-color, #e11d48); }
 .reg-strength[data-strength="1"] { --reg-strength-color: #e11d48; }
 .reg-strength[data-strength="2"] { --reg-strength-color: #d97706; }
-.reg-strength[data-strength="3"] { --reg-strength-color: #16a34a; }
+.reg-strength[data-strength="3"] { --reg-strength-color: #059669; }
 
 .reg-terms-row  { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
 .reg-terms-label { display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 13px; color: var(--lp-ink2, #475569); line-height: 1.4; }

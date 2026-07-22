@@ -1,0 +1,91 @@
+/* ── Hudumika Design Tokens — single source of truth ──────────
+   Import this file in every app's entry point:
+   @import '@hudumika/ui/tokens.css';
+   ─────────────────────────────────────────────────────────── */
+
+:root {
+  /* Typography */
+  --font:   'Google Sans Flex', 'DM Sans', system-ui, sans-serif;
+  --mono:   'JetBrains Mono', 'Menlo', monospace;
+  --serif:  'Playfair Display', Georgia, 'Times New Roman', serif;
+  --bodoni: 'Bodoni Moda', Georgia, serif;
+
+  /* Neutral palette */
+  --ink:    #0d1117;
+  --ink2:   #57606a;
+  --ink3:   #8b949e;
+  --bg:     #f4f5f7;
+  --white:  #ffffff;
+  --border: #e1e4e8;
+  --border2:#c9cdd4;
+
+  /* Brand — Moovit orange (labelled --teal for legacy compat) */
+  --teal:   #e8461a;
+  --teal-l: #fef0ec;
+  --teal-m: #fdd5c8;
+
+  /* Navy */
+  --navy:          #0e1f3d;
+  --navy2:         #1a3260;
+  --nav-header-bg: #0e1f3d;
+
+  /* Semantic colours */
+  --gold:     #9a6700;
+  --gold-l:   #fff8c5;
+  --red:      #cf222e;
+  --red-l:    #fff0f0;
+  --green:    #1a7f37;
+  --green-l:  #dafbe1;
+  --blue:     #0550ae;
+  --blue-l:   #ddf4ff;
+  --purple:   #6e40c9;
+  --purple-l: #f3efff;
+
+  /* Radii */
+  --r-sm: 5px;
+  --r:    9px;
+  --r-lg: 14px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow:    0 2px 8px rgba(0,0,0,0.07);
+  --shadow-lg: 0 6px 20px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.14), 0 4px 12px rgba(0,0,0,0.06);
+
+  /* Page chrome */
+  --page-header-bg: #f5f2ea;
+}
+
+/* ── Dark theme overrides ──────────────────────────────────── */
+[data-theme="dark"] {
+  --ink:    #dde5f0;
+  --ink2:   #96adc4;
+  --ink3:   #7090aa;
+  --bg:     #0f1623;
+  --white:  #18243a;
+  --border: rgba(255,255,255,0.08);
+  --border2:rgba(255,255,255,0.15);
+
+  --navy:          #d8e4f4;
+  --navy2:         #b8ccdf;
+  --nav-header-bg: #111d2f;
+
+  --gold:   #c8920a;
+  --red:    #e84040;
+  --green:  #2db858;
+  --blue:   #4a9ef5;
+  --purple: #9b72e8;
+
+  --teal-l:   rgba(232,70,26,0.14);
+  --teal-m:   rgba(232,70,26,0.26);
+  --gold-l:   rgba(180,130,0,0.18);
+  --red-l:    rgba(232,64,64,0.14);
+  --green-l:  rgba(45,184,88,0.13);
+  --blue-l:   rgba(74,158,245,0.13);
+  --purple-l: rgba(155,114,232,0.13);
+
+  --shadow-sm: 0 1px 4px rgba(0,0,0,0.5);
+  --shadow:    0 4px 16px rgba(0,0,0,0.6);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.72);
+  --shadow-xl: 0 20px 60px rgba(0,0,0,0.85);
+}

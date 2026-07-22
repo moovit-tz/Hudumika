@@ -1,7 +1,7 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { apiFetch } from '../lib/api.js';
-import { CompanyCard } from '../components/CompanyCard.jsx';
-import { CompanyForm } from '../components/CompanyForm.jsx';
+import { CompanyCard } from '../components/CompanyCard.js';
+import { CompanyForm } from '../components/CompanyForm.js';
 
 export const TenantManagement: React.FC = () => {
   const [companies, setCompanies] = useState<any[]>([]);
@@ -73,7 +73,7 @@ export const TenantManagement: React.FC = () => {
       </button>
 
       {loading ? (
-        <div>Loading…</div>
+        <div>Loading�</div>
       ) : (
         <div className="card" style={{ padding: '24px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>

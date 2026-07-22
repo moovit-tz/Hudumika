@@ -1,7 +1,7 @@
-﻿import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import type { ClearanceStage } from '@clearos/types';
-import { CLEARANCE_STAGES, STAGE_LABELS } from '@clearos/types';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import type { ClearanceStage } from '@hudumika/types';
+import { CLEARANCE_STAGES, STAGE_LABELS } from '@hudumika/types';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from './Icon.js';
 
@@ -18,7 +18,7 @@ function initials(name?: string | null): string {
 }
 
 function relTime(iso?: string | null): string {
-  if (!iso) return '—';
+  if (!iso) return '�';
   const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
   if (d === 0) return 'Today';
   if (d === 1) return 'Yesterday';
@@ -29,7 +29,7 @@ function fmtTZS(n: number): string {
   return 'TZS ' + n.toLocaleString('en-TZ');
 }
 
-const AVATAR_COLORS = ['#0b7264', '#7c3aed', '#0891b2', '#ea580c', '#16a34a', '#dc2626', '#d97706'];
+const AVATAR_COLORS = ['#0b7264', '#7c3aed', '#0891b2', '#ea580c', '#059669', '#dc2626', '#d97706'];
 function avatarColor(name: string): string {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = ((h << 5) - h) + name.charCodeAt(i);
@@ -37,7 +37,6 @@ function avatarColor(name: string): string {
 }
 
 export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose }) => {
-  const navigate = useNavigate();
   const [shipment, setShipment] = useState<any | null>(null);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
@@ -55,14 +54,21 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
 
   if (!shipmentId) return null;
 
-  const stageIdx   = shipment ? CLEARANCE_STAGES.indexOf(shipment.stage as ClearanceStage) : -1;
-  const stagePct   = stageIdx >= 0 ? Math.round((stageIdx + 1) / CLEARANCE_STAGES.length * 100) : 0;
-  const stageLabel = shipment?.stage ? (STAGE_LABELS[shipment.stage as ClearanceStage] || shipment.stage) : '—';
+  // Custom-workflow shipments (workflow_step_count set) render progress from
+  // their own step position instead of indexing into the fixed 18-stage
+  // list, which is meaningless once `stage` is a workflow_steps.id.
+  const isCustomWorkflow = shipment?.workflow_step_count !== undefined && shipment?.workflow_step_order !== undefined;
+  const stageCount = isCustomWorkflow ? shipment.workflow_step_count : CLEARANCE_STAGES.length;
+  const stageIdx   = isCustomWorkflow ? shipment.workflow_step_order : (shipment ? CLEARANCE_STAGES.indexOf(shipment.stage as ClearanceStage) : -1);
+  const stagePct   = stageIdx >= 0 ? Math.round((stageIdx + 1) / stageCount * 100) : 0;
+  const stageLabel = isCustomWorkflow
+    ? (shipment.workflow_step_name || shipment.stage)
+    : (shipment?.stage ? (STAGE_LABELS[shipment.stage as ClearanceStage] || shipment.stage) : '�');
   const isOverdue  = shipment?.sla_deadline && new Date(shipment.sla_deadline) < new Date();
 
   const selCh = shipment?.selectivity_channel;
   const channelCfg =
-    selCh === 'GREEN'  ? { label: 'Green Channel',  color: '#16a34a', bg: '#dcfce7', icon: 'checkCircle' as const } :
+    selCh === 'GREEN'  ? { label: 'Green Channel',  color: '#059669', bg: '#ecfdf5', icon: 'checkCircle' as const } :
     selCh === 'YELLOW' ? { label: 'Yellow Channel', color: '#ca8a04', bg: '#fef9c3', icon: 'alertTriangle' as const } :
     selCh === 'RED'    ? { label: 'Red Channel',    color: '#dc2626', bg: '#fee2e2', icon: 'alertTriangle' as const } :
     selCh === 'BLUE'   ? { label: 'Blue Channel',   color: '#2563eb', bg: '#dbeafe', icon: 'info' as const } : null;
@@ -85,10 +91,10 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--white)', fontFamily: 'var(--font)' }}>
 
-      {/* ── Header ── */}
+      {/* -- Header -- */}
       <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <span style={{ fontFamily: 'var(--mono)', fontWeight: 800, fontSize: 13, color: 'var(--teal)', letterSpacing: '0.05em' }}>
-          {loading ? 'Loading…' : (shipment?.ref_number || '—')}
+          {loading ? 'Loading�' : (shipment?.ref_number || '�')}
         </span>
         <button type="button" title="Close panel" onClick={onClose}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center', flexShrink: 0 }}>
@@ -107,7 +113,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
         </div>
       )}
 
-      {/* ── Body ── */}
+      {/* -- Body -- */}
       {shipment && (
         <div style={{ flex: 1, overflowY: 'auto' }}>
 
@@ -117,7 +123,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
               {shipment.goods_desc || 'No description'}
             </div>
             <div style={{ fontSize: 13, color: 'var(--ink3)' }}>
-              {shipment.customer_name}{shipment.type ? ` · ${shipment.type.replace(/_/g, ' ')}` : ''}
+              {shipment.customer_name}{shipment.type ? ` � ${shipment.type.replace(/_/g, ' ')}` : ''}
             </div>
           </div>
 
@@ -158,8 +164,8 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
             </div>
             {/* Dots */}
             <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {CLEARANCE_STAGES.map((st, i) => (
-                <div key={st} style={{
+              {Array.from({ length: stageCount }, (_, i) => (
+                <div key={i} style={{
                   width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
                   background: i <= stageIdx ? activeColor : 'var(--border)',
                 }} />
@@ -167,13 +173,13 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
             </div>
           </div>
 
-          {/* 2×2 stats grid */}
+          {/* 2�2 stats grid */}
           <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             {[
               { label: 'DOCUMENTS', value: `${docs.length}${verifiedDocs ? ` (${verifiedDocs} verified)` : ''}` },
               { label: 'MESSAGES',  value: `${msgs.length} update${msgs.length !== 1 ? 's' : ''}` },
-              { label: 'CHARGES',   value: totalCharges > 0 ? fmtTZS(totalCharges) : '—' },
-              { label: 'RECEIVED',  value: '—' },
+              { label: 'CHARGES',   value: totalCharges > 0 ? fmtTZS(totalCharges) : '�' },
+              { label: 'RECEIVED',  value: '�' },
             ].map(s => (
               <div key={s.label} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, padding: '10px 12px' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.06em', marginBottom: 5 }}>{s.label}</div>
@@ -246,7 +252,7 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
                     Internal
                   </span>
                   {isMsg && (
-                    <span style={{ fontSize: 11, color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 20, padding: '2px 10px', background: '#f0fdf4' }}>
+                    <span style={{ fontSize: 11, color: '#059669', border: '1px solid #a7f3d0', borderRadius: 20, padding: '2px 10px', background: '#ecfdf5' }}>
                       WhatsApp
                     </span>
                   )}
@@ -272,25 +278,24 @@ export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose })
               </div>
             )}
 
-            <button
-              type="button"
+            <Link
+              to={`/clearos/clearance/${shipmentId}`}
               title="Open full shipment view"
-              onClick={() => navigate(`/clearance/${shipmentId}`)}
               style={{
-                width: '100%', padding: '14px 16px',
+                width: '100%', boxSizing: 'border-box', padding: '14px 16px',
                 background: 'var(--teal)', color: '#fff',
                 border: 'none', borderRadius: 9,
                 fontSize: 15, fontWeight: 700, cursor: 'pointer',
-                fontFamily: 'var(--font)',
+                fontFamily: 'var(--font)', textDecoration: 'none',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               }}>
               Open Full View
               <Icon name="arrowRight" size={16} color="#fff" />
-            </button>
+            </Link>
 
             {isOverdue && (
               <div style={{ marginTop: 10, textAlign: 'center', fontSize: 12.5, color: '#dc2626', fontWeight: 600 }}>
-                ⚠ Overdue — {new Date(shipment.sla_deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                ? Overdue � {new Date(shipment.sla_deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
               </div>
             )}
           </div>

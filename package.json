@@ -1,8 +1,8 @@
 {
-  "name": "clearos",
+  "name": "hudumika",
   "version": "1.0.0",
   "private": true,
-  "description": "ClearOS — Customs Clearance & Freight Operations Platform",
+  "description": "Hudumika — Workspace platform for customs clearance, compliance, finance, and freight operations",
   "workspaces": [
     "packages/*",
     "apps/*"
@@ -20,7 +20,9 @@
   },
   "devDependencies": {
     "concurrently": "^9.1.0",
+    "playwright": "^1.61.1",
     "rimraf": "^6.0.1",
+    "shadcn": "^4.13.0",
     "typescript": "^5.7.0"
   },
   "engines": {

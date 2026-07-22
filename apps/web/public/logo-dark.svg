@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 56">
+  <!-- Three-person mark (scaled from 100x100 space) -->
+  <g transform="translate(2,2) scale(0.52)">
+    <!-- Gray figure (upper-left) -->
+    <circle cx="31" cy="27" r="10.5" fill="#7f8c8d"/>
+    <path d="M11 56Q11 43 31 43Q51 43 51 56Z" fill="#7f8c8d"/>
+    <!-- Green figure (upper-right) -->
+    <circle cx="69" cy="27" r="10.5" fill="#5cad1e"/>
+    <path d="M49 56Q49 43 69 43Q89 43 89 56Z" fill="#5cad1e"/>
+    <!-- Blue figure (bottom-center) -->
+    <circle cx="50" cy="67.5" r="10.5" fill="#2980b9"/>
+    <path d="M30 96Q30 83.5 50 83.5Q70 83.5 70 96Z" fill="#2980b9"/>
+  </g>
+  <!-- Wordmark (white for dark backgrounds) -->
+  <text x="55" y="28"
+        font-family="system-ui,-apple-system,'Segoe UI',Roboto,sans-serif"
+        font-size="22" font-weight="800" fill="#ffffff" letter-spacing="-0.4"
+        dominant-baseline="middle">Hudumika</text>
+</svg>

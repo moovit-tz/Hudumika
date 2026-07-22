@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
-import type { CreateCustomerInput, CustomerAnalytics } from '@clearos/types';
+import { MinioIntegration } from '../integrations/minio.js';
+import type { CreateCustomerInput, CustomerAnalytics } from '@hudumika/types';
 
 export async function customerRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -10,12 +11,30 @@ export async function customerRoutes(fastify: FastifyInstance) {
    * GET /v1/customers
    * Fetch all customers under the tenant
    */
-  fastify.get('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER', 'FINANCE', 'SALES') }, async (request, reply) => {
+  fastify.get('/', {
+    preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER', 'FINANCE', 'SALES'),
+    schema: {
+      tags: ['Customers'],
+      summary: 'List customers',
+      description: 'Returns every customer record for the authenticated tenant, ordered by name.',
+      response: {
+        200: {
+          type: 'object',
+          properties: { data: { type: 'array', items: { type: 'object', additionalProperties: true } } },
+        },
+      },
+    },
+  }, async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
+      // Explicit tenant filter — RLS alone doesn't apply here because this
+      // connection uses a DB role that owns the tables (see db/client.ts),
+      // and Postgres always lets the table owner bypass row-level policies
+      // regardless of the SET LOCAL app.tenant_id session variable.
       const list = await trx
         .selectFrom('customers')
         .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
         .orderBy('name', 'asc')
         .execute();
       return { data: list };
@@ -26,7 +45,28 @@ export async function customerRoutes(fastify: FastifyInstance) {
    * POST /v1/customers
    * Create a new customer record
    */
-  fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'SALES') }, async (request, reply) => {
+  fastify.post('/', {
+    preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'SALES'),
+    schema: {
+      tags: ['Customers'],
+      summary: 'Create a customer',
+      body: {
+        type: 'object',
+        required: ['name'],
+        properties: {
+          name: { type: 'string' },
+          contact_name: { type: 'string' },
+          email: { type: 'string' },
+          phone_wa: { type: 'string' },
+          phone_wechat: { type: 'string' },
+          category: { type: 'string' },
+          preferred_channel: { type: 'string' },
+          tax_id: { type: 'string' },
+        },
+      },
+      response: { 201: { type: 'object', additionalProperties: true } },
+    },
+  }, async (request, reply) => {
     const user = request.user;
     const input = request.body as CreateCustomerInput;
 
@@ -58,7 +98,71 @@ export async function customerRoutes(fastify: FastifyInstance) {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      return reply.status(211).send(customer);
+      // Create the customer's root folder in file storage
+      MinioIntegration.ensureCustomerFolder(user.tenant_id, customer.id, customer.name);
+
+      reply.status(211);
+      return customer;
+    });
+  });
+
+  /**
+   * PATCH /v1/customers/:id
+   * Update customer profile fields
+   */
+  fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'SALES') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const body = request.body as Record<string, any>;
+
+    const allowed = ['name', 'contact_name', 'contact_person', 'email', 'phone', 'phone_wa', 'phone_wechat',
+                     'tax_id', 'tin_number', 'address', 'category', 'preferred_channel',
+                     'notes', 'account_status', 'active', 'assigned_officer_id',
+                     'registry_number', 'entity_type', 'registration_status', 'registered_address', 'incorporation_date'];
+
+    const patch: Record<string, any> = { updated_at: new Date() };
+    for (const key of allowed) {
+      if (key in body) {
+        // Map frontend aliases to DB column names
+        if (key === 'contact_person') patch['contact_name'] = body[key];
+        else if (key === 'tin_number') patch['tax_id'] = body[key];
+        else if (key === 'account_status') patch['active'] = body[key] === 'active';
+        else patch[key] = body[key];
+      }
+    }
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx
+        .updateTable('customers')
+        .set(patch)
+        .where('id', '=', id)
+        .where('tenant_id', '=', user.tenant_id)
+        .returningAll()
+        .executeTakeFirst();
+
+      if (!updated) return reply.status(404).send({ error: 'Customer not found' });
+      return updated;
+    });
+  });
+
+  /**
+   * DELETE /v1/customers/:id
+   * Soft-delete (deactivate) a customer
+   */
+  fastify.delete('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx
+        .updateTable('customers')
+        .set({ active: false, updated_at: new Date() })
+        .where('id', '=', id)
+        .where('tenant_id', '=', user.tenant_id)
+        .execute();
+
+      reply.status(204);
+      return null;
     });
   });
 
@@ -79,6 +183,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
       .selectFrom('customers')
       .selectAll()
       .where('id', '=', id)
+      .where('tenant_id', '=', user.tenant_id)
       .executeTakeFirst();
 
     if (!customer) {
@@ -229,6 +334,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
       .selectFrom('customers')
       .selectAll()
       .where('id', '=', id)
+      .where('tenant_id', '=', user.tenant_id)
       .executeTakeFirst();
 
     if (!customer) {

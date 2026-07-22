@@ -1,10 +1,12 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { consignmentService } from '../services/consignment.service.js';
 
 export async function consignmentRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate);
-  app.addHook('preHandler', requireAppEnabled('clearos'));
+  // Road consignments are surfaced in the HuduFreight (tracking) app —
+  // gate matches where the feature now lives, not its ClearOS origins.
+  app.addHook('preHandler', requireEntitlement('tracking'));
 
   app.get('/', async (req: FastifyRequest, reply: FastifyReply) => {
     const user = (req as any).user;

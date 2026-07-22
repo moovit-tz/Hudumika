@@ -1,0 +1,287 @@
+/* ClearOS brand color — set dynamically by WorkspaceApp via useBranding() */
+.app-shell[data-clearos] {
+  --cos-glass-bg: rgba(255, 255, 255, 0.7);
+  --cos-glass-border: rgba(255, 255, 255, 0.4);
+  --cos-shadow-soft: 0 4px 24px -4px rgba(15, 23, 42, 0.06);
+  --cos-shadow-hover: 0 12px 32px -4px rgba(15, 23, 42, 0.12);
+  --cos-shadow-card: 0 2px 12px rgba(15, 23, 42, 0.04);
+  --cos-column-bg: rgba(226, 232, 240, 0.55);
+  --cos-column-border: rgba(203, 213, 225, 0.7);
+  --cos-gradient-teal: linear-gradient(135deg, var(--teal) 0%, var(--teal-d) 100%);
+  --cos-gradient-blue: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  --cos-gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+  --cos-gradient-red: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  --cos-gradient-orange: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  --cos-border-radius: 16px;
+  --cos-transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark mode: "glass" panels are a white-tinted translucency by design, which
+   reads as a washed-out bright box on a dark background if left as-is — swap
+   to a light-on-dark tint plus darker shadows so the glass effect still reads
+   as "glass" instead of "stray light panel". */
+[data-theme="dark"] .app-shell[data-clearos] {
+  --cos-glass-bg: rgba(255, 255, 255, 0.045);
+  --cos-glass-border: rgba(255, 255, 255, 0.09);
+  --cos-shadow-soft: 0 4px 24px -4px rgba(0, 0, 0, 0.45);
+  --cos-shadow-hover: 0 12px 32px -4px rgba(0, 0, 0, 0.6);
+  --cos-shadow-card: 0 2px 12px rgba(0, 0, 0, 0.4);
+  --cos-column-bg: rgba(255, 255, 255, 0.03);
+  --cos-column-border: rgba(255, 255, 255, 0.08);
+}
+
+/* Widen dashboard default */
+[data-clearos] .app-shell-content {
+  max-width: 1760px;
+}
+
+/* ── Modern Layout Classes ────────────────────────────────────────── */
+[data-clearos] .cos-glass-card {
+  background: var(--cos-glass-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--cos-glass-border);
+  border-radius: var(--cos-border-radius);
+  box-shadow: var(--cos-shadow-soft);
+  transition: var(--cos-transition);
+}
+
+[data-clearos] .cos-glass-card:hover {
+  box-shadow: var(--cos-shadow-hover);
+  transform: translateY(-2px);
+}
+
+/* Same glass look, no hover-lift — for functional containers (tables, charts)
+   where a translateY on hover would jitter while sorting/clicking rather than
+   read as a nice affordance. */
+[data-clearos] .cos-glass-panel {
+  background: var(--cos-glass-bg);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--cos-glass-border);
+  border-radius: var(--cos-border-radius);
+  box-shadow: var(--cos-shadow-card);
+}
+
+/* Kanban specific styles */
+[data-clearos] .cos-kanban-card {
+  background: var(--white);
+  border: 1px solid var(--cos-column-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 10px 22px -8px rgba(15, 23, 42, 0.22);
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, border-color 0.15s ease;
+  cursor: grab;
+  position: relative;
+}
+
+[data-clearos] .cos-kanban-card:hover {
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08), 0 16px 32px -8px rgba(15, 23, 42, 0.28);
+  border-color: var(--teal);
+  transform: translateY(-3px);
+}
+
+[data-theme="dark"] [data-clearos] .cos-kanban-card {
+  background: #1b1f29;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 22px -6px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="dark"] [data-clearos] .cos-kanban-card:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35), 0 16px 32px -6px rgba(0, 0, 0, 0.65);
+}
+
+[data-clearos] .cos-kanban-card:active {
+  cursor: grabbing;
+}
+
+/* Toggled via onDragStart/onDragEnd — the pick-up/settle motion the
+   reference's kanban interaction is built around: a slight tilt + lift
+   while the card is actively being dragged, not just a plain hover state. */
+[data-clearos] .cos-kanban-card--dragging {
+  transform: translateY(-4px) rotate(-2deg) scale(1.03);
+  box-shadow: var(--cos-shadow-hover), 0 16px 32px -8px rgba(15, 23, 42, 0.2);
+  cursor: grabbing;
+  opacity: 0.92;
+}
+
+[data-clearos] .cos-column-bg {
+  background: var(--cos-column-bg);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  border: 1px solid var(--cos-column-border);
+  transition: background 0.15s ease;
+}
+
+/* Drop-target highlight — toggled while a card is dragged over a column */
+[data-clearos] .cos-column-bg--over {
+  background: var(--teal-l);
+  border-color: var(--teal-m, var(--teal));
+}
+
+/* ── Redesigned card anatomy ──────────────────────────────────────── */
+[data-clearos] .cos-card-topline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+[data-clearos] .cos-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.4;
+  margin-bottom: 3px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+[data-clearos] .cos-card-subtitle {
+  font-size: 11.5px;
+  color: var(--ink3);
+  margin-bottom: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+[data-clearos] .cos-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+
+[data-clearos] .cos-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink3);
+  flex-shrink: 0;
+}
+
+[data-clearos] .cos-card-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: -0.3px;
+  flex-shrink: 0;
+  margin-left: auto;
+  box-shadow: 0 0 0 2px var(--white);
+}
+
+/* ── Column header ring icon ──────────────────────────────────────── */
+[data-clearos] .cos-col-ring {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  background: var(--white);
+  flex-shrink: 0;
+}
+
+[data-clearos] .cos-col-count {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink3);
+  background: var(--bg);
+  border-radius: 20px;
+  min-width: 19px;
+  height: 19px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  flex-shrink: 0;
+}
+
+/* MetricCard Overrides */
+[data-clearos] .mc-card {
+  background: var(--cos-glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--cos-glass-border);
+  box-shadow: var(--cos-shadow-soft);
+  transition: var(--cos-transition);
+}
+
+[data-clearos] .mc-card:hover {
+  box-shadow: var(--cos-shadow-hover);
+  transform: translateY(-2px);
+}
+
+[data-clearos] .mc-title {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+[data-clearos] .mc-value {
+  background: var(--cos-gradient-teal);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Larger class-based buttons ─────────────────────────────────── */
+[data-clearos] .btn-primary {
+  padding: 11px 26px;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 10px;
+  min-height: 42px;
+  background: var(--cos-gradient-teal);
+  border: none;
+  color: white;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.2);
+  transition: var(--cos-transition);
+}
+
+[data-clearos] .btn-primary:hover {
+  box-shadow: 0 6px 16px rgba(13, 148, 136, 0.3);
+  transform: translateY(-1px);
+}
+
+[data-clearos] .btn-secondary {
+  padding: 10px 22px;
+  font-size: 13.5px;
+  border-radius: 10px;
+  min-height: 42px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  transition: var(--cos-transition);
+}
+
+[data-clearos] .btn-secondary:hover {
+  border-color: var(--ink3);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+}
+
+[data-clearos] .btn-sm {
+  padding: 9px 20px;
+  font-size: 13.5px;
+  min-height: 38px;
+  border-radius: 9px;
+}
+
+/* ── Section stretching ──────────────────────────────────────────── */
+[data-clearos] .app-shell-content .page-layout {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+[data-clearos] .app-shell-content .page-layout > .page-footer {
+  margin-top: auto;
+  flex-shrink: 0;
+}

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
-import { PageHeader } from '../components/PageHeader.jsx';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface ToolsMetrics {
   hr: {
@@ -43,16 +43,18 @@ function SparkBars({ data, color }: { data: number[]; color: string }) {
   );
 }
 
-function KpiCard({ icon, iconBg, iconColor, value, label, sub, subUp, bars, barColor, onClick }: {
+function KpiCard({ icon, iconBg, iconColor, value, label, sub, subUp, bars, barColor, to }: {
   icon: string; iconBg: string; iconColor: string;
   value: string | number; label: string; sub: string; subUp: boolean;
-  bars: number[]; barColor: string; onClick?: () => void;
+  bars: number[]; barColor: string; to?: string;
 }) {
+  const Wrapper = (to ? Link : 'div') as any;
   return (
-    <div onClick={onClick} style={{
+    <Wrapper {...(to ? { to } : {})} style={{
       flex: 1, minWidth: 0, position: 'relative', overflow: 'hidden',
       background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)',
-      padding: '18px 18px 14px', cursor: onClick ? 'pointer' : 'default',
+      padding: '18px 18px 14px', cursor: to ? 'pointer' : 'default',
+      textDecoration: 'none', color: 'inherit', boxSizing: 'border-box',
     }}>
       <SparkBars data={bars} color={barColor} />
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, position: 'relative' }}>
@@ -68,7 +70,7 @@ function KpiCard({ icon, iconBg, iconColor, value, label, sub, subUp, bars, barC
         <Icon name={subUp ? 'trendingUp' : 'trendingDown'} size={12} color={subUp ? 'var(--green)' : 'var(--red)'} />
         {sub}
       </div>
-    </div>
+    </Wrapper>
   );
 }
 
@@ -89,9 +91,9 @@ function StatusCard({ label, value, pct, color, icon }: { label: string; value: 
 }
 
 /* ── Module summary card shell ── */
-function ModuleSummaryCard({ icon, title, color, bg, onOpen, children }: {
+function ModuleSummaryCard({ icon, title, color, bg, to, children }: {
   icon: IconName; title: string; color: string; bg: string;
-  onOpen: () => void; children: React.ReactNode;
+  to: string; children: React.ReactNode;
 }) {
   return (
     <div style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
@@ -102,10 +104,10 @@ function ModuleSummaryCard({ icon, title, color, bg, onOpen, children }: {
           </div>
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{title}</span>
         </div>
-        <button type="button" onClick={onOpen}
-          style={{ fontSize: 11, fontWeight: 600, color, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 3 }}>
+        <Link to={to}
+          style={{ fontSize: 11, fontWeight: 600, color, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
           Open <Icon name="chevronRight" size={12} color={color} />
-        </button>
+        </Link>
       </div>
       {children}
     </div>
@@ -147,10 +149,10 @@ function ProgressFooter({ label, value, pct, color }: { label: string; value: st
 }
 
 /* ── Nav link row inside Settings card ── */
-function SettingsNavItem({ icon, label, sub, onClick }: { icon: IconName; label: string; sub: string; onClick: () => void }) {
+function SettingsNavItem({ icon, label, sub, to }: { icon: IconName; label: string; sub: string; to: string }) {
   return (
-    <button type="button" onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 16px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' }}
+    <Link to={to}
+      style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', boxSizing: 'border-box', padding: '10px 16px', background: 'none', border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left', textDecoration: 'none', color: 'inherit' }}
       onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'var(--bg)'}
       onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'none'}>
       <div style={{ width: 30, height: 30, borderRadius: 7, background: 'rgba(100,116,139,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -161,7 +163,7 @@ function SettingsNavItem({ icon, label, sub, onClick }: { icon: IconName; label:
         <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{sub}</div>
       </div>
       <Icon name="chevronRight" size={13} color="var(--ink3)" />
-    </button>
+    </Link>
   );
 }
 
@@ -171,7 +173,6 @@ function spark(trend: 'up' | 'down' | 'flat'): number[] {
 }
 
 export const ToolsOverview: React.FC = () => {
-  const navigate = useNavigate();
   const [metrics, setMetrics] = useState<ToolsMetrics>(FALLBACK);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState(new Date());
@@ -231,7 +232,7 @@ export const ToolsOverview: React.FC = () => {
           sub={`${hr.active_staff} active, ${hr.on_leave} on leave`}
           subUp={hr.active_staff >= hr.total_staff * 0.7}
           bars={spark('flat')} barColor="var(--teal)"
-          onClick={() => navigate('/hrm/employees')}
+          to="/onepi/employees"
         />
         <KpiCard
           icon="check" iconBg="rgba(16,185,129,0.1)" iconColor="var(--green)"
@@ -239,7 +240,7 @@ export const ToolsOverview: React.FC = () => {
           sub={`${attendanceRate}% attendance rate`}
           subUp={attendanceRate >= 70}
           bars={spark(attendanceRate >= 70 ? 'up' : 'down')} barColor="var(--green)"
-          onClick={() => navigate('/hrm/attendance')}
+          to="/onepi/attendance"
         />
         <KpiCard
           icon="calendar" iconBg="rgba(245,158,11,0.12)" iconColor="#f59e0b"
@@ -247,7 +248,7 @@ export const ToolsOverview: React.FC = () => {
           sub={`${hr.on_leave} currently on leave`}
           subUp={hr.pending_leaves === 0}
           bars={spark('flat')} barColor="#f59e0b"
-          onClick={() => navigate('/hrm/leaves')}
+          to="/onepi/leaves"
         />
         <KpiCard
           icon="bell"
@@ -291,7 +292,7 @@ export const ToolsOverview: React.FC = () => {
         <ModuleSummaryCard
           icon="briefcase" title="HRM Dashboard"
           color="var(--teal)" bg="rgba(20,184,166,0.05)"
-          onOpen={() => navigate('/hrm')}
+          to="/onepi"
         >
           <StatGrid stats={[
             { label: 'Total Staff',    value: hr.total_staff,    sub: `${staffActivePct}% active`,              color: 'var(--teal)' },
@@ -302,11 +303,24 @@ export const ToolsOverview: React.FC = () => {
           <ProgressFooter label="Today's Attendance" value={`${attendanceRate}%`} pct={attendanceRate} color="var(--teal)" />
         </ModuleSummaryCard>
 
+        {/* Carbon Credits */}
+        <ModuleSummaryCard
+          icon="leaf" title="Carbon Credits"
+          color="#059669" bg="#ecfdf5"
+          to="/carbon-credits"
+        >
+          <div style={{ flex: 1, padding: 16, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', gap: 12 }}>
+             <Icon name="award" size={32} color="#059669" />
+             <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Track your company's carbon footprint offsets and view certification.</div>
+          </div>
+          <ProgressFooter label="Offset Tracking" value="Active" pct={100} color="#059669" />
+        </ModuleSummaryCard>
+
         {/* Support */}
         <ModuleSummaryCard
           icon="headphones" title="Support"
           color="#7c3aed" bg="rgba(124,58,237,0.05)"
-          onOpen={() => navigate('/support/tickets')}
+          to="/support/tickets"
         >
           <StatGrid stats={[
             { label: 'Notifications',  value: support.total_notifications, sub: 'Total in system' },
@@ -321,7 +335,7 @@ export const ToolsOverview: React.FC = () => {
         <ModuleSummaryCard
           icon="chatBubble" title="Chat"
           color="var(--blue)" bg="rgba(37,99,235,0.05)"
-          onOpen={() => navigate('/chat')}
+          to="/chat"
         >
           <StatGrid stats={[
             { label: 'Total Messages', value: chat.total_messages.toLocaleString(), sub: 'All time',           color: 'var(--blue)' },
@@ -337,13 +351,13 @@ export const ToolsOverview: React.FC = () => {
         <ModuleSummaryCard
           icon="settings" title="Settings"
           color="#64748b" bg="rgba(100,116,139,0.05)"
-          onOpen={() => navigate('/settings')}
+          to="/settings"
         >
           <div style={{ flex: 1 }}>
-            <SettingsNavItem icon="users"    label="User Management"      sub={`${hr.total_staff} staff accounts`}      onClick={() => navigate('/settings')} />
-            <SettingsNavItem icon="shield"   label="Roles & Permissions"  sub="Access control matrix"                   onClick={() => navigate('/hrm/roles')} />
-            <SettingsNavItem icon="lock"     label="Security & Logs"      sub="Login history, devices"                  onClick={() => navigate('/hrm/login-history')} />
-            <SettingsNavItem icon="building" label="Company Profile"      sub="Tenant & org settings"                   onClick={() => navigate('/settings')} />
+            <SettingsNavItem icon="users"    label="User Management"      sub={`${hr.total_staff} staff accounts`}      to="/settings" />
+            <SettingsNavItem icon="shield"   label="Roles & Permissions"  sub="Access control matrix"                   to="/onepi/roles" />
+            <SettingsNavItem icon="lock"     label="Security & Logs"      sub="Login history, devices"                  to="/onepi/login-history" />
+            <SettingsNavItem icon="building" label="Company Profile"      sub="Tenant & org settings"                   to="/settings" />
           </div>
           <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />

@@ -26,6 +26,7 @@ export const APP_LABELS: Record<AppId, string> = {
   onepi:     'NexusHR',
   onesite:   'oneSite',
   oneid:     'Ondi',
+  tracking:  'Tracking',
   cloud:     'Cloud',
   ai:        'AI',
   workspace: 'Admin',
@@ -34,24 +35,26 @@ export const APP_LABELS: Record<AppId, string> = {
   crm:       'CRM',
   contacts:  'Contacts',
   store:     'Store',
+  calendar:  'Calendar',
+  tasks:     'Tasks',
+  demurrage:     'Demurrage',
+  cargotracker:  'CargoTracker',
 };
 
+// Every app defaults to the single brand accent (matches --teal in index.css)
+// rather than its own hue — a SuperAdmin can still recolor individual apps
+// via BrandingView (see useBranding.ts's getAppColor override), this is just
+// the out-of-the-box default so switching apps doesn't re-theme the sidebar/
+// avatar accent by default.
+const DEFAULT_APP_COLOR = '#0b1e3a';
 export const APP_COLORS: Record<AppId, string> = {
-  clearos:   '#ea580c',
-  finops:    '#0284c7',
-  complyos:  '#059669',
-  bliss:     '#7c3aed',
-  onepi:     '#0d9488',
-  onesite:   '#db2777',
-  oneid:     '#4361EE',
-  cloud:     '#0369a1',
-  ai:        '#6d28d9',
-  workspace: '#64748b',
-  admin:     '#dc2626',
-  email:     '#0078d4',
-  crm:       '#16a34a',
-  contacts:  '#1a73e8',
-  store:     '#8b5cf6',
+  clearos: DEFAULT_APP_COLOR, finops: DEFAULT_APP_COLOR, complyos: DEFAULT_APP_COLOR,
+  bliss: DEFAULT_APP_COLOR, onepi: DEFAULT_APP_COLOR, onesite: DEFAULT_APP_COLOR,
+  oneid: DEFAULT_APP_COLOR, tracking: DEFAULT_APP_COLOR, cloud: DEFAULT_APP_COLOR,
+  ai: DEFAULT_APP_COLOR, workspace: DEFAULT_APP_COLOR, admin: DEFAULT_APP_COLOR,
+  email: DEFAULT_APP_COLOR, crm: DEFAULT_APP_COLOR, contacts: DEFAULT_APP_COLOR,
+  store: DEFAULT_APP_COLOR, calendar: DEFAULT_APP_COLOR, tasks: DEFAULT_APP_COLOR,
+  demurrage: DEFAULT_APP_COLOR, cargotracker: DEFAULT_APP_COLOR,
 };
 
 export const ActiveAppContext = React.createContext<AppId | null>(null);

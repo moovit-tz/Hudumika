@@ -7,7 +7,8 @@ export type Stage =
   | 'transport_delivery' | 'completed';
 
 export type Flag = 'green_channel' | 'yellow_channel' | 'red_channel'
-  | 'demurrage' | 'sla_breach' | 'on_hold' | 'priority';
+  | 'demurrage' | 'sla_breach' | 'on_hold' | 'priority'
+  | 'missing_doc' | 'penalty' | 'overspend';
 
 export type Channel = 'internal' | 'whatsapp' | 'email' | 'sms' | 'teams';
 
@@ -19,6 +20,7 @@ export type TransportMode = 'SEA FCL' | 'SEA LCL' | 'AIR' | 'ROAD';
 
 export interface Listener {
   id: string;
+  listenerId?: string; // real shipment_listeners.id row PK — distinct from `id`, which is deliberately user_id-first for "already tagged" exclusion matching
   name: string;
   role: string;
   type: 'internal' | 'customer';
@@ -84,6 +86,8 @@ export interface ShipDoc {
   uploadedBy: string;
   size: string;
   extracted?: ExtractedData;
+  apiType?: string;   // raw backend DocumentType (e.g. 'BL') — needed to call the real upload endpoint
+  pending?: boolean;  // true when this is a REQUIRED placeholder with no file uploaded yet
 }
 
 export interface LedgerEntry {
@@ -175,6 +179,24 @@ export interface ClearanceJob {
   timeEntries: TimeEntry[];
   activity: ActivityEvent[];
   cloudLinks: CloudLink[];
+  co2EmissionsKg?: number;
+  carbonCreditsSaved?: number;
+  co2CalcDetails?: any;
+  customerContactName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  assigneeName?: string;
+  assigneeEmail?: string;
+  assigneePhone?: string;
+  whatsappBotActive?: boolean;
+  // Set only for shipments governed by a tenant-defined custom workflow —
+  // `stage` above has already been collapsed to a generic local Stage by
+  // toStage() (it can't map a workflow_steps.id to the fixed 11-stage
+  // taxonomy), so CustomerMilestoneTimeline needs this + isDone to render an
+  // honest 2-state view instead of silently claiming "Docs Received" no
+  // matter how far along the shipment actually is.
+  workflowId?: string | null;
+  isDone?: boolean;
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -190,7 +212,7 @@ export const STAGES: { id: Stage; label: string; short: string; color: string }[
   { id: 'do_application',       label: 'DO Application',       short: 'DO App',   color: '#7c3aed' },
   { id: 'inspection_booking',   label: 'Inspection Booking',   short: 'Inspect.', color: '#6366f1' },
   { id: 'transport_delivery',   label: 'Transport & Delivery', short: 'Delivery', color: '#0d9488' },
-  { id: 'completed',            label: 'Completed',            short: 'Done',     color: '#16a34a' },
+  { id: 'completed',            label: 'Completed',            short: 'Done',     color: '#059669' },
 ];
 
 export function stageIdx(s: Stage) { return STAGES.findIndex(x => x.id === s); }
@@ -234,18 +256,21 @@ export const API_STAGE_MAP: Record<string, Stage> = {
 };
 
 export const FLAG_CFG: Record<Flag, { label: string; color: string; icon: string }> = {
-  green_channel:  { label: 'Green Channel',  color: '#16a34a', icon: 'checkCircle' },
+  green_channel:  { label: 'Green Channel',  color: '#059669', icon: 'checkCircle' },
   yellow_channel: { label: 'Yellow Channel', color: '#ca8a04', icon: 'alertTriangle' },
   red_channel:    { label: 'Red Channel',    color: '#dc2626', icon: 'alertCircle' },
   demurrage:      { label: 'DEMURRAGE',      color: '#ea580c', icon: 'alertTriangle' },
   sla_breach:     { label: 'SLA_BREACH',     color: '#dc2626', icon: 'zap' },
   on_hold:        { label: 'ON HOLD',        color: '#6b7280', icon: 'pause' },
   priority:       { label: 'PRIORITY',       color: '#7c3aed', icon: 'star' },
+  missing_doc:    { label: 'MISSING DOC',    color: '#b45309', icon: 'file' },
+  penalty:        { label: 'PENALTY',        color: '#dc2626', icon: 'alertCircle' },
+  overspend:      { label: 'OVERSPEND',      color: '#dc2626', icon: 'alertTriangle' },
 };
 
 export const CH_CFG: Record<Channel, { label: string; color: string; bg: string }> = {
   internal: { label: 'Internal',  color: '#6b7280', bg: '#f3f4f6' },
-  whatsapp: { label: 'WhatsApp',  color: '#16a34a', bg: '#dcfce7' },
+  whatsapp: { label: 'WhatsApp',  color: '#059669', bg: '#ecfdf5' },
   email:    { label: 'Email',     color: '#2563eb', bg: '#dbeafe' },
   sms:      { label: 'SMS',       color: '#7c3aed', bg: '#ede9fe' },
   teams:    { label: 'Teams',     color: '#6264a7', bg: '#e0e7ff' },

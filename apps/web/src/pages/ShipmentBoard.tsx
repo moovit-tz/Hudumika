@@ -1,15 +1,17 @@
-﻿import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { useFullLayout } from '../hooks/useFullLayout.js';
 import type { IconName } from '../components/Icon.js';
 import {
   getJobs, addJob, subscribe,
   STAGES, FLAG_CFG, CH_CFG, CUSTOMERS_LIST, stageIdx,
   type ClearanceJob, type Stage, type Flag, type TransportMode, type Channel,
 } from './clearanceData.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
-// ─── Store hook ───────────────────────────────────────────────────────────────
+// --- Store hook ---------------------------------------------------------------
 
 function useJobs() {
   const [jobs, setJobs] = useState(getJobs);
@@ -17,7 +19,7 @@ function useJobs() {
   return jobs;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// --- Helpers -----------------------------------------------------------------
 
 function fdate(d: Date) { return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
 function relative(d: Date) {
@@ -28,13 +30,13 @@ function relative(d: Date) {
 }
 function fmtTZS(n: number) { return 'TZS ' + n.toLocaleString('en'); }
 function avatarBg(name: string) {
-  const c = ['#e8461a', '#2563eb', '#16a34a', '#7c3aed', '#ca8a04', '#0891b2'];
+  const c = ['#e8461a', '#2563eb', '#059669', '#7c3aed', '#ca8a04', '#0891b2'];
   let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % c.length;
   return c[Math.abs(h)];
 }
 function initials(name: string) { return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase(); }
 
-// ─── Shared UI ────────────────────────────────────────────────────────────────
+// --- Shared UI ----------------------------------------------------------------
 
 function Av({ name, size = 26 }: { name: string; size?: number }) {
   return (
@@ -44,8 +46,16 @@ function Av({ name, size = 26 }: { name: string; size?: number }) {
   );
 }
 
-export function FlagChip({ flag }: { flag: Flag }) {
+export function FlagChip({ flag, hero }: { flag: Flag; hero?: boolean }) {
   const cfg = FLAG_CFG[flag];
+  if (!cfg) return null;
+  if (hero) {
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 20, fontSize: 10.5, fontWeight: 700, background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid rgba(255,255,255,0.35)', whiteSpace: 'nowrap', letterSpacing: '0.04em', backdropFilter: 'blur(4px)' }}>
+        <Icon name={cfg.icon as IconName} size={10} color={cfg.color} />{cfg.label}
+      </span>
+    );
+  }
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 700, background: cfg.color + '18', color: cfg.color, border: `1px solid ${cfg.color}44`, whiteSpace: 'nowrap', letterSpacing: '0.04em' }}>
       <Icon name={cfg.icon as IconName} size={10} />{cfg.label}
@@ -62,9 +72,9 @@ export function ChBadge({ ch }: { ch: Channel }) {
   );
 }
 
-// ─── Summary Panel ────────────────────────────────────────────────────────────
+// --- Summary Panel ------------------------------------------------------------
 
-function SummaryPanel({ job, onClose, onOpen }: { job: ClearanceJob; onClose: () => void; onOpen: () => void }) {
+function SummaryPanel({ job, onClose }: { job: ClearanceJob; onClose: () => void }) {
   const idx = stageIdx(job.stage);
   const pct = Math.round((idx / (STAGES.length - 1)) * 100);
   const stageLabel = STAGES.find(s => s.id === job.stage)?.label || '';
@@ -82,7 +92,7 @@ function SummaryPanel({ job, onClose, onOpen }: { job: ClearanceJob; onClose: ()
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.35, marginBottom: 4 }}>{job.title}</div>
-        <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 8 }}>{job.customer} · {job.mode}</div>
+        <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 8 }}>{job.customer} � {job.mode}</div>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
           {job.flags.map(f => <FlagChip key={f} flag={f} />)}
           {job.tansad && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: '#dbeafe', color: '#2563eb', border: '1px solid #93c5fd' }}>{job.tansad}</span>}
@@ -136,7 +146,7 @@ function SummaryPanel({ job, onClose, onOpen }: { job: ClearanceJob; onClose: ()
           <div style={{ display: 'flex', gap: 8 }}>
             <Av name={lastMsg.userName} size={24} />
             <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)' }}>{lastMsg.userName} <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>· {relative(lastMsg.ts)}</span></div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)' }}>{lastMsg.userName} <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>� {relative(lastMsg.ts)}</span></div>
               <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 2, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                 {lastMsg.content}
               </div>
@@ -159,15 +169,15 @@ function SummaryPanel({ job, onClose, onOpen }: { job: ClearanceJob; onClose: ()
 
       {/* CTA */}
       <div style={{ padding: '14px 16px' }}>
-        <button
-          onClick={onOpen}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', padding: '11px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+        <Link
+          to={`/clearance/${job.id}`}
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', boxSizing: 'border-box', padding: '11px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}
         >
           Open Full View <Icon name="arrowRight" size={15} />
-        </button>
+        </Link>
         {job.dueDate && (
           <div style={{ textAlign: 'center', fontSize: 11, color: new Date() > job.dueDate ? 'var(--red)' : 'var(--ink3)', marginTop: 8 }}>
-            {new Date() > job.dueDate ? '⚠ Overdue — ' : 'Due '}
+            {new Date() > job.dueDate ? '? Overdue � ' : 'Due '}
             {fdate(job.dueDate)}
           </div>
         )}
@@ -176,9 +186,9 @@ function SummaryPanel({ job, onClose, onOpen }: { job: ClearanceJob; onClose: ()
   );
 }
 
-// ─── Job Card ─────────────────────────────────────────────────────────────────
+// --- Job Card -----------------------------------------------------------------
 
-function JobCard({ job, selected, onClick }: { job: ClearanceJob; selected: boolean; onClick: () => void }) {
+function JobCard({ job, selected, isMobile, onSelect }: { job: ClearanceJob; selected: boolean; isMobile: boolean; onSelect: () => void }) {
   const idx = stageIdx(job.stage);
   const pct = Math.round((idx / (STAGES.length - 1)) * 100);
   const stage = STAGES.find(s => s.id === job.stage);
@@ -186,11 +196,16 @@ function JobCard({ job, selected, onClick }: { job: ClearanceJob; selected: bool
   const isOverdue = job.dueDate && new Date() > job.dueDate;
   const docsExtracted = job.documents.filter(d => d.extracted?.status === 'done').length;
 
+  const Wrapper = isMobile ? Link : 'div';
+  const wrapperProps = isMobile
+    ? { to: `/clearance/${job.id}` }
+    : { onClick: onSelect };
+
   return (
-    <div
-      onClick={onClick}
+    <Wrapper
+      {...(wrapperProps as any)}
       className={`kb-card${selected ? ' kb-card--selected' : ''}`}
-      style={{ '--stage-color': stageColor } as React.CSSProperties}
+      style={{ '--stage-color': stageColor, textDecoration: 'none', color: 'inherit' } as React.CSSProperties}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: stageColor, fontFamily: 'var(--mono)', letterSpacing: '0.03em' }}>{job.id}</span>
@@ -211,17 +226,17 @@ function JobCard({ job, selected, onClick }: { job: ClearanceJob; selected: bool
           {job.assignees.map(a => <Av key={a} name={a} size={20} />)}
         </div>
         <div style={{ display: 'flex', gap: 8, fontSize: 11, color: 'var(--ink3)', alignItems: 'center' }}>
-          {docsExtracted > 0 && <span style={{ color: '#16a34a', fontWeight: 700 }}>AI ✓</span>}
+          {docsExtracted > 0 && <span style={{ color: '#059669', fontWeight: 700 }}>AI ?</span>}
           <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}><Icon name="chatBubble" size={10} />{job.thread.length}</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 2 }}><Icon name="file" size={10} />{job.documents.length}</span>
-          {job.dueDate && <span style={{ color: isOverdue ? 'var(--red)' : 'var(--ink3)', fontWeight: isOverdue ? 700 : 400 }}>{isOverdue ? '⚠' : ''}{fdate(job.dueDate)}</span>}
+          {job.dueDate && <span style={{ color: isOverdue ? 'var(--red)' : 'var(--ink3)', fontWeight: isOverdue ? 700 : 400 }}>{isOverdue ? '?' : ''}{fdate(job.dueDate)}</span>}
         </div>
       </div>
-    </div>
+    </Wrapper>
   );
 }
 
-// ─── Create Modal ─────────────────────────────────────────────────────────────
+// --- Create Modal -------------------------------------------------------------
 
 function CreateModal({ onClose, onCreate, isMobile }: { onClose: () => void; onCreate: (job: ClearanceJob) => void; isMobile: boolean }) {
   const [customer, setCustomer] = useState('');
@@ -261,9 +276,7 @@ function CreateModal({ onClose, onCreate, isMobile }: { onClose: () => void; onC
     <input {...props} style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box', ...props.style }} />
   );
 
-  const sel = (props: React.SelectHTMLAttributes<HTMLSelectElement>, children: React.ReactNode) => (
-    <select {...props} style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13 }}>{children}</select>
-  );
+  const selWrap: React.CSSProperties = { width: '100%', padding: '9px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, height: 'auto' };
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -273,14 +286,27 @@ function CreateModal({ onClose, onCreate, isMobile }: { onClose: () => void; onC
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={18} /></button>
         </div>
         <div style={{ padding: '20px' }}>
-          {field('Shipment Description *', inp({ value: title, onChange: e => setTitle(e.target.value), placeholder: 'e.g. Generator Parts — 3× 20GP COSCO' }))}
-          {field('Customer *', sel({ value: customer, onChange: e => setCustomer(e.target.value) },
-            <><option value="">Select existing customer…</option>{CUSTOMERS_LIST.map(c => <option key={c} value={c}>{c}</option>)}</>
+          {field('Shipment Description *', inp({ value: title, onChange: e => setTitle(e.target.value), placeholder: 'e.g. Generator Parts � 3� 20GP COSCO' }))}
+          {field('Customer *', (
+            <Select value={customer || '__none__'} onValueChange={v => setCustomer(v === '__none__' ? '' : v)}>
+              <SelectTrigger style={selWrap}><SelectValue placeholder="Select existing customer�" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Select existing customer�</SelectItem>
+                {CUSTOMERS_LIST.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
           ))}
           {isNew && field('New Customer Name *', inp({ value: newCustomer, onChange: e => setNewCustomer(e.target.value), placeholder: 'Company name', style: { border: '1px solid var(--teal)' } }))}
           {isNew && <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14, marginTop: -8 }}>A new customer profile will be created and linked to this job.</div>}
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12 }}>
-            {field('Mode of Transport', sel({ value: mode, onChange: e => setMode(e.target.value as TransportMode) }, ['SEA FCL', 'SEA LCL', 'AIR', 'ROAD'].map(m => <option key={m}>{m}</option>)))}
+            {field('Mode of Transport', (
+              <Select value={mode} onValueChange={v => setMode(v as TransportMode)}>
+                <SelectTrigger style={selWrap}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {['SEA FCL', 'SEA LCL', 'AIR', 'ROAD'].map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            ))}
             {field('B/L or AWB', inp({ value: bl, onChange: e => setBl(e.target.value), placeholder: 'COSU641234567' }))}
             {field('Origin', inp({ value: origin, onChange: e => setOrigin(e.target.value), placeholder: 'e.g. Shanghai, China' }))}
             {field('Destination', inp({ value: dest, onChange: e => setDest(e.target.value) }))}
@@ -295,12 +321,13 @@ function CreateModal({ onClose, onCreate, isMobile }: { onClose: () => void; onC
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// --- Main Component -----------------------------------------------------------
 
 export function ShipmentBoard() {
   const jobs = useJobs();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const isFullLayout = useFullLayout();
   const [selected, setSelected] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [search, setSearch] = useState('');
@@ -325,7 +352,7 @@ export function ShipmentBoard() {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100%', background: 'var(--bg)', maxWidth: 1400, margin: '0 auto', width: '100%' }}>
+    <div style={{ display: 'flex', height: '100%', background: 'var(--bg)', maxWidth: isFullLayout ? 'none' : 1400, margin: '0 auto', width: '100%' }}>
       {/* Main column */}
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
         {/* Toolbar */}
@@ -334,7 +361,7 @@ export function ShipmentBoard() {
             <div>
               <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Clearance Board</h1>
               <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--ink3)' }}>
-                {jobs.length} jobs · {jobs.filter(j => j.flags.includes('sla_breach')).length} SLA breach · {jobs.filter(j => j.flags.includes('demurrage')).length} demurrage
+                {jobs.length} jobs � {jobs.filter(j => j.flags.includes('sla_breach')).length} SLA breach � {jobs.filter(j => j.flags.includes('demurrage')).length} demurrage
               </p>
             </div>
             <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
@@ -345,16 +372,19 @@ export function ShipmentBoard() {
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
               <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }}><Icon name="search" size={13} /></span>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search CLR#, customer, B/L, TANSAD…" style={{ width: '100%', padding: '8px 12px 8px 30px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' as const }} />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search CLR#, customer, B/L, TANSAD�" style={{ width: '100%', padding: '8px 12px 8px 30px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' as const }} />
             </div>
-            <select value={stageFilter} onChange={e => setStageFilter(e.target.value as Stage | 'all')} style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13 }}>
-              <option value="all">All Stages</option>
-              {STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
-            </select>
+            <Select value={stageFilter} onValueChange={v => setStageFilter(v as Stage | 'all')}>
+              <SelectTrigger style={{ width: 'auto', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, height: 'auto' }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Stages</SelectItem>
+                {STAGES.map(s => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
             <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
               {(['list', 'kanban'] as const).map(v => (
                 <button key={v} onClick={() => setView(v)} style={{ padding: '7px 12px', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: view === v ? 'var(--teal)' : 'var(--white)', color: view === v ? '#fff' : 'var(--ink3)' }}>
-                  {v === 'list' ? '≡ List' : '⊞ Board'}
+                  {v === 'list' ? '= List' : '? Board'}
                 </button>
               ))}
             </div>
@@ -366,7 +396,7 @@ export function ShipmentBoard() {
           {[
             { label: 'Total Jobs', value: jobs.length, color: 'var(--teal)' },
             { label: 'In Progress', value: jobs.filter(j => j.stage !== 'completed').length, color: '#2563eb' },
-            { label: 'Completed', value: jobs.filter(j => j.stage === 'completed').length, color: '#16a34a' },
+            { label: 'Completed', value: jobs.filter(j => j.stage === 'completed').length, color: '#059669' },
             { label: 'SLA Breach', value: jobs.filter(j => j.flags.includes('sla_breach')).length, color: 'var(--red)' },
             { label: 'Demurrage', value: jobs.filter(j => j.flags.includes('demurrage')).length, color: '#ea580c' },
           ].map(s => (
@@ -383,7 +413,7 @@ export function ShipmentBoard() {
             <div style={{ maxWidth: 760 }}>
               {filtered.length === 0 && <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', fontSize: 14 }}>No jobs match your filter.</div>}
               {filtered.map(job => (
-                <JobCard key={job.id} job={job} selected={selected === job.id} onClick={() => isMobile ? navigate(`/clearance/${job.id}`) : setSelected(selected === job.id ? null : job.id)} />
+                <JobCard key={job.id} job={job} selected={selected === job.id} isMobile={isMobile} onSelect={() => setSelected(selected === job.id ? null : job.id)} />
               ))}
             </div>
           ) : (
@@ -397,7 +427,7 @@ export function ShipmentBoard() {
                       <span className="kb-col-badge" style={{ background: s.color }}>{stageJobs.length}</span>
                     </div>
                     <div className="kb-col-body">
-                      {stageJobs.map(job => <JobCard key={job.id} job={job} selected={selected === job.id} onClick={() => isMobile ? navigate(`/clearance/${job.id}`) : setSelected(selected === job.id ? null : job.id)} />)}
+                      {stageJobs.map(job => <JobCard key={job.id} job={job} selected={selected === job.id} isMobile={isMobile} onSelect={() => setSelected(selected === job.id ? null : job.id)} />)}
                     </div>
                   </div>
                 );
@@ -407,12 +437,11 @@ export function ShipmentBoard() {
         </div>
       </div>
 
-      {/* Summary panel — hidden on mobile (tap card opens full view) */}
+      {/* Summary panel � hidden on mobile (tap card opens full view) */}
       {selectedJob && !isMobile && (
         <SummaryPanel
           job={selectedJob}
           onClose={() => setSelected(null)}
-          onOpen={() => navigate(`/clearance/${selectedJob.id}`)}
         />
       )}
 

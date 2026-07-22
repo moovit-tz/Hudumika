@@ -1,10 +1,39 @@
 import type { FastifyInstance } from 'fastify';
 import crypto from 'crypto';
 import { db, withTenant } from '../db/client.js';
-import type { LoginInput, CustomerOTPInput, CustomerVerifyInput, SafeUser, JWTPayload } from '@clearos/types';
+import { hashPassword, verifyPassword } from '../lib/password.js';
+import { EmailIntegration } from '../integrations/email.js';
+import { env } from '../config/env.js';
+import type { LoginInput, CustomerOTPInput, CustomerVerifyInput, SafeUser, JWTPayload } from '@hudumika/types';
 
 // Simple in-memory storage for customer OTPs in dev
 const OTP_STORE = new Map<string, { otp: string; expiresAt: number }>();
+
+function parseDevice(userAgent: string): { label: string; type: string } {
+  const ua = userAgent || '';
+  const type = /Mobile|Android|iPhone/i.test(ua) ? 'Mobile' : /iPad|Tablet/i.test(ua) ? 'Tablet' : 'Desktop';
+  const browser = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : 'Unknown browser';
+  const os = /Windows/.test(ua) ? 'Windows' : /Mac OS/.test(ua) ? 'macOS' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Linux/.test(ua) ? 'Linux' : 'Unknown OS';
+  return { label: `${browser} on ${os}`, type };
+}
+
+async function recordLogin(tenantId: string, userId: string, status: 'SUCCESS' | 'FAILED', ip: string, userAgent: string) {
+  try {
+    await db.insertInto('hr_login_history').values({ tenant_id: tenantId, user_id: userId, ip, user_agent: userAgent, status }).execute();
+    if (status === 'SUCCESS' && userAgent) {
+      const { label, type } = parseDevice(userAgent);
+      const existing = await db.selectFrom('hr_devices').select('id')
+        .where('user_id', '=', userId).where('user_agent', '=', userAgent).executeTakeFirst();
+      if (existing) {
+        await db.updateTable('hr_devices').set({ last_used_at: new Date() }).where('id', '=', existing.id).execute();
+      } else {
+        await db.insertInto('hr_devices').values({
+          tenant_id: tenantId, user_id: userId, device_label: label, device_type: type, user_agent: userAgent, trusted: true,
+        }).execute();
+      }
+    }
+  } catch { /* login/device tracking must never block auth */ }
+}
 
 export async function authRoutes(fastify: FastifyInstance) {
   /**
@@ -25,11 +54,17 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(401).send({ error: 'Invalid email or password' });
     }
 
+    const ip = request.ip;
+    const userAgent = String(request.headers['user-agent'] || '');
+
     // Node-native crypto check for security without external binary packages
     const isMatch = verifyPassword(password, user.password_hash);
     if (!isMatch) {
+      await recordLogin(user.tenant_id, user.id, 'FAILED', ip, userAgent);
       return reply.status(401).send({ error: 'Invalid email or password' });
     }
+
+    await recordLogin(user.tenant_id, user.id, 'SUCCESS', ip, userAgent);
 
     // Generate JWT
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
@@ -48,6 +83,8 @@ export async function authRoutes(fastify: FastifyInstance) {
       role: user.role,
       name: user.name,
       phone: user.phone || undefined,
+      avatar_url: user.avatar_url || undefined,
+      profile: user.profile ? (typeof user.profile === 'string' ? JSON.parse(user.profile) : user.profile) : undefined,
       location_id: user.location_id || undefined,
       active: user.active,
       created_at: user.created_at.toISOString(),
@@ -60,6 +97,109 @@ export async function authRoutes(fastify: FastifyInstance) {
       expires_in: 7 * 24 * 60 * 60, // 7 days
       user: safeUser,
     };
+  });
+
+  /**
+   * POST /auth/accept-invite
+   * Completes an HR invitation: creates the real user and logs them in.
+   */
+  fastify.post('/accept-invite', async (request, reply) => {
+    const { token, name, password } = request.body as { token: string; name: string; password: string };
+    if (!token || !name || !password) {
+      return reply.status(400).send({ error: 'token, name, and password are required' });
+    }
+
+    const invite = await db.selectFrom('hr_invitations').selectAll()
+      .where('token', '=', token).executeTakeFirst();
+    if (!invite) return reply.status(404).send({ error: 'Invitation not found' });
+    if (invite.status !== 'PENDING') return reply.status(400).send({ error: 'Invitation is no longer valid' });
+    if (new Date(invite.expires_at) < new Date()) {
+      await db.updateTable('hr_invitations').set({ status: 'EXPIRED' }).where('id', '=', invite.id).execute();
+      return reply.status(400).send({ error: 'Invitation has expired' });
+    }
+
+    const newUser = await db.insertInto('users').values({
+      tenant_id: invite.tenant_id,
+      email: invite.email,
+      password_hash: hashPassword(password),
+      role: invite.role as any,
+      name,
+      active: true,
+    }).returningAll().executeTakeFirstOrThrow();
+
+    await db.updateTable('hr_invitations').set({ status: 'ACCEPTED' }).where('id', '=', invite.id).execute();
+
+    const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
+      sub: newUser.id, tenant_id: newUser.tenant_id, role: newUser.role, email: newUser.email, name: newUser.name,
+    };
+    const accessToken = fastify.jwt.sign(payload as any);
+    const safeUser: SafeUser = {
+      id: newUser.id, tenant_id: newUser.tenant_id, email: newUser.email, role: newUser.role, name: newUser.name,
+      phone: newUser.phone || undefined, location_id: newUser.location_id || undefined, active: newUser.active,
+      created_at: newUser.created_at.toISOString(), updated_at: newUser.updated_at.toISOString(),
+    };
+
+    return {
+      access_token: accessToken,
+      refresh_token: accessToken,
+      expires_in: 7 * 24 * 60 * 60,
+      user: safeUser,
+    };
+  });
+
+  /**
+   * POST /auth/forgot-password
+   * Sends a reset link if the email matches an active account. Always
+   * returns a generic success message so callers can't enumerate accounts.
+   */
+  fastify.post('/forgot-password', async (request, reply) => {
+    const { email } = request.body as { email: string };
+    if (!email) return reply.status(400).send({ error: 'email is required' });
+
+    const user = await db.selectFrom('users').selectAll()
+      .where('email', '=', email).where('active', '=', true).executeTakeFirst();
+
+    if (user) {
+      const token = crypto.randomBytes(24).toString('hex');
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      await db.insertInto('password_reset_tokens').values({ user_id: user.id, token, expires_at: expiresAt }).execute();
+
+      const resetUrl = `${env.OPS_BOARD_URL}/auth/reset-password?token=${token}`;
+      await EmailIntegration.sendEmail({
+        to: user.email,
+        subject: 'Reset your Hudumika password',
+        bodyHtml: `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+          <p>We received a request to reset your password.</p>
+          <p><a href="${resetUrl}">Reset your password</a>. This link expires in 1 hour.</p>
+          <p>If you didn't request this, you can safely ignore this email.</p>
+        </div>`,
+        tenantId: user.tenant_id,
+      }).catch(() => { /* token still exists; user can retry */ });
+    }
+
+    return { ok: true, message: 'If that email is registered, a reset link has been sent.' };
+  });
+
+  /**
+   * POST /auth/reset-password
+   * Completes a password reset from a token issued by /forgot-password.
+   */
+  fastify.post('/reset-password', async (request, reply) => {
+    const { token, password } = request.body as { token: string; password: string };
+    if (!token || !password) return reply.status(400).send({ error: 'token and password are required' });
+    if (password.length < 8) return reply.status(400).send({ error: 'Password must be at least 8 characters' });
+
+    const row = await db.selectFrom('password_reset_tokens').selectAll()
+      .where('token', '=', token).executeTakeFirst();
+    if (!row) return reply.status(404).send({ error: 'Invalid or expired reset link' });
+    if (row.used_at) return reply.status(400).send({ error: 'This reset link has already been used' });
+    if (new Date(row.expires_at) < new Date()) return reply.status(400).send({ error: 'This reset link has expired' });
+
+    await db.updateTable('users').set({ password_hash: hashPassword(password), updated_at: new Date() })
+      .where('id', '=', row.user_id).execute();
+    await db.updateTable('password_reset_tokens').set({ used_at: new Date() }).where('id', '=', row.id).execute();
+
+    return { ok: true };
   });
 
   /**
@@ -132,7 +272,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       sub: customer.id,
       tenant_id: customer.tenant_id,
       role: 'CUSTOMER',
-      email: customer.email || `${customer.id}@clearos.co`,
+      email: customer.email || `${customer.id}@hudumika.co`,
       name: customer.name,
     };
 
@@ -234,13 +374,58 @@ export async function authRoutes(fastify: FastifyInstance) {
     const isMatch = verifyPassword(current_password, user.password_hash);
     if (!isMatch) return reply.status(401).send({ error: 'Current password is incorrect' });
 
-    const { randomBytes, pbkdf2Sync } = await import('crypto');
-    const salt = randomBytes(16).toString('hex');
-    const hash = pbkdf2Sync(new_password, salt, 1000, 64, 'sha512').toString('hex');
-    const new_hash = `${salt}:${hash}`;
+    const new_hash = hashPassword(new_password);
 
     await db.updateTable('users').set({ password_hash: new_hash, updated_at: new Date() }).where('id', '=', actor.sub).execute();
     return { success: true };
+  });
+
+  /**
+   * PATCH /auth/me
+   * Authenticated user updates their own profile. Self-service only — id is
+   * always the caller's own (request.user.sub from the JWT), never a param,
+   * so there's no cross-tenant/cross-user access surface to guard against.
+   */
+  fastify.patch('/me', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const actor = request.user;
+    const body = request.body as { name?: string; phone?: string; profile?: Record<string, any> };
+
+    const patch: Record<string, any> = { updated_at: new Date() };
+    if (typeof body.name === 'string') {
+      if (!body.name.trim()) return reply.status(400).send({ error: 'Name cannot be empty' });
+      patch.name = body.name.trim();
+    }
+    if (typeof body.phone === 'string') patch.phone = body.phone.trim() || null;
+
+    if (body.profile && typeof body.profile === 'object') {
+      const existing = await db.selectFrom('users').select('profile').where('id', '=', actor.sub).executeTakeFirst();
+      const existingProfile = existing?.profile || {};
+      patch.profile = JSON.stringify({ ...existingProfile, ...body.profile });
+    }
+
+    await db.updateTable('users').set(patch).where('id', '=', actor.sub).execute();
+
+    const updated = await db.selectFrom('users').selectAll().where('id', '=', actor.sub).executeTakeFirst();
+    if (!updated) return reply.status(404).send({ error: 'User not found' });
+
+    const safeUser: SafeUser & { profile?: Record<string, any> } = {
+      id: updated.id,
+      tenant_id: updated.tenant_id,
+      email: updated.email,
+      role: updated.role,
+      name: updated.name,
+      phone: updated.phone || undefined,
+      avatar_url: updated.avatar_url || undefined,
+      location_id: updated.location_id || undefined,
+      profile: typeof updated.profile === 'string' ? JSON.parse(updated.profile) : (updated.profile || {}),
+      active: updated.active,
+      last_login_at: updated.last_login_at ? updated.last_login_at.toISOString() : undefined,
+      created_at: updated.created_at.toISOString(),
+      updated_at: updated.updated_at.toISOString(),
+    };
+    return { user: safeUser };
   });
 
   /**
@@ -250,18 +435,4 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/stop-impersonating', {
     preHandler: [fastify.authenticate],
   }, async () => ({ success: true }));
-}
-
-// Helper methods for pbkdf2 secure native hashing
-function hashPassword(password: string): string {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-  return `${salt}:${hash}`;
-}
-
-export function verifyPassword(password: string, storedHash: string): boolean {
-  const [salt, hash] = storedHash.split(':');
-  if (!salt || !hash) return password === storedHash; // support plaintext seeds safely
-  const testHash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-  return hash === testHash;
 }

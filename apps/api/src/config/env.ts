@@ -9,14 +9,12 @@ dotenv.config();
 
 const envSchema = z.object({
   DATABASE_URL: z.string().url().default('postgresql://clearos:clearos_pass@localhost:5432/clearos'),
+  // Dedicated read-only role for the Query Builder's raw-SQL mode (see
+  // db/migrations/084_readonly_role.sql) — the real backstop against writes,
+  // not just the application-layer keyword checks. Rotate this for any
+  // non-local deployment rather than relying on the migration's dev default.
+  DATABASE_URL_READONLY: z.string().url().default('postgresql://hudumika_readonly:hudumika_readonly_pass@localhost:5432/clearos'),
   REDIS_URL: z.string().url().default('redis://localhost:6379'),
-  
-  MINIO_ENDPOINT: z.string().default('localhost'),
-  MINIO_PORT: z.coerce.number().default(9000),
-  MINIO_ACCESS_KEY: z.string().default('minioadmin'),
-  MINIO_SECRET_KEY: z.string().default('minioadmin'),
-  MINIO_BUCKET: z.string().default('clearos-docs'),
-  MINIO_USE_SSL: z.coerce.boolean().default(false),
   
   JWT_SECRET: z.string().default('change-this-in-production-min-32-characters-long'),
   JWT_EXPIRES_IN: z.string().default('7d'),
@@ -38,7 +36,10 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('debug'),
   CORS_ORIGINS: z.string().default('http://localhost:5173'),
   
+  
   OPS_BOARD_URL: z.string().url().default('http://localhost:5173'),
+  
+  AIS_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

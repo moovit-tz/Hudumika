@@ -5,9 +5,17 @@ import { NotificationCentre } from './NotificationCentre.js';
 import { Icon } from './Icon.js';
 import { APP_COLORS, ActiveAppContext, MobileNavContext } from '../shells/WorkspaceApp.js';
 import { useBranding } from '../hooks/useBranding.js';
+import { useLocale } from '../hooks/useLocale.js';
 import { AppLauncher } from './AppLauncher.js';
 import { LAUNCHER_APPS, LauncherAppSvg } from './LauncherApps.js';
 import { apiFetch } from '../lib/api.js';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from './ui/dropdown-menu.js';
 import './AppHeader.css';
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -17,18 +25,6 @@ function getInitials(name?: string | null): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? '?';
   return ((parts[0][0] ?? '') + (parts[parts.length - 1][0] ?? '')).toUpperCase();
-}
-
-function useClickOutside(ref: React.RefObject<HTMLElement | null>, onClose: () => void) {
-  useEffect(() => {
-    function handle(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        onClose();
-      }
-    }
-    document.addEventListener('mousedown', handle);
-    return () => document.removeEventListener('mousedown', handle);
-  }, [ref, onClose]);
 }
 
 // ── Main component ─────────────────────────────────────────────
@@ -52,22 +48,7 @@ export function AppHeader({
   const activeApp = useContext(ActiveAppContext);
   const { setMobileOpen } = useContext(MobileNavContext);
   const branding = useBranding();
-
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    if (!activeApp) return false;
-    return localStorage.getItem(`${activeApp}-sidebar-collapsed`) === 'true';
-  });
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const evt = e as CustomEvent;
-      if (evt.detail && typeof evt.detail.collapsed === 'boolean') {
-        setSidebarCollapsed(evt.detail.collapsed);
-      }
-    };
-    window.addEventListener('sidebar-toggled', handler);
-    return () => window.removeEventListener('sidebar-toggled', handler);
-  }, []);
+  const { t, language, setLanguage, LANGUAGES } = useLocale();
 
   // ── Dark mode ──
   const [isDark, setIsDark] = useState(
@@ -111,18 +92,27 @@ export function AppHeader({
     if (!activeApp) return;
     localStorage.setItem(`${activeApp}-sidebar-collapsed`, String(isFullLayout));
     window.dispatchEvent(new CustomEvent('sidebar-toggled', { detail: { collapsed: isFullLayout } }));
-    setSidebarCollapsed(isFullLayout);
   }, [isFullLayout, activeApp]);
+
+  // ── Layout Customizer prefs (navbar type / skin / semi-dark / direction) ──
+  // Set from /admin/design-system (DesignSystemView.tsx), which writes these
+  // localStorage keys directly. AppHeader is what actually applies them as
+  // <html> attributes, mirroring the isFullLayout/data-layout pattern above —
+  // run once on mount here since, unlike isFullLayout, nothing on this page
+  // lets the user change them live, only read them.
+  useEffect(() => {
+    const navbar = localStorage.getItem('navbar-type');
+    if (navbar && navbar !== 'static') document.documentElement.setAttribute('data-navbar', navbar);
+    const skin = localStorage.getItem('skin');
+    if (skin === 'bordered') document.documentElement.setAttribute('data-skin', 'bordered');
+    const semiDark = localStorage.getItem('semi-dark') === 'true';
+    if (semiDark) document.documentElement.setAttribute('data-semi-dark', 'true');
+    const direction = localStorage.getItem('direction');
+    if (direction) document.documentElement.setAttribute('dir', direction);
+  }, []);
 
   function toggleFullLayout() {
     setIsFullLayout(prev => !prev);
-  }
-
-  function expandSidebar() {
-    if (!activeApp) return;
-    localStorage.setItem(`${activeApp}-sidebar-collapsed`, 'false');
-    window.dispatchEvent(new CustomEvent('sidebar-toggled', { detail: { collapsed: false } }));
-    setSidebarCollapsed(false);
   }
 
   // ── Notifications ──
@@ -135,11 +125,16 @@ export function AppHeader({
       const data = await apiFetch('/v1/notifications');
       const list: any[] = Array.isArray(data) ? data : (data?.notifications ?? []);
       setNotifs(list);
-      setUnreadCount(list.filter((n: any) => !n.read).length);
+      const serverCount = Array.isArray(data) ? undefined : data?.unread_count;
+      setUnreadCount(typeof serverCount === 'number' ? serverCount : list.filter((n: any) => !n.read).length);
     } catch { /* silently ignore */ }
   }, []);
 
-  useEffect(() => { loadNotifs(); }, [loadNotifs]);
+  useEffect(() => {
+    loadNotifs();
+    const interval = setInterval(loadNotifs, 45000);
+    return () => clearInterval(interval);
+  }, [loadNotifs]);
 
   function handleMarkRead(id: string, _link?: string) {
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
@@ -152,10 +147,7 @@ export function AppHeader({
     apiFetch('/v1/notifications/read-all', { method: 'PATCH' }).catch(() => {});
   }
 
-  // ── User dropdown ──
-  const [userOpen, setUserOpen] = useState(false);
-  const userRef = useRef<HTMLDivElement>(null);
-  useClickOutside(userRef, () => setUserOpen(false));
+  // ── User dropdown (Now handled by DropdownMenu) ──
 
   // ── Avatar color via CSS custom property ──
   const appColor = activeApp ? branding.getAppColor(activeApp, APP_COLORS[activeApp] ?? '#64748b') : '#64748b';
@@ -166,11 +158,12 @@ export function AppHeader({
 
   // Local search state for app pages (hub page controls via prop)
   const [localSearch, setLocalSearch] = useState('');
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const isHub = !!onHubSearchChange;
   const isAppSearch = !!onAppSearchChange;
   const searchValue = isHub ? (hubSearch ?? '') : isAppSearch ? (appSearch ?? '') : localSearch;
   const handleSearch = isHub ? onHubSearchChange! : isAppSearch ? onAppSearchChange! : setLocalSearch;
-  const searchPlaceholder = isHub ? 'Search workspaces...' : isAppSearch ? (appSearchPlaceholder ?? 'Search...') : 'Search...';
+  const searchPlaceholder = isHub ? t('header.searchHub') : isAppSearch ? (appSearchPlaceholder ?? t('header.searchDefault')) : t('header.searchDefault');
 
   return (
     <>
@@ -183,46 +176,31 @@ export function AppHeader({
               type="button"
               className="app-header-icon-btn app-header-hamburger"
               onClick={() => setMobileOpen(true)}
-              title="Open menu"
+              title={t('header.menu')}
             >
-              {/* On mobile in app pages show the app's colored icon; otherwise plain hamburger */}
-              {activeApp ? (
-                <LauncherAppSvg id={activeApp} color={appColor} logoUrl={branding.getAppLogo(activeApp)} size={28} />
-              ) : (
-                <Icon name="menu" size={18} />
-              )}
+              <Icon name="menu" size={20} />
             </button>
 
-            {!isHub && activeApp && sidebarCollapsed && (
-              <button
-                type="button"
-                className="app-header-icon-btn app-header-collapsed-app-icon"
-                onClick={expandSidebar}
-                title="Expand sidebar"
-              >
-                <LauncherAppSvg id={activeApp} color={appColor} logoUrl={branding.getAppLogo(activeApp)} size={24} />
-              </button>
-            )}
-
             {!isHub && activeApp && (
-              <span className={`app-header-mobile-name ${sidebarCollapsed ? 'app-header-mobile-name--visible-desktop' : ''}`}>
-                {branding.getAppName(activeApp, LAUNCHER_APPS.find(a => a.id === activeApp)?.name ?? '')}
-              </span>
+              <div className="app-header-mobile-brand-container">
+                <div className="app-header-mobile-app-icon">
+                  <LauncherAppSvg id={activeApp} color={appColor} logoUrl={branding.getAppLogo(activeApp)} size={24} />
+                </div>
+                <span className="app-header-mobile-name">
+                  {branding.getAppName(activeApp, LAUNCHER_APPS.find(a => a.id === activeApp)?.name ?? '')}
+                </span>
+              </div>
             )}
 
-            {/* Brand logo — only shown on the hub/landing page. Sourced solely from
-                SuperAdmin platform branding, not the per-tenant `co.logoUrl` (Settings →
-                Company Profile, used for invoice letterheads) — the hub is shared platform
-                chrome and should reflect the one global look the SuperAdmin sets, not one
-                tenant's document-branding logo. Picks the dark-mode variant when the theme
-                is dark (falling back to the light variant if none was uploaded). */}
-            {isHub && (
+            {/* Brand logo — only shown on the hub/landing page or standalone tools (no active app). */}
+            {(isHub || !activeApp) && (
               <Link to="/" className="app-header-brand">
                 {(isDark ? (branding.logoDark || branding.logoLight) : branding.logoLight) ? (
                   <img
                     src={isDark ? (branding.logoDark || branding.logoLight) : branding.logoLight}
                     alt={branding.platformName}
                     className="app-header-brand-img"
+                    style={{ height: 31, objectFit: 'contain' }}
                   />
                 ) : (
                   <div className="app-header-brand-inner">
@@ -240,7 +218,7 @@ export function AppHeader({
           </div>
 
           {/* Center: Search — centered in hub; left-anchored expanding right in app mode */}
-          <div className="app-header-hub-search">
+          <div className="app-header-hub-search desktop-search">
             <Icon name="search" size={15} />
             <input
               type="text"
@@ -259,18 +237,22 @@ export function AppHeader({
               </button>
             )}
           </div>
+          
+          <button className="app-header-icon-btn mobile-search-btn" onClick={() => setMobileSearchOpen(true)} title="Search">
+            <Icon name="search" size={20} />
+          </button>
 
           {/* Right actions */}
           <div className="app-header-actions">
 
-            {/* Layout toggle */}
+            {/* Layout toggle (Circle 3 button) */}
             <button
               type="button"
               className="app-header-icon-btn app-header-layout-toggle"
               onClick={toggleFullLayout}
-              title={isFullLayout ? 'Compact view' : 'Full-width view'}
+              title={isFullLayout ? t('header.compact') : t('header.fullWidth')}
             >
-              <Icon name={isFullLayout ? 'minimize' : 'maximize'} size={17} />
+              <Icon name={isFullLayout ? 'minimize' : 'maximize'} size={19} color="var(--ink)" />
             </button>
 
             {/* Filter / collapse panel toggle (app-specific) */}
@@ -286,81 +268,130 @@ export function AppHeader({
             )}
 
             {/* Notifications */}
-            <div className="app-header-rel">
-              <button
-                type="button"
-                className={`app-header-icon-btn${notifOpen ? ' app-header-icon-btn--open' : ''}`}
-                onClick={() => setNotifOpen(d => !d)}
-                title="Notifications"
-              >
-                <Icon name="bell" size={17} />
-                {unreadCount > 0 && (
-                  <span className="app-header-badge">
-                    {unreadCount > 99 ? '99+' : unreadCount}
-                  </span>
-                )}
-              </button>
-            </div>
+            <DropdownMenu open={notifOpen} onOpenChange={setNotifOpen}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className={`app-header-icon-btn${notifOpen ? ' app-header-icon-btn--open' : ''}`}
+                  title={t('header.notifications')}
+                >
+                  <Icon name="bell" size={17} />
+                  {unreadCount > 0 && (
+                    <span className="app-header-badge">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" sideOffset={10} className="notif-dropdown-content">
+                <NotificationCentre
+                  onClose={() => setNotifOpen(false)}
+                  notifs={notifs}
+                  unreadCount={unreadCount}
+                  onMarkRead={handleMarkRead}
+                  onMarkAllRead={handleMarkAllRead}
+                  onReload={loadNotifs}
+                />
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Theme toggle */}
             <button
               type="button"
               className="app-header-icon-btn"
               onClick={toggleTheme}
-              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={isDark ? t('header.lightMode') : t('header.darkMode')}
             >
               <Icon name={isDark ? 'sun' : 'moon'} size={17} />
             </button>
+
+            {/* Language switcher */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="app-header-icon-btn"
+                  title={t('header.language')}
+                >
+                  <Icon name="globe" size={17} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                {LANGUAGES.map(l => (
+                  <DropdownMenuItem
+                    key={l.code}
+                    onClick={() => setLanguage(l.code)}
+                    className="cursor-pointer gap-3"
+                  >
+                    <span className="text-base">{l.flag}</span>
+                    <span className="flex-1">{l.nativeLabel}</span>
+                    {language === l.code && <Icon name="check" size={14} className="text-primary" />}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
 
             {/* Apps launcher trigger + panel */}
             <AppLauncher />
 
             {/* User avatar */}
-            <div className="app-header-rel" ref={userRef}>
-              <button
-                ref={avatarRef}
-                type="button"
-                className="app-header-avatar"
-                onClick={() => setUserOpen(d => !d)}
-                title={user?.name ?? 'Account'}
-              >
-                {getInitials(user?.name)}
-              </button>
-              {userOpen && (
-                <div className="app-header-user-dropdown">
-                  <div className="app-header-user-info">
-                    <span className="app-header-user-name">{user?.name ?? '—'}</span>
-                    <span className="app-header-user-email">{user?.email ?? '—'}</span>
-                    <span className="app-header-user-role">{user?.role ?? '—'}</span>
-                  </div>
-                  <div className="app-header-user-actions">
-                    <Link to="/profile" className="app-header-user-action"
-                      onClick={() => setUserOpen(false)}>
-                      <Icon name="user" size={14} /><span>My profile</span>
-                    </Link>
-                    <button type="button" className="app-header-user-action app-header-user-action--signout"
-                      onClick={() => logout()}>
-                      <Icon name="arrowRight" size={14} /><span>Sign out</span>
-                    </button>
-                  </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  ref={avatarRef}
+                  type="button"
+                  className="app-header-avatar"
+                  title={user?.name ?? t('header.account')}
+                >
+                  {getInitials(user?.name)}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64 p-2">
+                <div className="flex flex-col space-y-1 p-2 pb-3">
+                  <span className="text-sm font-semibold tracking-tight">{user?.name ?? '—'}</span>
+                  <span className="text-xs text-muted-foreground truncate">{user?.email ?? '—'}</span>
+                  {user?.role && <span className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1 font-semibold">{user.role}</span>}
                 </div>
-              )}
-            </div>
+                <DropdownMenuSeparator />
+                <div className="p-1">
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile" className="flex w-full cursor-pointer items-center gap-3">
+                      <Icon name="user" size={16} className="text-muted-foreground" />
+                      <span>{t('header.myProfile')}</span>
+                    </Link>
+                  </DropdownMenuItem>
+                </div>
+                <DropdownMenuSeparator />
+                <div className="p-1">
+                  <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer" onClick={() => logout()}>
+                    <Icon name="arrowRight" size={16} />
+                    <span>{t('header.signOut')}</span>
+                  </DropdownMenuItem>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
           </div>
         </div>
       </header>
 
-      {notifOpen && (
-        <NotificationCentre
-          open={notifOpen}
-          onClose={() => setNotifOpen(false)}
-          notifs={notifs}
-          unreadCount={unreadCount}
-          onMarkRead={handleMarkRead}
-          onMarkAllRead={handleMarkAllRead}
-          onReload={loadNotifs}
-        />
+      {mobileSearchOpen && (
+        <div className="app-header-search-overlay" onClick={() => setMobileSearchOpen(false)}>
+          <div className="app-header-search-modal" onClick={e => e.stopPropagation()}>
+            <div className="app-header-search-modal-inner">
+              <Icon name="search" size={16} />
+              <input
+                type="text"
+                autoFocus
+                className="app-header-search-modal-input"
+                placeholder={searchPlaceholder}
+                value={searchValue}
+                onChange={e => handleSearch(e.target.value)}
+              />
+              <button className="app-header-search-modal-close" onClick={() => setMobileSearchOpen(false)}>Close</button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

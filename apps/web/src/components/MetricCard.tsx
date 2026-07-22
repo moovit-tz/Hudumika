@@ -90,7 +90,7 @@ export function Trend({ val, invert = false }: { val: number; invert?: boolean }
   return (
     <span className="mc-trend" data-up={String(up)}>
       <Icon name={up ? 'arrowUp' : 'arrowDown'} size={10} strokeWidth={2.5}
-        color={up ? '#16a34a' : '#dc2626'} duotone={false} />
+        color={up ? '#059669' : '#dc2626'} duotone={false} />
       {Math.abs(val).toFixed(1)}%
     </span>
   );
@@ -110,27 +110,18 @@ export interface MetricCardProps {
   barHighlight: string;
   invertTrend?: boolean;
   icon?: IconName;
+  /** Optional action for the header's "more" button. Omit to leave it non-interactive. */
+  onMenuClick?: () => void;
+  menuTitle?: string;
 }
 
-function resolveColor(c: string): string {
-  const MAP: Record<string, string> = {
-    'var(--teal)':   '#e8461a',
-    'var(--blue)':   '#2563eb',
-    'var(--green)':  '#16a34a',
-    'var(--red)':    '#dc2626',
-    'var(--gold)':   '#d97706',
-    'var(--purple)': '#7c3aed',
-  };
-  return MAP[c] ?? c;
-}
-
-const COLOR_ICON: Record<string, { icon: IconName; colorKey: string }> = {
-  'var(--teal)':   { icon: 'trendingUp',   colorKey: 'teal'    },
-  'var(--blue)':   { icon: 'barChart2',     colorKey: 'blue'    },
-  'var(--green)':  { icon: 'checkCircle',   colorKey: 'green'   },
-  'var(--red)':    { icon: 'alertTriangle', colorKey: 'red'     },
-  'var(--gold)':   { icon: 'zap',           colorKey: 'gold'    },
-  'var(--purple)': { icon: 'pieChart',      colorKey: 'purple'  },
+const COLOR_ICON: Record<string, { icon: IconName }> = {
+  'var(--teal)':   { icon: 'trendingUp'   },
+  'var(--blue)':   { icon: 'barChart2'    },
+  'var(--green)':  { icon: 'checkCircle'  },
+  'var(--red)':    { icon: 'alertTriangle' },
+  'var(--gold)':   { icon: 'zap'          },
+  'var(--purple)': { icon: 'pieChart'     },
 };
 
 let _sparkId = 0;
@@ -140,25 +131,31 @@ export function MetricCard({
   sub1Label = 'THIS MONTH', sub1Value,
   sub2Label = 'THIS WEEK',  sub2Value,
   bars, barColor, barHighlight, invertTrend = false,
-  icon,
+  icon, onMenuClick, menuTitle,
 }: MetricCardProps) {
   const sparkId = React.useRef(`mc${++_sparkId}`).current;
-  const color    = resolveColor(barHighlight);
-  const cfg      = COLOR_ICON[barHighlight] ?? { icon: 'barChart' as IconName, colorKey: 'default' };
+  const color    = barHighlight; // pass the CSS var straight through — it resolves live, so cards stay theme-reactive in dark mode
+  const cfg      = COLOR_ICON[barHighlight] ?? { icon: 'barChart' as IconName };
   const iconName: IconName = icon ?? cfg.icon;
 
   return (
     <div className="mc-card">
       <div className="mc-head">
         <div className="mc-head-left">
-          <div className="mc-icon-badge" data-color={cfg.colorKey}>
+          <div className="mc-icon-badge">
             <Icon name={iconName} size={18} color={color} strokeWidth={1.75} />
           </div>
           <span className="mc-title">{title}</span>
         </div>
-        <span className="mc-dots">
-          <Icon name="moreVertical" size={15} strokeWidth={1.75} duotone={false} />
-        </span>
+        {onMenuClick ? (
+          <button type="button" className="mc-dots mc-dots-btn" onClick={onMenuClick} title={menuTitle ?? 'More options'}>
+            <Icon name="moreVertical" size={15} strokeWidth={1.75} duotone={false} />
+          </button>
+        ) : (
+          <span className="mc-dots">
+            <Icon name="moreVertical" size={15} strokeWidth={1.75} duotone={false} />
+          </span>
+        )}
       </div>
 
       <div className="mc-value-row">

@@ -1,0 +1,393 @@
+import React, { useState, useEffect, useRef, useContext } from 'react';
+import { createPortal } from 'react-dom';
+import { useLocation, Link } from 'react-router-dom';
+import { Icon } from './Icon.js';
+import type { IconName } from './Icon.js';
+import { useAuth } from '../hooks/useAuth.js';
+import { APP_LABELS, APP_COLORS, MobileNavContext } from '../shells/WorkspaceApp.js';
+import { useBranding } from '../hooks/useBranding.js';
+import { useTenantPlan } from '../hooks/useTenantPlan.js';
+import { useLocale } from '../hooks/useLocale.js';
+import type { AppId } from '@hudumika/types';
+import './AppSidebar.css';
+
+export interface SidebarNavItem {
+  label: string;
+  icon: IconName;
+  path: string;
+  badge?: string;
+  badgeVariant?: 'free' | 'soon' | 'count';
+  exact?: boolean;
+  /** Child items rendered indented beneath this one when expanded. The
+   *  parent auto-expands whenever it or one of its children is the active
+   *  route; the chevron also toggles it manually. */
+  children?: SidebarNavItem[];
+}
+
+export interface SidebarSection {
+  title?: string;
+  items: SidebarNavItem[];
+  /** Whether this section can be collapsed via a +/- toggle. Defaults to true when `title` is set. */
+  collapsible?: boolean;
+}
+
+interface Props {
+  appId: AppId;
+  sections: SidebarSection[];
+  beforeNav?: (opts: { collapsed: boolean }) => React.ReactNode;
+  fillNav?: (opts: { collapsed: boolean }) => React.ReactNode;
+  afterNav?: (opts: { collapsed: boolean }) => React.ReactNode;
+}
+
+const APP_ICONS: Record<AppId, IconName> = {
+  clearos:   'layers',
+  finops:    'barChart',
+  complyos:  'shield',
+  bliss:     'chatBubble',
+  onepi:     'users',
+  onesite:   'globe',
+  oneid:     'lock',
+  tracking:  'mapPin',
+  cloud:     'folder',
+  ai:        'sparkle',
+  workspace: 'grid',
+  admin:     'shield',
+  email:     'mail',
+  crm:       'users',
+  contacts:  'user',
+  store:     'package',
+  demurrage:     'alertTriangle', // no longer a distinct shell — merged into cargotracker — kept only to satisfy Record<AppId,...>
+  cargotracker:  'map',
+  calendar:  'calendar',
+  tasks:     'checkSquare',
+};
+
+const APP_SUBTITLES: Partial<Record<AppId, string>> = {
+  clearos:   'Customs & Freight',
+  finops:    'Finance & Accounts',
+  complyos:  'Compliance Platform',
+  bliss:     'Support & Helpdesk',
+  onepi:     'People & HR',
+  onesite:   'Web & CMS',
+  oneid:     'Identity & Access',
+  tracking:  'Vehicle & Fleet Tracking',
+  cloud:     'File Storage',
+  ai:        'AI Intelligence',
+  workspace: 'Admin & Settings',
+  admin:     'Super Admin Console',
+  email:     'Hudumika Mail',
+  crm:       'Customers & Leads',
+  contacts:  'Contact Manager',
+  store:     'Add-ons & Plugins',
+  cargotracker:  'Cargo Tracking & Demurrage',
+};
+
+export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav }: Props) {
+  const location    = useLocation();
+  const { logout }  = useAuth();
+  const { t }       = useLocale();
+  const { mobileOpen, setMobileOpen } = useContext(MobileNavContext);
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem(`${appId}-sidebar-collapsed`) === 'true'
+  );
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {};
+    for (const section of sections) {
+      if (!section.title) continue;
+      const stored = localStorage.getItem(`${appId}-sb-section-${section.title}`);
+      initial[section.title] = stored === null ? true : stored === 'open';
+    }
+    return initial;
+  });
+
+  function toggleSection(title: string) {
+    setOpenSections(prev => {
+      const next = !(prev[title] ?? true);
+      localStorage.setItem(`${appId}-sb-section-${title}`, next ? 'open' : 'closed');
+      return { ...prev, [title]: next };
+    });
+  }
+
+  // Manual expand/collapse for items with children, keyed by parent path.
+  // Auto-expand (see isParentOpen below) covers the common case of landing
+  // on a child route directly; this only needs to track explicit toggles.
+  const [openParents, setOpenParents] = useState<Record<string, boolean>>({});
+  function toggleParent(path: string) {
+    setOpenParents(prev => ({ ...prev, [path]: !(prev[path] ?? false) }));
+  }
+  const [isDark, setIsDark] = useState(
+    () => document.documentElement.getAttribute('data-theme') === 'dark'
+  );
+
+  const sidebarRef = useRef<HTMLElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const branding = useBranding();
+  const [dsRev, setDsRev] = useState(0);
+  const [subOpen, setSubOpen] = useState(false);
+  const { planLabel, monthlyPrice } = useTenantPlan();
+  const appColor   = branding.getAppColor(appId, APP_COLORS[appId] ?? '#64748b');
+
+  function toggleTheme(dark: boolean) {
+    setIsDark(dark);
+    if (dark) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.setItem('theme', 'light');
+    }
+  }
+
+  useEffect(() => {
+    sidebarRef.current?.style.setProperty('--sb-color', appColor);
+  }, [appColor, mobileOpen]);
+
+  // Sidebar collapse can also be commanded externally (e.g. the header's
+  // full-width toggle collapses the sidebar to free up space) — stay in
+  // sync so this component's own UI reflects it, not just localStorage.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const evt = e as CustomEvent;
+      if (evt.detail && typeof evt.detail.collapsed === 'boolean') {
+        setCollapsed(evt.detail.collapsed);
+      }
+    };
+    window.addEventListener('sidebar-toggled', handler);
+    return () => window.removeEventListener('sidebar-toggled', handler);
+  }, []);
+
+  function toggleCollapse() {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem(`${appId}-sidebar-collapsed`, String(next));
+    window.dispatchEvent(new CustomEvent('sidebar-toggled', { detail: { collapsed: next } }));
+  }
+
+  function isActive(path: string, exact?: boolean): boolean {
+    const [p] = path.split('?');
+    if (location.pathname === p) return true;
+    if (exact) return false;
+    if (location.pathname.startsWith(p + '/')) return true;
+    return false;
+  }
+
+  function hasActiveDescendant(item: SidebarNavItem): boolean {
+    return !!item.children?.some(c => isActive(c.path, c.exact) || hasActiveDescendant(c));
+  }
+
+  const appLabel    = branding.getAppName(appId, APP_LABELS[appId] ?? String(appId));
+  const appIcon     = APP_ICONS[appId]  ?? 'grid';
+  const appSubtitle = branding.getAppSlogan(appId, t(`appSubtitles.${appId}`, APP_SUBTITLES[appId] ?? ''));
+
+  function renderContent() {
+    return (
+      <>
+        {/* ── Brand header ── */}
+        <div className="app-sb-brand">
+          <div className="app-sb-brand-icon">
+            {branding.getAppLogo(appId) ? (
+              <img src={branding.getAppLogo(appId)} alt={appLabel} className="app-sb-brand-logo-img" />
+            ) : (
+              <Icon name={appIcon} size={16} color="#fff" strokeWidth={2} />
+            )}
+          </div>
+          {!collapsed && (
+            <div className="app-sb-brand-text">
+              <div className="app-sb-brand-name">{appLabel}</div>
+              {appSubtitle && <div className="app-sb-brand-sub">{appSubtitle}</div>}
+            </div>
+          )}
+        </div>
+
+        {/* ── Collapse / expand toggle — floats on the right edge ── */}
+        <button
+          type="button"
+          className="app-sb-toggle"
+          onClick={toggleCollapse}
+          title={collapsed ? t('sidebar.expand') : t('sidebar.collapse')}
+        >
+          <Icon name={collapsed ? 'chevronRight' : 'chevronLeft'} size={11} color="var(--ink)" strokeWidth={2.5} />
+        </button>
+
+        {/* ── Fill-nav slot: replaces beforeNav + nav, takes flex: 1 ── */}
+        {fillNav ? (
+          <div className="app-sb-fill-nav">
+            {fillNav({ collapsed })}
+          </div>
+        ) : (
+          <>
+            {/* ── Before-nav slot (e.g. Compose button) ── */}
+            {beforeNav?.({ collapsed })}
+
+            {/* ── Nav ── */}
+            <nav className="app-sb-nav">
+              {sections.map((section, si) => {
+                const isCollapsible = !!section.title && (section.collapsible ?? true);
+                const isOpen = !section.title || (openSections[section.title] ?? true);
+                return (
+                <div key={si} className="app-sb-section-group">
+                  {section.title && !collapsed && (
+                    <div
+                      className={`app-sb-section-hdr${isCollapsible ? ' app-sb-section-hdr--collapsible' : ''}`}
+                      onClick={isCollapsible ? () => toggleSection(section.title!) : undefined}
+                    >
+                      <span>{section.title}</span>
+                      {isCollapsible && <span className="app-sb-section-toggle">{isOpen ? '−' : '+'}</span>}
+                    </div>
+                  )}
+                  {(isOpen || collapsed) && section.items.map(item => {
+                    const active = isActive(item.path, item.exact);
+                    const hasChildren = !!item.children?.length;
+
+                    if (!hasChildren) {
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          className={`app-sb-item${active ? ' app-sb-item--active' : ''}`}
+                          onClick={() => setMobileOpen(false)}
+                          title={collapsed ? item.label : undefined}
+                        >
+                          <span className="app-sb-item-icon">
+                            <Icon name={item.icon} size={16} strokeWidth={active ? 2.2 : 1.8} />
+                          </span>
+                          {!collapsed && (
+                            <>
+                              <span className="app-sb-item-label">{item.label}</span>
+                              {item.badge && (
+                                <span className={`app-sb-badge app-sb-badge--${item.badgeVariant ?? 'tag'}`}>
+                                  {item.badge}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </Link>
+                      );
+                    }
+
+                    // Item with children: auto-expand whenever it or a
+                    // descendant is the active route, otherwise follow the
+                    // manual toggle. The parent itself is a toggle only —
+                    // not a navigable link — matching how section headers
+                    // (OPERATIONS, TOOLS, ...) behave.
+                    const isParentOpen = openParents[item.path] ?? hasActiveDescendant(item);
+
+                    if (collapsed) {
+                      // Icon rail: children never render, so fall back to a
+                      // plain navigable icon like a leaf item.
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          className={`app-sb-item${active ? ' app-sb-item--active' : ''}`}
+                          onClick={() => setMobileOpen(false)}
+                          title={item.label}
+                        >
+                          <span className="app-sb-item-icon">
+                            <Icon name={item.icon} size={16} strokeWidth={active ? 2.2 : 1.8} />
+                          </span>
+                        </Link>
+                      );
+                    }
+
+                    return (
+                      <React.Fragment key={item.path}>
+                        <div
+                          className="app-sb-item app-sb-item--parent-hdr"
+                          onClick={() => toggleParent(item.path)}
+                        >
+                          <span className="app-sb-item-icon">
+                            <Icon name={item.icon} size={16} strokeWidth={1.8} />
+                          </span>
+                          <span className="app-sb-item-label">{item.label}</span>
+                          <span className="app-sb-item-parent-toggle">{isParentOpen ? '−' : '+'}</span>
+                        </div>
+                        {isParentOpen && item.children!.map(child => {
+                          const childActive = isActive(child.path, child.exact);
+                          return (
+                            <Link
+                              key={child.path}
+                              to={child.path}
+                              className={`app-sb-item app-sb-item--child${childActive ? ' app-sb-item--active' : ''}`}
+                              onClick={() => setMobileOpen(false)}
+                            >
+                              <span className="app-sb-item-icon">
+                                <Icon name={child.icon} size={14} strokeWidth={childActive ? 2.2 : 1.8} />
+                              </span>
+                              <span className="app-sb-item-label">{child.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </React.Fragment>
+                    );
+                  })}
+                </div>
+                );
+              })}
+              {afterNav?.({ collapsed })}
+            </nav>
+          </>
+        )}
+
+        {/* ── Footer — Subscription Box ── */}
+        <div className="app-sb-sub-footer">
+          {!collapsed ? (
+            <div className="app-sb-sub-box">
+              <div 
+                className="app-sb-sub-header" 
+                onClick={() => setSubOpen(!subOpen)}
+              >
+                <div className="app-sb-sub-title">
+                  <Icon name="zap" size={14} style={{ color: 'var(--teal)' }} />
+                  <span>{planLabel} Plan</span>
+                </div>
+                <Icon name={subOpen ? 'chevronDown' : 'chevronRight'} size={14} />
+              </div>
+              {subOpen && (
+                <div className="app-sb-sub-content">
+                  <div className="app-sb-sub-metric" style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink)' }}>
+                    <span style={{ color: 'var(--ink3)' }}>Price</span>
+                    <strong>{monthlyPrice ? `$${monthlyPrice}/mo` : 'Free'}</strong>
+                  </div>
+                  <div className="app-sb-sub-metric" style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink)' }}>
+                    <span style={{ color: 'var(--ink3)' }}>Expires</span>
+                    <strong>31 Dec 2026</strong>
+                  </div>
+                  <Link to="/subscription" className="app-sb-sub-btn">Pay Upfront</Link>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link to="/subscription" className="app-sb-footer-icon-btn" title="Subscription">
+              <Icon name="zap" size={16} style={{ color: 'var(--teal)' }} />
+            </Link>
+          )}
+        </div>
+      </>
+    );
+  }
+
+  if (mobileOpen) {
+    return createPortal(
+      <>
+        <div className="app-sb-backdrop" onClick={() => setMobileOpen(false)} />
+        <aside
+          ref={sidebarRef}
+          className={`app-sidebar app-sidebar--mobile-open${collapsed ? ' app-sidebar--collapsed' : ''}`}
+        >
+          {renderContent()}
+        </aside>
+      </>,
+      document.body
+    );
+  }
+
+  return (
+    <aside
+      ref={sidebarRef}
+      className={`app-sidebar${collapsed ? ' app-sidebar--collapsed' : ''}`}
+    >
+      {renderContent()}
+    </aside>
+  );
+}

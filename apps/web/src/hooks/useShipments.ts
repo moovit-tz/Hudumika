@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { useWebSocket } from './useWebSocket.js';
-import type { CustomerShipmentGroup, ShipmentCase, KPIResponse } from '@clearos/types';
+import type { CustomerShipmentGroup, ShipmentCase, KPIResponse } from '@hudumika/types';
 
-export function useShipments(filters: { assigned_to?: string; stage?: string } = {}) {
+export function useShipments(filters: { assigned_to?: string; stage?: string; workflow_id?: string } = {}) {
   const [groupedShipments, setGroupedShipments] = useState<CustomerShipmentGroup[]>([]);
   const [kpis, setKpis] = useState<KPIResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -14,7 +14,8 @@ export function useShipments(filters: { assigned_to?: string; stage?: string } =
       const params = new URLSearchParams();
       if (filters.assigned_to) params.append('assigned_to', filters.assigned_to);
       if (filters.stage) params.append('stage', filters.stage);
-      
+      if (filters.workflow_id) params.append('workflow_id', filters.workflow_id);
+
       const queryString = params.toString() ? `?${params.toString()}` : '';
       const response = await apiFetch(`/v1/shipments/grouped${queryString}`);
       setGroupedShipments(response.data || []);
@@ -23,7 +24,7 @@ export function useShipments(filters: { assigned_to?: string; stage?: string } =
       console.error('Error fetching grouped shipments:', err);
       setError(err.message || 'Failed to load shipments');
     }
-  }, [filters.assigned_to, filters.stage]);
+  }, [filters.assigned_to, filters.stage, filters.workflow_id]);
 
   const fetchKPIs = useCallback(async () => {
     try {
