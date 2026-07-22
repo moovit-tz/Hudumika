@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
-import { Icon } from '../components/Icon.jsx';
+import { Icon } from '../components/Icon.js';
 import { AreaChart, Area, XAxis, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import './TrackingDrivers.css';
 
@@ -33,42 +33,12 @@ export const TrackingDrivers: React.FC = () => {
   const [selectedDriver, setSelectedDriver] = useState<DriverDetailed | null>(null);
   const [metrics, setMetrics] = useState<DriverMetrics | null>(null);
 
-  const [showAdd, setShowAdd] = useState(false);
-  const [vehicles, setVehicles] = useState<{ id: string; name: string }[]>([]);
-  const [newDriver, setNewDriver] = useState({ name: '', phone: '', license_number: '', license_expiry: '', assigned_vehicle_id: '' });
-  const [creating, setCreating] = useState(false);
-
   const reload = useCallback(() => {
     setLoading(true);
     apiFetch('/v1/tracking/drivers').then(setDrivers).catch(console.error).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => { reload(); }, [reload]);
-  useEffect(() => { apiFetch('/v1/tracking/vehicles').then(setVehicles).catch(() => {}); }, []);
-
-  async function createDriver() {
-    if (!newDriver.name.trim()) return;
-    setCreating(true);
-    try {
-      await apiFetch('/v1/tracking/drivers', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: newDriver.name.trim(),
-          phone: newDriver.phone || undefined,
-          license_number: newDriver.license_number || undefined,
-          license_expiry: newDriver.license_expiry || undefined,
-          assigned_vehicle_id: newDriver.assigned_vehicle_id || undefined,
-        }),
-      });
-      setNewDriver({ name: '', phone: '', license_number: '', license_expiry: '', assigned_vehicle_id: '' });
-      setShowAdd(false);
-      reload();
-    } catch (err: any) {
-      alert(`Failed to add driver: ${err?.message ?? 'Unknown error'}`);
-    } finally {
-      setCreating(false);
-    }
-  }
 
   useEffect(() => {
     if (selectedDriver) {
@@ -102,9 +72,9 @@ export const TrackingDrivers: React.FC = () => {
             <div className="drv-title">Drivers</div>
             <div className="drv-breadcrumbs">Dashboard <span>/ Drivers</span></div>
           </div>
-          <button className="drv-add-btn" onClick={() => setShowAdd(true)}>
+          <Link to="/tracking/drivers/new" className="drv-add-btn">
             <Icon name="plus" size={16} /> Add New Driver
-          </button>
+          </Link>
         </div>
 
         <div className="drv-filters-row">
@@ -225,7 +195,7 @@ export const TrackingDrivers: React.FC = () => {
           <div className="drv-sb-header">
             <div className="drv-sb-title">Driver Details</div>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <Link to={`/tracking/drivers/${selectedDriver.id}`} style={{ fontSize: 12, fontWeight: 700, color: '#2563eb', textDecoration: 'none', background: '#eff6ff', padding: '6px 12px', borderRadius: 8 }}>
+              <Link to={`/tracking/drivers/${selectedDriver.id}`} style={{ fontSize: 12, fontWeight: 700, color: '#2563eb', textDecoration: 'none', background: 'rgba(37,99,235,0.1)', padding: '6px 12px', borderRadius: 8 }}>
                 View Full Profile
               </Link>
               <Icon name="x" size={20} className="drv-sb-close" onClick={() => setSelectedDriver(null)} />
@@ -268,7 +238,7 @@ export const TrackingDrivers: React.FC = () => {
           <div className="drv-sb-section">
             <div className="drv-sb-sec-header">
               <div className="drv-sb-sec-title">Shipment Statistic</div>
-              <div style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>This Week <Icon name="chevronDown" size={10} /></div>
+              <div style={{ background: 'var(--bg)', padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>This Week <Icon name="chevronDown" size={10} /></div>
             </div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 16 }}>
               <div className="drv-chart-val">{metrics.total_completed}</div>
@@ -329,7 +299,7 @@ export const TrackingDrivers: React.FC = () => {
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
-              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(20px, -30px)', background: '#fee2e2', color: '#b91c1c', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(20px, -30px)', background: 'rgba(220,38,38,0.12)', color: '#dc2626', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
                 {metrics.total_delays} Delays
               </div>
             </div>
@@ -349,44 +319,6 @@ export const TrackingDrivers: React.FC = () => {
         </div>
       )}
 
-      {showAdd && (
-        <div className="modal-overlay" onClick={() => setShowAdd(false)}>
-          <div className="card" style={{ width: 420, padding: 26 }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Add New Driver</div>
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Name *</label>
-              <input value={newDriver.name} onChange={e => setNewDriver(p => ({ ...p, name: e.target.value }))} className="input-field" style={{ width: '100%' }} />
-            </div>
-            <div style={{ marginBottom: 12 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Phone</label>
-              <input value={newDriver.phone} onChange={e => setNewDriver(p => ({ ...p, phone: e.target.value }))} className="input-field" style={{ width: '100%' }} />
-            </div>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Licence Number</label>
-                <input value={newDriver.license_number} onChange={e => setNewDriver(p => ({ ...p, license_number: e.target.value }))} className="input-field" style={{ width: '100%' }} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Licence Expiry</label>
-                <input type="date" value={newDriver.license_expiry} onChange={e => setNewDriver(p => ({ ...p, license_expiry: e.target.value }))} className="input-field" style={{ width: '100%' }} />
-              </div>
-            </div>
-            <div style={{ marginBottom: 18 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Assigned Vehicle</label>
-              <select value={newDriver.assigned_vehicle_id} onChange={e => setNewDriver(p => ({ ...p, assigned_vehicle_id: e.target.value }))} className="input-field" style={{ width: '100%' }}>
-                <option value="">— Unassigned —</option>
-                {vehicles.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
-              </select>
-            </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowAdd(false)} className="btn btn-secondary btn-sm">Cancel</button>
-              <button onClick={createDriver} className="btn btn-primary btn-sm" disabled={creating || !newDriver.name.trim()}>
-                {creating ? 'Adding…' : 'Add Driver'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

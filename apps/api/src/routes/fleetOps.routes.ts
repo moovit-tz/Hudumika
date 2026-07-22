@@ -314,10 +314,25 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
       let q = trx.selectFrom('trips').selectAll().where('tenant_id', '=', user.tenant_id);
       if (status) q = q.where('status', '=', status);
       const rows = await q.orderBy('created_at', 'desc').limit(500).execute();
+
+      // Best-effort ref_number lookup for linked shipments — shipment_cases
+      // is a separate (ClearOS) app's table with no FK, so resolve manually
+      // and tolerate the tenant not having ClearOS enabled at all.
+      const shipmentIds = [...new Set(rows.map(r => r.shipment_id).filter((x): x is string => !!x))];
+      const refByShipment = new Map<string, string>();
+      if (shipmentIds.length > 0) {
+        try {
+          const shipments = await trx.selectFrom('shipment_cases').select(['id', 'ref_number'])
+            .where('tenant_id', '=', user.tenant_id).where('id', 'in', shipmentIds).execute();
+          for (const s of shipments) refByShipment.set(s.id, s.ref_number);
+        } catch { /* clearos not provisioned for this tenant — leave refs blank */ }
+      }
+
       return rows.map(r => ({
         ...r, distance_km: numOrNull(r.distance_km),
         cargo_weight_kg: numOrNull(r.cargo_weight_kg), cargo_temp_c: numOrNull(r.cargo_temp_c),
         load_capacity_pct: numOrNull(r.load_capacity_pct),
+        shipment_ref: r.shipment_id ? (refByShipment.get(r.shipment_id) ?? null) : null,
       }));
     });
   });
@@ -329,6 +344,7 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
       origin?: string; destination?: string; scheduled_start?: string; scheduled_end?: string;
       cargo_desc?: string; notes?: string;
       cargo_type?: string; cargo_weight_kg?: number; cargo_temp_c?: number; load_capacity_pct?: number;
+      shipment_id?: string;
     };
     return withTenant(user.tenant_id, async (trx) =>
       trx.insertInto('trips').values({
@@ -346,6 +362,8 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
         cargo_temp_c: body.cargo_temp_c ?? null,
         load_capacity_pct: body.load_capacity_pct ?? null,
         notes: body.notes ?? null,
+        shipment_id: body.shipment_id ?? null,
+        job_type: body.shipment_id ? 'CLEARANCE_LINKED' : 'TRANSPORT_ONLY',
         created_by: user.sub,
       } as any).returningAll().executeTakeFirstOrThrow()
     );
@@ -511,9 +529,13 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
   fastify.get('/fuel', async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
-      const rows = await trx.selectFrom('fuel_logs').selectAll()
-        .where('tenant_id', '=', user.tenant_id)
-        .orderBy('logged_at', 'desc').limit(500).execute();
+      const rows = await trx.selectFrom('fuel_logs')
+        .leftJoin('vehicles', 'vehicles.id', 'fuel_logs.vehicle_id')
+        .leftJoin('drivers', 'drivers.id', 'fuel_logs.driver_id')
+        .selectAll('fuel_logs')
+        .select(['vehicles.name as vehicle_name', 'vehicles.plate_number as vehicle_plate', 'drivers.name as driver_name'])
+        .where('fuel_logs.tenant_id', '=', user.tenant_id)
+        .orderBy('fuel_logs.logged_at', 'desc').limit(500).execute();
       return rows.map(r => ({ ...r, liters: Number(r.liters), cost: numOrNull(r.cost), odometer_km: numOrNull(r.odometer_km) }));
     });
   });

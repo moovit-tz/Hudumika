@@ -1,0 +1,493 @@
+.rp-container {
+  position: relative;
+  width: 100%;
+  height: calc(100vh - 60px); /* Fill the screen minus navbar */
+  overflow: hidden;
+  font-family: var(--font);
+}
+
+.rp-map-wrapper {
+  position: absolute;
+  inset: 0;
+  z-index: 1; /* Leaflet map is z-index 1 */
+}
+
+/* ── Floating map controls (layer toggle) ── */
+.rp-map-controls {
+  position: absolute;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999;
+}
+.rp-mc-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.85);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  transition: all 0.2s;
+}
+.rp-mc-btn:hover { background: #fff; transform: translateY(-2px); }
+
+.rp-layers-menu {
+  position: absolute;
+  bottom: 0;
+  right: 48px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.95);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+  min-width: 110px;
+}
+.rp-layers-menu-item {
+  padding: 7px 10px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+.rp-layers-menu-item:hover { background: var(--bg); }
+.rp-layers-menu-item.active { background: var(--teal-l); color: var(--teal); }
+
+/* ── Floating Left Panel ── */
+.rp-sidebar {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  bottom: 24px;
+  width: 400px;
+  background: var(--white);
+  border-radius: 16px;
+  box-shadow: 0 12px 36px rgba(0,0,0,0.12);
+  z-index: 1000; /* Over Leaflet Map */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  .rp-sidebar {
+    width: calc(100% - 48px);
+    bottom: 50%;
+  }
+}
+
+.rp-sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.rp-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.rp-driver-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.rp-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--border);
+}
+
+.rp-driver-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.rp-driver-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rp-driver-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  background: rgba(79,70,229,0.12);
+  color: #6366f1;
+  border-radius: 6px;
+  text-transform: uppercase;
+}
+
+.rp-driver-desc {
+  font-size: 12px;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+.rp-section-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 20px 0 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rp-truck-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  padding: 12px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+}
+
+.rp-info-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  text-align: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  min-height: 44px;
+}
+
+.rp-info-block svg {
+  color: #3b82f6; /* Blue icon */
+}
+
+/* Optimization Segment */
+.rp-form-group {
+  margin-bottom: 16px;
+}
+
+.rp-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  margin-bottom: 6px;
+}
+
+.rp-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-family: var(--font);
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.rp-input-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 12px;
+}
+
+.rp-btn-generate {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  background: #2563eb; /* Bold blue button */
+  color: #fff;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: opacity 0.2s;
+  margin-top: 16px;
+}
+
+.rp-btn-generate:hover {
+  opacity: 0.9;
+}
+
+.rp-btn-generate:disabled {
+  background: #94a3b8;
+  cursor: not-allowed;
+}
+
+.rp-btn-clear {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--white);
+  color: var(--ink2);
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+/* Results Area */
+.rp-results-box {
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 24px;
+}
+
+.rp-travel-est {
+  font-size: 12px;
+  color: var(--ink3);
+  margin-bottom: 12px;
+}
+
+.rp-tabs {
+  display: flex;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.rp-tab {
+  flex: 1;
+  text-align: center;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.rp-tab.active {
+  background: rgba(79,70,229,0.12);
+  color: #6366f1;
+}
+
+/* ── Timeline ── */
+.rp-timeline {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+}
+
+.rp-timeline::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: var(--border);
+  z-index: 1;
+}
+
+.rp-timeline-item {
+  display: flex;
+  gap: 16px;
+  position: relative;
+  z-index: 2;
+}
+
+.rp-timeline-marker {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 2px solid #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.rp-timeline-marker.start {
+  background: #059669;
+  border-color: #059669;
+  color: #fff;
+}
+
+.rp-timeline-marker.end {
+  background: #ea580c;
+  border-color: #ea580c;
+  color: #fff;
+}
+
+.rp-timeline-content {
+  flex: 1;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.rp-tl-type {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  color: #2563eb;
+  margin-bottom: 8px;
+}
+
+.rp-tl-type-badge {
+  background: rgba(79,70,229,0.12);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rp-tl-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 2px;
+}
+
+.rp-tl-address {
+  font-size: 12px;
+  color: var(--ink3);
+  margin-bottom: 8px;
+}
+
+.rp-tl-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--ink2);
+}
+
+/* ── Floating Map Widgets ── */
+.rp-widget-top-right {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  width: 260px;
+  background: var(--white);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  z-index: 1000;
+  padding: 16px;
+}
+
+.rp-widget-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.rp-widget-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rp-widget-val-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.rp-widget-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.rp-widget-val-sub {
+  font-size: 11px;
+  color: var(--ink3);
+}
+
+.rp-widget-bar-bg {
+  height: 8px;
+  background: var(--bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.rp-widget-bar-fill {
+  height: 100%;
+  background: #2563eb;
+  border-radius: 4px;
+}
+
+/* Custom dropdown specifically for Vehicle select */
+.rp-vehicle-select {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  outline: none;
+  cursor: pointer;
+  appearance: none; /* remove default arrow */
+}
+
+[data-theme="dark"] .rp-mc-btn {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+[data-theme="dark"] .rp-mc-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+[data-theme="dark"] .rp-layers-menu {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(255, 255, 255, 0.1);
+}

@@ -1,0 +1,551 @@
+.trk-dashboard {
+  padding: 24px;
+  background: var(--bg);
+  min-height: calc(100vh - 60px);
+  color: var(--ink);
+}
+
+.trk-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.trk-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.trk-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.trk-select {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+  cursor: pointer;
+}
+
+.trk-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--ink2);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.trk-icon-btn:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.trk-primary-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 20px;
+  border-radius: 9px;
+  border: none;
+  background: var(--trk-brand, #0891b2);
+  color: #fff;
+  font-family: var(--font);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.trk-primary-btn:hover {
+  opacity: 0.9;
+}
+
+/* Performance Overview Section */
+.trk-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.trk-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.trk-section-subtitle {
+  font-size: 12px;
+  color: var(--ink3);
+}
+
+.trk-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.trk-kpi-card {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  display: flex;
+  flex-direction: column;
+}
+
+.trk-kpi-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink3);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.trk-kpi-value-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.trk-kpi-value {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.trk-kpi-trend {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 12px;
+}
+
+.trk-kpi-trend.positive {
+  background: rgba(22,163,74,0.14);
+  color: #059669;
+}
+
+.trk-kpi-trend.negative {
+  background: rgba(220,38,38,0.12);
+  color: #dc2626;
+}
+
+.trk-kpi-desc {
+  font-size: 11px;
+  color: var(--ink3);
+  margin-top: 8px;
+}
+
+/* Main Grid */
+.trk-main-grid {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .trk-main-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Left Column Cards */
+.trk-card {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  margin-bottom: 24px;
+}
+
+.trk-live-feed {
+  width: 100%;
+  height: 200px;
+  border-radius: 8px;
+  object-fit: cover;
+  margin-top: 12px;
+}
+
+.trk-map-container {
+  width: 100%;
+  height: 240px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 12px;
+  border: 1px solid var(--border);
+}
+
+/* Fleet Overview — a single responsive toolbar row: search, filters, view
+   toggle and the New Shipment action all live together, wrapping as one
+   unit on narrow screens instead of the title/search/actions splitting
+   across separate rows. */
+.trk-fleet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.trk-fleet-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.trk-search-bar {
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 9px 14px;
+  gap: 8px;
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.trk-search-bar input {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-family: var(--font);
+  font-size: 13px;
+}
+
+.trk-filter-pills {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.trk-pill {
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.trk-pill.active {
+  background: var(--trk-brand, #0891b2);
+  color: #fff;
+}
+
+.trk-pill.inactive {
+  background: var(--white);
+  color: var(--ink2);
+  border-color: var(--border);
+}
+
+.trk-pill.inactive:hover {
+  background: var(--bg);
+}
+
+/* Vehicle Cards Grid */
+.trk-vehicles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.trk-vcard {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
+  display: block;
+}
+
+.trk-vcard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+}
+
+.trk-vcard-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.trk-vcard-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.trk-vcard-id {
+  font-size: 11px;
+  color: var(--ink3);
+  margin-top: 2px;
+}
+
+.trk-vcard-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+}
+
+.trk-vcard-badge.on_route { color: #059669; background: rgba(22,163,74,0.12); border-color: rgba(22,163,74,0.35); }
+.trk-vcard-badge.in_warehouse { color: var(--ink2); background: var(--bg); border-color: var(--border2); }
+.trk-vcard-badge.loading { color: #d97706; background: rgba(217,119,6,0.12); border-color: rgba(217,119,6,0.35); }
+.trk-vcard-badge.maintenance { color: #dc2626; background: rgba(220,38,38,0.12); border-color: rgba(220,38,38,0.35); }
+
+.trk-vcard-img-container {
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.trk-vcard-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.trk-vcard-driver-sec {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  margin-top: 12px;
+}
+
+.trk-vcard-label {
+  font-size: 10px;
+  color: var(--ink3);
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.trk-vcard-driver {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.trk-vcard-driver-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trk-vcard-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg);
+  object-fit: cover;
+}
+
+.trk-vcard-driver-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.trk-vcard-updated {
+  font-size: 10px;
+  color: var(--ink3);
+}
+
+.trk-vcard-load {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--ink2);
+  margin-bottom: 4px;
+}
+
+.trk-vcard-load-bar-bg {
+  height: 6px;
+  background: var(--bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.trk-vcard-load-bar-fill {
+  height: 100%;
+  background: var(--trk-brand, #0891b2);
+  border-radius: 3px;
+}
+
+/* List View Styles */
+.trk-vehicles-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.trk-vlist-item {
+  background: var(--white);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.trk-vlist-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+}
+
+.trk-vlist-img-container {
+  width: 140px;
+  height: 90px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+.trk-vlist-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.trk-vlist-content {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.trk-vlist-main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 200px;
+}
+
+.trk-vlist-specs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 150px;
+}
+
+.trk-vlist-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  min-width: 150px;
+}
+
+.trk-vcard-specs {
+  margin-top: -8px;
+  margin-bottom: 12px;
+  font-size: 11px;
+  color: var(--ink3);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.trk-spec-line {
+  display: flex;
+  justify-content: space-between;
+}
+
+.trk-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 20px;
+}
+
+.trk-page-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--ink2);
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.trk-page-btn:hover:not(:disabled) { background: var(--bg); }
+.trk-page-btn:disabled { opacity: 0.4; cursor: default; }
+.trk-page-btn.active { background: var(--trk-brand, #0891b2); border-color: var(--trk-brand, #0891b2); color: #fff; }
+
+@media (max-width: 768px) {
+  .trk-vlist-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .trk-vlist-img-container {
+    width: 100%;
+    height: 180px;
+  }
+  .trk-vlist-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    width: 100%;
+  }
+  .trk-vlist-status {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .trk-fleet-header { flex-direction: column; align-items: stretch; }
+  .trk-fleet-header-controls { flex-direction: column; align-items: stretch; }
+  .trk-search-bar { width: 100%; }
+  .trk-primary-btn { justify-content: center; }
+}
