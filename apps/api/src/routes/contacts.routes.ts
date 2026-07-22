@@ -1,10 +1,10 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { ContactsService } from '../services/contacts.service.js';
 
 export async function contactsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('contacts'));
+  fastify.addHook('preHandler', requireEntitlement('contacts'));
 
   // Get all contacts (optional status query: ACTIVE or TRASHED)
   fastify.get('/', async (request: any, reply) => {
