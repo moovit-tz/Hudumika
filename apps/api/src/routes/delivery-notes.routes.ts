@@ -1,11 +1,11 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 
 export async function deliveryNoteRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('finops'));
+  fastify.addHook('preHandler', requireEntitlement('finops'));
 
   // GET /v1/delivery-notes
   fastify.get('/', async (request: any, reply) => {
