@@ -852,4 +852,159 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
       return null;
     });
   });
+
+  // ── Knowledge Base ───────────────────────────────────────────────
+
+  fastify.get('/kb/categories', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) =>
+      trx.selectFrom('kb_categories').selectAll().orderBy('name', 'asc').execute()
+    );
+  });
+
+  fastify.post<{ Body: { name: string; description?: string } }>('/kb/categories', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const category = await trx.insertInto('kb_categories')
+        .values({ tenant_id: user.tenant_id, name: request.body.name, description: request.body.description ?? null })
+        .returningAll().executeTakeFirstOrThrow();
+      reply.status(201);
+      return category;
+    });
+  });
+
+  fastify.delete<{ Params: { id: string } }>('/kb/categories/:id', { preHandler: [requireRole(...MGMT_ROLES)] }, async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.deleteFrom('kb_categories').where('id', '=', request.params.id).execute();
+      reply.status(204);
+      return null;
+    });
+  });
+
+  fastify.get('/kb/articles', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) =>
+      trx.selectFrom('knowledge_base')
+        .leftJoin('kb_categories', 'kb_categories.id', 'knowledge_base.category_id')
+        .select([
+          'knowledge_base.id', 'knowledge_base.title', 'knowledge_base.content', 'knowledge_base.status',
+          'knowledge_base.views', 'knowledge_base.category_id', 'knowledge_base.created_at', 'knowledge_base.updated_at',
+          'kb_categories.name as category_name',
+        ])
+        .orderBy('knowledge_base.updated_at', 'desc')
+        .execute()
+    );
+  });
+
+  fastify.post<{ Body: { title: string; content: string; category_id?: string; status?: string } }>('/kb/articles', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const article = await trx.insertInto('knowledge_base')
+        .values({
+          tenant_id: user.tenant_id,
+          title: request.body.title,
+          content: request.body.content,
+          category_id: request.body.category_id ?? null,
+          status: request.body.status ?? 'Draft',
+        })
+        .returningAll().executeTakeFirstOrThrow();
+      reply.status(201);
+      return article;
+    });
+  });
+
+  fastify.patch<{ Params: { id: string }; Body: { title?: string; content?: string; category_id?: string | null; status?: string } }>(
+    '/kb/articles/:id',
+    async (request, reply) => {
+      const user = request.user;
+      return withTenant(user.tenant_id, async (trx) => {
+        const updates: Record<string, unknown> = { updated_at: new Date() };
+        if (request.body.title !== undefined) updates.title = request.body.title;
+        if (request.body.content !== undefined) updates.content = request.body.content;
+        if (request.body.category_id !== undefined) updates.category_id = request.body.category_id;
+        if (request.body.status !== undefined) updates.status = request.body.status;
+
+        const article = await trx.updateTable('knowledge_base').set(updates)
+          .where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow();
+        return article;
+      });
+    }
+  );
+
+  fastify.post<{ Params: { id: string } }>('/kb/articles/:id/view', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.updateTable('knowledge_base')
+        .set({ views: (eb) => eb('views', '+', 1) as any })
+        .where('id', '=', request.params.id).execute();
+      return { success: true };
+    });
+  });
+
+  fastify.delete<{ Params: { id: string } }>('/kb/articles/:id', { preHandler: [requireRole(...MGMT_ROLES)] }, async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.deleteFrom('knowledge_base').where('id', '=', request.params.id).execute();
+      reply.status(204);
+      return null;
+    });
+  });
+
+  // ── Live Chat ─────────────────────────────────────────────────────
+
+  fastify.get('/chat/sessions', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) =>
+      trx.selectFrom('live_chat_sessions').selectAll().orderBy('updated_at', 'desc').execute()
+    );
+  });
+
+  fastify.get<{ Params: { id: string } }>('/chat/sessions/:id/messages', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) =>
+      trx.selectFrom('live_chat_messages').selectAll()
+        .where('session_id', '=', request.params.id)
+        .orderBy('created_at', 'asc')
+        .execute()
+    );
+  });
+
+  fastify.post<{ Params: { id: string }; Body: { content: string } }>('/chat/sessions/:id/messages', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const message = await trx.insertInto('live_chat_messages')
+        .values({
+          tenant_id: user.tenant_id,
+          session_id: request.params.id,
+          sender_type: 'agent',
+          sender_id: user.sub,
+          content: request.body.content,
+        })
+        .returningAll().executeTakeFirstOrThrow();
+
+      await trx.updateTable('live_chat_sessions')
+        .set({ status: 'active', updated_at: new Date() })
+        .where('id', '=', request.params.id).execute();
+
+      reply.status(201);
+      return message;
+    });
+  });
+
+  fastify.patch<{ Params: { id: string }; Body: { status?: string; assigned_to?: string | null } }>(
+    '/chat/sessions/:id',
+    async (request, reply) => {
+      const user = request.user;
+      return withTenant(user.tenant_id, async (trx) => {
+        const updates: Record<string, unknown> = { updated_at: new Date() };
+        if (request.body.status !== undefined) updates.status = request.body.status;
+        if (request.body.assigned_to !== undefined) updates.assigned_to = request.body.assigned_to;
+
+        const session = await trx.updateTable('live_chat_sessions').set(updates)
+          .where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow();
+        return session;
+      });
+    }
+  );
 }

@@ -1,0 +1,45 @@
+.spc-shell {
+  display: flex;
+  height: 100%;
+  background: var(--bg);
+  font-family: var(--font);
+  overflow: hidden;
+}
+
+.spc-sidebar {
+  width: 300px;
+  flex-shrink: 0;
+  background: var(--white);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+
+.spc-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.spc-back-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--ink2);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+@media (max-width: 899px) {
+  .spc-sidebar { width: 100%; }
+  .spc-shell--has-selection .spc-sidebar { display: none; }
+  .spc-shell:not(.spc-shell--has-selection) .spc-main { display: none; }
+  .spc-back-btn { display: flex; }
+}
