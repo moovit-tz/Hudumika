@@ -1,7 +1,16 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MetricsRow, spark } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { PageHeader } from '../components/PageHeader.js';
+import { Icon } from '../components/Icon.js';
+import { Badge } from '../components/ui/badge.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Combobox } from '../components/ui/combobox.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 
 interface Tariff {
   id: string;
@@ -39,6 +48,28 @@ interface Summary {
 }
 
 type ViewMode = 'dashboard' | 'containers' | 'tariffs' | 'calculator';
+
+const card: React.CSSProperties = { background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden' };
+const cardPad: React.CSSProperties = { background: 'var(--white)', borderRadius: 12, border: '1px solid var(--border)', padding: 24 };
+const label: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink2)' };
+const fieldInput: React.CSSProperties = { width: '100%', boxSizing: 'border-box', marginTop: 4, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--font)' };
+
+function EmptyState({ icon, title, sub, size = 'md' }: { icon: any; title: string; sub?: string; size?: 'md' | 'lg' }) {
+  return (
+    <div style={{ textAlign: 'center', padding: size === 'lg' ? '60px 20px' : '48px 20px' }}>
+      <FeaturedIcon variant="gray" size={size === 'lg' ? 'lg' : 'md'} shape="circle" className="mx-auto mb-3">
+        <Icon name={icon} size={size === 'lg' ? 22 : 18} />
+      </FeaturedIcon>
+      <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>{title}</div>
+      {sub && <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 4 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const variant = status === 'ACTIVE' ? 'warning' : status === 'COMPLETED' ? 'success' : 'gray';
+  return <Badge variant={variant}>{status}</Badge>;
+}
 
 export const Demurrage: React.FC = () => {
   const [view, setView] = useState<ViewMode>('dashboard');
@@ -115,494 +146,467 @@ export const Demurrage: React.FC = () => {
     }
   };
 
+  // ── Container CRUD (inline form — no popups) ──
+  const emptyCForm = { container_number: '', container_size: '40HC', carrier_name: '', discharge_date: '', free_days: 7, shipment_id: '' };
+  const [showCForm, setShowCForm] = useState(false);
+  const [editCId, setEditCId] = useState<string | null>(null);
+  const [cForm, setCForm] = useState({ ...emptyCForm });
+  const [shipments, setShipments] = useState<any[]>([]);
+
+  useEffect(() => {
+    apiFetch('/v1/shipments').then((d: any) => setShipments(d?.data ?? d ?? [])).catch(() => {});
+  }, []);
+
+  const startAddC = () => { setEditCId(null); setCForm({ ...emptyCForm }); setShowCForm(true); };
+
+  const startEditC = (c: ContainerTrack) => {
+    setEditCId(c.id);
+    setCForm({
+      container_number: c.container_number,
+      container_size: c.container_size,
+      carrier_name: c.carrier_name ?? '',
+      discharge_date: c.discharge_date ? String(c.discharge_date).slice(0, 10) : '',
+      free_days: c.free_days,
+      shipment_id: c.shipment_id ?? '',
+    });
+    setShowCForm(true);
+  };
+
+  const submitCForm = async () => {
+    if (!cForm.container_number.trim()) { alert('Container number is required'); return; }
+    try {
+      if (editCId) {
+        await apiFetch(`/v1/demurrage/containers/${editCId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            container_number: cForm.container_number.trim(),
+            container_size: cForm.container_size,
+            carrier_name: cForm.carrier_name.trim() || null,
+            discharge_date: cForm.discharge_date || null,
+            free_days: Number(cForm.free_days) || 7,
+            shipment_id: cForm.shipment_id || null,
+          }),
+        });
+      } else {
+        if (!cForm.shipment_id) { alert('Select the shipment (BL) this container belongs to'); return; }
+        await apiFetch('/v1/demurrage/containers', {
+          method: 'POST',
+          body: JSON.stringify({
+            shipment_id: cForm.shipment_id,
+            container_number: cForm.container_number.trim(),
+            container_size: cForm.container_size,
+            carrier_name: cForm.carrier_name.trim() || undefined,
+            discharge_date: cForm.discharge_date || undefined,
+            free_days: Number(cForm.free_days) || 7,
+          }),
+        });
+      }
+      setShowCForm(false);
+      setEditCId(null);
+      setCForm({ ...emptyCForm });
+      await fetchData();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const deleteContainer = async (id: string) => {
+    if (!confirm('Remove this container from demurrage tracking?')) return;
+    try {
+      await apiFetch(`/v1/demurrage/containers/${id}`, { method: 'DELETE' });
+      await fetchData();
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   const formatCurrency = (amount: number, currency: string = 'USD') => {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0 }).format(amount);
   };
 
-  const TAB_ICONS: Record<ViewMode, React.ReactNode> = {
-    dashboard: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-      </svg>
-    ),
-    containers: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
-      </svg>
-    ),
-    tariffs: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
-        <path d="M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/>
-      </svg>
-    ),
-    calculator: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/>
-        <line x1="8" y1="10" x2="8" y2="10"/><line x1="12" y1="10" x2="12" y2="10"/>
-        <line x1="16" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/>
-        <line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/>
-        <line x1="8" y1="18" x2="12" y2="18"/>
-      </svg>
-    ),
-  };
-
-  const viewTabs: { key: ViewMode; label: string }[] = [
-    { key: 'dashboard',  label: 'Overview'      },
-    { key: 'containers', label: 'Containers'    },
-    { key: 'tariffs',    label: 'Tariff Config' },
-    { key: 'calculator', label: 'Quick Calc'    },
-  ];
-
   return (
-    <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', fontFamily: 'Inter, sans-serif', flex: 1, overflowY: 'auto' }}>
-      {/* Page Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--ink)', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-          </svg>
-          Demurrage Engine
-        </h1>
-        <p style={{ color: 'var(--ink2)', fontSize: '14px', margin: 0 }}>
-          Track container demurrage, manage tariffs, and calculate costs in real time.
-        </p>
-      </div>
+    <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex: 1, overflowY: 'auto' }}>
+      <PageHeader
+        crumbs={['CargoTracker', 'Demurrage & Detention']}
+        titlePlain="Demurrage"
+        titleEm="engine"
+        subtitle="Track container demurrage, manage tariffs, and calculate costs in real time."
+      />
 
-      {/* View Tabs */}
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', background: 'rgba(14,31,61,0.04)', padding: '4px', borderRadius: '9px', overflowX: 'auto' }}>
-        {viewTabs.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setView(tab.key)}
-            style={{
-              padding: '8px 18px',
-              fontSize: '13px',
-              fontWeight: 600,
-              border: 'none',
-              borderRadius: '9px',
-              cursor: 'pointer',
-              background: view === tab.key ? 'var(--ink)' : 'transparent',
-              color: view === tab.key ? '#fff' : 'var(--ink2)',
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              {TAB_ICONS[tab.key]}
-              {tab.label}
-            </span>
-          </button>
-        ))}
-      </div>
+      <Tabs value={view} onValueChange={v => setView(v as ViewMode)}>
+        <TabsList style={{ marginBottom: 24, maxWidth: '100%', overflowX: 'auto', justifyContent: isMobile ? 'flex-start' : undefined }}>
+          <TabsTrigger value="dashboard" className="flex items-center gap-1.5 shrink-0"><Icon name="grid" size={14} /> Overview</TabsTrigger>
+          <TabsTrigger value="containers" className="flex items-center gap-1.5 shrink-0"><Icon name="container" size={14} /> Containers</TabsTrigger>
+          <TabsTrigger value="tariffs" className="flex items-center gap-1.5 shrink-0"><Icon name="sliders" size={14} /> Tariff Config</TabsTrigger>
+          <TabsTrigger value="calculator" className="flex items-center gap-1.5 shrink-0"><Icon name="calculator" size={14} /> Quick Calc</TabsTrigger>
+        </TabsList>
 
-      {/* Dashboard Overview */}
-      {view === 'dashboard' && (
-        <div>
-          {/* KPI Cards */}
-          <MetricsRow cards={[
-            {
-              title: 'Total Containers',
-              value: String(summary?.total_containers || 0),
-              trend: 4.8,
-              sub1Label: 'ACTIVE', sub1Value: String(summary?.active_containers || 0),
-              sub2Label: 'COMPLETED', sub2Value: String(summary?.completed_containers || 0),
-              bars: spark(20, 15, 'up'), barColor: 'var(--blue-l)', barHighlight: 'var(--blue)',
-            },
-            {
-              title: 'Accruing Demurrage',
-              value: String(summary?.active_containers || 0),
-              trend: -(summary?.active_containers || 0) > 0 ? 2.1 : 0,
-              invertTrend: true,
-              sub1Label: 'AT RISK', sub1Value: String(Math.floor((summary?.active_containers || 0) * 0.4)),
-              sub2Label: 'FREE DAYS LEFT', sub2Value: '2.4 avg',
-              bars: spark(21, 15, 'down'), barColor: 'var(--red-l)', barHighlight: 'var(--red)',
-            },
-            {
-              title: 'Total Cost',
-              value: formatCurrency(summary?.total_demurrage_cost || 0),
-              trend: -8.3,
-              invertTrend: true,
-              sub1Label: 'THIS MONTH', sub1Value: formatCurrency((summary?.total_demurrage_cost || 0) * 0.35),
-              sub2Label: 'AVG PER BOX', sub2Value: formatCurrency(summary?.total_containers ? (summary.total_demurrage_cost || 0) / summary.total_containers : 0),
-              bars: spark(22, 15, 'down'), barColor: 'var(--gold-l)', barHighlight: 'var(--gold)',
-            },
-          ]} />
+        {/* ── Dashboard Overview ── */}
+        <TabsContent value="dashboard">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <MetricsRow cards={[
+              {
+                title: 'Total Containers',
+                value: String(summary?.total_containers || 0),
+                trend: 4.8,
+                sub1Label: 'ACTIVE', sub1Value: String(summary?.active_containers || 0),
+                sub2Label: 'COMPLETED', sub2Value: String(summary?.completed_containers || 0),
+                bars: spark(20, 15, 'up'), barColor: 'var(--blue-l)', barHighlight: 'var(--blue)',
+              },
+              {
+                title: 'Accruing Demurrage',
+                value: String(summary?.active_containers || 0),
+                trend: -(summary?.active_containers || 0) > 0 ? 2.1 : 0,
+                invertTrend: true,
+                sub1Label: 'AT RISK', sub1Value: String(Math.floor((summary?.active_containers || 0) * 0.4)),
+                sub2Label: 'FREE DAYS LEFT', sub2Value: '2.4 avg',
+                bars: spark(21, 15, 'down'), barColor: 'var(--red-l)', barHighlight: 'var(--red)',
+              },
+              {
+                title: 'Total Cost',
+                value: formatCurrency(summary?.total_demurrage_cost || 0),
+                trend: -8.3,
+                invertTrend: true,
+                sub1Label: 'THIS MONTH', sub1Value: formatCurrency((summary?.total_demurrage_cost || 0) * 0.35),
+                sub2Label: 'AVG PER BOX', sub2Value: formatCurrency(summary?.total_containers ? (summary.total_demurrage_cost || 0) / summary.total_containers : 0),
+                bars: spark(22, 15, 'down'), barColor: 'var(--gold-l)', barHighlight: 'var(--gold)',
+              },
+            ]} />
 
-          {/* Carrier Breakdown */}
-          {summary?.by_carrier && Object.keys(summary.by_carrier).length > 0 && (
-            <div style={{
-              background: 'var(--white)',
-              borderRadius: '9px',
-              padding: '20px',
-              border: '1px solid var(--border)',
-            }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 700, margin: '0 0 16px 0', color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7-7H4a2 2 0 0 0-2 2v17z"/>
-                  <path d="M14 2v6h6"/><path d="M6 13h4m0 4H6"/>
-                </svg>
-                Carrier Breakdown
-              </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '12px' }}>
-                {Object.entries(summary.by_carrier).map(([carrier, data]) => (
-                  <div key={carrier} style={{
-                    padding: '14px',
-                    background: 'rgba(59,130,246,0.04)',
-                    borderRadius: '9px',
-                    border: '1px solid rgba(59,130,246,0.1)',
-                  }}>
-                    <div style={{ fontWeight: 700, fontSize: '13px', color: 'var(--ink)', marginBottom: '4px' }}>{carrier}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--ink2)' }}>
-                      {data.count} containers · {formatCurrency(data.cost)}
+            {/* Carrier Breakdown */}
+            {summary?.by_carrier && Object.keys(summary.by_carrier).length > 0 && (
+              <div style={cardPad}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                  <FeaturedIcon variant="info" size="sm" shape="square"><Icon name="fileText" size={15} /></FeaturedIcon>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>Carrier Breakdown</div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+                  {Object.entries(summary.by_carrier).map(([carrier, data]) => (
+                    <div key={carrier} style={{ padding: 14, background: 'var(--bg)', borderRadius: 10, border: '1px solid var(--border)' }}>
+                      <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginBottom: 4 }}>{carrier}</div>
+                      <div style={{ fontSize: 12, color: 'var(--ink2)' }}>
+                        {data.count} containers · {formatCurrency(data.cost)}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {!summary && !loading && (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--ink3)' }}>
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--border2)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}>
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
-              </svg>
-              <div style={{ fontSize: '15px', fontWeight: 600 }}>No demurrage data yet</div>
-              <div style={{ fontSize: '13px', marginTop: '4px' }}>Add containers to start tracking demurrage costs.</div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Container Tracking */}
-      {view === 'containers' && (
-        <div style={{
-          background: 'var(--white)',
-          borderRadius: '9px',
-          border: '1px solid var(--border)',
-          overflow: 'hidden',
-        }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
-              </svg>
-              Container Demurrage Tracker
-            </h3>
-            <span style={{ fontSize: '12px', color: 'var(--ink3)', fontWeight: 500 }}>
-              {containers.length} containers
-            </span>
-          </div>
-          {containers.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--ink3)' }}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border2)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}>
-                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>
-              </svg>
-              <div style={{ fontSize: '14px', fontWeight: 600 }}>No containers being tracked</div>
-            </div>
-          ) : (
-            <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
-              <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ background: 'var(--bg)' }}>
-                    {['Container #', 'Size', 'Carrier', 'Discharged', 'Free Days', 'Total Days', 'Dem. Days', 'Cost', 'Status', 'Action'].map(h => (
-                      <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--ink2)', fontSize: '11.5px', textTransform: 'uppercase', letterSpacing: '0.3px', borderBottom: '1px solid var(--border)' }}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {containers.map(c => (
-                    <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '10px 14px', fontWeight: 600, fontFamily: 'monospace' }}>{c.container_number}</td>
-                      <td style={{ padding: '10px 14px' }}>{c.container_size}</td>
-                      <td style={{ padding: '10px 14px' }}>{c.carrier_name || '—'}</td>
-                      <td style={{ padding: '10px 14px' }}>{c.discharge_date ? new Date(c.discharge_date).toLocaleDateString() : '—'}</td>
-                      <td style={{ padding: '10px 14px' }}>{c.free_days}</td>
-                      <td style={{ padding: '10px 14px', fontWeight: 600 }}>{c.total_days}</td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <span style={{
-                          padding: '2px 8px',
-                          borderRadius: '9px',
-                          fontSize: '12px',
-                          fontWeight: 700,
-                          background: c.demurrage_days > 0 ? 'rgba(239,68,68,0.1)' : 'rgba(16,185,129,0.1)',
-                          color: c.demurrage_days > 0 ? 'var(--red)' : 'var(--green)',
-                        }}>
-                          {c.demurrage_days}
-                        </span>
-                      </td>
-                      <td style={{ padding: '10px 14px', fontWeight: 700, color: c.demurrage_cost > 0 ? 'var(--red)' : 'var(--green)' }}>
-                        {formatCurrency(c.demurrage_cost, c.demurrage_currency)}
-                      </td>
-                      <td style={{ padding: '10px 14px' }}>
-                        <span style={{
-                          padding: '3px 10px',
-                          borderRadius: '9px',
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          background: c.status === 'ACTIVE' ? 'rgba(245,158,11,0.12)' : c.status === 'COMPLETED' ? 'rgba(16,185,129,0.12)' : 'rgba(148,163,184,0.12)',
-                          color: c.status === 'ACTIVE' ? 'var(--gold)' : c.status === 'COMPLETED' ? 'var(--green)' : 'var(--ink2)',
-                        }}>
-                          {c.status}
-                        </span>
-                      </td>
-                      <td style={{ padding: '10px 14px' }}>
-                        {c.status === 'ACTIVE' && (
-                          <button
-                            onClick={() => { setReturnModal(c.id); setReturnDate(new Date().toISOString().split('T')[0]); }}
-                            style={{
-                              padding: '4px 10px',
-                              fontSize: '11px',
-                              fontWeight: 600,
-                              color: 'var(--teal)',
-                              background: 'rgba(11,114,100,0.08)',
-                              border: '1px solid rgba(11,114,100,0.2)',
-                              borderRadius: '6px',
-                              cursor: 'pointer',
-                            }}
-                          >
-                            ✓ Mark Returned
-                          </button>
-                        )}
-                      </td>
-                    </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+                </div>
+              </div>
+            )}
 
-      {/* Tariff Configuration */}
-      {view === 'tariffs' && (
-        <div style={{
-          background: 'var(--white)',
-          borderRadius: '9px',
-          border: '1px solid var(--border)',
-          overflow: 'hidden',
-        }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-            <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/>
-              </svg>
-              Demurrage Tariff Configuration
-            </h3>
-            <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--ink3)' }}>
-              Configure daily rates per shipping line and container size. Rates use progressive step-up tiers.
-            </p>
+            {!summary && !loading && (
+              <EmptyState icon="container" title="No demurrage data yet" sub="Add containers to start tracking demurrage costs." size="lg" />
+            )}
           </div>
-          {tariffs.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--ink3)' }}>
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border2)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 8 }}>
-                <circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07M8.46 8.46a5 5 0 0 0 0 7.07"/>
-              </svg>
-              <div style={{ fontSize: '14px', fontWeight: 600 }}>No tariffs configured</div>
-              <div style={{ fontSize: '12px', marginTop: '4px' }}>Use the API to add tariff rules.</div>
-            </div>
-          ) : (
-            <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
-              <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr style={{ background: 'var(--bg)' }}>
-                    {['Carrier', 'Container Size', 'Free Days', 'Rate Tiers', 'Currency', 'Status'].map(h => (
-                      <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--ink2)', fontSize: '11.5px', textTransform: 'uppercase', borderBottom: '1px solid var(--border)' }}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {tariffs.map(t => {
-                    let tiers: any[] = [];
-                    try { tiers = JSON.parse(t.rate_tiers); } catch {}
-                    return (
-                      <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                        <td style={{ padding: '10px 14px', fontWeight: 600 }}>{t.carrier_name}</td>
-                        <td style={{ padding: '10px 14px' }}>{t.container_size}</td>
-                        <td style={{ padding: '10px 14px' }}>{t.free_days} days</td>
-                        <td style={{ padding: '10px 14px' }}>
-                          {tiers.map((tier, i) => (
-                            <span key={i} style={{ display: 'inline-block', marginRight: '8px', padding: '2px 8px', background: 'var(--bg)', borderRadius: '4px', fontSize: '11px' }}>
-                              Day {tier.from_day}-{tier.to_day}: ${tier.daily_rate}/day
-                            </span>
-                          ))}
-                        </td>
-                        <td style={{ padding: '10px 14px' }}>{t.currency}</td>
-                        <td style={{ padding: '10px 14px' }}>
-                          <span style={{ color: t.active ? 'var(--green)' : 'var(--ink3)', fontWeight: 600 }}>
-                            {t.active ? '● Active' : '○ Inactive'}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+        </TabsContent>
 
-      {/* Quick Calculator */}
-      {view === 'calculator' && (
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px' }}>
-          <div style={{
-            background: 'var(--white)',
-            borderRadius: '9px',
-            border: '1px solid var(--border)',
-            padding: '24px',
-          }}>
-            <h3 style={{ margin: '0 0 20px', fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>
-              🧮 Demurrage Calculator
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Carrier / Shipping Line</label>
-                <input type="text" value={calcCarrier} onChange={e => setCalcCarrier(e.target.value)} placeholder="e.g. MSC, Maersk" style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: '9px', fontSize: '13px', boxSizing: 'border-box' }} />
+        {/* ── Container Tracking ── */}
+        <TabsContent value="containers">
+          <div style={card}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <FeaturedIcon variant="brand" size="sm" shape="square"><Icon name="container" size={15} /></FeaturedIcon>
+                <div>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>Container Demurrage Tracker</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{containers.length} container{containers.length === 1 ? '' : 's'}</div>
+                </div>
               </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Container Size</label>
-                <select value={calcSize} onChange={e => setCalcSize(e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: '9px', fontSize: '13px', boxSizing: 'border-box' }}>
-                  <option>20FT</option>
-                  <option>40FT</option>
-                  <option>40HC</option>
-                  <option>45HC</option>
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Discharge Date</label>
-                <input type="date" value={calcDischargeDate} onChange={e => setCalcDischargeDate(e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: '9px', fontSize: '13px', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Return Date (leave blank for today)</label>
-                <input type="date" value={calcReturnDate} onChange={e => setCalcReturnDate(e.target.value)} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: '9px', fontSize: '13px', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Free Days</label>
-                <input type="number" value={calcFreeDays} onChange={e => setCalcFreeDays(Number(e.target.value))} style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: '9px', fontSize: '13px', boxSizing: 'border-box' }} />
-              </div>
-              <button onClick={handleQuickCalc} style={{
-                padding: '12px',
-                background: 'var(--ink)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '9px',
-                fontSize: '14px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}>
-                Calculate Demurrage
+              <button type="button" className="btn btn-primary btn-sm" onClick={startAddC}>
+                <Icon name="plus" size={13} /> Add Container
               </button>
             </div>
-          </div>
 
-          {/* Result Panel */}
-          <div style={{
-            background: calcResult ? '#fff' : 'rgba(14,31,61,0.02)',
-            borderRadius: '9px',
-            border: '1px solid var(--border)',
-            padding: '24px',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}>
-            {calcResult ? (
-              <div style={{ width: '100%' }}>
-                <h3 style={{ margin: '0 0 20px', fontSize: '15px', fontWeight: 700, color: 'var(--ink)', textAlign: 'center' }}>
-                  📋 Calculation Result
-                </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px' }}>
-                  {[
-                    { label: 'Total Days', value: calcResult.total_days, color: 'var(--blue)' },
-                    { label: 'Free Days', value: calcResult.free_days, color: '#10b981' },
-                    { label: 'Demurrage Days', value: calcResult.demurrage_days, color: calcResult.demurrage_days > 0 ? '#ef4444' : '#10b981' },
-                    { label: 'Tariff Found', value: calcResult.tariff_found ? 'Yes ✅' : 'No ❌', color: 'var(--ink2)' },
-                  ].map((item, i) => (
-                    <div key={i} style={{ padding: '14px', background: 'var(--bg)', borderRadius: '9px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '11px', color: 'var(--ink3)', fontWeight: 600, marginBottom: '4px' }}>{item.label}</div>
-                      <div style={{ fontSize: '22px', fontWeight: 800, color: item.color }}>{item.value}</div>
-                    </div>
-                  ))}
+            {/* Inline add/edit form — full-width section, not a popup */}
+            {showCForm && (
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>
+                  {editCId ? 'Edit Container' : 'Track New Container'}
                 </div>
-                <div style={{
-                  marginTop: '20px',
-                  padding: '20px',
-                  background: calcResult.demurrage_cost > 0 ? 'rgba(239,68,68,0.06)' : 'rgba(16,185,129,0.06)',
-                  borderRadius: '9px',
-                  textAlign: 'center',
-                  border: `1px solid ${calcResult.demurrage_cost > 0 ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)'}`,
-                }}>
-                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '6px' }}>Estimated Demurrage Cost</div>
-                  <div style={{ fontSize: '36px', fontWeight: 800, color: calcResult.demurrage_cost > 0 ? 'var(--red)' : 'var(--green)' }}>
-                    {formatCurrency(calcResult.demurrage_cost, calcResult.currency)}
-                  </div>
+                <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 12 }}>
+                  <label style={label}>
+                    Container Number *
+                    <input value={cForm.container_number} onChange={e => setCForm(f => ({ ...f, container_number: e.target.value.toUpperCase() }))} placeholder="MSKU1234567"
+                      style={{ ...fieldInput, fontFamily: 'var(--mono)' }} />
+                  </label>
+                  <label style={label}>
+                    Size
+                    <Select value={cForm.container_size} onValueChange={v => setCForm(f => ({ ...f, container_size: v }))}>
+                      <SelectTrigger style={{ width: '100%', boxSizing: 'border-box', marginTop: 4 }}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {['20GP', '40GP', '40HC', '20RF', '40RF', '20OT', '40OT'].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </label>
+                  <label style={label}>
+                    Carrier
+                    <input value={cForm.carrier_name} onChange={e => setCForm(f => ({ ...f, carrier_name: e.target.value }))} placeholder="MAERSK"
+                      style={fieldInput} />
+                  </label>
+                  <label style={label}>
+                    Shipment (BL) {editCId ? '' : '*'}
+                    <div style={{ marginTop: 4 }}>
+                      <Combobox
+                        options={shipments.slice(0, 100).map((s: any) => ({ value: s.id, label: `${s.ref_number}${s.bl_number ? ` — ${s.bl_number}` : ''}` }))}
+                        value={cForm.shipment_id} onChange={v => setCForm(f => ({ ...f, shipment_id: v }))}
+                        placeholder="Select shipment…"
+                      />
+                    </div>
+                  </label>
+                  <label style={label}>
+                    Discharge Date
+                    <div style={{ marginTop: 4 }}>
+                      <DatePicker date={parseDateOnly(cForm.discharge_date)} onChange={d => setCForm(f => ({ ...f, discharge_date: toDateOnlyString(d) }))} />
+                    </div>
+                  </label>
+                  <label style={label}>
+                    Free Days
+                    <input type="number" min={0} value={cForm.free_days} onChange={e => setCForm(f => ({ ...f, free_days: Number(e.target.value) }))}
+                      style={fieldInput} />
+                  </label>
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setShowCForm(false); setEditCId(null); }}>
+                    Cancel
+                  </button>
+                  <button type="button" className="btn btn-primary btn-sm" onClick={submitCForm}>
+                    {editCId ? 'Save Changes' : 'Start Tracking'}
+                  </button>
                 </div>
               </div>
+            )}
+            {containers.length === 0 ? (
+              <EmptyState icon="container" title="No containers being tracked" />
             ) : (
-              <div style={{ textAlign: 'center', color: 'var(--ink3)' }}>
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--border2)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ marginBottom: 12 }}>
-                  <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/>
-                  <line x1="8" y1="10" x2="8" y2="10"/><line x1="12" y1="10" x2="12" y2="10"/>
-                  <line x1="16" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/>
-                  <line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/>
-                  <line x1="8" y1="18" x2="12" y2="18"/>
-                </svg>
-                <div style={{ fontSize: '14px', fontWeight: 600 }}>Enter details and calculate</div>
-                <div style={{ fontSize: '12px', marginTop: '4px' }}>Results will appear here</div>
+              <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
+                <table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg)' }}>
+                      {['Container #', 'Size', 'Carrier', 'Discharged', 'Free Days', 'Total Days', 'Dem. Days', 'Cost', 'Status', 'Action'].map(h => (
+                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink3)', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid var(--border)' }}>
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {containers.map(c => (
+                      <tr key={c.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '10px 14px', fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{c.container_number}</td>
+                        <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{c.container_size}</td>
+                        <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{c.carrier_name || '—'}</td>
+                        <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{c.discharge_date ? new Date(c.discharge_date).toLocaleDateString() : '—'}</td>
+                        <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{c.free_days}</td>
+                        <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>{c.total_days}</td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <Badge variant={c.demurrage_days > 0 ? 'error' : 'success'}>{c.demurrage_days}</Badge>
+                        </td>
+                        <td style={{ padding: '10px 14px', fontWeight: 700, color: c.demurrage_cost > 0 ? 'var(--red)' : 'var(--green)' }}>
+                          {formatCurrency(c.demurrage_cost, c.demurrage_currency)}
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <StatusBadge status={c.status} />
+                        </td>
+                        <td style={{ padding: '10px 14px' }}>
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                            {c.status === 'ACTIVE' && (
+                              <button
+                                type="button"
+                                onClick={() => { setReturnModal(c.id); setReturnDate(new Date().toISOString().split('T')[0]); }}
+                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', fontSize: 11, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', border: '1px solid var(--teal-l)', borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                              >
+                                <Icon name="checkCircle" size={11} /> Returned
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              title="Edit container"
+                              onClick={() => startEditC(c)}
+                              style={{ display: 'flex', alignItems: 'center', padding: '4px 8px', color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer' }}
+                            >
+                              <Icon name="edit" size={12} />
+                            </button>
+                            <button
+                              type="button"
+                              title="Remove from tracking"
+                              onClick={() => deleteContainer(c.id)}
+                              style={{ display: 'flex', alignItems: 'center', padding: '4px 8px', color: 'var(--red)', background: 'var(--red-l)', border: '1px solid var(--red-l)', borderRadius: 6, cursor: 'pointer' }}
+                            >
+                              <Icon name="trash" size={12} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
-        </div>
-      )}
+        </TabsContent>
 
-      {/* Mark Returned Modal */}
-      {returnModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            background: 'var(--white)',
-            borderRadius: '9px',
-            padding: '24px',
-            width: '400px',
-            maxWidth: '90vw',
-          }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 700, color: 'var(--ink)' }}>
-              ✓ Mark Container Returned
-            </h3>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '4px' }}>Return Date</label>
-              <input
-                type="date"
-                value={returnDate}
-                onChange={e => setReturnDate(e.target.value)}
-                style={{ width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: '9px', fontSize: '13px', boxSizing: 'border-box' }}
-              />
+        {/* ── Tariff Configuration ── */}
+        <TabsContent value="tariffs">
+          <div style={card}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+              <FeaturedIcon variant="gray" size="sm" shape="square"><Icon name="sliders" size={15} /></FeaturedIcon>
+              <div>
+                <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>Demurrage Tariff Configuration</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>Configure daily rates per shipping line and container size. Rates use progressive step-up tiers.</div>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-              <button onClick={() => setReturnModal(null)} style={{ padding: '8px 16px', border: '1px solid var(--border)', background: 'var(--white)', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
-                Cancel
-              </button>
-              <button onClick={handleMarkReturned} style={{ padding: '8px 16px', border: 'none', background: 'var(--teal)', color: '#fff', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}>
-                Confirm Return
-              </button>
+            {tariffs.length === 0 ? (
+              <EmptyState icon="sliders" title="No tariffs configured" sub="Use the API to add tariff rules." />
+            ) : (
+              <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
+                <table className="rtbl" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg)' }}>
+                      {['Carrier', 'Container Size', 'Free Days', 'Rate Tiers', 'Currency', 'Status'].map(h => (
+                        <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontWeight: 700, color: 'var(--ink3)', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid var(--border)' }}>
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tariffs.map(t => {
+                      let tiers: any[] = [];
+                      try { tiers = JSON.parse(t.rate_tiers); } catch {}
+                      return (
+                        <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '10px 14px', fontWeight: 700, color: 'var(--ink)' }}>{t.carrier_name}</td>
+                          <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{t.container_size}</td>
+                          <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{t.free_days} days</td>
+                          <td style={{ padding: '10px 14px' }}>
+                            {tiers.map((tier, i) => (
+                              <span key={i} style={{ display: 'inline-block', marginRight: 8, marginBottom: 4, padding: '2px 8px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, fontSize: 11, color: 'var(--ink2)' }}>
+                                Day {tier.from_day}-{tier.to_day}: ${tier.daily_rate}/day
+                              </span>
+                            ))}
+                          </td>
+                          <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{t.currency}</td>
+                          <td style={{ padding: '10px 14px' }}>
+                            <Badge variant={t.active ? 'success' : 'gray'}>{t.active ? 'Active' : 'Inactive'}</Badge>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* ── Quick Calculator ── */}
+        <TabsContent value="calculator">
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
+            <div style={cardPad}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                <FeaturedIcon variant="brand" size="sm" shape="square"><Icon name="calculator" size={15} /></FeaturedIcon>
+                <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>Demurrage Calculator</div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div>
+                  <label style={{ display: 'block', ...label, marginBottom: 4 }}>Carrier / Shipping Line</label>
+                  <input type="text" value={calcCarrier} onChange={e => setCalcCarrier(e.target.value)} placeholder="e.g. MSC, Maersk" style={{ ...fieldInput, marginTop: 0 }} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', ...label, marginBottom: 4 }}>Container Size</label>
+                  <Select value={calcSize} onValueChange={setCalcSize}>
+                    <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="20FT">20FT</SelectItem>
+                      <SelectItem value="40FT">40FT</SelectItem>
+                      <SelectItem value="40HC">40HC</SelectItem>
+                      <SelectItem value="45HC">45HC</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label style={{ display: 'block', ...label, marginBottom: 4 }}>Discharge Date</label>
+                  <DatePicker date={parseDateOnly(calcDischargeDate)} onChange={d => setCalcDischargeDate(toDateOnlyString(d))} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', ...label, marginBottom: 4 }}>Return Date (leave blank for today)</label>
+                  <DatePicker date={parseDateOnly(calcReturnDate)} onChange={d => setCalcReturnDate(toDateOnlyString(d))} />
+                </div>
+                <div>
+                  <label style={{ display: 'block', ...label, marginBottom: 4 }}>Free Days</label>
+                  <input type="number" value={calcFreeDays} onChange={e => setCalcFreeDays(Number(e.target.value))} style={{ ...fieldInput, marginTop: 0 }} />
+                </div>
+                <button type="button" className="btn btn-primary" onClick={handleQuickCalc} style={{ justifyContent: 'center', height: 42 }}>
+                  Calculate Demurrage
+                </button>
+              </div>
+            </div>
+
+            {/* Result Panel */}
+            <div style={{ ...cardPad, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', background: calcResult ? 'var(--white)' : 'var(--bg)' }}>
+              {calcResult ? (
+                <div style={{ width: '100%' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 20 }}>
+                    <Icon name="clipboardList" size={15} color="var(--ink2)" />
+                    <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>Calculation Result</div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
+                    {[
+                      { label: 'Total Days', value: calcResult.total_days, color: 'var(--blue)' },
+                      { label: 'Free Days', value: calcResult.free_days, color: 'var(--green)' },
+                      { label: 'Demurrage Days', value: calcResult.demurrage_days, color: calcResult.demurrage_days > 0 ? 'var(--red)' : 'var(--green)' },
+                    ].map((item, i) => (
+                      <div key={i} style={{ padding: 14, background: 'var(--bg)', borderRadius: 10, textAlign: 'center' }}>
+                        <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, marginBottom: 4 }}>{item.label}</div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: item.color, fontVariantNumeric: 'tabular-nums' }}>{item.value}</div>
+                      </div>
+                    ))}
+                    <div style={{ padding: 14, background: 'var(--bg)', borderRadius: 10, textAlign: 'center' }}>
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, marginBottom: 6 }}>Tariff Found</div>
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <Badge variant={calcResult.tariff_found ? 'success' : 'gray'}>
+                          <Icon name={calcResult.tariff_found ? 'checkCircle' : 'xCircle'} size={11} />
+                          {calcResult.tariff_found ? 'Yes' : 'No'}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{
+                    marginTop: 20, padding: 20, borderRadius: 10, textAlign: 'center',
+                    background: calcResult.demurrage_cost > 0 ? 'var(--red-l)' : 'var(--green-l)',
+                    border: `1px solid ${calcResult.demurrage_cost > 0 ? 'var(--red-l)' : 'var(--green-l)'}`,
+                  }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Estimated Demurrage Cost</div>
+                    <div style={{ fontSize: 36, fontWeight: 800, color: calcResult.demurrage_cost > 0 ? 'var(--red)' : 'var(--green)', fontVariantNumeric: 'tabular-nums' }}>
+                      {formatCurrency(calcResult.demurrage_cost, calcResult.currency)}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <EmptyState icon="calculator" title="Enter details and calculate" sub="Results will appear here" />
+              )}
             </div>
           </div>
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Mark Returned Modal */}
+      <Dialog open={!!returnModal} onOpenChange={open => { if (!open) setReturnModal(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FeaturedIcon variant="success" size="sm" shape="circle"><Icon name="checkCircle" size={15} /></FeaturedIcon>
+              Mark Container Returned
+            </DialogTitle>
+          </DialogHeader>
+          <div>
+            <label style={{ display: 'block', ...label, marginBottom: 6 }}>Return Date</label>
+            <DatePicker date={parseDateOnly(returnDate)} onChange={d => setReturnDate(toDateOnlyString(d))} />
+          </div>
+          <DialogFooter>
+            <button type="button" className="btn btn-secondary" onClick={() => setReturnModal(null)}>Cancel</button>
+            <button type="button" className="btn btn-primary" onClick={handleMarkReturned}>Confirm Return</button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
