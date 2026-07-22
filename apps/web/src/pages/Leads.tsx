@@ -1,9 +1,13 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
-import { PageHeader } from '../components/PageHeader.jsx';
+import { PageHeader } from '../components/PageHeader.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 
 /* ── Types ── */
 export interface Lead {
@@ -57,7 +61,7 @@ const OFFICERS = ['Amina Hassan', 'John Mwangi', 'Fatuma Ally', 'Peter Kimani', 
 const SOURCES   = Object.keys(SOURCE_CFG);
 
 /* ── Helpers ── */
-const AVATAR_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#1a7f37','#9a6700','#cf222e','#d05c30','#0e7490'];
+const AVATAR_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30','#0e7490'];
 function initials(n: string) { return n.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase(); }
 function avatarColor(n: string) { return AVATAR_COLORS[n.charCodeAt(0) % AVATAR_COLORS.length]; }
 function fmtDate(d: string) { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
@@ -119,41 +123,22 @@ function Th({ children, align = 'left', width }: { children?: React.ReactNode; a
 }
 
 function ActMenu({ onView, onEdit, onDelete }: { onView: () => void; onEdit: () => void; onDelete: () => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    function h(e: MouseEvent) { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); }
-    if (open) document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, [open]);
-  const items: { label: string; icon: IconName; action: () => void; danger?: boolean }[] = [
-    { label: 'View Details', icon: 'eye',   action: onView },
-    { label: 'Edit',         icon: 'edit',  action: onEdit },
-    { label: 'Delete',       icon: 'trash', action: onDelete, danger: true },
-  ];
   return (
-    <div ref={ref} style={{ position: 'relative', display: 'inline-block' }}>
-      <button type="button" aria-label="More actions" onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6, color: 'var(--ink3)' }}>
-        <Icon name="moreHorizontal" size={16} strokeWidth={1.75} />
-      </button>
-      {open && (
-        <div style={{ position: 'absolute', right: 0, top: '100%', zIndex: 50, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: 'var(--shadow-lg)', minWidth: 150, padding: '4px 0', marginTop: 4 }}>
-          {items.map(item => (
-            <button key={item.label} type="button" onClick={() => { item.action(); setOpen(false); }}
-              style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 8, padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, color: item.danger ? 'var(--red)' : 'var(--ink)', fontFamily: 'var(--font)', textAlign: 'left' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
-              onMouseLeave={e => (e.currentTarget.style.background = '')}>
-              <Icon name={item.icon} size={13} strokeWidth={1.75} />{item.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button type="button" aria-label="More actions" onClick={e => e.stopPropagation()}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6, color: 'var(--ink3)' }}>
+          <Icon name="moreHorizontal" size={16} strokeWidth={1.75} />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-40" onClick={e => e.stopPropagation()}>
+        <DropdownMenuItem onClick={onView}><Icon name="eye" size={13} className="text-muted-foreground" /> View Details</DropdownMenuItem>
+        <DropdownMenuItem onClick={onEdit}><Icon name="edit" size={13} className="text-muted-foreground" /> Edit</DropdownMenuItem>
+        <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive"><Icon name="trash" size={13} /> Delete</DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
-
-const SEL: React.CSSProperties = { padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--bg)', color: 'var(--ink)', cursor: 'pointer', outline: 'none' };
 
 /* ── Form shape ── */
 type FormState = Omit<Lead, 'id' | 'created_at'>;
@@ -641,10 +626,13 @@ export const Leads: React.FC = () => {
                       ))}
                       <div>
                         <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Assigned To</label>
-                        <select className="input-field" value={profileForm.assigned_to || ''} onChange={e => setProfileForm(p => ({ ...p, assigned_to: e.target.value }))}>
-                          <option value="">Unassigned</option>
-                          {OFFICERS.map(o => <option key={o} value={o}>{o}</option>)}
-                        </select>
+                        <Select value={profileForm.assigned_to || '__none__'} onValueChange={v => setProfileForm(p => ({ ...p, assigned_to: v === '__none__' ? '' : v }))}>
+                          <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">Unassigned</SelectItem>
+                            {OFFICERS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   </div>
@@ -735,32 +723,46 @@ export const Leads: React.FC = () => {
                   ))}
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Expected Close</label>
-                    <input type="date" className="input-field" value={addForm.expected_close || ''} onChange={e => setF('expected_close', e.target.value)} />
+                    <DatePicker date={parseDateOnly(addForm.expected_close)} onChange={d => setF('expected_close', toDateOnlyString(d))} />
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Lead Source</label>
-                    <select value={addForm.source} onChange={e => setF('source', e.target.value)} className="input-field" style={{ cursor: 'pointer' }}>
-                      {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    <Select value={addForm.source} onValueChange={v => setF('source', v)}>
+                      <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {SOURCES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Stage</label>
-                    <select value={addForm.stage} onChange={e => setF('stage', e.target.value)} className="input-field" style={{ cursor: 'pointer' }}>
-                      {STAGES.filter(s => s !== 'WON' && s !== 'LOST').map(s => <option key={s} value={s}>{STAGE_CFG[s].label}</option>)}
-                    </select>
+                    <Select value={addForm.stage} onValueChange={v => setF('stage', v)}>
+                      <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {STAGES.filter(s => s !== 'WON' && s !== 'LOST').map(s => <SelectItem key={s} value={s}>{STAGE_CFG[s].label}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Priority</label>
-                    <select value={addForm.priority} onChange={e => setF('priority', e.target.value)} className="input-field" style={{ cursor: 'pointer' }}>
-                      <option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option>
-                    </select>
+                    <Select value={addForm.priority} onValueChange={v => setF('priority', v)}>
+                      <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="HIGH">High</SelectItem>
+                        <SelectItem value="MEDIUM">Medium</SelectItem>
+                        <SelectItem value="LOW">Low</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Assign To</label>
-                    <select value={addForm.assigned_to || ''} onChange={e => setF('assigned_to', e.target.value)} className="input-field" style={{ cursor: 'pointer' }}>
-                      <option value="">Unassigned</option>
-                      {OFFICERS.map(o => <option key={o} value={o}>{o}</option>)}
-                    </select>
+                    <Select value={addForm.assigned_to || '__none__'} onValueChange={v => setF('assigned_to', v === '__none__' ? '' : v)}>
+                      <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__none__">Unassigned</SelectItem>
+                        {OFFICERS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div style={{ gridColumn: '1/-1' }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Notes</label>
@@ -791,12 +793,12 @@ export const Leads: React.FC = () => {
         titleEm="pipeline"
         subtitle={`${leads.length} leads · ${active.length} active · ${fmtValue(pipeline)} pipeline value · ${winRate}% win rate`}
         actions={
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => exportLeadsCSV(filtered)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="download" size={13} strokeWidth={2} /> Export CSV
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button type="button" onClick={() => exportLeadsCSV(filtered)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', fontSize: 13, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+              <Icon name="download" size={14} strokeWidth={2} /> Export CSV
             </button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => { setAddForm({ ...EMPTY_FORM }); setEditingId(null); setShowAdd(true); }} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Icon name="plus" size={14} strokeWidth={2.5} /> Add Lead
+            <button type="button" onClick={() => { setAddForm({ ...EMPTY_FORM }); setEditingId(null); setShowAdd(true); }} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '11px 22px', fontSize: 14, fontWeight: 700, borderRadius: 10, border: 'none', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+              <Icon name="plus" size={15} strokeWidth={2.5} color="#fff" /> New Lead
             </button>
           </div>
         }
@@ -814,20 +816,21 @@ export const Leads: React.FC = () => {
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
                 style={{ width: '100%', padding: '7px 10px 7px 32px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--bg)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }} />
             </div>
-            <select value={filterStage}    onChange={e => { setFilterStage(e.target.value);    setPage(1); }} style={SEL}>
-              <option value="">All Stages</option>
-              {STAGES.map(s => <option key={s} value={s}>{STAGE_CFG[s].label}</option>)}
-            </select>
-            <select value={filterSource}   onChange={e => { setFilterSource(e.target.value);   setPage(1); }} style={SEL}>
-              <option value="">All Sources</option>
-              {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-            <select value={filterPriority} onChange={e => { setFilterPriority(e.target.value); setPage(1); }} style={SEL}>
-              <option value="">All Priorities</option>
-              <option value="HIGH">High</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="LOW">Low</option>
-            </select>
+            <SingleSelectFilter
+              label="Stage" allLabel="All Stages"
+              options={STAGES.map(s => ({ value: s, label: STAGE_CFG[s].label }))}
+              value={filterStage || null} onChange={v => { setFilterStage(v || ''); setPage(1); }}
+            />
+            <SingleSelectFilter
+              label="Source" allLabel="All Sources"
+              options={SOURCES.map(s => ({ value: s, label: s }))}
+              value={filterSource || null} onChange={v => { setFilterSource(v || ''); setPage(1); }}
+            />
+            <SingleSelectFilter
+              label="Priority" allLabel="All Priorities"
+              options={[{ value: 'HIGH', label: 'High' }, { value: 'MEDIUM', label: 'Medium' }, { value: 'LOW', label: 'Low' }]}
+              value={filterPriority || null} onChange={v => { setFilterPriority(v || ''); setPage(1); }}
+            />
             {(search || filterStage || filterSource || filterPriority) && (
               <button type="button" onClick={() => { setSearch(''); setFilterStage(''); setFilterSource(''); setFilterPriority(''); setPage(1); }}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--teal)', fontFamily: 'var(--font)', padding: '0 2px' }}>
@@ -988,32 +991,46 @@ export const Leads: React.FC = () => {
                 ))}
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Expected Close</label>
-                  <input type="date" className="input-field" value={addForm.expected_close || ''} onChange={e => setF('expected_close', e.target.value)} />
+                  <DatePicker date={parseDateOnly(addForm.expected_close)} onChange={d => setF('expected_close', toDateOnlyString(d))} />
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Lead Source</label>
-                  <select value={addForm.source} onChange={e => setF('source', e.target.value)} className="input-field" style={{ cursor: 'pointer' }}>
-                    {SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
+                  <Select value={addForm.source} onValueChange={v => setF('source', v)}>
+                    <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {SOURCES.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Stage</label>
-                  <select value={addForm.stage} onChange={e => setF('stage', e.target.value)} className="input-field" style={{ cursor: 'pointer' }}>
-                    {STAGES.filter(s => s !== 'WON' && s !== 'LOST').map(s => <option key={s} value={s}>{STAGE_CFG[s].label}</option>)}
-                  </select>
+                  <Select value={addForm.stage} onValueChange={v => setF('stage', v)}>
+                    <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {STAGES.filter(s => s !== 'WON' && s !== 'LOST').map(s => <SelectItem key={s} value={s}>{STAGE_CFG[s].label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Priority</label>
-                  <select value={addForm.priority} onChange={e => setF('priority', e.target.value)} className="input-field" style={{ cursor: 'pointer' }}>
-                    <option value="HIGH">High</option><option value="MEDIUM">Medium</option><option value="LOW">Low</option>
-                  </select>
+                  <Select value={addForm.priority} onValueChange={v => setF('priority', v)}>
+                    <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="HIGH">High</SelectItem>
+                      <SelectItem value="MEDIUM">Medium</SelectItem>
+                      <SelectItem value="LOW">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Assign To</label>
-                  <select value={addForm.assigned_to || ''} onChange={e => setF('assigned_to', e.target.value)} className="input-field" style={{ cursor: 'pointer' }}>
-                    <option value="">Unassigned</option>
-                    {OFFICERS.map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
+                  <Select value={addForm.assigned_to || '__none__'} onValueChange={v => setF('assigned_to', v === '__none__' ? '' : v)}>
+                    <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Unassigned</SelectItem>
+                      {OFFICERS.map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div style={{ gridColumn: '1/-1' }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 5 }}>Notes</label>

@@ -3,13 +3,16 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch } from '../lib/api.js';
 import { MetricsRow, spark } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
+import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
 const STAGES = [
   { key: 'DRAFT',     label: 'Draft',          color: 'var(--ink3)' },
   { key: 'PENDING',   label: 'Pending Review',  color: '#9a6700' },
-  { key: 'APPROVED',  label: 'Approved',         color: '#1a7f37' },
+  { key: 'APPROVED',  label: 'Approved',         color: '#059669' },
   { key: 'CONVERTED', label: 'Converted',        color: 'var(--teal)' },
   { key: 'REJECTED',  label: 'Rejected',         color: '#cf222e' },
 ];
@@ -24,7 +27,7 @@ const STATUS_BG: Record<string, string> = {
 const STATUS_FG: Record<string, string> = {
   DRAFT:     'var(--ink3)',
   PENDING:   '#9a6700',
-  APPROVED:  '#1a7f37',
+  APPROVED:  '#059669',
   CONVERTED: 'var(--teal)',
   REJECTED:  '#cf222e',
 };
@@ -143,9 +146,12 @@ function StatusModal({
         <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 14 }}>Change Status</div>
         <div style={{ marginBottom: 14 }}>
           <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>New Status</label>
-          <select aria-label="New Status" value={status} onChange={e => setStatus(e.target.value)} style={{ width: '100%', padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 13 }}>
-            {allowed.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger aria-label="New Status" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {allowed.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+            </SelectContent>
+          </Select>
         </div>
         {status === 'REJECTED' && (
           <div style={{ marginBottom: 14 }}>
@@ -385,6 +391,29 @@ function QuoteModal({
   const [saving, setSaving] = useState(false);
   const [err, setErr]       = useState('');
 
+  const [customerItem, setCustomerItem] = useState<PickerItem | null>(() => {
+    const c = customers.find((c: any) => c.id === (editQuote?.customer_id ?? ''));
+    return c ? { id: c.id, label: c.name, sublabel: c.email || c.phone || undefined } : null;
+  });
+
+  async function searchCustomersLocal(q: string): Promise<PickerItem[]> {
+    const ql = q.trim().toLowerCase();
+    // Excludes draft companies (active===false) — e.g. BRELA imports still
+    // sitting in Company Directory that haven't been marked complete yet —
+    // from every quote/sale customer picker.
+    const usable = customers.filter((c: any) => c.active !== false);
+    const filtered = ql
+      ? usable.filter((c: any) => (c.name || '').toLowerCase().includes(ql) || (c.email || '').toLowerCase().includes(ql))
+      : usable;
+    return filtered.slice(0, 25).map((c: any) => ({ id: c.id, label: c.name, sublabel: c.email || c.phone || undefined }));
+  }
+
+  async function createCustomerInline(name: string): Promise<PickerItem> {
+    const created = await apiFetch('/v1/customers', { method: 'POST', body: JSON.stringify({ name }) });
+    customers.push(created);
+    return { id: created.id, label: created.name };
+  }
+
   function setField(key: string, val: string) {
     setForm((f: any) => ({ ...f, [key]: val }));
   }
@@ -470,16 +499,22 @@ function QuoteModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 16 }}>
             <div>
               <label style={labelStyle}>Customer *</label>
-              <select aria-label="Customer" value={form.customer_id} onChange={e => setField('customer_id', e.target.value)} style={inputStyle}>
-                <option value="">Select customer…</option>
-                {customers.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
+              <EntityPicker
+                value={customerItem}
+                onChange={(item) => { setCustomerItem(item); setField('customer_id', item?.id ?? ''); }}
+                search={searchCustomersLocal} onCreate={createCustomerInline}
+                createLabel={(q) => `Create new customer "${q}"`}
+                placeholder="Search customers…"
+              />
             </div>
             <div>
               <label style={labelStyle}>Shipment Type</label>
-              <select aria-label="Shipment Type" value={form.shipment_type} onChange={e => setField('shipment_type', e.target.value)} style={inputStyle}>
-                {SHIPMENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
+              <Select value={form.shipment_type} onValueChange={v => setField('shipment_type', v)}>
+                <SelectTrigger aria-label="Shipment Type" style={inputStyle}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {SHIPMENT_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -487,17 +522,20 @@ function QuoteModal({
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 16 }}>
             <div>
               <label style={labelStyle}>Currency</label>
-              <select aria-label="Currency" value={form.currency} onChange={e => setField('currency', e.target.value)} style={inputStyle}>
-                {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <Select value={form.currency} onValueChange={v => setField('currency', v)}>
+                <SelectTrigger aria-label="Currency" style={inputStyle}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label style={labelStyle}>Valid From</label>
-              <input type="date" aria-label="Valid From" value={form.valid_from} onChange={e => setField('valid_from', e.target.value)} style={inputStyle} />
+              <DatePicker date={parseDateOnly(form.valid_from)} onChange={d => setField('valid_from', toDateOnlyString(d))} />
             </div>
             <div>
               <label style={labelStyle}>Valid Until</label>
-              <input type="date" aria-label="Valid Until" value={form.valid_until} onChange={e => setField('valid_until', e.target.value)} style={inputStyle} />
+              <DatePicker date={parseDateOnly(form.valid_until)} onChange={d => setField('valid_until', toDateOnlyString(d))} />
             </div>
           </div>
 
@@ -560,10 +598,12 @@ function QuoteModal({
                             style={{ ...inputStyle, padding: '4px 6px', fontSize: 12 }} placeholder="Description" />
                         </td>
                         <td style={{ padding: '4px 6px', minWidth: 110 }}>
-                          <select aria-label="Category" value={line.category} onChange={e => setLine(idx, 'category', e.target.value)}
-                            style={{ ...inputStyle, padding: '4px 6px', fontSize: 12 }}>
-                            {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                          </select>
+                          <Select value={line.category} onValueChange={v => setLine(idx, 'category', v)}>
+                            <SelectTrigger aria-label="Category" style={{ ...inputStyle, height: 'auto', padding: '4px 6px', fontSize: 12 }}><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {CATEGORIES.map(cat => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
                         </td>
                         <td style={{ padding: '4px 6px', minWidth: 60 }}>
                           <input type="number" min={1} aria-label="Quantity" value={line.quantity} onChange={e => setLine(idx, 'quantity', Number(e.target.value))}
@@ -574,10 +614,12 @@ function QuoteModal({
                             style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, width: 100 }} />
                         </td>
                         <td style={{ padding: '4px 6px', minWidth: 65 }}>
-                          <select aria-label="Tax Rate" value={line.tax_rate} onChange={e => setLine(idx, 'tax_rate', Number(e.target.value))}
-                            style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, width: 65 }}>
-                            {TAX_RATES.map(r => <option key={r} value={r}>{r}%</option>)}
-                          </select>
+                          <Select value={String(line.tax_rate)} onValueChange={v => setLine(idx, 'tax_rate', Number(v))}>
+                            <SelectTrigger aria-label="Tax Rate" style={{ ...inputStyle, height: 'auto', padding: '4px 6px', fontSize: 12, width: 65 }}><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {TAX_RATES.map(r => <SelectItem key={r} value={String(r)}>{r}%</SelectItem>)}
+                            </SelectContent>
+                          </Select>
                         </td>
                         <td style={{ padding: '4px 8px', fontFamily: 'var(--mono)', fontWeight: 600, whiteSpace: 'nowrap', minWidth: 90 }}>
                           {fmt(c.lineTotal, form.currency)}
