@@ -1,4 +1,4 @@
-// ─── ClearOS Declaration / TANSAD Types ──────────────────────
+// ─── Hudumika Declaration / TANSAD Types ──────────────────────
 // Models the TANESW import declaration structure, including
 // TANSAD form data, items, notices, and tax assessments.
 

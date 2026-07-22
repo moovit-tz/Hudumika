@@ -1,4 +1,4 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 /**
  * TRA VFD API Routes
  * Endpoints for TRA registration, token management,
@@ -14,7 +14,7 @@ import path from 'path';
 
 export async function traRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('clearos'));
+  fastify.addHook('preHandler', requireEntitlement('clearos'));
 
   // ── GET /v1/tra/config ──────────────────────────────────────────────────────
   // Returns current TRA VFD configuration status for the tenant.
@@ -207,6 +207,13 @@ export async function traRoutes(fastify: FastifyInstance) {
       if (!result.success) {
         return reply.status(400).send({ error: result.error, ackCode: result.ackCode, ackMsg: result.ackMsg });
       }
+
+      await withTenant(user.tenant_id, async (trx) => {
+        await trx.insertInto('invoice_activity_log').values({
+          tenant_id: user.tenant_id, invoice_id: id, actor_id: user.sub, actor_name: user.name || user.email,
+          action: 'tra_submitted', detail: `Receipt ${result.rctvNum}`, created_at: new Date(),
+        }).execute();
+      });
 
       return {
         success: true,

@@ -1,4 +1,4 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 /**
  * Customs Intelligence Routes
  * API endpoints for HS code lookup, landed cost calculation,
@@ -15,16 +15,18 @@ import {
   searchHsCodes,
   getHsCode,
   calculateLandedCost,
+  calculateMultiItemLandedCost,
   checkCompliance,
   calculatePenalty,
   getVesselPosition,
   getUsdToTzs,
+  type ShipmentMode,
 } from '../services/customs.service.js';
 import { db } from '../db/client.js';
 
 export async function customsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('clearos'));
+  fastify.addHook('preHandler', requireEntitlement('clearos'));
 
   // ── GET /v1/customs/hs-search?q=laptop ───────────────────────────────────────
   // Full-text + code-prefix search of HS code database
@@ -75,6 +77,13 @@ export async function customsRoutes(fastify: FastifyInstance) {
       fx_rate_override: body.fx_rate_override ? parseFloat(body.fx_rate_override) : undefined,
       shipment_ref: body.shipment_ref,
       description: body.description,
+      fob_usd: body.fob_usd ? parseFloat(body.fob_usd) : undefined,
+      freight_usd: body.freight_usd ? parseFloat(body.freight_usd) : undefined,
+      insurance_usd: body.insurance_usd ? parseFloat(body.insurance_usd) : undefined,
+      mode: body.mode as ShipmentMode | undefined,
+      container: body.container,
+      cbm: body.cbm ? parseFloat(body.cbm) : undefined,
+      weight_kg: body.weight_kg ? parseFloat(body.weight_kg) : undefined,
     });
 
     // Optionally save to history
@@ -117,9 +126,71 @@ export async function customsRoutes(fastify: FastifyInstance) {
       .execute();
   });
 
+  // ── POST /v1/customs/landed-cost/multi-item ──────────────────────────────────
+  // Multi-line-item landed cost: each line gets its own HS code / duty / VAT
+  // assessment; freight, insurance and the destination charge are apportioned
+  // across lines by FOB value share.
+  fastify.post('/landed-cost/multi-item', async (request, reply) => {
+    const user = request.user as any;
+    const body = request.body as any;
+
+    if (!Array.isArray(body.items) || body.items.length === 0) {
+      return reply.status(400).send({ error: 'items[] is required' });
+    }
+
+    let result;
+    try {
+      result = await calculateMultiItemLandedCost({
+        items: body.items.map((it: any) => ({
+          description: it.description ?? '',
+          hs_code: it.hs_code ?? '',
+          qty: parseFloat(it.qty) || 0,
+          unit_price_usd: parseFloat(it.unit_price_usd) || 0,
+        })),
+        freight_usd: parseFloat(body.freight_usd) || 0,
+        insurance_usd: body.insurance_usd !== undefined && body.insurance_usd !== '' ? parseFloat(body.insurance_usd) : undefined,
+        fx_rate_override: body.fx_rate_override ? parseFloat(body.fx_rate_override) : undefined,
+        mode: (body.mode as ShipmentMode) ?? 'sea_fcl',
+        container: body.container,
+        num_containers: body.num_containers ? parseInt(body.num_containers) : undefined,
+        cbm: body.cbm ? parseFloat(body.cbm) : undefined,
+        weight_kg: body.weight_kg ? parseFloat(body.weight_kg) : undefined,
+      });
+    } catch (e: any) {
+      return reply.status(400).send({ error: e.message });
+    }
+
+    if (body.save_to_history !== false) {
+      await db.insertInto('landed_cost_records').values({
+        tenant_id: user.tenant_id,
+        shipment_ref: body.shipment_ref ?? null,
+        hs_code: 'MULTI',
+        description: `${result.items.length} line item${result.items.length === 1 ? '' : 's'}`,
+        cif_usd: result.totals.cif_tzs / result.fx_rate,
+        fx_rate: result.fx_rate,
+        cif_tzs: result.totals.cif_tzs,
+        duty_rate: null,
+        duty_amount: result.totals.duty,
+        vat_amount: result.totals.vat,
+        rdl_amount: result.totals.rdl,
+        cpf_amount: result.totals.cpf,
+        icd_amount: result.totals.destination,
+        wharfage_amount: result.totals.wharfage,
+        total_tzs: result.totals.total,
+        qty: result.items.length,
+        per_unit_tzs: null,
+        source: 'calculator-multi',
+        created_by: user.sub ?? null,
+      }).execute().catch(() => {});
+    }
+
+    return result;
+  });
+
   // ── POST /v1/customs/compliance-check ────────────────────────────────────────
   // Check compliance requirements for an import
   fastify.post('/compliance-check', async (request, reply) => {
+    const user = request.user as any;
     const body = request.body as any;
     if (!body.hs_code || !body.origin_country) {
       return reply.status(400).send({ error: 'hs_code and origin_country are required' });
@@ -134,6 +205,22 @@ export async function customsRoutes(fastify: FastifyInstance) {
 
     const required = checks.filter(c => c.required);
     const optional = checks.filter(c => !c.required);
+    const riskLevel = required.filter(c => c.color === 'red').length > 2 ? 'HIGH'
+      : required.length > 0 ? 'MEDIUM' : 'LOW';
+
+    if (body.save_to_history !== false) {
+      const hsEntry = await getHsCode(body.hs_code).catch(() => null);
+      db.insertInto('compliance_check_log').values({
+        tenant_id: user.tenant_id,
+        user_id: user.sub ?? null,
+        hs_code: body.hs_code,
+        hs_description: hsEntry?.description ?? null,
+        origin_country: body.origin_country,
+        total_checks: checks.length,
+        required_count: required.length,
+        risk_level: riskLevel,
+      }).execute().catch(() => {}); // Non-blocking
+    }
 
     return {
       hs_code: body.hs_code,
@@ -142,11 +229,21 @@ export async function customsRoutes(fastify: FastifyInstance) {
         total_checks: checks.length,
         required_count: required.length,
         compliant_count: optional.length,
-        risk_level: required.filter(c => c.color === 'red').length > 2 ? 'HIGH'
-          : required.length > 0 ? 'MEDIUM' : 'LOW',
+        risk_level: riskLevel,
       },
       checks,
     };
+  });
+
+  // ── GET /v1/customs/compliance-check/history ─────────────────────────────────
+  fastify.get('/compliance-check/history', async (request) => {
+    const user = request.user as any;
+    return db.selectFrom('compliance_check_log')
+      .selectAll()
+      .where('tenant_id', '=', user.tenant_id)
+      .orderBy('created_at', 'desc')
+      .limit(50)
+      .execute();
   });
 
   // ── POST /v1/customs/penalty-calc ────────────────────────────────────────────
