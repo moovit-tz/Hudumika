@@ -1,10 +1,13 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '../components/Icon.js';
 import { getCompany, subscribeCompany } from '../data/companyStore.js';
 import { getJobs } from './clearanceData.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch } from '../lib/api.js';
-import { PageHeader } from '../components/PageHeader.jsx';
+import { PageHeader } from '../components/PageHeader.js';
+import { useBranding } from '../hooks/useBranding.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Combobox } from '../components/ui/combobox.js';
 const ORANGE = '#f97316';
 const DARK   = '#1e293b';
 
@@ -40,6 +43,74 @@ const MOCK_INVOICES = [
 // ── Mock notes ────────────────────────────────────────────────────────────────
 function blankRows(from: number, count: number): GoodsRow[] {
   return Array.from({ length: count }, (_, i) => ({ no: from + i, description: '', qtySent: 0, qtyReceived: 0, condition: '', variance: 0, remarks: '' }));
+}
+
+function apiToDN(apiDN: any): DN {
+  let extra: Partial<DN> = {};
+  try { extra = JSON.parse(apiDN.notes || '{}'); } catch {}
+
+  const rows = Array.isArray(apiDN.lines) ? apiDN.lines.map((l: any, i: number) => {
+    let lextra: any = {};
+    try { lextra = JSON.parse(l.notes || '{}'); } catch {}
+    return {
+      no: i + 1,
+      description: l.description || '',
+      qtySent: Number(l.qty_ordered) || 0,
+      qtyReceived: Number(l.qty_delivered) || 0,
+      condition: lextra.condition || '',
+      variance: lextra.variance || 0,
+      remarks: lextra.remarks || ''
+    };
+  }) : [];
+
+  return {
+    id: apiDN.id,
+    noteNo: apiDN.dn_number || '',
+    date: extra.date || '',
+    time: extra.time || '',
+    dispatchRef: extra.dispatchRef || '',
+    invoiceNo: extra.invoiceNo || '',
+    consigneeName: apiDN.customer_name || '',
+    contactPerson: extra.contactPerson || '',
+    phone: extra.phone || '',
+    email: extra.email || '',
+    deliveryAddress: extra.deliveryAddress || '',
+    city: extra.city || '',
+    driverName: extra.driverName || '',
+    vehicleNo: extra.vehicleNo || '',
+    driverContact: extra.driverContact || '',
+    carrier: extra.carrier || '',
+    deliveryDate: apiDN.delivery_date ? String(apiDN.delivery_date).slice(0, 10) : (extra.deliveryDate || ''),
+    deliveryTime: extra.deliveryTime || '',
+    statusFlags: extra.statusFlags || [apiDN.status || 'DRAFT'],
+    discrepancyNotes: extra.discrepancyNotes || '',
+    rows
+  };
+}
+
+function dnToApi(n: DN): any {
+  return {
+    dn_number: n.noteNo,
+    customer_name: n.consigneeName,
+    delivery_date: n.deliveryDate || null,
+    status: n.statusFlags[0] || 'DRAFT',
+    notes: JSON.stringify({
+      date: n.date, time: n.time, dispatchRef: n.dispatchRef, invoiceNo: n.invoiceNo,
+      contactPerson: n.contactPerson, phone: n.phone, email: n.email,
+      deliveryAddress: n.deliveryAddress, city: n.city,
+      driverName: n.driverName, vehicleNo: n.vehicleNo, driverContact: n.driverContact,
+      carrier: n.carrier, deliveryTime: n.deliveryTime,
+      discrepancyNotes: n.discrepancyNotes,
+      statusFlags: n.statusFlags
+    }),
+    lines: n.rows.map(r => ({
+      description: r.description,
+      qty_ordered: r.qtySent,
+      qty_delivered: r.qtyReceived,
+      unit: 'ea',
+      notes: JSON.stringify({ condition: r.condition, variance: r.variance, remarks: r.remarks })
+    }))
+  };
 }
 
 const MOCK_NOTES: DN[] = [
@@ -92,7 +163,7 @@ const MOCK_NOTES: DN[] = [
 // ── Status config ─────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
   pending:             { label: 'Pending',             color: '#92400e', bg: '#fef3c7' },
-  fully_delivered:     { label: 'Fully Delivered',     color: '#166534', bg: '#dcfce7' },
+  fully_delivered:     { label: 'Fully Delivered',     color: '#065f46', bg: '#ecfdf5' },
   partially_delivered: { label: 'Partially Delivered', color: '#1e40af', bg: '#dbeafe' },
   damaged:             { label: 'Goods Damaged',       color: '#9a3412', bg: '#ffedd5' },
   missing:             { label: 'Missing Items',       color: '#6b21a8', bg: '#f3e8ff' },
@@ -109,6 +180,7 @@ const STATUS_OPTIONS = [
 
 // ── Print template (matches attached PDF design) ──────────────────────────────
 function PrintTemplate({ note }: { note: DN }) {
+  const branding = useBranding();
   const [co, setCo] = useState(getCompany);
   useEffect(() => subscribeCompany(() => setCo(getCompany())), []);
 
@@ -127,6 +199,8 @@ function PrintTemplate({ note }: { note: DN }) {
     </div>
   );
 
+  const logoToUse = branding.logoLight || branding.getAppLogo('clearos') || co.logoUrl;
+
   return (
     <div style={{ width: 960, fontFamily: 'Arial, Helvetica, sans-serif', fontSize: 11, color: '#000', background: '#fff', lineHeight: 1.4 }}>
 
@@ -136,15 +210,15 @@ function PrintTemplate({ note }: { note: DN }) {
         <div style={{ background: DARK, overflow: 'hidden', position: 'relative' }}>
           <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 48, background: ORANGE }} />
           <div style={{ position: 'relative', padding: '14px 12px 14px 60px' }}>
-            {co.logoUrl
-              ? <img src={co.logoUrl} alt={co.name} style={{ height: 36, objectFit: 'contain', marginBottom: 6, display: 'block' }} />
+            {logoToUse
+              ? <img src={logoToUse} alt={branding.platformName || co.name} style={{ height: 36, objectFit: 'contain', marginBottom: 6, display: 'block' }} />
               : <>
-                  <div style={{ fontSize: 19, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{co.name.split(' ')[0]}</div>
-                  <div style={{ fontSize: 11, fontStyle: 'italic', color: ORANGE, marginBottom: 10 }}>{co.tagline.split(' ').slice(0, 2).join(' ')}</div>
+                  <div style={{ fontSize: 19, fontWeight: 900, color: '#fff', lineHeight: 1 }}>{(branding.platformName || co.name).split(' ')[0]}</div>
+                  <div style={{ fontSize: 11, fontStyle: 'italic', color: ORANGE, marginBottom: 10 }}>{(branding.platformTagline || co.tagline).split(' ').slice(0, 2).join(' ')}</div>
                 </>
             }
             <div style={{ fontSize: 8.5, color: 'rgba(255,255,255,0.65)', lineHeight: 1.7 }}>
-              {co.address}<br />{co.city} · {co.phone}<br />{co.email}
+              {co.address}<br />{co.city} · {co.phone}<br />{branding.supportEmail || co.email}
             </div>
           </div>
         </div>
@@ -411,23 +485,17 @@ function NoteDrawer({ note, onSave, onClose, isMobile }: { note: DN; onSave: (n:
           <FSection title="Link to BL / Shipment" />
           <div style={{ padding: '12px 24px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px 16px' }}>
             <FRow label="BL / Shipment" span>
-              <select title="Select BL / Shipment" style={sel} value={selectedJobId} onChange={e => pickJob(e.target.value)}>
-                <option value="">— Select Shipment —</option>
-                {jobs.map(j => (
-                  <option key={j.id} value={j.id}>
-                    {j.bl ? `BL: ${j.bl} — ` : ''}{j.customer} ({j.title})
-                  </option>
-                ))}
-              </select>
+              <Combobox
+                options={jobs.map(j => ({ value: j.id, label: `${j.bl ? `BL: ${j.bl} — ` : ''}${j.customer} (${j.title})` }))}
+                value={selectedJobId} onChange={pickJob} placeholder="— Select Shipment —"
+              />
             </FRow>
             {selectedJobId && (
               <FRow label="Invoice Number" span>
-                <select title="Select Invoice" style={sel} value={f.invoiceNo} onChange={e => pickInvoice(e.target.value)}>
-                  <option value="">— Select Invoice —</option>
-                  {MOCK_INVOICES.map(inv => (
-                    <option key={inv.no} value={inv.no}>{inv.no} · {inv.client}</option>
-                  ))}
-                </select>
+                <Combobox
+                  options={MOCK_INVOICES.map(inv => ({ value: inv.no, label: `${inv.no} · ${inv.client}` }))}
+                  value={f.invoiceNo} onChange={pickInvoice} placeholder="— Select Invoice —"
+                />
               </FRow>
             )}
           </div>
@@ -438,12 +506,10 @@ function NoteDrawer({ note, onSave, onClose, isMobile }: { note: DN; onSave: (n:
               <FSection title="Or Link to Invoice Directly" />
               <div style={{ padding: '12px 24px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px 16px' }}>
                 <FRow label="Invoice Number" span>
-                  <select title="Select Invoice" style={sel} value={f.invoiceNo} onChange={e => pickInvoice(e.target.value)}>
-                    <option value="">— Select Invoice —</option>
-                    {MOCK_INVOICES.map(inv => (
-                      <option key={inv.no} value={inv.no}>{inv.no} · {inv.client}</option>
-                    ))}
-                  </select>
+                  <Combobox
+                    options={MOCK_INVOICES.map(inv => ({ value: inv.no, label: `${inv.no} · ${inv.client}` }))}
+                    value={f.invoiceNo} onChange={pickInvoice} placeholder="— Select Invoice —"
+                  />
                 </FRow>
               </div>
             </>
@@ -500,10 +566,16 @@ function NoteDrawer({ note, onSave, onClose, isMobile }: { note: DN; onSave: (n:
                       <td style={{ padding: '4px 4px', width: 70 }}><input title="Qty sent" placeholder="0" style={{ ...inp, padding: '5px 7px', fontSize: 12, textAlign: 'center' }} type="number" value={row.qtySent || ''} onChange={e => updateRow(i, 'qtySent', Number(e.target.value))} /></td>
                       <td style={{ padding: '4px 4px', width: 70 }}><input title="Qty received" placeholder="0" style={{ ...inp, padding: '5px 7px', fontSize: 12, textAlign: 'center' }} type="number" value={row.qtyReceived || ''} onChange={e => updateRow(i, 'qtyReceived', Number(e.target.value))} /></td>
                       <td style={{ padding: '4px 4px', width: 90 }}>
-                        <select title="Condition" style={{ ...sel, padding: '5px 7px', fontSize: 12 }} value={row.condition} onChange={e => updateRow(i, 'condition', e.target.value)}>
-                          <option value="">—</option>
-                          <option>Good</option><option>Damaged</option><option>Wet</option><option>Partial</option>
-                        </select>
+                        <Select value={row.condition || '__none__'} onValueChange={v => updateRow(i, 'condition', v === '__none__' ? '' : v)}>
+                          <SelectTrigger className="h-7 px-2 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">—</SelectItem>
+                            <SelectItem value="Good">Good</SelectItem>
+                            <SelectItem value="Damaged">Damaged</SelectItem>
+                            <SelectItem value="Wet">Wet</SelectItem>
+                            <SelectItem value="Partial">Partial</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </td>
                       <td style={{ padding: '4px 4px', width: 68 }}>
                         <div style={{ ...inp, padding: '5px 7px', fontSize: 12, textAlign: 'center', color: row.variance < 0 ? '#dc2626' : 'var(--ink)', background: 'var(--bg)' }}>{row.variance || 0}</div>
@@ -649,8 +721,18 @@ export const DeliveryNotes: React.FC = () => {
     setLoading(true);
     try {
       const res = await apiFetch('/v1/delivery-notes');
-      const data = Array.isArray(res) ? res : (res?.data ?? []);
-      setNotes(data.length > 0 ? data : MOCK_NOTES);
+      const data = Array.isArray(res) ? res : (res?.delivery_notes ?? []);
+      
+      const withLines = await Promise.all(data.map(async (dn: any) => {
+        try {
+          const detail = await apiFetch(`/v1/delivery-notes/${dn.id}`);
+          return apiToDN(detail);
+        } catch {
+          return apiToDN(dn);
+        }
+      }));
+
+      setNotes(withLines.length > 0 ? withLines : MOCK_NOTES);
     } catch {
       setNotes(MOCK_NOTES);
     } finally { setLoading(false); }
@@ -677,17 +759,18 @@ export const DeliveryNotes: React.FC = () => {
 
   async function saveNote(n: DN) {
     const isNew = !n.id;
-    const payload = { ...n, id: undefined };
+    const payload = dnToApi(n);
+    
     try {
       if (isNew) {
-        const res = await apiFetch('/v1/delivery-notes', { method: 'POST', body: JSON.stringify(payload) });
-        const saved = { ...n, id: res?.id ?? Date.now().toString() };
+        const res: any = await apiFetch('/v1/delivery-notes', { method: 'POST', body: JSON.stringify(payload) });
+        const saved = apiToDN({ ...res, lines: payload.lines.map((l:any) => ({...l, qty_ordered: l.qty_ordered, qty_delivered: l.qty_delivered})) }); // mock the lines for the response
         setNotes(ns => [saved, ...ns]);
         setSelectedNote(saved);
+        loadNotes(); // reload to get proper DB IDs for lines
       } else {
         await apiFetch(`/v1/delivery-notes/${n.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
-        setNotes(ns => ns.map(x => x.id === n.id ? n : x));
-        setSelectedNote(n);
+        loadNotes(); // reload from DB
       }
     } catch {
       /* Fallback: local state only */
@@ -714,6 +797,21 @@ export const DeliveryNotes: React.FC = () => {
     const matchSearch = !q || n.noteNo.toLowerCase().includes(q) || n.consigneeName.toLowerCase().includes(q) || n.invoiceNo.toLowerCase().includes(q) || n.driverName.toLowerCase().includes(q);
     return matchStatus && matchSearch;
   });
+
+  function exportCsv() {
+    const rows = [
+      ['Note No.', 'Date', 'Invoice No.', 'Consignee', 'Delivery Address', 'Driver', 'Vehicle No.', 'Delivery Date', 'Status'],
+      ...filtered.map(n => [n.noteNo, n.date, n.invoiceNo, n.consigneeName, n.deliveryAddress, n.driverName, n.vehicleNo, n.deliveryDate, n.statusFlags.join('; ')]),
+    ];
+    const csv = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `delivery-notes-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   // Stats
   const total     = notes.length;
@@ -755,7 +853,7 @@ export const DeliveryNotes: React.FC = () => {
       <div style={{ padding: '16px 28px', display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : isSplit ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)', gap: 10 }}>
         {[
           { label: 'Total Notes',       value: total,     color: 'var(--navy)', filter: 'all' },
-          { label: 'Fully Delivered',   value: fullyDone, color: '#166534',     filter: 'fully_delivered'     },
+          { label: 'Fully Delivered',   value: fullyDone, color: '#065f46',     filter: 'fully_delivered'     },
           { label: 'Partial',           value: partial,   color: '#1e40af',     filter: 'partially_delivered' },
           { label: 'Issues',            value: issues,    color: '#9a3412',     filter: 'damaged'             },
           { label: 'Pending',           value: pending,   color: '#92400e',     filter: 'pending'             },
@@ -781,15 +879,18 @@ export const DeliveryNotes: React.FC = () => {
             style={{ width: '100%', boxSizing: 'border-box' as const, padding: '8px 10px 8px 32px', border: '1.5px solid var(--border)', borderRadius: 9, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none' }}
           />
         </div>
-        <select
-          title="Filter by status"
-          value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-          style={{ padding: '8px 12px', border: '1.5px solid var(--border)', borderRadius: 9, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none' }}
-        >
-          <option value="all">All Statuses</option>
-          {STATUS_OPTIONS.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-          <option value="pending">Pending</option>
-        </select>
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            {STATUS_OPTIONS.map(s => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}
+            <SelectItem value="pending">Pending</SelectItem>
+          </SelectContent>
+        </Select>
+        <button type="button" onClick={exportCsv}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
+          <Icon name="download" size={13} /> Export CSV
+        </button>
       </div>
 
       {/* ── Table ── */}

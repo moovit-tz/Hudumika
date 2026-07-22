@@ -1,11 +1,24 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
+import { useBranding } from '../hooks/useBranding.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { apiFetch } from '../lib/api.js';
+import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Combobox } from '../components/ui/combobox.js';
+import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 
 // Types and Interfaces
-type POStatus = 'Draft' | 'Paid' | 'Posted' | 'Partial';
+// Mirrors the backend's purchase_orders.status CHECK constraint
+// (DRAFT/SENT/PARTIAL/RECEIVED/CANCELLED) in Titlecase for display.
+type POStatus = 'Draft' | 'Sent' | 'Partial' | 'Received' | 'Cancelled';
+const toApiStatus = (s: POStatus): string => s.toUpperCase();
+const fromApiStatus = (s: string): POStatus => {
+  const up = (s || 'DRAFT').toUpperCase();
+  return (up.charAt(0) + up.slice(1).toLowerCase()) as POStatus;
+};
 
 interface POItem {
   productId: string;
@@ -94,50 +107,7 @@ export const MOCK_PRODUCTS: Product[] = [
   }
 ];
 
-const MOCK_SUPPLIERS: Supplier[] = [
-  {
-    id: 'sam',
-    name: 'Sam Supplier',
-    email: 'sam.supplier@vendor.com',
-    billingAddress: 'Dr. Asha Blick IV\n7044 Heaney Stream\nPort Ivoryfurt, Iowa 26370-2398',
-    shippingAddress: 'Rosalia Hahn DVM\n49327 Bode Drives Suite 933\nEast Richard, South Dakota 12289'
-  },
-  {
-    id: 'alex',
-    name: 'Alex Vendor',
-    email: 'alex.vendor@vendor.com',
-    billingAddress: 'Alex Billing Address\n123 Street Dr\nCity, State 12345',
-    shippingAddress: 'Alex Shipping Address\n456 Road Rd\nCity, State 12345'
-  },
-  {
-    id: 'elite',
-    name: 'Elite Vendors Group',
-    email: 'elite.vendors@vendor.com',
-    billingAddress: 'Elite Billing Address\n789 Industrial Ave\nCity, State 54321',
-    shippingAddress: 'Elite Shipping Address\n789 Industrial Ave\nCity, State 54321'
-  },
-  {
-    id: 'prime',
-    name: 'Prime Materials Ltd',
-    email: 'prime.materials@vendor.com',
-    billingAddress: 'Prime Billing Address\n101 Quarry Rd\nCity, State 98765',
-    shippingAddress: 'Prime Shipping Address\n102 Quarry Rd\nCity, State 98765'
-  },
-  {
-    id: 'global',
-    name: 'Global Supplies Co',
-    email: 'global.supplies@vendor.com',
-    billingAddress: 'Global Billing Address\n555 Enterprise Pkwy\nCity, State 33322',
-    shippingAddress: 'Global Shipping Address\n555 Enterprise Pkwy\nCity, State 33322'
-  },
-  {
-    id: 'tech',
-    name: 'Tech Solutions Inc',
-    email: 'tech.solutions@vendor.com',
-    billingAddress: 'Tech Billing Address\n404 Server Lane\nCity, State 11223',
-    shippingAddress: 'Tech Shipping Address\n404 Server Lane\nCity, State 11223'
-  }
-];
+// Vendor/supplier records are real rows served by /v1/suppliers — see allSuppliers below.
 
 const MOCK_WAREHOUSES: Warehouse[] = [
   { id: 'gulf', name: 'Gulf Coast Distribution' },
@@ -146,220 +116,56 @@ const MOCK_WAREHOUSES: Warehouse[] = [
   { id: 'bonded', name: 'Bonded Port Terminal' }
 ];
 
-export const INITIAL_MOCK_POS: PurchaseOrder[] = [
-  {
-    id: 'po-14',
-    po_number: 'PO-2026-01-014',
-    vendorId: 'sam',
-    warehouseId: 'gulf',
-    orderDate: '2026-03-14',
-    dueDate: '2026-05-14',
-    paymentTerms: 'COD',
-    notes: 'Mixed hardware.',
-    status: 'Draft',
-    balancePaid: 0,
-    items: [
-      { productId: 'prod-1', qty: 10, unitPrice: 70, discountPct: 0 },
-      { productId: 'prod-2', qty: 7, unitPrice: 40, discountPct: 0 },
-      { productId: 'prod-3', qty: 5, unitPrice: 250, discountPct: 0 }
-    ]
-  },
-  {
-    id: 'po-13',
-    po_number: 'PO-2026-01-013',
-    vendorId: 'alex',
-    warehouseId: 'east',
-    orderDate: '2026-03-14',
-    dueDate: '2026-06-29',
-    paymentTerms: 'Net 30',
-    notes: 'Regular logistics order.',
-    status: 'Paid',
-    balancePaid: 1805.40,
-    items: [
-      { productId: 'prod-3', qty: 5, unitPrice: 250, discountPct: 0 },
-      { productId: 'prod-2', qty: 7, unitPrice: 40, discountPct: 0 }
-    ]
-  },
-  {
-    id: 'po-12',
-    po_number: 'PO-2026-01-012',
-    vendorId: 'elite',
-    warehouseId: 'main',
-    orderDate: '2026-03-06',
-    dueDate: '2026-07-06',
-    paymentTerms: 'Net 15',
-    notes: 'Bulk raw materials.',
-    status: 'Posted',
-    balancePaid: 0,
-    items: [
-      { productId: 'prod-2', qty: 17, unitPrice: 40, discountPct: 0 }
-    ]
-  },
-  {
-    id: 'po-11',
-    po_number: 'PO-2026-01-011',
-    vendorId: 'prime',
-    warehouseId: 'bonded',
-    orderDate: '2026-02-28',
-    dueDate: '2026-05-14',
-    paymentTerms: 'COD',
-    notes: 'Customs transit order.',
-    status: 'Posted',
-    balancePaid: 0,
-    items: [
-      { productId: 'prod-3', qty: 9, unitPrice: 250, discountPct: 0 }
-    ]
-  },
-  {
-    id: 'po-10',
-    po_number: 'PO-2026-01-010',
-    vendorId: 'global',
-    warehouseId: 'gulf',
-    orderDate: '2026-02-19',
-    dueDate: '2026-06-19',
-    paymentTerms: 'Net 30',
-    notes: 'Annual supplies purchase.',
-    status: 'Draft',
-    balancePaid: 0,
-    items: [
-      { productId: 'prod-3', qty: 10, unitPrice: 250, discountPct: 0 },
-      { productId: 'prod-2', qty: 20, unitPrice: 40, discountPct: 0 },
-      { productId: 'prod-1', qty: 2, unitPrice: 70, discountPct: 0 }
-    ]
-  },
-  {
-    id: 'po-9',
-    po_number: 'PO-2026-01-009',
-    vendorId: 'tech',
-    warehouseId: 'main',
-    orderDate: '2026-02-14',
-    dueDate: '2026-08-14',
-    paymentTerms: 'Net 45',
-    notes: 'IT department support upgrade.',
-    status: 'Partial',
-    balancePaid: 929.00,
-    items: [
-      { productId: 'prod-1', qty: 20, unitPrice: 70, discountPct: 5 }
-    ]
-  },
-  {
-    id: 'po-8',
-    po_number: 'PO-2026-01-008',
-    vendorId: 'sam',
-    warehouseId: 'bonded',
-    orderDate: '2026-02-09',
-    dueDate: '2026-07-24',
-    paymentTerms: 'Net 30',
-    notes: 'Stock replenishment.',
-    status: 'Draft',
-    balancePaid: 0,
-    items: [
-      { productId: 'prod-2', qty: 47, unitPrice: 40, discountPct: 0 }
-    ]
-  },
-  {
-    id: 'po-7',
-    po_number: 'PO-2026-01-007',
-    vendorId: 'alex',
-    warehouseId: 'gulf',
-    orderDate: '2026-02-04',
-    dueDate: '2026-07-04',
-    paymentTerms: 'COD',
-    notes: 'Direct supply clearance.',
-    status: 'Draft',
-    balancePaid: 0,
-    items: [
-      { productId: 'prod-3', qty: 50, unitPrice: 250, discountPct: 0 }
-    ]
-  },
-  {
-    id: 'po-6',
-    po_number: 'PO-2026-01-006',
-    vendorId: 'elite',
-    warehouseId: 'east',
-    orderDate: '2026-01-25',
-    dueDate: '2026-05-31',
-    paymentTerms: 'Net 30',
-    notes: 'Overdue billing testing.',
-    status: 'Partial',
-    balancePaid: 399.00,
-    items: [
-      { productId: 'prod-1', qty: 5, unitPrice: 70, discountPct: 0 },
-      { productId: 'prod-2', qty: 20, unitPrice: 40, discountPct: 0 }
-    ]
-  },
-  {
-    id: 'po-5',
-    po_number: 'PO-2026-01-005',
-    vendorId: 'tech',
-    warehouseId: 'gulf',
-    orderDate: '2026-01-15',
-    dueDate: '2026-02-15',
-    paymentTerms: 'Net 30',
-    notes: '',
-    status: 'Paid',
-    balancePaid: 885.00,
-    items: [{ productId: 'prod-5', qty: 30, unitPrice: 25, discountPct: 0 }]
-  },
-  {
-    id: 'po-4',
-    po_number: 'PO-2026-01-004',
-    vendorId: 'prime',
-    warehouseId: 'bonded',
-    orderDate: '2026-01-10',
-    dueDate: '2026-02-10',
-    paymentTerms: 'COD',
-    notes: '',
-    status: 'Paid',
-    balancePaid: 885.00,
-    items: [{ productId: 'prod-4', qty: 50, unitPrice: 15, discountPct: 0 }]
-  },
-  {
-    id: 'po-3',
-    po_number: 'PO-2026-01-003',
-    vendorId: 'global',
-    warehouseId: 'main',
-    orderDate: '2026-01-05',
-    dueDate: '2026-02-05',
-    paymentTerms: 'Net 30',
-    notes: '',
-    status: 'Paid',
-    balancePaid: 910.00,
-    items: [{ productId: 'prod-1', qty: 10, unitPrice: 70, discountPct: 0 }]
-  },
-  {
-    id: 'po-2',
-    po_number: 'PO-2026-01-002',
-    vendorId: 'sam',
-    warehouseId: 'east',
-    orderDate: '2026-01-02',
-    dueDate: '2026-02-02',
-    paymentTerms: 'Net 15',
-    notes: '',
-    status: 'Paid',
-    balancePaid: 944.00,
-    items: [{ productId: 'prod-2', qty: 20, unitPrice: 40, discountPct: 0 }]
-  },
-  {
-    id: 'po-1',
-    po_number: 'PO-2026-01-001',
-    vendorId: 'alex',
-    warehouseId: 'gulf',
-    orderDate: '2026-01-01',
-    dueDate: '2026-02-01',
-    paymentTerms: 'COD',
-    notes: '',
-    status: 'Paid',
-    balancePaid: 2360.00,
-    items: [{ productId: 'prod-3', qty: 8, unitPrice: 250, discountPct: 0 }]
-  }
-];
+// Purchase orders are now real rows served by /v1/purchase-orders
+// (apps/api/src/routes/purchase-orders.routes.ts). The mapping helpers below
+// translate between that backend shape and this page's existing UI shape.
+// Product catalog is a closed local set (MOCK_PRODUCTS), so each line's SKU
+// is round-tripped through purchase_order_lines.category to resolve back to
+// a productId on load.
+function apiLineToItem(line: any): POItem {
+  const prod = MOCK_PRODUCTS.find(p => p.sku === line.category) || MOCK_PRODUCTS[0];
+  return {
+    productId: prod.id,
+    qty: Number(line.qty) || 1,
+    unitPrice: Number(line.unit_price) || 0,
+    discountPct: 0, // discount is baked into unit_price before it's sent to the backend
+  };
+}
+
+function itemToApiLine(item: POItem) {
+  const prod = MOCK_PRODUCTS.find(p => p.id === item.productId);
+  const taxRate = prod ? prod.taxRates.reduce((sum, t) => sum + t.rate, 0) : 0;
+  return {
+    description: prod?.name || 'Item',
+    category: prod?.sku || null,
+    qty: item.qty,
+    unit_price: item.unitPrice * (1 - (item.discountPct || 0) / 100),
+    tax_rate: taxRate,
+  };
+}
+
+function apiToPO(apiPo: any, lines: any[]): PurchaseOrder {
+  return {
+    id: apiPo.id,
+    po_number: apiPo.po_number,
+    vendorId: apiPo.supplier_id || '',
+    warehouseId: apiPo.warehouse_id || '',
+    orderDate: apiPo.order_date ? String(apiPo.order_date).slice(0, 10) : '',
+    dueDate: apiPo.expected_date ? String(apiPo.expected_date).slice(0, 10) : '',
+    paymentTerms: apiPo.payment_terms || '',
+    notes: apiPo.notes || '',
+    items: (lines || []).map(apiLineToItem),
+    status: fromApiStatus(apiPo.status),
+    balancePaid: 0, // POs don't track payment; that lives on the linked supplier bill
+  };
+}
 
 const STATUS_THEME: Record<POStatus, { bg: string; color: string }> = {
-  Draft:   { bg: 'var(--bg)', color: 'var(--ink2)' },
-  Paid:    { bg: 'rgba(16, 185, 129, 0.12)', color: 'var(--green)' },
-  Posted:  { bg: 'rgba(59, 130, 246, 0.12)', color: 'var(--blue)' },
-  Partial: { bg: 'rgba(245, 158, 11, 0.12)', color: 'var(--gold)' }
+  Draft:     { bg: 'var(--bg)', color: 'var(--ink2)' },
+  Sent:      { bg: 'rgba(59, 130, 246, 0.12)', color: 'var(--blue)' },
+  Partial:   { bg: 'rgba(245, 158, 11, 0.12)', color: 'var(--gold)' },
+  Received:  { bg: 'rgba(16, 185, 129, 0.12)', color: 'var(--green)' },
+  Cancelled: { bg: 'rgba(239, 68, 68, 0.12)', color: 'var(--red)' },
 };
 
 // Formatting Helper
@@ -368,6 +174,7 @@ const formatUSD = (amount: number) => {
 };
 
 export const PurchaseOrders: React.FC = () => {
+  const branding = useBranding();
   const isMobile = useIsMobile();
   const { fmt } = useCurrency();
   const formatUSD = (amount: number) => fmt(amount, 'USD');
@@ -375,15 +182,31 @@ export const PurchaseOrders: React.FC = () => {
   const [viewMode, setViewMode] = useState<'LIST' | 'CREATE' | 'EDIT' | 'DETAILS'>('LIST');
   const [selectedPoId, setSelectedPoId] = useState<string | null>(null);
 
-  // Core Purchase Orders State (backed by localStorage)
-  const [pos, setPOs] = useState<PurchaseOrder[]>(() => {
-    const saved = localStorage.getItem('clearos_purchase_orders');
-    return saved ? JSON.parse(saved) : INITIAL_MOCK_POS;
-  });
+  // Core Purchase Orders State (backed by /v1/purchase-orders)
+  const [pos, setPOs] = useState<PurchaseOrder[]>([]);
+  const [loadingPOs, setLoadingPOs] = useState(true);
 
-  useEffect(() => {
-    localStorage.setItem('clearos_purchase_orders', JSON.stringify(pos));
-  }, [pos]);
+  const loadPOs = React.useCallback(async () => {
+    try {
+      const res: any = await apiFetch('/v1/purchase-orders');
+      const list = Array.isArray(res?.purchase_orders) ? res.purchase_orders : [];
+      const withLines = await Promise.all(list.map(async (po: any) => {
+        try {
+          const detail: any = await apiFetch(`/v1/purchase-orders/${po.id}`);
+          return apiToPO(po, detail?.lines || []);
+        } catch {
+          return apiToPO(po, []);
+        }
+      }));
+      setPOs(withLines);
+    } catch {
+      setPOs([]);
+    } finally {
+      setLoadingPOs(false);
+    }
+  }, []);
+
+  useEffect(() => { loadPOs(); }, [loadPOs]);
   useEffect(() => {
     function handler(e: Event) {
       if ((e as CustomEvent).detail?.section === 'purchase-orders') setViewMode('CREATE');
@@ -414,8 +237,39 @@ export const PurchaseOrders: React.FC = () => {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3000);
   };
 
+  // Real suppliers (from the backend) — sole source for the vendor picker.
+  const [apiSuppliers, setApiSuppliers] = useState<any[]>([]);
+  useEffect(() => {
+    apiFetch('/v1/suppliers').then((d: any) => { if (Array.isArray(d)) setApiSuppliers(d); }).catch(() => {});
+  }, []);
+  const allSuppliers: Supplier[] = useMemo(() => (
+    apiSuppliers.map((s) => ({ id: s.id, name: s.name, email: s.email || '', billingAddress: s.address || '', shippingAddress: s.address || '' }))
+  ), [apiSuppliers]);
+
+  function handleSupplierCreated(s: any) { setApiSuppliers(prev => [...prev, s]); }
+
+  async function searchVendorsLocal(q: string): Promise<PickerItem[]> {
+    const ql = q.trim().toLowerCase();
+    const filtered = ql
+      ? allSuppliers.filter((s) => s.name.toLowerCase().includes(ql) || s.email.toLowerCase().includes(ql))
+      : allSuppliers;
+    return filtered.slice(0, 25).map((s) => ({ id: s.id, label: s.name, sublabel: s.email || undefined }));
+  }
+
+  async function createVendorInline(name: string): Promise<PickerItem> {
+    const created = await apiFetch('/v1/suppliers', { method: 'POST', body: JSON.stringify({ name }) });
+    handleSupplierCreated(created);
+    return { id: created.id, label: created.name };
+  }
+
+  function handleVendorChange(item: PickerItem | null) {
+    setFormVendorItem(item);
+    setFormVendor(item?.id ?? '');
+  }
+
   // Form State (for Create/Edit)
   const [formVendor, setFormVendor] = useState('');
+  const [formVendorItem, setFormVendorItem] = useState<PickerItem | null>(null);
   const [formWarehouse, setFormWarehouse] = useState('');
   const [formOrderDate, setFormOrderDate] = useState('2026-06-15');
   const [formDueDate, setFormDueDate] = useState('');
@@ -461,8 +315,8 @@ export const PurchaseOrders: React.FC = () => {
     let result = pos.map(po => {
       const { subtotal, discount, tax, total } = getPOTotals(po.items);
       const balance = Math.max(0, total - po.balancePaid);
-      const isOverdue = po.status !== 'Paid' && new Date(po.dueDate) < REF_DATE;
-      const vendorName = MOCK_SUPPLIERS.find(s => s.id === po.vendorId)?.name || 'Unknown Vendor';
+      const isOverdue = po.status !== 'Received' && po.status !== 'Cancelled' && new Date(po.dueDate) < REF_DATE;
+      const vendorName = allSuppliers.find(s => s.id === po.vendorId)?.name || 'Unknown Vendor';
 
       return {
         ...po,
@@ -523,11 +377,11 @@ export const PurchaseOrders: React.FC = () => {
     const po = pos.find(p => p.id === selectedPoId);
     if (!po) return null;
 
-    const vendor = MOCK_SUPPLIERS.find(s => s.id === po.vendorId);
+    const vendor = allSuppliers.find(s => s.id === po.vendorId);
     const warehouse = MOCK_WAREHOUSES.find(w => w.id === po.warehouseId);
     const totals = getPOTotals(po.items);
     const balance = Math.max(0, totals.total - po.balancePaid);
-    const isOverdue = po.status !== 'Paid' && new Date(po.dueDate) < REF_DATE;
+    const isOverdue = po.status !== 'Received' && po.status !== 'Cancelled' && new Date(po.dueDate) < REF_DATE;
 
     return {
       ...po,
@@ -551,6 +405,8 @@ export const PurchaseOrders: React.FC = () => {
 
     setSelectedPoId(id);
     setFormVendor(po.vendorId);
+    const vendor = allSuppliers.find(s => s.id === po.vendorId);
+    setFormVendorItem(vendor ? { id: vendor.id, label: vendor.name, sublabel: vendor.email || undefined } : null);
     setFormWarehouse(po.warehouseId);
     setFormOrderDate(po.orderDate);
     setFormDueDate(po.dueDate);
@@ -563,7 +419,9 @@ export const PurchaseOrders: React.FC = () => {
   // Load Init Create Mode
   const handleCreateInit = () => {
     setSelectedPoId(null);
-    setFormVendor(MOCK_SUPPLIERS[0].id);
+    const firstVendor = allSuppliers[0];
+    setFormVendor(firstVendor?.id || '');
+    setFormVendorItem(firstVendor ? { id: firstVendor.id, label: firstVendor.name, sublabel: firstVendor.email || undefined } : null);
     setFormWarehouse(MOCK_WAREHOUSES[0].id);
     setFormOrderDate('2026-06-15');
     setFormDueDate('2026-07-15');
@@ -608,7 +466,18 @@ export const PurchaseOrders: React.FC = () => {
   };
 
   // Save/Create Form PO
-  const handleSavePO = (e: React.FormEvent) => {
+  const nextPoNumber = () => {
+    const sortedNumbers = [...pos]
+      .map(p => {
+        const m = p.po_number.match(/PO-2026-01-(\d+)/);
+        return m ? parseInt(m[1], 10) : 0;
+      })
+      .sort((a, b) => b - a);
+    const nextId = (sortedNumbers[0] || 0) + 1;
+    return `PO-2026-01-${String(nextId).padStart(3, '0')}`;
+  };
+
+  const handleSavePO = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formVendor || !formWarehouse || !formOrderDate || !formDueDate) {
@@ -621,106 +490,94 @@ export const PurchaseOrders: React.FC = () => {
       return;
     }
 
-    if (viewMode === 'CREATE') {
-      // Auto-generate PO number
-      const sortedNumbers = [...pos]
-        .map(p => {
-          const m = p.po_number.match(/PO-2026-01-(\d+)/);
-          return m ? parseInt(m[1], 10) : 0;
-        })
-        .sort((a, b) => b - a);
+    const vendor = allSuppliers.find(s => s.id === formVendor);
+    const warehouse = MOCK_WAREHOUSES.find(w => w.id === formWarehouse);
+    const payload: any = {
+      supplier_id: formVendor,
+      supplier_name: vendor?.name || null,
+      warehouse_id: formWarehouse,
+      warehouse_name: warehouse?.name || null,
+      order_date: formOrderDate,
+      expected_date: formDueDate,
+      payment_terms: formPaymentTerms,
+      notes: formNotes,
+      lines: formItems.map(itemToApiLine),
+    };
 
-      const nextId = (sortedNumbers[0] || 0) + 1;
-      const nextPONum = `PO-2026-01-${String(nextId).padStart(3, '0')}`;
-
-      const newPo: PurchaseOrder = {
-        id: `po-${Date.now()}`,
-        po_number: nextPONum,
-        vendorId: formVendor,
-        warehouseId: formWarehouse,
-        orderDate: formOrderDate,
-        dueDate: formDueDate,
-        paymentTerms: formPaymentTerms,
-        notes: formNotes,
-        items: formItems,
-        status: 'Draft',
-        balancePaid: 0
-      };
-
-      setPOs(prev => [newPo, ...prev]);
-      showToast(`Purchase Order ${nextPONum} created successfully!`, 'success');
-    } else {
-      // Edit mode
-      setPOs(prev => prev.map(po => {
-        if (po.id !== selectedPoId) return po;
-        return {
-          ...po,
-          vendorId: formVendor,
-          warehouseId: formWarehouse,
-          orderDate: formOrderDate,
-          dueDate: formDueDate,
-          paymentTerms: formPaymentTerms,
-          notes: formNotes,
-          items: formItems
-        };
-      }));
-      showToast(`Purchase Order updated successfully!`, 'success');
+    try {
+      if (viewMode === 'CREATE') {
+        payload.po_number = nextPoNumber();
+        const created: any = await apiFetch('/v1/purchase-orders', { method: 'POST', body: JSON.stringify(payload) });
+        await loadPOs();
+        showToast(`Purchase Order ${created.po_number} created successfully!`, 'success');
+      } else {
+        await apiFetch(`/v1/purchase-orders/${selectedPoId}`, { method: 'PATCH', body: JSON.stringify(payload) });
+        await loadPOs();
+        showToast(`Purchase Order updated successfully!`, 'success');
+      }
+      setViewMode('LIST');
+    } catch {
+      showToast('Failed to save purchase order', 'error');
     }
-
-    setViewMode('LIST');
   };
 
   // Actions implementations
-  const handlePostPO = (id: string) => {
-    setPOs(prev => prev.map(po => {
-      if (po.id !== id) return po;
-      return { ...po, status: 'Posted' };
-    }));
-    showToast(`Purchase Order posted successfully!`, 'success');
+  const handlePostPO = async (id: string) => {
+    try {
+      await apiFetch(`/v1/purchase-orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status: toApiStatus('Sent') }) });
+      setPOs(prev => prev.map(po => po.id === id ? { ...po, status: 'Sent' } : po));
+      showToast(`Purchase Order sent to vendor!`, 'success');
+    } catch {
+      showToast('Failed to update purchase order status', 'error');
+    }
   };
 
-  const handleDuplicatePO = (id: string) => {
+  const handleDuplicatePO = async (id: string) => {
     const original = pos.find(p => p.id === id);
     if (!original) return;
 
-    // Get next code number
-    const sortedNumbers = [...pos]
-      .map(p => {
-        const m = p.po_number.match(/PO-2026-01-(\d+)/);
-        return m ? parseInt(m[1], 10) : 0;
-      })
-      .sort((a, b) => b - a);
-
-    const nextId = (sortedNumbers[0] || 0) + 1;
-    const nextPONum = `PO-2026-01-${String(nextId).padStart(3, '0')}`;
-
-    const copy: PurchaseOrder = {
-      ...original,
-      id: `po-${Date.now()}`,
-      po_number: nextPONum,
-      status: 'Draft',
-      balancePaid: 0,
-      orderDate: '2026-06-15',
-      dueDate: '2026-07-15'
+    const vendor = allSuppliers.find(s => s.id === original.vendorId);
+    const warehouse = MOCK_WAREHOUSES.find(w => w.id === original.warehouseId);
+    const payload = {
+      po_number: nextPoNumber(),
+      supplier_id: original.vendorId,
+      supplier_name: vendor?.name || null,
+      warehouse_id: original.warehouseId,
+      warehouse_name: warehouse?.name || null,
+      order_date: '2026-06-15',
+      expected_date: '2026-07-15',
+      payment_terms: original.paymentTerms,
+      notes: original.notes,
+      lines: original.items.map(itemToApiLine),
     };
 
-    setPOs(prev => [copy, ...prev]);
-    showToast(`Duplicated into ${nextPONum} as Draft`, 'success');
+    try {
+      const created: any = await apiFetch('/v1/purchase-orders', { method: 'POST', body: JSON.stringify(payload) });
+      await loadPOs();
+      showToast(`Duplicated into ${created.po_number} as Draft`, 'success');
+    } catch {
+      showToast('Failed to duplicate purchase order', 'error');
+    }
   };
 
-  const handleDeletePO = (id: string) => {
+  const handleDeletePO = async (id: string) => {
     const po = pos.find(p => p.id === id);
     if (!po) return;
 
     if (po.status !== 'Draft') {
-      showToast('Cannot delete posted, partial or paid orders', 'error');
+      showToast('Cannot delete a purchase order that has already been sent, partially received, received, or cancelled', 'error');
       return;
     }
 
     if (window.confirm(`Are you sure you want to delete ${po.po_number}?`)) {
-      setPOs(prev => prev.filter(p => p.id !== id));
-      showToast(`Deleted ${po.po_number}`, 'success');
-      if (viewMode === 'DETAILS') setViewMode('LIST');
+      try {
+        await apiFetch(`/v1/purchase-orders/${id}`, { method: 'DELETE' });
+        setPOs(prev => prev.filter(p => p.id !== id));
+        showToast(`Deleted ${po.po_number}`, 'success');
+        if (viewMode === 'DETAILS') setViewMode('LIST');
+      } catch {
+        showToast('Failed to delete purchase order', 'error');
+      }
     }
   };
 
@@ -913,26 +770,15 @@ export const PurchaseOrders: React.FC = () => {
                   </div>
 
                   {/* Rows per page */}
-                  <select
-                    value={rowsPerPage}
-                    onChange={e => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-                    style={{
-                      padding: '7px 10px',
-                      borderRadius: 9,
-                      border: '1px solid var(--border)',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      background: 'var(--white)',
-                      color: 'var(--ink2)',
-                      outline: 'none',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <option value={5}>5 per page</option>
-                    <option value={10}>10 per page</option>
-                    <option value={25}>25 per page</option>
-                    <option value={50}>50 per page</option>
-                  </select>
+                  <Select value={String(rowsPerPage)} onValueChange={v => { setRowsPerPage(Number(v)); setCurrentPage(1); }}>
+                    <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5 per page</SelectItem>
+                      <SelectItem value="10">10 per page</SelectItem>
+                      <SelectItem value="25">25 per page</SelectItem>
+                      <SelectItem value="50">50 per page</SelectItem>
+                    </SelectContent>
+                  </Select>
 
                   {/* Filters toggle */}
                   <button
@@ -966,32 +812,29 @@ export const PurchaseOrders: React.FC = () => {
                   {/* Status Filter */}
                   <div style={{ flex: 1, minWidth: 160 }}>
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Status</label>
-                    <select
-                      value={filterStatus}
-                      onChange={e => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-                      style={{ width: '100%', padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 12, background: 'var(--bg)', color: 'var(--ink)', outline: 'none' }}
+                    <Select
+                      value={filterStatus || '__all__'}
+                      onValueChange={v => { setFilterStatus(v === '__all__' ? '' : v); setCurrentPage(1); }}
                     >
-                      <option value="">All Statuses</option>
-                      <option value="Draft">Draft</option>
-                      <option value="Paid">Paid</option>
-                      <option value="Posted">Posted</option>
-                      <option value="Partial">Partial</option>
-                    </select>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__all__">All Statuses</SelectItem>
+                        <SelectItem value="Draft">Draft</SelectItem>
+                        <SelectItem value="Sent">Sent</SelectItem>
+                        <SelectItem value="Partial">Partial</SelectItem>
+                        <SelectItem value="Received">Received</SelectItem>
+                        <SelectItem value="Cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   {/* Vendor Filter */}
                   <div style={{ flex: 1, minWidth: 160 }}>
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Vendor</label>
-                    <select
-                      value={filterVendor}
-                      onChange={e => { setFilterVendor(e.target.value); setCurrentPage(1); }}
-                      style={{ width: '100%', padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)', fontSize: 12, background: 'var(--bg)', color: 'var(--ink)', outline: 'none' }}
-                    >
-                      <option value="">All Vendors</option>
-                      {MOCK_SUPPLIERS.map(s => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
+                    <Combobox
+                      options={[{ value: '', label: 'All Vendors' }, ...allSuppliers.map(s => ({ value: s.id, label: s.name }))]}
+                      value={filterVendor} onChange={v => { setFilterVendor(v); setCurrentPage(1); }} placeholder="All Vendors"
+                    />
                   </div>
 
                   {/* Clear Filters Action */}
@@ -1540,6 +1383,14 @@ export const PurchaseOrders: React.FC = () => {
               {/* Header summary inside details card */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border)', paddingBottom: 16 }}>
                 <div>
+                  {/* Branding Logo */}
+                  <div style={{ marginBottom: 16 }}>
+                    {branding.logoLight ? (
+                      <img src={branding.logoLight} alt={branding.platformName} style={{ height: 32, objectFit: 'contain' }} />
+                    ) : (
+                      <div style={{ fontSize: 18, fontWeight: 900, color: 'var(--ink)' }}>{branding.platformName}</div>
+                    )}
+                  </div>
                   <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'monospace', color: 'var(--ink3)' }}>
                     #{currentDetailsPo.po_number}
                   </span>
@@ -1686,7 +1537,7 @@ export const PurchaseOrders: React.FC = () => {
                       }}
                     >
                       <Icon name="checkCircle" size={13} />
-                      Post Invoice
+                      Send to Vendor
                     </button>
                   )}
                 </div>
@@ -1800,55 +1651,36 @@ export const PurchaseOrders: React.FC = () => {
                 {/* Order Date */}
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Invoice Date *</label>
-                  <input
-                    type="date"
-                    required
-                    value={formOrderDate}
-                    onChange={e => setFormOrderDate(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
-                  />
+                  <DatePicker date={parseDateOnly(formOrderDate)} onChange={d => setFormOrderDate(toDateOnlyString(d))} />
                 </div>
 
                 {/* Due Date */}
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Due Date *</label>
-                  <input
-                    type="date"
-                    required
-                    value={formDueDate}
-                    onChange={e => setFormDueDate(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
-                  />
+                  <DatePicker date={parseDateOnly(formDueDate)} onChange={d => setFormDueDate(toDateOnlyString(d))} />
                 </div>
 
-                {/* Vendor Dropdown */}
+                {/* Vendor Picker */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Vendor *</label>
-                  <select
-                    required
-                    value={formVendor}
-                    onChange={e => setFormVendor(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none', cursor: 'pointer' }}
-                  >
-                    {MOCK_SUPPLIERS.map(s => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
+                  <EntityPicker
+                    label="Vendor *" value={formVendorItem} onChange={handleVendorChange}
+                    search={searchVendorsLocal} onCreate={createVendorInline}
+                    createLabel={(q) => `Create new vendor "${q}"`}
+                    placeholder="Search vendors…"
+                  />
                 </div>
 
                 {/* Warehouse Dropdown */}
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Warehouse *</label>
-                  <select
-                    required
-                    value={formWarehouse}
-                    onChange={e => setFormWarehouse(e.target.value)}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none', cursor: 'pointer' }}
-                  >
-                    {MOCK_WAREHOUSES.map(w => (
-                      <option key={w.id} value={w.id}>{w.name}</option>
-                    ))}
-                  </select>
+                  <Select value={formWarehouse} onValueChange={setFormWarehouse}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {MOCK_WAREHOUSES.map(w => (
+                        <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
               </div>
@@ -1944,15 +1776,10 @@ export const PurchaseOrders: React.FC = () => {
                           
                           {/* Product select */}
                           <td style={{ padding: '12px 12px' }}>
-                            <select
-                              value={item.productId}
-                              onChange={e => handleFormItemChange(idx, 'productId', e.target.value)}
-                              style={{ width: '100%', padding: '7px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none', cursor: 'pointer' }}
-                            >
-                              {MOCK_PRODUCTS.map(p => (
-                                <option key={p.id} value={p.id}>{p.name} [{p.sku}]</option>
-                              ))}
-                            </select>
+                            <Combobox
+                              options={MOCK_PRODUCTS.map(p => ({ value: p.id, label: `${p.name} [${p.sku}]` }))}
+                              value={item.productId} onChange={v => handleFormItemChange(idx, 'productId', v)}
+                            />
                           </td>
 
                           {/* Quantity */}

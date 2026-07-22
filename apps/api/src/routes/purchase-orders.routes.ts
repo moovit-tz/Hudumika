@@ -1,11 +1,11 @@
-import { requireAppEnabled } from '../middleware/appGate.js';
+import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 
 export async function purchaseOrderRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireAppEnabled('finops'));
+  fastify.addHook('preHandler', requireEntitlement('finops'));
 
   // GET /v1/purchase-orders
   fastify.get('/', async (request: any, reply) => {
