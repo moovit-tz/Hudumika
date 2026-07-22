@@ -13,7 +13,7 @@ function passStrength(pw: string): 0 | 1 | 2 | 3 {
   return s as 0 | 1 | 2 | 3;
 }
 const STRENGTH_LABEL = ['', 'Weak', 'Fair', 'Strong'];
-const STRENGTH_COLOR = ['', '#e11d48', '#d97706', '#16a34a'];
+const STRENGTH_COLOR = ['', '#e11d48', '#d97706', '#059669'];
 
 export const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
