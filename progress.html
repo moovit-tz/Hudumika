@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="10">
+  <title>Scraper Progress Tracker</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #0b1e3a;
+      color: #f4f5f6;
+      margin: 0;
+      padding: 40px 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .card {
+      background: #172a45;
+      border-radius: 16px;
+      padding: 30px;
+      width: 100%;
+      max-width: 800px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+      border: 1px solid #3088a8;
+    }
+    h1 { margin-top: 0; color: #3088a8; font-size: 24px; }
+    .progress-container {
+      background: #0b1e3a;
+      border-radius: 10px;
+      height: 20px;
+      width: 100%;
+      margin: 20px 0;
+      overflow: hidden;
+      border: 1px solid #3088a8;
+    }
+    .progress-bar {
+      background: #3088a8;
+      height: 100%;
+      width: 100%;
+      transition: width 0.5s ease-in-out;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .stat-box {
+      background: #0b1e3a;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+      border: 1px solid #3088a8;
+    }
+    .stat-val { font-size: 20px; font-weight: bold; color: #3088a8; }
+    .stat-lbl { font-size: 11px; color: #a5b1c2; text-transform: uppercase; margin-top: 5px; }
+    .active-batch {
+      background: #172a45;
+      border-left: 4px solid #3088a8;
+      padding: 15px;
+      border-radius: 4px;
+      margin-bottom: 30px;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { text-align: left; padding: 12px; border-bottom: 1px solid #3088a8; }
+    th { color: #3088a8; font-size: 13px; text-transform: uppercase; }
+    td { font-size: 14px; }
+    .kind-badge {
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      background: #0b1e3a;
+      color: #3088a8;
+    }
+    .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #a5b1c2; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Tanzania Trade Portal Scraper Status</h1>
+    <div class="progress-container">
+      <div class="progress-bar"></div>
+    </div>
+    
+    <div class="stats">
+      <div class="stat-box">
+        <div class="stat-val">100%</div>
+        <div class="stat-lbl">Progress</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">138 / 138</div>
+        <div class="stat-lbl">Completed</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">404 min</div>
+        <div class="stat-lbl">Elapsed</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">0 min</div>
+        <div class="stat-lbl">Remaining (ETA)</div>
+      </div>
+    </div>
+
+    <div class="active-batch">
+      <strong>Currently Scraping:</strong>
+      <ul style="margin: 5px 0 0 20px; padding: 0; font-size: 13px; color: #a5b1c2;">
+        
+      </ul>
+    </div>
+
+    <h3>Recently Scraped (Latest 10)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Kind</th>
+          <th>Name</th>
+          <th>Steps</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          <tr>
+            <td>779</td>
+            <td><span class="kind-badge">IMPORT</span></td>
+            <td>ZFDA processed food import permit</td>
+            <td style="color: #3088a8; font-weight: bold;">4</td>
+          </tr>
+        
+          <tr>
+            <td>266</td>
+            <td><span class="kind-badge">IMPORT</span></td>
+            <td>Used motor vehicle import clearance procedure through the port of Dar es Salaam</td>
+            <td style="color: #3088a8; font-weight: bold;">20</td>
+          </tr>
+        
+          <tr>
+            <td>841</td>
+            <td><span class="kind-badge">IMPORT</span></td>
+            <td>Tobacco import permit</td>
+            <td style="color: #3088a8; font-weight: bold;">3</td>
+          </tr>
+        
+          <tr>
+            <td>391</td>
+            <td><span class="kind-badge">IMPORT</span></td>
+            <td>Timber import permit</td>
+            <td style="color: #3088a8; font-weight: bold;">5</td>
+          </tr>
+        
+          <tr>
+            <td>1451</td>
+            <td><span class="kind-badge">IMPORT</span></td>
+            <td>Textiles import clearance procedures through the port of Dar es Salaam</td>
+            <td style="color: #3088a8; font-weight: bold;">20</td>
+          </tr>
+        
+          <tr>
+            <td>200</td>
+            <td><span class="kind-badge">IMPORT</span></td>
+            <td>Tea import permit</td>
+            <td style="color: #3088a8; font-weight: bold;">2</td>
+          </tr>
+        
+          <tr>
+            <td>1267</td>
+            <td><span class="kind-badge">IMPORT</span></td>
+            <td>Tea import clearance procedure through Namanga One Stop Border Post (OSBP)</td>
+            <td style="color: #3088a8; font-weight: bold;">11</td>
+          </tr>
+        
+          <tr>
+            <td>455</td>
+            <td><span class="kind-badge">IMPORT</span></td>
+            <td>Tea import clearance procedure through Dar es salaam port</td>
+            <td style="color: #3088a8; font-weight: bold;">36</td>
+          </tr>
+        
+          <tr>
+            <td>890</td>
+            <td><span class="kind-badge">IMPORT</span></td>
+            <td>Spare parts (bicycles, motorcycles ) import clearance procedures through port of Dar es Salaam</td>
+            <td style="color: #3088a8; font-weight: bold;">22</td>
+          </tr>
+        
+          <tr>
+            <td>938</td>
+            <td><span class="kind-badge">IMPORT</span></td>
+            <td>Second hand clothes (mitumba) import clearance procedures through the port of Dar es Salaam</td>
+            <td style="color: #3088a8; font-weight: bold;">27</td>
+          </tr>
+        
+      </tbody>
+    </table>
+    
+    <div class="footer">
+      Auto-refreshing every 10 seconds. Last updated: 00:37:08
+    </div>
+  </div>
+</body>
+</html>

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { showAlert } from '../lib/alert.js';
 
 interface Vehicle {
   id: string;
@@ -175,7 +176,7 @@ const AddAssignmentModal = ({ onClose, onSave }: { onClose: () => void, onSave: 
       });
       onSave();
     } catch (e: any) {
-      alert(e.message || 'Error adding assignment');
+      showAlert(e.message || 'Error adding assignment');
     } finally {
       setSaving(false);
     }

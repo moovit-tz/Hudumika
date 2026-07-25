@@ -3,10 +3,11 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { RichTextEditor } from '../components/RichTextEditor.js';
 import type { CmsPage } from '@hudumika/types';
+import { showAlert } from '../lib/alert.js';
 
 function PageHdr({ title, sub, action }: { title: string; sub: string; action?: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 16, flexWrap: 'wrap' }}>
+    <div className="sa-page-hdr" style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginTop: 20, marginBottom: 24, gap: 16, flexWrap: 'wrap' }}>
       <div style={{ minWidth: 0 }}>
         <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em' }}>{title}</h1>
         <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '4px 0 0' }}>{sub}</p>
@@ -48,7 +49,7 @@ export function AdminCMSPages() {
       setPages(ps => ps.map(p => p.slug === updated.slug ? updated : p));
       setEditing(null);
     } catch (e: any) {
-      alert(`Failed to save: ${e.message}`);
+      showAlert(`Failed to save: ${e.message}`);
     } finally {
       setSaving(false);
     }
@@ -60,18 +61,29 @@ export function AdminCMSPages() {
     try {
       setSaving(true);
       const created = await apiFetch(`/v1/cms/platform-admin/pages/${slug}`, {
-        method: 'PUT',
-        body: JSON.stringify({ title: newTitle.trim(), content: '<p></p>', status: 'draft' }),
+        method: 'POST',
+        body: JSON.stringify({ title: newTitle, content: '', status: 'draft' }),
       });
-      setPages(ps => [...ps, created].sort((a, b) => a.slug.localeCompare(b.slug)));
+      setPages(ps => [created, ...ps]);
       setCreating(false);
       setNewSlug('');
       setNewTitle('');
       setEditing(created);
     } catch (e: any) {
-      alert(`Failed to create: ${e.message}`);
+      showAlert(`Failed to create: ${e.message}`);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDelete(slug: string) {
+    if (!window.confirm(`Delete page "${slug}"? This cannot be undone.`)) return;
+    try {
+      await apiFetch(`/v1/cms/platform-admin/pages/${slug}`, { method: 'DELETE' });
+      setPages(ps => ps.filter(p => p.slug !== slug));
+      if (editing?.slug === slug) setEditing(null);
+    } catch (e: any) {
+      showAlert(`Failed to delete: ${e.message}`);
     }
   }
 
@@ -79,129 +91,140 @@ export function AdminCMSPages() {
     <div>
       <PageHdr
         title="CMS Pages"
-        sub="Hudumika's own public pages — Privacy, Terms, and any others you add"
+        sub="Manage legal terms, privacy policies, and public content pages across the platform."
         action={
-          <button onClick={() => setCreating(true)} className="btn btn-primary btn-sm" style={{ gap: 6 }}>
-            <Icon name="plus" size={13} />New Page
+          <button type="button" className="btn btn-primary btn-sm sa-btn-gap-md" onClick={() => setCreating(true)}>
+            <Icon name="plus" size={13} /> Add Page
           </button>
         }
       />
 
-      {error && <div className="card" style={{ padding: 16, marginBottom: 16, color: 'var(--red)' }}>Failed to load pages: {error}</div>}
-      {loading && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>}
+      {error && <div style={{ color: 'var(--red)', padding: 12, marginBottom: 16, background: 'var(--red-l)', borderRadius: 8 }}>{error}</div>}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-        {pages.map(page => (
-          <div key={page.id} className="card" style={{ padding: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>{page.title}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink3)', fontFamily: 'monospace' }}>/{page.slug}</div>
-              </div>
-              <span className={`badge ${page.status === 'published' ? 'badge-green' : 'badge-grey'}`} style={{ fontSize: 10.5 }}>
-                {page.status === 'published' ? 'Published' : 'Draft'}
-              </span>
-            </div>
-            {PUBLIC_ROUTES.has(page.slug) && (
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 12 }}>
-                Live at <a href={`/${page.slug}`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--teal)' }}>/{page.slug}</a>
-              </div>
-            )}
-            <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 14 }}>
-              Updated {new Date(page.updated_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-            </div>
-            <button onClick={() => setEditing(page)} className="btn btn-secondary btn-sm" style={{ gap: 5 }}>
-              <Icon name="edit" size={12} />Edit
-            </button>
-          </div>
-        ))}
-      </div>
-
-      {/* New page modal */}
       {creating && (
-        <div className="modal-overlay" onClick={() => setCreating(false)}>
-          <div className="card" style={{ width: 420, padding: 28 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>New Platform Page</span>
-              <button onClick={() => setCreating(false)} className="dp-close"><Icon name="close" size={16} /></button>
-            </div>
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Title</label>
-              <input value={newTitle} onChange={e => setNewTitle(e.target.value)} className="input-field" placeholder="e.g. About Us" />
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Slug</label>
-              <input value={newSlug} onChange={e => setNewSlug(e.target.value)} className="input-field" placeholder="about-us" />
-              <p style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 6 }}>
-                Only /privacy and /terms are wired to an actual routed page today — other slugs are stored and editable, but need a route added to render them publicly.
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button onClick={() => setCreating(false)} className="btn btn-secondary btn-sm">Cancel</button>
-              <button onClick={handleCreate} disabled={saving || !newSlug.trim() || !newTitle.trim()} className="btn btn-primary btn-sm">
-                {saving ? 'Creating…' : 'Create'}
-              </button>
-            </div>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, marginBottom: 20 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 12px' }}>Create New Page</h2>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+            <input
+              type="text"
+              placeholder="Page title (e.g. Terms of Service)"
+              value={newTitle}
+              onChange={e => setNewTitle(e.target.value)}
+              className="input-field"
+              style={{ flex: 1, minWidth: 200 }}
+            />
+            <input
+              type="text"
+              placeholder="URL slug (e.g. terms)"
+              value={newSlug}
+              onChange={e => setNewSlug(e.target.value)}
+              className="input-field"
+              style={{ width: 180 }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={handleCreate}>
+              {saving ? 'Creating…' : 'Create & Edit'}
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setCreating(false)}>Cancel</button>
           </div>
         </div>
       )}
 
-      {/* Edit modal */}
-      {editing && (
-        <div className="modal-overlay" onClick={() => setEditing(null)}>
-          <div className="card" style={{ width: 680, maxWidth: '95vw', padding: 28 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Edit — {editing.title}</span>
-              <button onClick={() => setEditing(null)} className="dp-close"><Icon name="close" size={16} /></button>
-            </div>
-
-            <div style={{ display: 'flex', gap: 12, marginBottom: 14 }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Title</label>
-                <input
-                  value={editing.title}
-                  onChange={e => setEditing(p => p ? { ...p, title: e.target.value } : p)}
-                  className="input-field"
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Status</label>
-                <select
-                  value={editing.status}
-                  onChange={e => setEditing(p => p ? { ...p, status: e.target.value as CmsPage['status'] } : p)}
-                  className="input-field"
-                >
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
-                </select>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>SEO Description</label>
-              <input
-                value={editing.seo_description ?? ''}
-                onChange={e => setEditing(p => p ? { ...p, seo_description: e.target.value } : p)}
+      {editing ? (
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Editing: {editing.title}</h2>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <select
+                value={editing.status}
+                onChange={e => setEditing({ ...editing, status: e.target.value as any })}
                 className="input-field"
-                placeholder="Shown in search results and link previews"
-              />
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Content</label>
-              <RichTextEditor
-                value={editing.content}
-                onChange={html => setEditing(p => p ? { ...p, content: html } : p)}
-              />
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button onClick={() => setEditing(null)} className="btn btn-secondary btn-sm">Cancel</button>
-              <button onClick={() => editing && handleSave(editing)} disabled={saving} className="btn btn-primary btn-sm">
+                style={{ width: 120, height: 32 }}
+              >
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+              </select>
+              <button type="button" className="btn btn-primary btn-sm" disabled={saving} onClick={() => handleSave(editing)}>
                 {saving ? 'Saving…' : 'Save Changes'}
               </button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setEditing(null)}>Close</button>
             </div>
           </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: 'var(--ink2)' }}>Page Title</label>
+            <input
+              type="text"
+              value={editing.title}
+              onChange={e => setEditing({ ...editing, title: e.target.value })}
+              className="input-field"
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: 'var(--ink2)' }}>SEO Meta Description</label>
+            <input
+              type="text"
+              value={editing.seo_description ?? ''}
+              onChange={e => setEditing({ ...editing, seo_description: e.target.value })}
+              placeholder="Short summary for search engines…"
+              className="input-field"
+              style={{ width: '100%' }}
+            />
+          </div>
+
+          <div>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4, color: 'var(--ink2)' }}>Page Content</label>
+            <RichTextEditor value={editing.content} onChange={html => setEditing({ ...editing, content: html })} placeholder="Write page content here…" />
+          </div>
+        </div>
+      ) : (
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+            <thead>
+              <tr style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
+                <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--ink2)' }}>Title</th>
+                <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--ink2)' }}>Slug</th>
+                <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--ink2)' }}>Status</th>
+                <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--ink2)', textAlign: 'right' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={4} style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>Loading pages…</td></tr>
+              ) : pages.length === 0 ? (
+                <tr><td colSpan={4} style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)' }}>No CMS pages found.</td></tr>
+              ) : (
+                pages.map(page => (
+                  <tr key={page.slug} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '12px 16px', fontWeight: 600 }}>{page.title}</td>
+                    <td style={{ padding: '12px 16px', fontFamily: 'var(--mono)', fontSize: 12, color: 'var(--ink3)' }}>
+                      /{page.slug} {PUBLIC_ROUTES.has(page.slug) && <span style={{ color: 'var(--teal)', fontWeight: 700 }}>(public)</span>}
+                    </td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{
+                        display: 'inline-block', padding: '2px 8px', borderRadius: 12, fontSize: 11, fontWeight: 700,
+                        background: page.status === 'published' ? 'var(--green-l)' : 'var(--bg)',
+                        color: page.status === 'published' ? 'var(--green)' : 'var(--ink3)',
+                      }}>
+                        {page.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <button type="button" className="btn btn-secondary btn-xs" onClick={() => setEditing(page)}>Edit</button>
+                        {!PUBLIC_ROUTES.has(page.slug) && (
+                          <button type="button" className="btn btn-secondary btn-xs" style={{ color: 'var(--red)' }} onClick={() => handleDelete(page.slug)}>Delete</button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
       )}
     </div>

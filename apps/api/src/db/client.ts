@@ -217,6 +217,314 @@ export interface WorkflowCommQueueTable {
   sent_at: Date | null;
 }
 
+// ── SEAL (bonded warehouse) — Increment 1: the ledger ──
+export interface SealCompartmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  code: string;
+  name: string;
+  warehouse_type: Generated<string>;
+  licence_number: string | null;
+  licence_expiry: Date | null;
+  customs_office_code: string | null;
+  jurisdiction: Generated<string>;
+  default_storage_days: Generated<number>;
+  active: Generated<boolean>;
+  guarantee_id: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SealZonesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  compartment_id: string;
+  code: string;
+  name: string;
+  zone_type: Generated<string>;
+  created_at: Generated<Date>;
+}
+
+export interface SealLocationsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  compartment_id: string;
+  zone_id: string;
+  code: string;
+  location_type: Generated<string>;
+  max_weight_kg: number | null;
+  is_pickable: Generated<boolean>;
+  capacity_units: Generated<number>;
+  floor_level: Generated<number>;
+  max_stack_tiers: Generated<number>;
+  grid_row: number | null;
+  grid_col: number | null;
+  created_at: Generated<Date>;
+}
+
+export interface SealLotsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  compartment_id: string;
+  owner_id: string;
+  shipment_case_id: string | null;
+  description: string;
+  hs_code: string | null;
+  country_of_origin: string | null;
+  marks_and_numbers: string | null;
+  customs_status: string;
+  entry_reference: string | null;
+  procedure_code: string | null;
+  current_location_id: string | null;
+  qty_on_hand: Generated<string>;
+  qty_allocated: Generated<string>;
+  uom: Generated<string>;
+  customs_value: string | null;
+  currency: string | null;
+  duty_at_risk: Generated<string>;
+  tax_at_risk: Generated<string>;
+  batch: string | null;
+  serial: string | null;
+  expiry_date: Date | null;
+  warehoused_on: Date | null;
+  expires_on: Date | null;
+  is_dangerous_goods: Generated<boolean>;
+  un_number: string | null;
+  imdg_class: string | null;
+  requires_reefer: Generated<boolean>;
+  reefer_setpoint_c: string | null;
+  stack_tier: Generated<number>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SealMovementsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  occurred_at: Generated<Date>;
+  recorded_at: Generated<Date>;
+  actor_id: string | null;
+  actor_type: Generated<string>;
+  movement_type: string;
+  lot_id: string;
+  from_location_id: string | null;
+  to_location_id: string | null;
+  qty_delta: Generated<string>;
+  from_customs_status: string | null;
+  to_customs_status: string | null;
+  entry_reference: string | null;
+  duty_delta: string | null;
+  tax_delta: string | null;
+  reason_code: string | null;
+  reference: string | null;
+  prev_hash: string | null;
+  hash: string;
+}
+
+export interface SealGuaranteesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  instrument_type: string;
+  issuer: string | null;
+  reference: string;
+  face_value: string;
+  currency: string;
+  effective_from: Date;
+  expires_on: Date;
+  status: Generated<string>;
+  created_at: Generated<Date>;
+}
+
+export interface SealBondOverridesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  guarantee_id: string;
+  actor_id: string | null;
+  reason: string;
+  shortfall: string;
+  currency: string;
+  created_at: Generated<Date>;
+}
+
+export interface SealConsignmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  compartment_id: string;
+  owner_id: string;
+  shipment_case_id: string | null;
+  transport_doc_type: Generated<string>;
+  transport_doc_number: string | null;
+  status: Generated<string>;
+  expected_arrival: Date | null;
+  goods_description: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SealContainersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  consignment_id: string;
+  container_number: string;
+  container_size: Generated<string>;
+  seal_number: string | null;
+  gross_weight_kg: string | null;
+  tare_weight_kg: string | null;
+  net_weight_kg: string | null;
+  vgm_weight_kg: string | null;
+  gate_in_at: Date | null;
+  gate_out_at: Date | null;
+  eir_reference: string | null;
+  yard_slot_id: string | null;
+  vehicle_id: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface SealAppointmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  compartment_id: string;
+  consignment_id: string | null;
+  appointment_type: string;
+  scheduled_at: Date;
+  status: Generated<string>;
+  reference: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface SealDiscrepanciesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  container_id: string;
+  discrepancy_type: string;
+  severity: Generated<string>;
+  description: string;
+  status: Generated<string>;
+  resolution_note: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface SealCustomsEntriesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  lot_id: string;
+  procedure_code: Generated<string>;
+  jurisdiction: Generated<string>;
+  declaration_date: Date;
+  hs_code: string;
+  hs_code_ref_id: string | null;
+  country_of_origin: string | null;
+  invoice_value: string;
+  freight: Generated<string>;
+  insurance: Generated<string>;
+  currency: string;
+  fx_rate: string;
+  valuation_method: Generated<string>;
+  computation: string | null; // JSONB
+  status: Generated<string>;
+  submission_reference: string | null;
+  payment_reference: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SealDocumentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  entity_type: string;
+  entity_id: string;
+  doc_type: Generated<string>;
+  filename: string;
+  storage_key: string;
+  size_bytes: number | null;
+  status: Generated<string>;
+  notes: string | null;
+  uploaded_by: string | null;
+  verified_by: string | null;
+  verified_at: Date | null;
+  created_at: Generated<Date>;
+}
+
+export interface SealExaminationsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  customs_entry_id: string;
+  selectivity_channel: Generated<string>;
+  examination_type: Generated<string>;
+  status: Generated<string>;
+  officer_name: string | null;
+  officer_reference: string | null;
+  scheduled_at: Date | null;
+  completed_at: Date | null;
+  outcome: string | null;
+  findings: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SealStockAccountPeriodsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  compartment_id: string;
+  period_start: Date;
+  period_end: Date;
+  status: Generated<string>;
+  opening_lot_count: Generated<number>;
+  closing_lot_count: Generated<number>;
+  total_duty_at_risk: Generated<string>;
+  total_tax_at_risk: Generated<string>;
+  generated_at: Date | null;
+  submission_reference: string | null;
+  submitted_at: Date | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface SealStockAccountLinesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  period_id: string;
+  lot_id: string;
+  opening_qty: Generated<string>;
+  received_qty: Generated<string>;
+  released_qty: Generated<string>;
+  adjusted_qty: Generated<string>;
+  closing_qty: Generated<string>;
+  closing_customs_status: string | null;
+  duty_at_risk: Generated<string>;
+  tax_at_risk: Generated<string>;
+}
+
+export interface SealDgSegregationRulesTable {
+  id: Generated<string>;
+  class_a: string;
+  class_b: string;
+  compatible: Generated<boolean>;
+  note: string | null;
+}
+
+export interface SealReeferReadingsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  lot_id: string;
+  recorded_at: Generated<Date>;
+  temperature_c: string;
+  within_range: boolean;
+  recorded_by: string | null;
+  note: string | null;
+}
+
+export interface SealYardSlotsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  compartment_id: string;
+  code: string;
+  capacity_teu: Generated<number>;
+  active: Generated<boolean>;
+}
+
 export interface ChatChannelsTable {
   id: Generated<string>;
   tenant_id: string;
@@ -1712,6 +2020,25 @@ export interface Database {
   workflows: WorkflowsTable;
   workflow_steps: WorkflowStepsTable;
   workflow_comm_queue: WorkflowCommQueueTable;
+  seal_compartments: SealCompartmentsTable;
+  seal_zones: SealZonesTable;
+  seal_locations: SealLocationsTable;
+  seal_lots: SealLotsTable;
+  seal_movements: SealMovementsTable;
+  seal_guarantees: SealGuaranteesTable;
+  seal_bond_overrides: SealBondOverridesTable;
+  seal_consignments: SealConsignmentsTable;
+  seal_containers: SealContainersTable;
+  seal_appointments: SealAppointmentsTable;
+  seal_discrepancies: SealDiscrepanciesTable;
+  seal_customs_entries: SealCustomsEntriesTable;
+  seal_documents: SealDocumentsTable;
+  seal_examinations: SealExaminationsTable;
+  seal_stock_account_periods: SealStockAccountPeriodsTable;
+  seal_stock_account_lines: SealStockAccountLinesTable;
+  seal_dg_segregation_rules: SealDgSegregationRulesTable;
+  seal_reefer_readings: SealReeferReadingsTable;
+  seal_yard_slots: SealYardSlotsTable;
   shipment_listeners: ShipmentListenersTable;
   chat_channels: ChatChannelsTable;
   chat_channel_members: ChatChannelMembersTable;

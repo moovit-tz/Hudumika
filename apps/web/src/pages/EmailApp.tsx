@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { MobileNavContext } from '../shells/WorkspaceApp.js';
+import { showAlert } from '../lib/alert.js';
 import './EmailApp.css';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -532,7 +533,7 @@ export const EmailApp: React.FC = () => {
       setReplyOpen(false);
       setReplyBody('');
     } catch (err: any) {
-      alert(err.message || 'Failed to send reply');
+      showAlert(err.message || 'Failed to send reply');
     }
   }
 
@@ -564,7 +565,7 @@ export const EmailApp: React.FC = () => {
       setEmails(prev => [newEmail, ...prev]);
       setComposeOpen(false);
     } catch (err: any) {
-      alert(err.message || 'Failed to send email');
+      showAlert(err.message || 'Failed to send email');
     }
   }
 

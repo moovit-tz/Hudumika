@@ -10,6 +10,7 @@ import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import './Billing.css';
+import { showConfirm } from '../lib/confirm.js';
 
 /* ── Types ── */
 export type Status = 'Draft' | 'Partial' | 'Paid' | 'Credited' | 'Unpaid' | 'Overdue';
@@ -1643,8 +1644,8 @@ export const Billing: React.FC = () => {
     setMode('view');
   }
 
-  function handleDeleteInvoice() {
-    if (!selectedInvoice || !window.confirm(`Delete ${selectedInvoice.id}? This cannot be undone.`)) return;
+  async function handleDeleteInvoice() {
+    if (!selectedInvoice || !(await showConfirm(`Delete ${selectedInvoice.id}? This cannot be undone.`, { confirmLabel: 'Delete' }))) return;
     if (selectedInvoice._dbId) {
       apiFetch(`/v1/invoices/${selectedInvoice._dbId}`, { method: 'DELETE' }).catch(() => {});
     }

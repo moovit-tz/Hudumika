@@ -7,6 +7,8 @@ import { ComplyWizardPage, WizardField } from './ComplyWizardPage.js';
 import { ComplyCustomerPicker } from './ComplyCustomerPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
+import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 import './ComplyOS.css';
 
 type Filter = 'all' | 'active' | 'expiring' | 'expired';
@@ -25,12 +27,6 @@ function expiryLabel(c: CompCertificate): string {
   if (d === 0) return 'Expires today';
   if (d <= 30) return `Expires in ${d}d`;
   return new Date(c.expiry_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function stripClass(c: CompCertificate): string {
-  if (c.status === 'expired')  return 'comply-color-strip comply-color-strip--expired';
-  if (c.status === 'expiring') return 'comply-color-strip comply-color-strip--expiring';
-  return `comply-color-strip comply-color-strip--${c.agency_class}`;
 }
 
 function expiryValClass(c: CompCertificate): string {
@@ -65,6 +61,7 @@ export function ComplyVault() {
   const { certs, loading, error, refresh, revoke }      = useComplyCertificates();
   const { startRenewal }                 = useComplyRenewals();
   const [filter, setFilter]              = useState<Filter>('all');
+  const [view, setView]                  = useState<'grid' | 'list'>('grid');
   const [selected, setSelected]          = useState<CompCertificate | null>(null);
   const [renewing, setRenewing]          = useState<string | null>(null);
   const [revoking, setRevoking]          = useState(false);
@@ -79,7 +76,7 @@ export function ComplyVault() {
       await startRenewal(certId);
       navigate('/complyos/workflows');
     } catch (err: any) {
-      alert(err.message);
+      showAlert(err.message);
     } finally {
       setRenewing(null);
     }
@@ -97,13 +94,17 @@ export function ComplyVault() {
   }
 
   async function handleRevoke(cert: CompCertificate) {
-    if (!window.confirm(`Revoke "${cert.name}"? It will remain in the Vault for audit purposes but stop counting toward compliance health.`)) return;
+    const ok = await showConfirm(
+      `Revoke "${cert.name}"? It will remain in the Vault for audit purposes but stop counting toward compliance health.`,
+      { title: 'Revoke Certificate', confirmLabel: 'Revoke' }
+    );
+    if (!ok) return;
     try {
       setRevoking(true);
       await revoke(cert.id);
       setSelected(null);
     } catch (err: any) {
-      alert(err.message);
+      showAlert(err.message);
     } finally {
       setRevoking(false);
     }
@@ -135,13 +136,23 @@ export function ComplyVault() {
 
       {error && <div className="comply-note comply-note--error">Failed to load certificates: {error}</div>}
 
-      <div className="comply-filters">
-        {(['all', 'active', 'expiring', 'expired'] as Filter[]).map(f => (
-          <button key={f} type="button" className={`comply-filter-btn${filter === f ? ' active' : ''}`} onClick={() => setFilter(f)}>
-            {f.charAt(0).toUpperCase() + f.slice(1)}
-            {f !== 'all' && ` (${certs.filter(c => c.status === f).length})`}
+      <div className="comply-filters" style={{ justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {(['all', 'active', 'expiring', 'expired'] as Filter[]).map(f => (
+            <button key={f} type="button" className={`comply-filter-btn${filter === f ? ' active' : ''}`} onClick={() => setFilter(f)}>
+              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {f !== 'all' && ` (${certs.filter(c => c.status === f).length})`}
+            </button>
+          ))}
+        </div>
+        <div className="comply-view-toggle">
+          <button type="button" title="Grid view" className={`comply-view-btn${view === 'grid' ? ' active' : ''}`} onClick={() => setView('grid')}>
+            <Icon name="grid" size={15} />
           </button>
-        ))}
+          <button type="button" title="List view" className={`comply-view-btn${view === 'list' ? ' active' : ''}`} onClick={() => setView('list')}>
+            <Icon name="list" size={15} />
+          </button>
+        </div>
       </div>
 
       {loading && <div className="comply-empty-hint">Loading certificates…</div>}
@@ -150,69 +161,115 @@ export function ComplyVault() {
         <div className="comply-empty-hint">No certificates in this view.</div>
       )}
 
-      <div className="comply-cert-grid">
-        {visible.map(cert => (
-          <div key={cert.id} className="comply-cert-card" onClick={() => setSelected(cert)}>
-            <div className={stripClass(cert)} />
-            <div className="comply-cert-card-body">
-              <div className="comply-cert-card-hdr-row">
-                <span className={`comply-agency comply-agency--${cert.agency_class}`}>{cert.agency_code}</span>
-                <span className={`comply-badge comply-badge--${cert.status === 'expiring' ? 'pending' : cert.status}`}>
-                  {cert.status === 'expiring' ? 'Expiring' : cert.status.charAt(0).toUpperCase() + cert.status.slice(1)}
-                </span>
-              </div>
-              <div className="comply-cert-name">{cert.name}</div>
-              <div className="comply-cert-agency comply-cert-ref">{cert.cert_number}</div>
-              <div className="comply-cert-meta">
-                <div className="comply-cert-row">
-                  <span className="comply-cert-key">Issued</span>
-                  <span className="comply-cert-val comply-cert-val--sm">{issuedLabel(cert)}</span>
+      {view === 'grid' ? (
+        <div className="comply-cert-grid">
+          {visible.map(cert => (
+            <div key={cert.id} className="comply-cert-card" onClick={() => setSelected(cert)}>
+              <div className="comply-cert-card-body">
+                <div className="comply-cert-card-hdr-row">
+                  <span className={`comply-agency comply-agency--${cert.agency_class}`}>{cert.agency_code}</span>
+                  <span className={`comply-badge comply-badge--${cert.status === 'expiring' ? 'pending' : cert.status}`}>
+                    {cert.status === 'expiring' ? 'Expiring' : cert.status.charAt(0).toUpperCase() + cert.status.slice(1)}
+                  </span>
                 </div>
-                <div className="comply-cert-row">
-                  <span className="comply-cert-key">Validity</span>
-                  <span className={expiryValClass(cert)}>{expiryLabel(cert)}</span>
+                <div className="comply-cert-name">{cert.name}</div>
+                <div className="comply-cert-agency comply-cert-ref">{cert.cert_number}</div>
+                <div className="comply-cert-meta">
+                  <div className="comply-cert-row">
+                    <span className="comply-cert-key">Issued</span>
+                    <span className="comply-cert-val comply-cert-val--sm">{issuedLabel(cert)}</span>
+                  </div>
+                  <div className="comply-cert-row">
+                    <span className="comply-cert-key">Validity</span>
+                    <span className={expiryValClass(cert)}>{expiryLabel(cert)}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div className="comply-cert-card-foot">
-              <button
-                type="button"
-                title="View certificate"
-                className="comply-btn-secondary comply-btn-sm"
-                onClick={e => { e.stopPropagation(); setSelected(cert); }}
-              >
-                <Icon name="eye" size={12} /> View
-              </button>
-              {cert.document_url && (
+              <div className="comply-cert-card-foot">
                 <button
                   type="button"
-                  title="Download certificate"
-                  className="comply-btn-secondary comply-btn-sm"
-                  onClick={e => e.stopPropagation()}
+                  title="View certificate"
+                  className="comply-btn-secondary"
+                  onClick={e => { e.stopPropagation(); setSelected(cert); }}
                 >
-                  <Icon name="download" size={12} /> Download
+                  <Icon name="eye" size={14} /> View
                 </button>
-              )}
-              {(cert.status === 'expiring' || cert.status === 'expired') && (
-                <button
-                  type="button"
-                  title="Start renewal workflow"
-                  className="comply-btn-primary comply-btn-sm comply-cert-renew"
-                  disabled={renewing === cert.id}
-                  onClick={e => handleRenew(e, cert.id)}
-                >
-                  {renewing === cert.id ? '…' : 'Renew'}
-                </button>
-              )}
+                {cert.document_url && (
+                  <button
+                    type="button"
+                    title="Download certificate"
+                    className="comply-btn-secondary"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <Icon name="download" size={14} /> Download
+                  </button>
+                )}
+                {(cert.status === 'expiring' || cert.status === 'expired') && (
+                  <button
+                    type="button"
+                    title="Start renewal workflow"
+                    className="comply-btn-primary comply-cert-renew"
+                    disabled={renewing === cert.id}
+                    onClick={e => handleRenew(e, cert.id)}
+                  >
+                    {renewing === cert.id ? '…' : 'Renew'}
+                  </button>
+                )}
+              </div>
             </div>
+          ))}
+        </div>
+      ) : (
+        <div className="comply-card">
+          <div className="comply-card-body">
+            <table className="comply-table">
+              <thead>
+                <tr>
+                  <th>Certificate</th><th>Agency</th><th>Cert #</th><th>Issued</th><th>Validity</th><th>Status</th><th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {visible.map(cert => (
+                  <tr key={cert.id} className="comply-tr-click" onClick={() => setSelected(cert)}>
+                    <td className="comply-table-name">{cert.name}</td>
+                    <td><span className={`comply-agency comply-agency--${cert.agency_class}`}>{cert.agency_code}</span></td>
+                    <td className="comply-td-mono">{cert.cert_number}</td>
+                    <td className="comply-td-muted">{issuedLabel(cert)}</td>
+                    <td className={expiryValClass(cert)}>{expiryLabel(cert)}</td>
+                    <td>
+                      <span className={`comply-badge comply-badge--${cert.status === 'expiring' ? 'pending' : cert.status}`}>
+                        {cert.status === 'expiring' ? 'Expiring' : cert.status.charAt(0).toUpperCase() + cert.status.slice(1)}
+                      </span>
+                    </td>
+                    <td onClick={e => e.stopPropagation()}>
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                        <button type="button" title="View certificate" className="comply-btn-secondary" onClick={() => setSelected(cert)}>
+                          <Icon name="eye" size={14} /> View
+                        </button>
+                        {(cert.status === 'expiring' || cert.status === 'expired') && (
+                          <button
+                            type="button"
+                            title="Start renewal workflow"
+                            className="comply-btn-primary comply-cert-renew"
+                            disabled={renewing === cert.id}
+                            onClick={e => handleRenew(e, cert.id)}
+                          >
+                            {renewing === cert.id ? '…' : 'Renew'}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-        ))}
-      </div>
+        </div>
+      )}
 
       {selected && (
         <div className="comply-overlay" onClick={() => setSelected(null)}>
           <div className="comply-modal comply-modal--480" onClick={e => e.stopPropagation()}>
-            <div className={stripClass(selected)} />
             <div className="comply-panel-hdr">
               <div>
                 <div className="comply-panel-hdr-title">{selected.name}</div>

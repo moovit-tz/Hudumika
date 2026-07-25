@@ -10,6 +10,8 @@ import { useCurrency } from '../hooks/useCurrency.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 
 // -- Detail Panel (Aside) -------------------------------------------------------
 function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; onClose: () => void; isMobile?: boolean }) {
@@ -63,7 +65,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {[
               { label: 'Payment Mode', value: payment.paymentMode },
-              { label: 'Transaction ID', value: payment.transactionId || '—' },
+              { label: 'Transaction ID', value: payment.transactionId || 'ï¿½' },
               { label: 'Logged By', value: 'System Admin' },
               ...(payment.attachmentName ? [{ label: 'Attachment', value: payment.attachmentName, isFile: true }] : []),
             ].map((item, i, arr) => (
@@ -93,7 +95,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
         <button style={{ flex: 1, padding: '10px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 6 }}>
           <Icon name="download" size={14} /> Receipt
         </button>
-        <button onClick={() => { if (confirm('Delete this payment?')) { deletePayment(payment.id); onClose(); } }} style={{ padding: '10px 16px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 9, color: '#dc2626', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <button onClick={async () => { if ((await showConfirm('Delete this payment?', { confirmLabel: 'Delete' }))) { deletePayment(payment.id); onClose(); } }} style={{ padding: '10px 16px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 9, color: '#dc2626', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
           <Icon name="trash" size={14} />
         </button>
       </div>
@@ -137,7 +139,7 @@ export const FinancePayments: React.FC = () => {
 
     let attachmentName;
 
-    // Process attachment to the Cloud file manager (real backend — find/create the
+    // Process attachment to the Cloud file manager (real backend ï¿½ find/create the
     // client + BL folders, then upload the receipt into it).
     if (fFile && selectedInvoice) {
       try {
@@ -159,7 +161,7 @@ export const FinancePayments: React.FC = () => {
 
         attachmentName = fFile.name;
       } catch (err: any) {
-        alert(err.message || 'Failed to attach receipt to Cloud files');
+        showAlert(err.message || 'Failed to attach receipt to Cloud files');
       }
     }
 
@@ -305,7 +307,7 @@ export const FinancePayments: React.FC = () => {
           <div className="card" style={{ width: 480, padding: 24, borderRadius: 9 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <h2 style={{ margin: 0, fontSize: 16, color: 'var(--navy)' }}>Record Payment</h2>
-              <button className="dp-close" onClick={() => setShowAdd(false)}>×</button>
+              <button className="dp-close" onClick={() => setShowAdd(false)}>ï¿½</button>
             </div>
 
             <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

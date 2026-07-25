@@ -9,10 +9,12 @@ import { PageHeader } from '../components/PageHeader.js';
 import { mapApiInvoice, invoiceTotals } from './Billing.js';
 import type { ExpenseListItem } from './Expenses.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { showAlert } from '../lib/alert.js';
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuCheckboxItem,
 } from '../components/ui/dropdown-menu.js';
+import { showConfirm } from '../lib/confirm.js';
 
 /* ── Types ── */
 interface Customer {
@@ -308,7 +310,7 @@ export const Customers: React.FC = () => {
       await apiFetch(`/v1/customers/${selected.id}`, { method: 'PATCH', body: JSON.stringify({ notes }) });
       setSelected(prev => prev ? { ...prev, notes } : prev);
       setCustomers(cs => cs.map(c => c.id === selected.id ? { ...c, notes } : c));
-    } catch (err: any) { alert(err.message || 'Failed to save notes'); } finally { setNoteSaving(false); }
+    } catch (err: any) { showAlert(err.message || 'Failed to save notes'); } finally { setNoteSaving(false); }
   }
 
   async function handleAddContact(e: React.FormEvent) {
@@ -324,7 +326,7 @@ export const Customers: React.FC = () => {
       setCustomers(cs => cs.map(c => c.id === selected.id ? { ...c, contact_person: contactForm.name } : c));
       setShowAddContact(false);
       setContactForm({ name: '', email: '', phone: '', role: '' });
-    } catch (err: any) { alert(err.message || 'Failed to save contact'); } finally { setContactSaving(false); }
+    } catch (err: any) { showAlert(err.message || 'Failed to save contact'); } finally { setContactSaving(false); }
   }
 
   const handleSave = async (e: React.FormEvent) => {
@@ -339,7 +341,7 @@ export const Customers: React.FC = () => {
       setSelected(prev => prev ? { ...prev, ...form } : prev);
       setCustomers(cs => cs.map(c => c.id === selected.id ? { ...c, ...form } : c));
       setEditMode(false);
-    } catch (err: any) { alert(err.message || 'Save failed'); } finally { setSaving(false); }
+    } catch (err: any) { showAlert(err.message || 'Save failed'); } finally { setSaving(false); }
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -350,7 +352,7 @@ export const Customers: React.FC = () => {
       setShowCreate(false);
       setCreateForm({ name: '', email: '', phone_wa: '', tin_number: '', contact_person: '', address: '' });
       loadCustomers();
-    } catch (err: any) { alert(err.message); } finally { setCreateSaving(false); }
+    } catch (err: any) { showAlert(err.message); } finally { setCreateSaving(false); }
   };
 
   const filtered = customers.filter(c => {
@@ -388,7 +390,7 @@ export const Customers: React.FC = () => {
     const ids = [...selectedIds];
     try {
       if (bulkAction === 'delete') {
-        if (!confirm(`Delete ${ids.length} customer${ids.length > 1 ? 's' : ''}? This cannot be undone.`)) return;
+        if (!(await showConfirm(`Delete ${ids.length} customer${ids.length > 1 ? 's' : ''}? This cannot be undone.`, { confirmLabel: 'Delete' }))) return;
         await Promise.all(ids.map(id => apiFetch(`/v1/customers/${id}`, { method: 'DELETE' })));
         setCustomers(cs => cs.filter(c => !ids.includes(c.id)));
       } else if (bulkAction === 'export') {
@@ -399,7 +401,7 @@ export const Customers: React.FC = () => {
         setCustomers(cs => cs.map(c => ids.includes(c.id) ? { ...c, account_status: s } : c));
       }
       setSelectedIds([]); setBulkAction('');
-    } catch (err: any) { alert(err.message || 'Action failed'); }
+    } catch (err: any) { showAlert(err.message || 'Action failed'); }
   }
 
   /* ══════════════════════════════
@@ -604,13 +606,13 @@ export const Customers: React.FC = () => {
                                 const next = c.account_status === 'Suspended' ? 'Active' : 'Suspended';
                                 apiFetch(`/v1/customers/${c.id}`, { method: 'PATCH', body: JSON.stringify({ account_status: next }) })
                                   .then(() => setCustomers(cs => cs.map(x => x.id === c.id ? { ...x, account_status: next } : x)))
-                                  .catch(err => alert(err.message || 'Failed'));
+                                  .catch(err => showAlert(err.message || 'Failed'));
                               }}
-                              onDelete={() => {
-                                if (!confirm(`Delete ${c.name}? This cannot be undone.`)) return;
+                              onDelete={async () => {
+                                if (!(await showConfirm(`Delete ${c.name}? This cannot be undone.`, { confirmLabel: 'Delete' }))) return;
                                 apiFetch(`/v1/customers/${c.id}`, { method: 'DELETE' })
                                   .then(() => setCustomers(cs => cs.filter(x => x.id !== c.id)))
-                                  .catch(err => alert(err.message || 'Delete failed'));
+                                  .catch(err => showAlert(err.message || 'Delete failed'));
                               }} />
                           </td>
                         </tr>
@@ -1488,8 +1490,8 @@ export const Customers: React.FC = () => {
                   fd.append('customer_id', sel.id);
                   try {
                     await apiFetch(`/v1/customers/${sel.id}/documents`, { method: 'POST', body: fd });
-                    alert(`${files.length} file(s) uploaded`);
-                  } catch (err: any) { alert(err.message || 'Upload failed'); }
+                    showAlert(`${files.length} file(s) uploaded`);
+                  } catch (err: any) { showAlert(err.message || 'Upload failed'); }
                   e.target.value = '';
                 }} />
             </label>
@@ -1511,8 +1513,8 @@ export const Customers: React.FC = () => {
               fd.append('customer_id', sel.id);
               try {
                 await apiFetch(`/v1/customers/${sel.id}/documents`, { method: 'POST', body: fd });
-                alert(`${files.length} file(s) uploaded`);
-              } catch (err: any) { alert(err.message || 'Upload failed'); }
+                showAlert(`${files.length} file(s) uploaded`);
+              } catch (err: any) { showAlert(err.message || 'Upload failed'); }
             }}>
             <Icon name="upload" size={28} strokeWidth={1.25} />
             <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink2)', marginTop: 10 }}>Drop files here to upload</div>

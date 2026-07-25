@@ -9,6 +9,7 @@ import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { showConfirm } from '../lib/confirm.js';
 
 // Types and Interfaces
 // Mirrors the backend's purchase_orders.status CHECK constraint
@@ -569,7 +570,7 @@ export const PurchaseOrders: React.FC = () => {
       return;
     }
 
-    if (window.confirm(`Are you sure you want to delete ${po.po_number}?`)) {
+    if ((await showConfirm(`Are you sure you want to delete ${po.po_number}?`, { confirmLabel: 'Delete' }))) {
       try {
         await apiFetch(`/v1/purchase-orders/${id}`, { method: 'DELETE' });
         setPOs(prev => prev.filter(p => p.id !== id));

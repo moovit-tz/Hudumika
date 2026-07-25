@@ -6,6 +6,8 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { getCompany } from '../data/companyStore.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -267,7 +269,7 @@ function generatePDF(result: TrackingResult) {
 </html>`;
 
   const w = window.open('', '_blank');
-  if (!w) { alert('Allow popups to generate PDF'); return; }
+  if (!w) { showAlert('Allow popups to generate PDF'); return; }
   w.document.write(html);
   w.document.close();
   setTimeout(() => w.print(), 600);
@@ -478,7 +480,7 @@ export const Tracker: React.FC = () => {
       const s = await apiFetch('/v1/tracker/snapshots', { method: 'POST', body: JSON.stringify({ ...result }) });
       setSavedId(s.id);
       await loadSnapshots();
-    } catch (e: any) { alert(e.message ?? 'Save failed'); }
+    } catch (e: any) { showAlert(e.message ?? 'Save failed'); }
     finally { setSavingSnap(false); }
   };
 
@@ -492,16 +494,16 @@ export const Tracker: React.FC = () => {
     try {
       await apiFetch(`/v1/tracker/snapshots/${snapId}/link`, { method: 'PATCH', body: JSON.stringify({ shipment_id: shipId }) });
       await loadSnapshots();
-    } catch (e: any) { alert(e.message ?? 'Link failed'); }
+    } catch (e: any) { showAlert(e.message ?? 'Link failed'); }
     finally { setLinkingId(null); }
   };
 
   const deleteSnap = async (id: string) => {
-    if (!confirm('Delete this snapshot?')) return;
+    if (!(await showConfirm('Delete this snapshot?', { confirmLabel: 'Delete' }))) return;
     try {
       await apiFetch(`/v1/tracker/snapshots/${id}`, { method: 'DELETE' });
       setSnapshots(p => p.filter(s => s.id !== id));
-    } catch (e: any) { alert(e.message ?? 'Delete failed'); }
+    } catch (e: any) { showAlert(e.message ?? 'Delete failed'); }
   };
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -524,7 +526,7 @@ export const Tracker: React.FC = () => {
       });
       setEditingId(null);
       await loadSnapshots();
-    } catch (e: any) { alert(e.message ?? 'Update failed'); }
+    } catch (e: any) { showAlert(e.message ?? 'Update failed'); }
   };
 
   // ── Live (AJAX) search suggestions under the tracking input ──
@@ -591,7 +593,7 @@ export const Tracker: React.FC = () => {
         body: JSON.stringify({ status: r.status, current_location: r.current_location, eta: r.eta, progress_pct: r.progress_pct }),
       });
       await loadSnapshots();
-    } catch (e: any) { alert(e.message ?? 'Refresh failed'); }
+    } catch (e: any) { showAlert(e.message ?? 'Refresh failed'); }
     finally { setRetrackingId(null); }
   };
 

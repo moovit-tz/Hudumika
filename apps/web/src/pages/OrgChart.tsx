@@ -25,6 +25,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { showConfirm } from '../lib/confirm.js';
 
 /* ─── Types ─────────────────────────────────────────────── */
 interface OrgNode {
@@ -408,7 +409,7 @@ export const OrgChart: React.FC = () => {
 
   /* ── Delete node ── */
   const onDeleteNode = useCallback(async (id: string) => {
-    if (!confirm('Remove this node? Children will be re-parented up.')) return;
+    if (!(await showConfirm('Remove this node? Children will be re-parented up.', { confirmLabel: 'Remove' }))) return;
     setSaving(true);
     try {
       await apiFetch(`/v1/org-chart/${id}`, { method: 'DELETE' });

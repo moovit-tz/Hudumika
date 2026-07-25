@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { useComplyLicenseCatalog, useComplyApplications } from '../hooks/useComply.js';
 import { ComplyWizardPage, WizardField } from './ComplyWizardPage.js';
 import { ComplyCustomerPicker } from './ComplyCustomerPicker.js';
+import { showAlert } from '../lib/alert.js';
 import './ComplyOS.css';
 
 const STEPS = ['Licence', 'Requirements', 'Review'];
@@ -67,7 +68,7 @@ export function ComplyLicenseApply() {
       });
       navigate('/complyos/applications');
     } catch (e: any) {
-      alert(e.message);
+      showAlert(e.message);
     } finally {
       setCreating(false);
     }

@@ -684,6 +684,24 @@ body {
 .filter-bar::-webkit-scrollbar { display: none; }
 .filter-spacer { flex: 1; min-width: 8px; }
 
+/* Responsive: below the platform's mobile breakpoint, the search box and
+   filter chips no longer share one horizontally-scrolling row (which made
+   the search input shrink to ~140px and pushed most chips off-screen) —
+   search gets its own full-width row, chips scroll on the row below. */
+@media (max-width: 767px) {
+  .filter-bar { flex-wrap: wrap; padding: 8px 14px; }
+  .filter-search.fs-open { flex-basis: 100%; min-width: 100%; }
+  .filter-chips {
+    flex-basis: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 1px;
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 20px), transparent 100%);
+    mask-image: linear-gradient(to right, black calc(100% - 20px), transparent 100%);
+  }
+  .filter-chips::-webkit-scrollbar { display: none; }
+}
+
 /* ── AI Search — collapsed pill, expands to fill half the free space ── */
 .filter-search {
   display: flex;
@@ -2646,15 +2664,37 @@ select.input-field { cursor: pointer; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px 12px;
+  padding: 14px 20px 8px;
   background: var(--white);
-  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   gap: 12px;
   flex-wrap: wrap;
 }
-.cc-page-header-left { display: flex; flex-direction: column; gap: 2px; }
-.cc-page-header-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cc-page-header-left { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+/* Always a single row — never wraps into stacked sub-rows. Two zones:
+   .cc-page-header-scroll (date/view-toggle/workflow select) shrinks and
+   scrolls horizontally first when space is tight; .cc-page-header-actions
+   (New Shipment / Refresh) is pinned with flex-shrink: 0 so the primary
+   action button is never pushed off-screen or hidden behind a scroll. */
+.cc-page-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.cc-page-header-scroll {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  min-width: 0;
+  flex-shrink: 1;
+}
+.cc-page-header-scroll::-webkit-scrollbar { display: none; }
+.cc-page-header-scroll > * { flex-shrink: 0; }
+.cc-page-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 .cc-breadcrumb {
   display: flex;
@@ -2692,7 +2732,7 @@ select.input-field { cursor: pointer; }
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 10px 20px;
+  padding: 6px 20px 10px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   flex-wrap: wrap;
@@ -2711,6 +2751,37 @@ select.input-field { cursor: pointer; }
 }
 .cc-toolbar-filters { flex: 1; min-width: 240px; }
 [data-theme="dark"] .cc-summary-chip { background: rgba(255,255,255,0.05); }
+
+/* Responsive: below the platform's mobile breakpoint, stack the toolbar
+   into full-width rows instead of squeezing everything onto one line —
+   summary chips scroll horizontally, then the filter bar gets its own row. */
+@media (max-width: 767px) {
+  .cc-page-header { padding: 12px 14px; gap: 8px; }
+  .cc-page-header-right { width: 100%; justify-content: flex-end; gap: 6px; }
+  .cc-page-header-scroll {
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 20px), transparent 100%);
+    mask-image: linear-gradient(to right, black calc(100% - 20px), transparent 100%);
+  }
+  .cc-toolbar-row { flex-direction: column; align-items: stretch; gap: 10px; padding: 10px 14px; }
+  /* Both children are flex items of a column-direction, align-items:stretch
+     container — without min-width:0, their own nowrap content (nowrap chip
+     labels / the filter bar's chip row) sets a content-based automatic
+     minimum size wider than the stretched column, so they overflow the row
+     instead of shrinking to fill it (the row itself doesn't clip, so the
+     overflow gets silently cropped by an ancestor's overflow-x:hidden
+     further up — this is what made the search bar/chips look cut off). */
+  .cc-summary-chips {
+    min-width: 0;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 1px;
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 20px), transparent 100%);
+    mask-image: linear-gradient(to right, black calc(100% - 20px), transparent 100%);
+  }
+  .cc-summary-chips::-webkit-scrollbar { display: none; }
+  .cc-toolbar-filters { min-width: 0; width: 100%; }
+}
 
 .cc-view-toggle {
   display: flex;
@@ -3649,10 +3720,11 @@ html:not([data-theme="dark"]) .page-layout {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px 8px;
   margin-top: 40px;
 }
-.page-footer-copy {
+.page-footer-copyright,
+.page-footer-powered {
   font-size: 11.5px;
   color: var(--ink3);
   font-weight: 500;
@@ -3673,8 +3745,11 @@ html:not([data-theme="dark"]) .page-layout {
 }
 .page-footer-link:last-child { border-right: none; }
 .page-footer-link:hover { color: var(--teal); }
-@media (max-width: 600px) {
-  .page-footer { flex-direction: column; align-items: flex-start; }
+/* When the three sections don't fit on one line (justify-content:space-between
+   has no effect on a lone item alone on its own wrapped line, so it was
+   collapsing to the left edge instead) — stack and center them instead. */
+@media (max-width: 900px) {
+  .page-footer { flex-direction: column; align-items: center; text-align: center; }
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -5934,40 +6009,35 @@ html:not([data-theme="dark"]) .page-layout {
 .mc-row::-webkit-scrollbar { display: none; }
 .mc-card {
   background: var(--white); border-radius: 12px; border: 1px solid var(--border);
-  padding: 20px 20px 0; box-shadow: 0 1px 4px rgba(0,0,0,.06);
-  flex: 1 0 220px; display: flex; flex-direction: column; overflow: hidden;
+  padding: 20px; box-shadow: var(--shadow-sm);
+  /* 220px used to let sub-labels ("SHIPMENTS CALC.") and values ("49,440.75
+     kg") wrap mid-word before the row's own overflow-x:auto ever kicked in —
+     280px is wide enough for those to stay on one line; narrower viewports
+     now scroll the row instead of squeezing cards below a readable width. */
+  flex: 1 0 280px; display: flex; flex-direction: column; overflow: hidden;
 }
 .mc-head       { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
 .mc-head-left  { display: flex; align-items: center; gap: 10px; }
-.mc-icon-badge {
-  width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
+.mc-title      { font-size: 11.5px; font-weight: 700; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
+.mc-refresh-btn {
+  color: var(--ink3); cursor: pointer; flex-shrink: 0; margin-top: 2px;
+  background: none; border: none; padding: 5px; border-radius: 6px; display: flex;
 }
-.mc-icon-badge[data-color="teal"]    { background: #fef0ec; }
-.mc-icon-badge[data-color="blue"]    { background: #dbeafe; }
-.mc-icon-badge[data-color="green"]   { background: #dcfce7; }
-.mc-icon-badge[data-color="red"]     { background: #fee2e2; }
-.mc-icon-badge[data-color="gold"]    { background: #fef3c7; }
-.mc-icon-badge[data-color="purple"]  { background: #ede9fe; }
-.mc-icon-badge[data-color="default"] { background: #f1f5f9; }
-.mc-title      { font-size: 11.5px; font-weight: 700; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.06em; }
-.mc-dots       { color: var(--ink3); cursor: pointer; flex-shrink: 0; margin-top: 2px; }
-.mc-dots-btn   { background: none; border: none; padding: 3px; border-radius: 5px; display: flex; }
-.mc-dots-btn:hover { background: var(--bg); color: var(--ink); }
+.mc-refresh-btn:hover { background: var(--bg); color: var(--ink); }
 .mc-value-row  { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
 .mc-value      { font-size: 26px; font-weight: 800; color: var(--navy); letter-spacing: -0.5px; line-height: 1; white-space: nowrap; }
 .mc-sub-row    { display: flex; gap: 18px; margin-bottom: 12px; }
-.mc-sub-label  { font-size: 9.5px; font-weight: 700; color: var(--ink3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 2px; }
-.mc-sub-value  { font-size: 12.5px; font-weight: 700; color: var(--ink2); }
-.mc-spark-wrap { margin: 0 -20px; line-height: 0; margin-top: auto; }
+.mc-sub-label  { font-size: 9.5px; font-weight: 700; color: var(--ink3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 2px; white-space: nowrap; }
+.mc-sub-value  { font-size: 12.5px; font-weight: 700; color: var(--ink2); white-space: nowrap; }
+.mc-spark-wrap { margin: auto -20px -20px; line-height: 0; }
 .mc-sparkline-svg { display: block; overflow: visible; flex-shrink: 0; }
 .mc-minibar-svg   { display: block; flex-shrink: 0; }
 .mc-trend {
   display: inline-flex; align-items: center; gap: 3px;
   font-size: 11.5px; font-weight: 700; padding: 3px 7px; border-radius: 20px;
 }
-.mc-trend[data-up="true"]  { color: #16a34a; background: #dcfce7; }
-.mc-trend[data-up="false"] { color: #dc2626; background: #fee2e2; }
+.mc-trend[data-up="true"]  { color: var(--green); background: var(--green-l); }
+.mc-trend[data-up="false"] { color: var(--red); background: var(--red-l); }
 
 /* ══════════════════════════════════════════
    EXPANDED LAYOUT MODE

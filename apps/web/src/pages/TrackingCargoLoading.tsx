@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { showConfirm } from '../lib/confirm.js';
 
 export type CameraPreset = 'iso' | 'front' | 'side' | 'top';
 
@@ -344,13 +345,13 @@ export const TrackingCargoLoading: React.FC = () => {
   }
 
   async function approvePlan() {
-    if (!confirm('Approve this plan? It will be locked for editing.')) return;
+    if (!(await showConfirm('Approve this plan? It will be locked for editing.', { variant: 'warning', confirmLabel: 'Approve' }))) return;
     await apiFetch(`/v1/tracking/manifests/${manifestId}/status`, { method: 'PATCH', body: JSON.stringify({ status: 'APPROVED' }) });
     reloadManifests();
   }
 
   async function deleteManifest() {
-    if (!manifestId || !confirm('Delete this load plan?')) return;
+    if (!manifestId || !(await showConfirm('Delete this load plan?', { confirmLabel: 'Delete' }))) return;
     await apiFetch(`/v1/tracking/manifests/${manifestId}`, { method: 'DELETE' });
     setManifestId('');
     reloadManifests();

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useComplyRenewals } from '../hooks/useComply.js';
 import type { CompRenewal, CompRenewalStatus } from '@hudumika/types';
+import { showAlert } from '../lib/alert.js';
 import './ComplyOS.css';
 
 /* ── Constants ─────────────────────────────────────────────────────────────── */
@@ -99,7 +100,7 @@ export function ComplyWorkflows() {
       setApproving(true);
       await approveRenewal(id);
       closeDrawer();
-    } catch (e: any) { alert(e.message); }
+    } catch (e: any) { showAlert(e.message); }
     finally { setApproving(false); }
   }
 

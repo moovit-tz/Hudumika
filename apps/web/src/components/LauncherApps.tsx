@@ -23,6 +23,7 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
   { id: 'calendar',  name: 'Calendar', color: '#db2777', path: '/calendar'  },
   { id: 'tasks',     name: 'Tasks',    color: '#0f766e', path: '/tasks'     },
   { id: 'cargotracker',  name: 'CargoTracker', color: '#4f46e5', path: '/cargotracker' },
+  { id: 'seal',      name: 'SEAL',     color: '#0f766e', path: '/seal'      },
 ];
 
 // ── App SVG icons for launcher ─────────────────────────────────
@@ -40,6 +41,7 @@ export const LAUNCHER_SVG_ICONS: Record<string, React.ReactElement> = {
   crm:      (<g fill="white"><circle cx="20" cy="11" r="4.5"/><path d="M10.5 33C10.5 26.5 14.7 22.5 20 22.5C25.3 22.5 29.5 26.5 29.5 33Z"/><circle cx="10" cy="17" r="3" opacity="0.6"/><path d="M4 31C4 26.5 6.7 23.5 10 23.5" stroke="white" strokeWidth="1.8" fill="none" strokeLinecap="round" opacity="0.6"/><circle cx="30" cy="17" r="3" opacity="0.6"/><path d="M36 31C36 26.5 33.3 23.5 30 23.5" stroke="white" strokeWidth="1.8" fill="none" strokeLinecap="round" opacity="0.6"/></g>),
   contacts: (<g fill="white"><circle cx="20" cy="12" r="5"/><path d="M10 28C10 22.5 14.5 19 20 19C25.5 19 30 22.5 30 28Z"/><circle cx="10" cy="18" r="3" opacity="0.6"/><path d="M4 27C4 23.5 6.5 21 10 21" stroke="white" strokeWidth="1.8" fill="none" strokeLinecap="round" opacity="0.6"/><circle cx="30" cy="18" r="3" opacity="0.6"/><path d="M36 27C36 23.5 33.5 21 30 21" stroke="white" strokeWidth="1.8" fill="none" strokeLinecap="round" opacity="0.6"/></g>),
   store:    (<g fill="white"><rect x="6" y="6" width="12" height="12" rx="2.5"/><rect x="22" y="6" width="12" height="12" rx="2.5"/><rect x="6" y="22" width="12" height="12" rx="2.5"/><rect x="22" y="22" width="12" height="12" rx="2.5" opacity="0.45"/><line x1="28" y1="25" x2="28" y2="31" stroke="#8b5cf6" strokeWidth="2.5" strokeLinecap="round"/><line x1="25" y1="28" x2="31" y2="28" stroke="#8b5cf6" strokeWidth="2.5" strokeLinecap="round"/></g>),
+  seal:     (<g stroke="white" strokeWidth="2.3" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L31 11V20C31 27 26.5 31.5 20 34C13.5 31.5 9 27 9 20V11L20 6Z"/><path d="M15 20L18.5 23.5L26 15" strokeWidth="2.5"/></g>),
   oneid:    (<g><circle cx="20" cy="12" r="5.5" fill="white"/><path d="M7 38C7 26.5 12.5 21 20 21C27.5 21 33 26.5 33 38Z" fill="white"/><path d="M14 38C14 30.5 16.5 27.5 20 27.5C23.5 27.5 26 30.5 26 38Z" fill="#4361EE"/></g>),
   tracking: (<g><path d="M20 4C13 4 8 9.5 8 16C8 25 20 36 20 36C20 36 32 25 32 16C32 9.5 27 4 20 4Z" fill="white"/><circle cx="20" cy="16" r="5.5" fill="#0891b2"/></g>),
   calendar: (<g fill="white"><path d="M11 9h18v3H11z" /><path d="M11 14h18v15H11z" opacity="0.6"/><rect x="15" y="6" width="2" height="5" rx="1" fill="white" /><rect x="23" y="6" width="2" height="5" rx="1" fill="white" /></g>),

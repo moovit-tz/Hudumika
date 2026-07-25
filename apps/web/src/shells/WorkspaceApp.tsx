@@ -39,6 +39,7 @@ export const APP_LABELS: Record<AppId, string> = {
   tasks:     'Tasks',
   demurrage:     'Demurrage',
   cargotracker:  'CargoTracker',
+  seal:          'SEAL',
 };
 
 // Every app defaults to the single brand accent (matches --teal in index.css)
@@ -54,7 +55,7 @@ export const APP_COLORS: Record<AppId, string> = {
   ai: DEFAULT_APP_COLOR, workspace: DEFAULT_APP_COLOR, admin: DEFAULT_APP_COLOR,
   email: DEFAULT_APP_COLOR, crm: DEFAULT_APP_COLOR, contacts: DEFAULT_APP_COLOR,
   store: DEFAULT_APP_COLOR, calendar: DEFAULT_APP_COLOR, tasks: DEFAULT_APP_COLOR,
-  demurrage: DEFAULT_APP_COLOR, cargotracker: DEFAULT_APP_COLOR,
+  demurrage: DEFAULT_APP_COLOR, cargotracker: DEFAULT_APP_COLOR, seal: DEFAULT_APP_COLOR,
 };
 
 export const ActiveAppContext = React.createContext<AppId | null>(null);

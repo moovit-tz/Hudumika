@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon.js';
 import { useVehicleMakes, useVehicleModels } from '../hooks/useVehicleMakeModel.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { showAlert } from '../lib/alert.js';
 
 // Rough mapping from this form's vehicle Type to NHTSA vPIC's vehicle-type
 // categories — used only to seed the Make picker with relevant suggestions.
@@ -42,7 +43,7 @@ export const TrackingNewVehicle: React.FC = () => {
 
   const handleSave = async () => {
     if (!form.name || !form.device_id) {
-      alert("Vehicle Name and Device ID are required.");
+      showAlert("Vehicle Name and Device ID are required.");
       return;
     }
     setSaving(true);
@@ -64,7 +65,7 @@ export const TrackingNewVehicle: React.FC = () => {
         navigate(`/tracking/vehicles/${res.id}`);
       }
     } catch (e: any) {
-      alert(e.message || "Error saving vehicle.");
+      showAlert(e.message || "Error saving vehicle.");
     } finally {
       setSaving(false);
     }

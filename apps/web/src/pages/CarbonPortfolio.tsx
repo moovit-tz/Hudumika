@@ -3,9 +3,13 @@ import { usePageSEO } from '../hooks/usePageSEO.js';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip,
 } from 'chart.js';
+import type { DateRange } from 'react-day-picker';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Button } from '../components/ui/button.js';
+import { DateRangePicker } from '../components/ui/date-picker.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { exportCsv, ExportButton, StatTile, DataTable, ClickableBarChart } from '../components/AnalyticsKit.js';
 import type { ColumnDef } from '../components/AnalyticsKit.js';
 import type { CarbonPortfolioResponse, CarbonModeBreakdown, CarbonCustomerBreakdown } from '@hudumika/types';
@@ -29,12 +33,17 @@ export const CarbonPortfolio: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [tableOpen, setTableOpen] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiFetch('/v1/analytics/carbon');
+      const params = new URLSearchParams();
+      if (dateRange?.from) params.set('date_from', dateRange.from.toISOString());
+      if (dateRange?.to) params.set('date_to', dateRange.to.toISOString());
+      const qs = params.toString();
+      const res = await apiFetch(`/v1/analytics/carbon${qs ? `?${qs}` : ''}`);
       setData(res);
       setLastUpdated(new Date());
     } catch (err: any) {
@@ -42,7 +51,7 @@ export const CarbonPortfolio: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dateRange]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -56,6 +65,11 @@ export const CarbonPortfolio: React.FC = () => {
     ['Customer', 'CO2 (kg)', 'Credits (est.)', 'Shipments'],
     data.by_customer.map(c => [c.customer_name, c.co2_kg, c.credits, c.shipment_count]),
   );
+  const exportMonthCsv = () => data && exportCsv(
+    'carbon-by-month.csv',
+    ['Month', 'CO2 (kg)', 'Credits (est.)', 'Shipments'],
+    data.by_month.map(m => [fmtMonth(m.month), m.co2_kg, m.credits, m.shipment_count]),
+  );
 
   const customerColumns: ColumnDef<CarbonCustomerBreakdown>[] = [
     { key: 'customer', label: 'Customer', sortValue: c => c.customer_name, render: c => <strong>{c.customer_name}</strong> },
@@ -67,6 +81,13 @@ export const CarbonPortfolio: React.FC = () => {
   const monthLabels = data?.by_month.map(m => fmtMonth(m.month)) ?? [];
   const monthValues = data?.by_month.map(m => m.co2_kg) ?? [];
 
+  // Real per-month trend data for the KPI card sparklines — only shown once
+  // there are at least 2 months to actually trace a trend across (a single
+  // point isn't a trend, and there's no real data to fabricate one from).
+  const hasMonthlyTrend = (data?.by_month.length ?? 0) >= 2;
+  const emissionsBars = hasMonthlyTrend ? data!.by_month.map(m => m.co2_kg) : undefined;
+  const creditsBars   = hasMonthlyTrend ? data!.by_month.map(m => m.credits) : undefined;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
@@ -74,9 +95,9 @@ export const CarbonPortfolio: React.FC = () => {
         display: 'flex', alignItems: 'center', gap: 12, minHeight: 60, padding: '10px 20px',
         background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0,
       }}>
-        <div style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Icon name="globe" size={18} color="var(--green)" strokeWidth={1.75} />
-        </div>
+        <FeaturedIcon variant="success" size="sm" shape="square">
+          <Icon name="globe" size={18} strokeWidth={1.75} />
+        </FeaturedIcon>
         <div>
           <h1 style={{ fontSize: 17, fontWeight: 700, color: 'var(--navy)', lineHeight: 1.2 }}>Carbon Portfolio</h1>
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>
@@ -84,19 +105,17 @@ export const CarbonPortfolio: React.FC = () => {
           </div>
         </div>
         <div style={{ flex: 1 }} />
-        <button type="button" className="btn btn-secondary btn-sm" onClick={load} title="Refresh data" disabled={loading}>
-          <Icon name="refresh" size={13} style={{ marginRight: 5, verticalAlign: 'middle' }} />
+        <DateRangePicker range={dateRange} onChange={setDateRange} placeholder="All time" />
+        <Button variant="outline" size="sm" onClick={load} title="Refresh data" disabled={loading}>
+          <Icon name="refresh" size={13} />
           Refresh
-        </button>
+        </Button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
-        <div style={{
-          border: '1px solid var(--border)', borderRadius: 16, background: 'var(--white)',
-          boxShadow: '0 1px 2px rgba(15,23,42,0.04)', padding: 24,
-        }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {error && (
-            <div style={{ padding: 16, background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--red)', borderRadius: 6, marginBottom: 20 }}>
+            <div style={{ padding: 16, background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--red)', borderRadius: 'var(--r)' }}>
               {error}
             </div>
           )}
@@ -104,7 +123,7 @@ export const CarbonPortfolio: React.FC = () => {
           {/* Not-a-tradeable-credit disclosure — this is an internal GLEC-based estimate,
               not a Gold Standard/Verra registered offset. Shown once, up top, so it can't
               be missed or mistaken for something sellable. */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, marginBottom: 20, fontSize: 12.5, color: 'var(--ink2)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink2)' }}>
             <Icon name="alertTriangle" size={15} color="var(--gold)" strokeWidth={1.75} style={{ flexShrink: 0, marginTop: 1 }} />
             <span>Internal ESG estimate (GLEC v3.2 / ISO 14083 methodology) computed per shipment from route distance, cargo weight, and transport mode. Not a registry-issued or tradeable carbon credit.</span>
           </div>
@@ -117,7 +136,7 @@ export const CarbonPortfolio: React.FC = () => {
               sub1Label: 'AVG / SHIPMENT', sub1Value: `${(data?.avg_co2_per_shipment_kg ?? 0).toLocaleString('en')} kg`,
               sub2Label: 'SHIPMENTS CALC.', sub2Value: String(data?.calculated_shipment_count ?? 0),
               icon: 'trendingUp',
-              bars: spark(97, 15, 'up'), barColor: 'var(--red-l)', barHighlight: 'var(--red)',
+              bars: emissionsBars, barColor: 'var(--red-l)', barHighlight: 'var(--red)',
               onMenuClick: load, menuTitle: 'Refresh emissions data',
             },
             {
@@ -127,7 +146,7 @@ export const CarbonPortfolio: React.FC = () => {
               sub1Label: 'MODES TRACKED', sub1Value: String(data?.by_mode.length ?? 0),
               sub2Label: 'CUSTOMERS',      sub2Value: String(data?.by_customer.length ?? 0),
               icon: 'checkCircle',
-              bars: spark(98, 15, 'up'), barColor: 'var(--green-l)', barHighlight: 'var(--green)',
+              bars: creditsBars, barColor: 'var(--green-l)', barHighlight: 'var(--green)',
               onMenuClick: load, menuTitle: 'Refresh credits data',
             },
             {
@@ -138,7 +157,9 @@ export const CarbonPortfolio: React.FC = () => {
               trend: 0,
               sub1Label: 'NOT YET CALCULATED', sub1Value: String(data?.uncalculated_shipment_count ?? 0),
               icon: 'package',
-              bars: spark(99, 15, 'flat'), barColor: 'var(--blue-l)', barHighlight: 'var(--blue)',
+              // No sparkline: coverage isn't tracked per-month by the API, so
+              // there's no real trend data to show (not fabricating one).
+              barHighlight: 'var(--blue)',
               onMenuClick: load, menuTitle: 'Refresh coverage data',
             },
           ]} />
@@ -148,15 +169,15 @@ export const CarbonPortfolio: React.FC = () => {
               Loading carbon portfolio…
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 32, marginTop: 28 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
 
               {/* ── By mode ── */}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                    <div style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(37,99,235,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name="truck" size={14} color="#2563eb" strokeWidth={1.75} />
-                    </div>
+                    <FeaturedIcon variant="info" size="sm" shape="square">
+                      <Icon name="truck" size={14} strokeWidth={1.75} />
+                    </FeaturedIcon>
                     <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>Emissions by Transport Mode</h2>
                   </div>
                   <ExportButton onClick={exportModeCsv} />
@@ -184,20 +205,31 @@ export const CarbonPortfolio: React.FC = () => {
               {/* ── Trend by month ── */}
               {data && data.by_month.length > 0 && (
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 16 }}>
-                    <div style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(217,119,6,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name="clock" size={14} color="#d97706" strokeWidth={1.75} />
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                      <FeaturedIcon variant="warning" size="sm" shape="square">
+                        <Icon name="clock" size={14} strokeWidth={1.75} />
+                      </FeaturedIcon>
+                      <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>Monthly Trend</h2>
                     </div>
-                    <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>Monthly Trend</h2>
+                    {hasMonthlyTrend && <ExportButton onClick={exportMonthCsv} />}
                   </div>
-                  <div className="card">
-                    <ClickableBarChart
-                      labels={monthLabels}
-                      values={monthValues}
-                      barColors={monthLabels.map(() => 'rgba(20,184,166,.75)')}
-                      yLabel="CO₂ (kg)"
-                    />
-                  </div>
+                  {hasMonthlyTrend ? (
+                    <div className="card">
+                      <ClickableBarChart
+                        labels={monthLabels}
+                        values={monthValues}
+                        barColors={monthLabels.map(() => 'rgba(20,184,166,.75)')}
+                        yLabel="CO₂ (kg)"
+                      />
+                    </div>
+                  ) : (
+                    <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink3)', fontSize: 13 }}>
+                      <Icon name="info" size={15} strokeWidth={1.75} style={{ flexShrink: 0 }} />
+                      Only {data.by_month.length} month of data recorded so far ({fmtMonth(data.by_month[0].month)}: {data.by_month[0].co2_kg.toLocaleString('en')} kg) —
+                      a trend needs at least two months to compare.
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -205,9 +237,9 @@ export const CarbonPortfolio: React.FC = () => {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                    <div style={{ width: 26, height: 26, borderRadius: 7, background: 'rgba(124,58,237,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name="users" size={14} color="#7c3aed" strokeWidth={1.75} />
-                    </div>
+                    <FeaturedIcon variant="brand" size="sm" shape="square">
+                      <Icon name="users" size={14} strokeWidth={1.75} />
+                    </FeaturedIcon>
                     <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>Emissions by Customer</h2>
                   </div>
                   <ExportButton onClick={exportCustomerCsv} />

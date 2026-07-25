@@ -29,6 +29,9 @@ import { FreightBookingsPage } from '../pages/FreightBookingsPage.js';
 import { CreateFreightBookingPage } from '../pages/CreateFreightBookingPage.js';
 import { WorkflowsPage }     from '../pages/WorkflowsPage.js';
 import { WorkflowBuilder }   from '../pages/WorkflowBuilder.js';
+import { ClearOSDeclarations } from '../pages/ClearOSDeclarations.js';
+import { ClearOSDeclarationNew } from '../pages/ClearOSDeclarationNew.js';
+import { ClearOSDeclarationDetail } from '../pages/ClearOSDeclarationDetail.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -40,6 +43,7 @@ const NAV: SidebarSection[] = [
     title: 'OPERATIONS',
     items: [
       { label: 'Ops Command',   icon: 'monitor',    path: '/clearos/ops' },
+      { label: 'Declarations',  icon: 'fileText',   path: '/clearos/declarations' },
       { label: 'Workflows',     icon: 'gitBranch',  path: '/clearos/workflows' },
       { label: 'Landed Cost',   icon: 'package',    path: '/clearos/customs-tools' },
       { label: 'Compliance',    icon: 'shield',     path: '/clearos/compliance', exact: true, children: [
@@ -96,7 +100,9 @@ export function ClearOSShell() {
                 <Route path="clearance/:id/edit" element={<RequireRoles roles={OPS_ROLES}><ShipmentEdit /></RequireRoles>} />
                 <Route path="tracker"         element={<Navigate to="/cargotracker/track" replace />} />
                 <Route path="demurrage"       element={<Navigate to="/cargotracker/demurrage" replace />} />
-                <Route path="declarations"    element={<Navigate to="/clearos/ops" replace />} />
+                <Route path="declarations"    element={<RequireRoles roles={[...OPS_ROLES, 'FINANCE']}><ClearOSDeclarations /></RequireRoles>} />
+                <Route path="declarations/new" element={<RequireRoles roles={OPS_ROLES}><ClearOSDeclarationNew /></RequireRoles>} />
+                <Route path="declarations/:id" element={<RequireRoles roles={[...OPS_ROLES, 'FINANCE']}><ClearOSDeclarationDetail /></RequireRoles>} />
                 <Route path="consignments"    element={<Navigate to="/tracking/shipments" replace />} />
                 <Route path="customs-tools"   element={<RequireRoles roles={OPS_ROLES}><LandedCostPage /></RequireRoles>} />
                 <Route path="quick-compliance" element={<Navigate to="/clearos/compliance/quick" replace />} />

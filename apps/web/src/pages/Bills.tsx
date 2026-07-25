@@ -10,6 +10,7 @@ import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { showAlert } from '../lib/alert.js';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -579,7 +580,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
         </div>
         <div style={{ padding:'14px 24px', borderTop:'1px solid var(--border)', display:'flex', gap:8, justifyContent:'flex-end' }}>
           <button type="button" title="Cancel" onClick={onClose} style={{ padding:'8px 18px', border:'1px solid var(--border)', borderRadius: 9, background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)' }}>Cancel</button>
-          <button type="button" title="Save as draft" onClick={() => { if (!f.supplier_id || !f.due_date) { alert('Supplier and due date are required.'); return; } onSave(f); }}
+          <button type="button" title="Save as draft" onClick={() => { if (!f.supplier_id || !f.due_date) { showAlert('Supplier and due date are required.'); return; } onSave(f); }}
             style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 20px', border:'none', borderRadius: 9, background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13 }}>
             <Icon name="save" size={13} /> {initial ? 'Update Bill' : 'Save Bill'}
           </button>
@@ -686,7 +687,7 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
         </div>
         <div style={{ padding:'14px 22px', borderTop:'1px solid var(--border)', display:'flex', gap:8, justifyContent:'flex-end' }}>
           <button type="button" title="Cancel" onClick={onClose} style={{ padding:'8px 18px', border:'1px solid var(--border)', borderRadius: 9, background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)' }}>Cancel</button>
-          <button type="button" title="Save recurring" onClick={() => { if (!f.name||!f.supplier_id||!f.next_due) { alert('Name, supplier and next due date are required.'); return; } onSave(f); }}
+          <button type="button" title="Save recurring" onClick={() => { if (!f.name||!f.supplier_id||!f.next_due) { showAlert('Name, supplier and next due date are required.'); return; } onSave(f); }}
             style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 20px', border:'none', borderRadius: 9, background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13 }}>
             <Icon name="save" size={13} /> {initial ? 'Update' : 'Create'}
           </button>

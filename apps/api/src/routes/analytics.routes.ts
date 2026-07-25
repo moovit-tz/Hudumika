@@ -487,16 +487,20 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
    */
   fastify.get('/carbon', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SENIOR') }, async (request, reply) => {
     const user = request.user;
+    const { date_from, date_to } = request.query as { date_from?: string; date_to?: string };
 
     return withTenant(user.tenant_id, async (trx) => {
-      const rows = await trx
+      let query = trx
         .selectFrom('shipment_cases as sc')
         .leftJoin('customers as c', 'c.id', 'sc.customer_id')
         .select([
           'sc.id', 'sc.type', 'sc.customer_id', 'c.name as customer_name',
           'sc.co2_emissions_kg', 'sc.carbon_credits_saved', 'sc.created_at',
         ])
-        .where('sc.deleted_at', 'is', null)
+        .where('sc.deleted_at', 'is', null);
+      if (date_from) query = query.where('sc.created_at', '>=', new Date(date_from));
+      if (date_to) query = query.where('sc.created_at', '<=', new Date(date_to));
+      const rows = await query
         .execute();
 
       const calculated = rows.filter((r) => r.co2_emissions_kg != null);

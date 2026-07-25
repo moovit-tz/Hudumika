@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { showConfirm } from '../lib/confirm.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Doc {
@@ -108,7 +109,7 @@ export const TrackingDocuments: React.FC = () => {
   }
 
   async function remove(id: string) {
-    if (!confirm('Remove this document?')) return;
+    if (!(await showConfirm('Remove this document?', { confirmLabel: 'Remove' }))) return;
     await apiFetch(`/v1/tracking/documents/${id}`, { method: 'DELETE' });
     reload();
   }

@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/api.js';
 import { formatDashedDigits9 } from '../lib/complyBrelaFormat.js';
 import type { Customer } from '@hudumika/types';
 import './ComplyOS.css';
+import { showConfirm } from '../lib/confirm.js';
 
 type EditableField = 'name' | 'contact_name' | 'email' | 'phone_wa' | 'tax_id' | 'entity_type' | 'registration_status' | 'registered_address' | 'incorporation_date';
 
@@ -92,7 +93,7 @@ export function ComplyCompanyDirectory() {
   };
 
   const handleDelete = async (company: Customer) => {
-    if (!confirm(`Delete ${company.name}? This cannot be undone.`)) return;
+    if (!(await showConfirm(`Delete ${company.name}? This cannot be undone.`, { confirmLabel: 'Delete' }))) return;
     try {
       await apiFetch(`/v1/customers/${company.id}`, { method: 'DELETE' });
       setCompanies(cs => cs.filter(c => c.id !== company.id));

@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
 import './SupportSettings.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { showConfirm } from '../lib/confirm.js';
 
 type RuleType = 'auto_assign' | 'sla_escalation' | 'status_automation' | 'notification_trigger';
 
@@ -197,7 +198,7 @@ export const SupportSettings: React.FC = () => {
   }
 
   async function handleDelete(rule: Rule) {
-    if (!confirm(`Delete rule "${rule.name}"?`)) return;
+    if (!(await showConfirm(`Delete rule "${rule.name}"?`, { confirmLabel: 'Delete' }))) return;
     try {
       await apiFetch(`/v1/support/rules/${rule.id}`, { method: 'DELETE' });
       setRules(prev => prev.filter(r => r.id !== rule.id));

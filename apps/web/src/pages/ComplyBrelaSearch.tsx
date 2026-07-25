@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Badge } from '../components/ui/badge.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { getHudumikaFooterHtml } from '../lib/watermark.js';
 import { apiFetch } from '../lib/api.js';
 import { formatDashedDigits9, badgeVariantForStatus } from '../lib/complyBrelaFormat.js';
@@ -174,12 +177,19 @@ export function ComplyBrelaSearch() {
   // results get a freshly-generated `id` on every search.
   const [importedRegNumbers, setImportedRegNumbers] = useState<Set<string>>(new Set());
   const [importingRegNumber, setImportingRegNumber] = useState<string | null>(null);
+  const [resultsView, setResultsView] = useState<'grid' | 'list'>('grid');
+  const [shareStatus, setShareStatus] = useState<string | null>(null);
   // Tracks whether the last search actually reached live BRELA data, so the
   // UI can be honest about it instead of silently mixing local reference
   // records in as if they were live results — BRELA has no public API and
   // its portal sits behind a WAF that blocks most non-browser requests, so
   // 'reference' is the expected outcome in most environments, not a bug.
   const [searchStatus, setSearchStatus] = useState<'idle' | 'live' | 'reference'>('idle');
+  // Google-results-style layout: the full step-by-step form is only shown
+  // up front. Once a search runs, it collapses to a single compact search
+  // bar pinned above the results — clicking that bar's criteria chip (or
+  // Clear) brings the full form back.
+  const [formExpanded, setFormExpanded] = useState(true);
 
   // Live / Captured Search Results (supports search by EITHER name OR incorporation number)
   const capturedResults = useMemo(() => {
@@ -218,9 +228,9 @@ export function ComplyBrelaSearch() {
     return results.filter(r => !importedRegNumbers.has(r.reg_number));
   }, [liveSearchResults, capturedResults, importedRegNumbers]);
 
-  const handleLiveSearch = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const runSearch = async () => {
     setSearching(true);
+    setFormExpanded(false);
 
     try {
       const res = await apiFetch('/v1/comply/brela-search', {
@@ -266,6 +276,19 @@ export function ComplyBrelaSearch() {
     }
   };
 
+  const handleLiveSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    runSearch();
+  };
+
+  // Both detail inputs live inside a <form onSubmit={handleLiveSearch}>, so
+  // pressing Enter once they're non-empty already triggers a real submit via
+  // the browser's native single-input implicit-submission behavior — no
+  // extra key handler needed (and adding one that also calls runSearch()
+  // directly double-fires the search, since preventDefault() on keydown
+  // doesn't reliably suppress that native submission).
+  const isSearchReady = !searching && !!searchBy && (searchBy === 'number' ? !!incNumber : !!companyName.trim());
+
   const handleClearForm = () => {
     setObjectType(null);
     setSearchBy(null);
@@ -273,6 +296,7 @@ export function ComplyBrelaSearch() {
     setCompanyName('');
     setLiveSearchResults(null);
     setSearchStatus('idle');
+    setFormExpanded(true);
   };
 
   const handleSelectObjectType = (type: 'Company' | 'Business name') => {
@@ -290,6 +314,10 @@ export function ComplyBrelaSearch() {
 
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIncNumber(e.target.value.replace(/\D/g, '').slice(0, 9));
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCompanyName(e.target.value);
   };
 
   // Atomically creates a draft company profile (customers table, holding
@@ -325,6 +353,17 @@ export function ComplyBrelaSearch() {
     } finally {
       setImportingRegNumber(null);
     }
+  };
+
+  const handleShareEntity = async (entity: BrelaEntity) => {
+    const link = `${window.location.origin}/complyos/brela-search?reg=${encodeURIComponent(entity.reg_number)}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setShareStatus(`Link to "${entity.name}" copied to clipboard.`);
+    } catch {
+      setShareStatus(link);
+    }
+    setTimeout(() => setShareStatus(null), 4000);
   };
 
   const handlePrintCertificate = (entity: BrelaEntity) => {
@@ -435,132 +474,80 @@ export function ComplyBrelaSearch() {
         </div>
       )}
 
-      {/* ── BRELA Search Form (Replicating BRELA Official Form) ── */}
-      <form onSubmit={handleLiveSearch} className="comply-card comply-mb-24">
-        <div className="comply-form-hero">
-          <div className="comply-form-hero-icon">
-            <Icon name="filter" size={20} color="var(--comply)" />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div className="comply-form-hero-title">Search the BRELA Registry</div>
-            <div className="comply-form-hero-sub">Tanzania BRELA Public Registry — Online Registration System (ORS)</div>
-          </div>
-        </div>
+      {/* ── BRELA Search Form — numbered step rows, each with an eyebrow +
+          question on the left and its control (dropdown or text field) on
+          the right; later rows read "Pending" until their prerequisite step
+          is answered. Only shown up front; collapses to the compact bar
+          below once a search runs. ── */}
+      {formExpanded && (
+        <BrelaStepRows
+          objectType={objectType}
+          searchBy={searchBy}
+          incNumber={incNumber}
+          companyName={companyName}
+          searching={searching}
+          isSearchReady={isSearchReady}
+          onSelectObjectType={handleSelectObjectType}
+          onSelectSearchBy={handleSelectSearchBy}
+          onNumberChange={handleNumberChange}
+          onNameChange={handleNameChange}
+          onSearch={runSearch}
+          onClear={handleClearForm}
+        />
+      )}
 
-        <div className="comply-form-body" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div className="comply-form-hint">
-            <Icon name="info" size={13} />
-            <span>Pick an object type, choose how you want to search, then enter the one relevant detail.</span>
-          </div>
-
-          <BrelaStepper
-            objectType={objectType}
-            searchBy={searchBy}
-            hasValue={searchBy === 'number' ? incNumber.length > 0 : companyName.trim().length > 0}
-          />
-
-          {/* Step 1 — Object type */}
-          <div className="comply-field-row">
-            <label className="comply-step-label">Object type</label>
-            <div className="comply-tile-row">
-              <div
-                className={`comply-tile${objectType === 'Company' ? ' comply-tile--active' : ''}`}
-                onClick={() => handleSelectObjectType('Company')}
-              >
-                <div className="comply-tile-icon">
-                  <Icon name="building" size={20} color={objectType === 'Company' ? 'var(--comply)' : 'var(--ink3)'} />
-                </div>
-                <div>
-                  <div className="comply-tile-title">Company</div>
-                  <div className="comply-tile-sub">Registered under the Companies Act</div>
-                </div>
-              </div>
-              <div
-                className={`comply-tile${objectType === 'Business name' ? ' comply-tile--active' : ''}`}
-                onClick={() => handleSelectObjectType('Business name')}
-              >
-                <div className="comply-tile-icon">
-                  <Icon name="briefcase" size={20} color={objectType === 'Business name' ? 'var(--comply)' : 'var(--ink3)'} />
-                </div>
-                <div>
-                  <div className="comply-tile-title">Business Name</div>
-                  <div className="comply-tile-sub">Sole proprietorship or partnership</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Step 2 — Search by, only once an object type is chosen */}
-          {objectType && (
-            <div className="comply-field-row">
-              <label className="comply-step-label">Search by</label>
-              <div className="comply-choice-row">
-                <div
-                  className={`comply-choice-card${searchBy === 'number' ? ' comply-choice-card--active' : ''}`}
-                  onClick={() => handleSelectSearchBy('number')}
-                >
-                  <Icon name="hash" size={16} color={searchBy === 'number' ? 'var(--comply)' : 'var(--ink3)'} />
-                  <span>{objectType === 'Business name' ? 'Registration number' : 'Incorporation number'}</span>
-                </div>
-                <div
-                  className={`comply-choice-card${searchBy === 'name' ? ' comply-choice-card--active' : ''}`}
-                  onClick={() => handleSelectSearchBy('name')}
-                >
-                  <Icon name="fileText" size={16} color={searchBy === 'name' ? 'var(--comply)' : 'var(--ink3)'} />
-                  <span>{objectType === 'Business name' ? 'Business Name' : 'Company name'}</span>
-                </div>
-              </div>
-            </div>
+      {/* ── Compact Google-results-style search bar — replaces the full form
+          once a search has run. The criteria chip re-expands the form;
+          the input + submit let you tweak and re-search in place. ── */}
+      {!formExpanded && (
+        <form onSubmit={handleLiveSearch} className="comply-search-compact">
+          <FeaturedIcon variant="brand" size="sm" shape="square" className="comply-search-compact-icon">
+            <Icon name="search" size={15} />
+          </FeaturedIcon>
+          <button type="button" className="comply-search-compact-chip" onClick={() => setFormExpanded(true)} title="Change object type or search field">
+            <span>{objectType === 'Business name' ? 'Business Name' : 'Company'}</span>
+            <Icon name="chevronRight" size={11} />
+            <span>{searchBy === 'number' ? (objectType === 'Business name' ? 'Reg. number' : 'Inc. number') : (objectType === 'Business name' ? 'Business Name' : 'Company name')}</span>
+            <Icon name="edit" size={11} />
+          </button>
+          {searchBy === 'number' ? (
+            <input
+              type="text"
+              className="comply-search-compact-input"
+              value={incNumber}
+              onChange={handleNumberChange}
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={9}
+              placeholder="e.g. 137644169"
+              autoFocus
+            />
+          ) : (
+            <input
+              type="text"
+              className="comply-search-compact-input"
+              value={companyName}
+              onChange={e => setCompanyName(e.target.value)}
+              placeholder="e.g. ALEKA HOLDINGS LIMITED"
+              autoFocus
+            />
           )}
-
-          {/* Step 3 — the single relevant input, only once a search-by method is chosen */}
-          {searchBy === 'number' && (
-            <div className="comply-field-row">
-              <label className="comply-field-label">
-                {objectType === 'Business name' ? 'Registration number' : 'Incorporation number'}
-              </label>
-              <input
-                type="text"
-                className="input-field"
-                value={incNumber}
-                onChange={handleNumberChange}
-                inputMode="numeric"
-                pattern="[0-9]*"
-                maxLength={9}
-                placeholder="e.g. 137644169"
-              />
-            </div>
-          )}
-          {searchBy === 'name' && (
-            <div className="comply-field-row">
-              <label className="comply-field-label">
-                {objectType === 'Business name' ? 'Business Name' : 'Company name'}
-              </label>
-              <input
-                type="text"
-                className="input-field"
-                value={companyName}
-                onChange={e => setCompanyName(e.target.value)}
-                placeholder="e.g. ALEKA HOLDINGS LIMITED"
-              />
-            </div>
-          )}
-
-          {/* Action Buttons — no "Back": BRELA Search is a sidebar destination,
-              not a drill-down flow, so a stack-navigation Back button doesn't
-              apply here (History, above, is the actual related destination). */}
-          <div className="comply-action-row comply-form-actions" style={{ paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-            <button type="submit" className="comply-btn-primary" disabled={searching || !searchBy || (searchBy === 'number' ? !incNumber : !companyName)}>
-              <Icon name="search" size={15} />
-              <span>{searching ? 'Searching BRELA…' : 'Search BRELA'}</span>
-            </button>
-            <button type="button" className="comply-btn-secondary" onClick={handleClearForm} disabled={searching}>
-              <Icon name="refresh" size={14} />
-              <span>Clear</span>
-            </button>
-          </div>
-        </div>
-      </form>
+          <button
+            type="submit"
+            className="comply-search-compact-submit"
+            disabled={!isSearchReady}
+            title="Search BRELA"
+          >
+            {searching
+              ? <span style={{ display: 'inline-flex', animation: 'spin 0.8s linear infinite' }}><Icon name="refresh" size={16} /></span>
+              : <Icon name="search" size={16} />}
+          </button>
+          <button type="button" className="comply-btn-secondary comply-btn-sm comply-search-compact-clear" onClick={handleClearForm} title="Start a new search">
+            <Icon name="refresh" size={13} />
+            <span>Clear</span>
+          </button>
+        </form>
+      )}
 
       {/* ── Results — only appear after an actual search, cards not a table ── */}
       {searchStatus !== 'idle' && (
@@ -577,6 +564,25 @@ export function ComplyBrelaSearch() {
               <span><strong>Showing local reference data</strong> — the BRELA ORS portal didn't return live results for this query (it has no public API and blocks most automated requests). The records below are Hudumika's own reference set, not live BRELA data. Use "Open BRELA ORS Portal" above to search the official site directly.</span>
             </div>
           )}
+          {shareStatus && (
+            <div className="comply-note comply-note--success comply-note--icon">
+              <Icon name="checkCircle" size={15} />
+              <span>{shareStatus}</span>
+            </div>
+          )}
+
+          {displayResults.length > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+              <div className="comply-view-toggle">
+                <button type="button" title="Grid view" className={`comply-view-btn${resultsView === 'grid' ? ' active' : ''}`} onClick={() => setResultsView('grid')}>
+                  <Icon name="grid" size={15} />
+                </button>
+                <button type="button" title="List view" className={`comply-view-btn${resultsView === 'list' ? ' active' : ''}`} onClick={() => setResultsView('list')}>
+                  <Icon name="list" size={15} />
+                </button>
+              </div>
+            </div>
+          )}
 
           {displayResults.length === 0 ? (
             <div className="comply-card">
@@ -584,14 +590,38 @@ export function ComplyBrelaSearch() {
                 No matching BRELA ORS record found for <strong>"{incNumber || companyName}"</strong>.
               </div>
             </div>
-          ) : (
+          ) : resultsView === 'grid' ? (
             <div className="comply-result-grid">
+              {/* Sponsored slot — same card shape as an organic result, clearly
+                  labeled so it's never mistaken for a real BRELA record, with
+                  a natural in-context CTA (engaging a filing agent through
+                  Legal) rather than a fabricated third-party ad. */}
+              <div className="comply-result-card comply-result-card--sponsored">
+                <div className="comply-result-hdr">
+                  <FeaturedIcon variant="warning" size="sm" shape="square">
+                    <Icon name="briefcase" size={16} />
+                  </FeaturedIcon>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="comply-result-name">Registering a new company?</div>
+                  </div>
+                  <Badge variant="warning">Sponsored</Badge>
+                </div>
+                <div className="comply-result-address">
+                  Engage a licensed partner firm to handle incorporation, name reservation, and BRELA filings end-to-end.
+                </div>
+                <div className="comply-result-actions">
+                  <button type="button" className="comply-btn-primary comply-btn-sm" style={{ flex: 1 }} onClick={() => navigate('/complyos/legal')}>
+                    <Icon name="externalLink" size={13} />
+                    <span>Talk to a Filing Agent</span>
+                  </button>
+                </div>
+              </div>
               {displayResults.map(entity => (
                 <div className="comply-result-card" key={entity.id}>
                   <div className="comply-result-hdr">
-                    <div className="comply-result-icon">
-                      <Icon name={entity.type === 'Business Name' ? 'briefcase' : 'building'} size={17} color="var(--comply)" />
-                    </div>
+                    <FeaturedIcon variant="brand" size="sm" shape="square">
+                      <Icon name={entity.type === 'Business Name' ? 'briefcase' : 'building'} size={16} />
+                    </FeaturedIcon>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="comply-result-name">{entity.name}</div>
                       <div className="comply-result-tin">
@@ -608,6 +638,7 @@ export function ComplyBrelaSearch() {
                     <button
                       type="button"
                       className="comply-btn-secondary comply-btn-sm"
+                      style={{ flex: 1 }}
                       onClick={() => handleImportToVault(entity)}
                       disabled={importingRegNumber === entity.reg_number}
                     >
@@ -616,12 +647,84 @@ export function ComplyBrelaSearch() {
                         : <Icon name="plus" size={13} />}
                       <span>{importingRegNumber === entity.reg_number ? 'Importing…' : 'Import to ComplyOS'}</span>
                     </button>
-                    <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => handlePrintCertificate(entity)} title="Print BRELA Summary">
-                      <Icon name="printer" size={13} />
+                    <button type="button" className="comply-btn-secondary comply-result-action-icon" onClick={() => handleShareEntity(entity)} title="Share">
+                      <Icon name="copy" size={14} />
+                    </button>
+                    <button type="button" className="comply-btn-secondary comply-result-action-icon" onClick={() => handlePrintCertificate(entity)} title="Print BRELA Summary">
+                      <Icon name="printer" size={14} />
                     </button>
                   </div>
                 </div>
               ))}
+            </div>
+          ) : (
+            <div className="comply-card">
+              <div className="comply-card-body">
+                <table className="comply-table">
+                  <thead>
+                    <tr>
+                      <th>Company</th><th>Agency</th><th>TIN</th><th>Status</th><th>Registered Address</th><th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="comply-result-row--sponsored">
+                      <td colSpan={4}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <FeaturedIcon variant="warning" size="sm" shape="square">
+                            <Icon name="briefcase" size={15} />
+                          </FeaturedIcon>
+                          <div>
+                            <div className="comply-table-name">Registering a new company?</div>
+                            <div className="comply-table-sub">Engage a licensed partner firm to handle incorporation, name reservation, and BRELA filings end-to-end.</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td><Badge variant="warning">Sponsored</Badge></td>
+                      <td>
+                        <button type="button" className="comply-btn-primary comply-btn-sm" onClick={() => navigate('/complyos/legal')}>
+                          <Icon name="externalLink" size={13} />
+                          <span>Talk to a Filing Agent</span>
+                        </button>
+                      </td>
+                    </tr>
+                    {displayResults.map(entity => (
+                      <tr key={entity.id}>
+                        <td className="comply-table-name">{entity.name}</td>
+                        <td className="comply-td-clamp">
+                          <span className="comply-agency" style={{ display: 'inline-flex' }} title={entity.type}>
+                            <Icon name={entity.type === 'Business Name' ? 'briefcase' : 'building'} size={12} />
+                            {entity.type}
+                          </span>
+                        </td>
+                        <td className="comply-td-mono">{formatDashedDigits9(entity.reg_number)}</td>
+                        <td><span className={`comply-badge comply-badge--${badgeVariantForStatus(entity.status)}`}>{entity.status}</span></td>
+                        <td className="comply-td-muted comply-td-clamp" title={entity.registered_office}>{entity.registered_office}</td>
+                        <td>
+                          <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                            <button
+                              type="button"
+                              className="comply-btn-secondary comply-btn-sm"
+                              onClick={() => handleImportToVault(entity)}
+                              disabled={importingRegNumber === entity.reg_number}
+                            >
+                              {importingRegNumber === entity.reg_number
+                                ? <span style={{ display: 'inline-flex', animation: 'spin 0.8s linear infinite' }}><Icon name="refresh" size={13} /></span>
+                                : <Icon name="plus" size={13} />}
+                              <span>{importingRegNumber === entity.reg_number ? 'Importing…' : 'Import'}</span>
+                            </button>
+                            <button type="button" className="comply-btn-secondary comply-result-action-icon" onClick={() => handleShareEntity(entity)} title="Share">
+                              <Icon name="copy" size={14} />
+                            </button>
+                            <button type="button" className="comply-btn-secondary comply-result-action-icon" onClick={() => handlePrintCertificate(entity)} title="Print BRELA Summary">
+                              <Icon name="printer" size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </>
@@ -630,32 +733,104 @@ export function ComplyBrelaSearch() {
   );
 }
 
-/* ── Numbered progress stepper for the search form above ── */
-function BrelaStepper({ objectType, searchBy, hasValue }: {
+/* ── BRELA Search Form — numbered step rows. Each row pairs an eyebrow +
+   question on the left with its control on the right: a Select for the two
+   fixed-choice steps (object type, search-by — CLAUDE.md's mapping for a
+   short static option list), a live text field for the free-text detail
+   step. A row whose prerequisite isn't answered yet renders its control
+   disabled with a "Pending" placeholder instead of hiding the row, so the
+   full 3-step shape is visible from the start. ── */
+function BrelaStepRows({
+  objectType, searchBy, incNumber, companyName, searching, isSearchReady,
+  onSelectObjectType, onSelectSearchBy, onNumberChange, onNameChange, onSearch, onClear,
+}: {
   objectType: 'Company' | 'Business name' | null;
   searchBy: 'number' | 'name' | null;
-  hasValue: boolean;
+  incNumber: string;
+  companyName: string;
+  searching: boolean;
+  isSearchReady: boolean;
+  onSelectObjectType: (type: 'Company' | 'Business name') => void;
+  onSelectSearchBy: (by: 'number' | 'name') => void;
+  onNumberChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onNameChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSearch: () => void;
+  onClear: () => void;
 }) {
-  const steps = [
-    { label: 'Object Type', done: objectType !== null },
-    { label: 'Search By',   done: searchBy !== null },
-    { label: 'Details',     done: hasValue },
-  ];
-  const activeIndex = steps.findIndex(s => !s.done);
+  const detailValue = searchBy === 'number' ? incNumber : companyName;
+  const detailPlaceholder = searchBy === 'number' ? 'e.g. 137644169' : 'e.g. ALEKA HOLDINGS LIMITED';
 
   return (
-    <div className="comply-stepper">
-      {steps.map((step, i) => (
-        <React.Fragment key={step.label}>
-          <div className="comply-stepper-step">
-            <div className={`comply-stepper-circle${step.done ? ' comply-stepper-circle--done' : i === activeIndex ? ' comply-stepper-circle--active' : ''}`}>
-              {step.done ? <Icon name="check" size={13} color="#fff" strokeWidth={3} /> : i + 1}
+    <div className="comply-card comply-mb-24">
+      <div className="comply-form-body" style={{ paddingTop: 20 }}>
+        <div className="comply-step-rows">
+          <div className="comply-step-row">
+            <div className="comply-step-row-text">
+              <div className="comply-step-row-eyebrow">Step 1</div>
+              <div className="comply-step-row-question">What are you searching for?</div>
             </div>
-            <span className={`comply-stepper-label${i === activeIndex ? ' comply-stepper-label--active' : ''}`}>{step.label}</span>
+            <Select value={objectType ?? undefined} onValueChange={v => onSelectObjectType(v as 'Company' | 'Business name')}>
+              <SelectTrigger className="comply-step-row-control"><SelectValue placeholder="Choose one" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Company">Company</SelectItem>
+                <SelectItem value="Business name">Business Name</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          {i < steps.length - 1 && <div className={`comply-stepper-connector${step.done ? ' comply-stepper-connector--done' : ''}`} />}
-        </React.Fragment>
-      ))}
+
+          <div className={`comply-step-row${!objectType ? ' comply-step-row--disabled' : ''}`}>
+            <div className="comply-step-row-text">
+              <div className="comply-step-row-eyebrow">Step 2</div>
+              <div className="comply-step-row-question">How do you want to search?</div>
+            </div>
+            {objectType ? (
+              <Select value={searchBy ?? undefined} onValueChange={v => onSelectSearchBy(v as 'number' | 'name')}>
+                <SelectTrigger className="comply-step-row-control"><SelectValue placeholder="Choose one" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="number">{objectType === 'Business name' ? 'Registration number' : 'Incorporation number'}</SelectItem>
+                  <SelectItem value="name">{objectType === 'Business name' ? 'Business Name' : 'Company name'}</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <span className="comply-step-row-pending">Pending</span>
+            )}
+          </div>
+
+          <div className={`comply-step-row${!searchBy ? ' comply-step-row--disabled' : ''}`}>
+            <div className="comply-step-row-text">
+              <div className="comply-step-row-eyebrow">Step 3</div>
+              <div className="comply-step-row-question">Details</div>
+            </div>
+            {searchBy ? (
+              <input
+                type="text"
+                className="comply-step-row-control comply-step-row-input"
+                value={detailValue}
+                onChange={searchBy === 'number' ? onNumberChange : onNameChange}
+                onKeyDown={e => { if (e.key === 'Enter' && isSearchReady) { e.preventDefault(); onSearch(); } }}
+                inputMode={searchBy === 'number' ? 'numeric' : 'text'}
+                pattern={searchBy === 'number' ? '[0-9]*' : undefined}
+                maxLength={searchBy === 'number' ? 9 : undefined}
+                placeholder={detailPlaceholder}
+                autoFocus
+              />
+            ) : (
+              <span className="comply-step-row-pending">Pending</span>
+            )}
+          </div>
+        </div>
+
+        <div className="comply-action-row comply-form-actions" style={{ paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+          <button type="button" className="comply-btn-primary" disabled={!isSearchReady} onClick={onSearch}>
+            <Icon name="search" size={15} />
+            <span>{searching ? 'Searching BRELA…' : 'Search BRELA'}</span>
+          </button>
+          <button type="button" className="comply-btn-secondary" onClick={onClear} disabled={searching}>
+            <Icon name="refresh" size={14} />
+            <span>Clear</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

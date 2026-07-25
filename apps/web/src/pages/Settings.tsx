@@ -9,6 +9,8 @@ import { useLocale } from '../hooks/useLocale.js';
 import type { SupportedLocale } from '../i18n/index.js';
 import './Settings.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 
 // -- Settings API context ---------------------------------------------------
 interface SettingsCtxType { s: Record<string, any>; save: (key: string, data: Record<string, any>) => Promise<void> }
@@ -125,7 +127,7 @@ const SaveRow: React.FC<{ extra?: React.ReactNode; onSave?: () => void; saving?:
     {saved && <span className="s-save-ok"><Icon name="check" size={13} color="var(--green)" /> Saved</span>}
     {extra}
     <button type="button" className="btn btn-primary" onClick={onSave} disabled={saving}>
-      {saving ? 'Saving…' : 'Save Changes'}
+      {saving ? 'Savingï¿½' : 'Save Changes'}
     </button>
   </div>
 );
@@ -200,19 +202,19 @@ const CompanySection: React.FC = () => {
           </Select>
         </Field>
         <Field label="Company Description" full>
-          <textarea className="input-field s-resize-v" rows={3} value={f.desc} onChange={e => set('desc', e.target.value)} placeholder="Short description of your company…" />
+          <textarea className="input-field s-resize-v" rows={3} value={f.desc} onChange={e => set('desc', e.target.value)} placeholder="Short description of your companyï¿½" />
         </Field>
       </Card>
       <Card title="Document Branding" desc="Logo and favicon used on PDF invoices, quotes, and portal documents. Platform login and UI branding is managed separately by your platform administrator.">
-        <Field label="Company Logo" hint="Recommended: 400×100px PNG or SVG" full>
+        <Field label="Company Logo" hint="Recommended: 400ï¿½100px PNG or SVG" full>
           <label className={`s-upload${logoUrl ? ' s-upload--on' : ''}`}>
             {logoUrl
               ? <img src={logoUrl} alt="Logo preview" className="s-upload-preview" />
               : <div className="s-upload-ph s-upload-ph--lg">LOGO</div>
             }
             <div className="s-upload-info">
-              <div className={`s-upload-lbl${logoUrl ? ' s-upload-lbl--on' : ' s-upload-lbl--off'}`}>{logoUrl ? 'Logo uploaded — click to change' : 'Click to upload logo'}</div>
-              <div className="s-upload-hint">PNG, SVG or JPG — max 2 MB</div>
+              <div className={`s-upload-lbl${logoUrl ? ' s-upload-lbl--on' : ' s-upload-lbl--off'}`}>{logoUrl ? 'Logo uploaded ï¿½ click to change' : 'Click to upload logo'}</div>
+              <div className="s-upload-hint">PNG, SVG or JPG ï¿½ max 2 MB</div>
             </div>
             {logoUrl && (
               <button type="button" title="Remove logo" onClick={e => { e.preventDefault(); setLogoUrl(null); }} className="s-upload-rm">
@@ -234,15 +236,15 @@ const CompanySection: React.FC = () => {
             </div>
           </Field>
         )}
-        <Field label="Favicon" hint="512×512px · PNG, JPG, SVG or ICO">
+        <Field label="Favicon" hint="512ï¿½512px ï¿½ PNG, JPG, SVG or ICO">
           <label className={`s-upload s-upload--sm${faviconUrl ? ' s-upload--on' : ''}`}>
             {faviconUrl
               ? <img src={faviconUrl} alt="Favicon preview" className="s-upload-preview--sq" />
               : <div className="s-upload-ph s-upload-ph--sq">ICO</div>
             }
             <div className="s-upload-info">
-              <div className={`s-upload-lbl${faviconUrl ? ' s-upload-lbl--on' : ' s-upload-lbl--off'}`}>{faviconUrl ? 'Favicon uploaded — click to change' : 'Upload favicon'}</div>
-              <div className="s-upload-hint">512×512px · PNG, JPG, SVG or ICO</div>
+              <div className={`s-upload-lbl${faviconUrl ? ' s-upload-lbl--on' : ' s-upload-lbl--off'}`}>{faviconUrl ? 'Favicon uploaded ï¿½ click to change' : 'Upload favicon'}</div>
+              <div className="s-upload-hint">512ï¿½512px ï¿½ PNG, JPG, SVG or ICO</div>
             </div>
             {faviconUrl && (
               <button type="button" title="Remove favicon" onClick={e => { e.preventDefault(); setFaviconUrl(null); }} className="s-upload-rm">
@@ -341,8 +343,8 @@ const LocalizationSection: React.FC = () => {
           <Select value={f.decSep} onValueChange={v => set('decSep', v)}>
             <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value=".">Period · 1,000.00</SelectItem>
-              <SelectItem value=",">Comma · 1.000,00</SelectItem>
+              <SelectItem value=".">Period ï¿½ 1,000.00</SelectItem>
+              <SelectItem value=",">Comma ï¿½ 1.000,00</SelectItem>
             </SelectContent>
           </Select>
         </Field>
@@ -361,9 +363,9 @@ const LocalizationSection: React.FC = () => {
           <Select value={f.decimals} onValueChange={v => set('decimals', v)}>
             <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="0">0 — 1,000</SelectItem>
-              <SelectItem value="2">2 — 1,000.00</SelectItem>
-              <SelectItem value="3">3 — 1,000.000</SelectItem>
+              <SelectItem value="0">0 ï¿½ 1,000</SelectItem>
+              <SelectItem value="2">2 ï¿½ 1,000.00</SelectItem>
+              <SelectItem value="3">3 ï¿½ 1,000.000</SelectItem>
             </SelectContent>
           </Select>
         </Field>
@@ -421,7 +423,7 @@ const EmailSection: React.FC = () => {
         <Field label="From Email"><input className="input-field" type="email" value={f.fromEmail} onChange={e => set('fromEmail', e.target.value)} /></Field>
         <ToggleRow label="Email Preview" hint="Allow in-browser preview when testing emails" value={preview} onChange={setPreview} />
         <Field label="Email Signature" full>
-          <textarea className="input-field s-resize-v s-font-mono" rows={4} value={f.sig} onChange={e => set('sig', e.target.value)} placeholder="HTML signature appended to outgoing emails…" />
+          <textarea className="input-field s-resize-v s-font-mono" rows={4} value={f.sig} onChange={e => set('sig', e.target.value)} placeholder="HTML signature appended to outgoing emailsï¿½" />
         </Field>
       </Card>
       <SaveRow extra={<button type="button" className="btn btn-secondary">Send Test Email</button>} saving={saving} saved={saved} onSave={handleSave} />
@@ -457,7 +459,7 @@ const FinanceGeneralSection: React.FC = () => {
           <Select value={f.currency} onValueChange={v => set('currency', v)}>
             <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
             <SelectContent>
-              {[['TZS','TZS — Tanzanian Shilling'],['USD','USD — US Dollar'],['EUR','EUR — Euro'],['GBP','GBP — British Pound'],['KES','KES — Kenyan Shilling'],['UGX','UGX — Ugandan Shilling'],['ZAR','ZAR — South African Rand'],['AED','AED — UAE Dirham']].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+              {[['TZS','TZS ï¿½ Tanzanian Shilling'],['USD','USD ï¿½ US Dollar'],['EUR','EUR ï¿½ Euro'],['GBP','GBP ï¿½ British Pound'],['KES','KES ï¿½ Kenyan Shilling'],['UGX','UGX ï¿½ Ugandan Shilling'],['ZAR','ZAR ï¿½ South African Rand'],['AED','AED ï¿½ UAE Dirham']].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
             </SelectContent>
           </Select>
         </Field>
@@ -473,13 +475,13 @@ const FinanceGeneralSection: React.FC = () => {
         </Field>
       </Card>
       <Card title="Tax & Pricing" desc="Number of decimal places is configured in General ? Localization.">
-        <Field label="Default Tax Rate" hint="Pre-filled on new bill and invoice line items — add rates in Finance ? Tax Rates">
+        <Field label="Default Tax Rate" hint="Pre-filled on new bill and invoice line items ï¿½ add rates in Finance ? Tax Rates">
           <Select value={f.defaultTax} onValueChange={v => set('defaultTax', v)}>
             <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="0">0% — Exempt / Zero-rated</SelectItem>
-              <SelectItem value="5">5% — Withholding Tax</SelectItem>
-              <SelectItem value="18">18% — VAT Standard</SelectItem>
+              <SelectItem value="0">0% ï¿½ Exempt / Zero-rated</SelectItem>
+              <SelectItem value="5">5% ï¿½ Withholding Tax</SelectItem>
+              <SelectItem value="18">18% ï¿½ VAT Standard</SelectItem>
             </SelectContent>
           </Select>
         </Field>
@@ -521,10 +523,10 @@ const InvoicesSection: React.FC = () => {
       <Card title="Content & Appearance">
         <ToggleRow label="Show Company Logo on Invoice PDF" value={logo} onChange={setLogo} />
         <Field label="Terms & Conditions" full>
-          <textarea className="input-field s-resize-v" rows={3} value={f.terms} onChange={e => set('terms', e.target.value)} placeholder="Default payment terms…" />
+          <textarea className="input-field s-resize-v" rows={3} value={f.terms} onChange={e => set('terms', e.target.value)} placeholder="Default payment termsï¿½" />
         </Field>
         <Field label="Footer Note" full>
-          <textarea className="input-field s-resize-v" rows={2} value={f.footer} onChange={e => set('footer', e.target.value)} placeholder="Thank you for your business…" />
+          <textarea className="input-field s-resize-v" rows={2} value={f.footer} onChange={e => set('footer', e.target.value)} placeholder="Thank you for your businessï¿½" />
         </Field>
       </Card>
       <Card title="Payments">
@@ -563,10 +565,10 @@ const QuotationsSection: React.FC = () => {
         <ToggleRow label="Show Logo on Quote PDF" value={logo} onChange={setLogo} />
         <ToggleRow label="Notify When Quote is Converted to Invoice" value={notif} onChange={setNotif} />
         <Field label="Terms & Conditions" full>
-          <textarea className="input-field s-resize-v" rows={3} value={f.terms} onChange={e => set('terms', e.target.value)} placeholder="Default quotation terms…" />
+          <textarea className="input-field s-resize-v" rows={3} value={f.terms} onChange={e => set('terms', e.target.value)} placeholder="Default quotation termsï¿½" />
         </Field>
         <Field label="Footer Note" full>
-          <textarea className="input-field s-resize-v" rows={2} value={f.footer} onChange={e => set('footer', e.target.value)} placeholder="Thank you for considering our services…" />
+          <textarea className="input-field s-resize-v" rows={2} value={f.footer} onChange={e => set('footer', e.target.value)} placeholder="Thank you for considering our servicesï¿½" />
         </Field>
       </Card>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
@@ -654,8 +656,8 @@ const CurrenciesSection: React.FC = () => {
   const [currencies, setCurrencies] = useState([
     { code: 'TZS', name: 'Tanzanian Shilling', symbol: 'TSh', rate: 1, isBase: true },
     { code: 'USD', name: 'US Dollar', symbol: '$', rate: 0.00039, isBase: false },
-    { code: 'EUR', name: 'Euro', symbol: '€', rate: 0.00036, isBase: false },
-    { code: 'GBP', name: 'British Pound', symbol: '£', rate: 0.00031, isBase: false },
+    { code: 'EUR', name: 'Euro', symbol: 'ï¿½', rate: 0.00036, isBase: false },
+    { code: 'GBP', name: 'British Pound', symbol: 'ï¿½', rate: 0.00031, isBase: false },
     { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh', rate: 0.052, isBase: false },
     { code: 'AED', name: 'UAE Dirham', symbol: 'AED', rate: 0.00143, isBase: false },
   ]);
@@ -684,7 +686,7 @@ const CurrenciesSection: React.FC = () => {
                   <td className="rtbl-mono">{c.code}</td>
                   <td>{c.symbol}</td>
                   <td className="rtbl-r">
-                    {c.isBase ? <span className="s-muted">— base —</span> : (
+                    {c.isBase ? <span className="s-muted">ï¿½ base ï¿½</span> : (
                       <input className="input-field rtbl-in-r" type="number" step="0.00001" value={c.rate}
                         onChange={e => setCurrencies(cs => cs.map(x => x.code === c.code ? { ...x, rate: parseFloat(e.target.value) || 0 } : x))} />
                     )}
@@ -713,7 +715,7 @@ interface GatewayDef {
   desc:    string;
   color:   string;
   bg:      string;
-  abbr:    string;       // 2–4 char logo text
+  abbr:    string;       // 2ï¿½4 char logo text
   region:  string;
   sandbox: boolean;      // has sandbox toggle
   fields:  GWField[];
@@ -725,9 +727,9 @@ const GATEWAYS: GatewayDef[] = [
     id: 'stripe', name: 'Stripe', desc: 'Global card payments, subscriptions & invoicing.',
     color: '#6772e5', bg: '#f0f0fd', abbr: 'S', region: 'International', sandbox: false,
     fields: [
-      { key: 'pub',     label: 'Publishable Key',  placeholder: 'pk_live_…' },
-      { key: 'sec',     label: 'Secret Key',        placeholder: 'sk_live_…', type: 'password' },
-      { key: 'webhook', label: 'Webhook Secret',    placeholder: 'whsec_…',   type: 'password', hint: 'From Stripe Dashboard ? Webhooks' },
+      { key: 'pub',     label: 'Publishable Key',  placeholder: 'pk_live_ï¿½' },
+      { key: 'sec',     label: 'Secret Key',        placeholder: 'sk_live_ï¿½', type: 'password' },
+      { key: 'webhook', label: 'Webhook Secret',    placeholder: 'whsec_ï¿½',   type: 'password', hint: 'From Stripe Dashboard ? Webhooks' },
     ],
   },
   {
@@ -757,7 +759,7 @@ const GATEWAYS: GatewayDef[] = [
     ],
   },
   {
-    id: 'authorize', name: 'Authorize.net', desc: 'Reliable US card gateway — AIM / SIM APIs.',
+    id: 'authorize', name: 'Authorize.net', desc: 'Reliable US card gateway ï¿½ AIM / SIM APIs.',
     color: '#c8102e', bg: '#fdecea', abbr: 'AN', region: 'International', sandbox: true,
     fields: [
       { key: 'apiLogin',  label: 'API Login ID'  },
@@ -784,7 +786,7 @@ const GATEWAYS: GatewayDef[] = [
     ],
   },
   {
-    id: 'paystack', name: 'Paystack', desc: 'Stripe-backed gateway for Africa — cards & USSD.',
+    id: 'paystack', name: 'Paystack', desc: 'Stripe-backed gateway for Africa ï¿½ cards & USSD.',
     color: '#00c3f7', bg: '#e6faff', abbr: 'PS', region: 'Pan-Africa', sandbox: true,
     fields: [
       { key: 'publicKey',  label: 'Public Key'  },
@@ -825,17 +827,17 @@ const GATEWAYS: GatewayDef[] = [
     ],
   },
   {
-    id: 'airtel', name: 'Airtel Money', desc: 'Airtel Africa mobile money — TZ, KE, UG, RW.',
+    id: 'airtel', name: 'Airtel Money', desc: 'Airtel Africa mobile money ï¿½ TZ, KE, UG, RW.',
     color: '#e40000', bg: '#fdecea', abbr: 'AM', region: 'East Africa', sandbox: true,
     fields: [
       { key: 'clientId',     label: 'Client ID'   },
       { key: 'clientSecret', label: 'Client Secret', type: 'password' },
-      { key: 'country',      label: 'Country Code', placeholder: 'TZ, KE, UG, RW…' },
-      { key: 'currency',     label: 'Currency',     placeholder: 'TZS, KES, UGX…' },
+      { key: 'country',      label: 'Country Code', placeholder: 'TZ, KE, UG, RWï¿½' },
+      { key: 'currency',     label: 'Currency',     placeholder: 'TZS, KES, UGXï¿½' },
     ],
   },
   {
-    id: 'selcom', name: 'Selcom', desc: 'Tanzania payment aggregator — USSD, cards & wallets.',
+    id: 'selcom', name: 'Selcom', desc: 'Tanzania payment aggregator ï¿½ USSD, cards & wallets.',
     color: '#1d4ed8', bg: '#eff6ff', abbr: 'SC', region: 'East Africa', sandbox: true,
     fields: [
       { key: 'apiKey',    label: 'API Key'   },
@@ -855,7 +857,7 @@ const GATEWAYS: GatewayDef[] = [
 
   // -- Bank & Manual ------------------------------------------
   {
-    id: 'bank', name: 'Bank Transfer', desc: 'Manual bank transfers — CRDB, NMB, NBC and others.',
+    id: 'bank', name: 'Bank Transfer', desc: 'Manual bank transfers ï¿½ CRDB, NMB, NBC and others.',
     color: '#475569', bg: '#f1f5f9', abbr: 'BK', region: 'Bank / Manual', sandbox: false,
     fields: [
       { key: 'bankName',   label: 'Bank Name',         placeholder: 'e.g. CRDB Bank' },
@@ -899,7 +901,7 @@ const PaymentGatewaysSection: React.FC = () => {
       {/* -- Header summary -- */}
       <div className="s-gw-hdr">
         <div className="s-gw-count">
-          {enabledCount} of {GATEWAYS.length} gateways active — customers will see enabled gateways at checkout.
+          {enabledCount} of {GATEWAYS.length} gateways active ï¿½ customers will see enabled gateways at checkout.
         </div>
         <button type="button" className="btn btn-primary" disabled={saving} title="Save all gateway settings" onClick={async () => {
           setSaving(true);
@@ -908,7 +910,7 @@ const PaymentGatewaysSection: React.FC = () => {
           try { await save('payment-gateways', payload); } catch {}
           setSaving(false);
         }}>
-          {saving ? 'Saving…' : 'Save All Changes'}
+          {saving ? 'Savingï¿½' : 'Save All Changes'}
         </button>
       </div>
 
@@ -971,7 +973,7 @@ const PaymentGatewaysSection: React.FC = () => {
                                 {sbx ? '? Sandbox / Test Mode' : '? Live Mode'}
                               </div>
                               <div className={`s-gw-mode-sub${sbx ? ' s-gw-mode-sub--sbx' : ' s-gw-mode-sub--live'}`}>
-                                {sbx ? 'No real money — use test credentials' : 'Real transactions will be processed'}
+                                {sbx ? 'No real money ï¿½ use test credentials' : 'Real transactions will be processed'}
                               </div>
                             </div>
                             <Toggle value={sbx} onChange={v => setSandbox(s => ({ ...s, [gw.id]: v }))} />
@@ -1045,7 +1047,7 @@ const ExpensesCategoriesSection: React.FC = () => {
           <div key={c.id} className="s-cat">
             <div className="s-cat-dot" style={{ background: c.color }} />
             <div className="s-cat-name">{c.name}</div>
-            <button type="button" title={`Remove ${c.name}`} onClick={() => setCats(cs => cs.filter(x => x.id !== c.id))} className="s-cat-rm">×</button>
+            <button type="button" title={`Remove ${c.name}`} onClick={() => setCats(cs => cs.filter(x => x.id !== c.id))} className="s-cat-rm">ï¿½</button>
           </div>
         ))}
         {adding && (
@@ -1060,7 +1062,7 @@ const ExpensesCategoriesSection: React.FC = () => {
   );
 };
 
-// -- section: Configure Features — Customers ---------------------------------
+// -- section: Configure Features ï¿½ Customers ---------------------------------
 const FeatCustomersSection: React.FC = () => {
   const [portal, setPortal] = useState(true);
   const [selfReg, setSelfReg] = useState(false);
@@ -1085,7 +1087,7 @@ const FeatCustomersSection: React.FC = () => {
             <Select value={defaultGroup} onValueChange={setDefaultGroup}>
               <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="none">— None —</SelectItem>
+                <SelectItem value="none">ï¿½ None ï¿½</SelectItem>
                 <SelectItem value="enterprise">Enterprise Importers</SelectItem>
                 <SelectItem value="sme">SME Importers</SelectItem>
                 <SelectItem value="individual">Individual</SelectItem>
@@ -1190,25 +1192,25 @@ const GpswoxSection: React.FC = () => {
 
   return (
     <>
-      <Card title="GPSWOX Fleet Tracking" desc="Pulls real GPS device positions into HuduFreight's vehicle map, history, and geofence alerts. GPSWOX is typically self-hosted, so the base URL is specific to your instance — save credentials here first.">
-        <Field label="Base URL" hint="Your GPSWOX instance root, e.g. https://fleet.yourcompany.com — do not include /api.">
+      <Card title="GPSWOX Fleet Tracking" desc="Pulls real GPS device positions into HuduFreight's vehicle map, history, and geofence alerts. GPSWOX is typically self-hosted, so the base URL is specific to your instance ï¿½ save credentials here first.">
+        <Field label="Base URL" hint="Your GPSWOX instance root, e.g. https://fleet.yourcompany.com ï¿½ do not include /api.">
           <input className="input-field" placeholder="https://fleet.yourcompany.com" value={f.base_url} onChange={e => set('base_url', e.target.value)} />
         </Field>
         <Field label="Email">
           <input className="input-field" type="email" placeholder="fleet-account@yourcompany.com" value={f.email} onChange={e => set('email', e.target.value)} />
         </Field>
         <Field label="Password">
-          <input className="input-field" type="password" placeholder="••••••••" value={f.password} onChange={e => set('password', e.target.value)} />
+          <input className="input-field" type="password" placeholder="ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½" value={f.password} onChange={e => set('password', e.target.value)} />
         </Field>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
           <button type="button" className="btn btn-outline btn-sm" onClick={handleTest} disabled={testing || !f.base_url || !f.email || !f.password}>
-            {testing ? 'Testing…' : 'Test Connection'}
+            {testing ? 'Testingï¿½' : 'Test Connection'}
           </button>
           {testResult === 'ok' && <span style={{ fontSize: 12, color: 'var(--green, #059669)', fontWeight: 600 }}>Connected</span>}
-          {testResult === 'fail' && <span style={{ fontSize: 12, color: 'var(--red, #dc2626)', fontWeight: 600 }}>Connection failed — check URL/credentials</span>}
+          {testResult === 'fail' && <span style={{ fontSize: 12, color: 'var(--red, #dc2626)', fontWeight: 600 }}>Connection failed ï¿½ check URL/credentials</span>}
         </div>
       </Card>
-      <p className="s-fld-hint" style={{ margin: '4px 2px 0' }}>Until credentials are saved and valid, vehicle positions must be entered manually — no simulated fleet data is shown.</p>
+      <p className="s-fld-hint" style={{ margin: '4px 2px 0' }}>Until credentials are saved and valid, vehicle positions must be entered manually ï¿½ no simulated fleet data is shown.</p>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
   );
@@ -1234,7 +1236,7 @@ const PusherSection: React.FC = () => {
             <Select value={f.cluster} onValueChange={v => set('cluster', v)}>
               <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
               <SelectContent>
-                {[['ap1','ap1 — Singapore'],['ap2','ap2 — Mumbai'],['ap3','ap3 — Tokyo'],['eu','eu — Ireland'],['mt1','mt1 — US East'],['us2','us2 — US West'],['sa1','sa1 — São Paulo']].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                {[['ap1','ap1 ï¿½ Singapore'],['ap2','ap2 ï¿½ Mumbai'],['ap3','ap3 ï¿½ Tokyo'],['eu','eu ï¿½ Ireland'],['mt1','mt1 ï¿½ US East'],['us2','us2 ï¿½ US West'],['sa1','sa1 ï¿½ Sï¿½o Paulo']].map(([v,l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
               </SelectContent>
             </Select>
           </Field>
@@ -1259,9 +1261,9 @@ const OpenAISection: React.FC = () => {
         <ToggleRow label="Enable AI Features" value={on} onChange={setOn} />
         {on && <>
           <Field label="API Key" hint="sk- key for OpenAI, or your Anthropic key" full>
-            <input className="input-field" type="password" placeholder="sk-…" value={f.apiKey} onChange={e => set('apiKey', e.target.value)} />
+            <input className="input-field" type="password" placeholder="sk-ï¿½" value={f.apiKey} onChange={e => set('apiKey', e.target.value)} />
           </Field>
-          <Field label="Organization ID (optional)"><input className="input-field" placeholder="org-…" value={f.org} onChange={e => set('org', e.target.value)} /></Field>
+          <Field label="Organization ID (optional)"><input className="input-field" placeholder="org-ï¿½" value={f.org} onChange={e => set('org', e.target.value)} /></Field>
           <Field label="Model">
             <Select value={f.model} onValueChange={v => set('model', v)}>
               <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
@@ -1275,7 +1277,7 @@ const OpenAISection: React.FC = () => {
               </SelectContent>
             </Select>
           </Field>
-          <Field label="Temperature" hint="0 = deterministic · 1 = creative">
+          <Field label="Temperature" hint="0 = deterministic ï¿½ 1 = creative">
             <input className="input-field" type="number" step="0.1" min="0" max="2" value={f.temp} onChange={e => set('temp', e.target.value)} />
           </Field>
           <Field label="Max Tokens"><input className="input-field" type="number" value={f.maxTokens} onChange={e => set('maxTokens', e.target.value)} /></Field>
@@ -1423,27 +1425,27 @@ const TRASection: React.FC = () => {
   }
 
   if (loading) {
-    return <Card title="TRA VFD / EFDMS"><div className="s-fld--full s-gen-sub">Loading…</div></Card>;
+    return <Card title="TRA VFD / EFDMS"><div className="s-fld--full s-gen-sub">Loadingï¿½</div></Card>;
   }
 
   if (config?.isRegistered) {
     return (
       <>
-        <Card title="TRA VFD — Registered" desc="Fiscal receipts are signed and submitted to TRA through this registration. Invoices can now be submitted to TRA from Finance ? Sales Invoices.">
+        <Card title="TRA VFD ï¿½ Registered" desc="Fiscal receipts are signed and submitted to TRA through this registration. Invoices can now be submitted to TRA from Finance ? Sales Invoices.">
           <Field label="Status"><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#059669', fontWeight: 700 }}><Icon name="checkCircle" size={14} color="#059669" /> Registered</span></Field>
           <Field label="Environment"><span style={{ textTransform: 'uppercase', fontWeight: 700, color: config.environment === 'production' ? 'var(--red)' : 'var(--ink2)' }}>{config.environment}</span></Field>
           <Field label="REGID"><span style={{ fontFamily: 'var(--mono)' }}>{config.reg_id}</span></Field>
           <Field label="Receipt Code"><span style={{ fontFamily: 'var(--mono)' }}>{config.receipt_code}</span></Field>
-          <Field label="VRN"><span style={{ fontFamily: 'var(--mono)' }}>{config.vrn || '—'}</span></Field>
-          <Field label="Tax Office">{config.tax_office || '—'}</Field>
+          <Field label="VRN"><span style={{ fontFamily: 'var(--mono)' }}>{config.vrn || 'ï¿½'}</span></Field>
+          <Field label="Tax Office">{config.tax_office || 'ï¿½'}</Field>
           <Field label="Receipts Issued (GC)">{config.gc ?? 0}</Field>
-          <Field label="Bearer Token"><span style={{ color: config.hasValidToken ? 'var(--green)' : 'var(--red)', fontWeight: 700 }}>{config.hasValidToken ? 'Valid' : 'Expired — will auto-refresh on next submission'}</span></Field>
+          <Field label="Bearer Token"><span style={{ color: config.hasValidToken ? 'var(--green)' : 'var(--red)', fontWeight: 700 }}>{config.hasValidToken ? 'Valid' : 'Expired ï¿½ will auto-refresh on next submission'}</span></Field>
           <Field label="Last Z-Report">{config.last_zreport_date ? new Date(config.last_zreport_date).toLocaleDateString() : 'Never'}</Field>
         </Card>
         <Card title="Manual Actions" desc="Z-reports submit automatically every night. Use these only to test the connection or recover from a missed run.">
           <div className="s-fld--full" style={{ display: 'flex', gap: 10 }}>
-            <button type="button" className="btn btn-secondary" onClick={refreshToken} disabled={tokenRefreshing}>{tokenRefreshing ? 'Refreshing…' : 'Refresh Token'}</button>
-            <button type="button" className="btn btn-secondary" onClick={runZReport} disabled={zReporting}>{zReporting ? 'Submitting…' : 'Submit Z-Report Now'}</button>
+            <button type="button" className="btn btn-secondary" onClick={refreshToken} disabled={tokenRefreshing}>{tokenRefreshing ? 'Refreshingï¿½' : 'Refresh Token'}</button>
+            <button type="button" className="btn btn-secondary" onClick={runZReport} disabled={zReporting}>{zReporting ? 'Submittingï¿½' : 'Submit Z-Report Now'}</button>
           </div>
           {actionMsg && <div className="s-fld--full" style={{ marginTop: 10, fontSize: 12.5, color: 'var(--ink2)' }}>{actionMsg}</div>}
         </Card>
@@ -1472,7 +1474,7 @@ const TRASection: React.FC = () => {
         <Field label="Certificate Password"><input title="Certificate Password" placeholder="Certificate password" className="input-field" type="password" value={pfxPassword} onChange={e => setPfxPassword(e.target.value)} /></Field>
         <div className="s-fld--full" style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <button type="button" className="btn btn-secondary" onClick={uploadCert} disabled={!pfxFile || uploading}>
-            {uploading ? 'Uploading…' : pfxPath ? 'Re-upload Certificate' : 'Upload Certificate'}
+            {uploading ? 'Uploadingï¿½' : pfxPath ? 'Re-upload Certificate' : 'Upload Certificate'}
           </button>
           {pfxPath && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--green)', fontWeight: 700 }}><Icon name="check" size={12} color="var(--green)" /> Uploaded</span>}
         </div>
@@ -1480,7 +1482,7 @@ const TRASection: React.FC = () => {
       {error && <div className="s-fld--full" style={{ color: 'var(--red)', fontSize: 12.5, marginBottom: 4 }}>{error}</div>}
       <div className="s-save-row">
         <button type="button" className="btn btn-primary" onClick={register} disabled={registering || !pfxPath}>
-          {registering ? 'Registering…' : 'Register with TRA'}
+          {registering ? 'Registeringï¿½' : 'Register with TRA'}
         </button>
       </div>
     </>
@@ -1511,10 +1513,10 @@ const PDFSection: React.FC = () => {
           <Select value={f.paper} onValueChange={v => set('paper', v)}>
             <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="A4">A4 (210×297mm)</SelectItem>
-              <SelectItem value="Letter">Letter (8.5×11in)</SelectItem>
-              <SelectItem value="A3">A3 (297×420mm)</SelectItem>
-              <SelectItem value="Legal">Legal (8.5×14in)</SelectItem>
+              <SelectItem value="A4">A4 (210ï¿½297mm)</SelectItem>
+              <SelectItem value="Letter">Letter (8.5ï¿½11in)</SelectItem>
+              <SelectItem value="A3">A3 (297ï¿½420mm)</SelectItem>
+              <SelectItem value="Legal">Legal (8.5ï¿½14in)</SelectItem>
             </SelectContent>
           </Select>
         </Field>
@@ -1593,8 +1595,8 @@ const NotificationsSection: React.FC = () => {
   return (
     <>
       <Card title="Channels" desc="Choose how your team and customers receive notifications">
-        <ToggleRow label="WhatsApp Notifications" hint="Send stage updates via WhatsApp Business API — configure credentials in Integrations ? SMS / WhatsApp" value={whatsapp} onChange={setWhatsapp} />
-        <ToggleRow label="Email Notifications" hint="Send update emails — requires SMTP configured in General ? Email" value={emailNotifs} onChange={setEmailNotifs} />
+        <ToggleRow label="WhatsApp Notifications" hint="Send stage updates via WhatsApp Business API ï¿½ configure credentials in Integrations ? SMS / WhatsApp" value={whatsapp} onChange={setWhatsapp} />
+        <ToggleRow label="Email Notifications" hint="Send update emails ï¿½ requires SMTP configured in General ? Email" value={emailNotifs} onChange={setEmailNotifs} />
       </Card>
       <Card title="Alert Thresholds" desc="When to trigger proactive alerts for time-sensitive events">
         <Field label="Demurrage Alert Lead Time" hint="Days before container free time ends to trigger demurrage alert">
@@ -1701,14 +1703,14 @@ const ApiKeysSection: React.FC = () => {
       setNewName(''); setNewScopes([]);
       reload();
     } catch (err: any) {
-      alert(`Failed to create key: ${err?.message ?? 'Unknown error'}`);
+      showAlert(`Failed to create key: ${err?.message ?? 'Unknown error'}`);
     } finally {
       setCreating(false);
     }
   }
 
   async function revokeKey(id: string) {
-    if (!confirm('Revoke this API key? Any application using it will immediately lose access.')) return;
+    if (!(await showConfirm('Revoke this API key? Any application using it will immediately lose access.', { confirmLabel: 'Revoke' }))) return;
     await apiFetch(`/v1/api-keys/${id}`, { method: 'DELETE' });
     setKeys(prev => prev.map(k => k.id === id ? { ...k, revoked_at: new Date().toISOString() } : k));
   }
@@ -1722,7 +1724,7 @@ const ApiKeysSection: React.FC = () => {
       }>
         <div className="s-fld--full">
           {loading ? (
-            <p style={{ color: 'var(--ink3)' }}>Loading…</p>
+            <p style={{ color: 'var(--ink3)' }}>Loadingï¿½</p>
           ) : keys.length === 0 ? (
             <p style={{ color: 'var(--ink3)' }}>No API keys yet. Create one to get started.</p>
           ) : (
@@ -1738,7 +1740,7 @@ const ApiKeysSection: React.FC = () => {
                 {keys.map(k => (
                   <tr key={k.id} style={{ borderBottom: '1px solid var(--border)' }}>
                     <td style={{ padding: '8px', fontWeight: 600, color: 'var(--ink)' }}>{k.name}</td>
-                    <td style={{ padding: '8px', fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{k.key_prefix}…</td>
+                    <td style={{ padding: '8px', fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{k.key_prefix}ï¿½</td>
                     <td style={{ padding: '8px', color: 'var(--ink2)' }}>{k.scopes.join(', ')}</td>
                     <td style={{ padding: '8px', color: 'var(--ink3)' }}>{k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : 'Never'}</td>
                     <td style={{ padding: '8px' }}>
@@ -1784,7 +1786,7 @@ const ApiKeysSection: React.FC = () => {
             {mintedKey ? (
               <>
                 <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 10 }}>Key created</div>
-                <p style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10 }}>Copy this now — it won't be shown again.</p>
+                <p style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 10 }}>Copy this now ï¿½ it won't be shown again.</p>
                 <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, fontFamily: 'var(--mono)', fontSize: 12, wordBreak: 'break-all', marginBottom: 16 }}>{mintedKey}</div>
                 <button type="button" className="btn btn-primary btn-sm" onClick={() => { setShowCreate(false); setMintedKey(null); }}>Done</button>
               </>
@@ -1809,7 +1811,7 @@ const ApiKeysSection: React.FC = () => {
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
                   <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowCreate(false)}>Cancel</button>
                   <button type="button" className="btn btn-primary btn-sm" disabled={creating || !newName.trim() || newScopes.length === 0} onClick={createKey}>
-                    {creating ? 'Creating…' : 'Create Key'}
+                    {creating ? 'Creatingï¿½' : 'Create Key'}
                   </button>
                 </div>
               </>
@@ -1951,7 +1953,7 @@ export const Settings: React.FC = () => {
           </div>
         )}
 
-        {/* System overview strip — only on the main Company tab */}
+        {/* System overview strip ï¿½ only on the main Company tab */}
         {current === 'company' && (
           <div className="sett-strip">
             {([

@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { showAlert } from '../lib/alert.js';
 
 interface Carrier {
   id: string;
@@ -92,7 +93,7 @@ export function CarriersPage() {
       });
       load();
     } catch (err: any) {
-      alert(err?.message || 'Failed to add carrier');
+      showAlert(err?.message || 'Failed to add carrier');
     } finally {
       setAddingId(null);
     }

@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { apiFetch } from '../lib/api.js';
+import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 
 // ── Shared types ───────────────────────────────────────────────────────────
 
@@ -191,14 +193,14 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { loadData(); }, [loadData]);
 
   const handleDeleteLabel = useCallback(async (id: string) => {
-    if (!confirm('Delete this label? Contacts will not be deleted.')) return;
+    if (!(await showConfirm('Delete this label? Contacts will not be deleted.', { confirmLabel: 'Delete' }))) return;
     try {
       await apiFetch(`/v1/contacts/labels/${id}`, { method: 'DELETE' });
       setSelectedLabelId(prev => (prev === id ? null : prev));
       setCurrentView(prev => (prev === 'label' && selectedLabelId === id ? 'contacts' : prev));
       await loadData();
     } catch (err: any) {
-      alert(err.message || 'Failed to delete label');
+      showAlert(err.message || 'Failed to delete label');
     }
   }, [loadData, selectedLabelId]);
 
@@ -232,13 +234,13 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
         });
         if (contact.first_name) importedContacts.push(contact);
       }
-      if (importedContacts.length === 0) { alert('No valid contacts found in CSV.'); return; }
+      if (importedContacts.length === 0) { showAlert('No valid contacts found in CSV.'); return; }
       try {
         await apiFetch('/v1/contacts/import', { method: 'POST', body: JSON.stringify({ contacts: importedContacts }) });
         await loadData();
-        alert(`Successfully imported ${importedContacts.length} contacts!`);
+        showAlert(`Successfully imported ${importedContacts.length} contacts!`);
       } catch (err: any) {
-        alert(err.message || 'Failed to import CSV');
+        showAlert(err.message || 'Failed to import CSV');
       }
     };
     reader.readAsText(file);
@@ -246,7 +248,7 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
 
   const handleExportCSV = useCallback(() => {
     const active = contacts.filter(c => c.status === 'ACTIVE');
-    if (active.length === 0) { alert('No active contacts to export.'); return; }
+    if (active.length === 0) { showAlert('No active contacts to export.'); return; }
     const headers = ['First Name','Last Name','Email','Phone','Company','Job Title','Notes','Location','Website','Industry','Company Size','Sales Owner'];
     const rows = active.map(c => [
       c.first_name, c.last_name||'', c.email||'', c.phone||'', c.company||'',
@@ -271,7 +273,7 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
       setShowNewLabelModal(false);
       await loadData();
     } catch (err: any) {
-      alert(err.message || 'Failed to create label');
+      showAlert(err.message || 'Failed to create label');
     }
   }, [newLabelName, loadData]);
 

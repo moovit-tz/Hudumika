@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox } from '../components/ui/combobox.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { showAlert } from '../lib/alert.js';
 import './CreateShipmentPage.css';
 
 function OfficerMentionInput({
@@ -278,7 +279,7 @@ export function CreateShipmentPage() {
 
       navigate(`/clearos/clearance/${shipmentId}`);
     } catch (err: any) {
-      alert(err.message || 'Failed to create case');
+      showAlert(err.message || 'Failed to create case');
     } finally {
       setCreateLoading(false);
     }
@@ -434,7 +435,7 @@ export function CreateShipmentPage() {
                   Download our standard shipment template. You can share this with your clients to fill in container and commercial details before uploading it back here.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 40 }}>
-                  <button className="btn btn-secondary" onClick={() => alert('Downloading Excel template...')}>
+                  <button className="btn btn-secondary" onClick={() => showAlert('Downloading Excel template...')}>
                     <Icon name="download" size={16} /> Download Template
                   </button>
                   <button className="btn btn-primary" onClick={() => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.xlsx,.csv'; inp.onchange = (ev: any) => { const f = ev.target.files?.[0]; if (f) { setExcelFile(f); setTimeout(() => setCurrentStep(3), 1000); } }; inp.click(); }}>

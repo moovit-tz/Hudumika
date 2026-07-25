@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon.js';
 import { MapTileLayer } from '../components/MapTileLayer.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import 'leaflet/dist/leaflet.css';
+import { showConfirm } from '../lib/confirm.js';
 
 interface Geofence { id: string; name: string; zone_type: string; center_lat: number; center_lon: number; radius_km: number; active: boolean }
 
@@ -136,7 +137,7 @@ export const TrackingGeofences: React.FC = () => {
   useEffect(() => { reload(); }, [reload]);
 
   async function remove(id: string) {
-    if (!confirm('Delete this geofence?')) return;
+    if (!(await showConfirm('Delete this geofence?', { confirmLabel: 'Delete' }))) return;
     await apiFetch(`/v1/tracking/geofences/${id}`, { method: 'DELETE' });
     reload();
   }

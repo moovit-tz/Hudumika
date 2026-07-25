@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { showConfirm } from '../lib/confirm.js';
 
 interface Vendor { id: string; name: string }
 interface Part {
@@ -94,7 +95,7 @@ export const TrackingPartsStock: React.FC = () => {
   const vendorName = (id: string | null) => vendors.find(v => v.id === id)?.name ?? '—';
 
   async function remove(id: string) {
-    if (!confirm('Remove this part?')) return;
+    if (!(await showConfirm('Remove this part?', { confirmLabel: 'Remove' }))) return;
     await apiFetch(`/v1/tracking/parts/${id}`, { method: 'DELETE' });
     reload();
   }

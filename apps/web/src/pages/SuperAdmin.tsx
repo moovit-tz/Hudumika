@@ -9,6 +9,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { Switch } from '../components/ui/switch.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 
 /* ══════════════════════════════════════════════════
    TYPES
@@ -247,7 +249,7 @@ function KPICard({ title, value, change, icon, color, spark }: { title:string; v
 /* ── Page header ── */
 function PageHdr({ title, sub, action }: { title:string; sub:string; action?:React.ReactNode }) {
   return (
-    <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:24, gap:16, flexWrap:'wrap' }}>
+    <div className="sa-page-hdr" style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginTop: 20, marginBottom:24, gap:16, flexWrap:'wrap' }}>
       <div style={{ minWidth:0 }}>
         <h1 style={{ fontSize:20, fontWeight:800, color:'var(--ink)', margin:0, letterSpacing:'-0.02em' }}>{title}</h1>
         <p style={{ fontSize:13, color:'var(--ink3)', margin:'4px 0 0' }}>{sub}</p>
@@ -563,7 +565,7 @@ export function CompaniesView() {
       await impersonate(co.id);
     } catch (err: any) {
       setImpersonating(null);
-      alert(`Login As failed: ${err?.message ?? 'No active admin found for this company.'}`);
+      showAlert(`Login As failed: ${err?.message ?? 'No active admin found for this company.'}`);
     }
   }
 
@@ -583,7 +585,7 @@ export function CompaniesView() {
       setForm(CO_FORM_DEFAULT);
       setShowAdd(false);
     } catch (err: any) {
-      alert(`Failed to add company: ${err?.message ?? 'Unknown error'}`);
+      showAlert(`Failed to add company: ${err?.message ?? 'Unknown error'}`);
     }
   }
 
@@ -620,17 +622,17 @@ export function CompaniesView() {
       setShowEdit(false);
       setSelectedCoId(null);
     } catch (err: any) {
-      alert(`Failed to update company: ${err?.message ?? 'Unknown error'}`);
+      showAlert(`Failed to update company: ${err?.message ?? 'Unknown error'}`);
     }
   }
 
   async function deleteCompany(id: string) {
-    if (!confirm('Are you sure you want to delete this company?')) return;
+    if (!(await showConfirm('Are you sure you want to delete this company?', { confirmLabel: 'Delete' }))) return;
     try {
       await apiFetch(`/v1/superadmin/tenants/${id}`, { method: 'DELETE' });
       await load();
     } catch (err: any) {
-      alert(`Failed to delete company: ${err?.message ?? 'Unknown error'}`);
+      showAlert(`Failed to delete company: ${err?.message ?? 'Unknown error'}`);
     }
   }
 
@@ -922,7 +924,7 @@ function FeatureGatesEditor({ packageCode }: { packageCode: string }) {
       setSaved(true);
       setTimeout(() => setSaved(false), 1500);
     } catch (err: any) {
-      alert(`Failed to save feature gates: ${err?.message ?? 'Unknown error'}`);
+      showAlert(`Failed to save feature gates: ${err?.message ?? 'Unknown error'}`);
     } finally {
       setSaving(false);
     }
@@ -1070,13 +1072,13 @@ export function PackagesView() {
             <div style={{ display:'flex', gap:10, justifyContent:'space-between', marginTop:4 }}>
               <button
                 onClick={async () => {
-                  if (!confirm(`Deactivate the ${editing.name} package? It will stop appearing to new signups.`)) return;
+                  if (!(await showConfirm(`Deactivate the ${editing.name} package? It will stop appearing to new signups.`, { variant: 'warning', confirmLabel: 'Deactivate' }))) return;
                   try {
                     await apiFetch(`/v1/packages/${editing.code}`, { method: 'DELETE' });
                     setPackages(p => p.filter(pk => pk.id !== editing.id));
                     setEditing(null);
                   } catch (err: any) {
-                    alert(`Failed to deactivate: ${err?.message ?? 'Unknown error'}`);
+                    showAlert(`Failed to deactivate: ${err?.message ?? 'Unknown error'}`);
                   }
                 }}
                 className="btn btn-sm"
@@ -1096,7 +1098,7 @@ export function PackagesView() {
                       setPackages(p => p.map(pk => pk.id === editing.id ? mapFromApi(updated) : pk));
                       setEditing(null);
                     } catch (err: any) {
-                      alert(`Failed to save: ${err?.message ?? 'Unknown error'}`);
+                      showAlert(`Failed to save: ${err?.message ?? 'Unknown error'}`);
                     }
                   }}
                   className="btn btn-primary btn-sm"
@@ -1146,7 +1148,7 @@ export function PackagesView() {
                   setNewPkg({name:'',monthly:0,annual:0,maxUsers:10});
                   setShowAdd(false);
                 } catch (err: any) {
-                  alert(`Failed to create package: ${err?.message ?? 'Unknown error'}`);
+                  showAlert(`Failed to create package: ${err?.message ?? 'Unknown error'}`);
                 }
               }} className="btn btn-primary btn-sm" disabled={!newPkg.name.trim()}>Create Package</button>
             </div>
@@ -1543,7 +1545,7 @@ export function SettingsView() {
       setSaved(section);
       setTimeout(() => setSaved(null), 2000);
     } catch (err: any) {
-      alert(`Failed to save settings: ${err?.message ?? 'Unknown error'}`);
+      showAlert(`Failed to save settings: ${err?.message ?? 'Unknown error'}`);
     }
   }
 
@@ -1564,7 +1566,7 @@ export function SettingsView() {
       });
     } catch (err: any) {
       setMaintenance(maintenance); // revert
-      alert(`Failed to toggle maintenance mode: ${err?.message ?? 'Unknown error'}`);
+      showAlert(`Failed to toggle maintenance mode: ${err?.message ?? 'Unknown error'}`);
     }
   }
 
@@ -1578,7 +1580,7 @@ export function SettingsView() {
       setSmtpTested(true);
       setTimeout(() => setSmtpTested(false), 2000);
     } catch (err: any) {
-      alert(`SMTP Test Failed: ${err?.message ?? 'Unknown error'}`);
+      showAlert(`SMTP Test Failed: ${err?.message ?? 'Unknown error'}`);
     } finally {
       setTestingSmtp(false);
     }
@@ -1586,7 +1588,7 @@ export function SettingsView() {
 
   async function testOcr() {
     if (!ocr.geminiApiKey) {
-      alert('Enter a Gemini API key first.');
+      showAlert('Enter a Gemini API key first.');
       return;
     }
     setTestingOcr(true);
@@ -1598,7 +1600,7 @@ export function SettingsView() {
       setOcrTested(true);
       setTimeout(() => setOcrTested(false), 2000);
     } catch (err: any) {
-      alert(`Gemini Test Failed: ${err?.message ?? 'Unknown error'}`);
+      showAlert(`Gemini Test Failed: ${err?.message ?? 'Unknown error'}`);
     } finally {
       setTestingOcr(false);
     }
@@ -1965,7 +1967,7 @@ export function AppStatusView() {
       });
       setRows(prev => prev.map(r => r.app_id === row.app_id ? res.appStatus : r));
     } catch (err: any) {
-      alert(`Failed to update ${APP_LABELS[row.app_id] ?? row.app_id}: ${err?.message ?? 'Unknown error'}`);
+      showAlert(`Failed to update ${APP_LABELS[row.app_id] ?? row.app_id}: ${err?.message ?? 'Unknown error'}`);
     } finally {
       setSavingId(null);
     }

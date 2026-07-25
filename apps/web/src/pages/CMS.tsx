@@ -6,6 +6,8 @@ import { apiFetch } from '../lib/api.js';
 import { RichTextEditor } from '../components/RichTextEditor.js';
 import { useAuth } from '../hooks/useAuth.js';
 import type { CmsPage, CmsPost, CmsComment, CmsSiteSettings } from '@hudumika/types';
+import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 
 /* ── Types ── */
 interface Post {
@@ -88,7 +90,7 @@ function PostEditor({ post, onSave, onCancel }: { post: Partial<Post> | null; on
   const set = (k: keyof Post, v: string) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSave = (status: Post['status']) => {
-    if (!form.title?.trim()) return alert('Title is required');
+    if (!form.title?.trim()) return showAlert('Title is required');
     const n = now();
     onSave({ id: form.id || uid(), title: form.title!, content: form.content || '', status, author: form.author || 'Admin', category: form.category || 'General', tags: form.tags || '', created_at: form.created_at || n, updated_at: n });
   };
@@ -134,7 +136,7 @@ function PageEditor({ page, onSave, onCancel }: { page: Partial<Page> | null; on
   const [form, setForm] = useState<Partial<Page>>(page || { title: '', slug: '', content: '', status: 'draft', author: 'Admin' });
   const set = (k: keyof Page, v: string) => setForm(f => ({ ...f, [k]: v }));
   const handleSave = (status: Page['status']) => {
-    if (!form.title?.trim()) return alert('Title required');
+    if (!form.title?.trim()) return showAlert('Title required');
     const n = now();
     onSave({ id: form.id || uid(), title: form.title!, slug: form.slug || `/${form.title!.toLowerCase().replace(/\s+/g, '-')}`, content: form.content || '', status, author: form.author || 'Admin', created_at: form.created_at || n, updated_at: n });
   };
@@ -196,7 +198,7 @@ export const CMS: React.FC = () => {
       const mapped = cmsPostToLocal(saved);
       setPosts(ps => ps.find(x => x.id === mapped.id) ? ps.map(x => x.id === mapped.id ? mapped : x) : [mapped, ...ps]);
     } catch (e: any) {
-      alert(`Failed to save post: ${e.message}`);
+      showAlert(`Failed to save post: ${e.message}`);
       return;
     }
     setEditPost(null); goTo('posts');
@@ -207,10 +209,10 @@ export const CMS: React.FC = () => {
       const mapped = cmsPostToLocal(saved);
       setPosts(ps => ps.map(p => p.id === id ? mapped : p));
     } catch (e: any) {
-      alert(`Failed to update post: ${e.message}`);
+      showAlert(`Failed to update post: ${e.message}`);
     }
   };
-  const trashPost   = (id: string) => { if (confirm('Move to trash?')) setPostStatus(id, 'trash'); };
+  const trashPost   = async (id: string) => { if ((await showConfirm('Move to trash?', { variant: 'warning', confirmLabel: 'Move to Trash' }))) setPostStatus(id, 'trash'); };
   const restorePost = (id: string) => setPostStatus(id, 'draft');
   const togglePub    = (id: string) => {
     const p = posts.find(x => x.id === id);
@@ -219,7 +221,7 @@ export const CMS: React.FC = () => {
 
   /* Quick draft — real, creates an actual draft post */
   const saveDraft = async () => {
-    if (!draftTitle.trim()) return alert('Title required');
+    if (!draftTitle.trim()) return showAlert('Title required');
     try {
       const saved: CmsPost = await apiFetch('/v1/cms/posts', {
         method: 'POST',
@@ -228,7 +230,7 @@ export const CMS: React.FC = () => {
       setPosts(ps => [cmsPostToLocal(saved), ...ps]);
       setDraftTitle(''); setDraftContent('');
     } catch (e: any) {
-      alert(`Failed to save draft: ${e.message}`);
+      showAlert(`Failed to save draft: ${e.message}`);
     }
   };
 
@@ -243,18 +245,18 @@ export const CMS: React.FC = () => {
       const mapped = cmsPageToLocal(saved);
       setPages(ps => ps.find(x => x.id === mapped.id) ? ps.map(x => x.id === mapped.id ? mapped : x) : [mapped, ...ps]);
     } catch (e: any) {
-      alert(`Failed to save page: ${e.message}`);
+      showAlert(`Failed to save page: ${e.message}`);
       return;
     }
     setEditPage(null); goTo('pages');
   };
   const deletePage = async (id: string) => {
-    if (!confirm('Delete page?')) return;
+    if (!(await showConfirm('Delete page?', { confirmLabel: 'Delete' }))) return;
     try {
       await apiFetch(`/v1/cms/pages/${id}`, { method: 'DELETE' });
       setPages(ps => ps.filter(p => p.id !== id));
     } catch (e: any) {
-      alert(`Failed to delete page: ${e.message}`);
+      showAlert(`Failed to delete page: ${e.message}`);
     }
   };
 
@@ -264,18 +266,18 @@ export const CMS: React.FC = () => {
       await apiFetch(`/v1/cms/comments/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
       setComments(cs => cs.map(c => c.id === id ? { ...c, status } : c));
     } catch (e: any) {
-      alert(`Failed to update comment: ${e.message}`);
+      showAlert(`Failed to update comment: ${e.message}`);
     }
   };
   const approveCmt = (id: string) => setCommentStatus(id, 'approved');
   const spamCmt    = (id: string) => setCommentStatus(id, 'spam');
   const deleteCmt  = async (id: string) => {
-    if (!confirm('Delete?')) return;
+    if (!(await showConfirm('Delete?', { confirmLabel: 'Delete' }))) return;
     try {
       await apiFetch(`/v1/cms/comments/${id}`, { method: 'DELETE' });
       setComments(cs => cs.filter(c => c.id !== id));
     } catch (e: any) {
-      alert(`Failed to delete comment: ${e.message}`);
+      showAlert(`Failed to delete comment: ${e.message}`);
     }
   };
 
@@ -286,7 +288,7 @@ export const CMS: React.FC = () => {
       setSiteSettings(saved);
       return true;
     } catch (e: any) {
-      alert(`Failed to save: ${e.message}`);
+      showAlert(`Failed to save: ${e.message}`);
       return false;
     }
   };

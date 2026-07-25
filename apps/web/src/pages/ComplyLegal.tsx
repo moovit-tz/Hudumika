@@ -7,6 +7,7 @@ import './ComplyOS.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { ComplyWizardPage, WizardField } from './ComplyWizardPage.js';
 import { ComplyCustomerPicker } from './ComplyCustomerPicker.js';
+import { showConfirm } from '../lib/confirm.js';
 
 const SPECIALTIES_FILTER = [
   'All', 'Corporate Registration', 'Tax Compliance', 'Employment Law',
@@ -77,7 +78,7 @@ function EngagementDrawer({ engagement, onClose, onSendMessage, onSetMilestone, 
   }
 
   async function handleCancel() {
-    if (!window.confirm(`Cancel the engagement with ${engagement.firm_name}?`)) return;
+    if (!(await showConfirm(`Cancel the engagement with ${engagement.firm_name}?`, { confirmLabel: 'Cancel Engagement' }))) return;
     setCancelling(true);
     try {
       await onCancel(engagement.id);

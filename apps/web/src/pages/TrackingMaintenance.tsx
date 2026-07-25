@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { showConfirm } from '../lib/confirm.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Vendor { id: string; name: string }
@@ -45,7 +46,7 @@ export const TrackingMaintenance: React.FC = () => {
   const vendorName = (id: string | null) => vendors.find(v => v.id === id)?.name ?? '—';
 
   async function remove(id: string) {
-    if (!confirm('Delete this maintenance record?')) return;
+    if (!(await showConfirm('Delete this maintenance record?', { confirmLabel: 'Delete' }))) return;
     await apiFetch(`/v1/tracking/maintenance/${id}`, { method: 'DELETE' });
     reload();
   }

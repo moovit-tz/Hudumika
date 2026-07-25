@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { showConfirm } from '../lib/confirm.js';
 
 interface Location { id: string; code: string; name: string; zone: string | null; capacity_units: number | null; active: boolean }
 interface Vehicle { id: string; name: string }
@@ -188,7 +189,7 @@ export const TrackingWarehouse: React.FC = () => {
   }
 
   async function removeLocation(id: string) {
-    if (!confirm('Remove this location?')) return;
+    if (!(await showConfirm('Remove this location?', { confirmLabel: 'Remove' }))) return;
     await apiFetch(`/v1/tracking/warehouse/locations/${id}`, { method: 'DELETE' });
     reload();
   }

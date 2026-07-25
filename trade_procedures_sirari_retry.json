@@ -1,0 +1,30 @@
+[
+  {
+    "source_id": 1253,
+    "kind": "IMPORT",
+    "name": "Beverages import clearance procedure through Sirari One Stop Border Post (OSBP)",
+    "summary": "Procedure landing page on Tanzania Trade Portal.",
+    "source_url": "https://trade.tanzania.go.tz/procedure/1253?l=en",
+    "total_cost": null,
+    "total_duration": null,
+    "required_documents": [],
+    "results": [],
+    "institutions": [],
+    "steps": [],
+    "note": "Resource non-existent or deprecated on live trade.tanzania.go.tz (HTTP 404 / Resource Not Found). Active Sirari procedures use alternative commodity IDs (e.g., ID 1255 for Medicine, 1439 for Agrochemicals, 1446 for Home Appliances)."
+  },
+  {
+    "source_id": 1256,
+    "kind": "IMPORT",
+    "name": "Medical devices import clearance procedure through Sirari OSBP",
+    "summary": "Procedure landing page on Tanzania Trade Portal.",
+    "source_url": "https://trade.tanzania.go.tz/procedure/1256?l=en",
+    "total_cost": null,
+    "total_duration": null,
+    "required_documents": [],
+    "results": [],
+    "institutions": [],
+    "steps": [],
+    "note": "Resource non-existent or deprecated on live trade.tanzania.go.tz (HTTP 404 / Resource Not Found). Active Sirari procedures use alternative commodity IDs (e.g., ID 1255 for Medicine, 1439 for Agrochemicals, 1446 for Home Appliances)."
+  }
+]

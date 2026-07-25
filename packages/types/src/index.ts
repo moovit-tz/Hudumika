@@ -11,3 +11,4 @@ export * from './onboarding.js';
 export * from './entitlements.js';
 export * from './cms.js';
 export * from './workflow.js';
+export * from './seal.js';

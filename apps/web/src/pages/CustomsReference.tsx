@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
+import { showAlert } from '../lib/alert.js';
 
 // ── Customs Reference — ICD directory, TASAC agents, EAC excise ──
 // Real gazette data imported from the public EAC customs suite
@@ -126,7 +127,7 @@ export const CustomsReference: React.FC = () => {
       else setExcise(prev => prev.map(r => r.id === editingId ? res.data : r));
       cancelEdit();
     } catch (err: any) {
-      alert(err.message || 'Failed to save changes');
+      showAlert(err.message || 'Failed to save changes');
     } finally {
       setSaving(false);
     }

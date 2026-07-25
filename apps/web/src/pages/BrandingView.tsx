@@ -196,7 +196,7 @@ export function BrandingView() {
 
   return (
     <div className="flex flex-col w-full max-w-6xl mx-auto p-6 gap-6">
-      <div>
+      <div className="sa-page-hdr" style={{ marginTop: 20 }}>
         <h1 className="text-3xl font-bold tracking-tight">Platform Branding</h1>
         <p className="text-muted-foreground mt-2">Manage the visual identity and nomenclature for your entire workspace.</p>
       </div>

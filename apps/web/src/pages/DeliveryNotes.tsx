@@ -8,6 +8,8 @@ import { PageHeader } from '../components/PageHeader.js';
 import { useBranding } from '../hooks/useBranding.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { showConfirm } from '../lib/confirm.js';
+
 const ORANGE = '#f97316';
 const DARK   = '#1e293b';
 
@@ -783,7 +785,7 @@ export const DeliveryNotes: React.FC = () => {
   }
 
   async function deleteNote(id: string) {
-    if (!window.confirm('Delete this delivery note?')) return;
+    if (!(await showConfirm('Delete this delivery note?', { confirmLabel: 'Delete' }))) return;
     try {
       await apiFetch(`/v1/delivery-notes/${id}`, { method: 'DELETE' });
     } catch { /* allow local removal */ }

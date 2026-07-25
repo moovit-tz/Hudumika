@@ -8,6 +8,8 @@ import './Subscription.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { useCompany, setCompany } from '../data/companyStore.js';
 import { useEntitlements } from '../hooks/useEntitlements.js';
+import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -694,7 +696,7 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
   const currentPlan: PlanKey = (tenant?.plan || 'starter') as PlanKey;
 
   async function handleSelectPlan(k: PlanKey) {
-    if (!confirm(`Are you sure you want to change your plan to ${k}?`)) return;
+    if (!(await showConfirm(`Are you sure you want to change your plan to ${k}?`, { variant: 'warning', confirmLabel: 'Change Plan' }))) return;
     try {
       await apiFetch('/v1/settings', {
         method: 'PATCH',
@@ -702,7 +704,7 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
       });
       await onReload();
     } catch (err: any) {
-      alert(`Failed to update plan: ${err.message}`);
+      showAlert(`Failed to update plan: ${err.message}`);
     }
   }
 

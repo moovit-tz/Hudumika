@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { showAlert } from '../lib/alert.js';
 import './Store.css';
 
 export const StoreAdmin: React.FC = () => {
@@ -31,7 +32,7 @@ export const StoreAdmin: React.FC = () => {
       });
       loadApps();
     } catch (e) {
-      alert('Failed to update status');
+      showAlert('Failed to update status');
     }
   };
 

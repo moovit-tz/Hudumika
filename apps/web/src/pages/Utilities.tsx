@@ -4,6 +4,8 @@ import { useEntitlements, resetEntitlementsCache } from '../hooks/useEntitlement
 import { Switch } from '../components/ui/switch.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon, type IconName } from '../components/Icon.js';
+import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 
 const APP_META: Record<string, { name: string; desc: string; icon: IconName }> = {
   clearos:      { name: 'ClearOS',       desc: 'Customs clearance, declarations, shipment tracking.', icon: 'package' },
@@ -59,7 +61,7 @@ export const Utilities: React.FC = () => {
       resetEntitlementsCache();
     } catch (err: any) {
       setOverrides(overrides);
-      alert(`Failed to update module: ${err.message}`);
+      showAlert(`Failed to update module: ${err.message}`);
     } finally {
       setModuleSaving(null);
     }
@@ -81,7 +83,7 @@ export const Utilities: React.FC = () => {
       const a = document.createElement('a');
       a.href = url; a.download = `clearos-shipments-${new Date().toISOString().slice(0,10)}.csv`; a.click();
       URL.revokeObjectURL(url);
-    } catch (err: any) { alert(err.message); } finally { setExporting(false); }
+    } catch (err: any) { showAlert(err.message); } finally { setExporting(false); }
   };
 
   const exportCustomers = async () => {
@@ -97,7 +99,7 @@ export const Utilities: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = `clearos-customers-${new Date().toISOString().slice(0,10)}.csv`; a.click();
       URL.revokeObjectURL(url);
-    } catch (err: any) { alert(err.message); } finally { setExporting(false); }
+    } catch (err: any) { showAlert(err.message); } finally { setExporting(false); }
   };
 
   const checkHealth = async () => {
@@ -203,7 +205,7 @@ export const Utilities: React.FC = () => {
             title="Clear Local Cache"
             desc="Clear browser localStorage data for this app. You will be signed out and need to log in again."
             action={
-              <button type="button" className="btn btn-danger btn-sm" onClick={() => { if (confirm('Clear cache and sign out?')) { localStorage.clear(); window.location.reload(); } }}>
+              <button type="button" className="btn btn-danger btn-sm" onClick={async () => { if ((await showConfirm('Clear cache and sign out?', { variant: 'warning', confirmLabel: 'Clear Cache' }))) { localStorage.clear(); window.location.reload(); } }}>
                 Clear Cache
               </button>
             }

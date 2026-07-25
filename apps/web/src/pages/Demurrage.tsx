@@ -11,6 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 
 interface Tariff {
   id: string;
@@ -127,7 +129,7 @@ export const Demurrage: React.FC = () => {
       });
       setCalcResult(result);
     } catch (err: any) {
-      alert(err.message);
+      showAlert(err.message);
     }
   };
 
@@ -142,7 +144,7 @@ export const Demurrage: React.FC = () => {
       setReturnDate('');
       await fetchData();
     } catch (err: any) {
-      alert(err.message);
+      showAlert(err.message);
     }
   };
 
@@ -173,7 +175,7 @@ export const Demurrage: React.FC = () => {
   };
 
   const submitCForm = async () => {
-    if (!cForm.container_number.trim()) { alert('Container number is required'); return; }
+    if (!cForm.container_number.trim()) { showAlert('Container number is required'); return; }
     try {
       if (editCId) {
         await apiFetch(`/v1/demurrage/containers/${editCId}`, {
@@ -188,7 +190,7 @@ export const Demurrage: React.FC = () => {
           }),
         });
       } else {
-        if (!cForm.shipment_id) { alert('Select the shipment (BL) this container belongs to'); return; }
+        if (!cForm.shipment_id) { showAlert('Select the shipment (BL) this container belongs to'); return; }
         await apiFetch('/v1/demurrage/containers', {
           method: 'POST',
           body: JSON.stringify({
@@ -206,17 +208,17 @@ export const Demurrage: React.FC = () => {
       setCForm({ ...emptyCForm });
       await fetchData();
     } catch (err: any) {
-      alert(err.message);
+      showAlert(err.message);
     }
   };
 
   const deleteContainer = async (id: string) => {
-    if (!confirm('Remove this container from demurrage tracking?')) return;
+    if (!(await showConfirm('Remove this container from demurrage tracking?', { confirmLabel: 'Remove' }))) return;
     try {
       await apiFetch(`/v1/demurrage/containers/${id}`, { method: 'DELETE' });
       await fetchData();
     } catch (err: any) {
-      alert(err.message);
+      showAlert(err.message);
     }
   };
 

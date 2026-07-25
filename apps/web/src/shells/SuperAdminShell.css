@@ -35,3 +35,15 @@
   font-size: 11px;
   color: var(--ink3);
 }
+
+/* ── Space before page headers across every admin page ── */
+.sa-shell-content .sa-page-hdr,
+.sa-shell-content .page-header,
+.sa-shell-content .sar-title,
+.sa-shell-content .qb-title,
+.sa-shell-content .ds-title,
+.sa-shell-content > div > .space-y-2:first-child,
+.sa-shell-content > div > h1:first-child {
+  margin-top: 20px !important;
+}
+

@@ -23,7 +23,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    throw new Error(err.message || err.error || `Request failed with status ${response.status}`);
+    throw new Error(err.message || err.error || err.detail || `Request failed with status ${response.status}`);
   }
 
   return response.json();
@@ -38,7 +38,7 @@ export async function apiDownload(path: string, filename: string) {
   const response = await fetch(`${BASE_URL}${path}`, { headers });
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    throw new Error(err.message || err.error || `Request failed with status ${response.status}`);
+    throw new Error(err.message || err.error || err.detail || `Request failed with status ${response.status}`);
   }
 
   const blob = await response.blob();
@@ -61,7 +61,7 @@ export async function apiViewBlob(path: string) {
   const response = await fetch(`${BASE_URL}${path}`, { headers });
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
-    throw new Error(err.message || err.error || `Request failed with status ${response.status}`);
+    throw new Error(err.message || err.error || err.detail || `Request failed with status ${response.status}`);
   }
 
   const blob = await response.blob();

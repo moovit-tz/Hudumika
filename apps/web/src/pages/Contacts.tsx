@@ -8,6 +8,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { showAlert } from '../lib/alert.js';
 
 const MODAL_STEPS: { key: 'profile' | 'contact' | 'business' | 'extra'; label: string; icon: IconName }[] = [
   { key: 'profile',  label: 'Profile',        icon: 'user'     },
@@ -191,7 +192,7 @@ export function Contacts() {
       setShowEditModal(null);
       await loadData();
     } catch (err: any) {
-      alert(err.message || 'Failed to save contact');
+      showAlert(err.message || 'Failed to save contact');
     }
   };
 
@@ -224,7 +225,7 @@ export function Contacts() {
       setFormLabelIds(prev => [...prev, newLabel.id]);
       setInlineNewLabel('');
     } catch (err: any) {
-      alert(err.message || 'Failed to create label');
+      showAlert(err.message || 'Failed to create label');
     }
   };
 
@@ -260,7 +261,7 @@ export function Contacts() {
       if (activeContact?.id === id) setActiveContact(null);
       await loadData();
     } catch (err: any) {
-      alert(err.message || 'Failed to delete contact');
+      showAlert(err.message || 'Failed to delete contact');
     }
   };
 
@@ -270,7 +271,7 @@ export function Contacts() {
       await apiFetch(`/v1/contacts/${id}/restore`, { method: 'POST' });
       await loadData();
     } catch (err: any) {
-      alert(err.message || 'Failed to restore contact');
+      showAlert(err.message || 'Failed to restore contact');
     }
   };
 
@@ -283,7 +284,7 @@ export function Contacts() {
       });
       await loadData();
     } catch (err: any) {
-      alert(err.message || 'Failed to update favorite status');
+      showAlert(err.message || 'Failed to update favorite status');
     }
   };
 
@@ -295,9 +296,9 @@ export function Contacts() {
         body: JSON.stringify({ primary_id: primaryId, duplicate_ids: duplicateIds })
       });
       await loadData();
-      alert('Contacts merged successfully!');
+      showAlert('Contacts merged successfully!');
     } catch (err: any) {
-      alert(err.message || 'Failed to merge contacts');
+      showAlert(err.message || 'Failed to merge contacts');
     }
   };
 
@@ -313,7 +314,7 @@ export function Contacts() {
       setSelectedIds(new Set());
       await loadData();
     } catch (err: any) {
-      alert(err.message || 'Failed to perform bulk delete');
+      showAlert(err.message || 'Failed to perform bulk delete');
     }
   };
 
@@ -328,7 +329,7 @@ export function Contacts() {
       setSelectedIds(new Set());
       await loadData();
     } catch (err: any) {
-      alert(err.message || 'Failed to apply bulk label');
+      showAlert(err.message || 'Failed to apply bulk label');
     }
   };
 
@@ -1016,7 +1017,7 @@ export function Contacts() {
                           for (const group of duplicates) {
                             await handleMerge(group.contacts[0].id, group.contacts.slice(1).map(c => c.id));
                           }
-                          alert('All duplicates merged!');
+                          showAlert('All duplicates merged!');
                         }}
                       >
                         Merge all

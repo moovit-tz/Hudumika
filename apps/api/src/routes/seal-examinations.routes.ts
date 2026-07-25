@@ -1,0 +1,83 @@
+import { requireAnyEntitlement } from '../middleware/entitlement.js';
+import type { FastifyInstance } from 'fastify';
+import { withTenant } from '../db/client.js';
+
+// SEAL examination management (spec, deferred from Increment 3). Rows are
+// created by SealDeclarationService.submit() (see seal-declaration.service.ts)
+// with a simulated selectivity channel assignment — this file only exposes
+// the worklist (triage across declarations) and the completion action.
+// GREEN-channel rows arrive pre-WAIVED and never need an officer's action;
+// this route lets an officer act on YELLOW/RED ones.
+
+function mapExamination(row: any) {
+  return {
+    id: row.id,
+    customsEntryId: row.customs_entry_id,
+    lotDescription: row.lot_description ?? undefined,
+    selectivityChannel: row.selectivity_channel,
+    examinationType: row.examination_type,
+    status: row.status,
+    officerName: row.officer_name,
+    officerReference: row.officer_reference,
+    scheduledAt: row.scheduled_at,
+    completedAt: row.completed_at,
+    outcome: row.outcome,
+    findings: row.findings,
+    createdAt: row.created_at,
+  };
+}
+
+export async function sealExaminationRoutes(fastify: FastifyInstance) {
+  fastify.addHook('preHandler', fastify.authenticate);
+  // Tied to the declaration lifecycle, now worked from ClearOS's Ops
+  // Command — same reasoning as seal-declarations.routes.ts.
+  fastify.addHook('preHandler', requireAnyEntitlement(['seal', 'clearos']));
+
+  fastify.get('/examinations', async (request: any, reply) => {
+    try {
+      const { status, customs_entry_id } = request.query as { status?: string; customs_entry_id?: string };
+      const rows = await withTenant(request.user.tenant_id, trx => {
+        let q = trx.selectFrom('seal_examinations')
+          .leftJoin('seal_customs_entries', 'seal_customs_entries.id', 'seal_examinations.customs_entry_id')
+          .leftJoin('seal_lots', 'seal_lots.id', 'seal_customs_entries.lot_id')
+          .select([
+            'seal_examinations.id', 'seal_examinations.customs_entry_id', 'seal_lots.description as lot_description',
+            'seal_examinations.selectivity_channel', 'seal_examinations.examination_type', 'seal_examinations.status',
+            'seal_examinations.officer_name', 'seal_examinations.officer_reference', 'seal_examinations.scheduled_at',
+            'seal_examinations.completed_at', 'seal_examinations.outcome', 'seal_examinations.findings',
+            'seal_examinations.created_at',
+          ])
+          .orderBy('seal_examinations.created_at', 'desc');
+        if (status) q = q.where('seal_examinations.status', '=', status);
+        if (customs_entry_id) q = q.where('seal_examinations.customs_entry_id', '=', customs_entry_id);
+        return q.execute();
+      });
+      return rows.map(mapExamination);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.patch('/examinations/:id', async (request: any, reply) => {
+    try {
+      const b = request.body as any;
+      const patch: any = { updated_at: new Date() };
+      if (b.status) patch.status = b.status;
+      if (b.officerName !== undefined) patch.officer_name = b.officerName || null;
+      if (b.officerReference !== undefined) patch.officer_reference = b.officerReference || null;
+      if (b.scheduledAt !== undefined) patch.scheduled_at = b.scheduledAt ? new Date(b.scheduledAt) : null;
+      if (b.findings !== undefined) patch.findings = b.findings || null;
+      if (b.status === 'COMPLETED') {
+        if (!b.outcome) return reply.status(400).send({ error: 'outcome is required to complete an examination' });
+        patch.outcome = b.outcome;
+        patch.completed_at = new Date();
+      }
+      const row = await withTenant(request.user.tenant_id, trx =>
+        trx.updateTable('seal_examinations').set(patch).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
+      );
+      return mapExamination(row);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+}

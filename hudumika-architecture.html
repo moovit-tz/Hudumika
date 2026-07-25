@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Hudumika — Engineering Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700;800;900&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet"/>
+<style>
+/* ── DARK MODE (default) ── */
+:root {
+  --moovit: #D94F1A;
+  --hudumika: #4338ca;
+  --hudumika-light: #818cf8;
+  --oneid: #4f46e5;
+  --clearos: #ea580c;
+  --finops: #0284c7;
+  --complyos: #059669;
+  --bliss: #7c3aed;
+  --onepi: #d97706;
+  --onesite: #db2777;
+  --fleet: #0891b2;
+  --tracking: #16a34a;
+  --mapping: #dc2626;
+  --cloud: #0369a1;
+  --ai: #6d28d9;
+
+  --bg: #080810;
+  --bg2: #0f0f1a;
+  --bg3: #161624;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.13);
+  --chip-bg: rgba(255,255,255,0.035);
+  --chip-border: rgba(255,255,255,0.07);
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --text3: #475569;
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'League Spartan', sans-serif;
+  --shadow: 0 16px 48px rgba(0,0,0,.35);
+  --shadow-sm: 0 4px 16px rgba(0,0,0,.25);
+}
+
+/* ── LIGHT MODE ── */
+[data-theme="light"] {
+  --bg: #f2f4f8;
+  --bg2: #ffffff;
+  --bg3: #e8eaf2;
+  --border: rgba(0,0,0,0.08);
+  --border2: rgba(0,0,0,0.14);
+  --chip-bg: rgba(0,0,0,0.03);
+  --chip-border: rgba(0,0,0,0.08);
+  --text: #0f172a;
+  --text2: #334155;
+  --text3: #94a3b8;
+  --shadow: 0 16px 48px rgba(0,0,0,.10);
+  --shadow-sm: 0 4px 16px rgba(0,0,0,.07);
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden;transition:background .25s,color .25s;}
+
+/* ── NAV ── */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:var(--bg2);
+  border-bottom:1px solid var(--border);
+  padding:0 48px;height:54px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.nav-left{display:flex;align-items:center;gap:16px;}
+.nav-moovit{
+  font-family:var(--mono);font-size:11px;font-weight:600;
+  color:var(--moovit);letter-spacing:2px;text-transform:uppercase;
+  padding:3px 9px;border:1px solid var(--moovit);border-radius:3px;
+  flex-shrink:0;
+}
+.nav-sep{color:var(--text3);}
+.nav-product{font-size:14px;font-weight:700;letter-spacing:-0.3px;}
+.nav-right{display:flex;align-items:center;gap:12px;}
+.nav-meta{font-family:var(--mono);font-size:10px;color:var(--text3);}
+.theme-btn{
+  width:32px;height:32px;border-radius:8px;border:1px solid var(--border);
+  background:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:15px;transition:border-color .15s;
+}
+.theme-btn:hover{border-color:var(--border2);}
+
+/* ── HERO ── */
+.hero{padding:96px 60px 72px;max-width:1440px;margin:0 auto;}
+.hero-eyebrow{
+  font-family:var(--mono);font-size:10px;font-weight:500;
+  color:var(--hudumika-light);letter-spacing:3px;text-transform:uppercase;
+  margin-bottom:20px;display:flex;align-items:center;gap:10px;
+}
+.hero-eyebrow::before{content:'';display:block;width:28px;height:1px;background:var(--hudumika-light);}
+.hero-title{font-size:clamp(56px,8vw,104px);font-weight:900;letter-spacing:-5px;line-height:0.9;margin-bottom:28px;}
+.hero-title .hl{color:var(--hudumika-light);}
+.hero-sub{font-size:17px;font-weight:400;color:var(--text2);max-width:560px;line-height:1.75;margin-bottom:52px;}
+.hero-stats{display:flex;gap:48px;flex-wrap:wrap;}
+.stat-num{font-size:40px;font-weight:900;letter-spacing:-2px;line-height:1;}
+.stat-lbl{font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;}
+
+/* ── SECTIONS ── */
+.section{max-width:1440px;margin:0 auto;padding:72px 60px;}
+.s-eyebrow{font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:3px;margin-bottom:10px;}
+.s-title{font-size:30px;font-weight:800;letter-spacing:-1.5px;margin-bottom:8px;}
+.s-desc{font-size:14px;color:var(--text2);max-width:580px;margin-bottom:44px;line-height:1.7;}
+.divider{max-width:1440px;margin:0 auto;padding:0 60px;}
+.divider hr{border:none;border-top:1px solid var(--border);}
+
+/* ── BRAND TREE ── */
+.brand-tree{border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--bg2);}
+.brand-root{
+  padding:28px 36px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:20px;
+  background:color-mix(in srgb,var(--moovit) 6%,var(--bg2));
+}
+.brand-root-ico{
+  width:52px;height:52px;border-radius:13px;background:var(--moovit);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-weight:700;font-size:13px;color:#fff;letter-spacing:1px;flex-shrink:0;
+}
+.brand-root-info h3{font-size:20px;font-weight:800;letter-spacing:-1px;}
+.brand-root-info p{font-size:12px;color:var(--text2);margin-top:2px;}
+.brand-root-tag{
+  margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--moovit);
+  border:1px solid var(--moovit);padding:4px 10px;border-radius:4px;
+  letter-spacing:1px;text-transform:uppercase;white-space:nowrap;
+}
+.brand-group-label{
+  padding:10px 28px 6px;
+  font-family:var(--mono);font-size:9px;font-weight:600;
+  color:var(--text3);text-transform:uppercase;letter-spacing:3px;
+  background:var(--bg3);border-top:1px solid var(--border);
+}
+.brand-kids{padding:16px 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;background:var(--bg2);}
+.brand-kids.infra{background:color-mix(in srgb,var(--moovit) 3%,var(--bg2));}
+.brand-kid{border:1px solid var(--border);border-radius:12px;padding:18px 20px;transition:border-color .2s;background:var(--bg2);}
+.brand-kid.active{border-color:var(--hudumika);background:color-mix(in srgb,var(--hudumika) 6%,var(--bg2));}
+.brand-kid.fleet{border-color:transparent;}
+.brand-kid-lbl{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;}
+.brand-kid.active .brand-kid-lbl{color:var(--hudumika-light);}
+.brand-kid h4{font-size:14px;font-weight:700;letter-spacing:-.4px;margin-bottom:4px;display:flex;align-items:center;gap:7px;}
+.brand-kid p{font-size:11px;color:var(--text2);line-height:1.55;}
+.bk-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+/* ── STACK ── */
+.stack{display:flex;flex-direction:column;gap:3px;}
+.layer{border-radius:12px;border:1px solid var(--border);overflow:hidden;}
+.layer-hdr{display:flex;align-items:center;gap:14px;padding:14px 24px;background:var(--bg2);}
+.layer-num{font-family:var(--mono);font-size:10px;color:var(--text3);width:20px;text-align:right;flex-shrink:0;}
+.layer-bar{width:3px;height:18px;border-radius:2px;flex-shrink:0;}
+.layer-name{font-family:var(--mono);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:2px;flex:1;}
+.layer-tech{font-family:var(--mono);font-size:10px;color:var(--text3);}
+.layer-body{padding:12px 24px 16px 60px;display:flex;flex-wrap:wrap;gap:7px;background:var(--bg3);}
+.chip{
+  font-family:var(--mono);font-size:10px;
+  padding:3px 10px;border-radius:5px;
+  background:var(--chip-bg);border:1px solid var(--chip-border);
+  color:var(--text2);
+}
+.chip.hi{border-color:currentColor;opacity:.85;}
+
+/* ── APPS ── */
+.apps-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.app-card{
+  --ac:white;
+  border:1px solid var(--border);border-radius:14px;padding:22px;
+  background:var(--bg2);position:relative;overflow:hidden;
+  transition:transform .2s,border-color .2s;
+}
+.app-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--ac);}
+.app-card:hover{transform:translateY(-3px);border-color:var(--border2);}
+.app-badge{
+  display:inline-block;font-family:var(--mono);font-size:9px;font-weight:600;
+  padding:2px 8px;border-radius:3px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;
+  background:color-mix(in srgb,var(--ac) 12%,transparent);
+  color:var(--ac);border:1px solid color-mix(in srgb,var(--ac) 28%,transparent);
+}
+.app-ico{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px;background:color-mix(in srgb,var(--ac) 12%,transparent);}
+.app-name{font-size:16px;font-weight:800;letter-spacing:-.5px;margin-bottom:2px;color:var(--ac);}
+.app-tag{font-size:11px;color:var(--text2);margin-bottom:14px;}
+.app-mods{display:flex;flex-direction:column;gap:4px;}
+.app-mod{font-family:var(--mono);font-size:10px;color:var(--text3);display:flex;align-items:center;gap:6px;}
+.app-mod::before{content:'—';color:var(--ac);opacity:.5;font-size:9px;}
+
+/* ── MOOVIT PRODUCTS ── */
+.mvt-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.mvt-card{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--bg2);}
+.mvt-card-hdr{padding:20px 22px 16px;display:flex;align-items:flex-start;gap:14px;}
+.mvt-ico{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.mvt-name{font-size:17px;font-weight:800;letter-spacing:-.5px;}
+.mvt-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+.mvt-body{padding:0 22px 18px;display:flex;flex-direction:column;gap:5px;}
+.mvt-mod{font-family:var(--mono);font-size:10px;color:var(--text3);display:flex;align-items:center;gap:6px;}
+.mvt-mod::before{content:'—';opacity:.5;font-size:9px;}
+.mvt-connects{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);}
+.mvt-connects-lbl{font-family:var(--mono);font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin-bottom:7px;}
+.mvt-connects-row{display:flex;flex-wrap:wrap;gap:5px;}
+.mvt-tag{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;}
+
+/* ── PRIMITIVES ── */
+.prim-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.prim{border:1px solid var(--border);border-radius:12px;padding:22px 18px;background:var(--bg2);text-align:center;}
+.prim-ico{font-size:26px;margin-bottom:10px;}
+.prim-name{font-size:13px;font-weight:700;letter-spacing:-.3px;margin-bottom:6px;}
+.prim-desc{font-family:var(--mono);font-size:10px;color:var(--text3);line-height:1.6;}
+
+/* ── EVENT TABLE ── */
+.ev-table{width:100%;border-collapse:collapse;}
+.ev-table th{
+  text-align:left;padding:10px 16px;border-bottom:1px solid var(--border);
+  color:var(--text3);font-family:var(--mono);font-size:10px;
+  text-transform:uppercase;letter-spacing:1.5px;font-weight:500;background:var(--bg2);
+}
+.ev-table td{padding:11px 16px;border-bottom:1px solid var(--chip-border);vertical-align:middle;font-size:13px;}
+.ev-table tr:last-child td{border-bottom:none;}
+.ev-table tr:hover td{background:var(--chip-bg);}
+.ev-name{font-family:var(--mono);font-size:11px;font-weight:500;color:var(--text);}
+.ev-effect{font-size:12px;color:var(--text2);}
+.tag{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;white-space:nowrap;}
+
+/* ── TECH ── */
+.tech-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.tech-grp{border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.tech-grp-hdr{padding:12px 20px;background:var(--bg2);border-bottom:1px solid var(--border);font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:2px;}
+.tech-items{padding:16px 20px;display:flex;flex-direction:column;gap:10px;background:var(--bg2);}
+.tech-row{display:flex;gap:12px;align-items:flex-start;}
+.tech-name{font-size:13px;font-weight:700;min-width:130px;color:var(--text);}
+.tech-desc{font-family:var(--mono);font-size:10px;color:var(--text3);line-height:1.55;}
+
+/* ── SECURITY ── */
+.sec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.sec-card{border:1px solid var(--border);border-radius:12px;padding:22px;background:var(--bg2);}
+.sec-card h4{font-size:14px;font-weight:700;letter-spacing:-.3px;margin-bottom:8px;}
+.sec-card p{font-family:var(--mono);font-size:10px;color:var(--text3);line-height:1.7;}
+
+/* ── MONO BOX ── */
+.mono-box{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:28px 32px;font-family:var(--mono);font-size:12px;line-height:2.1;}
+.ml{color:var(--text3);}
+.ml .f{color:var(--text);}
+
+/* ── PHASES ── */
+.phases{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.phase{border:1px solid var(--border);border-radius:12px;padding:22px;background:var(--bg2);}
+.ph-num{font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;}
+.ph-title{font-size:16px;font-weight:800;letter-spacing:-.5px;margin-bottom:3px;}
+.ph-time{font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:16px;}
+.ph-list{list-style:none;display:flex;flex-direction:column;gap:5px;}
+.ph-list li{font-family:var(--mono);font-size:10px;color:var(--text2);display:flex;align-items:center;gap:8px;}
+.ph-list li::before{content:'○';color:var(--text3);font-size:8px;flex-shrink:0;}
+.ph-list li.done::before{content:'●';color:#22c55e;}
+.ph-list li.wip::before{content:'◉';color:#f59e0b;}
+
+/* ── FINOPS GRID ── */
+.fo-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.fo-card{border:1px solid var(--border);border-radius:12px;padding:24px;background:var(--bg2);}
+.fo-lbl{font-family:var(--mono);font-size:10px;color:var(--finops);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;}
+.fo-item-name{font-size:13px;font-weight:700;margin-bottom:4px;}
+.fo-item-desc{font-family:var(--mono);font-size:10px;color:var(--text3);}
+
+footer{max-width:1440px;margin:0 auto;padding:36px 60px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid var(--border);}
+footer p{font-family:var(--mono);font-size:10px;color:var(--text3);}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-left">
+    <span class="nav-moovit">MOOVIT</span>
+    <span class="nav-sep">›</span>
+    <span class="nav-product">Hudumika Workspace</span>
+    <span class="nav-sep">›</span>
+    <span style="font-family:var(--mono);font-size:11px;color:var(--text3);">Engineering Architecture</span>
+  </div>
+  <div class="nav-right">
+    <span class="nav-meta">v1.0 — 2025 — CONFIDENTIAL</span>
+    <button class="theme-btn" id="themeToggle" title="Toggle light / dark mode">🌙</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Platform Architecture Document</div>
+  <h1 class="hero-title">Hudumika<br/><span class="hl">Workspace</span></h1>
+  <p class="hero-sub">The unified business operating system for East African enterprises. Eight integrated applications, one identity backbone, one event bus, one data fabric — under the Moovit umbrella.</p>
+  <div class="hero-stats">
+    <div><div class="stat-num">8</div><div class="stat-lbl">Workspace Apps</div></div>
+    <div><div class="stat-num">5</div><div class="stat-lbl">Platform Primitives</div></div>
+    <div><div class="stat-num">6</div><div class="stat-lbl">Architecture Layers</div></div>
+    <div><div class="stat-num" style="color:var(--moovit);">8</div><div class="stat-lbl">Moovit Products</div></div>
+    <div><div class="stat-num">1</div><div class="stat-lbl">Identity (OneID)</div></div>
+  </div>
+</div>
+
+<div class="divider"><hr/></div>
+
+<!-- 01 BRAND HIERARCHY -->
+<div class="section">
+  <div class="s-eyebrow">01 — Corporate Structure</div>
+  <h2 class="s-title">Moovit Brand Architecture</h2>
+  <p class="s-desc">Moovit is the parent holding company — the Alphabet of East Africa. Six distinct products, two of which (Mapping + Tracking) are platform infrastructure that powers the rest.</p>
+
+  <div class="brand-tree">
+    <!-- Root -->
+    <div class="brand-root">
+      <div class="brand-root-ico">MVT</div>
+      <div class="brand-root-info">
+        <h3>Moovit</h3>
+        <p>Parent holding company — technology ventures for East Africa and beyond</p>
+      </div>
+      <div class="brand-root-tag">Alphabet-equivalent</div>
+    </div>
+
+    <!-- Business Products -->
+    <div class="brand-group-label">Business Products</div>
+    <div class="brand-kids">
+      <div class="brand-kid active">
+        <div class="brand-kid-lbl">★ This Document</div>
+        <h4><span class="bk-dot" style="background:var(--hudumika);"></span>Hudumika Workspace</h4>
+        <p>Unified SaaS suite: Identity, Customs, Finance, Compliance, Support, HR, Web. Sold as one workspace. 8 apps on a shared identity + event bus. Google Workspace equivalent.</p>
+      </div>
+      <div class="brand-kid">
+        <div class="brand-kid-lbl">Logistics SaaS · PaaS</div>
+        <h4><span class="bk-dot" style="background:var(--moovit);"></span>MOOVIT Logistics</h4>
+        <p>White-label logistics platform. 19 modules across 4 suites. Multi-tenant, schema-per-tenant. Phase 4 credit scoring after 90 days transaction data. Kafka event backbone.</p>
+      </div>
+      <div class="brand-kid">
+        <div class="brand-kid-lbl">Fleet Operations</div>
+        <h4><span class="bk-dot" style="background:var(--fleet);"></span>FleetManager</h4>
+        <p>Full-stack fleet management — vehicle registry, driver management, route optimisation, maintenance scheduling, fuel tracking, and compliance. Powered by Tracking + Mapping.</p>
+      </div>
+    </div>
+
+    <!-- Platform Infrastructure -->
+    <div class="brand-group-label" style="background:color-mix(in srgb,var(--moovit) 5%,var(--bg3));">Platform Infrastructure — powers all Moovit products</div>
+    <div class="brand-kids infra">
+      <div class="brand-kid">
+        <div class="brand-kid-lbl">Real-time Tracking</div>
+        <h4><span class="bk-dot" style="background:var(--tracking);"></span>Tracking</h4>
+        <p>Real-time GPS and asset tracking API. Vehicle telemetry, live position streaming, geofencing, trip history. SDK consumed by FleetManager, MOOVIT, ClearOS shipment tracking, and oneSite embeds.</p>
+      </div>
+      <div class="brand-kid">
+        <div class="brand-kid-lbl">Geospatial · Maps</div>
+        <h4><span class="bk-dot" style="background:var(--mapping);"></span>Mapping</h4>
+        <p>East Africa mapping platform — TZ, KE, UG, RW, BI, ET. Navigation, routing, geofencing, and map tile API. Powers Tracking visualisation, FleetManager routes, MOOVIT delivery maps, and oneSite embeds. Google Maps equivalent.</p>
+      </div>
+      <div class="brand-kid">
+        <div class="brand-kid-lbl">Cloud Storage</div>
+        <h4><span class="bk-dot" style="background:var(--cloud);"></span>Moovit Cloud</h4>
+        <p>East Africa-first cloud storage. Compatible with Google Drive and OneDrive via sync connectors. Document collaboration, version history, offline access. Primary storage for all Hudumika workspace documents.</p>
+      </div>
+    </div>
+
+    <!-- Hudumika AI row -->
+    <div class="brand-group-label" style="background:color-mix(in srgb,var(--ai) 6%,var(--bg3));">Hudumika AI — Intelligence layer embedded across all 8 workspace apps</div>
+    <div style="padding:16px 24px;background:color-mix(in srgb,var(--ai) 4%,var(--bg2));display:flex;align-items:flex-start;gap:20px;">
+      <div style="width:44px;height:44px;border-radius:12px;background:color-mix(in srgb,var(--ai) 15%,transparent);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🤖</div>
+      <div style="flex:1;">
+        <div style="font-size:14px;font-weight:800;letter-spacing:-0.4px;color:color-mix(in srgb,var(--ai) 80%,var(--text));margin-bottom:4px;">Hudumika AI</div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Not a standalone app — an intelligence fabric woven into every Hudumika product. Claude API for language reasoning, custom models for domain tasks.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;">
+          <span class="tag" style="background:color-mix(in srgb,var(--clearos) 12%,transparent);color:var(--clearos);">ClearOS: HS code prediction · duty AI</span>
+          <span class="tag" style="background:color-mix(in srgb,var(--finops) 12%,transparent);color:var(--finops);">FinOps: anomaly detection · tax advice</span>
+          <span class="tag" style="background:color-mix(in srgb,var(--complyos) 12%,transparent);color:var(--complyos);">ComplyOS: doc prep automation</span>
+          <span class="tag" style="background:color-mix(in srgb,var(--bliss) 12%,transparent);color:var(--bliss);">Bliss: Swahili NLP · ticket classification</span>
+          <span class="tag" style="background:color-mix(in srgb,var(--fleet) 12%,transparent);color:var(--fleet);">FleetManager: predictive maintenance</span>
+          <span class="tag" style="background:color-mix(in srgb,var(--tracking) 12%,transparent);color:var(--tracking);">Tracking: driver behaviour scoring</span>
+          <span class="tag" style="background:color-mix(in srgb,var(--onepi) 12%,transparent);color:var(--onepi);">onePI: attrition prediction</span>
+          <span class="tag" style="background:color-mix(in srgb,var(--mapping) 12%,transparent);color:var(--mapping);">Mapping: traffic learning · route AI</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- How infrastructure connects -->
+    <div style="padding:14px 24px;border-top:1px solid var(--border);background:var(--bg3);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:2px;flex-shrink:0;">Infrastructure powers →</span>
+      <span class="tag" style="background:color-mix(in srgb,var(--hudumika) 12%,transparent);color:var(--hudumika);">Hudumika Workspace</span>
+      <span class="tag" style="background:color-mix(in srgb,var(--moovit) 12%,transparent);color:var(--moovit);">MOOVIT Logistics</span>
+      <span class="tag" style="background:color-mix(in srgb,var(--fleet) 12%,transparent);color:var(--fleet);">FleetManager</span>
+      <span class="tag" style="background:color-mix(in srgb,var(--clearos) 12%,transparent);color:var(--clearos);">ClearOS</span>
+      <span class="tag" style="background:color-mix(in srgb,var(--ai) 12%,transparent);color:var(--ai);">Hudumika AI</span>
+    </div>
+  </div>
+</div>
+
+<div class="divider"><hr/></div>
+
+<!-- NEW: MOOVIT PLATFORM PRODUCTS -->
+<div class="section">
+  <div class="s-eyebrow">02 — Moovit Product Detail</div>
+  <h2 class="s-title">FleetManager · Tracking · Mapping · Moovit Cloud</h2>
+  <p class="s-desc">Four Moovit platform products. Mapping and Tracking are foundational infrastructure. FleetManager is the operational business app. Moovit Cloud is the storage layer — compatible with Google Drive and OneDrive.</p>
+
+  <div class="mvt-grid" style="grid-template-columns:repeat(2,1fr);">
+
+    <!-- Mapping -->
+    <div class="mvt-card">
+      <div class="mvt-card-hdr">
+        <div class="mvt-ico" style="background:color-mix(in srgb,var(--mapping) 12%,transparent);">🗺</div>
+        <div>
+          <div class="mvt-name" style="color:var(--mapping);">Mapping</div>
+          <div class="mvt-sub">East Africa Geospatial Platform</div>
+          <div style="margin-top:6px;">
+            <span class="tag" style="background:color-mix(in srgb,var(--mapping) 12%,transparent);color:var(--mapping);font-size:9px;">Google Maps equivalent</span>
+          </div>
+        </div>
+      </div>
+      <div class="mvt-body">
+        <div class="mvt-mod" style="color:var(--mapping);">Map tiles — TZ · KE · UG · RW · BI · ET</div>
+        <div class="mvt-mod">Turn-by-turn navigation API</div>
+        <div class="mvt-mod">Route optimisation (multi-stop)</div>
+        <div class="mvt-mod">Geofencing — polygon + radius zones</div>
+        <div class="mvt-mod">Offline map bundles (low-connectivity)</div>
+        <div class="mvt-mod">Address geocoding + reverse geocoding</div>
+        <div class="mvt-mod">Embeddable JS map widget</div>
+        <div class="mvt-mod">REST + SDK (JS, React Native)</div>
+        <div class="mvt-mod">POI database — roads, ports, ICDs, borders</div>
+        <div class="mvt-connects">
+          <div class="mvt-connects-lbl">Consumed by</div>
+          <div class="mvt-connects-row">
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--tracking) 12%,transparent);color:var(--tracking);">Tracking</span>
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--fleet) 12%,transparent);color:var(--fleet);">FleetManager</span>
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--moovit) 12%,transparent);color:var(--moovit);">MOOVIT</span>
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--onesite) 12%,transparent);color:var(--onesite);">oneSite</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tracking -->
+    <div class="mvt-card">
+      <div class="mvt-card-hdr">
+        <div class="mvt-ico" style="background:color-mix(in srgb,var(--tracking) 12%,transparent);">📍</div>
+        <div>
+          <div class="mvt-name" style="color:var(--tracking);">Tracking</div>
+          <div class="mvt-sub">Real-Time Asset & Vehicle Tracking</div>
+          <div style="margin-top:6px;">
+            <span class="tag" style="background:color-mix(in srgb,var(--tracking) 12%,transparent);color:var(--tracking);font-size:9px;">Platform Service</span>
+          </div>
+        </div>
+      </div>
+      <div class="mvt-body">
+        <div class="mvt-mod" style="color:var(--tracking);">Live GPS position streaming (WebSocket)</div>
+        <div class="mvt-mod">Vehicle telemetry — speed, fuel, engine status</div>
+        <div class="mvt-mod">Trip history + playback</div>
+        <div class="mvt-mod">Geofence entry/exit alerts</div>
+        <div class="mvt-mod">OBD-II + hardware GPS device support</div>
+        <div class="mvt-mod">Driver behaviour scoring</div>
+        <div class="mvt-mod">Package / asset tracking (non-vehicle)</div>
+        <div class="mvt-mod">Public tracking page (shareable link)</div>
+        <div class="mvt-mod">REST API + WebSocket + webhook</div>
+        <div class="mvt-connects">
+          <div class="mvt-connects-lbl">Consumed by</div>
+          <div class="mvt-connects-row">
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--fleet) 12%,transparent);color:var(--fleet);">FleetManager</span>
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--moovit) 12%,transparent);color:var(--moovit);">MOOVIT</span>
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--clearos) 12%,transparent);color:var(--clearos);">ClearOS</span>
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--onesite) 12%,transparent);color:var(--onesite);">oneSite</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FleetManager -->
+    <div class="mvt-card">
+      <div class="mvt-card-hdr">
+        <div class="mvt-ico" style="background:color-mix(in srgb,var(--fleet) 12%,transparent);">🚛</div>
+        <div>
+          <div class="mvt-name" style="color:var(--fleet);">FleetManager</div>
+          <div class="mvt-sub">End-to-End Fleet Operations</div>
+          <div style="margin-top:6px;">
+            <span class="tag" style="background:color-mix(in srgb,var(--fleet) 12%,transparent);color:var(--fleet);font-size:9px;">Business Application</span>
+          </div>
+        </div>
+      </div>
+      <div class="mvt-body">
+        <div class="mvt-mod" style="color:var(--fleet);">Vehicle registry + ownership records</div>
+        <div class="mvt-mod">Driver profiles + licence + performance</div>
+        <div class="mvt-mod">Live fleet map (powered by Tracking + Mapping)</div>
+        <div class="mvt-mod">Route optimisation for dispatched trips</div>
+        <div class="mvt-mod">Maintenance scheduling + service history</div>
+        <div class="mvt-mod">Fuel management + cost-per-km analytics</div>
+        <div class="mvt-mod">Vehicle compliance — fitness, insurance, TLB</div>
+        <div class="mvt-mod">Incident + accident reporting</div>
+        <div class="mvt-mod">Integrates with MOOVIT Logistics dispatch</div>
+        <div class="mvt-connects">
+          <div class="mvt-connects-lbl">Uses platform services</div>
+          <div class="mvt-connects-row">
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--tracking) 12%,transparent);color:var(--tracking);">Tracking</span>
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--mapping) 12%,transparent);color:var(--mapping);">Mapping</span>
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--oneid) 12%,transparent);color:var(--oneid);">OneID</span>
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--moovit) 12%,transparent);color:var(--moovit);">MOOVIT</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Moovit Cloud -->
+    <div class="mvt-card">
+      <div class="mvt-card-hdr">
+        <div class="mvt-ico" style="background:color-mix(in srgb,var(--cloud) 12%,transparent);">☁️</div>
+        <div>
+          <div class="mvt-name" style="color:var(--cloud);">Moovit Cloud</div>
+          <div class="mvt-sub">East Africa Cloud Storage & Collaboration</div>
+          <div style="margin-top:6px;">
+            <span class="tag" style="background:color-mix(in srgb,var(--cloud) 12%,transparent);color:var(--cloud);font-size:9px;">Google Drive / OneDrive equivalent</span>
+          </div>
+        </div>
+      </div>
+      <div class="mvt-body">
+        <div class="mvt-mod" style="color:var(--cloud);">File storage — data residency in East Africa</div>
+        <div class="mvt-mod">Real-time document collaboration</div>
+        <div class="mvt-mod">Version history + file recovery</div>
+        <div class="mvt-mod">Offline access + background sync</div>
+        <div class="mvt-mod">End-to-end encryption at rest + transit</div>
+        <div class="mvt-mod">Google Drive sync connector (import/export)</div>
+        <div class="mvt-mod">OneDrive sync connector (import/export)</div>
+        <div class="mvt-mod">Storage for all Hudumika workspace documents</div>
+        <div class="mvt-mod">Shared drives — team + workspace folders</div>
+        <div class="mvt-mod">File search powered by Hudumika AI</div>
+        <div class="mvt-connects">
+          <div class="mvt-connects-lbl">Primary storage for</div>
+          <div class="mvt-connects-row">
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--clearos) 12%,transparent);color:var(--clearos);">ClearOS docs</span>
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--finops) 12%,transparent);color:var(--finops);">FinOps reports</span>
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--complyos) 12%,transparent);color:var(--complyos);">ComplyOS certs</span>
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--onepi) 12%,transparent);color:var(--onepi);">onePI contracts</span>
+            <span class="mvt-tag" style="background:color-mix(in srgb,var(--onesite) 12%,transparent);color:var(--onesite);">oneSite media</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="divider"><hr/></div>
+
+<!-- HUDUMIKA AI SECTION -->
+<div class="section">
+  <div class="s-eyebrow">02b — Intelligence Layer</div>
+  <h2 class="s-title">Hudumika AI</h2>
+  <p class="s-desc">Not a standalone app — an intelligence fabric woven into every Hudumika product. Powered by Claude API for reasoning and language, custom East Africa domain models for trade, compliance, and logistics.</p>
+
+  <!-- AI Architecture Overview -->
+  <div style="display:grid;grid-template-columns:1fr 2fr;gap:14px;margin-bottom:24px;">
+    <div style="border:1px solid var(--border);border-radius:12px;padding:24px;background:var(--bg2);">
+      <div style="font-family:var(--mono);font-size:10px;color:var(--ai);text-transform:uppercase;letter-spacing:2px;margin-bottom:14px;">Architecture</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:3px;">Claude API (Anthropic)</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);">Language reasoning, document analysis, content generation, chatbot backbone for Bliss.</div>
+        </div>
+        <div style="height:1px;background:var(--border);"></div>
+        <div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:3px;">Domain Models</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);">Fine-tuned for East Africa: HS code classification, TRA/KRA tax rules, TANCIS data, Swahili NLP, road network routing.</div>
+        </div>
+        <div style="height:1px;background:var(--border);"></div>
+        <div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:3px;">RAG Pipeline</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);">Retrieval-Augmented Generation over workspace data. AI answers questions using live shipment, finance, compliance, and HR context.</div>
+        </div>
+        <div style="height:1px;background:var(--border);"></div>
+        <div>
+          <div style="font-size:13px;font-weight:700;margin-bottom:3px;">Workspace Isolation</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--text3);">AI context is always scoped to the workspace. Cross-tenant data leakage is structurally impossible — same guarantee as the data layer.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Per-app AI features -->
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;">
+      <div style="border:1px solid var(--border);border-radius:10px;padding:16px;background:var(--bg2);">
+        <div style="font-size:12px;font-weight:800;color:var(--clearos);margin-bottom:8px;">⚓ ClearOS AI</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);display:flex;flex-direction:column;gap:4px;">
+          <span>— HS code prediction from goods description</span>
+          <span>— Duty & tax calculation assistance</span>
+          <span>— Document OCR + field extraction</span>
+          <span>— Permit requirement detection</span>
+          <span>— Clearance delay risk scoring</span>
+        </div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:10px;padding:16px;background:var(--bg2);">
+        <div style="font-size:12px;font-weight:800;color:var(--finops);margin-bottom:8px;">💰 FinOps AI</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);display:flex;flex-direction:column;gap:4px;">
+          <span>— Expense auto-categorisation</span>
+          <span>— Anomaly detection on transactions</span>
+          <span>— Tax liability forecasting</span>
+          <span>— Bank statement reconciliation AI</span>
+          <span>— P&L narrative generation</span>
+        </div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:10px;padding:16px;background:var(--bg2);">
+        <div style="font-size:12px;font-weight:800;color:var(--complyos);margin-bottom:8px;">🛡 ComplyOS AI</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);display:flex;flex-direction:column;gap:4px;">
+          <span>— Agency document auto-preparation</span>
+          <span>— Application rejection prediction</span>
+          <span>— Renewal reminder + risk scoring</span>
+          <span>— Regulatory change monitoring</span>
+          <span>— Legal brief summarisation</span>
+        </div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:10px;padding:16px;background:var(--bg2);">
+        <div style="font-size:12px;font-weight:800;color:var(--bliss);margin-bottom:8px;">💬 Bliss AI</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);display:flex;flex-direction:column;gap:4px;">
+          <span>— NLP chatbot (Swahili · English · 50+ locales)</span>
+          <span>— Ticket classification + auto-routing</span>
+          <span>— Sentiment analysis on messages</span>
+          <span>— Suggested reply generation</span>
+          <span>— Knowledge base article generation</span>
+        </div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:10px;padding:16px;background:var(--bg2);">
+        <div style="font-size:12px;font-weight:800;color:var(--fleet);margin-bottom:8px;">🚛 FleetManager AI</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);display:flex;flex-direction:column;gap:4px;">
+          <span>— Predictive maintenance scheduling</span>
+          <span>— Fuel efficiency anomaly detection</span>
+          <span>— Driver behaviour risk scoring</span>
+          <span>— Optimal route learning from history</span>
+          <span>— Vehicle utilisation forecasting</span>
+        </div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:10px;padding:16px;background:var(--bg2);">
+        <div style="font-size:12px;font-weight:800;color:var(--onepi);margin-bottom:8px;">👥 onePI AI</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);display:flex;flex-direction:column;gap:4px;">
+          <span>— Attrition risk prediction per employee</span>
+          <span>— Performance scoring from ops data</span>
+          <span>— JD generation + candidate scoring</span>
+          <span>— Payroll anomaly detection</span>
+          <span>— Training recommendation engine</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI in Moovit platform products -->
+  <div style="border:1px solid color-mix(in srgb,var(--ai) 30%,var(--border));border-radius:12px;padding:20px 24px;background:color-mix(in srgb,var(--ai) 4%,var(--bg2));">
+    <div style="font-family:var(--mono);font-size:10px;color:var(--ai);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px;">Also active in Moovit platform products</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--tracking);margin-bottom:5px;">📍 Tracking AI</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);">Driver behaviour scoring. Anomaly detection on vehicle telemetry. Predicted ETA from historical trip data.</div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--mapping);margin-bottom:5px;">🗺 Mapping AI</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);">Traffic pattern learning from trip history. Dynamic route recalculation. Road quality scoring from driver telemetry.</div>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--cloud);margin-bottom:5px;">☁️ Moovit Cloud AI</div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--text3);">Semantic file search across all workspace documents. Auto-tagging on upload. Smart folder suggestions.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"><hr/></div>
+
+<!-- 03 SIX-LAYER STACK -->
+<div class="section">
+  <div class="s-eyebrow">03 — Hudumika Platform Design</div>
+  <h2 class="s-title">Six-Layer Architecture</h2>
+  <p class="s-desc">Each layer has one responsibility. No cross-cutting logic leaks between layers. The event bus is the only permitted channel for cross-app side effects — no direct service-to-service calls.</p>
+
+  <div class="stack">
+    <div class="layer">
+      <div class="layer-hdr">
+        <span class="layer-num">L5</span>
+        <div class="layer-bar" style="background:#e2e8f0;"></div>
+        <span class="layer-name" style="color:var(--text);">Client Surfaces</span>
+        <span class="layer-tech">React 18 + Vite · React Native · PWA · REST · WebSocket</span>
+      </div>
+      <div class="layer-body">
+        <span class="chip">Web App (React + Vite)</span>
+        <span class="chip">Mobile App (React Native)</span>
+        <span class="chip">Customer Portal (public, via oneSite)</span>
+        <span class="chip">REST API (external consumers)</span>
+        <span class="chip">Webhook Receiver</span>
+        <span class="chip">WhatsApp Channel (Bliss)</span>
+        <span class="chip">USSD Interface (Bliss)</span>
+        <span class="chip">Developer CLI</span>
+        <span class="chip">Tracking WebSocket (live position)</span>
+        <span class="chip">Map embed widget (Mapping SDK)</span>
+      </div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-hdr">
+        <span class="layer-num">L4</span>
+        <div class="layer-bar" style="background:var(--hudumika-light);"></div>
+        <span class="layer-name" style="color:var(--hudumika-light);">Workspace Shell</span>
+        <span class="layer-tech">apps/workspace-web · packages/workspace · packages/ui</span>
+      </div>
+      <div class="layer-body">
+        <span class="chip hi" style="color:var(--hudumika-light);">App Launcher (Hudumika grid)</span>
+        <span class="chip hi" style="color:var(--hudumika-light);">Universal Search (cross-app)</span>
+        <span class="chip hi" style="color:var(--hudumika-light);">Unified Notification Center</span>
+        <span class="chip hi" style="color:var(--hudumika-light);">Admin Console (users + permissions)</span>
+        <span class="chip hi" style="color:var(--hudumika-light);">Workspace Billing & Subscriptions</span>
+        <span class="chip hi" style="color:var(--hudumika-light);">App Marketplace</span>
+        <span class="chip">Workspace Contacts Directory</span>
+        <span class="chip">Audit Log Viewer</span>
+        <span class="chip">API Keys & Webhooks Manager</span>
+      </div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-hdr">
+        <span class="layer-num">L3</span>
+        <div class="layer-bar" style="background:#f59e0b;"></div>
+        <span class="layer-name" style="color:#f59e0b;">Applications — 8 Hudumika Apps</span>
+        <span class="layer-tech">Independent Fastify services · shared monorepo · pnpm workspaces</span>
+      </div>
+      <div class="layer-body">
+        <span class="chip hi" style="color:var(--oneid);">OneID — Identity & Trust</span>
+        <span class="chip hi" style="color:var(--clearos);">ClearOS — Customs & Trade</span>
+        <span class="chip hi" style="color:var(--finops);">FinOps — Finance & Tax</span>
+        <span class="chip hi" style="color:var(--complyos);">ComplyOS — Compliance</span>
+        <span class="chip hi" style="color:var(--bliss);">Bliss — Customer Support</span>
+        <span class="chip hi" style="color:var(--onepi);">onePI — People & HR</span>
+        <span class="chip hi" style="color:var(--onesite);">oneSite — Web Presence</span>
+        <span class="chip hi" style="color:var(--hudumika-light);">Workspace Shell — App Launcher</span>
+      </div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-hdr">
+        <span class="layer-num">L2</span>
+        <div class="layer-bar" style="background:#22c55e;"></div>
+        <span class="layer-name" style="color:#22c55e;">Platform Primitives</span>
+        <span class="layer-tech">packages/auth · packages/events · packages/storage · packages/comms · packages/workspace</span>
+      </div>
+      <div class="layer-body">
+        <span class="chip hi" style="color:#22c55e;">Auth / SSO (OneID JWT — RS256)</span>
+        <span class="chip hi" style="color:#22c55e;">Workspace Contacts (shared entity table)</span>
+        <span class="chip hi" style="color:#22c55e;">Event Bus (cross-app Pub/Sub)</span>
+        <span class="chip hi" style="color:#22c55e;">Notification Engine (push · email · WhatsApp · SMS)</span>
+        <span class="chip hi" style="color:#22c55e;">File Storage (workspace-scoped)</span>
+        <span class="chip hi" style="color:var(--tracking);">Tracking API (Moovit infra)</span>
+        <span class="chip hi" style="color:var(--mapping);">Mapping API (Moovit infra)</span>
+        <span class="chip">Full-Text Search</span>
+        <span class="chip">Rate Limiter</span>
+        <span class="chip">Audit Logger (append-only)</span>
+        <span class="chip">API Gateway / Route Registry</span>
+        <span class="chip">Webhook Dispatcher</span>
+      </div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-hdr">
+        <span class="layer-num">L1</span>
+        <div class="layer-bar" style="background:#0ea5e9;"></div>
+        <span class="layer-name" style="color:#0ea5e9;">Data Layer</span>
+        <span class="layer-tech">PostgreSQL 16 (schema-per-app) · Redis 7 · S3-compatible object storage</span>
+      </div>
+      <div class="layer-body">
+        <span class="chip hi" style="color:#0ea5e9;">workspace schema — contacts, events, apps, audit</span>
+        <span class="chip hi" style="color:var(--clearos);">clearance schema — shipments, customers, documents</span>
+        <span class="chip hi" style="color:var(--finops);">finance schema — accounts, transactions, invoices, tax</span>
+        <span class="chip hi" style="color:var(--complyos);">compliance schema — certs, filings, agencies</span>
+        <span class="chip hi" style="color:var(--onepi);">hr schema — staff, payroll, attendance</span>
+        <span class="chip hi" style="color:var(--tracking);">tracking schema — trips, telemetry, positions</span>
+        <span class="chip hi" style="color:var(--mapping);">mapping schema — map tiles, POIs, routes</span>
+        <span class="chip">Redis — sessions · cache · job queues</span>
+        <span class="chip">Object Storage — documents · media · exports</span>
+        <span class="chip">workspace_events — event store (append-only)</span>
+      </div>
+    </div>
+
+    <div class="layer">
+      <div class="layer-hdr">
+        <span class="layer-num">L0</span>
+        <div class="layer-bar" style="background:#475569;"></div>
+        <span class="layer-name" style="color:var(--text3);">Infrastructure</span>
+        <span class="layer-tech">Node.js 20 LTS · Nginx · Cloudflare · AWS af-south-1 · GitHub Actions</span>
+      </div>
+      <div class="layer-body">
+        <span class="chip">Node.js 20 LTS (Fastify runtime)</span>
+        <span class="chip">Nginx (reverse proxy + TLS termination)</span>
+        <span class="chip">Cloudflare (CDN + WAF + DDoS protection)</span>
+        <span class="chip">AWS af-south-1 (primary — Cape Town)</span>
+        <span class="chip">Hetzner EU (secondary / disaster recovery)</span>
+        <span class="chip">GitHub Actions (CI/CD pipeline)</span>
+        <span class="chip">Turborepo (monorepo build cache)</span>
+        <span class="chip">pnpm workspaces</span>
+        <span class="chip">Sentry (error tracking)</span>
+        <span class="chip">Grafana + Prometheus (observability)</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"><hr/></div>
+
+<!-- 04 APPLICATIONS -->
+<div class="section">
+  <div class="s-eyebrow">04 — Hudumika Applications</div>
+  <h2 class="s-title">The Eight Applications</h2>
+  <p class="s-desc">Each app is independently deployable. All share workspace identity, contacts, event bus, notifications, and file storage. Customers subscribe to individual apps at the workspace level.</p>
+
+  <div class="apps-grid">
+    <div class="app-card" style="--ac:var(--oneid);">
+      <div class="app-badge">Platform Backbone</div>
+      <div class="app-ico">🪪</div>
+      <div class="app-name">OneID</div>
+      <div class="app-tag">Identity, Trust & Credit Scoring</div>
+      <div class="app-mods">
+        <div class="app-mod">NIDA / NIN biometric KYC</div>
+        <div class="app-mod">BRELA company verification</div>
+        <div class="app-mod">TRA + director verification</div>
+        <div class="app-mod">Credit Score Engine (0–850)</div>
+        <div class="app-mod">Adaptive auth (score-gated MFA)</div>
+        <div class="app-mod">OAuth 2.0 / SSO for all 8 apps</div>
+        <div class="app-mod">JWKS endpoint (key rotation)</div>
+        <div class="app-mod">Trust certs → ComplyOS signals</div>
+      </div>
+    </div>
+
+    <div class="app-card" style="--ac:var(--clearos);">
+      <div class="app-badge">Live · Current Build</div>
+      <div class="app-ico">⚓</div>
+      <div class="app-name">ClearOS</div>
+      <div class="app-tag">Customs & Trade Clearance</div>
+      <div class="app-mods">
+        <div class="app-mod">18-stage clearance workflow</div>
+        <div class="app-mod">TANCIS / TRA integration</div>
+        <div class="app-mod">Document vault (OCR)</div>
+        <div class="app-mod">Demurrage calculator</div>
+        <div class="app-mod">Permit management</div>
+        <div class="app-mod">Declaration management</div>
+        <div class="app-mod">Customer shipment portal</div>
+        <div class="app-mod">Tracking API → shipment location</div>
+      </div>
+    </div>
+
+    <div class="app-card" style="--ac:var(--finops);">
+      <div class="app-badge">Finance & Tax</div>
+      <div class="app-ico">💰</div>
+      <div class="app-name">FinOps</div>
+      <div class="app-tag">Finance, Accounting & Tax</div>
+      <div class="app-mods">
+        <div class="app-mod">Double-entry bookkeeping</div>
+        <div class="app-mod">Chart of accounts (IFRS-aligned)</div>
+        <div class="app-mod">Accounts payable / receivable</div>
+        <div class="app-mod">VAT / TVA computation & e-filing</div>
+        <div class="app-mod">PAYE & withholding tax (TRA/KRA)</div>
+        <div class="app-mod">Corporate income tax prep</div>
+        <div class="app-mod">P&L · Balance Sheet · Cash Flow</div>
+        <div class="app-mod">Multi-currency (TZS, KES, USD, EUR)</div>
+      </div>
+    </div>
+
+    <div class="app-card" style="--ac:var(--complyos);">
+      <div class="app-badge">Regulatory</div>
+      <div class="app-ico">🛡</div>
+      <div class="app-name">ComplyOS</div>
+      <div class="app-tag">Compliance Operating System</div>
+      <div class="app-mods">
+        <div class="app-mod">7-phase compliance lifecycle</div>
+        <div class="app-mod">BRELA · TRA · TFDA · NSSF · WCF</div>
+        <div class="app-mod">BOT / CBK / CMA licensing</div>
+        <div class="app-mod">AI document preparation</div>
+        <div class="app-mod">Agency submission tracking</div>
+        <div class="app-mod">Legal firm marketplace + escrow</div>
+        <div class="app-mod">Certificate renewal automation</div>
+        <div class="app-mod">Trust signals → OneID score</div>
+      </div>
+    </div>
+
+    <div class="app-card" style="--ac:var(--bliss);">
+      <div class="app-badge">Communication Layer</div>
+      <div class="app-ico">💬</div>
+      <div class="app-name">Bliss</div>
+      <div class="app-tag">Customer Service Platform</div>
+      <div class="app-mods">
+        <div class="app-mod">WhatsApp · USSD · SMS · Email</div>
+        <div class="app-mod">NLP chatbot (Swahili + English)</div>
+        <div class="app-mod">Ticketing & escalation engine</div>
+        <div class="app-mod">Knowledge base & help center</div>
+        <div class="app-mod">No-code automation flows</div>
+        <div class="app-mod">SLA monitoring & reporting</div>
+        <div class="app-mod">White-label SDK (PaaS tier)</div>
+        <div class="app-mod">Embedded widget across all apps</div>
+      </div>
+    </div>
+
+    <div class="app-card" style="--ac:var(--onepi);">
+      <div class="app-badge">Human Resources</div>
+      <div class="app-ico">👥</div>
+      <div class="app-name">onePI</div>
+      <div class="app-tag">People Intelligence & HR</div>
+      <div class="app-mods">
+        <div class="app-mod">Staff directory & org chart</div>
+        <div class="app-mod">Onboarding / offboarding flows</div>
+        <div class="app-mod">Time & attendance tracking</div>
+        <div class="app-mod">Leave management</div>
+        <div class="app-mod">Payroll (NSSF · WCF · PAYE)</div>
+        <div class="app-mod">Performance — fed from ops data</div>
+        <div class="app-mod">Contracts & HR documents</div>
+        <div class="app-mod">Offboard → OneID auto-revoke</div>
+      </div>
+    </div>
+
+    <div class="app-card" style="--ac:var(--onesite);">
+      <div class="app-badge">Web Presence</div>
+      <div class="app-ico">🌐</div>
+      <div class="app-name">oneSite</div>
+      <div class="app-tag">Domains, Hosting & Blogs</div>
+      <div class="app-mods">
+        <div class="app-mod">Domain registration & DNS</div>
+        <div class="app-mod">Visual website builder</div>
+        <div class="app-mod">Static & dynamic hosting</div>
+        <div class="app-mod">Multi-author blog & CMS</div>
+        <div class="app-mod">Shipment tracker widget embed</div>
+        <div class="app-mod">OneID login button embed</div>
+        <div class="app-mod">Bliss chat widget embed</div>
+        <div class="app-mod">Mapping embed (powered by Moovit Maps)</div>
+      </div>
+    </div>
+
+    <div class="app-card" style="--ac:var(--hudumika-light);">
+      <div class="app-badge">Shell</div>
+      <div class="app-ico">🚀</div>
+      <div class="app-name">Workspace</div>
+      <div class="app-tag">The Unified Shell & Admin</div>
+      <div class="app-mods">
+        <div class="app-mod">App launcher (Hudumika grid)</div>
+        <div class="app-mod">Admin console — users & access</div>
+        <div class="app-mod">Workspace billing & plans</div>
+        <div class="app-mod">Universal search (cross-app)</div>
+        <div class="app-mod">Notification center (all apps)</div>
+        <div class="app-mod">API keys & webhook manager</div>
+        <div class="app-mod">Workspace contacts directory</div>
+        <div class="app-mod">Audit log viewer</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"><hr/></div>
+
+<!-- 05 PRIMITIVES -->
+<div class="section">
+  <div class="s-eyebrow">05 — Shared Infrastructure</div>
+  <h2 class="s-title">Platform Primitives</h2>
+  <p class="s-desc">Five primitives shared across all Hudumika apps. No app re-implements them. Tracking and Mapping are Moovit-level infrastructure consumed via API.</p>
+
+  <div class="prim-grid" style="grid-template-columns:repeat(4,1fr);">
+    <div class="prim">
+      <div class="prim-ico">🪪</div>
+      <div class="prim-name">OneID Auth</div>
+      <div class="prim-desc">RS256 JWT with app-scoped permissions. One token across all apps. JWKS auto-rotation. No app stores passwords.</div>
+    </div>
+    <div class="prim">
+      <div class="prim-ico">👥</div>
+      <div class="prim-name">Workspace Contacts</div>
+      <div class="prim-desc">One shared contact row. ClearOS customer = FinOps client = ComplyOS subject = Bliss customer — same ID everywhere.</div>
+    </div>
+    <div class="prim">
+      <div class="prim-ico">⚡</div>
+      <div class="prim-name">Event Bus</div>
+      <div class="prim-desc">Append-only workspace_events table. Typed publish/subscribe. Built-in retry. Zero direct app-to-app calls permitted.</div>
+    </div>
+    <div class="prim">
+      <div class="prim-ico">🔔</div>
+      <div class="prim-name">Notification Engine</div>
+      <div class="prim-desc">Single API: push, email, WhatsApp, SMS, in-app. Apps fire — engine routes, templates, delivers, tracks read-receipts.</div>
+    </div>
+    <div class="prim">
+      <div class="prim-ico">☁️</div>
+      <div class="prim-name">Moovit Cloud</div>
+      <div class="prim-desc">Primary file storage for all workspace documents. Google Drive + OneDrive sync connectors. Replaces local filesystem in production.</div>
+    </div>
+    <div class="prim">
+      <div class="prim-ico">🤖</div>
+      <div class="prim-name">Hudumika AI</div>
+      <div class="prim-desc">Claude API + domain models. RAG over workspace data. Scoped per workspace — cross-tenant isolation guaranteed structurally.</div>
+    </div>
+    <div class="prim">
+      <div class="prim-ico">📍</div>
+      <div class="prim-name">Tracking API</div>
+      <div class="prim-desc">Moovit platform service. Live GPS position streams via WebSocket. Geofencing. Powers ClearOS shipment location + MOOVIT delivery.</div>
+    </div>
+    <div class="prim">
+      <div class="prim-ico">🗺</div>
+      <div class="prim-name">Mapping API</div>
+      <div class="prim-desc">Moovit platform service. East Africa map tiles, routing, geocoding. Consumed by FleetManager, MOOVIT, oneSite widgets.</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"><hr/></div>
+
+<!-- 06 EVENT FLOWS -->
+<div class="section">
+  <div class="s-eyebrow">06 — Cross-App Intelligence</div>
+  <h2 class="s-title">Event Bus Flows</h2>
+  <p class="s-desc">Apps communicate only through the event bus. Including Moovit platform products — FleetManager dispatches to MOOVIT, Tracking signals ClearOS, Mapping powers all routing.</p>
+
+  <table class="ev-table">
+    <thead>
+      <tr>
+        <th style="width:220px;">Event</th>
+        <th style="width:130px;">Publisher</th>
+        <th style="width:220px;">Subscriber(s)</th>
+        <th>Effect</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="ev-name">shipment.cleared</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--clearos) 14%,transparent);color:var(--clearos);">ClearOS</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--moovit) 14%,transparent);color:var(--moovit);">MOOVIT</span></td>
+        <td class="ev-effect">Delivery job auto-created with shipment metadata and destination</td>
+      </tr>
+      <tr>
+        <td><span class="ev-name">delivery.dispatched</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--moovit) 14%,transparent);color:var(--moovit);">MOOVIT</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--tracking) 14%,transparent);color:var(--tracking);">Tracking</span> <span class="tag" style="background:color-mix(in srgb,var(--fleet) 14%,transparent);color:var(--fleet);">FleetManager</span></td>
+        <td class="ev-effect">Live tracking session opened. Assigned vehicle trip record created.</td>
+      </tr>
+      <tr>
+        <td><span class="ev-name">vehicle.position.updated</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--tracking) 14%,transparent);color:var(--tracking);">Tracking</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--clearos) 14%,transparent);color:var(--clearos);">ClearOS</span> <span class="tag" style="background:color-mix(in srgb,var(--moovit) 14%,transparent);color:var(--moovit);">MOOVIT</span></td>
+        <td class="ev-effect">Shipment location updated on customer portal. Delivery ETA recalculated.</td>
+      </tr>
+      <tr>
+        <td><span class="ev-name">geofence.entered</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--tracking) 14%,transparent);color:var(--tracking);">Tracking</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--moovit) 14%,transparent);color:var(--moovit);">MOOVIT</span> <span class="tag" style="background:color-mix(in srgb,var(--bliss) 14%,transparent);color:var(--bliss);">Bliss</span></td>
+        <td class="ev-effect">Delivery arrival notification fired to customer via WhatsApp</td>
+      </tr>
+      <tr>
+        <td><span class="ev-name">fleet.maintenance_due</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--fleet) 14%,transparent);color:var(--fleet);">FleetManager</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--finops) 14%,transparent);color:var(--finops);">FinOps</span> <span class="tag" style="background:color-mix(in srgb,var(--bliss) 14%,transparent);color:var(--bliss);">Bliss</span></td>
+        <td class="ev-effect">Maintenance budget request raised in FinOps. Alert sent to fleet manager.</td>
+      </tr>
+      <tr>
+        <td><span class="ev-name">compliance.cert.expiring</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--complyos) 14%,transparent);color:var(--complyos);">ComplyOS</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--clearos) 14%,transparent);color:var(--clearos);">ClearOS</span> <span class="tag" style="background:color-mix(in srgb,var(--finops) 14%,transparent);color:var(--finops);">FinOps</span></td>
+        <td class="ev-effect">Customer flagged as compliance risk. Finance alerted to hold new credit terms.</td>
+      </tr>
+      <tr>
+        <td><span class="ev-name">compliance.cert.issued</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--complyos) 14%,transparent);color:var(--complyos);">ComplyOS</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--oneid) 14%,transparent);color:var(--oneid);">OneID</span></td>
+        <td class="ev-effect">Compliance cert added as trust signal → credit score recalculated upward</td>
+      </tr>
+      <tr>
+        <td><span class="ev-name">employee.offboarded</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--onepi) 14%,transparent);color:var(--onepi);">onePI</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--oneid) 14%,transparent);color:var(--oneid);">OneID</span> <span class="tag" style="background:color-mix(in srgb,var(--clearos) 14%,transparent);color:var(--clearos);">ClearOS</span> <span class="tag" style="background:color-mix(in srgb,var(--fleet) 14%,transparent);color:var(--fleet);">FleetManager</span></td>
+        <td class="ev-effect">All tokens revoked. Open cases reassigned. Driver unassigned from active fleet.</td>
+      </tr>
+      <tr>
+        <td><span class="ev-name">invoice.overdue</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--finops) 14%,transparent);color:var(--finops);">FinOps</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--bliss) 14%,transparent);color:var(--bliss);">Bliss</span> <span class="tag" style="background:color-mix(in srgb,var(--oneid) 14%,transparent);color:var(--oneid);">OneID</span></td>
+        <td class="ev-effect">Automated dunning via WhatsApp. Credit score deducted after 30-day grace period.</td>
+      </tr>
+      <tr>
+        <td><span class="ev-name">payroll.processed</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--onepi) 14%,transparent);color:var(--onepi);">onePI</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--finops) 14%,transparent);color:var(--finops);">FinOps</span></td>
+        <td class="ev-effect">Payroll journal entry auto-posted. PAYE liability recorded for TRA filing.</td>
+      </tr>
+      <tr>
+        <td><span class="ev-name">domain.connected</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--onesite) 14%,transparent);color:var(--onesite);">oneSite</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--clearos) 14%,transparent);color:var(--clearos);">ClearOS</span> <span class="tag" style="background:color-mix(in srgb,var(--moovit) 14%,transparent);color:var(--moovit);">MOOVIT</span></td>
+        <td class="ev-effect">Public tracker endpoint activated at business's custom domain</td>
+      </tr>
+      <tr>
+        <td><span class="ev-name">oneid.trust_score.updated</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--oneid) 14%,transparent);color:var(--oneid);">OneID</span></td>
+        <td><span class="tag" style="background:color-mix(in srgb,var(--clearos) 14%,transparent);color:var(--clearos);">ClearOS</span> <span class="tag" style="background:color-mix(in srgb,var(--finops) 14%,transparent);color:var(--finops);">FinOps</span> <span class="tag" style="background:color-mix(in srgb,var(--moovit) 14%,transparent);color:var(--moovit);">MOOVIT</span></td>
+        <td class="ev-effect">Credit limits updated. Shipment risk flags refreshed. Delivery terms recalculated.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="divider"><hr/></div>
+
+<!-- 07 TECHNOLOGY -->
+<div class="section">
+  <div class="s-eyebrow">07 — Technology</div>
+  <h2 class="s-title">Technology Matrix</h2>
+  <p class="s-desc">PostgreSQL over NoSQL for ACID guarantees on financial data. Fastify for throughput. WebSocket for live Tracking streams. Schema-per-app for isolation without microservice complexity.</p>
+
+  <div class="tech-grid">
+    <div class="tech-grp">
+      <div class="tech-grp-hdr">Frontend</div>
+      <div class="tech-items">
+        <div class="tech-row"><div class="tech-name">React 18 + Vite</div><div class="tech-desc">Fast HMR. Code-split per app. Lazy-loaded workspace shell.</div></div>
+        <div class="tech-row"><div class="tech-name">TypeScript (strict)</div><div class="tech-desc">Strict mode everywhere. Shared types in packages/types.</div></div>
+        <div class="tech-row"><div class="tech-name">React Native</div><div class="tech-desc">Mobile app sharing business logic. Offline-capable for low-connectivity.</div></div>
+        <div class="tech-row"><div class="tech-name">packages/ui</div><div class="tech-desc">Shared component library. CSS variables for per-app theming.</div></div>
+        <div class="tech-row"><div class="tech-name">packages/workspace</div><div class="tech-desc">App launcher, workspace nav, notification bell — shared across all apps.</div></div>
+        <div class="tech-row"><div class="tech-name">Mapping SDK</div><div class="tech-desc">Embeddable JS map widget from Moovit Mapping. Used in oneSite, MOOVIT, FleetManager.</div></div>
+      </div>
+    </div>
+
+    <div class="tech-grp">
+      <div class="tech-grp-hdr">Backend</div>
+      <div class="tech-items">
+        <div class="tech-row"><div class="tech-name">Fastify</div><div class="tech-desc">70k+ req/s. Built-in schema validation. Plugin system for auth, multipart, WebSocket.</div></div>
+        <div class="tech-row"><div class="tech-name">Kysely</div><div class="tech-desc">Type-safe SQL query builder. Zero runtime overhead. Types generated from DB schema.</div></div>
+        <div class="tech-row"><div class="tech-name">Node.js 20 LTS</div><div class="tech-desc">Native ESM, fetch, crypto.webcrypto. Single runtime for all services.</div></div>
+        <div class="tech-row"><div class="tech-name">packages/auth</div><div class="tech-desc">OneID JWT RS256 client. JWKS auto-fetch. Used by all Fastify services.</div></div>
+        <div class="tech-row"><div class="tech-name">packages/events</div><div class="tech-desc">Event bus client — publish and subscribe typed workspace events with retry.</div></div>
+        <div class="tech-row"><div class="tech-name">WebSocket (@fastify/ws)</div><div class="tech-desc">Real-time position streaming for Tracking. Live notification delivery.</div></div>
+      </div>
+    </div>
+
+    <div class="tech-grp">
+      <div class="tech-grp-hdr">Data & Infrastructure</div>
+      <div class="tech-items">
+        <div class="tech-row"><div class="tech-name">PostgreSQL 16</div><div class="tech-desc">Schema-per-app isolation. Row-level security. JSONB. ACID on all financial writes.</div></div>
+        <div class="tech-row"><div class="tech-name">PostGIS</div><div class="tech-desc">Geospatial extension for Mapping + Tracking. Point-in-polygon geofence queries.</div></div>
+        <div class="tech-row"><div class="tech-name">Redis 7</div><div class="tech-desc">Sessions, rate limiting, job queues, live position cache for Tracking.</div></div>
+        <div class="tech-row"><div class="tech-name">S3-compatible Storage</div><div class="tech-desc">Object storage for documents, media. Local filesystem in dev. Same API surface.</div></div>
+        <div class="tech-row"><div class="tech-name">Cloudflare</div><div class="tech-desc">CDN, WAF, DDoS. DNS for oneSite custom domains. Map tile caching.</div></div>
+        <div class="tech-row"><div class="tech-name">Turborepo + pnpm</div><div class="tech-desc">Monorepo build cache. Only rebuilds changed packages. Single lock file.</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"><hr/></div>
+
+<!-- 08 SECURITY -->
+<div class="section">
+  <div class="s-eyebrow">08 — Security Architecture</div>
+  <h2 class="s-title">Zero-Trust Model</h2>
+  <p class="s-desc">Every request is authenticated. Every action is authorized at app scope. Every query is filtered by workspace_id. No implicit trust anywhere in the stack.</p>
+
+  <div class="sec-grid">
+    <div class="sec-card">
+      <h4>App-Scoped JWT Payload</h4>
+      <p>Token carries per-app roles:<br/><br/>{ workspace_id, email,<br/>&nbsp; apps: {<br/>&nbsp;&nbsp; clearance: "OFFICER",<br/>&nbsp;&nbsp; finops: "VIEWER",<br/>&nbsp;&nbsp; fleet: "DRIVER"<br/>&nbsp; }<br/>}<br/><br/>Each service reads only its own scope. A Tracking API call from an unauthenticated oneSite embed uses a scoped read-only token — not the user's full JWT.</p>
+    </div>
+    <div class="sec-card">
+      <h4>Workspace Data Isolation</h4>
+      <p>Every table has workspace_id. Every query is wrapped in withTenant(). Cross-workspace leakage is structurally impossible — not just policy-enforced. PostgreSQL RLS provides a second enforcement layer even if application code has a bug.</p>
+    </div>
+    <div class="sec-card">
+      <h4>Adaptive Authentication</h4>
+      <p>OneID credit score drives MFA requirements:<br/><br/>Score ≥ 700 → frictionless<br/>Score 500–699 → OTP step-up<br/>Score below 500 → biometric re-verify<br/><br/>Fraud signal or new device → forced re-auth regardless of score. Moovit platform APIs use separate service tokens — not user JWTs.</p>
+    </div>
+    <div class="sec-card">
+      <h4>Key Rotation (JWKS)</h4>
+      <p>OneID issues RS256 JWTs. Private key never leaves OneID. All other services hold only the public key fetched from JWKS endpoint. Key rotation requires no app restarts — new keys picked up automatically on next JWKS fetch cycle.</p>
+    </div>
+    <div class="sec-card">
+      <h4>Append-Only Audit Log</h4>
+      <p>Every write operation — create, update, delete, role change, login, token issue, geofence trigger — is recorded in workspace_events as an immutable audit entry. Tamper-evident by structure. Queryable via Admin Console.</p>
+    </div>
+    <div class="sec-card">
+      <h4>Instant Revocation</h4>
+      <p>When onePI fires employee.offboarded, OneID revokes all active tokens for that user immediately. Redis session store allows sub-second revocation across all running service instances simultaneously. Also unassigns any active fleet vehicles.</p>
+    </div>
+  </div>
+</div>
+
+<div class="divider"><hr/></div>
+
+<!-- 09 MONOREPO -->
+<div class="section">
+  <div class="s-eyebrow">09 — Repository Structure</div>
+  <h2 class="s-title">Monorepo Layout</h2>
+  <p class="s-desc">One repository. Independent deployments. Shared packages enforce consistency and type safety without coupling release cycles.</p>
+
+  <div class="mono-box">
+    <div class="ml">hudumika/<span style="color:var(--text3);font-size:10px;margin-left:16px;">← monorepo root (pnpm workspaces + Turborepo)</span></div>
+    <div class="ml">├── <span class="f">apps/</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--clearos);">clearos-api/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← Fastify API (current: apps/api)</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--clearos);">clearos-web/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← React frontend (current: apps/web)</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--finops);">finops-api/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← Finance + Tax Fastify service</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--finops);">finops-web/</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--complyos);">complyos-api/</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--bliss);">bliss-api/</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--onepi);">onepi-api/</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--onesite);">onesite-api/</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--oneid);">oneid-api/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← Identity + credit scoring</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--hudumika-light);">workspace-web/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← Shell: launcher, admin, billing</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--fleet);">fleetmanager-api/</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--fleet);">fleetmanager-web/</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--tracking);">tracking-api/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← WebSocket + REST tracking service</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--mapping);">mapping-api/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← Map tiles, routing, geocoding (PostGIS)</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--cloud);">moovit-cloud-api/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← File storage service, Google Drive + OneDrive connectors</span></div>
+    <div class="ml">│&nbsp;&nbsp; └── <span style="color:var(--ai);">hudumika-ai-api/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← AI gateway — Claude API + domain models + RAG pipeline</span></div>
+    <div class="ml">├── <span class="f">packages/</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:#22c55e;">types/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← All shared TypeScript types (current)</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:#22c55e;">ui/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← Shared React component library (current)</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:#22c55e;">auth/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← OneID JWT RS256 client</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:#22c55e;">workspace/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← App launcher, nav, notification bell</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:#22c55e;">events/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← Event bus client + typed event definitions</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--tracking);">tracking-sdk/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← Tracking API client (WebSocket + REST)</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--mapping);">mapping-sdk/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← Map embed widget + routing client</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── <span style="color:var(--cloud);">cloud-sdk/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← Moovit Cloud upload, browse, sync client</span></div>
+    <div class="ml">│&nbsp;&nbsp; └── <span style="color:var(--ai);">ai-sdk/</span><span style="color:var(--text3);font-size:10px;margin-left:8px;">← Hudumika AI client — completions, RAG queries, streaming</span></div>
+    <div class="ml">├── <span class="f">database/</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── schemas/workspace.sql</div>
+    <div class="ml">│&nbsp;&nbsp; ├── schemas/clearance.sql</div>
+    <div class="ml">│&nbsp;&nbsp; ├── schemas/finance.sql</div>
+    <div class="ml">│&nbsp;&nbsp; ├── schemas/compliance.sql</div>
+    <div class="ml">│&nbsp;&nbsp; ├── schemas/hr.sql</div>
+    <div class="ml">│&nbsp;&nbsp; ├── schemas/tracking.sql<span style="color:var(--text3);font-size:10px;margin-left:8px;">← trips, telemetry, positions (PostGIS)</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── schemas/mapping.sql<span style="color:var(--text3);font-size:10px;margin-left:8px;">← POIs, routes, geofences (PostGIS)</span></div>
+    <div class="ml">│&nbsp;&nbsp; ├── schemas/cloud.sql<span style="color:var(--text3);font-size:10px;margin-left:8px;">← files, folders, versions, shares, sync_connectors</span></div>
+    <div class="ml">│&nbsp;&nbsp; └── schemas/ai.sql<span style="color:var(--text3);font-size:10px;margin-left:8px;">← ai_requests, embeddings, rag_documents, model_configs</span></div>
+    <div class="ml">├── package.json<span style="color:var(--text3);font-size:10px;margin-left:8px;">← pnpm workspaces root</span></div>
+    <div class="ml">└── turbo.json<span style="color:var(--text3);font-size:10px;margin-left:8px;">← Turborepo pipeline + cache config</span></div>
+  </div>
+</div>
+
+<div class="divider"><hr/></div>
+
+<!-- 10 PHASES -->
+<div class="section">
+  <div class="s-eyebrow">10 — Build Roadmap</div>
+  <h2 class="s-title">Four Phases to Full Platform</h2>
+  <p class="s-desc">Ship ClearOS first — revenue-generating and nearly complete. Mapping and Tracking are long-lead infrastructure builds that should start in parallel with Phase 2.</p>
+
+  <div class="phases">
+    <div class="phase">
+      <div class="ph-num">Phase 01</div>
+      <div class="ph-title">Foundation</div>
+      <div class="ph-time">Now → Month 3</div>
+      <ul class="ph-list">
+        <li class="done">ClearOS core workflow</li>
+        <li class="done">Multi-tenant PostgreSQL</li>
+        <li class="done">JWT auth + RBAC</li>
+        <li class="done">Document vault</li>
+        <li class="wip">App launcher (Hudumika grid)</li>
+        <li class="wip">workspace_apps table</li>
+        <li>packages/workspace nav</li>
+        <li>packages/auth (OneID-ready)</li>
+        <li>Workspace contacts table</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <div class="ph-num">Phase 02</div>
+      <div class="ph-title">Finance, HR & Maps</div>
+      <div class="ph-time">Month 3 → Month 7</div>
+      <ul class="ph-list">
+        <li>FinOps: Chart of accounts</li>
+        <li>FinOps: VAT / PAYE e-filing</li>
+        <li>onePI: Staff + Payroll</li>
+        <li>packages/events (event bus)</li>
+        <li>Notification engine</li>
+        <li>Mapping: East Africa map tiles</li>
+        <li>Mapping: Routing API (MVP)</li>
+        <li>Tracking: GPS position MVP</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <div class="ph-num">Phase 03</div>
+      <div class="ph-title">Compliance, Support & Fleet</div>
+      <div class="ph-time">Month 7 → Month 12</div>
+      <ul class="ph-list">
+        <li>ComplyOS: BRELA + TRA flows</li>
+        <li>ComplyOS → ClearOS risk events</li>
+        <li>Bliss: WhatsApp ticketing + NLP</li>
+        <li>oneSite: Domain + hosting</li>
+        <li>FleetManager: Vehicle + drivers</li>
+        <li>FleetManager: Route optimisation</li>
+        <li>Tracking: Geofencing + alerts</li>
+        <li>ClearOS → Tracking integration</li>
+      </ul>
+    </div>
+    <div class="phase">
+      <div class="ph-num">Phase 04</div>
+      <div class="ph-title">Identity & Platform</div>
+      <div class="ph-time">Month 12 → Month 18</div>
+      <ul class="ph-list">
+        <li>OneID: KYC (NIDA / NIN)</li>
+        <li>OneID: Credit score engine</li>
+        <li>OneID replaces internal JWT</li>
+        <li>App Marketplace launch</li>
+        <li>Public Developer API</li>
+        <li>Mapping SDK public release</li>
+        <li>Full MOOVIT integration</li>
+        <li>Workspace Admin Console</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>Hudumika Workspace + Moovit Platform — Engineering Architecture v1.2</p>
+  <p>A Moovit Product — Built for East Africa — CONFIDENTIAL</p>
+</footer>
+
+<script>
+(function () {
+  const btn = document.getElementById('themeToggle');
+  const html = document.documentElement;
+  const stored = localStorage.getItem('mvt-theme');
+  if (stored) {
+    html.setAttribute('data-theme', stored);
+    btn.textContent = stored === 'light' ? '🌙' : '☀️';
+  }
+  btn.addEventListener('click', () => {
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    btn.textContent = next === 'light' ? '🌙' : '☀️';
+    localStorage.setItem('mvt-theme', next);
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -10,6 +10,7 @@ import { useCompany, getCompany } from '../data/companyStore.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
 import { useClockIn } from '../contexts/ClockInContext.js';
+import { showAlert } from '../lib/alert.js';
 import {
   getJob, updateJob, subscribe,
   STAGES, FLAG_CFG, CH_CFG, stageIdx, STAGE_API_MAP, API_STAGE_MAP,
@@ -823,7 +824,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
         updateJob(job.id, j => ({ ...j, tansad, bl: transport.bl_no || j.bl, vessel: transport.vessel_name || j.vessel }));
       }
       setSaved(true); setTimeout(() => setSaved(false), 2000);
-    } catch (err: any) { alert(err.message || 'Save failed'); } finally { setSaving(false); }
+    } catch (err: any) { showAlert(err.message || 'Save failed'); } finally { setSaving(false); }
   }
 
   const SUB_TABS: { key: DeclSubTab; label: string }[] = [
@@ -1139,7 +1140,7 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
         updateJob(job.id, j => ({ ...j, thread: [...j.thread, msg] }));
       }
       setText('');
-    } catch (err: any) { alert(err.message || 'Send failed'); } finally { setSending(false); }
+    } catch (err: any) { showAlert(err.message || 'Send failed'); } finally { setSending(false); }
   }
 
   async function handleSetStage(stage: Stage) {
@@ -1158,7 +1159,7 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
         const msg: ThreadMsg = { id: 'msg-' + Date.now(), userId: 'me', userName: 'You', content: `Stage updated → ${stageLabel}`, ts: new Date(), channels: isInternal ? ['internal'] : (chans.length ? chans : ['internal']), isInternal: false };
         updateJob(job.id, j => ({ ...j, stage, timeline: [...j.timeline, event], thread: [...j.thread, msg] }));
       }
-    } catch (err: any) { alert(err.message || 'Stage update failed'); }
+    } catch (err: any) { showAlert(err.message || 'Stage update failed'); }
     setShowStageBar(false);
   }
 
@@ -1337,12 +1338,12 @@ function OverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: boolean }
 
   async function downloadDoc(doc: ShipDoc) {
     try { await apiDownload(`/v1/shipments/${job.id}/documents/${doc.id}/download`, doc.name); }
-    catch (e: any) { alert(e.message ?? 'Download failed'); }
+    catch (e: any) { showAlert(e.message ?? 'Download failed'); }
   }
 
   async function viewDoc(doc: ShipDoc) {
     try { await apiViewBlob(`/v1/shipments/${job.id}/documents/${doc.id}/view`); }
-    catch (e: any) { alert(e.message ?? 'View failed'); }
+    catch (e: any) { showAlert(e.message ?? 'View failed'); }
   }
 
   return (
@@ -1721,7 +1722,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
         updateJob(job.id, j => ({ ...j, tasks: [...j.tasks, task] }));
       }
       setNewTitle(''); setNewDue(''); setNewTitleCustom(false); setShowAdd(false);
-    } catch (err: any) { alert(err.message || 'Failed to create task'); } finally { setAddSaving(false); }
+    } catch (err: any) { showAlert(err.message || 'Failed to create task'); } finally { setAddSaving(false); }
   }
 
   return (
@@ -1903,7 +1904,7 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
         updateJob(job.id, j => ({ ...j, timeEntries: [...j.timeEntries, entry] }));
       }
       setLogHours(''); setLogNote(''); setShowLog(false);
-    } catch (err: any) { alert(err.message || 'Log failed'); } finally { setLogSaving(false); }
+    } catch (err: any) { showAlert(err.message || 'Log failed'); } finally { setLogSaving(false); }
   }
 
   return (
@@ -2117,12 +2118,12 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
     const url = CLOUD_OAUTH_URLS[provider];
     if (url) {
       const popup = window.open(url + `&state=${provider}_${job.id}`, '_blank', 'width=600,height=700,scrollbars=yes');
-      if (!popup) alert('Please allow popups to connect cloud storage.');
+      if (!popup) showAlert('Please allow popups to connect cloud storage.');
     }
   }
 
   function handleUploadClick(type?: string) {
-    if (!isLive) { alert('Uploading is only available for live shipments, not demo data.'); return; }
+    if (!isLive) { showAlert('Uploading is only available for live shipments, not demo data.'); return; }
     uploadTargetType.current = type || uploadType;
     fileInputRef.current?.click();
   }
@@ -2172,13 +2173,13 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
   }
 
   function handleDownload(doc: ShipDoc) {
-    if (!isLive) { alert('Downloading is only available for live shipments, not demo data.'); return; }
-    apiDownload(`/v1/shipments/${shipmentId}/documents/${doc.id}/download`, doc.name).catch(err => alert(err.message || 'Download failed'));
+    if (!isLive) { showAlert('Downloading is only available for live shipments, not demo data.'); return; }
+    apiDownload(`/v1/shipments/${shipmentId}/documents/${doc.id}/download`, doc.name).catch(err => showAlert(err.message || 'Download failed'));
   }
 
   function handleView(doc: ShipDoc) {
-    if (!isLive) { alert('Viewing is only available for live shipments, not demo data.'); return; }
-    apiViewBlob(`/v1/shipments/${shipmentId}/documents/${doc.id}/view`).catch(err => alert(err.message || 'View failed'));
+    if (!isLive) { showAlert('Viewing is only available for live shipments, not demo data.'); return; }
+    apiViewBlob(`/v1/shipments/${shipmentId}/documents/${doc.id}/view`).catch(err => showAlert(err.message || 'View failed'));
   }
 
   function handleExtract(docId: string) {
@@ -2504,7 +2505,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
         updateJob(job.id, j => ({ ...j, ledger: [...j.ledger, entry] }));
       }
       setDesc(''); setAmount(''); setRef(''); setShowForm(false);
-    } catch (err: any) { alert(err.message || 'Failed to add entry'); } finally { setLedgSaving(false); }
+    } catch (err: any) { showAlert(err.message || 'Failed to add entry'); } finally { setLedgSaving(false); }
   }
 
   async function handleFinalize() {
@@ -2513,8 +2514,8 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
     try {
       await apiFetch(`/v1/shipments/${shipmentId}/invoice/finalise`, { method: 'POST' });
       onRefresh();
-      alert('Invoice finalised — now visible in FinOps Billing.');
-    } catch (err: any) { alert(err.message || 'Failed to finalize invoice'); } finally { setFinalizing(false); }
+      showAlert('Invoice finalised — now visible in FinOps Billing.');
+    } catch (err: any) { showAlert(err.message || 'Failed to finalize invoice'); } finally { setFinalizing(false); }
   }
 
   return (
@@ -2803,7 +2804,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
       setSaved(true);
       setTimeout(() => { requestClose(); }, 900);
     } catch (err: any) {
-      alert(err.message || 'Failed to tag staff');
+      showAlert(err.message || 'Failed to tag staff');
     } finally {
       setConfirming(false);
     }
@@ -2956,7 +2957,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
           body: JSON.stringify({ assigned_to: employeeIds[0] }),
         });
         onRefresh();
-      } catch (err: any) { alert(err.message || 'Assign failed'); }
+      } catch (err: any) { showAlert(err.message || 'Assign failed'); }
     } else {
       updateJob(job.id, j => ({
         ...j,
@@ -2979,7 +2980,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
         updateJob(job.id, j => ({ ...j, whatsappBotActive: !waActive }));
       }
     } catch (err: any) {
-      alert(err.message || 'Failed to update WhatsApp bot status');
+      showAlert(err.message || 'Failed to update WhatsApp bot status');
     } finally {
       setWaToggling(false);
     }
@@ -2996,7 +2997,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
           body: JSON.stringify({ channels: next }),
         });
         onRefresh();
-      } catch (err: any) { alert(err.message || 'Failed to update notification channel'); }
+      } catch (err: any) { showAlert(err.message || 'Failed to update notification channel'); }
       finally { setChannelToggling(null); }
     } else {
       updateJob(job.id, j => ({ ...j, listeners: j.listeners.map(l => l.id === listener.id ? { ...l, channel: next } : l) }));
@@ -3254,7 +3255,7 @@ export function ShipmentDetail() {
           body: JSON.stringify({ stage: STAGE_API_MAP[stage] ?? stage.toUpperCase(), note: note || undefined, blocker: blocker || undefined }),
         });
         refreshJob();
-      } catch (err: any) { alert(err.message || 'Stage update failed'); }
+      } catch (err: any) { showAlert(err.message || 'Stage update failed'); }
     }
     setShowAdv(false);
   }

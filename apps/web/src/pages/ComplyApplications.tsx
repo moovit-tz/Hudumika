@@ -8,6 +8,8 @@ import './ComplyOS.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { ComplyWizardPage, WizardField } from './ComplyWizardPage.js';
 import { ComplyCustomerPicker } from './ComplyCustomerPicker.js';
+import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 
 const NEW_APP_STEPS = ['Document', 'Details', 'Review'];
 
@@ -96,7 +98,7 @@ export function ComplyApplications() {
       await update(app.id, { status: 'submitted' });
       setSelected(null);
     } catch (e: any) {
-      alert(e.message);
+      showAlert(e.message);
     } finally {
       setSubmitting(false);
     }
@@ -107,7 +109,7 @@ export function ComplyApplications() {
     if (linkedCert?.document_url) {
       window.open(linkedCert.document_url, '_blank', 'noopener');
     } else {
-      alert('No document package is attached to this application yet — upload documents from the Vault once they\'re available.');
+      showAlert('No document package is attached to this application yet — upload documents from the Vault once they\'re available.');
     }
   }
 
@@ -116,13 +118,13 @@ export function ComplyApplications() {
   }
 
   async function handleDelete(app: CompApplication) {
-    if (!window.confirm(`Delete draft application ${app.app_number}? This can't be undone.`)) return;
+    if (!(await showConfirm(`Delete draft application ${app.app_number}? This can't be undone.`, { confirmLabel: 'Delete' }))) return;
     try {
       setDeleting(true);
       await remove(app.id);
       setSelected(null);
     } catch (e: any) {
-      alert(e.message);
+      showAlert(e.message);
     } finally {
       setDeleting(false);
     }
@@ -345,7 +347,7 @@ export function NewApplicationPage() {
       await create({ cert_type: certType, agency_code: agencyCode, notes: notes.trim() || undefined, customer_id: customerId });
       navigate('/complyos/applications');
     } catch (e: any) {
-      alert(e.message);
+      showAlert(e.message);
     } finally {
       setCreating(false);
     }

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { showConfirm } from '../lib/confirm.js';
 
 interface FuelLog {
   id: string; vehicle_id: string; driver_id: string | null; liters: number;
@@ -21,7 +22,7 @@ export const TrackingFuel: React.FC = () => {
   useEffect(() => { reload(); }, [reload]);
 
   async function remove(id: string) {
-    if (!confirm('Delete this fuel entry?')) return;
+    if (!(await showConfirm('Delete this fuel entry?', { confirmLabel: 'Delete' }))) return;
     await apiFetch(`/v1/tracking/fuel/${id}`, { method: 'DELETE' });
     reload();
   }

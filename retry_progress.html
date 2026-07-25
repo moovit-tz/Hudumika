@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="refresh" content="3">
+  <title>Retry Progress Tracker</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0b1e3a;
+      color: #f4f5f6;
+      margin: 0;
+      padding: 40px 20px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      background: #172a45;
+      border-radius: 16px;
+      padding: 30px;
+      width: 100%;
+      max-width: 850px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border: 1px solid #3088a8;
+    }
+    h1 { color: #3088a8; margin-top: 0; font-size: 24px; }
+    .progress-bar-bg {
+      background: #0b1e3a;
+      border-radius: 10px;
+      height: 22px;
+      width: 100%;
+      overflow: hidden;
+      margin: 20px 0;
+      border: 1px solid #3088a8;
+    }
+    .progress-bar-fill {
+      background: #3088a8;
+      height: 100%;
+      width: 98%;
+      transition: width 0.5s ease;
+    }
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+    .stat-card {
+      background: #0b1e3a;
+      padding: 18px;
+      border-radius: 10px;
+      text-align: center;
+      border: 1px solid #3088a8;
+    }
+    .stat-num { font-size: 24px; font-weight: bold; color: #3088a8; }
+    .stat-label { font-size: 11px; color: #a5b1c2; text-transform: uppercase; margin-top: 6px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { text-align: left; padding: 12px; border-bottom: 1px solid #3088a8; font-size: 13.5px; }
+    th { color: #3088a8; text-transform: uppercase; font-size: 12px; }
+    .badge {
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: bold;
+    }
+    .badge-completed { background: #059669; color: #fff; }
+    .badge-processed { background: #d97706; color: #fff; }
+    .badge-pending { background: #475569; color: #cbd5e1; }
+    .footer { text-align: center; margin-top: 25px; font-size: 12px; color: #a5b1c2; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Tanzania Trade Portal — Retry Tracker</h1>
+    
+    <div class="progress-bar-bg">
+      <div class="progress-bar-fill"></div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-num">135 / 138</div>
+        <div class="stat-label">Total Procedures Complete</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">15 / 15</div>
+        <div class="stat-label">Retries Processed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">98%</div>
+        <div class="stat-label">Overall Accuracy</div>
+      </div>
+    </div>
+
+    <h3>15 Retry Queue Status</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Procedure Name</th>
+          <th>Steps</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+          <tr>
+            <td><strong>446</strong></td>
+            <td>Full procedure view-for a first time trader</td>
+            <td><strong style="color: #3088a8">0</strong></td>
+            <td>
+              <span class="badge badge-processed">PROCESSED</span>
+              <br><small style="color: #a5b1c2">Overview page</small>
+            </td>
+          </tr>
+        
+          <tr>
+            <td><strong>1253</strong></td>
+            <td>Beverages import clearance procedure through Sirari One Stop Border Post (OSBP)</td>
+            <td><strong style="color: #3088a8">0</strong></td>
+            <td>
+              <span class="badge badge-processed">PROCESSED</span>
+              <br><small style="color: #a5b1c2">Overview page</small>
+            </td>
+          </tr>
+        
+          <tr>
+            <td><strong>572</strong></td>
+            <td>Import of meat and meat products through JNIA</td>
+            <td><strong style="color: #3088a8">38</strong></td>
+            <td>
+              <span class="badge badge-completed">COMPLETED</span>
+              
+            </td>
+          </tr>
+        
+          <tr>
+            <td><strong>545</strong></td>
+            <td>Import of medicine through JNIA</td>
+            <td><strong style="color: #3088a8">31</strong></td>
+            <td>
+              <span class="badge badge-completed">COMPLETED</span>
+              
+            </td>
+          </tr>
+        
+          <tr>
+            <td><strong>565</strong></td>
+            <td>Import of milk and milk products through the port of Dar es Salaam</td>
+            <td><strong style="color: #3088a8">49</strong></td>
+            <td>
+              <span class="badge badge-completed">COMPLETED</span>
+              
+            </td>
+          </tr>
+        
+          <tr>
+            <td><strong>954</strong></td>
+            <td>Import of second hand clothes through the port of Dar es Salaam</td>
+            <td><strong style="color: #3088a8">24</strong></td>
+            <td>
+              <span class="badge badge-completed">COMPLETED</span>
+              
+            </td>
+          </tr>
+        
+          <tr>
+            <td><strong>958</strong></td>
+            <td>Import of spare parts through the port of Dar es Salaam</td>
+            <td><strong style="color: #3088a8">22</strong></td>
+            <td>
+              <span class="badge badge-completed">COMPLETED</span>
+              
+            </td>
+          </tr>
+        
+          <tr>
+            <td><strong>688</strong></td>
+            <td>Import of spices through the port of Dar es Salaam</td>
+            <td><strong style="color: #3088a8">30</strong></td>
+            <td>
+              <span class="badge badge-completed">COMPLETED</span>
+              
+            </td>
+          </tr>
+        
+          <tr>
+            <td><strong>464</strong></td>
+            <td>Import of tea through Dar es salaam port</td>
+            <td><strong style="color: #3088a8">37</strong></td>
+            <td>
+              <span class="badge badge-completed">COMPLETED</span>
+              
+            </td>
+          </tr>
+        
+          <tr>
+            <td><strong>1452</strong></td>
+            <td>Import of textiles through the port of Dar es Salaam</td>
+            <td><strong style="color: #3088a8">20</strong></td>
+            <td>
+              <span class="badge badge-completed">COMPLETED</span>
+              
+            </td>
+          </tr>
+        
+          <tr>
+            <td><strong>573</strong></td>
+            <td>Import of timber through port of Dar es salaam</td>
+            <td><strong style="color: #3088a8">42</strong></td>
+            <td>
+              <span class="badge badge-completed">COMPLETED</span>
+              
+            </td>
+          </tr>
+        
+          <tr>
+            <td><strong>802</strong></td>
+            <td>Import permit (MTID)</td>
+            <td><strong style="color: #3088a8">2</strong></td>
+            <td>
+              <span class="badge badge-completed">COMPLETED</span>
+              
+            </td>
+          </tr>
+        
+          <tr>
+            <td><strong>412</strong></td>
+            <td>Import permit for apiary or bee products</td>
+            <td><strong style="color: #3088a8">5</strong></td>
+            <td>
+              <span class="badge badge-completed">COMPLETED</span>
+              
+            </td>
+          </tr>
+        
+          <tr>
+            <td><strong>1242</strong></td>
+            <td>Import processed foods through port of Dar es salaam</td>
+            <td><strong style="color: #3088a8">32</strong></td>
+            <td>
+              <span class="badge badge-completed">COMPLETED</span>
+              
+            </td>
+          </tr>
+        
+          <tr>
+            <td><strong>1256</strong></td>
+            <td>Medical devices import clearance procedure through Sirari OSBP</td>
+            <td><strong style="color: #3088a8">0</strong></td>
+            <td>
+              <span class="badge badge-processed">PROCESSED</span>
+              
+            </td>
+          </tr>
+        
+      </tbody>
+    </table>
+
+    <div class="footer">
+      Auto-refreshing every 3 seconds. Last updated: 23:45:19
+    </div>
+  </div>
+</body>
+</html>

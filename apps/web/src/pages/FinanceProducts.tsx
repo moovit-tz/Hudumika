@@ -10,6 +10,7 @@ import {
   PRODUCT_UNITS, PRODUCT_CATEGORIES, PRODUCT_TYPE_COLOR, TAX_RATES,
 } from '../data/productData.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { showConfirm } from '../lib/confirm.js';
 
 function newId() { return 'PRD-' + Date.now().toString(36).toUpperCase(); }
 function autoCode(name: string) { return 'SVC-' + name.trim().toUpperCase().replace(/\s+/g, '-').slice(0, 8); }
@@ -285,8 +286,8 @@ export function FinanceProducts() {
     setEditProduct(null);
   }
 
-  function handleDelete(id: string) {
-    if (!confirm('Delete this item? This cannot be undone.')) return;
+  async function handleDelete(id: string) {
+    if (!(await showConfirm('Delete this item? This cannot be undone.', { confirmLabel: 'Delete' }))) return;
     deleteProduct(id);
     if (selected?.id === id) setSelected(null);
   }

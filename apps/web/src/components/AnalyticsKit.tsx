@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { Icon } from './Icon.js';
+import { Button } from './ui/button.js';
 
 /* ── Shared building blocks for the analytics/reporting dashboards
      (Operations Metrics, Carbon Portfolio, …) — CSV export, stat tiles,
@@ -24,15 +25,16 @@ export function exportCsv(filename: string, headers: string[], rows: (string | n
 }
 
 export const ExportButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
-  <button type="button" className="btn btn-secondary btn-sm" onClick={onClick} title="Export as CSV">
-    <Icon name="download" size={13} style={{ marginRight: 5, verticalAlign: 'middle' }} />
+  <Button type="button" variant="outline" size="sm" onClick={onClick} title="Export as CSV">
+    <Icon name="download" size={13} />
     Export CSV
-  </button>
+  </Button>
 );
 
 const TONE_COLOR: Record<'red' | 'green' | 'ink', string> = { red: 'var(--red)', green: 'var(--green)', ink: 'var(--navy)' };
+const TONE_BG: Record<'red' | 'green' | 'ink', string> = { red: 'var(--red-l)', green: 'var(--green-l)', ink: 'var(--bg)' };
 export const StatTile: React.FC<{ label: string; value: string; tone?: 'red' | 'green' | 'ink' }> = ({ label, value, tone = 'ink' }) => (
-  <div style={{ flex: 1, minWidth: 110, padding: '10px 14px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)', borderLeft: `3px solid ${TONE_COLOR[tone]}` }}>
+  <div style={{ flex: 1, minWidth: 110, padding: '10px 14px', background: TONE_BG[tone], borderRadius: 8, border: '1px solid var(--border)' }}>
     <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em', marginBottom: 4 }}>{label}</div>
     <div style={{ fontSize: 19, fontWeight: 800, color: TONE_COLOR[tone] }}>{value}</div>
   </div>
@@ -157,8 +159,8 @@ export function DataTable<T>({ rows, columns, rowKey, pageSize = 8, emptyMessage
             {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, sorted.length)} of {sorted.length}
           </span>
           <div style={{ display: 'flex', gap: 6 }}>
-            <button type="button" className="btn btn-secondary btn-sm" disabled={safePage === 1} onClick={() => setPage(p => p - 1)}>‹ Prev</button>
-            <button type="button" className="btn btn-secondary btn-sm" disabled={safePage === totalPages} onClick={() => setPage(p => p + 1)}>Next ›</button>
+            <Button type="button" variant="outline" size="sm" disabled={safePage === 1} onClick={() => setPage(p => p - 1)}>‹ Prev</Button>
+            <Button type="button" variant="outline" size="sm" disabled={safePage === totalPages} onClick={() => setPage(p => p + 1)}>Next ›</Button>
           </div>
         </div>
       )}

@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { EMPLOYEES } from '../data/staffData.js';
 import type { EmpStatus } from '../data/staffData.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { showAlert } from '../lib/alert.js';
 
 interface StaffData {
   id: string;
@@ -202,7 +203,7 @@ export const StaffDetail: React.FC = () => {
   const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) { alert('Photo must be under 2 MB'); return; }
+    if (file.size > 2 * 1024 * 1024) { showAlert('Photo must be under 2 MB'); return; }
     const reader = new FileReader();
     reader.onload = async () => {
       const dataUrl = reader.result as string;

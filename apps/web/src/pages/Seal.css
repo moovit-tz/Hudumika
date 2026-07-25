@@ -1,0 +1,386 @@
+/* ── SEAL shared tokens & layout ──
+   Brand accent (--seal) tracks the app's configured color exactly like
+   ComplyOS's [data-complyos] block (see ComplyOS.css) — scoped to
+   [data-seal="true"] (inside .app-color-scope, which WorkspaceApp.tsx
+   already repoints --teal/--teal-l/--teal-m to this app's configured
+   color), not :root, so --seal resolves to *this app's* color rather than
+   freezing to the platform global default. */
+[data-seal="true"] {
+  --seal:      var(--teal);
+  --seal-l:    var(--teal-l);
+  --seal-m:    var(--teal-m);
+  --seal-edge: color-mix(in srgb, var(--teal) 30%, transparent);
+}
+
+.seal-page {
+  width: 100%;
+  padding: clamp(20px, 3vw, 36px) clamp(20px, 4vw, 48px);
+  max-width: 1400px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.seal-page-hdr {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.seal-page-title { font-size: 22px; font-weight: 800; color: var(--ink); margin: 0 0 4px; }
+.seal-page-sub { font-size: 13px; color: var(--ink3); margin: 0; max-width: 640px; }
+
+.seal-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 24px;
+}
+.seal-kpi-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+}
+.seal-kpi-value { font-size: 26px; font-weight: 800; color: var(--ink); line-height: 1.1; }
+.seal-kpi-value--alert { color: var(--gold); }
+.seal-kpi-label { font-size: 11.5px; font-weight: 600; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px; }
+
+.seal-card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.seal-card-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+}
+.seal-card-title { font-size: 13.5px; font-weight: 800; color: var(--ink); margin: 0; }
+.seal-card-body { padding: 0; overflow-x: auto; }
+
+.seal-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.seal-table th {
+  padding: 10px 16px; text-align: left; font-size: 11px; font-weight: 700;
+  color: var(--ink3); text-transform: uppercase; letter-spacing: 0.04em;
+  border-bottom: 2px solid var(--border); white-space: nowrap;
+}
+.seal-table td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.seal-table tbody tr { cursor: pointer; transition: background 0.1s; }
+.seal-table tbody tr:hover { background: var(--bg); }
+.seal-table tbody tr:last-child td { border-bottom: none; }
+
+/* Every lot/movement row carries a colored seal-strip identity marker —
+   the one signature element kept from the spec's design direction (§10.2),
+   reskinned onto this platform's actual badge/color tokens rather than the
+   spec's own bond-green/seal-orange palette. */
+.seal-strip { display: inline-block; width: 4px; height: 30px; border-radius: 2px; margin-right: 10px; vertical-align: middle; }
+
+.seal-mono { font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace; font-size: 12.5px; }
+
+.seal-btn-primary {
+  display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px;
+  background: var(--seal); color: #fff; border: none; border-radius: 9px;
+  font-family: var(--font); font-size: 13px; font-weight: 700; cursor: pointer;
+  text-decoration: none; transition: opacity 0.12s;
+}
+.seal-btn-primary:hover { opacity: 0.88; }
+.seal-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.seal-btn-secondary {
+  display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px;
+  background: var(--white); color: var(--ink); border: 1px solid var(--border);
+  border-radius: 9px; font-family: var(--font); font-size: 12.5px; font-weight: 600;
+  cursor: pointer; transition: background 0.1s, border-color 0.1s;
+}
+.seal-btn-secondary:hover { background: var(--bg); border-color: var(--ink3); }
+.seal-btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Storage-clock runway bar on the lot detail's fiscal panel */
+.seal-runway { height: 8px; border-radius: 4px; background: var(--bg); border: 1px solid var(--border); overflow: hidden; }
+.seal-runway-fill { height: 100%; border-radius: 4px 0 0 4px; transition: width 0.3s ease; }
+
+.seal-field-row { display: flex; flex-direction: column; gap: 4px; }
+.seal-field-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink3); }
+.seal-field-value { font-size: 14px; font-weight: 600; color: var(--ink); }
+
+.seal-empty { text-align: center; padding: 48px 24px; color: var(--ink3); font-size: 13.5px; }
+
+/* Immutable movement timeline (spec S4) */
+.seal-timeline { display: flex; flex-direction: column; }
+.seal-timeline-row {
+  display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border);
+}
+.seal-timeline-row:last-child { border-bottom: none; }
+.seal-timeline-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--seal);
+  margin-top: 6px; flex-shrink: 0;
+}
+.seal-timeline-body { flex: 1; min-width: 0; }
+.seal-timeline-time { font-size: 11px; color: var(--ink3); }
+.seal-timeline-text { font-size: 13px; color: var(--ink); margin-top: 2px; }
+.seal-timeline-hash { font-size: 10.5px; color: var(--ink3); margin-top: 3px; word-break: break-all; }
+
+/* ── Form Controls & Container Card Alignment ── */
+.seal-input-control {
+  height: 38px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: var(--font);
+  font-size: 13px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+}
+.seal-input-control:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px var(--teal-l);
+}
+
+.seal-form-row {
+  padding: 20px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.seal-container-meta-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 767px) {
+  .seal-page { padding: 14px 16px; }
+  .seal-page-hdr { flex-direction: column; align-items: stretch; }
+  .seal-form-row { flex-direction: column; align-items: stretch; padding: 16px; }
+  .seal-field-row { width: 100% !important; flex: 1 1 100% !important; }
+  .seal-container-meta-bar { flex-direction: column; align-items: stretch; gap: 10px; }
+  .seal-container-meta-bar button, .seal-btn-primary, .seal-btn-secondary { width: 100%; justify-content: center; }
+  .seal-mode-group { width: 100%; overflow-x: auto; flex-wrap: wrap; }
+  .seal-mode-btn { flex: 1; justify-content: center; }
+}
+
+/* ── Ware Sync & Flowdeck Reference UI Extensions ── */
+.seal-mode-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.seal-mode-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg);
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.seal-mode-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.seal-mode-btn:hover {
+  color: var(--ink);
+}
+.seal-mode-btn.active {
+  background: var(--white);
+  color: var(--teal);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.seal-action-btn-primary {
+  background: #ea580c;
+  color: #fff;
+  border: none;
+  padding: 7px 14px;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: opacity 0.15s;
+}
+.seal-action-btn-primary:hover { opacity: 0.9; }
+
+/* Zone rack cards 3x3 grid */
+.seal-rack-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .seal-rack-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .seal-rack-grid { grid-template-columns: 1fr; }
+}
+
+.seal-rack-box {
+  position: relative;
+  background: var(--white);
+  border-width: 4px;
+  border-style: solid;
+  border-radius: 18px;
+  padding: 24px 16px;
+  text-align: center;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  cursor: pointer;
+}
+.seal-rack-box:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+.seal-rack-code {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.seal-rack-pct {
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+.seal-drag-rack {
+  border: 2px dashed #f97316;
+  background: #fff7ed;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  color: #ea580c;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.seal-drag-rack:hover {
+  background: #ffedd5;
+}
+
+/* Optimization Insight Purple Card */
+.seal-insight-card {
+  background: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%);
+  border: 1px solid #c084fc;
+  border-radius: 16px;
+  padding: 20px;
+  color: #4c1d95;
+}
+[data-theme="dark"] .seal-insight-card {
+  background: linear-gradient(135deg, #2e1065 0%, #1e1b4b 100%);
+  border-color: #7e22ce;
+  color: #e9d5ff;
+}
+.seal-insight-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 13px;
+  color: #7e22ce;
+  margin-bottom: 8px;
+}
+[data-theme="dark"] .seal-insight-title {
+  color: #c084fc;
+}
+
+/* 3D Glass Card (Image 2) */
+.seal-3d-banner {
+  background: linear-gradient(135deg, #059669 0%, #0284c7 50%, #d97706 100%);
+  border-radius: 16px;
+  padding: 20px;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(5, 150, 105, 0.2);
+}
+.seal-3d-graphic {
+  position: absolute;
+  right: -20px;
+  bottom: -20px;
+  width: 140px;
+  height: 140px;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6), rgba(255,255,255,0.05));
+  border-radius: 50%;
+  filter: blur(1px);
+  pointer-events: none;
+}
+
+/* AGV Drone Floor Map (Image 4) */
+.seal-fleet-canvas {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  background: repeating-linear-gradient(0deg, var(--border) 0px, transparent 1px, transparent 24px),
+              repeating-linear-gradient(90deg, var(--border) 0px, transparent 1px, transparent 24px),
+              var(--white);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.seal-drone-node {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--white);
+  border: 2px solid var(--teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.seal-drone-node:hover {
+  transform: scale(1.15);
+  z-index: 10;
+}
+
+.seal-iso-container {
+  perspective: 900px;
+}
+.seal-iso-grid {
+  transform: rotateX(24deg) rotateZ(-12deg) scale(0.95);
+  transform-origin: center center;
+  transition: transform 0.3s ease;
+}
+.seal-iso-container:hover .seal-iso-grid {
+  transform: rotateX(18deg) rotateZ(-8deg) scale(0.98);
+}
+

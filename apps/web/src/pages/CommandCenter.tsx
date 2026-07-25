@@ -10,6 +10,8 @@ import { TableHeader } from '../components/TableHeader.js';
 import { CustomerGroup } from '../components/CustomerGroup.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
+import { Button } from '../components/ui/button.js';
+import { showAlert } from '../lib/alert.js';
 import type { ShipmentCase, ShipmentType, Workflow } from '@hudumika/types';
 import { CLEARANCE_STAGES, STAGE_LABELS } from '@hudumika/types';
 import type { ClearanceStage } from '@hudumika/types';
@@ -193,7 +195,18 @@ function KanbanBoard({ groups, refresh, activeWorkflow }: { groups: any[], refre
       });
       refresh();
     } catch (err: any) {
-      alert('Failed to move shipment: ' + (err.message || 'Unknown error'));
+      const message = err.message || 'Unknown error';
+      // The backend's "Prerequisite not met: X, Y, Z" is a single comma-joined
+      // sentence — break it into a scannable list instead of a wall of text.
+      const prereqMatch = message.match(/^Prerequisite not met: (.+)$/);
+      if (prereqMatch) {
+        showAlert("This shipment can't move to that stage yet — the following are still required:", {
+          title: 'Missing Prerequisites',
+          items: prereqMatch[1].split(',').map((s: string) => s.trim()).filter(Boolean),
+        });
+      } else {
+        showAlert('Failed to move shipment: ' + message);
+      }
     }
   };
 
@@ -539,51 +552,60 @@ export const CommandCenter: React.FC = () => {
               </button>
             </div>
           </div>
-          <div className="cc-page-header-right" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span className="cc-date-chip">{todayLabel}</span>
+          <div className="cc-page-header-right">
+            {/* Secondary controls — shrinks/scrolls internally first when
+                space is tight, so the primary action button (below) never
+                gets pushed off-screen. */}
+            <div className="cc-page-header-scroll">
+              {!isMobile && <span className="cc-date-chip">{todayLabel}</span>}
 
-            {/* List / Board toggle */}
-            <div className="cc-view-toggle">
-              {(['list', 'board'] as const).map(m => (
-                <button key={m} type="button"
-                  title={m === 'list' ? 'List view' : 'Board view'}
-                  className={`cc-view-btn${viewMode === m ? ' active' : ''}`}
-                  onClick={() => { setViewMode(m); localStorage.setItem('ops_viewMode', m); }}>
-                  {m === 'list'
-                    ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>List</>
-                    : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Board</>
-                  }
-                </button>
-              ))}
+              {/* List / Board toggle */}
+              <div className="cc-view-toggle">
+                {(['list', 'board'] as const).map(m => (
+                  <button key={m} type="button"
+                    title={m === 'list' ? 'List view' : 'Board view'}
+                    className={`cc-view-btn${viewMode === m ? ' active' : ''}`}
+                    onClick={() => { setViewMode(m); localStorage.setItem('ops_viewMode', m); }}>
+                    {m === 'list'
+                      ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>List</>
+                      : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Board</>
+                    }
+                  </button>
+                ))}
+              </div>
+
+              {/* Workflow selector — board view only, and only when the tenant
+                  has at least one active custom workflow to switch to. */}
+              {viewMode === 'board' && workflows.length > 0 && (
+                <Select
+                  value={selectedWorkflowId}
+                  onValueChange={v => { setSelectedWorkflowId(v); localStorage.setItem('ops_selectedWorkflow', v); }}
+                >
+                  <SelectTrigger style={{ height: 32, fontSize: 12.5, minWidth: 150, width: 'auto' }}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="legacy">Legacy Stages</SelectItem>
+                    {workflows.map(w => (
+                      <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
-            {/* Workflow selector — board view only, and only when the tenant
-                has at least one active custom workflow to switch to. */}
-            {viewMode === 'board' && workflows.length > 0 && (
-              <Select
-                value={selectedWorkflowId}
-                onValueChange={v => { setSelectedWorkflowId(v); localStorage.setItem('ops_selectedWorkflow', v); }}
-              >
-                <SelectTrigger style={{ height: 32, fontSize: 12.5, minWidth: 150 }}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="legacy">Legacy Stages</SelectItem>
-                  {workflows.map(w => (
-                    <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-
-            {canCreate && (
-              <button type="button" onClick={() => navigate('/clearos/ops/new')} className="btn btn-primary btn-sm" style={{ height: 32 }}>
-                + New Shipment
-              </button>
-            )}
-            <button type="button" onClick={() => { localStorage.clear(); refresh(); }} className="btn btn-secondary btn-sm" title="Refresh data" style={{ height: 32, padding: '0 10px' }}>
-              ↻
-            </button>
+            {/* Primary actions — always fully visible, never scrolled/clipped. */}
+            <div className="cc-page-header-actions">
+              {canCreate && (
+                <Button size="sm" style={{ background: 'var(--teal)', color: '#fff' }} onClick={() => navigate('/clearos/ops/new')}>
+                  <Icon name="plus" size={13} color="currentColor" />
+                  {isMobile ? 'New' : 'New Shipment'}
+                </Button>
+              )}
+              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => { localStorage.clear(); refresh(); }} title="Refresh data">
+                <Icon name="refresh" size={14} />
+              </Button>
+            </div>
           </div>
         </div>
 

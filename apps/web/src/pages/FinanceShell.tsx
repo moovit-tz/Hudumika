@@ -23,6 +23,7 @@ import { FinanceProducts }        from './FinanceProducts.js';
 import { PageHeader }             from '../components/PageHeader.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '../components/ui/dropdown-menu.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { showConfirm } from '../lib/confirm.js';
 
 /* ── Section & nav types ── */
 type SectionId = 'overview' | 'invoices' | 'bills' | 'quotations' | 'purchase-orders' | 'expenses' | 'payments' | 'vendors' | 'products' | 'accounts' | 'reports';
@@ -1273,8 +1274,8 @@ export const FinanceShell: React.FC = () => {
     setInvoiceMode('edit');
   }
 
-  function deleteInvoiceDirect(inv: Invoice) {
-    if (!window.confirm(`Delete invoice ${inv.id}? This cannot be undone.`)) return;
+  async function deleteInvoiceDirect(inv: Invoice) {
+    if (!(await showConfirm(`Delete invoice ${inv.id}? This cannot be undone.`, { confirmLabel: 'Delete' }))) return;
     setInvoices(prev => prev.filter(i => i.id !== inv.id));
     const tabId = `invoice-${inv.id}`;
     setOpenTabs(prev => prev.filter(t => t.id !== tabId));
@@ -1361,8 +1362,8 @@ export const FinanceShell: React.FC = () => {
     openInvoice(copy);
   }
 
-  function handleDeleteInvoice() {
-    if (!activeInvoice || !window.confirm(`Delete ${activeInvoice.id}? This cannot be undone.`)) return;
+  async function handleDeleteInvoice() {
+    if (!activeInvoice || !(await showConfirm(`Delete ${activeInvoice.id}? This cannot be undone.`, { confirmLabel: 'Delete' }))) return;
     if (activeInvoice._dbId) apiFetch(`/v1/invoices/${activeInvoice._dbId}`, { method: 'DELETE' }).catch(() => {});
     setInvoices(prev => prev.filter(i => i.id !== activeInvoice.id));
     closeTab(`invoice-${activeInvoice.id}`);

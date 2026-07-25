@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { showConfirm } from '../lib/confirm.js';
 
 interface Vendor {
   id: string; name: string; vendor_type: string; phone: string | null;
@@ -80,7 +81,7 @@ export const TrackingVendors: React.FC = () => {
   useEffect(() => { reload(); }, [reload]);
 
   async function remove(id: string) {
-    if (!confirm('Remove this vendor?')) return;
+    if (!(await showConfirm('Remove this vendor?', { confirmLabel: 'Remove' }))) return;
     await apiFetch(`/v1/tracking/vendors/${id}`, { method: 'DELETE' });
     reload();
   }

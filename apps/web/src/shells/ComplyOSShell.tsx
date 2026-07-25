@@ -19,6 +19,8 @@ import { ComplyCompanyDirectory } from '../pages/ComplyCompanyDirectory.js';
 import { ComplyObligationScanPage } from '../pages/ComplyObligationScanPage.js';
 import { ComplyLicenseCatalog } from '../pages/ComplyLicenseCatalog.js';
 import { ComplyLicenseApply }   from '../pages/ComplyLicenseApply.js';
+import { ComplyTraExtract }     from '../pages/ComplyTraExtract.js';
+import { ComplyLicenseAutomation } from '../pages/ComplyLicenseAutomation.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -34,6 +36,7 @@ const NAV: SidebarSection[] = [
       { label: 'Vault',        icon: 'lock',        path: '/complyos/vault'         },
       { label: 'Calendar',     icon: 'calendar',    path: '/complyos/calendar'      },
       { label: 'Workflows',    icon: 'zap',         path: '/complyos/workflows'     },
+      { label: 'License Automation', icon: 'zap',   path: '/complyos/license-automation' },
     ],
   },
   {
@@ -44,6 +47,7 @@ const NAV: SidebarSection[] = [
       { label: 'Legal',        icon: 'fileText', path: '/complyos/legal'        },
       { label: 'Agencies',     icon: 'building', path: '/complyos/agencies'     },
       { label: 'Licence Catalogue', icon: 'invoice', path: '/complyos/license-catalog' },
+      { label: 'TIN Portal Agent', icon: 'zap',      path: '/complyos/tra-extract' },
     ],
   },
 ];
@@ -77,6 +81,8 @@ export function ComplyOSShell() {
               <Route path="companies"             element={<ComplyCompanyDirectory />}  />
               <Route path="license-catalog"           element={<ComplyLicenseCatalog />} />
               <Route path="license-catalog/apply/:catalogId" element={<ComplyLicenseApply />} />
+              <Route path="tra-extract"               element={<ComplyTraExtract />} />
+              <Route path="license-automation"        element={<ComplyLicenseAutomation />} />
             </Route>
           </Routes>
           </div>

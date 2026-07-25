@@ -7,7 +7,9 @@ import { ComplyWizardPage, WizardField } from './ComplyWizardPage.js';
 import { ComplyCustomerPicker } from './ComplyCustomerPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
+import { showAlert } from '../lib/alert.js';
 import './ComplyOS.css';
+import { showConfirm } from '../lib/confirm.js';
 
 type Filter = 'all' | 'active' | 'pending' | 'expired' | 'not-started';
 
@@ -45,19 +47,19 @@ export function ComplyObligations() {
     try {
       await update(o.id, { status: 'active', last_fulfilled_date: toDateOnlyString(new Date()) });
     } catch (e: any) {
-      alert(e.message);
+      showAlert(e.message);
     } finally {
       setBusyId(null);
     }
   }
 
   async function handleDelete(o: CompObligation) {
-    if (!window.confirm(`Delete obligation "${o.name}"?`)) return;
+    if (!(await showConfirm(`Delete obligation "${o.name}"?`, { confirmLabel: 'Delete' }))) return;
     setBusyId(o.id);
     try {
       await remove(o.id);
     } catch (e: any) {
-      alert(e.message);
+      showAlert(e.message);
     } finally {
       setBusyId(null);
     }

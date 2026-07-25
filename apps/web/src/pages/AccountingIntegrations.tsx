@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 
 /* ── SVG brand marks (vector, no 3D) ─────────────────────────────── */
 const XeroLogo = () => (
@@ -118,19 +120,19 @@ export function AccountingIntegrations() {
       setActiveConfigProvider(null);
       await loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Connection failed');
+      showAlert(err instanceof Error ? err.message : 'Connection failed');
     } finally {
       setSavingProvider(null);
     }
   };
 
   const handleDisconnect = async (providerName: string) => {
-    if (!confirm(`Are you sure you want to disconnect ${providerName}?`)) return;
+    if (!(await showConfirm(`Are you sure you want to disconnect ${providerName}?`, { variant: 'warning', confirmLabel: 'Disconnect' }))) return;
     try {
       await apiFetch(`/v1/accounting-integrations/${providerName}/disconnect`, { method: 'POST' });
       await loadData();
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Disconnection failed');
+      showAlert(err instanceof Error ? err.message : 'Disconnection failed');
     }
   };
 
@@ -139,9 +141,9 @@ export function AccountingIntegrations() {
     try {
       await apiFetch(`/v1/accounting-integrations/${providerName}/sync`, { method: 'POST' });
       await loadData();
-      alert(`Chart of Accounts synced successfully from ${providerName}!`);
+      showAlert(`Chart of Accounts synced successfully from ${providerName}!`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Sync failed');
+      showAlert(err instanceof Error ? err.message : 'Sync failed');
     } finally {
       setSyncingProvider(null);
     }
@@ -150,7 +152,7 @@ export function AccountingIntegrations() {
   const handleInstall = async (item: MarketplaceItem) => {
     setInstallingId(item.id);
     await new Promise(r => setTimeout(r, 800));
-    alert(`${item.name} has been added to your integration queue. Our team will reach out to complete setup.`);
+    showAlert(`${item.name} has been added to your integration queue. Our team will reach out to complete setup.`);
     setInstallingId(null);
   };
 

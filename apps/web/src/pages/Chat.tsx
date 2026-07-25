@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
+import { showAlert } from '../lib/alert.js';
 
 // ─── Types (match apps/api/src/routes/chat.routes.ts) ─────────────────────────
 
@@ -166,7 +167,7 @@ export const Chat: React.FC = () => {
       setChannels(p => p.map(c => c.id === activeId ? { ...c, last_message: txt, last_message_at: msg.created_at } : c));
       inputRef.current?.focus();
     } catch (err: any) {
-      alert(err.message || 'Failed to send message');
+      showAlert(err.message || 'Failed to send message');
       setInput(txt);
     } finally {
       setSending(false);
@@ -205,7 +206,7 @@ export const Chat: React.FC = () => {
       await loadChannels(false);
       setActiveId(channel.id);
       setCreating(null); setNewName(''); setNewMemberIds([]);
-    } catch (err: any) { alert(err.message || 'Failed to create'); }
+    } catch (err: any) { showAlert(err.message || 'Failed to create'); }
   }
 
   async function startDm(otherId: string) {
@@ -214,7 +215,7 @@ export const Chat: React.FC = () => {
       await loadChannels(false);
       setActiveId(channel.id);
       setCreating(null);
-    } catch (err: any) { alert(err.message || 'Failed to start conversation'); }
+    } catch (err: any) { showAlert(err.message || 'Failed to start conversation'); }
   }
 
   function SecHdr({ label, sk, count }: { label: string; sk: keyof typeof openSecs; count: number }) {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bar, Line } from 'react-chartjs-2';
+import { showAlert } from '../lib/alert.js';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend,
 } from 'chart.js';
@@ -72,7 +73,7 @@ function generateReportPDF(type: string, from: string, to: string, data: any, ve
 </body></html>`;
 
   const w = window.open('', '_blank');
-  if (!w) { alert('Allow popups to generate the report'); return; }
+  if (!w) { showAlert('Allow popups to generate the report'); return; }
   w.document.write(html);
   w.document.close();
   setTimeout(() => w.print(), 500);

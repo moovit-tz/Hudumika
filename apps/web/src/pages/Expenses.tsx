@@ -6,6 +6,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { showAlert } from '../lib/alert.js';
 
 const CATS: Record<string, { label: string; color: string }> = {
   PORT_CHARGES:    { label: 'Port Charges',    color: 'var(--blue)' },
@@ -112,7 +113,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
       onClose();
       onChanged();
     } catch (err: any) {
-      alert(err.message || 'Failed to delete expense');
+      showAlert(err.message || 'Failed to delete expense');
       setDeleting(false);
     }
   }

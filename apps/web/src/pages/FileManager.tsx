@@ -7,6 +7,7 @@ import { STORAGE_PROVIDERS } from '../shells/ConnectedAppsModal.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from '../components/ui/context-menu.js';
+import { showConfirm } from '../lib/confirm.js';
 
 const PROVIDER_VIEWS: StorageProvider[] = ['box', 'dropbox', 'mega', 'onedrive'];
 
@@ -875,7 +876,7 @@ export const FileManager: React.FC = () => {
 
             <div style={{ display:'flex', alignItems:'center', gap:10, flex:'1 1 40%', minWidth:0, justifyContent:'flex-end' }}>
               {isTrashView && trashedItems.length > 0 && (
-                <button onClick={()=>{ if(confirm('Empty trash? This permanently deletes all items in Trash.')) emptyTrash(); }} className="btn btn-secondary btn-sm" style={{ gap:6, whiteSpace:'nowrap', flexShrink:0 }}>
+                <button onClick={async ()=>{ if((await showConfirm('Empty trash? This permanently deletes all items in Trash.', { confirmLabel: 'Empty Trash' }))) emptyTrash(); }} className="btn btn-secondary btn-sm" style={{ gap:6, whiteSpace:'nowrap', flexShrink:0 }}>
                   <Icon name="trash2" size={13} /> Empty trash
                 </button>
               )}
@@ -909,7 +910,7 @@ export const FileManager: React.FC = () => {
               {isTrashView ? (
                 <>
                   <button className="btn btn-ghost btn-sm" onClick={()=>bulkAction(i=>restoreItem(i.id))}><Icon name="refresh" size={14} /> Restore</button>
-                  <button className="btn btn-ghost btn-sm" style={{ color:'var(--red)' }} onClick={()=>{ if(confirm(`Permanently delete ${selectedIds.size} item(s)?`)) bulkAction(i=>permanentlyDelete(i.id)); }}><Icon name="trash2" size={14} color="var(--red)" /> Delete forever</button>
+                  <button className="btn btn-ghost btn-sm" style={{ color:'var(--red)' }} onClick={async ()=>{ if((await showConfirm(`Permanently delete ${selectedIds.size} item(s)?`, { confirmLabel: 'Delete Forever' }))) bulkAction(i=>permanentlyDelete(i.id)); }}><Icon name="trash2" size={14} color="var(--red)" /> Delete forever</button>
                 </>
               ) : (
                 <>

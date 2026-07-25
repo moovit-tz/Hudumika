@@ -5,6 +5,8 @@ import { useCloud, CloudView, CloudDrive, DriveType } from './cloud-context.js';
 import { ConnectedAppsModal, STORAGE_PROVIDERS } from './ConnectedAppsModal.js';
 import { DriveMembersModal } from './DriveMembersModal.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '../components/ui/dropdown-menu.js';
+import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 
 const GD_BLUE  = '#1a73e8';
 const GD_BLUE_L = '#e8f0fe';
@@ -66,9 +68,9 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
     setRenamingDrive(null);
   }
 
-  function handleDeleteDrive(drive: CloudDrive) {
-    if (drives.length <= 1) { alert('You must keep at least one drive.'); return; }
-    if (confirm(`Delete "${drive.name}" and everything in it? This can't be undone.`)) deleteDrive(drive.id);
+  async function handleDeleteDrive(drive: CloudDrive) {
+    if (drives.length <= 1) { showAlert('You must keep at least one drive.'); return; }
+    if ((await showConfirm(`Delete "${drive.name}" and everything in it? This can't be undone.`, { confirmLabel: 'Delete' }))) deleteDrive(drive.id);
   }
 
   const active  = files.filter(f => !f.is_trash);

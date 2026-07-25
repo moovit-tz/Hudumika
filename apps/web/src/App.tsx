@@ -43,6 +43,8 @@ import { CheckInWidget }      from './components/CheckInWidget.js';
 import { ClockInProvider }    from './contexts/ClockInContext.js';
 import { DesignSystemProvider } from './components/DesignSystemProvider.js';
 import { SeoAnalyticsProvider } from './components/SeoAnalyticsProvider.js';
+import { AlertHost } from './components/AlertHost.js';
+import { ConfirmHost } from './components/ConfirmHost.js';
 
 import { ClearOSShell } from './shells/ClearOSShell.js';
 import { FinOpsShell }  from './shells/FinOpsShell.js';
@@ -53,6 +55,7 @@ import { AdminShell }        from './shells/AdminShell.js';
 import { SuperAdminShell }   from './shells/SuperAdminShell.js';
 import { AIShell }      from './shells/AIShell.js';
 import { ComplyOSShell } from './shells/ComplyOSShell.js';
+import { SealShell } from './shells/SealShell.js';
 import { EmailShell }   from './shells/EmailShell.js';
 import { CRMShell }     from './shells/CRMShell.js';
 import { ContactsShell } from './shells/ContactsShell.js';
@@ -301,6 +304,7 @@ const AppContent: React.FC = () => {
           <Route path="/admin/*"    element={<SuperAdminShell />} />
           <Route path="/ai/*"       element={<AIShell />} />
           <Route path="/complyos/*" element={<ComplyOSShell />} />
+          <Route path="/seal/*"     element={<SealShell />} />
           <Route path="/email/*"    element={<EmailShell />} />
           <Route path="/crm/*"      element={<CRMShell />} />
           <Route path="/contacts/*"  element={<ContactsShell />} />
@@ -391,19 +395,23 @@ const AppContent: React.FC = () => {
 };
 
 const App: React.FC = () => (
-  <BrowserRouter>
-    <SeoAnalyticsProvider>
-      <AuthProvider>
-        <ClockInProvider>
-          <WorkspaceProvider>
-            <DesignSystemProvider>
-              <AppContent />
-            </DesignSystemProvider>
-          </WorkspaceProvider>
-        </ClockInProvider>
-      </AuthProvider>
-    </SeoAnalyticsProvider>
-  </BrowserRouter>
+  <>
+    <BrowserRouter>
+      <SeoAnalyticsProvider>
+        <AuthProvider>
+          <ClockInProvider>
+            <WorkspaceProvider>
+              <DesignSystemProvider>
+                <AppContent />
+              </DesignSystemProvider>
+            </WorkspaceProvider>
+          </ClockInProvider>
+        </AuthProvider>
+      </SeoAnalyticsProvider>
+    </BrowserRouter>
+    <AlertHost />
+    <ConfirmHost />
+  </>
 );
 
 export default App;

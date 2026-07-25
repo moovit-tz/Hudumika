@@ -8,6 +8,7 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import './CreateShipmentPage.css';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { showConfirm } from '../lib/confirm.js';
 
 interface RawShipment {
   id: string;
@@ -131,7 +132,7 @@ export const ShipmentEdit: React.FC = () => {
 
   async function handleDelete() {
     if (!id) return;
-    if (!confirm(`Delete shipment ${form.ref_number}? This removes it from every listing but keeps its records for audit purposes.`)) return;
+    if (!(await showConfirm(`Delete shipment ${form.ref_number}? This removes it from every listing but keeps its records for audit purposes.`, { confirmLabel: 'Delete' }))) return;
     setDeleting(true);
     try {
       await apiFetch(`/v1/shipments/${id}`, { method: 'DELETE' });

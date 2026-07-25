@@ -8,6 +8,7 @@ import { MetricsRow, spark } from '../components/MetricCard.js';
 import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { showAlert } from '../lib/alert.js';
 
 /* ── Avatar ── */
 const AV_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30'];
@@ -150,14 +151,14 @@ export const UserProfile: React.FC = () => {
 
   const handlePwSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pwForm.next !== pwForm.confirm) { alert('New passwords do not match.'); return; }
-    if (pwForm.next.length < 8) { alert('Password must be at least 8 characters.'); return; }
+    if (pwForm.next !== pwForm.confirm) { showAlert('New passwords do not match.'); return; }
+    if (pwForm.next.length < 8) { showAlert('Password must be at least 8 characters.'); return; }
     setPwSaving(true);
     try {
       await apiFetch('/v1/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password: pwForm.current, new_password: pwForm.next }) });
       setPwForm({ current: '', next: '', confirm: '' });
-      alert('Password changed successfully.');
-    } catch (err: any) { alert(err.message || 'Failed to change password.'); } finally { setPwSaving(false); }
+      showAlert('Password changed successfully.');
+    } catch (err: any) { showAlert(err.message || 'Failed to change password.'); } finally { setPwSaving(false); }
   };
 
   if (!user) return null;

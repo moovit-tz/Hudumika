@@ -8,6 +8,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 
 /* ── Types ── */
 export interface Lead {
@@ -303,7 +305,7 @@ export const Leads: React.FC = () => {
   }
 
   async function handleDelete(id: string, name: string) {
-    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    if (!(await showConfirm(`Delete "${name}"? This cannot be undone.`, { confirmLabel: 'Delete' }))) return;
     try {
       await apiFetch(`/v1/leads/${id}`, { method: 'DELETE' });
     } catch { /* allow local removal */ }
@@ -321,7 +323,7 @@ export const Leads: React.FC = () => {
       setSelected(updated);
       setLeads(p => p.map(l => l.id === selected.id ? updated : l));
       setEditMode(false);
-    } catch (err: any) { alert(err.message || 'Save failed'); } finally { setSaving(false); }
+    } catch (err: any) { showAlert(err.message || 'Save failed'); } finally { setSaving(false); }
   }
 
   async function handleSaveNote() {
@@ -331,7 +333,7 @@ export const Leads: React.FC = () => {
       await apiFetch(`/v1/leads/${selected.id}`, { method: 'PATCH', body: JSON.stringify({ notes }) });
       setSelected(prev => prev ? { ...prev, notes } : prev);
       setLeads(p => p.map(l => l.id === selected.id ? { ...l, notes } : l));
-    } catch (err: any) { alert(err.message || 'Failed to save'); } finally { setNoteSaving(false); }
+    } catch (err: any) { showAlert(err.message || 'Failed to save'); } finally { setNoteSaving(false); }
   }
 
   async function updateStage(stage: string) {
@@ -341,7 +343,7 @@ export const Leads: React.FC = () => {
       const updated = { ...selected, stage };
       setSelected(updated);
       setLeads(p => p.map(l => l.id === selected.id ? updated : l));
-    } catch (err: any) { alert(err.message || 'Failed'); }
+    } catch (err: any) { showAlert(err.message || 'Failed'); }
   }
 
   function openProfile(lead: Lead) {
@@ -676,8 +678,8 @@ export const Leads: React.FC = () => {
                       if (!files.length) return;
                       const fd = new FormData();
                       files.forEach(f => fd.append('files', f));
-                      try { await apiFetch(`/v1/leads/${sel.id}/documents`, { method: 'POST', body: fd }); alert(`${files.length} file(s) uploaded`); }
-                      catch (err: any) { alert(err.message || 'Upload failed'); }
+                      try { await apiFetch(`/v1/leads/${sel.id}/documents`, { method: 'POST', body: fd }); showAlert(`${files.length} file(s) uploaded`); }
+                      catch (err: any) { showAlert(err.message || 'Upload failed'); }
                       e.target.value = '';
                     }} />
                 </label>

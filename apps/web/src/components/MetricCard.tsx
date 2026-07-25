@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icon, IconName } from './Icon.js';
+import { FeaturedIcon } from './ui/featured-icon.js';
 
 /* ── Deterministic sparkline data generator ── */
 export function spark(seed: number, len = 15, trend: 'up' | 'down' | 'flat' = 'up'): number[] {
@@ -105,9 +106,12 @@ export interface MetricCardProps {
   sub1Value?: string;
   sub2Label?: string;
   sub2Value?: string;
-  bars: number[];
-  barColor: string;
-  barHighlight: string;
+  /** Omit (or pass an empty array) when there's no real trend data to back a
+      sparkline — the card renders without one rather than fabricating a
+      trend line, per the design system's "honest gap over fake data" rule. */
+  bars?: number[];
+  barColor?: string;
+  barHighlight?: string;
   invertTrend?: boolean;
   icon?: IconName;
   /** Optional action for the header's "more" button. Omit to leave it non-interactive. */
@@ -124,6 +128,17 @@ const COLOR_ICON: Record<string, { icon: IconName }> = {
   'var(--purple)': { icon: 'pieChart'     },
 };
 
+// FeaturedIcon only has 6 variants (no dedicated "purple") — map the CSS var
+// straight through to the matching semantic variant, folding purple into brand.
+const COLOR_VARIANT: Record<string, 'brand' | 'info' | 'success' | 'error' | 'warning'> = {
+  'var(--teal)':   'brand',
+  'var(--blue)':   'info',
+  'var(--green)':  'success',
+  'var(--red)':    'error',
+  'var(--gold)':   'warning',
+  'var(--purple)': 'brand',
+};
+
 let _sparkId = 0;
 
 export function MetricCard({
@@ -134,27 +149,29 @@ export function MetricCard({
   icon, onMenuClick, menuTitle,
 }: MetricCardProps) {
   const sparkId = React.useRef(`mc${++_sparkId}`).current;
-  const color    = barHighlight; // pass the CSS var straight through — it resolves live, so cards stay theme-reactive in dark mode
-  const cfg      = COLOR_ICON[barHighlight] ?? { icon: 'barChart' as IconName };
+  const color    = barHighlight ?? 'var(--teal)'; // pass the CSS var straight through — it resolves live, so cards stay theme-reactive in dark mode
+  const cfg      = COLOR_ICON[color] ?? { icon: 'barChart' as IconName };
   const iconName: IconName = icon ?? cfg.icon;
+  const variant  = COLOR_VARIANT[color] ?? 'brand';
+  const hasBars  = !!bars && bars.length > 0;
 
   return (
     <div className="mc-card">
       <div className="mc-head">
         <div className="mc-head-left">
-          <div className="mc-icon-badge">
-            <Icon name={iconName} size={18} color={color} strokeWidth={1.75} />
-          </div>
+          <FeaturedIcon variant={variant} size="sm" shape="square">
+            <Icon name={iconName} size={18} strokeWidth={1.75} />
+          </FeaturedIcon>
           <span className="mc-title">{title}</span>
         </div>
-        {onMenuClick ? (
-          <button type="button" className="mc-dots mc-dots-btn" onClick={onMenuClick} title={menuTitle ?? 'More options'}>
-            <Icon name="moreVertical" size={15} strokeWidth={1.75} duotone={false} />
+        {/* A single, honestly-labeled refresh action — not a fake "more
+            options" menu that never opens anything (the old three-dot icon
+            implied an overflow menu but every real usage only ever wired up
+            one action). */}
+        {onMenuClick && (
+          <button type="button" className="mc-refresh-btn" onClick={onMenuClick} title={menuTitle ?? 'Refresh'}>
+            <Icon name="refresh" size={14} strokeWidth={1.75} duotone={false} />
           </button>
-        ) : (
-          <span className="mc-dots">
-            <Icon name="moreVertical" size={15} strokeWidth={1.75} duotone={false} />
-          </span>
         )}
       </div>
 
@@ -180,9 +197,11 @@ export function MetricCard({
         </div>
       )}
 
-      <div className="mc-spark-wrap">
-        <AreaSparkline data={bars} color={color} id={sparkId} />
-      </div>
+      {hasBars && (
+        <div className="mc-spark-wrap">
+          <AreaSparkline data={bars!} color={color} id={sparkId} />
+        </div>
+      )}
     </div>
   );
 }

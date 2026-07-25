@@ -4,7 +4,9 @@ import { apiFetch } from '../lib/api.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import type { Workflow } from '@hudumika/types';
+import { showAlert } from '../lib/alert.js';
 import './Workflows.css';
+import { showConfirm } from '../lib/confirm.js';
 
 export type { FieldCondition, AutoComm, WorkflowStep, WorkflowTrigger, Workflow } from '@hudumika/types';
 
@@ -63,12 +65,12 @@ export function WorkflowsPage() {
   useEffect(() => { load(); }, [load]);
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this workflow? This cannot be undone.')) return;
+    if (!(await showConfirm('Delete this workflow? This cannot be undone.', { confirmLabel: 'Delete' }))) return;
     try {
       await apiFetch(`/v1/workflows/${id}`, { method: 'DELETE' });
       load();
     } catch (err: any) {
-      window.alert(err.message || 'Could not delete this workflow.');
+      showAlert(err.message || 'Could not delete this workflow.');
     }
   };
 
@@ -77,7 +79,7 @@ export function WorkflowsPage() {
       await apiFetch(`/v1/workflows/${wf.id}/duplicate`, { method: 'POST' });
       load();
     } catch (err: any) {
-      window.alert(err.message || 'Could not duplicate this workflow.');
+      showAlert(err.message || 'Could not duplicate this workflow.');
     }
   };
 
@@ -86,7 +88,7 @@ export function WorkflowsPage() {
       await apiFetch(`/v1/workflows/${wf.id}`, { method: 'PATCH', body: JSON.stringify({ isActive: !wf.isActive }) });
       load();
     } catch (err: any) {
-      window.alert(err.message || 'Could not update this workflow.');
+      showAlert(err.message || 'Could not update this workflow.');
     }
   };
 
@@ -132,7 +134,7 @@ export function WorkflowsPage() {
       }
       load();
     } catch (err: any) {
-      window.alert(err.message || 'Could not update workflow assignment.');
+      showAlert(err.message || 'Could not update workflow assignment.');
       load();
     }
   };
@@ -147,7 +149,7 @@ export function WorkflowsPage() {
       }
       load();
     } catch (err: any) {
-      window.alert(err.message || 'Could not update the default workflow.');
+      showAlert(err.message || 'Could not update the default workflow.');
     }
   };
 

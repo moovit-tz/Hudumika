@@ -1,0 +1,93 @@
+import { Routes, Route } from 'react-router-dom';
+import '../pages/Seal.css';
+import { WorkspaceApp } from './WorkspaceApp.js';
+import { AppSidebar } from '../components/AppSidebar.js';
+import type { SidebarSection } from '../components/AppSidebar.js';
+import { AppHeader } from '../components/AppHeader.js';
+import { PageLayout } from '../components/PageLayout.js';
+import { SealDashboard } from '../pages/SealDashboard.js';
+import { SealLots } from '../pages/SealLots.js';
+import { SealLotDetail } from '../pages/SealLotDetail.js';
+import { SealReceiveLot } from '../pages/SealReceiveLot.js';
+import { SealCompartments } from '../pages/SealCompartments.js';
+import { SealZoneHeatGrid } from '../pages/SealZoneHeatGrid.js';
+import { SealGuarantees } from '../pages/SealGuarantees.js';
+import { SealConsignments } from '../pages/SealConsignments.js';
+import { SealConsignmentDetail } from '../pages/SealConsignmentDetail.js';
+import { SealDeclarations } from '../pages/SealDeclarations.js';
+import { SealDeclarationNew } from '../pages/SealDeclarationNew.js';
+import { SealDeclarationDetail } from '../pages/SealDeclarationDetail.js';
+import { SealExaminations } from '../pages/SealExaminations.js';
+import { SealStockAccount } from '../pages/SealStockAccount.js';
+import { SealYardSlots } from '../pages/SealYardSlots.js';
+import { SealWarehouseLayout } from '../pages/SealWarehouseLayout.js';
+
+const NAV: SidebarSection[] = [
+  {
+    items: [
+      { label: 'Dashboard', icon: 'home', path: '/seal', exact: true },
+    ],
+  },
+  {
+    title: 'GATE & RECEIVING',
+    items: [
+      { label: 'Consignments', icon: 'truck', path: '/seal/consignments' },
+    ],
+  },
+  {
+    title: 'THE LEDGER',
+    items: [
+      { label: 'Lots', icon: 'package', path: '/seal/lots' },
+      { label: 'Compartments', icon: 'layers', path: '/seal/compartments' },
+      { label: 'Guarantees', icon: 'shield', path: '/seal/guarantees' },
+    ],
+  },
+  {
+    title: 'CUSTOMS',
+    items: [
+      { label: 'Examinations', icon: 'search', path: '/seal/examinations' },
+      { label: 'Stock Account', icon: 'clipboard', path: '/seal/stock-account' },
+    ],
+  },
+  {
+    title: 'YARD',
+    items: [
+      { label: 'Yard Slots', icon: 'grid', path: '/seal/yard-slots' },
+    ],
+  },
+];
+
+export function SealShell() {
+  return (
+    <WorkspaceApp appId="seal">
+      <div className="app-shell" data-seal="true">
+        <AppSidebar appId="seal" sections={NAV} />
+        <div className="app-main">
+          <AppHeader />
+          <div className="app-shell-content">
+            <Routes>
+              <Route element={<PageLayout />}>
+                <Route index                    element={<SealDashboard />}          />
+                <Route path="lots"              element={<SealLots />}               />
+                <Route path="lots/new"          element={<SealReceiveLot />}         />
+                <Route path="lots/:id"          element={<SealLotDetail />}          />
+                <Route path="compartments"      element={<SealCompartments />}       />
+                <Route path="compartments/:id/heat-grid" element={<SealZoneHeatGrid />} />
+                <Route path="compartments/:id/layout"    element={<SealWarehouseLayout />} />
+                <Route path="guarantees"        element={<SealGuarantees />}         />
+                <Route path="consignments"      element={<SealConsignments />}       />
+                <Route path="consignments/:id"  element={<SealConsignmentDetail />}  />
+                <Route path="declarations"      element={<SealDeclarations />}       />
+                <Route path="declarations/new"  element={<SealDeclarationNew />}     />
+                <Route path="declarations/:id"  element={<SealDeclarationDetail />}  />
+                <Route path="examinations"      element={<SealExaminations />}       />
+                <Route path="stock-account"     element={<SealStockAccount />}       />
+                <Route path="yard-slots"        element={<SealYardSlots />}          />
+              </Route>
+            </Routes>
+          </div>
+        </div>
+      </div>
+    </WorkspaceApp>
+  );
+}

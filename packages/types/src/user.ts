@@ -22,13 +22,14 @@ export type AppId =
   | 'calendar'   // Calendar — free app
   | 'tasks'      // Tasks / To-do — free app
   | 'demurrage'    // Container demurrage tariffs & tracking (split out of ClearOS)
-  | 'cargotracker'; // AWB/BL shipment tracking (split out of ClearOS)
+  | 'cargotracker' // AWB/BL shipment tracking (split out of ClearOS)
+  | 'seal';        // Bonded / customs-controlled warehouse
 
 export const ALL_APP_IDS: AppId[] = [
   'clearos', 'finops', 'complyos', 'bliss',
   'onepi', 'onesite', 'oneid', 'tracking', 'cloud', 'ai', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
   'calendar', 'tasks',
-  'demurrage', 'cargotracker',
+  'demurrage', 'cargotracker', 'seal',
 ];
 
 // ── Roles ────────────────────────────────────────────────────

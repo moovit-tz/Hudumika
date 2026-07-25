@@ -6,7 +6,9 @@ import type { CreateWorkflowInput } from '@hudumika/types';
 import { Icon, type IconName } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { MultiSelectFilter } from '../components/ui/filter-dropdown.js';
+import { showAlert } from '../lib/alert.js';
 import './Workflows.css';
+import { showConfirm } from '../lib/confirm.js';
 
 function uid() { return `${Date.now()}-${Math.random().toString(36).slice(2,6)}`; }
 
@@ -529,9 +531,9 @@ export function WorkflowBuilder() {
     setSelectedId(ns.id);
   }, [wf.steps.length]);
 
-  const deleteStep = useCallback((sid: string) => {
-    if (wf.steps.length <= 1) { alert('A workflow must have at least one step.'); return; }
-    if (!window.confirm('Delete this step?')) return;
+  const deleteStep = useCallback(async (sid: string) => {
+    if (wf.steps.length <= 1) { showAlert('A workflow must have at least one step.'); return; }
+    if (!(await showConfirm('Delete this step?', { confirmLabel: 'Delete' }))) return;
     setWf(prev => ({
       ...prev,
       updatedAt: new Date().toISOString(),
@@ -542,7 +544,7 @@ export function WorkflowBuilder() {
   }, [wf.steps.length, selectedId]);
 
   const handleSave = async () => {
-    if (!wf.name.trim()) { alert('Please give the workflow a name.'); return; }
+    if (!wf.name.trim()) { showAlert('Please give the workflow a name.'); return; }
     setSaving(true);
     try {
       const payload = buildSavePayload(wf);
@@ -556,7 +558,7 @@ export function WorkflowBuilder() {
       }
       setSaved(true); setTimeout(()=>setSaved(false), 2200);
     } catch (err: any) {
-      alert(err.message || 'Could not save this workflow.');
+      showAlert(err.message || 'Could not save this workflow.');
     } finally {
       setSaving(false);
     }

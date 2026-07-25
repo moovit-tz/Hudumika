@@ -11,6 +11,7 @@ import {
 } from '../data/vendorData.js';
 import type { ExpenseListItem } from './Expenses.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { showConfirm } from '../lib/confirm.js';
 
 function mapApiSupplier(s: any, balancesById: Map<string, { balance: number; totalPaid: number }>): Vendor {
   const b = balancesById.get(s.id);
@@ -444,8 +445,8 @@ export function FinanceVendors() {
     loadVendors();
   }
 
-  function handleDelete(id: string) {
-    if (!confirm('Delete this vendor? This cannot be undone.')) return;
+  async function handleDelete(id: string) {
+    if (!(await showConfirm('Delete this vendor? This cannot be undone.', { confirmLabel: 'Delete' }))) return;
     apiFetch(`/v1/suppliers/${id}`, { method: 'DELETE' })
       .then(() => { setVendors(prev => prev.filter(v => v.id !== id)); if (selected?.id === id) setSelected(null); })
       .catch(() => {});
