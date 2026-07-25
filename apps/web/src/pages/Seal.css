@@ -170,21 +170,7 @@
   .seal-mode-btn { flex: 1; justify-content: center; }
 }
 
-/* ── Ware Sync & Flowdeck Reference UI Extensions ── */
-.seal-mode-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 10px 14px;
-  background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  margin-bottom: 20px;
-  box-shadow: var(--shadow-sm);
-}
-
+/* ── Zone heat-grid mode/filter controls ── */
 .seal-mode-group {
   display: flex;
   align-items: center;
@@ -217,22 +203,6 @@
   color: var(--teal);
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
 }
-
-.seal-action-btn-primary {
-  background: #ea580c;
-  color: #fff;
-  border: none;
-  padding: 7px 14px;
-  border-radius: 9px;
-  font-weight: 700;
-  font-size: 12px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: opacity 0.15s;
-}
-.seal-action-btn-primary:hover { opacity: 0.9; }
 
 /* Zone rack cards 3x3 grid */
 .seal-rack-grid {
@@ -273,114 +243,4 @@
   margin-top: 6px;
 }
 
-.seal-drag-rack {
-  border: 2px dashed #f97316;
-  background: #fff7ed;
-  border-radius: 18px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 32px 16px;
-  color: #ea580c;
-  font-weight: 700;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.seal-drag-rack:hover {
-  background: #ffedd5;
-}
-
-/* Optimization Insight Purple Card */
-.seal-insight-card {
-  background: linear-gradient(135deg, #f3e8ff 0%, #e0e7ff 100%);
-  border: 1px solid #c084fc;
-  border-radius: 16px;
-  padding: 20px;
-  color: #4c1d95;
-}
-[data-theme="dark"] .seal-insight-card {
-  background: linear-gradient(135deg, #2e1065 0%, #1e1b4b 100%);
-  border-color: #7e22ce;
-  color: #e9d5ff;
-}
-.seal-insight-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 800;
-  font-size: 13px;
-  color: #7e22ce;
-  margin-bottom: 8px;
-}
-[data-theme="dark"] .seal-insight-title {
-  color: #c084fc;
-}
-
-/* 3D Glass Card (Image 2) */
-.seal-3d-banner {
-  background: linear-gradient(135deg, #059669 0%, #0284c7 50%, #d97706 100%);
-  border-radius: 16px;
-  padding: 20px;
-  color: #fff;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 10px 25px rgba(5, 150, 105, 0.2);
-}
-.seal-3d-graphic {
-  position: absolute;
-  right: -20px;
-  bottom: -20px;
-  width: 140px;
-  height: 140px;
-  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6), rgba(255,255,255,0.05));
-  border-radius: 50%;
-  filter: blur(1px);
-  pointer-events: none;
-}
-
-/* AGV Drone Floor Map (Image 4) */
-.seal-fleet-canvas {
-  position: relative;
-  width: 100%;
-  height: 380px;
-  background: repeating-linear-gradient(0deg, var(--border) 0px, transparent 1px, transparent 24px),
-              repeating-linear-gradient(90deg, var(--border) 0px, transparent 1px, transparent 24px),
-              var(--white);
-  border-radius: 14px;
-  border: 1px solid var(--border);
-  overflow: hidden;
-}
-
-.seal-drone-node {
-  position: absolute;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: var(--white);
-  border: 2px solid var(--teal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--shadow);
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-.seal-drone-node:hover {
-  transform: scale(1.15);
-  z-index: 10;
-}
-
-.seal-iso-container {
-  perspective: 900px;
-}
-.seal-iso-grid {
-  transform: rotateX(24deg) rotateZ(-12deg) scale(0.95);
-  transform-origin: center center;
-  transition: transform 0.3s ease;
-}
-.seal-iso-container:hover .seal-iso-grid {
-  transform: rotateX(18deg) rotateZ(-8deg) scale(0.98);
-}
 
