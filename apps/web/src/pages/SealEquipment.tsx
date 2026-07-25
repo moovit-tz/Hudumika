@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { apiFetch } from '../lib/api.js';
@@ -123,9 +125,9 @@ export function SealEquipment() {
           <h1 className="seal-page-title">Equipment &amp; Tools</h1>
           <p className="seal-page-sub">Forklifts, scanners, racking hardware and plant — maintenance history, condition, and due-for-service alerts.</p>
         </div>
-        <button type="button" className="seal-btn-primary" onClick={() => setShowNew(v => !v)}>
+        <Button type="button" onClick={() => setShowNew(v => !v)}>
           <Icon name="plus" size={14} /><span>Add Equipment</span>
-        </button>
+        </Button>
       </div>
 
       <div className="seal-kpi-strip">
@@ -162,15 +164,15 @@ export function SealEquipment() {
             </div>
             <div className="seal-field-row" style={{ width: 140 }}>
               <label className="seal-field-label">Asset Tag</label>
-              <input type="text" className="input-field" value={newAssetTag} onChange={e => setNewAssetTag(e.target.value)} placeholder="FLT-001" />
+              <Input type="text" value={newAssetTag} onChange={e => setNewAssetTag(e.target.value)} placeholder="FLT-001" />
             </div>
             <div className="seal-field-row" style={{ width: 220, flex: 1 }}>
               <label className="seal-field-label">Name</label>
-              <input type="text" className="input-field" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Toyota 2.5T Diesel Forklift" />
+              <Input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Toyota 2.5T Diesel Forklift" />
             </div>
-            <button type="submit" className="seal-btn-primary" disabled={saving || !newCompartmentId || !newAssetTag.trim() || !newName.trim()}>
+            <Button type="submit" disabled={saving || !newCompartmentId || !newAssetTag.trim() || !newName.trim()}>
               {saving ? 'Adding…' : 'Add'}
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -246,23 +248,23 @@ export function SealEquipment() {
                                   </div>
                                   <div className="seal-field-row" style={{ width: 220 }}>
                                     <label className="seal-field-label">Description</label>
-                                    <input type="text" className="input-field" value={logDesc} onChange={e => setLogDesc(e.target.value)} />
+                                    <Input type="text" value={logDesc} onChange={e => setLogDesc(e.target.value)} />
                                   </div>
                                   <div className="seal-field-row" style={{ width: 100 }}>
                                     <label className="seal-field-label">Cost</label>
-                                    <input type="number" min="0" step="any" className="input-field" value={logCost} onChange={e => setLogCost(e.target.value)} />
+                                    <Input type="number" min="0" step="any" value={logCost} onChange={e => setLogCost(e.target.value)} />
                                   </div>
                                   <div className="seal-field-row" style={{ width: 150 }}>
                                     <label className="seal-field-label">Next Due</label>
                                     <DatePicker date={logNextDue} onChange={setLogNextDue} />
                                   </div>
-                                  <button type="button" className="seal-btn-primary" disabled={saving} onClick={() => handleLog(item.id)}>{saving ? 'Saving…' : 'Log It'}</button>
-                                  <button type="button" className="seal-btn-secondary" onClick={() => setLogging(null)}>Cancel</button>
+                                  <Button type="button" disabled={saving} onClick={() => handleLog(item.id)}>{saving ? 'Saving…' : 'Log It'}</Button>
+                                  <Button type="button" variant="outline" onClick={() => setLogging(null)}>Cancel</Button>
                                 </div>
                               ) : (
-                                <button type="button" className="seal-btn-secondary" onClick={e => { e.stopPropagation(); setLogging(item.id); }}>
+                                <Button type="button" variant="outline" onClick={e => { e.stopPropagation(); setLogging(item.id); }}>
                                   <Icon name="plus" size={13} /><span>Log Maintenance</span>
-                                </button>
+                                </Button>
                               )}
                             </>
                           )}

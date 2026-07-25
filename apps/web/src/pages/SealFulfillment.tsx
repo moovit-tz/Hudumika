@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { apiFetch } from '../lib/api.js';
@@ -75,16 +77,16 @@ export function SealFulfillment() {
           <h1 className="seal-page-title">Outbound Fulfillment</h1>
           <p className="seal-page-sub">Pick, pack, and dispatch stock out of the warehouse — every picked unit is a real ledger movement, never a separate count.</p>
         </div>
-        <button type="button" className="seal-btn-primary" onClick={() => setShowNew(v => !v)} disabled={!compartmentId}>
+        <Button type="button" onClick={() => setShowNew(v => !v)} disabled={!compartmentId}>
           <Icon name="plus" size={14} /><span>New Order</span>
-        </button>
+        </Button>
       </div>
 
       {!compartmentId && <div className="seal-empty" style={{ marginBottom: 16 }}>Select a specific warehouse in the switcher above to create a fulfillment order.</div>}
 
       {showNew && (
         <form onSubmit={handleCreate} className="seal-card" style={{ marginBottom: 20 }}>
-          <div style={{ padding: 20, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, alignItems: 'flex-end' }}>
+          <div className="seal-form-grid-3">
             <div className="seal-field-row">
               <label className="seal-field-label">Customer</label>
               <Combobox
@@ -104,11 +106,11 @@ export function SealFulfillment() {
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Quantity to Fulfill</label>
-              <input type="number" min="0" step="any" className="input-field" value={newQty} onChange={e => setNewQty(e.target.value)} placeholder="0" />
+              <Input type="number" min="0" step="any" value={newQty} onChange={e => setNewQty(e.target.value)} placeholder="0" />
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>
-            <button type="submit" className="seal-btn-primary" disabled={saving || !newCustomerId || !newLotId || !newQty}>{saving ? 'Creating…' : 'Create Order'}</button>
+            <Button type="submit" disabled={saving || !newCustomerId || !newLotId || !newQty}>{saving ? 'Creating…' : 'Create Order'}</Button>
           </div>
         </form>
       )}

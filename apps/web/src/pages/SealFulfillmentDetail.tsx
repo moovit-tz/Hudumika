@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
@@ -113,23 +115,23 @@ export function SealFulfillmentDetail() {
     <div className="seal-page">
       <div className="seal-page-hdr">
         <div>
-          <button type="button" className="seal-btn-secondary" onClick={() => navigate('/seal/fulfillment')} style={{ marginBottom: 12 }}>
+          <Button type="button" variant="outline" onClick={() => navigate('/seal/fulfillment')} style={{ marginBottom: 12 }}>
             <Icon name="arrowLeft" size={13} /><span>Back to Fulfillment</span>
-          </button>
+          </Button>
           <h1 className="seal-page-title">{order.reference}</h1>
           <p className="seal-page-sub">{order.ownerName ?? '—'} · {order.compartmentName ?? '—'}</p>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <Badge variant={STATUS_VARIANT[order.status] ?? 'gray'}>{order.status}</Badge>
           {order.status === 'dispatched' && (
-            <button type="button" className="seal-btn-secondary" onClick={() => window.print()}>
+            <Button type="button" variant="outline" onClick={() => window.print()}>
               <Icon name="printer" size={14} /><span>Print Dispatch Note</span>
-            </button>
+            </Button>
           )}
           {order.status === 'draft' && (
-            <button type="button" className="seal-btn-secondary" onClick={handleCancel} disabled={acting}>
+            <Button type="button" variant="outline" onClick={handleCancel} disabled={acting}>
               <Icon name="x" size={14} /><span>Cancel Order</span>
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -149,13 +151,13 @@ export function SealFulfillmentDetail() {
                   <td>
                     {(order.status === 'draft' || order.status === 'picking') && line.pickedQty < line.requestedQty && (
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <input
+                        <Input
                           type="number" min="0" max={line.requestedQty - line.pickedQty} step="any"
-                          className="input-field" style={{ width: 90 }}
+                          style={{ width: 90 }}
                           value={pickQty[line.id] ?? ''} onChange={e => setPickQty(prev => ({ ...prev, [line.id]: e.target.value }))}
                           placeholder={`${line.requestedQty - line.pickedQty} left`}
                         />
-                        <button type="button" className="seal-btn-secondary" disabled={acting || !pickQty[line.id]} onClick={() => handlePick(line)}>Pick</button>
+                        <Button type="button" variant="outline" disabled={acting || !pickQty[line.id]} onClick={() => handlePick(line)}>Pick</Button>
                       </div>
                     )}
                   </td>
@@ -169,18 +171,18 @@ export function SealFulfillmentDetail() {
       {order.status === 'picked' && (
         <div className="seal-card" style={{ marginBottom: 20, padding: 20 }}>
           <p style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 12 }}>Every line is fully picked. Confirm packing to move to dispatch.</p>
-          <button type="button" className="seal-btn-primary" disabled={acting} onClick={handlePack}>
+          <Button type="button" disabled={acting} onClick={handlePack}>
             <Icon name="package" size={14} /><span>{acting ? 'Confirming…' : 'Confirm Packing'}</span>
-          </button>
+          </Button>
         </div>
       )}
 
       {order.status === 'packed' && (
         <div className="seal-card" style={{ marginBottom: 20, padding: 20 }}>
           {!showDispatchForm ? (
-            <button type="button" className="seal-btn-primary" onClick={() => setShowDispatchForm(true)}>
+            <Button type="button" onClick={() => setShowDispatchForm(true)}>
               <Icon name="truck" size={14} /><span>Dispatch</span>
-            </button>
+            </Button>
           ) : (
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <div className="seal-field-row" style={{ width: 220 }}>
@@ -195,11 +197,11 @@ export function SealFulfillmentDetail() {
               </div>
               <div className="seal-field-row" style={{ width: 260, flex: 1 }}>
                 <label className="seal-field-label">Carrier / Driver Note</label>
-                <input type="text" className="input-field" value={dispatchNote} onChange={e => setDispatchNote(e.target.value)} placeholder="e.g. Driver John, Plate T123ABC" />
+                <Input type="text" value={dispatchNote} onChange={e => setDispatchNote(e.target.value)} placeholder="e.g. Driver John, Plate T123ABC" />
               </div>
-              <button type="button" className="seal-btn-primary" disabled={acting} onClick={handleDispatch}>
+              <Button type="button" disabled={acting} onClick={handleDispatch}>
                 <Icon name="send" size={14} /><span>{acting ? 'Dispatching…' : 'Confirm Dispatch'}</span>
-              </button>
+              </Button>
             </div>
           )}
         </div>

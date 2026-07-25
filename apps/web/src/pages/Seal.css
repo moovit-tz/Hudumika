@@ -159,10 +159,40 @@
   flex-wrap: wrap;
 }
 
+/* Two/three-column create/edit form grid (SealTasks, SealAutomation,
+   SealFulfillment, etc.) — collapses to one column on mobile instead of
+   squeezing fields sideways. */
+.seal-form-grid-2, .seal-form-grid-3 {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  align-items: flex-end;
+}
+.seal-form-grid-2 { grid-template-columns: repeat(2, 1fr); }
+.seal-form-grid-3 { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 900px) {
+  .seal-form-grid-3 { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Warehouse Activities kanban board — four status columns, degrading to
+   two then one as viewport narrows rather than overflowing horizontally. */
+.seal-kanban {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+@media (max-width: 1100px) {
+  .seal-kanban { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .seal-kanban { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 767px) {
   .seal-page { padding: 14px 16px; }
   .seal-page-hdr { flex-direction: column; align-items: stretch; }
   .seal-form-row { flex-direction: column; align-items: stretch; padding: 16px; }
+  .seal-form-grid-2, .seal-form-grid-3 { grid-template-columns: 1fr; }
   .seal-field-row { width: 100% !important; flex: 1 1 100% !important; }
   .seal-container-meta-bar { flex-direction: column; align-items: stretch; gap: 10px; }
   .seal-container-meta-bar button, .seal-btn-primary, .seal-btn-secondary { width: 100%; justify-content: center; }

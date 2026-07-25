@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -96,17 +98,17 @@ export function SealTasks() {
           <h1 className="seal-page-title">Warehouse Activities</h1>
           <p className="seal-page-sub">Tasks assigned to real staff — surfaces in their personal Tasks app too, so nothing lives only inside SEAL.</p>
         </div>
-        <button type="button" className="seal-btn-primary" onClick={() => setShowNew(v => !v)}>
+        <Button type="button" onClick={() => setShowNew(v => !v)}>
           <Icon name="plus" size={14} /><span>New Task</span>
-        </button>
+        </Button>
       </div>
 
       {showNew && (
         <form onSubmit={handleCreate} className="seal-card" style={{ marginBottom: 20 }}>
-          <div style={{ padding: 20, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
+          <div className="seal-form-grid-2">
             <div className="seal-field-row" style={{ gridColumn: '1 / -1' }}>
               <label className="seal-field-label">Title</label>
-              <input type="text" className="input-field" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Re-stack Rack B-04 after inspection" />
+              <Input type="text" value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="e.g. Re-stack Rack B-04 after inspection" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Compartment</label>
@@ -144,7 +146,7 @@ export function SealTasks() {
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>
-            <button type="submit" className="seal-btn-primary" disabled={saving || !newTitle.trim()}>{saving ? 'Creating…' : 'Create Task'}</button>
+            <Button type="submit" disabled={saving || !newTitle.trim()}>{saving ? 'Creating…' : 'Create Task'}</Button>
           </div>
         </form>
       )}
@@ -152,7 +154,7 @@ export function SealTasks() {
       {loading ? (
         <div className="seal-empty">Loading…</div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        <div className="seal-kanban">
           {COLUMNS.map(col => {
             const colTasks = tasks.filter(t => t.status === col.status);
             return (

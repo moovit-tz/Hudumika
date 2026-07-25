@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
+import { Button } from '../components/ui/button.js';
+import { Input } from '../components/ui/input.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { apiFetch } from '../lib/api.js';
@@ -121,21 +123,21 @@ export function SealAutomation() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" className="seal-btn-secondary" onClick={handleEvaluate} disabled={evaluating}>
+          <Button type="button" variant="outline" onClick={handleEvaluate} disabled={evaluating}>
             <Icon name="refresh" size={14} /><span>{evaluating ? 'Running…' : 'Run Automation Check'}</span>
-          </button>
-          <button type="button" className="seal-btn-primary" onClick={() => setShowNew(v => !v)}>
+          </Button>
+          <Button type="button" onClick={() => setShowNew(v => !v)}>
             <Icon name="plus" size={14} /><span>New Rule</span>
-          </button>
+          </Button>
         </div>
       </div>
 
       {showNew && (
         <form onSubmit={handleCreate} className="seal-card" style={{ marginBottom: 20 }}>
-          <div style={{ padding: 20, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 }}>
+          <div className="seal-form-grid-2">
             <div className="seal-field-row" style={{ gridColumn: '1 / -1' }}>
               <label className="seal-field-label">Rule Name</label>
-              <input type="text" className="input-field" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Escalate seized lots to Support" />
+              <Input type="text" value={newName} onChange={e => setNewName(e.target.value)} placeholder="e.g. Escalate seized lots to Support" />
             </div>
             <div className="seal-field-row">
               <label className="seal-field-label">Applies To</label>
@@ -159,7 +161,7 @@ export function SealAutomation() {
             {needsThreshold && (
               <div className="seal-field-row">
                 <label className="seal-field-label">{newTrigger === 'storage_expiring' ? 'Within N Days' : 'Quantity At Or Below'}</label>
-                <input type="number" min="0" step="any" className="input-field" value={newThreshold} onChange={e => setNewThreshold(e.target.value)} />
+                <Input type="number" min="0" step="any" value={newThreshold} onChange={e => setNewThreshold(e.target.value)} />
               </div>
             )}
             <div className="seal-field-row">
@@ -184,7 +186,7 @@ export function SealAutomation() {
             )}
           </div>
           <div style={{ padding: '0 20px 20px' }}>
-            <button type="submit" className="seal-btn-primary" disabled={saving || !newName.trim()}>{saving ? 'Creating…' : 'Create Rule'}</button>
+            <Button type="submit" disabled={saving || !newName.trim()}>{saving ? 'Creating…' : 'Create Rule'}</Button>
           </div>
         </form>
       )}
@@ -207,8 +209,8 @@ export function SealAutomation() {
                     <td>{r.actionType === 'create_task' ? 'Create task' : 'Raise ticket'}</td>
                     <td><Badge variant={r.active ? 'success' : 'gray'}>{r.active ? 'Active' : 'Paused'}</Badge></td>
                     <td style={{ display: 'flex', gap: 6 }}>
-                      <button type="button" className="seal-btn-secondary" onClick={() => handleToggle(r)}>{r.active ? 'Pause' : 'Activate'}</button>
-                      <button type="button" className="seal-btn-secondary" onClick={() => handleDelete(r)}><Icon name="trash" size={13} /></button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => handleToggle(r)}>{r.active ? 'Pause' : 'Activate'}</Button>
+                      <Button type="button" variant="outline" size="sm" onClick={() => handleDelete(r)}><Icon name="trash" size={13} /></Button>
                     </td>
                   </tr>
                 ))}
