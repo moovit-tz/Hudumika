@@ -5,6 +5,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
+import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import './Seal.css';
 
 interface Compartment { id: string; code: string; name: string; }
@@ -25,8 +26,9 @@ export function SealStockAccount() {
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [compartmentId] = useSealCompartmentId();
 
-  const [compartmentId, setCompartmentId] = useState('');
+  const [newCompartmentId, setNewCompartmentId] = useState('');
   const [periodStart, setPeriodStart] = useState<Date | undefined>(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [periodEnd, setPeriodEnd] = useState<Date | undefined>(new Date());
 
@@ -38,21 +40,28 @@ export function SealStockAccount() {
 
   function reload() {
     setLoading(true);
-    apiFetch('/v1/seal/stock-account/periods').then(setPeriods).finally(() => setLoading(false));
+    const params = new URLSearchParams();
+    if (compartmentId) params.set('compartment_id', compartmentId);
+    apiFetch(`/v1/seal/stock-account/periods?${params.toString()}`).then(setPeriods).finally(() => setLoading(false));
   }
   useEffect(() => {
     reload();
-    apiFetch('/v1/seal/compartments').then(rows => { setCompartments(rows); if (rows.length === 1) setCompartmentId(rows[0].id); });
+  }, [compartmentId]);
+  useEffect(() => {
+    apiFetch('/v1/seal/compartments').then(rows => { setCompartments(rows); if (rows.length === 1) setNewCompartmentId(rows[0].id); });
   }, []);
+  useEffect(() => {
+    if (compartmentId) setNewCompartmentId(compartmentId);
+  }, [compartmentId]);
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
-    if (!compartmentId || !periodStart || !periodEnd) return;
+    if (!newCompartmentId || !periodStart || !periodEnd) return;
     setGenerating(true);
     try {
       await apiFetch('/v1/seal/stock-account/periods', {
         method: 'POST',
-        body: JSON.stringify({ compartmentId, periodStart: toDateOnlyString(periodStart), periodEnd: toDateOnlyString(periodEnd) }),
+        body: JSON.stringify({ compartmentId: newCompartmentId, periodStart: toDateOnlyString(periodStart), periodEnd: toDateOnlyString(periodEnd) }),
       });
       setShowNew(false);
       reload();
@@ -105,7 +114,7 @@ export function SealStockAccount() {
           <div style={{ padding: 20, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, alignItems: 'flex-end' }}>
             <div className="seal-field-row">
               <label className="seal-field-label">Compartment</label>
-              <Select value={compartmentId} onValueChange={setCompartmentId}>
+              <Select value={newCompartmentId} onValueChange={setNewCompartmentId}>
                 <SelectTrigger className="input-field"><SelectValue placeholder="Choose a compartment" /></SelectTrigger>
                 <SelectContent>{compartments.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
@@ -120,7 +129,7 @@ export function SealStockAccount() {
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>
-            <button type="submit" className="seal-btn-primary" disabled={generating || !compartmentId}>{generating ? 'Generating…' : 'Generate from Ledger'}</button>
+            <button type="submit" className="seal-btn-primary" disabled={generating || !newCompartmentId}>{generating ? 'Generating…' : 'Generate from Ledger'}</button>
           </div>
         </form>
       )}

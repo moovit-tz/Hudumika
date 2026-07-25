@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
+import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import { CUSTOMS_STATUS_VARIANT, CUSTOMS_STATUS_COLOR_VAR } from '../lib/sealStatus.js';
 import { CUSTOMS_STATUSES, CUSTOMS_STATUS_LABELS, type CustomsStatus } from '@hudumika/types';
 import './Seal.css';
@@ -22,14 +23,16 @@ export function SealLots() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string>(STATUS_ALL);
   const [q, setQ] = useState('');
+  const [compartmentId] = useSealCompartmentId();
 
   useEffect(() => {
     setLoading(true);
     const params = new URLSearchParams();
     if (status !== STATUS_ALL) params.set('customs_status', status);
     if (q.trim()) params.set('q', q.trim());
+    if (compartmentId) params.set('compartment_id', compartmentId);
     apiFetch(`/v1/seal/lots?${params.toString()}`).then(setLots).finally(() => setLoading(false));
-  }, [status, q]);
+  }, [status, q, compartmentId]);
 
   return (
     <div className="seal-page">

@@ -4,6 +4,7 @@ import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
+import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import './Seal.css';
 
 interface Compartment { id: string; code: string; name: string; }
@@ -13,14 +14,14 @@ export function SealYardSlots() {
   const [compartments, setCompartments] = useState<Compartment[]>([]);
   const [slots, setSlots] = useState<YardSlot[]>([]);
   const [loading, setLoading] = useState(true);
-  const [compartmentFilter, setCompartmentFilter] = useState('');
+  const [compartmentId] = useSealCompartmentId();
   const [showNew, setShowNew] = useState(false);
   const [newCode, setNewCode] = useState('');
   const [newCapacity, setNewCapacity] = useState('1');
   const [newCompartmentId, setNewCompartmentId] = useState('');
   const [saving, setSaving] = useState(false);
 
-  function reload(compartmentId?: string) {
+  function reload() {
     setLoading(true);
     const params = compartmentId ? `?compartment_id=${compartmentId}` : '';
     apiFetch(`/v1/seal/yard-slots${params}`).then(setSlots).finally(() => setLoading(false));
@@ -30,9 +31,11 @@ export function SealYardSlots() {
       setCompartments(rows);
       if (rows.length === 1) { setNewCompartmentId(rows[0].id); }
     });
-    reload();
   }, []);
-  useEffect(() => { reload(compartmentFilter || undefined); }, [compartmentFilter]);
+  useEffect(() => { reload(); }, [compartmentId]);
+  useEffect(() => {
+    if (compartmentId) setNewCompartmentId(compartmentId);
+  }, [compartmentId]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -44,7 +47,7 @@ export function SealYardSlots() {
         body: JSON.stringify({ compartmentId: newCompartmentId, code: newCode.trim(), capacityTeu: Number(newCapacity) || 1 }),
       });
       setNewCode(''); setShowNew(false);
-      reload(compartmentFilter || undefined);
+      reload();
     } catch (err: any) {
       showAlert(err.message || 'Failed to create yard slot.');
     } finally {
@@ -88,16 +91,6 @@ export function SealYardSlots() {
           </div>
         </form>
       )}
-
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-        <Select value={compartmentFilter || '__all__'} onValueChange={v => setCompartmentFilter(v === '__all__' ? '' : v)}>
-          <SelectTrigger className="input-field" style={{ width: 240 }}><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">All compartments</SelectItem>
-            {compartments.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-      </div>
 
       <div className="seal-card">
         <div className="seal-card-body">

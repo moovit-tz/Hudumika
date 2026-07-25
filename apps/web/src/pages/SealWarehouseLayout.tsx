@@ -14,14 +14,18 @@ interface LayoutLocation {
   id: string; code: string; locationType: string; gridRow: number | null; gridCol: number | null;
   maxStackTiers: number; capacityUnits: number; lotCount: number; totalSlots: number; occupancyPct: number;
   flagged: boolean; tiers: Tier[];
+  lengthM: number | null; widthM: number | null; heightM: number | null;
+  volumeCbm: number | null; lotVolumeCbm: number; volumeOccupancyPct: number | null;
 }
 interface Floor {
   floorLevel: number; label: string; totalSlots: number; occupiedSlots: number; occupancyPct: number;
+  volumeCapacityCbm: number; volumeUsedCbm: number;
   placedCount: number; unplacedCount: number; locations: LayoutLocation[];
 }
 interface Layout {
   compartment: { id: string; code: string; name: string };
   overallOccupancyPct: number; totalSlots: number; occupiedSlots: number; remainingSlots: number;
+  volumeCapacityCbm: number; volumeUsedCbm: number;
   lotCount: number; floors: Floor[];
 }
 
@@ -119,6 +123,14 @@ export function SealWarehouseLayout() {
             <div className="seal-kpi-value">{data.lotCount.toLocaleString()}</div>
             <div className="seal-kpi-label">Lots On Hand</div>
           </div>
+          {data.volumeCapacityCbm > 0 && (
+            <div className="seal-kpi-card">
+              <div className="seal-kpi-value" style={{ color: bandColor(Math.round((data.volumeUsedCbm / data.volumeCapacityCbm) * 100)) }}>
+                {data.volumeUsedCbm.toFixed(1)} / {data.volumeCapacityCbm.toFixed(1)} m³
+              </div>
+              <div className="seal-kpi-label">Volume Used (locations with recorded dimensions)</div>
+            </div>
+          )}
         </div>
 
         {viewMode === '3d' && (
@@ -202,6 +214,12 @@ export function SealWarehouseLayout() {
                       <TooltipContent>
                         <div style={{ fontWeight: 700, marginBottom: 4 }}>{loc.code} · {loc.locationType}</div>
                         <div>{loc.lotCount} / {loc.totalSlots} slots ({loc.occupancyPct}%)</div>
+                        {loc.lengthM != null && loc.widthM != null && loc.heightM != null && (
+                          <div style={{ marginTop: 2 }}>{loc.lengthM}m × {loc.widthM}m × {loc.heightM}m ({loc.volumeCbm?.toFixed(2)} m³)</div>
+                        )}
+                        {loc.volumeOccupancyPct != null && (
+                          <div>Volume used: {loc.lotVolumeCbm.toFixed(2)} / {loc.volumeCbm?.toFixed(2)} m³ ({loc.volumeOccupancyPct}%)</div>
+                        )}
                         {loc.maxStackTiers > 1 && (
                           <div style={{ marginTop: 6 }}>
                             {loc.tiers.map(t => (
@@ -226,7 +244,7 @@ export function SealWarehouseLayout() {
                 <div className="seal-card-hdr"><h2 className="seal-card-title">Place / Edit Locations on {floor.label}</h2></div>
                 <div style={{ padding: '4px 0' }}>
                   <table className="seal-table">
-                    <thead><tr><th>Code</th><th>Row</th><th>Col</th><th>Stack Tiers</th><th>Capacity/Tier</th><th></th></tr></thead>
+                    <thead><tr><th>Code</th><th>Row</th><th>Col</th><th>Stack Tiers</th><th>Capacity/Tier</th><th>L (m)</th><th>W (m)</th><th>H (m)</th><th></th></tr></thead>
                     <tbody>
                       {floor.locations.map(loc => (
                         <LayoutRow key={loc.id} loc={loc} saving={saving === loc.id} onSave={patch => handlePlace(loc.id, patch)} />
@@ -252,6 +270,9 @@ function LayoutRow({ loc, saving, onSave }: { loc: LayoutLocation; saving: boole
   const [col, setCol] = useState(String(loc.gridCol ?? ''));
   const [tiers, setTiers] = useState(String(loc.maxStackTiers));
   const [capacity, setCapacity] = useState(String(loc.capacityUnits));
+  const [length, setLength] = useState(loc.lengthM != null ? String(loc.lengthM) : '');
+  const [width, setWidth] = useState(loc.widthM != null ? String(loc.widthM) : '');
+  const [height, setHeight] = useState(loc.heightM != null ? String(loc.heightM) : '');
 
   return (
     <tr>
@@ -260,12 +281,16 @@ function LayoutRow({ loc, saving, onSave }: { loc: LayoutLocation; saving: boole
       <td><input type="number" min="1" className="input-field" style={{ width: 70 }} value={col} onChange={e => setCol(e.target.value)} /></td>
       <td><input type="number" min="1" className="input-field" style={{ width: 70 }} value={tiers} onChange={e => setTiers(e.target.value)} /></td>
       <td><input type="number" min="1" className="input-field" style={{ width: 90 }} value={capacity} onChange={e => setCapacity(e.target.value)} /></td>
+      <td><input type="number" min="0" step="any" className="input-field" style={{ width: 70 }} value={length} onChange={e => setLength(e.target.value)} /></td>
+      <td><input type="number" min="0" step="any" className="input-field" style={{ width: 70 }} value={width} onChange={e => setWidth(e.target.value)} /></td>
+      <td><input type="number" min="0" step="any" className="input-field" style={{ width: 70 }} value={height} onChange={e => setHeight(e.target.value)} /></td>
       <td>
         <button
           type="button" className="seal-btn-secondary" disabled={saving}
           onClick={() => onSave({
             gridRow: row ? Number(row) : null, gridCol: col ? Number(col) : null,
             maxStackTiers: Number(tiers) || 1, capacityUnits: Number(capacity) || 1,
+            lengthM: length ? Number(length) : null, widthM: width ? Number(width) : null, heightM: height ? Number(height) : null,
           })}
         >
           {saving ? 'Saving…' : 'Save'}

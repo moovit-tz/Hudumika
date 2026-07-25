@@ -14,7 +14,9 @@ export interface StorageAccrualResult {
   fromDate: string;
   toDate: string;
   days: number;
+  billingMethod: 'flat_per_lot' | 'per_cbm';
   storageFeePerDay: number;
+  volumeCbm: number | null;
   storageFeeCurrency: string;
   storageAmount: number;
   handlingFeeFlat: number;
@@ -26,12 +28,22 @@ function dateOnly(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+export class LotHasNoVolume extends Error {
+  constructor() {
+    super('This compartment bills storage per CBM, but this lot has no recorded volume — record its volume or switch the compartment to flat per-lot billing.');
+    this.name = 'LotHasNoVolume';
+  }
+}
+
 export function computeStorageAccrual(input: {
   lotId: string;
   warehousedOn: Date;
   billedThrough: Date | null;
   asOfDate: Date;
+  billingMethod: 'flat_per_lot' | 'per_cbm';
   storageFeePerDay: number;
+  storageFeePerCbmPerDay: number;
+  volumeCbm: number | null;
   storageFeeCurrency: string;
   handlingFeeFlat: number;
 }): StorageAccrualResult {
@@ -39,7 +51,13 @@ export function computeStorageAccrual(input: {
     ? new Date(input.billedThrough.getTime() + 86400000)
     : input.warehousedOn;
   const days = Math.max(0, Math.floor((input.asOfDate.getTime() - fromDate.getTime()) / 86400000) + 1);
-  const storageAmount = Math.round(days * input.storageFeePerDay * 100) / 100;
+
+  let storageFeePerDay = input.storageFeePerDay;
+  if (input.billingMethod === 'per_cbm') {
+    if (input.volumeCbm == null) throw new LotHasNoVolume();
+    storageFeePerDay = Math.round(input.volumeCbm * input.storageFeePerCbmPerDay * 10000) / 10000;
+  }
+  const storageAmount = Math.round(days * storageFeePerDay * 100) / 100;
   const includesHandling = input.billedThrough === null; // handling fee is one-time, only on the first invoice
   const handlingFeeFlat = includesHandling ? input.handlingFeeFlat : 0;
 
@@ -48,7 +66,9 @@ export function computeStorageAccrual(input: {
     fromDate: dateOnly(fromDate),
     toDate: dateOnly(input.asOfDate),
     days,
-    storageFeePerDay: input.storageFeePerDay,
+    billingMethod: input.billingMethod,
+    storageFeePerDay,
+    volumeCbm: input.volumeCbm,
     storageFeeCurrency: input.storageFeeCurrency,
     storageAmount,
     handlingFeeFlat,
@@ -69,8 +89,9 @@ export class SealBillingService {
     const lot = await trx.selectFrom('seal_lots')
       .innerJoin('seal_compartments', 'seal_compartments.id', 'seal_lots.compartment_id')
       .select([
-        'seal_lots.id', 'seal_lots.warehoused_on', 'seal_lots.storage_billed_through',
+        'seal_lots.id', 'seal_lots.warehoused_on', 'seal_lots.storage_billed_through', 'seal_lots.volume_cbm',
         'seal_compartments.storage_fee_per_day', 'seal_compartments.storage_fee_currency', 'seal_compartments.handling_fee_flat',
+        'seal_compartments.storage_fee_per_cbm_per_day', 'seal_compartments.billing_method',
       ])
       .where('seal_lots.id', '=', lotId)
       .executeTakeFirstOrThrow();
@@ -80,7 +101,10 @@ export class SealBillingService {
       warehousedOn: lot.warehoused_on ?? new Date(),
       billedThrough: lot.storage_billed_through,
       asOfDate: asOfDate ?? new Date(),
+      billingMethod: lot.billing_method as 'flat_per_lot' | 'per_cbm',
       storageFeePerDay: Number(lot.storage_fee_per_day),
+      storageFeePerCbmPerDay: Number(lot.storage_fee_per_cbm_per_day),
+      volumeCbm: lot.volume_cbm != null ? Number(lot.volume_cbm) : null,
       storageFeeCurrency: lot.storage_fee_currency,
       handlingFeeFlat: Number(lot.handling_fee_flat),
     });
@@ -120,7 +144,9 @@ export class SealBillingService {
 
     const lines = [{
       invoice_id: invoice.id,
-      name: `Bonded Storage — ${lot.description} (${accrual.days}d @ ${accrual.storageFeePerDay}/day)`,
+      name: accrual.billingMethod === 'per_cbm'
+        ? `Bonded Storage — ${lot.description} (${accrual.volumeCbm} CBM, ${accrual.days}d @ ${accrual.storageFeePerDay}/day effective)`
+        : `Bonded Storage — ${lot.description} (${accrual.days}d @ ${accrual.storageFeePerDay}/day)`,
       unit: 'PER DAY',
       rate: accrual.storageFeePerDay,
       qty: accrual.days,

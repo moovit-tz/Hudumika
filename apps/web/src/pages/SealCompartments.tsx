@@ -10,14 +10,21 @@ import './Seal.css';
 interface Compartment {
   id: string; code: string; name: string; warehouse_type: string; jurisdiction: string; default_storage_days: number; guarantee_id: string | null;
   storage_fee_per_day: string; storage_fee_currency: string; handling_fee_flat: string;
+  storage_fee_per_cbm_per_day: string; billing_method: 'flat_per_lot' | 'per_cbm';
+  geofence_id: string | null;
 }
+interface GeofenceOption { id: string; name: string; zone_type: string; }
 interface Zone { id: string; compartment_id: string; code: string; name: string; zone_type: string; }
-interface Location { id: string; compartment_id: string; zone_id: string; code: string; location_type: string; }
+interface Location {
+  id: string; compartment_id: string; zone_id: string; code: string; location_type: string;
+  length_m: string | null; width_m: string | null; height_m: string | null; volume_cbm: string | null;
+}
 interface GuaranteeOption { id: string; reference: string; face_value: number; currency: string; }
 
 const WAREHOUSE_TYPES = ['public_bonded', 'private_bonded', 'cfs', 'icd', 'virtual_icd', 'free_zone', 'duty_free_retail', 'excise'];
 const ZONE_TYPES = ['receiving', 'bulk', 'pick', 'vas', 'quarantine', 'outbound', 'yard'];
 const NO_GUARANTEE = '__none__';
+const NO_GEOFENCE = '__none__';
 
 export function SealCompartments() {
   const navigate = useNavigate();
@@ -25,6 +32,7 @@ export function SealCompartments() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [guarantees, setGuarantees] = useState<GuaranteeOption[]>([]);
+  const [geofences, setGeofences] = useState<GeofenceOption[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [showNewCompartment, setShowNewCompartment] = useState(false);
   const [newCode, setNewCode] = useState('');
@@ -37,16 +45,29 @@ export function SealCompartments() {
   const [newZoneType, setNewZoneType] = useState('bulk');
   const [newLocZone, setNewLocZone] = useState('');
   const [newLocCode, setNewLocCode] = useState('');
+  const [newLocLength, setNewLocLength] = useState('');
+  const [newLocWidth, setNewLocWidth] = useState('');
+  const [newLocHeight, setNewLocHeight] = useState('');
 
   function reload() {
     apiFetch('/v1/seal/compartments').then(setCompartments);
     apiFetch('/v1/seal/zones').then(setZones);
     apiFetch('/v1/seal/locations').then(setLocations);
     apiFetch('/v1/seal/guarantees').then(setGuarantees);
+    apiFetch('/v1/seal/geofences').then(setGeofences);
   }
   useEffect(() => { reload(); }, []);
 
-  async function handleUpdateBilling(compartmentId: string, patch: { storageFeePerDay: number; storageFeeCurrency: string; handlingFeeFlat: number }) {
+  async function handleAttachGeofence(compartmentId: string, geofenceId: string | null) {
+    try {
+      await apiFetch(`/v1/seal/compartments/${compartmentId}`, { method: 'PATCH', body: JSON.stringify({ geofenceId }) });
+      reload();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to update the linked geofence.');
+    }
+  }
+
+  async function handleUpdateBilling(compartmentId: string, patch: { storageFeePerDay: number; storageFeeCurrency: string; handlingFeeFlat: number; storageFeePerCbmPerDay: number; billingMethod: 'flat_per_lot' | 'per_cbm' }) {
     try {
       await apiFetch(`/v1/seal/compartments/${compartmentId}`, { method: 'PATCH', body: JSON.stringify(patch) });
       reload();
@@ -104,9 +125,14 @@ export function SealCompartments() {
     try {
       await apiFetch('/v1/seal/locations', {
         method: 'POST',
-        body: JSON.stringify({ compartmentId, zoneId: newLocZone, code: newLocCode.trim() }),
+        body: JSON.stringify({
+          compartmentId, zoneId: newLocZone, code: newLocCode.trim(),
+          lengthM: newLocLength ? Number(newLocLength) : null,
+          widthM: newLocWidth ? Number(newLocWidth) : null,
+          heightM: newLocHeight ? Number(newLocHeight) : null,
+        }),
       });
-      setNewLocCode('');
+      setNewLocCode(''); setNewLocLength(''); setNewLocWidth(''); setNewLocHeight('');
       reload();
     } catch (err: any) {
       showAlert(err.message || 'Failed to create location.');
@@ -201,6 +227,17 @@ export function SealCompartments() {
                   </div>
 
                   <div>
+                    <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', margin: '0 0 10px' }} title="Links this compartment to a real geofenced area already tracked elsewhere in the platform (e.g. the port zone) — no new geofencing logic, just a shared reference.">Linked Geofence (Tracking)</h3>
+                    <Select value={c.geofence_id ?? NO_GEOFENCE} onValueChange={v => handleAttachGeofence(c.id, v === NO_GEOFENCE ? null : v)}>
+                      <SelectTrigger className="input-field" style={{ width: 280 }}><SelectValue placeholder="No geofence linked" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NO_GEOFENCE}>No geofence linked</SelectItem>
+                        {geofences.map(g => <SelectItem key={g.id} value={g.id}>{g.name} ({g.zone_type})</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
                     <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', margin: '0 0 10px' }}>Billing (FinOps)</h3>
                     <BillingFields compartment={c} onSave={patch => handleUpdateBilling(c.id, patch)} />
                   </div>
@@ -233,7 +270,7 @@ export function SealCompartments() {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
                       {compartmentLocations.map(l => (
                         <span key={l.id} className="seal-mono" style={{ fontSize: 12, padding: '5px 10px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8 }}>
-                          {l.code}
+                          {l.code}{l.volume_cbm != null ? ` · ${Number(l.volume_cbm).toFixed(2)} m³` : ''}
                         </span>
                       ))}
                       {compartmentLocations.length === 0 && <span style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No locations yet.</span>}
@@ -244,6 +281,9 @@ export function SealCompartments() {
                         <SelectContent>{compartmentZones.map(z => <SelectItem key={z.id} value={z.id}>{z.code}</SelectItem>)}</SelectContent>
                       </Select>
                       <input type="text" className="input-field" style={{ width: 140 }} placeholder="Location code" value={newLocCode} onChange={e => setNewLocCode(e.target.value)} />
+                      <input type="number" min="0" step="any" className="input-field" style={{ width: 90 }} placeholder="Length (m)" value={newLocLength} onChange={e => setNewLocLength(e.target.value)} title="Real physical length in metres (optional)" />
+                      <input type="number" min="0" step="any" className="input-field" style={{ width: 90 }} placeholder="Width (m)" value={newLocWidth} onChange={e => setNewLocWidth(e.target.value)} title="Real physical width in metres (optional)" />
+                      <input type="number" min="0" step="any" className="input-field" style={{ width: 90 }} placeholder="Height (m)" value={newLocHeight} onChange={e => setNewLocHeight(e.target.value)} title="Real physical height in metres (optional)" />
                       <button type="button" className="seal-btn-secondary" onClick={() => handleCreateLocation(c.id)} disabled={compartmentZones.length === 0}>Add Location</button>
                     </div>
                   </div>
@@ -257,31 +297,55 @@ export function SealCompartments() {
   );
 }
 
-function BillingFields({ compartment, onSave }: { compartment: Compartment; onSave: (patch: { storageFeePerDay: number; storageFeeCurrency: string; handlingFeeFlat: number }) => void }) {
+function BillingFields({ compartment, onSave }: { compartment: Compartment; onSave: (patch: { storageFeePerDay: number; storageFeeCurrency: string; handlingFeeFlat: number; storageFeePerCbmPerDay: number; billingMethod: 'flat_per_lot' | 'per_cbm' }) => void }) {
+  const [method, setMethod] = useState<'flat_per_lot' | 'per_cbm'>(compartment.billing_method ?? 'flat_per_lot');
   const [rate, setRate] = useState(compartment.storage_fee_per_day);
+  const [cbmRate, setCbmRate] = useState(compartment.storage_fee_per_cbm_per_day);
   const [currency, setCurrency] = useState(compartment.storage_fee_currency);
   const [handling, setHandling] = useState(compartment.handling_fee_flat);
 
   return (
-    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-      <div className="seal-field-row" style={{ width: 140 }}>
-        <label className="seal-field-label">Storage Fee / Day</label>
-        <input type="number" min="0" step="any" className="input-field" value={rate} onChange={e => setRate(e.target.value)} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div className="seal-field-row" style={{ width: 220 }}>
+        <label className="seal-field-label" title="Which formula this compartment's storage invoices are computed from">Billing Method</label>
+        <Select value={method} onValueChange={v => setMethod(v as 'flat_per_lot' | 'per_cbm')}>
+          <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="flat_per_lot">Flat rate per lot / day</SelectItem>
+            <SelectItem value="per_cbm">Per CBM (m³) / day</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-      <div className="seal-field-row" style={{ width: 90 }}>
-        <label className="seal-field-label">Currency</label>
-        <input type="text" className="input-field" value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        {method === 'flat_per_lot' ? (
+          <div className="seal-field-row" style={{ width: 140 }}>
+            <label className="seal-field-label">Storage Fee / Day</label>
+            <input type="number" min="0" step="any" className="input-field" value={rate} onChange={e => setRate(e.target.value)} />
+          </div>
+        ) : (
+          <div className="seal-field-row" style={{ width: 160 }}>
+            <label className="seal-field-label" title="Charged per lot as volumeCbm × this rate × days — lots with no recorded volume can't be billed until switched or given a volume">Storage Fee / CBM / Day</label>
+            <input type="number" min="0" step="any" className="input-field" value={cbmRate} onChange={e => setCbmRate(e.target.value)} />
+          </div>
+        )}
+        <div className="seal-field-row" style={{ width: 90 }}>
+          <label className="seal-field-label">Currency</label>
+          <input type="text" className="input-field" value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
+        </div>
+        <div className="seal-field-row" style={{ width: 160 }}>
+          <label className="seal-field-label" title="One-time fee applied on the first storage invoice for a lot">Handling Fee (one-time)</label>
+          <input type="number" min="0" step="any" className="input-field" value={handling} onChange={e => setHandling(e.target.value)} />
+        </div>
+        <button
+          type="button" className="seal-btn-secondary"
+          onClick={() => onSave({
+            storageFeePerDay: Number(rate) || 0, storageFeeCurrency: currency, handlingFeeFlat: Number(handling) || 0,
+            storageFeePerCbmPerDay: Number(cbmRate) || 0, billingMethod: method,
+          })}
+        >
+          Save Rates
+        </button>
       </div>
-      <div className="seal-field-row" style={{ width: 160 }}>
-        <label className="seal-field-label" title="One-time fee applied on the first storage invoice for a lot">Handling Fee (one-time)</label>
-        <input type="number" min="0" step="any" className="input-field" value={handling} onChange={e => setHandling(e.target.value)} />
-      </div>
-      <button
-        type="button" className="seal-btn-secondary"
-        onClick={() => onSave({ storageFeePerDay: Number(rate) || 0, storageFeeCurrency: currency, handlingFeeFlat: Number(handling) || 0 })}
-      >
-        Save Rates
-      </button>
     </div>
   );
 }

@@ -73,6 +73,8 @@ function mapLot(row: any) {
     requiresReefer: !!row.requires_reefer,
     reeferSetpointC: row.reefer_setpoint_c != null ? Number(row.reefer_setpoint_c) : null,
     stackTier: row.stack_tier ?? 1,
+    volumeCbm: row.volume_cbm != null ? Number(row.volume_cbm) : null,
+    grossWeightKg: row.gross_weight_kg != null ? Number(row.gross_weight_kg) : null,
     createdAt: row.created_at,
     legalNextStatuses: legalNextCustomsStatuses(row.customs_status as CustomsStatus),
   };
@@ -104,24 +106,28 @@ export async function sealRoutes(fastify: FastifyInstance) {
   // ── Dashboard ──────────────────────────────────────────────────────────
   fastify.get('/dashboard', async (request: any, reply) => {
     try {
+      const { compartment_id } = request.query as { compartment_id?: string };
       return await withTenant(request.user.tenant_id, async (trx) => {
-        const compartments = await trx.selectFrom('seal_compartments')
-          .select(({ fn }) => ['id', fn.count<number>('id').as('count')])
-          .where('active', '=', true)
-          .groupBy('id')
-          .execute();
+        // Total compartment count is always tenant-wide context, regardless
+        // of which single compartment the switcher has scoped everything
+        // else to — "how many warehouses do I have" doesn't change meaning.
         const compartmentCount = (await trx.selectFrom('seal_compartments').select(({ fn }) => fn.count<number>('id').as('n')).where('active', '=', true).executeTakeFirst())?.n ?? 0;
-        const byStatus = await trx.selectFrom('seal_lots')
-          .select(({ fn }) => ['customs_status', fn.count<number>('id').as('count')])
-          .groupBy('customs_status')
-          .execute();
-        const expiringSoon = await trx.selectFrom('seal_lots')
-          .select(({ fn }) => fn.count<number>('id').as('n'))
+
+        let byStatusQuery = trx.selectFrom('seal_lots').select(({ fn }) => ['customs_status', fn.count<number>('id').as('count')]).groupBy('customs_status');
+        let expiringSoonQuery = trx.selectFrom('seal_lots').select(({ fn }) => fn.count<number>('id').as('n'))
           .where('expires_on', 'is not', null)
           .where('expires_on', '<=', new Date(Date.now() + 30 * 86400000))
-          .where('customs_status', '=', 'FOREIGN_DUTY_SUSPENDED')
-          .executeTakeFirst();
-        const lotCount = await trx.selectFrom('seal_lots').select(({ fn }) => fn.count<number>('id').as('n')).executeTakeFirst();
+          .where('customs_status', '=', 'FOREIGN_DUTY_SUSPENDED');
+        let lotCountQuery = trx.selectFrom('seal_lots').select(({ fn }) => fn.count<number>('id').as('n'));
+        if (compartment_id) {
+          byStatusQuery = byStatusQuery.where('compartment_id', '=', compartment_id);
+          expiringSoonQuery = expiringSoonQuery.where('compartment_id', '=', compartment_id);
+          lotCountQuery = lotCountQuery.where('compartment_id', '=', compartment_id);
+        }
+
+        const [byStatus, expiringSoon, lotCount] = await Promise.all([
+          byStatusQuery.execute(), expiringSoonQuery.executeTakeFirst(), lotCountQuery.executeTakeFirst(),
+        ]);
         return {
           compartmentCount: Number(compartmentCount),
           lotCount: Number(lotCount?.n ?? 0),
@@ -129,6 +135,146 @@ export async function sealRoutes(fastify: FastifyInstance) {
           byStatus: byStatus.map(r => ({ status: r.customs_status, count: Number(r.count) })),
         };
       });
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // ── Metrics (Increment 8) ───────────────────────────────────────────────
+  // Every number here is reconstructed from real stored rows — lot rows,
+  // location capacity, and the seal_movements ledger — the same discipline
+  // the duty engine and stock-account report already follow. No fabricated
+  // "AI insight" text: if a narrative is ever added on top of this, it must
+  // summarize these numbers only (the fake advice card once shipped in the
+  // zone heat-grid was removed for exactly this reason, see Seal.css history).
+  fastify.get('/metrics', async (request: any, reply) => {
+    try {
+      const { compartment_id } = request.query as { compartment_id?: string };
+      const cutoff = new Date(Date.now() - 30 * 86400000);
+
+      const [compartments, lots, locations, recentMovements, lastMovementByLot] = await withTenant(request.user.tenant_id, trx => Promise.all([
+        (() => {
+          let q = trx.selectFrom('seal_compartments').select(['id', 'code', 'name']).where('active', '=', true).orderBy('code');
+          if (compartment_id) q = q.where('id', '=', compartment_id);
+          return q.execute();
+        })(),
+        (() => {
+          let q = trx.selectFrom('seal_lots').select(['id', 'compartment_id', 'warehoused_on', 'qty_on_hand', 'customs_status', 'expires_on', 'current_location_id']);
+          if (compartment_id) q = q.where('compartment_id', '=', compartment_id);
+          return q.execute();
+        })(),
+        (() => {
+          let q = trx.selectFrom('seal_locations').select(['id', 'compartment_id', 'capacity_units', 'max_stack_tiers']);
+          if (compartment_id) q = q.where('compartment_id', '=', compartment_id);
+          return q.execute();
+        })(),
+        (() => {
+          let q = trx.selectFrom('seal_movements')
+            .innerJoin('seal_lots', 'seal_lots.id', 'seal_movements.lot_id')
+            .select(['seal_movements.occurred_at', 'seal_movements.movement_type'])
+            .where('seal_movements.occurred_at', '>=', cutoff)
+            .where('seal_movements.movement_type', 'in', ['receipt', 'release']);
+          if (compartment_id) q = q.where('seal_lots.compartment_id', '=', compartment_id);
+          return q.execute();
+        })(),
+        trx.selectFrom('seal_movements').select(({ fn }) => ['lot_id', fn.max('occurred_at').as('last_at')]).groupBy('lot_id').execute(),
+      ]));
+      if (compartment_id && compartments.length === 0) return reply.status(404).send({ error: 'Compartment not found' });
+
+      const lastMovementAt = new Map(lastMovementByLot.map(m => [m.lot_id, m.last_at]));
+      const now = Date.now();
+
+      function isFlagged(l: typeof lots[number]): boolean {
+        return l.customs_status === 'SEIZED' || l.customs_status === 'ABANDONED' ||
+          (l.expires_on != null && new Date(l.expires_on).getTime() - now <= 30 * 86400000);
+      }
+      // A lot's storage duration: still on hand → time since it arrived;
+      // fully exited (qty_on_hand = 0) → time between arrival and its last
+      // ledger touch (the movement that took it to zero, or a later
+      // compensating one) — never a guess, always a real timestamp pair.
+      function durationDays(l: typeof lots[number]): number | null {
+        if (!l.warehoused_on) return null;
+        const start = new Date(l.warehoused_on).getTime();
+        const end = Number(l.qty_on_hand) > 0 ? now : (lastMovementAt.get(l.id)?.getTime() ?? now);
+        return Math.max(0, (end - start) / 86400000);
+      }
+
+      const lotsByLocation = new Map<string, number>();
+      for (const l of lots) {
+        if (!l.current_location_id) continue;
+        lotsByLocation.set(l.current_location_id, (lotsByLocation.get(l.current_location_id) ?? 0) + 1);
+      }
+
+      interface Group { compartmentId: string; code: string; name: string; lotCount: number; flaggedLotCount: number; durations: number[]; totalSlots: number; occupiedSlots: number; }
+      const groups = new Map<string, Group>();
+      for (const c of compartments) groups.set(c.id, { compartmentId: c.id, code: c.code, name: c.name, lotCount: 0, flaggedLotCount: 0, durations: [], totalSlots: 0, occupiedSlots: 0 });
+      for (const l of lots) {
+        const g = groups.get(l.compartment_id);
+        if (!g) continue;
+        g.lotCount++;
+        if (isFlagged(l)) g.flaggedLotCount++;
+        const d = durationDays(l);
+        if (d != null) g.durations.push(d);
+      }
+      for (const loc of locations) {
+        const g = groups.get(loc.compartment_id);
+        if (!g) continue;
+        g.totalSlots += loc.capacity_units * loc.max_stack_tiers;
+        g.occupiedSlots += lotsByLocation.get(loc.id) ?? 0;
+      }
+
+      const byCompartment = [...groups.values()].map(g => ({
+        compartmentId: g.compartmentId, code: g.code, name: g.name,
+        lotCount: g.lotCount, flaggedLotCount: g.flaggedLotCount,
+        occupancyPct: g.totalSlots > 0 ? Math.min(100, Math.round((g.occupiedSlots / g.totalSlots) * 100)) : 0,
+        avgStorageDurationDays: g.durations.length > 0 ? Math.round((g.durations.reduce((s, d) => s + d, 0) / g.durations.length) * 10) / 10 : null,
+      }));
+
+      const totalSlots = byCompartment.reduce((s, c) => s + (groups.get(c.compartmentId)?.totalSlots ?? 0), 0);
+      const occupiedSlots = byCompartment.reduce((s, c) => s + (groups.get(c.compartmentId)?.occupiedSlots ?? 0), 0);
+      const allDurations = lots.map(durationDays).filter((d): d is number => d != null);
+
+      // Daily received/released counts for the last 30 days, reconstructed
+      // straight from the movement ledger — zero-filled so gaps read as
+      // "nothing happened," not as missing data.
+      const dayBuckets = new Map<string, { received: number; released: number }>();
+      for (let i = 29; i >= 0; i--) {
+        const d = new Date(now - i * 86400000).toISOString().slice(0, 10);
+        dayBuckets.set(d, { received: 0, released: 0 });
+      }
+      for (const m of recentMovements) {
+        const day = new Date(m.occurred_at).toISOString().slice(0, 10);
+        const bucket = dayBuckets.get(day);
+        if (!bucket) continue;
+        if (m.movement_type === 'receipt') bucket.received++;
+        else if (m.movement_type === 'release') bucket.released++;
+      }
+
+      return {
+        scope: compartment_id ? 'compartment' : 'all',
+        lotCount: lots.length,
+        flaggedLotCount: lots.filter(isFlagged).length,
+        occupancyPct: totalSlots > 0 ? Math.min(100, Math.round((occupiedSlots / totalSlots) * 100)) : 0,
+        avgStorageDurationDays: allDurations.length > 0 ? Math.round((allDurations.reduce((s, d) => s + d, 0) / allDurations.length) * 10) / 10 : null,
+        dailyActivity: [...dayBuckets.entries()].map(([date, v]) => ({ date, received: v.received, released: v.released })),
+        byCompartment,
+      };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // Read-only proxy onto Tracking's shared, subject-agnostic `geofences`
+  // table (039_geofences.sql) so a SEAL-only user (no Tracking entitlement)
+  // can still pick which real geofence a compartment corresponds to. No
+  // geofencing math lives here — just tenant-scoped visibility.
+  fastify.get('/geofences', async (request: any, reply) => {
+    try {
+      const rows = await withTenant(request.user.tenant_id, trx =>
+        trx.selectFrom('geofences').select(['id', 'name', 'zone_type', 'center_lat', 'center_lon', 'radius_km'])
+          .where('active', '=', true).orderBy('name').execute()
+      );
+      return rows.map(r => ({ ...r, center_lat: Number(r.center_lat), center_lon: Number(r.center_lon), radius_km: Number(r.radius_km) }));
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }
@@ -233,6 +379,9 @@ export async function sealRoutes(fastify: FastifyInstance) {
           storage_fee_per_day: b.storageFeePerDay === undefined ? undefined : String(b.storageFeePerDay),
           storage_fee_currency: b.storageFeeCurrency === undefined ? undefined : b.storageFeeCurrency,
           handling_fee_flat: b.handlingFeeFlat === undefined ? undefined : String(b.handlingFeeFlat),
+          storage_fee_per_cbm_per_day: b.storageFeePerCbmPerDay === undefined ? undefined : String(b.storageFeePerCbmPerDay),
+          billing_method: b.billingMethod === undefined ? undefined : b.billingMethod,
+          geofence_id: b.geofenceId === undefined ? undefined : b.geofenceId,
           updated_at: new Date(),
         }).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
       );
@@ -300,6 +449,9 @@ export async function sealRoutes(fastify: FastifyInstance) {
           max_stack_tiers: b.maxStackTiers ?? 1,
           grid_row: b.gridRow ?? null,
           grid_col: b.gridCol ?? null,
+          length_m: b.lengthM != null ? String(b.lengthM) : null,
+          width_m: b.widthM != null ? String(b.widthM) : null,
+          height_m: b.heightM != null ? String(b.heightM) : null,
         }).returningAll().executeTakeFirstOrThrow()
       );
     } catch (err: any) {
@@ -318,6 +470,9 @@ export async function sealRoutes(fastify: FastifyInstance) {
       if (b.gridRow !== undefined) patch.grid_row = b.gridRow;
       if (b.gridCol !== undefined) patch.grid_col = b.gridCol;
       if (b.capacityUnits !== undefined) patch.capacity_units = b.capacityUnits;
+      if (b.lengthM !== undefined) patch.length_m = b.lengthM != null ? String(b.lengthM) : null;
+      if (b.widthM !== undefined) patch.width_m = b.widthM != null ? String(b.widthM) : null;
+      if (b.heightM !== undefined) patch.height_m = b.heightM != null ? String(b.heightM) : null;
       return await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_locations').set(patch).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
       );
@@ -341,7 +496,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
         trx.selectFrom('seal_zones').selectAll().where('compartment_id', '=', compartmentId).orderBy('code').execute(),
         trx.selectFrom('seal_locations').selectAll().where('compartment_id', '=', compartmentId).orderBy('code').execute(),
         trx.selectFrom('seal_lots')
-          .select(['id', 'current_location_id', 'stack_tier', 'customs_status', 'description', 'qty_on_hand', 'uom', 'expires_on'])
+          .select(['id', 'current_location_id', 'stack_tier', 'customs_status', 'description', 'qty_on_hand', 'uom', 'expires_on', 'volume_cbm'])
           .where('compartment_id', '=', compartmentId)
           .where('qty_on_hand', '>', '0')
           .execute(),
@@ -385,19 +540,30 @@ export async function sealRoutes(fastify: FastifyInstance) {
             l.customs_status === 'SEIZED' || l.customs_status === 'ABANDONED' ||
             (l.expires_on && new Date(l.expires_on).getTime() - Date.now() <= 30 * 86400000)
           );
+          const locVolumeCbm = loc.volume_cbm != null ? Number(loc.volume_cbm) : null;
+          const lotVolumeCbm = here.reduce((s, l) => s + (l.volume_cbm != null ? Number(l.volume_cbm) : 0), 0);
           return {
             id: loc.id, code: loc.code, locationType: loc.location_type,
             gridRow: loc.grid_row, gridCol: loc.grid_col,
             maxStackTiers: loc.max_stack_tiers, capacityUnits: loc.capacity_units,
+            lengthM: loc.length_m != null ? Number(loc.length_m) : null,
+            widthM: loc.width_m != null ? Number(loc.width_m) : null,
+            heightM: loc.height_m != null ? Number(loc.height_m) : null,
+            volumeCbm: locVolumeCbm, lotVolumeCbm,
+            volumeOccupancyPct: locVolumeCbm && locVolumeCbm > 0 ? Math.min(100, Math.round((lotVolumeCbm / locVolumeCbm) * 100)) : null,
             lotCount: here.length, totalSlots: slots, occupancyPct, flagged, tiers,
           };
         });
+
+        const floorVolumeCapacityCbm = locationsOut.reduce((s, l) => s + (l.volumeCbm ?? 0), 0);
+        const floorVolumeUsedCbm = locationsOut.reduce((s, l) => s + l.lotVolumeCbm, 0);
 
         return {
           floorLevel: level,
           label: level === 0 ? 'Ground Floor' : `Mezzanine ${level}`,
           totalSlots, occupiedSlots,
           occupancyPct: totalSlots > 0 ? Math.min(100, Math.round((occupiedSlots / totalSlots) * 100)) : 0,
+          volumeCapacityCbm: floorVolumeCapacityCbm, volumeUsedCbm: Math.round(floorVolumeUsedCbm * 10000) / 10000,
           placedCount: placed.length, unplacedCount: unplaced.length,
           locations: locationsOut,
         };
@@ -405,11 +571,14 @@ export async function sealRoutes(fastify: FastifyInstance) {
 
       const grandTotalSlots = floors.reduce((s, f) => s + f.totalSlots, 0);
       const grandOccupied = floors.reduce((s, f) => s + f.occupiedSlots, 0);
+      const grandVolumeCapacityCbm = floors.reduce((s, f) => s + f.volumeCapacityCbm, 0);
+      const grandVolumeUsedCbm = Math.round(floors.reduce((s, f) => s + f.volumeUsedCbm, 0) * 10000) / 10000;
 
       return {
         compartment: { id: compartment.id, code: compartment.code, name: compartment.name },
         overallOccupancyPct: grandTotalSlots > 0 ? Math.min(100, Math.round((grandOccupied / grandTotalSlots) * 100)) : 0,
         totalSlots: grandTotalSlots, occupiedSlots: grandOccupied, remainingSlots: grandTotalSlots - grandOccupied,
+        volumeCapacityCbm: grandVolumeCapacityCbm, volumeUsedCbm: grandVolumeUsedCbm,
         lotCount: lots.length,
         floors,
       };
@@ -496,6 +665,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
           isDangerousGoods: !!b.isDangerousGoods, unNumber: b.unNumber, imdgClass: b.imdgClass,
           requiresReefer: !!b.requiresReefer, reeferSetpointC: b.reeferSetpointC,
           stackTier: b.stackTier ? Number(b.stackTier) : undefined,
+          volumeCbm: b.volumeCbm != null ? Number(b.volumeCbm) : null,
+          grossWeightKg: b.grossWeightKg != null ? Number(b.grossWeightKg) : null,
         })
       );
       return mapLot(lot);

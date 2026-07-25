@@ -157,6 +157,8 @@ export interface SealLot {
   requiresReefer: boolean;
   reeferSetpointC: number | null;
   stackTier: number;
+  volumeCbm: number | null;
+  grossWeightKg: number | null;
   createdAt: string;
 }
 

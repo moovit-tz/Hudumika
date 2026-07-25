@@ -13,6 +13,8 @@ interface Tier3D { tier: number; lotCount: number; occupancyPct: number; }
 interface Location3D {
   id: string; code: string; gridRow: number | null; gridCol: number | null;
   maxStackTiers: number; occupancyPct: number; flagged: boolean; tiers: Tier3D[];
+  lengthM?: number | null; widthM?: number | null; heightM?: number | null;
+  volumeCbm?: number | null; lotVolumeCbm?: number;
 }
 interface Floor3D { floorLevel: number; label: string; locations: Location3D[]; }
 
@@ -149,6 +151,9 @@ export function SealWarehouse3D({ floors }: { floors: Floor3D[] }) {
       {selected && (
         <div style={{ position: 'absolute', top: 12, right: 12, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', fontSize: 12.5, maxWidth: 220 }}>
           <div style={{ fontWeight: 800, marginBottom: 4 }}>{selected.code}</div>
+          {selected.lengthM != null && selected.widthM != null && selected.heightM != null && (
+            <div style={{ marginBottom: 4 }}>{selected.lengthM}m × {selected.widthM}m × {selected.heightM}m ({selected.volumeCbm?.toFixed(2)} m³)</div>
+          )}
           {selected.tiers.map(t => (
             <div key={t.tier}>Tier {t.tier}: {t.lotCount > 0 ? `${t.occupancyPct}%` : 'empty'}</div>
           ))}

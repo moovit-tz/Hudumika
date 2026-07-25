@@ -18,6 +18,11 @@ import { SealExaminations } from '../pages/SealExaminations.js';
 import { SealStockAccount } from '../pages/SealStockAccount.js';
 import { SealYardSlots } from '../pages/SealYardSlots.js';
 import { SealWarehouseLayout } from '../pages/SealWarehouseLayout.js';
+import { SealTasks } from '../pages/SealTasks.js';
+import { SealMetrics } from '../pages/SealMetrics.js';
+import { SealEquipment } from '../pages/SealEquipment.js';
+import { SealAutomation } from '../pages/SealAutomation.js';
+import { SealCompartmentSwitcher } from '../components/SealCompartmentSwitcher.js';
 
 // Declarations moved to ClearOS's Ops Command — these redirect a bookmarked
 // SEAL declaration URL to its ClearOS equivalent (same underlying
@@ -31,6 +36,7 @@ const NAV: SidebarSection[] = [
   {
     items: [
       { label: 'Dashboard', icon: 'home', path: '/seal', exact: true },
+      { label: 'Metrics', icon: 'barChart2', path: '/seal/metrics' },
     ],
   },
   {
@@ -60,6 +66,14 @@ const NAV: SidebarSection[] = [
       { label: 'Yard Slots', icon: 'grid', path: '/seal/yard-slots' },
     ],
   },
+  {
+    title: 'OPERATIONS',
+    items: [
+      { label: 'Activities', icon: 'clipboardList', path: '/seal/activities' },
+      { label: 'Equipment', icon: 'tool', path: '/seal/equipment' },
+      { label: 'Automation', icon: 'zap', path: '/seal/automation' },
+    ],
+  },
 ];
 
 export function SealShell() {
@@ -69,10 +83,12 @@ export function SealShell() {
         <AppSidebar appId="seal" sections={NAV} />
         <div className="app-main">
           <AppHeader />
+          <SealCompartmentSwitcher />
           <div className="app-shell-content">
             <Routes>
               <Route element={<PageLayout />}>
                 <Route index                    element={<SealDashboard />}          />
+                <Route path="metrics"           element={<SealMetrics />}            />
                 <Route path="lots"              element={<SealLots />}               />
                 <Route path="lots/new"          element={<SealReceiveLot />}         />
                 <Route path="lots/:id"          element={<SealLotDetail />}          />
@@ -88,6 +104,9 @@ export function SealShell() {
                 <Route path="examinations"      element={<SealExaminations />}       />
                 <Route path="stock-account"     element={<SealStockAccount />}       />
                 <Route path="yard-slots"        element={<SealYardSlots />}          />
+                <Route path="activities"        element={<SealTasks />}              />
+                <Route path="equipment"         element={<SealEquipment />}          />
+                <Route path="automation"        element={<SealAutomation />}         />
               </Route>
             </Routes>
           </div>

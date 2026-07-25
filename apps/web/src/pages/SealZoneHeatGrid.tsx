@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '../components/ui/tooltip.js';
 import { apiFetch } from '../lib/api.js';
+import { showAlert } from '../lib/alert.js';
 import './Seal.css';
 
 interface HeatLocation {
@@ -12,6 +15,12 @@ interface HeatLocation {
 }
 interface HeatZone { id: string; code: string; name: string; zoneType: string; locations: HeatLocation[]; }
 interface HeatGrid { compartment: { id: string; code: string; name: string }; overallOccupancyPct: number; lotCount: number; zones: HeatZone[]; }
+interface SensorDevice {
+  id: string; deviceId: string; deviceType: string; name: string; zoneName?: string; active: boolean;
+  latestReading: { value: number; type: string; recordedAt: string } | null;
+}
+
+const SENSOR_TYPES = ['camera', 'occupancy_sensor', 'weight_sensor', 'door_sensor'];
 
 // Banded occupancy color helper — same bands as the real Warehouse Layout view.
 function bandColor(pct: number): string {
@@ -32,6 +41,17 @@ export function SealZoneHeatGrid() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [activeZoneId, setActiveZoneId] = useState<string | null>(null);
+  const [sensors, setSensors] = useState<SensorDevice[]>([]);
+  const [showNewSensor, setShowNewSensor] = useState(false);
+  const [newSensorId, setNewSensorId] = useState('');
+  const [newSensorType, setNewSensorType] = useState('camera');
+  const [newSensorName, setNewSensorName] = useState('');
+  const [savingSensor, setSavingSensor] = useState(false);
+
+  function reloadSensors() {
+    if (!id) return;
+    apiFetch(`/v1/seal/sensors?compartment_id=${id}`).then(setSensors);
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -41,7 +61,26 @@ export function SealZoneHeatGrid() {
       .then(res => { setData(res); setActiveZoneId(res.zones[0]?.id ?? null); })
       .catch(err => setLoadError(err.message || 'Failed to load occupancy data.'))
       .finally(() => setLoading(false));
-  }, [id]);
+    reloadSensors();
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleAddSensor(e: React.FormEvent) {
+    e.preventDefault();
+    if (!id || !newSensorId.trim() || !newSensorName.trim()) return;
+    setSavingSensor(true);
+    try {
+      await apiFetch('/v1/seal/sensors', {
+        method: 'POST',
+        body: JSON.stringify({ compartmentId: id, deviceId: newSensorId.trim(), deviceType: newSensorType, name: newSensorName.trim() }),
+      });
+      setNewSensorId(''); setNewSensorName(''); setShowNewSensor(false);
+      reloadSensors();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to register this sensor.');
+    } finally {
+      setSavingSensor(false);
+    }
+  }
 
   if (loading) return <div className="seal-page"><div className="seal-empty">Loading warehouse occupancy data…</div></div>;
   if (loadError || !data) return <div className="seal-page"><div className="seal-empty">{loadError || 'No data available.'}</div></div>;
@@ -192,6 +231,65 @@ export function SealZoneHeatGrid() {
             </div>
           </div>
         )}
+
+        <div className="seal-card" style={{ marginTop: 20 }}>
+          <div className="seal-card-hdr">
+            <h2 className="seal-card-title">Zone Sensors &amp; Cameras</h2>
+            <button type="button" className="seal-btn-secondary" onClick={() => setShowNewSensor(v => !v)}>
+              <Icon name="plus" size={13} /><span>Register Sensor</span>
+            </button>
+          </div>
+          {showNewSensor && (
+            <div style={{ padding: 16, borderBottom: '1px solid var(--border)', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <div className="seal-field-row" style={{ width: 160 }}>
+                <label className="seal-field-label">Device ID</label>
+                <input type="text" className="input-field" value={newSensorId} onChange={e => setNewSensorId(e.target.value)} placeholder="CAM-ZONE-A1" />
+              </div>
+              <div className="seal-field-row" style={{ width: 160 }}>
+                <label className="seal-field-label">Type</label>
+                <Select value={newSensorType} onValueChange={setNewSensorType}>
+                  <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                  <SelectContent>{SENSOR_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div className="seal-field-row" style={{ width: 220, flex: 1 }}>
+                <label className="seal-field-label">Name</label>
+                <input type="text" className="input-field" value={newSensorName} onChange={e => setNewSensorName(e.target.value)} placeholder="e.g. Zone A Overhead Cam" />
+              </div>
+              <button type="button" className="seal-btn-primary" disabled={savingSensor || !newSensorId.trim() || !newSensorName.trim()} onClick={handleAddSensor}>
+                {savingSensor ? 'Registering…' : 'Register'}
+              </button>
+            </div>
+          )}
+          <div className="seal-card-body">
+            {sensors.length === 0 ? (
+              <div className="seal-empty">No sensors or cameras registered for this warehouse yet — this is a real, testable ingestion contract (device_id → reading), waiting for hardware to be wired up.</div>
+            ) : (
+              <table className="seal-table">
+                <thead><tr><th>Device</th><th>Type</th><th>Zone</th><th>Latest Reading</th></tr></thead>
+                <tbody>
+                  {sensors.map(s => (
+                    <tr key={s.id}>
+                      <td>
+                        <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{s.name}</div>
+                        <div className="seal-mono" style={{ color: 'var(--ink3)', fontSize: 11 }}>{s.deviceId}</div>
+                      </td>
+                      <td>{s.deviceType.replace(/_/g, ' ')}</td>
+                      <td>{s.zoneName ?? '—'}</td>
+                      <td>
+                        {s.latestReading ? (
+                          <span>{s.latestReading.value} <span style={{ color: 'var(--ink3)', fontSize: 11 }}>({s.latestReading.type.replace(/_/g, ' ')}, {new Date(s.latestReading.recordedAt).toLocaleString()})</span></span>
+                        ) : (
+                          <Badge variant="gray">No readings yet</Badge>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
       </div>
     </TooltipProvider>
   );

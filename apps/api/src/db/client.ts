@@ -234,6 +234,9 @@ export interface SealCompartmentsTable {
   storage_fee_per_day: Generated<string>;
   storage_fee_currency: Generated<string>;
   handling_fee_flat: Generated<string>;
+  storage_fee_per_cbm_per_day: Generated<string>;
+  billing_method: Generated<string>;
+  geofence_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -262,6 +265,11 @@ export interface SealLocationsTable {
   max_stack_tiers: Generated<number>;
   grid_row: number | null;
   grid_col: number | null;
+  length_m: string | null;
+  width_m: string | null;
+  height_m: string | null;
+  floor_area_sqm: Generated<string | null>;
+  volume_cbm: Generated<string | null>;
   created_at: Generated<Date>;
 }
 
@@ -298,6 +306,8 @@ export interface SealLotsTable {
   reefer_setpoint_c: string | null;
   stack_tier: Generated<number>;
   storage_billed_through: Date | null;
+  volume_cbm: string | null;
+  gross_weight_kg: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -527,6 +537,101 @@ export interface SealYardSlotsTable {
   code: string;
   capacity_teu: Generated<number>;
   active: Generated<boolean>;
+}
+
+export interface SealAutomationRulesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  compartment_id: string | null;
+  name: string;
+  trigger_type: string; // lot_flagged | storage_expiring | examination_pending | low_stock
+  threshold_value: string | null;
+  action_type: string; // create_task | create_ticket
+  action_assignee: string | null;
+  active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SealAutomationRunsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  rule_id: string;
+  subject_id: string;
+  subject_type: string; // 'lot' | 'examination'
+  status: Generated<string>; // open | resolved
+  result_type: string | null;
+  result_id: string | null;
+  fired_at: Generated<Date>;
+  resolved_at: Date | null;
+}
+
+export interface SealSensorDevicesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  compartment_id: string;
+  zone_id: string | null;
+  location_id: string | null;
+  device_id: string;
+  device_type: string; // camera | occupancy_sensor | weight_sensor | door_sensor
+  name: string;
+  active: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export interface SealSensorReadingsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  device_id: string;
+  reading_type: string; // occupancy_count | motion | weight_kg | door_state
+  value: string;
+  recorded_at: Generated<Date>;
+  created_at: Generated<Date>;
+}
+
+export interface SealEquipmentTable {
+  id: Generated<string>;
+  tenant_id: string;
+  compartment_id: string;
+  equipment_type: string;
+  asset_tag: string;
+  name: string;
+  status: Generated<string>; // operational | under_maintenance | out_of_service | retired
+  condition: Generated<string>; // good | fair | poor
+  last_service_date: Date | null;
+  next_service_due_date: Date | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface SealEquipmentMaintenanceRecordsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  equipment_id: string;
+  maintenance_type: string; // inspection | repair | service | calibration
+  performed_at: Generated<Date>;
+  performed_by: string | null;
+  description: string | null;
+  cost: string | null;
+  next_due_date: Date | null;
+  created_at: Generated<Date>;
+}
+
+export interface SealTasksTable {
+  id: Generated<string>;
+  tenant_id: string;
+  compartment_id: string | null;
+  lot_id: string | null;
+  title: string;
+  status: Generated<string>; // open | in_progress | complete | blocked
+  priority: Generated<string>; // low | medium | high | urgent
+  assigned_to: string | null;
+  due_date: Date | null;
+  note: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 export interface ChatChannelsTable {
@@ -2043,6 +2148,13 @@ export interface Database {
   seal_dg_segregation_rules: SealDgSegregationRulesTable;
   seal_reefer_readings: SealReeferReadingsTable;
   seal_yard_slots: SealYardSlotsTable;
+  seal_tasks: SealTasksTable;
+  seal_equipment: SealEquipmentTable;
+  seal_equipment_maintenance_records: SealEquipmentMaintenanceRecordsTable;
+  seal_sensor_devices: SealSensorDevicesTable;
+  seal_sensor_readings: SealSensorReadingsTable;
+  seal_automation_rules: SealAutomationRulesTable;
+  seal_automation_runs: SealAutomationRunsTable;
   shipment_listeners: ShipmentListenersTable;
   chat_channels: ChatChannelsTable;
   chat_channel_members: ChatChannelMembersTable;

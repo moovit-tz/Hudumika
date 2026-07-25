@@ -1,7 +1,7 @@
 import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
-import { SealBillingService, NothingToBill } from '../services/seal-billing.service.js';
+import { SealBillingService, NothingToBill, LotHasNoVolume } from '../services/seal-billing.service.js';
 
 // FinOps link — closes the "no billing" gap explicitly deferred out of
 // SEAL's original Increment 1 scope. Generating a storage invoice is a
@@ -20,6 +20,7 @@ export async function sealBillingRoutes(fastify: FastifyInstance) {
       const accrual = await withTenant(request.user.tenant_id, trx => SealBillingService.previewAccrual(trx, request.params.id));
       return accrual;
     } catch (err: any) {
+      if (err instanceof LotHasNoVolume) return reply.status(422).send({ error: err.message });
       return reply.status(500).send({ error: err.message });
     }
   });
@@ -32,6 +33,7 @@ export async function sealBillingRoutes(fastify: FastifyInstance) {
       return result;
     } catch (err: any) {
       if (err instanceof NothingToBill) return reply.status(422).send({ error: err.message });
+      if (err instanceof LotHasNoVolume) return reply.status(422).send({ error: err.message });
       return reply.status(500).send({ error: err.message });
     }
   });

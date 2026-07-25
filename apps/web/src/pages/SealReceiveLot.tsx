@@ -42,6 +42,8 @@ export function SealReceiveLot() {
   const [imdgClass, setImdgClass] = useState('');
   const [requiresReefer, setRequiresReefer] = useState(false);
   const [reeferSetpointC, setReeferSetpointC] = useState('');
+  const [volumeCbm, setVolumeCbm] = useState('');
+  const [grossWeightKg, setGrossWeightKg] = useState('');
 
   useEffect(() => {
     apiFetch('/v1/seal/compartments').then(rows => {
@@ -77,6 +79,7 @@ export function SealReceiveLot() {
           expiresOn: expiresOn ? toDateOnlyString(expiresOn) : null,
           isDangerousGoods, unNumber: unNumber.trim() || null, imdgClass: imdgClass.trim() || null,
           requiresReefer, reeferSetpointC: reeferSetpointC ? Number(reeferSetpointC) : null,
+          volumeCbm: volumeCbm ? Number(volumeCbm) : null, grossWeightKg: grossWeightKg ? Number(grossWeightKg) : null,
         }),
       });
       navigate(`/seal/lots/${lot.id}`);
@@ -175,6 +178,17 @@ export function SealReceiveLot() {
             <div className="seal-field-row">
               <label className="seal-field-label">UOM</label>
               <input type="text" className="input-field" value={uom} onChange={e => setUom(e.target.value)} placeholder="PCS" />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="seal-field-row">
+              <label className="seal-field-label" title="Used to bill storage per-CBM if this compartment's billing method is set that way">Volume (CBM, optional)</label>
+              <input type="number" min="0" step="any" className="input-field" value={volumeCbm} onChange={e => setVolumeCbm(e.target.value)} placeholder="0.00" />
+            </div>
+            <div className="seal-field-row">
+              <label className="seal-field-label">Gross Weight (kg, optional)</label>
+              <input type="number" min="0" step="any" className="input-field" value={grossWeightKg} onChange={e => setGrossWeightKg(e.target.value)} placeholder="0.00" />
             </div>
           </div>
 

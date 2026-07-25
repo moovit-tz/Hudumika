@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { apiFetch } from '../lib/api.js';
+import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import { CUSTOMS_STATUS_VARIANT } from '../lib/sealStatus.js';
 import { CUSTOMS_STATUS_LABELS, type CustomsStatus } from '@hudumika/types';
 import './Seal.css';
@@ -24,13 +25,17 @@ export function SealDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [compartments, setCompartments] = useState<Compartment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [compartmentId] = useSealCompartmentId();
 
   useEffect(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (compartmentId) params.set('compartment_id', compartmentId);
     Promise.all([
-      apiFetch('/v1/seal/dashboard'),
+      apiFetch(`/v1/seal/dashboard?${params.toString()}`),
       apiFetch('/v1/seal/compartments'),
     ]).then(([d, c]) => { setData(d); setCompartments(c); }).finally(() => setLoading(false));
-  }, []);
+  }, [compartmentId]);
 
   return (
     <div className="seal-page">

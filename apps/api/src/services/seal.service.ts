@@ -249,6 +249,7 @@ export class SealService {
     isDangerousGoods?: boolean; unNumber?: string | null; imdgClass?: string | null;
     requiresReefer?: boolean; reeferSetpointC?: number | null;
     stackTier?: number;
+    volumeCbm?: number | null; grossWeightKg?: number | null;
   }) {
     if (!CUSTOMS_STATUS_ENTRY_POINTS.includes(input.customsStatus)) {
       throw new Error(`A lot cannot be received directly into ${input.customsStatus} — valid entry statuses are ${CUSTOMS_STATUS_ENTRY_POINTS.join(', ')}`);
@@ -297,6 +298,8 @@ export class SealService {
         requires_reefer: input.requiresReefer ?? false,
         reefer_setpoint_c: input.reeferSetpointC != null ? String(input.reeferSetpointC) : null,
         stack_tier: stackTier,
+        volume_cbm: input.volumeCbm != null ? String(input.volumeCbm) : null,
+        gross_weight_kg: input.grossWeightKg != null ? String(input.grossWeightKg) : null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();

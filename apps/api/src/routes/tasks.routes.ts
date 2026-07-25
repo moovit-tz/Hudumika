@@ -303,7 +303,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
   fastify.get('/linked', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      const [shipmentTasks, invoiceTasks] = await Promise.all([
+      const [shipmentTasks, invoiceTasks, sealTasks] = await Promise.all([
         trx.selectFrom('shipment_tasks')
           .innerJoin('shipment_cases', 'shipment_cases.id', 'shipment_tasks.shipment_id')
           .select(['shipment_tasks.id', 'shipment_tasks.title', 'shipment_tasks.due_date', 'shipment_tasks.status', 'shipment_cases.ref_number', 'shipment_tasks.shipment_id'])
@@ -318,6 +318,13 @@ export async function tasksRoutes(fastify: FastifyInstance) {
           .where('invoice_tasks.assignee', '=', user.sub)
           .where('invoice_tasks.done', '=', false)
           .execute(),
+        trx.selectFrom('seal_tasks')
+          .leftJoin('seal_compartments', 'seal_compartments.id', 'seal_tasks.compartment_id')
+          .select(['seal_tasks.id', 'seal_tasks.title', 'seal_tasks.due_date', 'seal_tasks.status', 'seal_compartments.name as compartment_name', 'seal_tasks.compartment_id'])
+          .where('seal_tasks.tenant_id', '=', user.tenant_id)
+          .where('seal_tasks.assigned_to', '=', user.sub)
+          .where('seal_tasks.status', '!=', 'complete')
+          .execute(),
       ]);
 
       const data = [
@@ -328,6 +335,10 @@ export async function tasksRoutes(fastify: FastifyInstance) {
         ...invoiceTasks.map(t => ({
           id: `invoice:${t.id}`, title: t.description, due: t.due_date,
           sourceApp: 'FinOps', sourceLabel: t.invoice_number, path: `/finops/invoices`,
+        })),
+        ...sealTasks.map(t => ({
+          id: `seal:${t.id}`, title: t.title, due: t.due_date,
+          sourceApp: 'SEAL', sourceLabel: t.compartment_name ?? undefined, path: `/seal/activities`,
         })),
       ];
       return { data };
