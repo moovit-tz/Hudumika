@@ -539,6 +539,33 @@ export interface SealYardSlotsTable {
   active: Generated<boolean>;
 }
 
+export interface SealFulfillmentOrdersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  compartment_id: string;
+  customer_id: string;
+  reference: string;
+  status: Generated<string>; // draft | picking | picked | packed | dispatched | cancelled
+  vehicle_id: string | null;
+  carrier_note: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  packed_at: Date | null;
+  dispatched_at: Date | null;
+}
+
+export interface SealFulfillmentLinesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  order_id: string;
+  lot_id: string;
+  requested_qty: string;
+  picked_qty: Generated<string>;
+  packed: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
 export interface SealAutomationRulesTable {
   id: Generated<string>;
   tenant_id: string;
@@ -2155,6 +2182,8 @@ export interface Database {
   seal_sensor_readings: SealSensorReadingsTable;
   seal_automation_rules: SealAutomationRulesTable;
   seal_automation_runs: SealAutomationRunsTable;
+  seal_fulfillment_orders: SealFulfillmentOrdersTable;
+  seal_fulfillment_lines: SealFulfillmentLinesTable;
   shipment_listeners: ShipmentListenersTable;
   chat_channels: ChatChannelsTable;
   chat_channel_members: ChatChannelMembersTable;

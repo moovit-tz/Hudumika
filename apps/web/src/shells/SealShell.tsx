@@ -22,6 +22,8 @@ import { SealTasks } from '../pages/SealTasks.js';
 import { SealMetrics } from '../pages/SealMetrics.js';
 import { SealEquipment } from '../pages/SealEquipment.js';
 import { SealAutomation } from '../pages/SealAutomation.js';
+import { SealFulfillment } from '../pages/SealFulfillment.js';
+import { SealFulfillmentDetail } from '../pages/SealFulfillmentDetail.js';
 import { SealCompartmentSwitcher } from '../components/SealCompartmentSwitcher.js';
 
 // Declarations moved to ClearOS's Ops Command — these redirect a bookmarked
@@ -72,6 +74,7 @@ const NAV: SidebarSection[] = [
       { label: 'Activities', icon: 'clipboardList', path: '/seal/activities' },
       { label: 'Equipment', icon: 'tool', path: '/seal/equipment' },
       { label: 'Automation', icon: 'zap', path: '/seal/automation' },
+      { label: 'Fulfillment', icon: 'truck', path: '/seal/fulfillment' },
     ],
   },
 ];
@@ -107,6 +110,8 @@ export function SealShell() {
                 <Route path="activities"        element={<SealTasks />}              />
                 <Route path="equipment"         element={<SealEquipment />}          />
                 <Route path="automation"        element={<SealAutomation />}         />
+                <Route path="fulfillment"       element={<SealFulfillment />}        />
+                <Route path="fulfillment/:id"   element={<SealFulfillmentDetail />}  />
               </Route>
             </Routes>
           </div>
