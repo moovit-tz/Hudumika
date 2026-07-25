@@ -230,6 +230,9 @@ export async function sealRoutes(fastify: FastifyInstance) {
       return await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_compartments').set({
           guarantee_id: b.guaranteeId === undefined ? undefined : b.guaranteeId,
+          storage_fee_per_day: b.storageFeePerDay === undefined ? undefined : String(b.storageFeePerDay),
+          storage_fee_currency: b.storageFeeCurrency === undefined ? undefined : b.storageFeeCurrency,
+          handling_fee_flat: b.handlingFeeFlat === undefined ? undefined : String(b.handlingFeeFlat),
           updated_at: new Date(),
         }).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
       );

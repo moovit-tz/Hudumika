@@ -7,7 +7,10 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Seal.css';
 
-interface Compartment { id: string; code: string; name: string; warehouse_type: string; jurisdiction: string; default_storage_days: number; guarantee_id: string | null; }
+interface Compartment {
+  id: string; code: string; name: string; warehouse_type: string; jurisdiction: string; default_storage_days: number; guarantee_id: string | null;
+  storage_fee_per_day: string; storage_fee_currency: string; handling_fee_flat: string;
+}
 interface Zone { id: string; compartment_id: string; code: string; name: string; zone_type: string; }
 interface Location { id: string; compartment_id: string; zone_id: string; code: string; location_type: string; }
 interface GuaranteeOption { id: string; reference: string; face_value: number; currency: string; }
@@ -42,6 +45,15 @@ export function SealCompartments() {
     apiFetch('/v1/seal/guarantees').then(setGuarantees);
   }
   useEffect(() => { reload(); }, []);
+
+  async function handleUpdateBilling(compartmentId: string, patch: { storageFeePerDay: number; storageFeeCurrency: string; handlingFeeFlat: number }) {
+    try {
+      await apiFetch(`/v1/seal/compartments/${compartmentId}`, { method: 'PATCH', body: JSON.stringify(patch) });
+      reload();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to update billing rates.');
+    }
+  }
 
   async function handleAttachGuarantee(compartmentId: string, guaranteeId: string | null) {
     try {
@@ -189,6 +201,11 @@ export function SealCompartments() {
                   </div>
 
                   <div>
+                    <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', margin: '0 0 10px' }}>Billing (FinOps)</h3>
+                    <BillingFields compartment={c} onSave={patch => handleUpdateBilling(c.id, patch)} />
+                  </div>
+
+                  <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                       <h3 style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', color: 'var(--ink3)', margin: 0 }}>Zones</h3>
                     </div>
@@ -236,6 +253,35 @@ export function SealCompartments() {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function BillingFields({ compartment, onSave }: { compartment: Compartment; onSave: (patch: { storageFeePerDay: number; storageFeeCurrency: string; handlingFeeFlat: number }) => void }) {
+  const [rate, setRate] = useState(compartment.storage_fee_per_day);
+  const [currency, setCurrency] = useState(compartment.storage_fee_currency);
+  const [handling, setHandling] = useState(compartment.handling_fee_flat);
+
+  return (
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+      <div className="seal-field-row" style={{ width: 140 }}>
+        <label className="seal-field-label">Storage Fee / Day</label>
+        <input type="number" min="0" step="any" className="input-field" value={rate} onChange={e => setRate(e.target.value)} />
+      </div>
+      <div className="seal-field-row" style={{ width: 90 }}>
+        <label className="seal-field-label">Currency</label>
+        <input type="text" className="input-field" value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} maxLength={3} />
+      </div>
+      <div className="seal-field-row" style={{ width: 160 }}>
+        <label className="seal-field-label" title="One-time fee applied on the first storage invoice for a lot">Handling Fee (one-time)</label>
+        <input type="number" min="0" step="any" className="input-field" value={handling} onChange={e => setHandling(e.target.value)} />
+      </div>
+      <button
+        type="button" className="seal-btn-secondary"
+        onClick={() => onSave({ storageFeePerDay: Number(rate) || 0, storageFeeCurrency: currency, handlingFeeFlat: Number(handling) || 0 })}
+      >
+        Save Rates
+      </button>
     </div>
   );
 }

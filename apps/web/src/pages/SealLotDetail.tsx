@@ -16,6 +16,10 @@ import './Seal.css';
 
 interface Location { id: string; code: string; location_type: string; }
 interface ReeferReading { id: string; recordedAt: string; temperatureC: number; withinRange: boolean; note: string | null; }
+interface StorageAccrual {
+  fromDate: string; toDate: string; days: number; storageFeePerDay: number; storageFeeCurrency: string;
+  storageAmount: number; handlingFeeFlat: number; includesHandling: boolean; totalAmount: number;
+}
 
 const ACTION_LABELS: Record<CustomsStatus, string> = {
   FOREIGN_DUTY_SUSPENDED: 'Confirm Arrival Under Bond',
@@ -47,6 +51,8 @@ export function SealLotDetail() {
   const [reeferReadings, setReeferReadings] = useState<ReeferReading[]>([]);
   const [newReading, setNewReading] = useState('');
   const [loggingReading, setLoggingReading] = useState(false);
+  const [accrual, setAccrual] = useState<StorageAccrual | null>(null);
+  const [generatingInvoice, setGeneratingInvoice] = useState(false);
 
   const load = useCallback(() => {
     if (!id) return;
@@ -60,6 +66,7 @@ export function SealLotDetail() {
       apiFetch(`/v1/seal/locations?compartment_id=${l.compartmentId}`).then(setLocations);
       if (l.requiresReefer) apiFetch(`/v1/seal/lots/${id}/reefer-readings`).then(setReeferReadings);
     }).finally(() => setLoading(false));
+    apiFetch(`/v1/seal/lots/${id}/storage-accrual`).then(setAccrual).catch(() => setAccrual(null));
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
@@ -117,6 +124,20 @@ export function SealLotDetail() {
       showAlert(err.message || 'Failed to log reading.');
     } finally {
       setLoggingReading(false);
+    }
+  }
+
+  async function handleGenerateInvoice() {
+    if (!id) return;
+    setGeneratingInvoice(true);
+    try {
+      const res = await apiFetch(`/v1/seal/lots/${id}/generate-storage-invoice`, { method: 'POST' });
+      showAlert(`Draft invoice ${res.invoice.invoice_number} created for ${res.accrual.totalAmount.toLocaleString()} ${res.accrual.storageFeeCurrency} — review and send it from FinOps.`, { title: 'Storage Invoice Generated' });
+      apiFetch(`/v1/seal/lots/${id}/storage-accrual`).then(setAccrual).catch(() => setAccrual(null));
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to generate storage invoice.');
+    } finally {
+      setGeneratingInvoice(false);
     }
   }
 
@@ -280,6 +301,28 @@ export function SealLotDetail() {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {accrual && (
+        <div className="seal-card" style={{ marginBottom: 20 }}>
+          <div className="seal-card-hdr"><h2 className="seal-card-title">Storage Billing (FinOps)</h2></div>
+          <div style={{ padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ fontSize: 13 }}>
+              {accrual.days > 0 ? (
+                <>
+                  <strong>{accrual.days} day(s)</strong> accrued ({accrual.fromDate} to {accrual.toDate}) at {accrual.storageFeePerDay}/day
+                  {accrual.includesHandling && accrual.handlingFeeFlat > 0 && <> + {accrual.handlingFeeFlat} one-time handling fee</>}
+                  <div style={{ fontSize: 18, fontWeight: 800, marginTop: 4 }}>{accrual.totalAmount.toLocaleString()} {accrual.storageFeeCurrency}</div>
+                </>
+              ) : (
+                <span style={{ color: 'var(--ink3)' }}>Already billed through today — nothing new has accrued.</span>
+              )}
+            </div>
+            <button type="button" className="seal-btn-primary" disabled={accrual.days <= 0 || generatingInvoice} onClick={handleGenerateInvoice}>
+              <Icon name="dollarSign" size={14} /><span>{generatingInvoice ? 'Generating…' : 'Generate Storage Invoice'}</span>
+            </button>
           </div>
         </div>
       )}

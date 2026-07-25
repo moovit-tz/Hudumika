@@ -215,6 +215,10 @@ export const Customers: React.FC = () => {
   const [custTickets, setCustTickets]   = useState<any[]>([]);
   const [supplyLoading, setSupplyLoading] = useState(false);
 
+  /* SEAL bonded storage (cross-app link) */
+  const [custSealLots, setCustSealLots] = useState<any[]>([]);
+  const [sealLoading, setSealLoading] = useState(false);
+
   /* Contacts */
   const [showAddContact, setShowAddContact] = useState(false);
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', role: '' });
@@ -298,6 +302,18 @@ export const Customers: React.FC = () => {
   useEffect(() => {
     if (selected && mainTab === 'supply') loadTickets(selected.id);
   }, [selected, mainTab, loadTickets]);
+
+  const loadSealLots = useCallback(async (customerId: string) => {
+    setSealLoading(true);
+    try {
+      const res = await apiFetch(`/v1/seal/lots-for-customer?owner_id=${customerId}`).catch(() => []);
+      setCustSealLots(Array.isArray(res) ? res : []);
+    } catch { /* empty */ } finally { setSealLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    if (selected && mainTab === 'seal') loadSealLots(selected.id);
+  }, [selected, mainTab, loadSealLots]);
 
   useEffect(() => {
     if (selected) setNotes(selected.notes || '');
@@ -693,6 +709,7 @@ export const Customers: React.FC = () => {
     { key: 'finance',    label: 'Finance',        icon: 'barChart'   as IconName },
     { key: 'shipments',  label: 'Shipments',      icon: 'ship'       as IconName },
     { key: 'supply',     label: 'Supply Chain',   icon: 'layers'     as IconName },
+    { key: 'seal',       label: 'Bonded Storage', icon: 'package'    as IconName },
     { key: 'documents',  label: 'Documents',      icon: 'folder'     as IconName },
     { key: 'notes',      label: 'Notes',          icon: 'edit'       as IconName },
   ];
@@ -1466,6 +1483,58 @@ export const Customers: React.FC = () => {
                 title={supplyTab === 'projects' ? 'No projects' : 'No tasks'}
                 sub={supplyTab === 'projects' ? 'Supply chain projects for this client' : 'Open tasks assigned to this account'}
               />
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    /* ── Bonded Storage (SEAL cross-app link) ── */
+    if (mainTab === 'seal') {
+      const SEAL_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
+        FOREIGN_DUTY_SUSPENDED: { bg: 'var(--teal-l)', color: 'var(--teal)' },
+        FOREIGN_DUTY_PAID: { bg: 'var(--blue-l)', color: 'var(--blue)' },
+        EXPORTED: { bg: 'var(--green-l)', color: 'var(--green)' },
+        SEIZED: { bg: 'var(--red-l)', color: 'var(--red)' },
+        ABANDONED: { bg: 'var(--red-l)', color: 'var(--red)' },
+      };
+      const totalAtRisk = custSealLots.reduce((s: number, l: any) => s + (l.dutyAtRisk || 0) + (l.taxAtRisk || 0), 0);
+      return (
+        <div style={{ padding: '24px 28px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Bonded Warehouse Lots (SEAL)</span>
+            <span style={{ fontSize: 12.5, color: 'var(--ink3)' }}>
+              {sealLoading ? 'Loading…' : `${custSealLots.length} lot${custSealLots.length !== 1 ? 's' : ''} · ${totalAtRisk.toLocaleString()} at risk`}
+            </span>
+          </div>
+          {sealLoading ? (
+            <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+          ) : custSealLots.length === 0 ? (
+            <EmptyState icon="package" title="No bonded lots" sub="Lots this customer owns in SEAL's bonded warehouse ledger will appear here" />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {custSealLots.map((l: any) => {
+                const style = SEAL_STATUS_COLOR[l.customsStatus] || { bg: 'var(--bg)', color: 'var(--ink2)' };
+                return (
+                  <div key={l.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 10, gap: 12, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>{l.description}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
+                        {l.qtyOnHand.toLocaleString()} {l.uom}{l.entryReference ? ` · ${l.entryReference}` : ''}
+                        {l.expiresOn ? ` · storage expires ${fmtDateShort(l.expiresOn)}` : ''}
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      {(l.dutyAtRisk > 0 || l.taxAtRisk > 0) && (
+                        <span style={{ fontSize: 12.5, color: 'var(--ink2)' }}>{(l.dutyAtRisk + l.taxAtRisk).toLocaleString()} {l.currency ?? ''} at risk</span>
+                      )}
+                      <span style={{ padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: style.bg, color: style.color, whiteSpace: 'nowrap' }}>
+                        {l.customsStatus.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

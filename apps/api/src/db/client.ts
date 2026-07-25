@@ -231,6 +231,9 @@ export interface SealCompartmentsTable {
   default_storage_days: Generated<number>;
   active: Generated<boolean>;
   guarantee_id: string | null;
+  storage_fee_per_day: Generated<string>;
+  storage_fee_currency: Generated<string>;
+  handling_fee_flat: Generated<string>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -294,6 +297,7 @@ export interface SealLotsTable {
   requires_reefer: Generated<boolean>;
   reefer_setpoint_c: string | null;
   stack_tier: Generated<number>;
+  storage_billed_through: Date | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

@@ -68,6 +68,8 @@ import { sealExaminationRoutes } from './routes/seal-examinations.routes.js';
 import { sealStockAccountRoutes } from './routes/seal-stock-account.routes.js';
 import { sealWarehouseOpsRoutes } from './routes/seal-warehouse-ops.routes.js';
 import { sealDeclarationRoutes } from './routes/seal-declarations.routes.js';
+import { sealBillingRoutes } from './routes/seal-billing.routes.js';
+import { sealCrmLinkRoutes } from './routes/seal-crm-link.routes.js';
 import { cmsRoutes } from './routes/cms.routes.js';
 import { complyOcrRoutes } from './routes/comply-ocr.routes.js';
 import { complyLegalRoutes } from './routes/comply-legal.routes.js';
@@ -252,6 +254,8 @@ async function main() {
     await server.register(sealStockAccountRoutes, { prefix: '/v1/seal' });
     await server.register(sealWarehouseOpsRoutes, { prefix: '/v1/seal' });
     await server.register(sealDeclarationRoutes, { prefix: '/v1/seal' });
+    await server.register(sealBillingRoutes, { prefix: '/v1/seal' });
+    await server.register(sealCrmLinkRoutes, { prefix: '/v1/seal' });
     await server.register(cmsRoutes, { prefix: '/v1/cms' });
     await server.register(complyOcrRoutes, { prefix: '/v1/comply/ocr' });
     await server.register(complyLegalRoutes, { prefix: '/v1/comply/legal' });

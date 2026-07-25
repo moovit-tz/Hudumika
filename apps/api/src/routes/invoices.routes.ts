@@ -1,4 +1,4 @@
-import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
@@ -9,7 +9,11 @@ import { TRAService } from '../services/tra.service.js';
 
 export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireEntitlement('finops'));
+  // 'seal' included so a warehouse manager without FinOps access can still
+  // view/generate bonded-storage invoices (seal-billing.routes.ts) — the
+  // per-route requireRole(...) checks below are the real access control on
+  // who may actually create/send an invoice, not this app-level gate.
+  fastify.addHook('preHandler', requireAnyEntitlement(['finops', 'seal']));
 
   // GET /v1/invoices/stats
   fastify.get('/stats', async (request) => {

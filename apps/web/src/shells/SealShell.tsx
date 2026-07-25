@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate, useParams } from 'react-router-dom';
 import '../pages/Seal.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { AppSidebar } from '../components/AppSidebar.js';
@@ -14,13 +14,18 @@ import { SealZoneHeatGrid } from '../pages/SealZoneHeatGrid.js';
 import { SealGuarantees } from '../pages/SealGuarantees.js';
 import { SealConsignments } from '../pages/SealConsignments.js';
 import { SealConsignmentDetail } from '../pages/SealConsignmentDetail.js';
-import { SealDeclarations } from '../pages/SealDeclarations.js';
-import { SealDeclarationNew } from '../pages/SealDeclarationNew.js';
-import { SealDeclarationDetail } from '../pages/SealDeclarationDetail.js';
 import { SealExaminations } from '../pages/SealExaminations.js';
 import { SealStockAccount } from '../pages/SealStockAccount.js';
 import { SealYardSlots } from '../pages/SealYardSlots.js';
 import { SealWarehouseLayout } from '../pages/SealWarehouseLayout.js';
+
+// Declarations moved to ClearOS's Ops Command — these redirect a bookmarked
+// SEAL declaration URL to its ClearOS equivalent (same underlying
+// seal_customs_entries id) rather than 404ing.
+function DeclarationDetailRedirect() {
+  const { id } = useParams<{ id: string }>();
+  return <Navigate to={`/clearos/declarations/${id}`} replace />;
+}
 
 const NAV: SidebarSection[] = [
   {
@@ -77,9 +82,9 @@ export function SealShell() {
                 <Route path="guarantees"        element={<SealGuarantees />}         />
                 <Route path="consignments"      element={<SealConsignments />}       />
                 <Route path="consignments/:id"  element={<SealConsignmentDetail />}  />
-                <Route path="declarations"      element={<SealDeclarations />}       />
-                <Route path="declarations/new"  element={<SealDeclarationNew />}     />
-                <Route path="declarations/:id"  element={<SealDeclarationDetail />}  />
+                <Route path="declarations"      element={<Navigate to="/clearos/declarations" replace />} />
+                <Route path="declarations/new"  element={<Navigate to="/clearos/declarations/new" replace />} />
+                <Route path="declarations/:id"  element={<DeclarationDetailRedirect />} />
                 <Route path="examinations"      element={<SealExaminations />}       />
                 <Route path="stock-account"     element={<SealStockAccount />}       />
                 <Route path="yard-slots"        element={<SealYardSlots />}          />
