@@ -602,7 +602,7 @@ export const CommandCenter: React.FC = () => {
                   {isMobile ? 'New' : 'New Shipment'}
                 </Button>
               )}
-              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => { localStorage.clear(); refresh(); }} title="Refresh data">
+              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => refresh()} title="Refresh data">
                 <Icon name="refresh" size={14} />
               </Button>
             </div>

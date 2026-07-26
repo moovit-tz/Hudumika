@@ -52,6 +52,21 @@ export async function apiDownload(path: string, filename: string) {
   URL.revokeObjectURL(url);
 }
 
+/** Fetches a binary endpoint with the auth header attached and returns the raw blob (for callers that need the bytes themselves, e.g. re-encoding to base64). */
+export async function apiFetchBlob(path: string): Promise<Blob> {
+  const token = localStorage.getItem('hudumika_token');
+  const headers = new Headers();
+  if (token) headers.set('Authorization', `Bearer ${token}`);
+
+  const response = await fetch(`${BASE_URL}${path}`, { headers });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.message || err.error || err.detail || `Request failed with status ${response.status}`);
+  }
+
+  return response.blob();
+}
+
 /** Fetches a binary endpoint with the auth header attached and opens it in a new tab for inline viewing (no forced download). */
 export async function apiViewBlob(path: string) {
   const token = localStorage.getItem('hudumika_token');

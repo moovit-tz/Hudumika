@@ -113,6 +113,7 @@ export const PenaltyPage: React.FC = () => {
   const [result,     setResult]    = useState<PenResult | null>(null);
   const [summary,    setSummary]   = useState('');
   const [aiPending,  setAiPending] = useState(false);
+  const [aiError,    setAiError]   = useState('');
   const [error,      setError]     = useState('');
   const [calcLoading, setCalcLoading] = useState(false);
   const [savedId,    setSavedId]   = useState<string | null>(null);
@@ -148,6 +149,7 @@ export const PenaltyPage: React.FC = () => {
   const runAi = useCallback(async () => {
     if (!result) return;
     setAiPending(true);
+    setAiError('');
     const text =
       `Penalty Estimate — Violation: ${result.violation_type.replace(/_/g, ' ')}, HS Code: ${hs || 'unspecified'}\n` +
       `Declared CIF: ${fmtUsd(parseFloat(declared))}\n\n` +
@@ -157,8 +159,16 @@ export const PenaltyPage: React.FC = () => {
       result.legal_references.map(r => `• ${r}`).join('\n');
     try {
       const res = await apiFetch('/v1/ai/summarise', { method: 'POST', body: JSON.stringify({ text, mode: 'brief' }) });
-      setSummary(res.summary || text);
-    } catch { setSummary(text); }
+      if (res.summary) {
+        setSummary(res.summary);
+      } else {
+        setAiError('AI analysis returned no summary. Please try again.');
+      }
+    } catch (e: any) {
+      // Surface the real reason (e.g. "AI not configured.") instead of silently
+      // displaying the raw local breakdown as if it were an AI summary.
+      setAiError(e?.message || 'AI analysis failed. Please try again.');
+    }
     setAiPending(false);
   }, [result, hs, declared]);
 
@@ -411,6 +421,16 @@ export const PenaltyPage: React.FC = () => {
                 <button type="button" onClick={() => setSummary('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>
               </div>
               <div style={{ padding: '18px 22px', fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>{summary}</div>
+            </div>
+          )}
+
+          {aiError && !summary && (
+            <div style={{ padding: '12px 16px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 12, fontSize: 12.5, color: 'var(--red)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+              <Icon name="alertCircle" size={14} color="var(--red)" style={{ flexShrink: 0, marginTop: 1 }} />
+              <span>
+                {aiError}
+                {aiError.toLowerCase().includes('not configured') && ' Ask an admin to add an AI provider key under Settings → Integrations → AI Integration.'}
+              </span>
             </div>
           )}
 

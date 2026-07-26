@@ -5,7 +5,7 @@ import {
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { exportCsv, ExportButton, StatTile, DataTable, ClickableBarChart } from '../components/AnalyticsKit.js';
 import type { ColumnDef } from '../components/AnalyticsKit.js';
 import type { StageBottleneck, OfficerPerformance, KPIResponse } from '@hudumika/types';
@@ -206,7 +206,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
             sub1Label: 'DELIVERED TODAY', sub1Value: String(kpis?.delivered_today ?? 0),
             sub2Label: 'AVG / DAY',       sub2Value: kpis ? String(Math.round((kpis.cases_this_month || 0) / new Date().getDate())) : '—',
             icon: 'package',
-            bars: spark(91, 15, 'up'), barColor: 'var(--teal-l)', barHighlight: 'var(--teal)',
+            barColor: 'var(--teal-l)', barHighlight: 'var(--teal)',
             onMenuClick: load, menuTitle: 'Refresh volume data',
           },
           {
@@ -216,7 +216,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
             sub1Label: 'AT RISK (48H)',      sub1Value: String(kpis?.demurrage_risk ?? 0),
             sub2Label: 'PENALTY EXPOSURE',   sub2Value: fmtTZS(kpis?.penalty_exposure_tzs ?? 0),
             icon: 'checkCircle',
-            bars: spark(92, 15, 'flat'), barColor: 'var(--blue-l)', barHighlight: 'var(--blue)',
+            barColor: 'var(--blue-l)', barHighlight: 'var(--blue)',
             onMenuClick: load, menuTitle: 'Refresh SLA data',
           },
           {
@@ -225,7 +225,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
             trend: 0,
             sub1Label: 'CREDITS SAVED', sub1Value: `${kpis?.total_carbon_credits_saved ?? 0}`,
             icon: 'globe',
-            bars: spark(96, 15, 'up'), barColor: 'var(--green-l)', barHighlight: 'var(--green)',
+            barColor: 'var(--green-l)', barHighlight: 'var(--green)',
             onMenuClick: load, menuTitle: 'Refresh emissions data',
           },
         ]} />

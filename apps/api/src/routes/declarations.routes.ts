@@ -89,6 +89,40 @@ export async function declarationRoutes(fastify: FastifyInstance) {
   );
 
   /**
+   * GET /v1/declarations/by-shipment/:shipmentId
+   * Fetch the full TANCIS-style declaration linked to a shipment case (if
+   * one exists yet), for ShipmentDetail's in-page Declaration tab.
+   */
+  fastify.get('/by-shipment/:shipmentId', async (request, reply) => {
+    const user = request.user;
+    const { shipmentId } = request.params as { shipmentId: string };
+    return DeclarationService.getByShipment(user.tenant_id, shipmentId);
+  });
+
+  /**
+   * PUT /v1/declarations/by-shipment/:shipmentId
+   * Create-or-update the full declaration (general/parties/financial/
+   * transport + item list) for a shipment case in one save, matching how
+   * ShipmentDetail's Declaration tab submits the whole form at once.
+   */
+  fastify.put(
+    '/by-shipment/:shipmentId',
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') },
+    async (request, reply) => {
+      const user = request.user;
+      const { shipmentId } = request.params as { shipmentId: string };
+      const { items, ...fields } = request.body as { items?: Array<Record<string, any>> } & Record<string, any>;
+
+      try {
+        const saved = await DeclarationService.upsertByShipment(user.tenant_id, shipmentId, fields, items || []);
+        return saved;
+      } catch (error: any) {
+        return reply.status(400).send({ error: error.message || 'Failed to save declaration' });
+      }
+    }
+  );
+
+  /**
    * PATCH /v1/declarations/:id/status
    * Update declaration status (DRAFT → VALIDATED → SAVED → TRANSFERRED → etc.)
    */

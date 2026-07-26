@@ -433,6 +433,129 @@ export class DeclarationService {
   }
 
   /**
+   * Get the declaration linked to a shipment case (if any), with items.
+   */
+  static async getByShipment(tenantId: string, shipmentId: string) {
+    return withTenant(tenantId, async (trx) => {
+      const shipment = await trx
+        .selectFrom('shipment_cases')
+        .select('declaration_id')
+        .where('id', '=', shipmentId)
+        .executeTakeFirst();
+      if (!shipment?.declaration_id) return null;
+
+      const declaration = await trx
+        .selectFrom('declarations')
+        .selectAll()
+        .where('id', '=', shipment.declaration_id)
+        .executeTakeFirst();
+      if (!declaration) return null;
+
+      const items = await trx
+        .selectFrom('declaration_items')
+        .selectAll()
+        .where('declaration_id', '=', declaration.id)
+        .orderBy('item_number', 'asc')
+        .execute();
+
+      return { ...declaration, items };
+    });
+  }
+
+  /**
+   * Create-or-update the full TANCIS-style declaration for a shipment case
+   * (general/parties/financial/transport fields + a full item-list replace).
+   * Used by ShipmentDetail's in-page Declaration tab, which — unlike the
+   * SEAL bonded-warehouse declaration flow — has no separate "create" step
+   * before the user starts filling the form.
+   */
+  static async upsertByShipment(
+    tenantId: string,
+    shipmentId: string,
+    input: Record<string, any>,
+    items: Array<Record<string, any>>
+  ) {
+    return withTenant(tenantId, async (trx) => {
+      const now = new Date();
+      const shipment = await trx
+        .selectFrom('shipment_cases')
+        .select('declaration_id')
+        .where('id', '=', shipmentId)
+        .executeTakeFirstOrThrow();
+
+      // input is a fully-built payload from the frontend's declaration-form
+      // mapper (buildDeclarationPayload), not raw pass-through user input —
+      // cast needed because Kysely can't statically verify a Record<string,
+      // any> against the generated Insertable/Updateable shape.
+      const values: any = { ...input, tenant_id: tenantId, shipment_id: shipmentId, updated_at: now };
+
+      let declaration;
+      if (shipment.declaration_id) {
+        declaration = await trx
+          .updateTable('declarations')
+          .set(values)
+          .where('id', '=', shipment.declaration_id)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+      } else {
+        declaration = await trx
+          .insertInto('declarations')
+          .values({ ...values, status: 'DRAFT', created_at: now })
+          .returningAll()
+          .executeTakeFirstOrThrow();
+
+        await trx
+          .updateTable('shipment_cases')
+          .set({ declaration_id: declaration.id, tancis_ref: values.tancis_ref, updated_at: now })
+          .where('id', '=', shipmentId)
+          .execute();
+      }
+
+      // Full replace of line items — this tab saves the whole form at once,
+      // not incremental line-by-line adds like the SEAL declaration flow.
+      await trx.deleteFrom('declaration_items').where('declaration_id', '=', declaration.id).execute();
+      let itemNo = 1;
+      for (const item of items) {
+        if (!item.hs_code) continue;
+        await trx
+          .insertInto('declaration_items')
+          .values({
+            declaration_id: declaration.id,
+            item_number: itemNo++,
+            hs_code: item.hs_code,
+            commodity_description: item.commodity_description || null,
+            country_of_origin: item.country_of_origin,
+            cpc_code: item.cpc_code,
+            quantity: item.quantity || 0,
+            unit_of_measure: item.unit_of_measure || 'PC',
+            gross_weight_kg: item.gross_weight_kg || 0,
+            net_weight_kg: item.net_weight_kg || 0,
+            customs_value: item.customs_value || 0,
+            statistical_value: item.statistical_value || 0,
+            created_at: now,
+          })
+          .execute();
+      }
+
+      declaration = await trx
+        .updateTable('declarations')
+        .set({ no_of_items: itemNo - 1, updated_at: now })
+        .where('id', '=', declaration.id)
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      const savedItems = await trx
+        .selectFrom('declaration_items')
+        .selectAll()
+        .where('declaration_id', '=', declaration.id)
+        .orderBy('item_number', 'asc')
+        .execute();
+
+      return { ...declaration, items: savedItems };
+    });
+  }
+
+  /**
    * List all notices for a tenant with filters
    */
   static async listNotices(

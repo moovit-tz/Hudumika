@@ -4,7 +4,7 @@ import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
-import { apiFetch, apiDownload, apiViewBlob } from '../lib/api.js';
+import { apiFetch, apiDownload, apiViewBlob, apiFetchBlob } from '../lib/api.js';
 import { HUDUMIKA_FOOTER_HTML } from '../lib/watermark.js';
 import { useCompany, getCompany } from '../data/companyStore.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -16,7 +16,7 @@ import {
   STAGES, FLAG_CFG, CH_CFG, stageIdx, STAGE_API_MAP, API_STAGE_MAP,
   type ClearanceJob, type Stage, type Channel, type Flag,
   type ThreadMsg, type TimelineEvent, type ShipDoc, type LedgerEntry, type DocType,
-  type InternalTask, type TimeEntry, type ActivityEvent, type CloudLink, type TaskStatus, type Listener,
+  type InternalTask, type TimeEntry, type ActivityEvent, type TaskStatus, type Listener,
 } from './clearanceData.js';
 import { FlagChip, ChBadge } from './ShipmentBoard.js';
 import { EMPLOYEES, empInitials, empAvatarColor } from '../data/staffData.js';
@@ -319,6 +319,140 @@ const emptyTransport = (job?: ClearanceJob): DeclTransport => ({
   discharge_date: '', entry_office: 'TZDL', location_goods: '', container_count: '0', warehouse: '', period_days: '',
 });
 const emptyHsLine = (): HsLine => ({ hs: '', desc: '', origin: 'CN', qty: '', unit: 'KGS', gross_wt: '', net_wt: '', cif_usd: '', customs_value_tzs: '', imp_duty_tzs: '', vat_tzs: '', duty_rate: '25' });
+
+// Maps this tab's local form state onto the real `declarations`/
+// `declaration_items` table columns (migration 004_declarations.sql).
+// Rate/percentage/total-tax fields (duty_rate, vat_rate, total_imp_duty_tzs,
+// etc.) have no column on either table — official assessment totals are
+// recorded via the separate Notices flow once TRA responds, not by this
+// quick-entry tab — so they're intentionally left out of the payload rather
+// than written somewhere they'd silently never be read back.
+function buildDeclarationPayload(general: DeclGeneral, parties: DeclParties, financial: DeclFinancial, transport: DeclTransport, items: HsLine[]) {
+  const tansad = `${general.tansad_prefix}-${general.tansad_year}-${general.tansad_seq}`;
+  const toDate = (s: string) => (s ? new Date(s) : null);
+  return {
+    tancis_ref: general.ref_number || tansad,
+    tansad_number: tansad || null,
+    declaration_mode: 'NORMAL',
+    tansad_form_type: general.form_type || 'G',
+    clearing_office: general.clearing_office || 'TZDL',
+    reference_date: toDate(general.tansad_date) || new Date(),
+    cl_plan: general.cl_plan || null,
+    total_packages: Number(general.packages_total) || 0,
+    package_type: general.package_type || null,
+    gross_weight_kg: Number(general.gross_weight) || 0,
+    net_weight_kg: Number(general.net_weight) || 0,
+    ucr_number: general.ucr_no || null,
+    consignment_country: parties.consignment_country || 'CN',
+    country_of_export: parties.country_export || 'CN',
+    trading_country: parties.trading_country || null,
+    country_of_destination: parties.country_destination || 'TZ',
+    exporter_tin: parties.exporter.tin || null,
+    exporter_name: parties.exporter.name || null,
+    exporter_address: parties.exporter.address || null,
+    importer_tin: parties.importer.tin || '',
+    importer_name: parties.importer.name || '',
+    importer_address: parties.importer.address || null,
+    declarant_tin: parties.declarant.tin || '',
+    declarant_name: parties.declarant.name || '',
+    declarant_address: parties.declarant.address || null,
+    delivery_term: financial.delivery_term || null,
+    delivery_place: financial.delivery_place || null,
+    invoice_number: financial.invoice_no || null,
+    invoice_date: toDate(financial.invoice_date),
+    total_invoice_value: Number(financial.invoice_value_usd) || 0,
+    invoice_currency: 'USD',
+    exchange_rate: Number(financial.exchange_rate) || 1,
+    payment_method: financial.payment_method || null,
+    payment_bank: financial.payment_bank || null,
+    freight_amount: Number(financial.freight_usd) || 0,
+    freight_currency: 'USD',
+    insurance_amount: Number(financial.insurance_usd) || 0,
+    insurance_currency: 'USD',
+    other_charges: Number(financial.other_charges_usd) || 0,
+    other_charges_currency: 'USD',
+    deductions: Number(financial.deductions_usd) || 0,
+    deductions_currency: 'USD',
+    total_customs_value: Number(financial.customs_value_tzs) || 0,
+    self_assessment: !!financial.self_assessment,
+    transport_mode: transport.transport_mode || null,
+    arrival_date: toDate(transport.arrival_date),
+    crn: transport.crn || null,
+    bl_number: transport.bl_no || null,
+    vessel_name: transport.vessel_name || null,
+    shipment_place: transport.shipment_place || null,
+    discharge_place: transport.discharge_place || null,
+    discharge_date: toDate(transport.discharge_date),
+    entry_office: transport.entry_office || null,
+    location_of_goods: transport.location_goods || null,
+    total_container_count: transport.container_count ? Number(transport.container_count) : null,
+    warehouse: transport.warehouse || null,
+    period_days: transport.period_days ? Number(transport.period_days) : null,
+    items: items.filter(it => it.hs.trim()).map(it => ({
+      hs_code: it.hs,
+      commodity_description: it.desc || null,
+      country_of_origin: it.origin || 'TZ',
+      cpc_code: general.mode || 'IM4',
+      quantity: Number(it.qty) || 0,
+      unit_of_measure: it.unit || 'PC',
+      gross_weight_kg: Number(it.gross_wt) || 0,
+      net_weight_kg: Number(it.net_wt) || 0,
+      customs_value: Number(it.customs_value_tzs) || 0,
+    })),
+  };
+}
+
+// Reverse of buildDeclarationPayload — hydrates local form state from a
+// previously-saved declaration so re-opening this tab doesn't show blank
+// fields for data that actually was persisted.
+function applyDeclarationResponse(decl: any, job: ClearanceJob): { general: DeclGeneral; parties: DeclParties; financial: DeclFinancial; transport: DeclTransport; items: HsLine[] } {
+  const tansadParts = (decl.tansad_number || '').split('-');
+  const dateStr = (d: any) => (d ? String(d).slice(0, 10) : '');
+  return {
+    general: {
+      tansad_prefix: tansadParts[0] || 'TZDL', tansad_year: tansadParts[1] || String(new Date().getFullYear()).slice(-2),
+      tansad_seq: tansadParts[2] || '', ref_number: decl.tancis_ref || '', mode: 'IM4',
+      tansad_date: dateStr(decl.reference_date), clearing_office: decl.clearing_office || 'TZDL',
+      cl_plan: decl.cl_plan || 'PAO', form_type: decl.tansad_form_type || 'G',
+      items_count: String((decl.items || []).length || 1), packages_total: String(decl.total_packages ?? ''),
+      package_type: decl.package_type || 'PK', gross_weight: String(decl.gross_weight_kg ?? ''),
+      net_weight: String(decl.net_weight_kg ?? ''), ucr_no: decl.ucr_number || '',
+    },
+    parties: {
+      consignment_country: decl.consignment_country || 'CN', trading_country: decl.trading_country || 'CN',
+      country_export: decl.country_of_export || 'CN', country_destination: decl.country_of_destination || 'TZ',
+      exporter: { tin: decl.exporter_tin || '', name: decl.exporter_name || '', address: decl.exporter_address || '', country: 'CN' },
+      importer: { tin: decl.importer_tin || '', name: decl.importer_name || job.customer, address: decl.importer_address || '', country: 'TZ' },
+      declarant: { tin: decl.declarant_tin || '', name: decl.declarant_name || '', address: decl.declarant_address || '', country: 'TZ' },
+    },
+    financial: {
+      delivery_term: decl.delivery_term || 'CIF', delivery_place: decl.delivery_place || job.destination || 'Dar es Salaam',
+      invoice_no: decl.invoice_number || '', invoice_date: dateStr(decl.invoice_date),
+      invoice_value_usd: String(decl.total_invoice_value ?? ''), customs_value_tzs: String(decl.total_customs_value ?? ''),
+      payment_method: decl.payment_method || 'T', payment_bank: decl.payment_bank || '',
+      freight_usd: String(decl.freight_amount ?? ''), insurance_usd: String(decl.insurance_amount ?? ''),
+      other_charges_usd: String(decl.other_charges ?? '0'), deductions_usd: String(decl.deductions ?? '0'),
+      self_assessment: !!decl.self_assessment, exchange_rate: String(decl.exchange_rate ?? '2560'),
+      duty_rate: '25', vat_rate: '18', excise_rate: '0', total_imp_duty_tzs: '', total_vat_tzs: '',
+    },
+    transport: {
+      transport_mode: decl.transport_mode || 'S', arrival_date: dateStr(decl.arrival_date), crn: decl.crn || '',
+      bl_no: decl.bl_number || '', tansad_no: decl.tansad_number || '', vessel_name: decl.vessel_name || '',
+      partial_bl: false, shipment_place: decl.shipment_place || '', discharge_place: decl.discharge_place || 'Dar es Salaam',
+      discharge_date: dateStr(decl.discharge_date), entry_office: decl.entry_office || 'TZDL',
+      location_goods: decl.location_of_goods || '', container_count: String(decl.total_container_count ?? '0'),
+      warehouse: decl.warehouse || '', period_days: String(decl.period_days ?? ''),
+    },
+    items: (decl.items || []).length > 0
+      ? decl.items.map((it: any) => ({
+          hs: it.hs_code || '', desc: it.commodity_description || '', origin: it.country_of_origin || 'CN',
+          qty: String(it.quantity ?? ''), unit: it.unit_of_measure || 'KGS', gross_wt: String(it.gross_weight_kg ?? ''),
+          net_wt: String(it.net_weight_kg ?? ''), cif_usd: '', customs_value_tzs: String(it.customs_value ?? ''),
+          imp_duty_tzs: '', vat_tzs: '', duty_rate: '25',
+        }))
+      : [emptyHsLine()],
+  };
+}
 
 function DField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -704,6 +838,29 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
   const [financial, setFinancial] = useState(() => emptyFinancial(job));
   const [transport, setTransport] = useState(() => emptyTransport(job));
   const [items,     setItems]     = useState<HsLine[]>([emptyHsLine()]);
+  const [loadedDeclaration, setLoadedDeclaration] = useState(false);
+
+  // Hydrate the form from whatever was actually persisted, so re-opening
+  // this tab doesn't show blank Parties/Financial/Items fields for data
+  // that was saved on a previous visit.
+  useEffect(() => {
+    if (!isLive) { setLoadedDeclaration(true); return; }
+    let cancelled = false;
+    apiFetch(`/v1/declarations/by-shipment/${shipmentId}`)
+      .then(decl => {
+        if (cancelled || !decl) return;
+        const mapped = applyDeclarationResponse(decl, job);
+        setGeneral(mapped.general);
+        setParties(mapped.parties);
+        setFinancial(mapped.financial);
+        setTransport(mapped.transport);
+        setItems(mapped.items);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoadedDeclaration(true); });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shipmentId, isLive]);
 
   function applyOcrData() {
     if (!ocrBanner) return;
@@ -807,17 +964,9 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
     const tansad = `${general.tansad_prefix}-${general.tansad_year}-${general.tansad_seq}`;
     try {
       if (isLive) {
-        await apiFetch(`/v1/shipments/${shipmentId}`, {
-          method: 'PATCH',
-          body: JSON.stringify({
-            tansad_number: tansad || undefined,
-            bl_number: transport.bl_no || undefined,
-            vessel: transport.vessel_name || undefined,
-            gross_weight_kg: general.gross_weight ? Number(general.gross_weight) : undefined,
-            cif_value_usd: financial.invoice_value_usd ? Number(financial.invoice_value_usd) : undefined,
-            port_of_loading: transport.shipment_place || undefined,
-            port_of_discharge: transport.discharge_place || undefined,
-          }),
+        await apiFetch(`/v1/declarations/by-shipment/${shipmentId}`, {
+          method: 'PUT',
+          body: JSON.stringify(buildDeclarationPayload(general, parties, financial, transport, items)),
         });
         onRefresh();
       } else {
@@ -986,6 +1135,9 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
           </div>
           <div className="decl-block">
             <div className="decl-block-title">Tax Rates &amp; Live Assessment</div>
+            <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 10 }}>
+              For your own quick estimate only — this doesn't get saved. The official assessment is recorded here once TRA responds via a Notice.
+            </div>
             <div className="decl-grid">
               <DField label="Duty Rate (%)"><DInput value={financial.duty_rate} onChange={v => setFinancial(f => ({ ...f, duty_rate: v }))} placeholder="25" mono /></DField>
               <DField label="VAT Rate (%)"><DInput value={financial.vat_rate} onChange={v => setFinancial(f => ({ ...f, vat_rate: v }))} placeholder="18" mono /></DField>
@@ -1095,10 +1247,10 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
       )}
 
       {/* Save button */}
-      <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-        <button type="submit" className="btn btn-primary btn-sm" disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', fontSize: 13 }}>
+      <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button type="submit" className="btn btn-primary btn-sm" disabled={saving || !loadedDeclaration} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', fontSize: 13 }}>
           <Icon name="save" size={14} />
-          {saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Declaration'}
+          {!loadedDeclaration ? 'Loading…' : saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Declaration'}
         </button>
       </div>
     </form>
@@ -2065,24 +2217,6 @@ function ExtractedView({ doc }: { doc: ShipDoc }) {
   );
 }
 
-const CLOUD_CFG: Record<string, { label: string; color: string; bg: string }> = {
-  gdrive:     { label: 'Google Drive',  color: '#1a73e8', bg: 'var(--blue-l)' },
-  onedrive:   { label: 'OneDrive',      color: '#0078d4', bg: '#deecf9' },
-  box:        { label: 'Box',           color: '#0061d5', bg: '#dde8f8' },
-  dropbox:    { label: 'Dropbox',       color: '#0061ff', bg: '#ddeaff' },
-  gsheets:    { label: 'Google Sheets', color: '#34a853', bg: '#e6f4ea' },
-  sharepoint: { label: 'SharePoint',    color: '#038387', bg: '#d0efef' },
-};
-
-const CLOUD_OAUTH_URLS: Record<string, string> = {
-  gdrive:     'https://accounts.google.com/o/oauth2/auth?scope=https://www.googleapis.com/auth/drive.file&response_type=code',
-  onedrive:   'https://login.microsoftonline.com/common/oauth2/v2.0/authorize?scope=files.readwrite',
-  dropbox:    'https://www.dropbox.com/oauth2/authorize?response_type=code',
-  box:        'https://account.box.com/api/oauth2/authorize?response_type=code',
-  gsheets:    'https://accounts.google.com/o/oauth2/auth?scope=https://www.googleapis.com/auth/spreadsheets&response_type=code',
-  sharepoint: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize?scope=sites.readwrite.all',
-};
-
 const DOC_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: 'BL', label: 'Bill of Lading' },
   { value: 'AWB', label: 'Air Waybill' },
@@ -2113,14 +2247,6 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
   const [savingStaged, setSavingStaged] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const uploadTargetType = React.useRef('OTHER');
-
-  function handleCloudLink(provider: string) {
-    const url = CLOUD_OAUTH_URLS[provider];
-    if (url) {
-      const popup = window.open(url + `&state=${provider}_${job.id}`, '_blank', 'width=600,height=700,scrollbars=yes');
-      if (!popup) showAlert('Please allow popups to connect cloud storage.');
-    }
-  }
 
   function handleUploadClick(type?: string) {
     if (!isLive) { showAlert('Uploading is only available for live shipments, not demo data.'); return; }
@@ -2182,18 +2308,50 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
     apiViewBlob(`/v1/shipments/${shipmentId}/documents/${doc.id}/view`).catch(err => showAlert(err.message || 'View failed'));
   }
 
-  function handleExtract(docId: string) {
+  async function handleExtract(docId: string) {
     updateJob(job.id, j => ({ ...j, documents: j.documents.map(d => d.id === docId ? { ...d, extracted: { ...(d.extracted || {}), status: 'processing' as const } } : d) }));
-    setTimeout(() => {
+    try {
+      const blob = await apiFetchBlob(`/v1/shipments/${shipmentId}/documents/${docId}/view`);
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target?.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      const image_base64 = dataUrl.split(',')[1];
+      const media_type = blob.type || 'application/pdf';
+      const res = await apiFetch('/v1/ocr/scan', {
+        method: 'POST',
+        body: JSON.stringify({ image_base64, media_type }),
+      });
+      const r = res.result || {};
+      const toFields = (obj: Record<string, any>) =>
+        Object.entries(obj || {}).filter(([, v]) => v !== '' && v != null).map(([k, v]) => ({ label: k.replace(/_/g, ' '), value: String(v) }));
+      const sections = [
+        { title: 'Overview', fields: toFields(r.overview) },
+        { title: 'Parties', fields: toFields(r.parties) },
+        { title: 'Financial', fields: toFields(r.financial) },
+      ].filter(sec => sec.fields.length > 0);
+      const confidence = typeof r.confidence === 'number' ? Math.round(r.confidence * 100) : undefined;
       updateJob(job.id, j => ({
         ...j,
-        documents: j.documents.map(d =>
-          d.id === docId && d.extracted?.status === 'processing'
-            ? { ...d, extracted: { status: 'done' as const, docType: 'Extracted Document', confidence: 86, sections: [{ title: 'Extracted Fields', fields: [{ label: 'Extraction Status', value: 'Complete — verify the fields below', flag: 'ok' as const }] }], summary: 'Document successfully parsed by AI. Review and verify the extracted fields.' } }
-            : d
-        ),
+        documents: j.documents.map(d => d.id === docId ? {
+          ...d,
+          extracted: {
+            status: 'done' as const,
+            docType: r.doc_type || 'Document',
+            confidence,
+            sections,
+            summary: res.simulated
+              ? 'Simulated extraction (no OCR key configured for this platform) — verify the fields below against the original document.'
+              : `Extracted as ${r.doc_type || 'a document'} by AI. Review and verify the fields below.`,
+          },
+        } : d),
       }));
-    }, 2500);
+    } catch (err: any) {
+      updateJob(job.id, j => ({ ...j, documents: j.documents.map(d => d.id === docId ? { ...d, extracted: { status: 'failed' as const } } : d) }));
+      showAlert(err.message || 'Document extraction failed.');
+    }
   }
 
   const uploadedDocuments = job.documents.filter(d => !d.pending);
@@ -2204,41 +2362,6 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
 
       {/* Hidden file input */}
       <input ref={fileInputRef} type="file" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg" style={{ display: 'none' }} onChange={handleFileChange} />
-
-      {/* ── Cloud Storage Providers ── */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 20px', marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cloud Storage</div>
-          <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Click to sync — opens OAuth in a popup</div>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 10, marginBottom: 12 }}>
-          {Object.entries(CLOUD_CFG).map(([key, cfg]) => {
-            const linked = job.cloudLinks.filter(l => l.provider === key as CloudLink['provider']);
-            return (
-              <div key={key} style={{ border: `1px solid ${linked.length > 0 ? cfg.color + '60' : 'var(--border)'}`, borderRadius: 12, padding: '12px 14px', background: linked.length > 0 ? cfg.bg : 'var(--white)', transition: 'all 0.15s' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: linked.length > 0 ? 7 : 0 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: linked.length > 0 ? cfg.color : 'var(--ink)' }}>{cfg.label}</span>
-                  <button type="button" onClick={() => handleCloudLink(key)}
-                    style={{ fontSize: 11, padding: '3px 9px', borderRadius: 5, border: `1px solid ${cfg.color}`, background: linked.length > 0 ? cfg.color : 'transparent', color: linked.length > 0 ? '#fff' : cfg.color, cursor: 'pointer', fontWeight: 700, transition: 'all 0.15s' }}>
-                    {linked.length > 0 ? '↗ Browse' : '+ Link'}
-                  </button>
-                </div>
-                {linked.map(l => (
-                  <div key={l.id} style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
-                    <Icon name="externalLink" size={10} />
-                    <a href={l.url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: cfg.color, textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{l.name}</a>
-                  </div>
-                ))}
-                {linked.length === 0 && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>Not connected</div>}
-              </div>
-            );
-          })}
-        </div>
-        <div style={{ fontSize: 11.5, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 5 }}>
-          <Icon name="info" size={12} />
-          Files sync to File Manager under <strong style={{ fontFamily: 'var(--mono)', marginLeft: 3 }}>/{job.bl || job.id}/</strong> and are linked to the customer &amp; invoice.
-        </div>
-      </div>
 
       {extracted.length > 0 && (
         <div style={{ display: 'flex', gap: 16, padding: '14px 20px', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 12, marginBottom: 20 }}>
