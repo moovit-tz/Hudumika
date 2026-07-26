@@ -2198,6 +2198,17 @@ export interface CustomerAssetsTable {
   updated_at: Generated<Date>;
 }
 
+export interface CustomerDocumentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  customer_id: string;
+  filename: string;
+  storage_key: string;
+  size: Generated<number>;
+  uploaded_by: string | null;
+  created_at: Generated<Date>;
+}
+
 export interface KbCategoriesTable {
   id: Generated<string>;
   tenant_id: string;
@@ -2372,6 +2383,7 @@ export interface Database {
   support_views: SupportViewsTable;
   support_rules: SupportRulesTable;
   customer_assets: CustomerAssetsTable;
+  customer_documents: CustomerDocumentsTable;
   kb_categories: KbCategoriesTable;
   knowledge_base: KnowledgeBaseTable;
   live_chat_sessions: LiveChatSessionsTable;

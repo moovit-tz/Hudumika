@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, apiDownload } from '../lib/api.js';
 import { StatusPill } from '@hudumika/ui';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
@@ -221,6 +221,10 @@ export const Customers: React.FC = () => {
   const [custSealLots, setCustSealLots] = useState<any[]>([]);
   const [sealLoading, setSealLoading] = useState(false);
 
+  /* Documents */
+  const [custDocuments, setCustDocuments] = useState<any[]>([]);
+  const [docsLoading, setDocsLoading] = useState(false);
+
   /* Contacts */
   const [showAddContact, setShowAddContact] = useState(false);
   const [contactForm, setContactForm] = useState({ name: '', email: '', phone: '', role: '' });
@@ -316,6 +320,18 @@ export const Customers: React.FC = () => {
   useEffect(() => {
     if (selected && mainTab === 'seal') loadSealLots(selected.id);
   }, [selected, mainTab, loadSealLots]);
+
+  const loadDocuments = useCallback(async (customerId: string) => {
+    setDocsLoading(true);
+    try {
+      const res = await apiFetch(`/v1/customers/${customerId}/documents`).catch(() => ({ data: [] }));
+      setCustDocuments(Array.isArray(res?.data) ? res.data : []);
+    } catch { /* empty */ } finally { setDocsLoading(false); }
+  }, []);
+
+  useEffect(() => {
+    if (selected && mainTab === 'documents') loadDocuments(selected.id);
+  }, [selected, mainTab, loadDocuments]);
 
   useEffect(() => {
     if (selected) setNotes(selected.notes || '');
@@ -1240,7 +1256,7 @@ export const Customers: React.FC = () => {
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>
                   {finLoading ? 'Loading…' : `${custPayments.length} payment${custPayments.length !== 1 ? 's' : ''}`}
                 </span>
-                <button type="button" className="btn btn-primary btn-sm">+ Record Payment</button>
+                <Link to={`/billing?customer_id=${sel.id}`} className="btn btn-primary btn-sm">+ Record Payment</Link>
               </div>
               {finLoading && <div style={{ padding: '32px 28px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading payments…</div>}
               {!finLoading && custPayments.length === 0 && (
@@ -1568,10 +1584,10 @@ export const Customers: React.FC = () => {
                   if (!files.length) return;
                   const fd = new FormData();
                   files.forEach(f => fd.append('files', f));
-                  fd.append('customer_id', sel.id);
                   try {
                     await apiFetch(`/v1/customers/${sel.id}/documents`, { method: 'POST', body: fd });
                     showAlert(`${files.length} file(s) uploaded`);
+                    loadDocuments(sel.id);
                   } catch (err: any) { showAlert(err.message || 'Upload failed'); }
                   e.target.value = '';
                 }} />
@@ -1591,10 +1607,10 @@ export const Customers: React.FC = () => {
               if (!files.length) return;
               const fd = new FormData();
               files.forEach(f => fd.append('files', f));
-              fd.append('customer_id', sel.id);
               try {
                 await apiFetch(`/v1/customers/${sel.id}/documents`, { method: 'POST', body: fd });
                 showAlert(`${files.length} file(s) uploaded`);
+                loadDocuments(sel.id);
               } catch (err: any) { showAlert(err.message || 'Upload failed'); }
             }}>
             <Icon name="upload" size={28} strokeWidth={1.25} />
@@ -1602,7 +1618,38 @@ export const Customers: React.FC = () => {
             <div style={{ fontSize: 12, marginTop: 4 }}>PDF, DOCX, XLSX, images — any file type accepted</div>
           </div>
 
-          <EmptyState icon="folder" title="No documents yet" sub="Uploaded documents for this customer will appear here" />
+          {docsLoading && <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading documents…</div>}
+          {!docsLoading && custDocuments.length === 0 && (
+            <EmptyState icon="folder" title="No documents yet" sub="Uploaded documents for this customer will appear here" />
+          )}
+          {!docsLoading && custDocuments.length > 0 && (
+            <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
+              {custDocuments.map((d: any, i: number) => (
+                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < custDocuments.length - 1 ? '1px solid var(--bg)' : 'none' }}>
+                  <Icon name="fileText" size={18} color="var(--ink3)" />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.filename}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                      {(d.size / 1024).toFixed(1)} KB · {new Date(d.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => apiDownload(`/v1/customers/${sel.id}/documents/${d.id}/download`, d.filename).catch((err: any) => showAlert(err.message || 'Download failed'))}
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: '4px 8px' }}>
+                    <Icon name="download" size={13} /> Download
+                  </button>
+                  <button type="button" onClick={async () => {
+                    if (!(await showConfirm(`Delete "${d.filename}"?`, { confirmLabel: 'Delete' }))) return;
+                    try {
+                      await apiFetch(`/v1/customers/${sel.id}/documents/${d.id}`, { method: 'DELETE' });
+                      setCustDocuments(prev => prev.filter(x => x.id !== d.id));
+                    } catch (err: any) { showAlert(err.message || 'Delete failed'); }
+                  }} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--red, #dc2626)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: '4px 8px' }}>
+                    <Icon name="trash" size={13} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       );
     }

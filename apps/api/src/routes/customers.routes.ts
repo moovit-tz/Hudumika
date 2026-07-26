@@ -192,6 +192,98 @@ export async function customerRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * GET /v1/customers/:id/documents
+   */
+  fastify.get('/:id/documents', async (request) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const list = await trx.selectFrom('customer_documents')
+        .selectAll()
+        .where('customer_id', '=', id)
+        .where('tenant_id', '=', user.tenant_id)
+        .orderBy('created_at', 'desc')
+        .execute();
+      return { data: list };
+    });
+  });
+
+  /**
+   * POST /v1/customers/:id/documents
+   * Multipart, one or more files under the "files" field.
+   */
+  fastify.post('/:id/documents', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const customer = await trx.selectFrom('customers').select('id')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!customer) return reply.status(404).send({ error: 'Customer not found' });
+
+      const parts = request.files();
+      const inserted: any[] = [];
+      for await (const part of parts) {
+        const buf = await part.toBuffer();
+        const uploadRes = await MinioIntegration.uploadDocument(user.tenant_id, id, 'documents', part.filename, buf);
+        const doc = await trx.insertInto('customer_documents').values({
+          tenant_id: user.tenant_id,
+          customer_id: id,
+          filename: part.filename,
+          storage_key: uploadRes.storageKey,
+          size: uploadRes.size,
+          uploaded_by: user.sub,
+        }).returningAll().executeTakeFirstOrThrow();
+        inserted.push(doc);
+      }
+
+      if (inserted.length === 0) return reply.status(400).send({ error: 'No files uploaded' });
+      reply.status(201);
+      return { data: inserted };
+    });
+  });
+
+  /**
+   * GET /v1/customers/:id/documents/:docId/download
+   */
+  fastify.get('/:id/documents/:docId/download', async (request, reply) => {
+    const user = request.user;
+    const { id, docId } = request.params as { id: string; docId: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const doc = await trx.selectFrom('customer_documents').selectAll()
+        .where('id', '=', docId).where('customer_id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      if (!doc) return reply.status(404).send({ error: 'Document not found' });
+
+      const fileBuffer = MinioIntegration.readFile(doc.storage_key);
+      if (!fileBuffer) return reply.status(404).send({ error: 'File not found in storage' });
+
+      reply.header('Content-Type', 'application/octet-stream');
+      reply.header('Content-Disposition', `attachment; filename="${doc.filename}"`);
+      return reply.send(fileBuffer);
+    });
+  });
+
+  /**
+   * DELETE /v1/customers/:id/documents/:docId
+   */
+  fastify.delete('/:id/documents/:docId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { id, docId } = request.params as { id: string; docId: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const doc = await trx.selectFrom('customer_documents').selectAll()
+        .where('id', '=', docId).where('customer_id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      if (!doc) return reply.status(404).send({ error: 'Document not found' });
+
+      await MinioIntegration.deleteDocument(user.tenant_id, doc.storage_key);
+      await trx.deleteFrom('customer_documents').where('id', '=', docId).execute();
+      reply.status(204);
+      return null;
+    });
+  });
+
+  /**
    * PATCH /v1/customers/:id
    * Update customer profile fields
    */
