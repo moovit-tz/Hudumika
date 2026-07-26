@@ -3394,7 +3394,7 @@ export function ShipmentDetail() {
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
 
         {/* Job identity — hero band (also carries wayfinding + primary actions); collapsible */}
-        <div style={{
+        <div className="shipdetail-cover-bleed" style={{
           padding: heroFolded ? (isMobile ? '14px 16px' : '16px 28px') : (isMobile ? '20px 16px 28px' : '26px 28px 36px'),
           background: `linear-gradient(120deg, var(--teal) 0%, var(--navy) 100%)`,
           position: 'relative', overflow: 'hidden', transition: 'padding 0.15s ease',

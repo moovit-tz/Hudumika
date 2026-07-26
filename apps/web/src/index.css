@@ -3712,6 +3712,24 @@ html:not([data-theme="dark"]) .page-layout {
   .page-layout { padding: 0 12px 0; }
 }
 
+/* ShipmentDetail's cover/hero band bleeds out of .page-layout's own
+   horizontal padding so it runs true edge-to-edge (like a profile cover
+   photo) while the rest of the page — the floating stage-stepper card,
+   tabs, body — stays within the normal padded layout. Negative margins
+   exactly mirror .page-layout's own responsive padding steps above so the
+   bleed is always exact at every breakpoint, in every shell ShipmentDetail
+   renders in (ClearOS staff view, customer portal /clearance/:id). */
+.shipdetail-cover-bleed {
+  margin-left: -20px;
+  margin-right: -20px;
+}
+@media (max-width: 768px) {
+  .shipdetail-cover-bleed { margin-left: -16px; margin-right: -16px; }
+}
+@media (max-width: 480px) {
+  .shipdetail-cover-bleed { margin-left: -12px; margin-right: -12px; }
+}
+
 /* ── Page footer ── */
 .page-footer {
   padding: 20px 28px 32px;
