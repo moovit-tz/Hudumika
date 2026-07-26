@@ -3458,7 +3458,11 @@ export function ShipmentDetail() {
         {/* Job identity — hero band (also carries wayfinding + primary actions); collapsible */}
         <div className="shipdetail-cover-bleed" style={{
           padding: heroFolded ? (isMobile ? '14px 16px' : '16px 28px') : (isMobile ? '20px 16px 28px' : '26px 28px 36px'),
-          background: `linear-gradient(120deg, var(--teal) 0%, var(--navy) 100%)`,
+          // --navy flips to a pale blue in dark mode (it's a heading-text
+          // token, not a background one — see index.css's two theme
+          // blocks); --nav-header-bg stays a dark navy in both themes,
+          // which is what a gradient *background* fill actually needs.
+          background: `linear-gradient(120deg, var(--teal) 0%, var(--nav-header-bg) 100%)`,
           position: 'relative', overflow: 'hidden', transition: 'padding 0.15s ease',
         }}>
           {/* Decorative freight-crate motif */}
