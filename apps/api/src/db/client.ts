@@ -119,6 +119,28 @@ export interface CustomersTable {
   registration_status: string | null;
   registered_address: string | null;
   incorporation_date: Date | null;
+  // Profile-tab fields (migration 134) — collected by the Customers edit
+  // form since before these columns existed; account_status is the real
+  // 3-way status the UI displays ('Active'/'Inactive'/'Suspended'), kept in
+  // sync with the legacy `active` boolean rather than replacing it.
+  account_status: Generated<string>;
+  notes: string | null;
+  address: string | null;
+  website: string | null;
+  city: string | null;
+  country: string | null;
+  vat_number: string | null;
+  import_license: string | null;
+  preferred_port: string | null;
+  freight_terms: string | null;
+  commodity_type: string | null;
+  credit_days: number | null;
+  client_type: string | null;
+  // Currency + TANCIS registration (migration 135) — were rendered as
+  // editable Profile-tab fields with no backing column (Currency had no
+  // onValueChange at all; TANCIS input had no value/onChange).
+  currency: Generated<string>;
+  tancis_number: string | null;
 }
 
 export interface ShipmentCasesTable {

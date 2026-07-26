@@ -39,6 +39,8 @@ interface Customer {
   client_type?: string;
   account_status?: 'Active' | 'Inactive' | 'Suspended';
   notes?: string;
+  currency?: string;
+  tancis_number?: string;
 }
 
 /* ── Avatar helper ── */
@@ -352,7 +354,15 @@ export const Customers: React.FC = () => {
     try {
       await apiFetch(`/v1/customers/${selected.id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ name: form.name, email: form.email, phone_wa: form.phone_wa, tin_number: form.tin_number, contact_person: form.contact_person, address: form.address }),
+        body: JSON.stringify({
+          name: form.name, email: form.email, phone_wa: form.phone_wa, tin_number: form.tin_number,
+          contact_person: form.contact_person, address: form.address, website: form.website,
+          city: form.city, country: form.country, vat_number: form.vat_number,
+          import_license: form.import_license, preferred_port: form.preferred_port,
+          freight_terms: form.freight_terms, commodity_type: form.commodity_type,
+          credit_days: form.credit_days ? Number(form.credit_days) : null, client_type: form.client_type,
+          currency: form.currency, tancis_number: form.tancis_number,
+        }),
       });
       setSelected(prev => prev ? { ...prev, ...form } : prev);
       setCustomers(cs => cs.map(c => c.id === selected.id ? { ...c, ...form } : c));
@@ -882,6 +892,7 @@ export const Customers: React.FC = () => {
                 <ViewField label="Contact Person" value={sel.contact_person} />
                 <ViewField label="Website" value={sel.website} />
                 <ViewField label="Client Type" value={sel.client_type} />
+                <ViewField label="Currency" value={sel.currency || 'TZS'} />
                 <ViewField label="Credit Terms" value={sel.credit_days ? `Net ${sel.credit_days} days` : 'Cash on Delivery'} />
               </div>
             </Section>
@@ -907,6 +918,7 @@ export const Customers: React.FC = () => {
                 <ViewField label="Preferred Port" value={sel.preferred_port} />
                 <ViewField label="Default Freight Terms" value={sel.freight_terms} />
                 <ViewField label="Primary Commodity" value={sel.commodity_type} />
+                <ViewField label="TANCIS Registration" value={sel.tancis_number} mono />
               </div>
             </Section>
           </div>
@@ -940,7 +952,7 @@ export const Customers: React.FC = () => {
                   </Select>
                 </div>
                 <div className="prof-field"><label className="prof-label">Currency</label>
-                  <Select defaultValue="TZS">
+                  <Select value={form.currency || 'TZS'} onValueChange={v => setForm(p => ({ ...p, currency: v }))}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="TZS">TZS — Tanzanian Shilling</SelectItem>
@@ -1028,7 +1040,7 @@ export const Customers: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="prof-field"><label className="prof-label">TANCIS Registration</label><input className="prof-input" placeholder="TANCIS importer code…" style={{ fontFamily: 'var(--mono)' }} /></div>
+                <div className="prof-field"><label className="prof-label">TANCIS Registration</label><input className="prof-input" value={form.tancis_number || ''} onChange={e => setForm(p => ({ ...p, tancis_number: e.target.value }))} placeholder="TANCIS importer code…" style={{ fontFamily: 'var(--mono)' }} /></div>
               </div>
             </Section>
           </div>

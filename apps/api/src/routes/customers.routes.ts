@@ -118,7 +118,9 @@ export async function customerRoutes(fastify: FastifyInstance) {
     const allowed = ['name', 'contact_name', 'contact_person', 'email', 'phone', 'phone_wa', 'phone_wechat',
                      'tax_id', 'tin_number', 'address', 'category', 'preferred_channel',
                      'notes', 'account_status', 'active', 'assigned_officer_id',
-                     'registry_number', 'entity_type', 'registration_status', 'registered_address', 'incorporation_date'];
+                     'registry_number', 'entity_type', 'registration_status', 'registered_address', 'incorporation_date',
+                     'website', 'city', 'country', 'vat_number', 'import_license', 'preferred_port',
+                     'freight_terms', 'commodity_type', 'credit_days', 'client_type', 'currency', 'tancis_number'];
 
     const patch: Record<string, any> = { updated_at: new Date() };
     for (const key of allowed) {
@@ -126,7 +128,12 @@ export async function customerRoutes(fastify: FastifyInstance) {
         // Map frontend aliases to DB column names
         if (key === 'contact_person') patch['contact_name'] = body[key];
         else if (key === 'tin_number') patch['tax_id'] = body[key];
-        else if (key === 'account_status') patch['active'] = body[key] === 'active';
+        // account_status carries the real 3-way status ('Active'/'Inactive'/
+        // 'Suspended'); keep the legacy `active` boolean in sync with it
+        // rather than letting the two drift (or, as before, having this
+        // comparison silently always fail and force active=false on every
+        // status change regardless of which status was picked).
+        else if (key === 'account_status') { patch['account_status'] = body[key]; patch['active'] = body[key] === 'Active'; }
         else patch[key] = body[key];
       }
     }
