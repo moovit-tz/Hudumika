@@ -353,4 +353,35 @@ export class SealService {
     }
     return { valid: true, brokenAtMovementId: null, checked: movements.length };
   }
+
+  /** Builds the deterministic checkpoint a compartment's ledger anchors
+   *  against: every lot's current chain-tip movement (the per-lot hash
+   *  chain means a single tenant-wide chain doesn't exist — this is the
+   *  closest real analogue, a canonical snapshot of every lot's latest
+   *  proven-linked hash at this moment). Sorted by lot_id so the same
+   *  ledger state always produces the same checkpoint_hash regardless of
+   *  query-execution order. */
+  static async buildCompartmentCheckpoint(trx: Transaction<Database>, compartmentId: string): Promise<{ snapshot: { lotId: string; movementId: string; hash: string }[]; checkpointHash: string }> {
+    const tips = await trx.selectFrom('seal_movements as m')
+      .innerJoin('seal_lots as l', 'l.id', 'm.lot_id')
+      .where('l.compartment_id', '=', compartmentId)
+      .select(['m.lot_id', 'm.id', 'm.hash'])
+      .distinctOn('m.lot_id')
+      .orderBy('m.lot_id')
+      .orderBy('m.id', 'desc')
+      .execute();
+
+    // Each entry is always constructed with this exact literal key order
+    // (lotId, movementId, hash), so JSON.stringify's own deterministic
+    // insertion-order serialization already gives a stable, reproducible
+    // string — no key-sorting replacer needed (unlike computeMovementHash's
+    // payload, which is built from data whose key order isn't guaranteed).
+    const snapshot = tips
+      .map(t => ({ lotId: t.lot_id, movementId: String(t.id), hash: t.hash }))
+      .sort((a, b) => a.lotId.localeCompare(b.lotId));
+
+    const checkpointHash = createHash('sha256').update(JSON.stringify(snapshot)).digest('hex');
+
+    return { snapshot, checkpointHash };
+  }
 }

@@ -540,6 +540,25 @@ export interface SealYardSlotsTable {
   active: Generated<boolean>;
 }
 
+export interface SealLedgerAnchorsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  compartment_id: string;
+  checkpoint_hash: string;
+  snapshot: unknown; // JSONB [{lotId, movementId, hash}, ...]
+  lot_count: number;
+  ots_proof: Buffer;
+  ots_proof_upgraded: Buffer | null;
+  status: Generated<string>; // pending | confirmed | failed
+  bitcoin_block_height: number | null;
+  bitcoin_block_time: Date | null;
+  trigger: string; // manual | scheduled
+  requested_by: string | null;
+  error_message: string | null;
+  last_checked_at: Date | null;
+  created_at: Generated<Date>;
+}
+
 export interface SealFulfillmentOrdersTable {
   id: Generated<string>;
   tenant_id: string;
@@ -2302,6 +2321,7 @@ export interface Database {
   seal_dg_segregation_rules: SealDgSegregationRulesTable;
   seal_reefer_readings: SealReeferReadingsTable;
   seal_yard_slots: SealYardSlotsTable;
+  seal_ledger_anchors: SealLedgerAnchorsTable;
   seal_tasks: SealTasksTable;
   seal_equipment: SealEquipmentTable;
   seal_equipment_maintenance_records: SealEquipmentMaintenanceRecordsTable;
