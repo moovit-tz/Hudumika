@@ -61,6 +61,7 @@ const APP_ICONS: Record<AppId, IconName> = {
   calendar:  'calendar',
   tasks:     'checkSquare',
   seal:      'package',
+  inventory: 'package',
 };
 
 const APP_SUBTITLES: Partial<Record<AppId, string>> = {
@@ -82,6 +83,7 @@ const APP_SUBTITLES: Partial<Record<AppId, string>> = {
   store:     'Add-ons & Plugins',
   cargotracker:  'Cargo Tracking & Demurrage',
   seal:          'Bonded Warehouse Ledger',
+  inventory:     'Inventory Control',
 };
 
 export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav }: Props) {

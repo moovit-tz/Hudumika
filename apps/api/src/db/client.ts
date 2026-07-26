@@ -2135,7 +2135,58 @@ export interface LiveChatMessagesTable {
   created_at: Generated<Date>;
 }
 
+// ── Inventory Control (standalone app) ────────────────────────────────
+export interface InventoryWarehousesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  code: string;
+  name: string;
+  address: string | null;
+  active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface InventoryLocationsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  warehouse_id: string;
+  code: string;
+  name: string;
+  location_type: Generated<string>; // bin | shelf | floor | staging
+  is_pickable: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export interface InventoryItemsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  sku: string;
+  name: string;
+  product_id: string | null;
+  base_uom: Generated<string>;
+  item_type: Generated<string>; // raw_material | finished_good | retail | consumable
+  is_batch_tracked: Generated<boolean>;
+  reorder_point: string | null;
+  reorder_qty: string | null;
+  active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface InventoryItemUomsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  item_id: string;
+  uom_code: string;
+  conversion_factor: string;
+}
+
 export interface Database {
+  inventory_warehouses: InventoryWarehousesTable;
+  inventory_locations: InventoryLocationsTable;
+  inventory_items: InventoryItemsTable;
+  inventory_item_uoms: InventoryItemUomsTable;
   support_tickets: SupportTicketsTable;
   support_messages: SupportMessagesTable;
   support_groups: SupportGroupsTable;

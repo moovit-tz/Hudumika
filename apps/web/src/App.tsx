@@ -56,6 +56,7 @@ import { SuperAdminShell }   from './shells/SuperAdminShell.js';
 import { AIShell }      from './shells/AIShell.js';
 import { ComplyOSShell } from './shells/ComplyOSShell.js';
 import { SealShell } from './shells/SealShell.js';
+import { InventoryShell } from './shells/InventoryShell.js';
 import { EmailShell }   from './shells/EmailShell.js';
 import { CRMShell }     from './shells/CRMShell.js';
 import { ContactsShell } from './shells/ContactsShell.js';
@@ -305,6 +306,7 @@ const AppContent: React.FC = () => {
           <Route path="/ai/*"       element={<AIShell />} />
           <Route path="/complyos/*" element={<ComplyOSShell />} />
           <Route path="/seal/*"     element={<SealShell />} />
+          <Route path="/inventory/*" element={<InventoryShell />} />
           <Route path="/email/*"    element={<EmailShell />} />
           <Route path="/crm/*"      element={<CRMShell />} />
           <Route path="/contacts/*"  element={<ContactsShell />} />

@@ -75,6 +75,7 @@ import { sealEquipmentRoutes } from './routes/seal-equipment.routes.js';
 import { sealSensorsRoutes } from './routes/seal-sensors.routes.js';
 import { sealAutomationRoutes } from './routes/seal-automation.routes.js';
 import { sealFulfillmentRoutes } from './routes/seal-fulfillment.routes.js';
+import { inventoryCatalogRoutes } from './routes/inventory-catalog.routes.js';
 import { cmsRoutes } from './routes/cms.routes.js';
 import { complyOcrRoutes } from './routes/comply-ocr.routes.js';
 import { complyLegalRoutes } from './routes/comply-legal.routes.js';
@@ -266,6 +267,7 @@ async function main() {
     await server.register(sealSensorsRoutes, { prefix: '/v1/seal' });
     await server.register(sealAutomationRoutes, { prefix: '/v1/seal' });
     await server.register(sealFulfillmentRoutes, { prefix: '/v1/seal' });
+    await server.register(inventoryCatalogRoutes, { prefix: '/v1/inventory' });
     await server.register(cmsRoutes, { prefix: '/v1/cms' });
     await server.register(complyOcrRoutes, { prefix: '/v1/comply/ocr' });
     await server.register(complyLegalRoutes, { prefix: '/v1/comply/legal' });
