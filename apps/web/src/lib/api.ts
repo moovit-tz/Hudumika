@@ -1,4 +1,4 @@
-const BASE_URL = 'http://localhost:3001';
+export const BASE_URL = 'http://localhost:3001';
 
 export async function apiFetch(path: string, options: RequestInit = {}) {
   const token = localStorage.getItem('hudumika_token');

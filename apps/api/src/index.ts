@@ -95,7 +95,7 @@ import { packagesRoutes } from './routes/packages.routes.js';
 import { traRoutes } from './routes/tra.routes.js';
 import { customsRoutes } from './routes/customs.routes.js';
 import { tradeWizardRoutes } from './routes/trade-wizard.routes.js';
-import { filesRoutes } from './routes/files.routes.js';
+import { filesRoutes, filesPublicRoutes } from './routes/files.routes.js';
 import { drivesRoutes } from './routes/drives.routes.js';
 import supportRoutes from './routes/support.routes.js';
 import { platformRoutes } from './routes/platform.routes.js';
@@ -290,6 +290,7 @@ async function main() {
     await server.register(customsRoutes, { prefix: '/v1/customs' });
     await server.register(tradeWizardRoutes, { prefix: '/v1/customs/trade-wizard' });
     await server.register(filesRoutes, { prefix: '/v1/files' });
+    await server.register(filesPublicRoutes, { prefix: '/v1/files-public' });
     await server.register(drivesRoutes, { prefix: '/v1/drives' });
     await server.register(supportRoutes, { prefix: '/v1/support' });
     await server.register(platformRoutes, { prefix: '/v1/platform' });

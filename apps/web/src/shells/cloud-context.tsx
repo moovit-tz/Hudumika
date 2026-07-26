@@ -26,6 +26,7 @@ export interface CloudFile {
   created_at: string;
   updated_at: string;
   shared: SharedPerson[];
+  share_token: string | null;
 }
 
 export type StorageProvider = 'box' | 'dropbox' | 'mega' | 'onedrive';
@@ -112,7 +113,7 @@ export interface CloudCtxValue {
   restoreItem: (id: string) => Promise<void>;
   permanentlyDelete: (id: string) => Promise<void>;
   emptyTrash: () => Promise<void>;
-  shareItem: (id: string, shared: SharedPerson[]) => Promise<void>;
+  shareItem: (id: string, shared: SharedPerson[]) => Promise<{ share_token: string | null }>;
   downloadItem: (item: CloudFile) => Promise<void>;
 
   connections: StorageConnection[];
@@ -169,7 +170,7 @@ export const CloudCtx = createContext<CloudCtxValue>({
   restoreItem: noopAsync,
   permanentlyDelete: noopAsync,
   emptyTrash: noopAsync,
-  shareItem: noopAsync,
+  shareItem: async () => ({ share_token: null }),
   downloadItem: noopAsync,
   connections: [],
   connectionsLoading: false,
@@ -441,9 +442,17 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
     run(() => apiFetch('/v1/files/trash/empty', { method: 'POST', body: JSON.stringify({ drive_id: currentDriveId }) })),
   [loadData, currentDriveId]);
 
-  const shareItem = useCallback((id: string, shared: SharedPerson[]) =>
-    run(() => apiFetch(`/v1/files/${id}/share`, { method: 'PUT', body: JSON.stringify({ shared }) })),
-  [loadData]);
+  // Returns the response (not just void, unlike the other actions) so the
+  // caller can read back share_token immediately — the Share modal needs it
+  // to build a real "Copy link" URL without waiting for a stale local
+  // snapshot to catch up with the next loadData() refresh.
+  const shareItem = useCallback(async (id: string, shared: SharedPerson[]): Promise<{ share_token: string | null }> => {
+    let result: { share_token: string | null } = { share_token: null };
+    await run(async () => {
+      result = await apiFetch(`/v1/files/${id}/share`, { method: 'PUT', body: JSON.stringify({ shared }) });
+    });
+    return result;
+  }, [loadData]);
 
   const downloadItem = useCallback(async (item: CloudFile) => {
     try {

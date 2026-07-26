@@ -1,8 +1,9 @@
+import crypto from 'crypto';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
-import { withTenant } from '../db/client.js';
+import { withTenant, db } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 
 function extOf(name: string) {
@@ -184,6 +185,21 @@ async function seedSampleFiles(trx: Transaction<Database>, tenantId: string, dri
     }
     if (doneIdxs.length === 0) break; // safety valve against a bad parentKey
     for (let i = doneIdxs.length - 1; i >= 0; i--) remaining.splice(doneIdxs[i], 1);
+  }
+
+  // The SEED table above hand-writes each folder's fileCount/size as flavor
+  // text (e.g. "47 files / 2.3GB") — numbers that never matched the handful
+  // of rows actually seeded underneath. Recompute every folder's real
+  // direct-child count/size from what was actually inserted, the same way
+  // bumpParentCount keeps it correct for every real upload/delete afterward.
+  const folderIds = [...idMap.values()];
+  for (const folderId of folderIds) {
+    const agg = await trx.selectFrom('cloud_files')
+      .select(({ fn }) => [fn.countAll<number>().as('n'), fn.sum<string>('size').as('total_size')])
+      .where('parent_id', '=', folderId).executeTakeFirst();
+    await trx.updateTable('cloud_files')
+      .set({ file_count: Number(agg?.n ?? 0), size: agg?.total_size != null ? Number(agg.total_size) : 0 })
+      .where('id', '=', folderId).execute();
   }
 }
 
@@ -433,14 +449,18 @@ export async function filesRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // PUT /:id/share — replace the sharing list (name + Viewer/Editor role)
+  // PUT /:id/share — replace the sharing list (name + Viewer/Editor role).
+  // Also maintains share_token: set (generating one if absent) whenever the
+  // file ends up with at least one share, cleared when the last share is
+  // removed — so a real public link only ever resolves while a share
+  // genuinely exists, and revoking all shares invalidates it.
   fastify.put('/:id/share', async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const { shared } = req.body as { shared: { name: string; role: 'Viewer' | 'Editor' }[] };
     try {
       return await withTenant(user.tenant_id, async (trx) => {
-        const file = await trx.selectFrom('cloud_files').select(['id'])
+        const file = await trx.selectFrom('cloud_files').select(['id', 'share_token', 'type'])
           .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
         if (!file) return reply.status(404).send({ error: 'Not found' });
 
@@ -450,13 +470,19 @@ export async function filesRoutes(fastify: FastifyInstance) {
             shared.map(s => ({ file_id: id, person_name: s.name, role: s.role }))
           ).execute();
         }
-        await trx.updateTable('cloud_files').set({ updated_at: new Date() }).where('id', '=', id).execute();
-        return { shared: shared ?? [] };
+        const shareToken = shared?.length
+          ? (file.share_token ?? crypto.randomUUID())
+          : null;
+        await trx.updateTable('cloud_files').set({ updated_at: new Date(), share_token: shareToken }).where('id', '=', id).execute();
+        return { shared: shared ?? [], share_token: shareToken };
       });
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
   });
+
+  // (filesPublicRoutes, registered separately with no auth hook, serves the
+  // actual "Copy link" download below.)
 
   // ── Connected Apps: Box / Dropbox / Mega (framework only — connect/disconnect
   // and "sync now" are real, persisted, per-tenant state; the actual file
@@ -578,5 +604,35 @@ export async function filesRoutes(fastify: FastifyInstance) {
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
+  });
+}
+
+/**
+ * Public (unauthenticated) file-sharing surface — deliberately a separate
+ * plugin with no fastify.authenticate/requireEntitlement hooks, since the
+ * whole point of a share link is that someone without a Hudumika account
+ * can open it. share_token is the only credential; it's a random UUID with
+ * its own unique index, and is set (see PUT /:id/share above) only while
+ * the file genuinely has at least one active share, so this can never
+ * expose a file no one chose to share, and revoking the last share clears
+ * the token, invalidating any link a user already copied.
+ *
+ * This intentionally queries `db` directly rather than `withTenant` — the
+ * caller has no tenant context at all (no JWT), so the token itself, not a
+ * tenant_id, is what scopes the lookup to exactly one row.
+ */
+export async function filesPublicRoutes(fastify: FastifyInstance) {
+  fastify.get('/:token/download', async (req, reply) => {
+    const { token } = req.params as { token: string };
+    const file = await db.selectFrom('cloud_files').selectAll()
+      .where('share_token', '=', token).where('is_trash', '=', false).executeTakeFirst();
+    if (!file) return reply.status(404).send({ error: 'This link is invalid or has been revoked.' });
+    if (file.type === 'folder') return reply.status(400).send({ error: "Folders can't be shared via a public link yet." });
+    if (!file.storage_key) return reply.status(404).send({ error: 'File content not available' });
+    const buf = MinioIntegration.readFile(file.storage_key);
+    if (!buf) return reply.status(404).send({ error: 'File content not found' });
+    reply.header('Content-Disposition', `inline; filename="${file.name.replace(/"/g, '')}"`);
+    reply.header('Content-Type', file.mime_type || 'application/octet-stream');
+    return reply.send(buf);
   });
 }

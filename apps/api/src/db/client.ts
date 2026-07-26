@@ -4194,6 +4194,7 @@ export interface CloudFilesTable {
   trashed_at:  Date | null;
   storage_key: string | null;
   mime_type:   string | null;
+  share_token: string | null;
   created_at:  Generated<Date>;
   updated_at:  Generated<Date>;
 }

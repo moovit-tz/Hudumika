@@ -8,6 +8,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '../components/ui/dropdown-menu.js';
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from '../components/ui/context-menu.js';
 import { showConfirm } from '../lib/confirm.js';
+import { showAlert } from '../lib/alert.js';
+import { BASE_URL } from '../lib/api.js';
 
 const PROVIDER_VIEWS: StorageProvider[] = ['box', 'dropbox', 'mega', 'onedrive'];
 
@@ -90,6 +92,8 @@ function FileIcon({ type, size=36 }: { type: string; size?: number }) {
    DropdownMenuContent (kebab-button trigger) or a ContextMenuContent
    (right-click trigger) depending on which wraps it. ── */
 export interface FileMenuHandlers {
+  onOpen: (item: CloudFile) => void;
+  onRename: (item: CloudFile) => void;
   onStar: (item: CloudFile) => void;
   onDelete: (item: CloudFile) => void;
   onDownload: (item: CloudFile) => void;
@@ -106,7 +110,8 @@ function fileMenuEntries(item: CloudFile, isTrashed: boolean, h: FileMenuHandler
         { icon:'trash2' as IconName,   label:'Delete forever', action:()=>h.onPermanentDelete(item), danger:true },
       ]
     : [
-        { icon:'eye' as IconName,         label:'Preview',     action:()=>{} },
+        { icon:'eye' as IconName,         label:'Preview',     action:()=>h.onOpen(item) },
+        { icon:'edit' as IconName,        label:'Rename',      action:()=>h.onRename(item) },
         ...(item.type !== 'folder' ? [{ icon:'download' as IconName, label:'Download', action:()=>h.onDownload(item) }] : []),
         { icon:'userPlus' as IconName,    label:'Share',       action:()=>h.onShare(item) },
         { icon:'folderOpen' as IconName,  label:'Move to',     action:()=>h.onMove(item) },
@@ -327,10 +332,13 @@ function FileRow({ item, selected, onClick, onDoubleClick, onContextMenuOpen, on
 
 /* ── Share Modal ── */
 function ShareModal({ item, onClose, onSave }: { item: CloudFile; onClose: ()=>void; onSave: (shared: SharedPerson[])=>void }) {
+  const { shareItem } = useCloud();
   const [people, setPeople] = useState<SharedPerson[]>(item.shared ?? []);
   const [name, setName] = useState('');
   const [role, setRole] = useState<'Viewer'|'Editor'>('Viewer');
   const [copied, setCopied] = useState(false);
+  const [linkBusy, setLinkBusy] = useState(false);
+  const [shareToken, setShareToken] = useState<string | null>(item.share_token);
 
   function addPerson() {
     const n = name.trim();
@@ -338,6 +346,28 @@ function ShareModal({ item, onClose, onSave }: { item: CloudFile; onClose: ()=>v
     if (people.some(p => p.name.toLowerCase() === n.toLowerCase())) { setName(''); return; }
     setPeople(prev => [...prev, { name: n, role }]);
     setName('');
+  }
+
+  // The link only ever resolves while the file genuinely has at least one
+  // share (see PUT /:id/share) — so "Copy link" saves the current people
+  // list first (if it hasn't been saved yet) to actually get a real token,
+  // rather than copying a URL that would 404.
+  async function copyLink() {
+    if (item.type === 'folder') { showAlert("Folders can't be shared via a public link yet."); return; }
+    if (people.length === 0) { showAlert('Add at least one person first — a link only works while this item is actually shared.'); return; }
+    setLinkBusy(true);
+    try {
+      const token = shareToken ?? (await shareItem(item.id, people)).share_token;
+      if (!token) { showAlert('Could not generate a link.'); return; }
+      setShareToken(token);
+      await navigator.clipboard?.writeText(`${BASE_URL}/v1/files-public/${token}/download`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to generate link.');
+    } finally {
+      setLinkBusy(false);
+    }
   }
 
   return (
@@ -396,10 +426,11 @@ function ShareModal({ item, onClose, onSave }: { item: CloudFile; onClose: ()=>v
 
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:14, borderTop:'1px solid var(--border)' }}>
           <button
-            onClick={() => { navigator.clipboard?.writeText(`https://cloud.hudumika.app/share/${item.id}`).catch(()=>{}); setCopied(true); setTimeout(()=>setCopied(false), 1600); }}
-            style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor:'pointer', color: GD.blue, fontSize:'var(--text-base)', fontWeight:600, padding:0 }}
+            onClick={copyLink}
+            disabled={linkBusy}
+            style={{ display:'flex', alignItems:'center', gap:6, background:'none', border:'none', cursor: linkBusy ? 'wait' : 'pointer', color: GD.blue, fontSize:'var(--text-base)', fontWeight:600, padding:0, opacity: linkBusy ? 0.6 : 1 }}
           >
-            <Icon name="link" size={14} color={GD.blue} /> {copied ? 'Link copied' : 'Copy link'}
+            <Icon name="link" size={14} color={GD.blue} /> {linkBusy ? 'Generating…' : copied ? 'Link copied' : 'Copy link'}
           </button>
           <div style={{ display:'flex', gap:10 }}>
             <button onClick={onClose} className="btn btn-secondary btn-sm">Cancel</button>
@@ -667,7 +698,7 @@ export const FileManager: React.FC = () => {
     files, loading, error, dismissError,
     currentView, currentFolderId, breadcrumb, openFolder, navToBreadcrumb, goToView,
     previewItemId, setPreviewItemId, search,
-    uploadFiles, starItem, moveItem,
+    uploadFiles, starItem, moveItem, renameItem,
     trashItem, restoreItem, permanentlyDelete, emptyTrash, shareItem, downloadItem,
     connections, loadConnections,
   } = useCloud();
@@ -687,6 +718,8 @@ export const FileManager: React.FC = () => {
   const [lastAnchorId, setLastAnchorId] = useState<string|null>(null);
   const [shareTarget, setShareTarget] = useState<CloudFile|null>(null);
   const [moveTarget, setMoveTarget] = useState<string[]|null>(null);
+  const [renameTarget, setRenameTarget] = useState<CloudFile|null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   const catExt: Record<string, string[]> = {
     documents: ['pdf','docx','doc','xlsx','xls','csv','pptx','txt','xml'],
@@ -784,7 +817,15 @@ export const FileManager: React.FC = () => {
     setSelectedIds(prev => prev.has(item.id) ? prev : new Set([item.id]));
   }
 
+  function openRename(item: CloudFile) { setRenameTarget(item); setRenameValue(item.name); }
+  function confirmRename() {
+    if (!renameTarget || !renameValue.trim()) return;
+    renameItem(renameTarget.id, renameValue.trim());
+    setRenameTarget(null);
+  }
+
   const menuHandlers: FileMenuHandlers = {
+    onOpen: openItem, onRename: openRename,
     onStar: handleStar, onDelete: handleDelete, onDownload: handleDownload,
     onShare: setShareTarget, onMove: i => setMoveTarget([i.id]),
     onRestore: handleRestore, onPermanentDelete: handlePermanentDelete,
@@ -1052,6 +1093,30 @@ export const FileManager: React.FC = () => {
           onClose={()=>setShareTarget(null)}
           onSave={shared => shareItem(shareTarget.id, shared)}
         />
+      )}
+
+      {/* ── Rename Modal ── */}
+      {renameTarget && (
+        <div className="modal-overlay" onClick={()=>setRenameTarget(null)}>
+          <div className="card" style={{ width:380, padding:24 }} onClick={e=>e.stopPropagation()}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+              <span style={{ fontSize:'var(--text-lg)', fontWeight:700, color:'var(--ink)' }}>Rename {renameTarget.type==='folder' ? 'folder' : 'file'}</span>
+              <button onClick={()=>setRenameTarget(null)} className="dp-close"><Icon name="close" size={16} /></button>
+            </div>
+            <input
+              autoFocus
+              value={renameValue}
+              onChange={e=>setRenameValue(e.target.value)}
+              onKeyDown={e=>{ if (e.key==='Enter') confirmRename(); }}
+              className="input-field"
+              style={{ width:'100%', marginBottom:20 }}
+            />
+            <div style={{ display:'flex', gap:10, justifyContent:'flex-end' }}>
+              <button onClick={()=>setRenameTarget(null)} className="btn btn-secondary btn-sm">Cancel</button>
+              <button onClick={confirmRename} className="btn btn-primary btn-sm" disabled={!renameValue.trim()}>Save</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── Move-to Modal ── */}
