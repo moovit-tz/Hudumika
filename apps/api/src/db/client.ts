@@ -581,6 +581,18 @@ export interface SealLedgerAnchorsTable {
   created_at: Generated<Date>;
 }
 
+export interface DeclarationEventsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  declaration_id: string;
+  occurred_at: Generated<Date>;
+  actor_id: string | null;
+  event_type: string;
+  payload: unknown; // JSONB
+  prev_hash: string | null;
+  hash: string;
+}
+
 export interface DomainEventsTable {
   id: Generated<string>;
   tenant_id: string;
@@ -2384,6 +2396,7 @@ export interface Database {
   declaration_notices: DeclarationNoticesTable;
   tax_lines: TaxLinesTable;
   declaration_attachments: DeclarationAttachmentsTable;
+  declaration_events: DeclarationEventsTable;
   // Demurrage Engine
   demurrage_tariffs: DemurrageTariffsTable;
   container_tracking: ContainerTrackingTable;

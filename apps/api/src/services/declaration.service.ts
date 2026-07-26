@@ -1,4 +1,7 @@
+import { createHash } from 'crypto';
 import { withTenant } from '../db/client.js';
+import type { Transaction } from 'kysely';
+import type { Database } from '../db/client.js';
 import { NotificationService } from './notification.service.js';
 import { emitDomainEvent } from './domain-events.service.js';
 import type {
@@ -9,6 +12,29 @@ import type {
   CreateDeclarationItemInput,
   CreateDeclarationNoticeInput,
 } from '@hudumika/types';
+
+/** hash = sha256(prev_hash || canonical_json(payload) || occurred_at || actor_id) — same convention as SEAL's seal_movements chain (seal.service.ts). */
+function computeDeclarationEventHash(prevHash: string | null, payload: Record<string, unknown>, occurredAtIso: string, actorId: string | null): string {
+  const canonical = JSON.stringify(payload, Object.keys(payload).sort());
+  return createHash('sha256').update((prevHash ?? '') + canonical + occurredAtIso + (actorId ?? '')).digest('hex');
+}
+
+/** Appends one row to a declaration's append-only chain. Must be called from inside the same transaction as the mutation it's recording. */
+async function recordDeclarationEvent(
+  trx: Transaction<Database>, tenantId: string, declarationId: string,
+  actorId: string | null, eventType: string, payload: Record<string, unknown>,
+): Promise<void> {
+  const last = await trx.selectFrom('declaration_events').select('hash')
+    .where('declaration_id', '=', declarationId).orderBy('id', 'desc').executeTakeFirst();
+  const prevHash = last?.hash ?? null;
+  const occurredAt = new Date();
+  const hash = computeDeclarationEventHash(prevHash, payload, occurredAt.toISOString(), actorId);
+  await trx.insertInto('declaration_events').values({
+    tenant_id: tenantId, declaration_id: declarationId, occurred_at: occurredAt,
+    actor_id: actorId, event_type: eventType, payload: JSON.stringify(payload),
+    prev_hash: prevHash, hash,
+  }).execute();
+}
 
 export class DeclarationService {
   /**
@@ -71,6 +97,11 @@ export class DeclarationService {
         .where('id', '=', input.shipment_id)
         .execute();
 
+      await recordDeclarationEvent(trx, tenantId, declaration.id, null, 'CREATED', {
+        tancis_ref: declaration.tancis_ref, shipment_id: declaration.shipment_id,
+        importer_name: declaration.importer_name, total_invoice_value: Number(declaration.total_invoice_value),
+      });
+
       return declaration;
     });
   }
@@ -81,7 +112,8 @@ export class DeclarationService {
   static async updateStatus(
     tenantId: string,
     declarationId: string,
-    newStatus: DeclarationStatus
+    newStatus: DeclarationStatus,
+    actorId: string | null = null
   ) {
     return withTenant(tenantId, async (trx) => {
       const now = new Date();
@@ -112,6 +144,10 @@ export class DeclarationService {
         .where('id', '=', declarationId)
         .returningAll()
         .executeTakeFirstOrThrow();
+
+      await recordDeclarationEvent(trx, tenantId, declarationId, actorId, newStatus, {
+        status: newStatus, tancis_ref: updated.tancis_ref,
+      });
 
       // When transferred, also update shipment stage
       if (newStatus === 'TRANSFERRED') {
@@ -481,7 +517,8 @@ export class DeclarationService {
     tenantId: string,
     shipmentId: string,
     input: Record<string, any>,
-    items: Array<Record<string, any>>
+    items: Array<Record<string, any>>,
+    actorId: string | null = null
   ) {
     return withTenant(tenantId, async (trx) => {
       const now = new Date();
@@ -498,6 +535,7 @@ export class DeclarationService {
       const values: any = { ...input, tenant_id: tenantId, shipment_id: shipmentId, updated_at: now };
 
       let declaration;
+      let chainEventType: 'CREATED' | 'AMENDED';
       if (shipment.declaration_id) {
         declaration = await trx
           .updateTable('declarations')
@@ -505,12 +543,14 @@ export class DeclarationService {
           .where('id', '=', shipment.declaration_id)
           .returningAll()
           .executeTakeFirstOrThrow();
+        chainEventType = 'AMENDED';
       } else {
         declaration = await trx
           .insertInto('declarations')
           .values({ ...values, status: 'DRAFT', created_at: now })
           .returningAll()
           .executeTakeFirstOrThrow();
+        chainEventType = 'CREATED';
 
         await trx
           .updateTable('shipment_cases')
@@ -518,6 +558,11 @@ export class DeclarationService {
           .where('id', '=', shipmentId)
           .execute();
       }
+
+      await recordDeclarationEvent(trx, tenantId, declaration.id, actorId, chainEventType, {
+        tancis_ref: values.tancis_ref, importer_name: values.importer_name,
+        total_invoice_value: Number(values.total_invoice_value) || 0, item_count: items.length,
+      });
 
       // Full replace of line items — this tab saves the whole form at once,
       // not incremental line-by-line adds like the SEAL declaration flow.
@@ -560,6 +605,26 @@ export class DeclarationService {
         .execute();
 
       return { ...declaration, items: savedItems };
+    });
+  }
+
+  /** Re-derives every declaration_events row's hash from its stored payload
+   *  and confirms the chain hasn't been rewritten — mirrors SealService.verifyChain. */
+  static async verifyChain(tenantId: string, declarationId: string): Promise<{ valid: boolean; brokenAtEventId: string | null; checked: number }> {
+    return withTenant(tenantId, async (trx) => {
+      const events = await trx.selectFrom('declaration_events').selectAll()
+        .where('declaration_id', '=', declarationId).orderBy('id', 'asc').execute();
+
+      let prevHash: string | null = null;
+      for (const e of events) {
+        const payload = typeof e.payload === 'string' ? JSON.parse(e.payload) : e.payload;
+        const expected = computeDeclarationEventHash(prevHash, payload as Record<string, unknown>, new Date(e.occurred_at as any).toISOString(), e.actor_id);
+        if (expected !== e.hash || (e.prev_hash ?? null) !== prevHash) {
+          return { valid: false, brokenAtEventId: String(e.id), checked: events.length };
+        }
+        prevHash = e.hash;
+      }
+      return { valid: true, brokenAtEventId: null, checked: events.length };
     });
   }
 

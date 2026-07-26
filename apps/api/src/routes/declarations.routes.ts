@@ -114,13 +114,25 @@ export async function declarationRoutes(fastify: FastifyInstance) {
       const { items, ...fields } = request.body as { items?: Array<Record<string, any>> } & Record<string, any>;
 
       try {
-        const saved = await DeclarationService.upsertByShipment(user.tenant_id, shipmentId, fields, items || []);
+        const saved = await DeclarationService.upsertByShipment(user.tenant_id, shipmentId, fields, items || [], user.sub);
         return saved;
       } catch (error: any) {
         return reply.status(400).send({ error: error.message || 'Failed to save declaration' });
       }
     }
   );
+
+  /**
+   * GET /v1/declarations/:id/verify-chain
+   * Re-derives every declaration_events row's hash and confirms the
+   * append-only chain hasn't been rewritten — mirrors SEAL's
+   * GET /lots/:id/verify-chain.
+   */
+  fastify.get('/:id/verify-chain', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return DeclarationService.verifyChain(user.tenant_id, id);
+  });
 
   /**
    * PATCH /v1/declarations/:id/status
@@ -142,7 +154,8 @@ export async function declarationRoutes(fastify: FastifyInstance) {
         const updated = await DeclarationService.updateStatus(
           user.tenant_id,
           id,
-          status
+          status,
+          user.sub
         );
 
         // Broadcast WebSocket event
