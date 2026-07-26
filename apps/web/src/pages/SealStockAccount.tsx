@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -21,6 +22,7 @@ interface Line {
 }
 
 export function SealStockAccount() {
+  const isMobile = useIsMobile();
   const [compartments, setCompartments] = useState<Compartment[]>([]);
   const [periods, setPeriods] = useState<Period[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,7 +113,7 @@ export function SealStockAccount() {
 
       {showNew && (
         <form onSubmit={handleGenerate} className="seal-card" style={{ marginBottom: 20 }}>
-          <div style={{ padding: 20, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, alignItems: 'flex-end' }}>
+          <div style={{ padding: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 14, alignItems: 'flex-end' }}>
             <div className="seal-field-row">
               <label className="seal-field-label">Compartment</label>
               <Select value={newCompartmentId} onValueChange={setNewCompartmentId}>

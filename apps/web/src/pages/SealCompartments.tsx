@@ -119,15 +119,14 @@ export function SealCompartments() {
       {/* Header matching Image Two */}
       <div className="seal-page-hdr" style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1 className="seal-page-title" style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0' }}>Compartments</h1>
-          <p className="seal-page-sub" style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
+          <h1 className="seal-page-title">Compartments</h1>
+          <p className="seal-page-sub">
             Separately-licensed bonded perimeters — each with its own zones and locations underneath.
           </p>
         </div>
         <button
           type="button"
           className="seal-btn-primary"
-          style={{ background: '#0f172a', color: '#ffffff', borderRadius: 8, padding: '10px 18px', fontWeight: 700, fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer', border: 'none' }}
           onClick={() => setShowNewCompartment(v => !v)}
         >
           <Icon name="plus" size={14} />
@@ -137,7 +136,7 @@ export function SealCompartments() {
 
       {/* New Compartment Collapsible Form */}
       {showNewCompartment && (
-        <form onSubmit={handleCreateCompartment} className="seal-card" style={{ marginBottom: 20, padding: 20, background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: 14 }}>
+        <form onSubmit={handleCreateCompartment} className="seal-card" style={{ marginBottom: 20, padding: 20 }}>
           <h3 style={{ fontSize: 15, fontWeight: 700, margin: '0 0 14px' }}>Register New Bonded Compartment / ICD</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 16 }}>
             <div>
@@ -182,26 +181,25 @@ export function SealCompartments() {
             return (
               <div
                 key={c.id}
+                className="seal-card"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 12,
                   padding: '16px 20px',
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 14,
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                   position: 'relative',
                   opacity: isSuspended ? 0.75 : 1,
                 }}
               >
                 {/* Left Section: Icon & Info */}
                 <div
-                  style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, cursor: 'pointer' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 220, cursor: 'pointer' }}
                   onClick={() => navigate(`/seal/compartments/${c.id}`)}
                 >
                   {c.logo_url ? (
-                    <div style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid #e2e8f0', overflow: 'hidden', padding: 3, background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', padding: 3, background: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <img src={c.logo_url} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                     </div>
                   ) : (
@@ -211,22 +209,21 @@ export function SealCompartments() {
                   )}
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>{c.name}</span>
+                      <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{c.name}</span>
                       {isSuspended && <Badge variant="error">SUSPENDED</Badge>}
                     </div>
-                    <div className="seal-mono" style={{ fontSize: 12, color: '#94a3b8', marginTop: 3 }}>
+                    <div className="seal-mono" style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 3 }}>
                       {c.code} · {c.warehouse_type.toLowerCase()} · {c.jurisdiction} · {c.default_storage_days}d storage
                     </div>
                   </div>
                 </div>
 
                 {/* Right Section: Action Buttons */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', position: 'relative' }}>
                   {c.warehouse_type === 'sorting_centre' && (
                     <button
                       type="button"
                       className="seal-btn-secondary"
-                      style={{ height: 36, padding: '0 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                       onClick={() => navigate(`/seal/compartments/${c.id}/sorting-dashboard`)}
                     >
                       <Icon name="arrowUpDown" size={13} />
@@ -237,7 +234,6 @@ export function SealCompartments() {
                   <button
                     type="button"
                     className="seal-btn-secondary"
-                    style={{ height: 36, padding: '0 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                     onClick={() => navigate(`/seal/compartments/${c.id}/layout`)}
                   >
                     <Icon name="warehouse" size={13} />
@@ -247,7 +243,6 @@ export function SealCompartments() {
                   <button
                     type="button"
                     className="seal-btn-secondary"
-                    style={{ height: 36, padding: '0 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                     onClick={() => navigate(`/seal/compartments/${c.id}/heat-grid`)}
                   >
                     <Icon name="grid" size={13} />
@@ -258,7 +253,8 @@ export function SealCompartments() {
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        style={{ height: 36, width: 36, borderRadius: 8, border: '1px solid #cbd5e1', background: '#ffffff', color: '#0f172a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                        className="seal-btn-secondary"
+                        style={{ padding: '9px', aspectRatio: '1 / 1' }}
                       >
                         <Icon name="chevronDown" size={15} />
                       </button>

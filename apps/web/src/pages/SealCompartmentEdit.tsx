@@ -162,8 +162,8 @@ export function SealCompartmentEdit() {
       {/* Main Form */}
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Section 1: Facility Branding & Logo */}
-        <div className="seal-card" style={{ padding: 24, background: '#ffffff', borderRadius: 14 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="seal-card" style={{ padding: 24 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="image" size={18} style={{ color: 'var(--seal)' }} />
             Facility Branding & Logo
           </h2>
@@ -171,14 +171,14 @@ export function SealCompartmentEdit() {
           <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             {/* Logo Preview Container */}
             <div style={{
-              width: 110, height: 110, borderRadius: 14, border: '2px dashed #cbd5e1',
+              width: 110, height: 110, borderRadius: 14, border: '2px dashed var(--border)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              overflow: 'hidden', background: '#f8fafc', position: 'relative'
+              overflow: 'hidden', background: 'var(--bg)', position: 'relative'
             }}>
               {logoUrl ? (
                 <img src={logoUrl} alt="Facility Logo" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 8 }} />
               ) : (
-                <div style={{ textAlign: 'center', color: '#94a3b8', padding: 10 }}>
+                <div style={{ textAlign: 'center', color: 'var(--ink3)', padding: 10 }}>
                   <Icon name="warehouse" size={28} />
                   <div style={{ fontSize: 10, marginTop: 4, fontWeight: 600 }}>No Logo</div>
                 </div>
@@ -195,7 +195,7 @@ export function SealCompartmentEdit() {
                   onChange={handleLogoFileUpload}
                   style={{ fontSize: 13, display: 'block', marginTop: 4 }}
                 />
-                <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 4 }}>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 4 }}>
                   Supports PNG, JPG, SVG, or WEBP (Max 3MB).
                 </div>
               </div>
@@ -215,7 +215,7 @@ export function SealCompartmentEdit() {
               {logoUrl && (
                 <button
                   type="button"
-                  style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                  style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--red)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0 }}
                   onClick={() => setLogoUrl('')}
                 >
                   Remove Logo
@@ -226,8 +226,8 @@ export function SealCompartmentEdit() {
         </div>
 
         {/* Section 2: Perimeter Core Details */}
-        <div className="seal-card" style={{ padding: 24, background: '#ffffff', borderRadius: 14 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="seal-card" style={{ padding: 24 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="layers" size={18} style={{ color: 'var(--seal)' }} />
             Perimeter Specifications
           </h2>
@@ -266,8 +266,8 @@ export function SealCompartmentEdit() {
         </div>
 
         {/* Section 3: Customs Licensing */}
-        <div className="seal-card" style={{ padding: 24, background: '#ffffff', borderRadius: 14 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="seal-card" style={{ padding: 24 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="shield" size={18} style={{ color: 'var(--seal)' }} />
             Customs Licensing & Compliance
           </h2>
@@ -291,8 +291,8 @@ export function SealCompartmentEdit() {
         </div>
 
         {/* Section 4: FinOps Billing Rates */}
-        <div className="seal-card" style={{ padding: 24, background: '#ffffff', borderRadius: 14 }}>
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="seal-card" style={{ padding: 24 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="dollarSign" size={18} style={{ color: 'var(--seal)' }} />
             FinOps Billing & Storage Fees
           </h2>

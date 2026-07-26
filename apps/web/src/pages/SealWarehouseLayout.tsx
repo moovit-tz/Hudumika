@@ -6,6 +6,7 @@ import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '../com
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { SealWarehouse3D } from '../components/SealWarehouse3D.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import './Seal.css';
 
 interface TierLot { id: string; description: string; qtyOnHand: number; uom: string; }
@@ -49,6 +50,7 @@ function formatVolumeDisplay(cbm: number): string {
 export function SealWarehouseLayout() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [data, setData] = useState<Layout | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeFloor, setActiveFloor] = useState(0);
@@ -120,48 +122,48 @@ export function SealWarehouseLayout() {
           gap: 16,
           marginBottom: 24,
         }}>
-          <div className="seal-card" style={{ padding: '18px 20px', background: '#ffffff', borderRadius: 14 }}>
+          <div className="seal-card" style={{ padding: '18px 20px', borderRadius: 14 }}>
             <div style={{ fontSize: 24, fontWeight: 800, color: bandColor(data.overallOccupancyPct), lineHeight: 1.1 }}>
               {data.overallOccupancyPct}%
             </div>
-            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginTop: 6 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink3)', marginTop: 6 }}>
               Overall Occupancy
             </div>
           </div>
 
-          <div className="seal-card" style={{ padding: '18px 20px', background: '#ffffff', borderRadius: 14 }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
-              {data.occupiedSlots} <span style={{ fontSize: 16, fontWeight: 600, color: '#94a3b8' }}>/ {data.totalSlots}</span>
+          <div className="seal-card" style={{ padding: '18px 20px', borderRadius: 14 }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.1 }}>
+              {data.occupiedSlots} <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink3)' }}>/ {data.totalSlots}</span>
             </div>
-            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginTop: 6 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink3)', marginTop: 6 }}>
               Slots Used
             </div>
           </div>
 
-          <div className="seal-card" style={{ padding: '18px 20px', background: '#ffffff', borderRadius: 14 }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
+          <div className="seal-card" style={{ padding: '18px 20px', borderRadius: 14 }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.1 }}>
               {data.remainingSlots}
             </div>
-            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginTop: 6 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink3)', marginTop: 6 }}>
               Remaining Space
             </div>
           </div>
 
-          <div className="seal-card" style={{ padding: '18px 20px', background: '#ffffff', borderRadius: 14 }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
+          <div className="seal-card" style={{ padding: '18px 20px', borderRadius: 14 }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.1 }}>
               {data.lotCount.toLocaleString()}
             </div>
-            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginTop: 6 }}>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink3)', marginTop: 6 }}>
               Lots On Hand
             </div>
           </div>
 
           {data.volumeCapacityCbm > 0 && (
-            <div className="seal-card" style={{ padding: '18px 20px', background: '#ffffff', borderRadius: 14 }}>
+            <div className="seal-card" style={{ padding: '18px 20px', borderRadius: 14 }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: bandColor(Math.round((data.volumeUsedCbm / data.volumeCapacityCbm) * 100)), lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {formatVolumeDisplay(data.volumeUsedCbm)} / {formatVolumeDisplay(data.volumeCapacityCbm)}
               </div>
-              <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginTop: 6 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink3)', marginTop: 6 }}>
                 Volume Used
               </div>
             </div>
@@ -188,7 +190,6 @@ export function SealWarehouseLayout() {
                 type="button"
                 className={activeFloor === f.floorLevel ? 'seal-btn-primary' : 'seal-btn-secondary'}
                 onClick={() => setActiveFloor(f.floorLevel)}
-                style={{ padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700 }}
               >
                 <Icon name="layers" size={14} />
                 <span>{f.label}</span>
@@ -199,13 +200,13 @@ export function SealWarehouseLayout() {
         )}
 
         {viewMode === '2d' && floor && (
-          <div style={{ display: 'grid', gridTemplateColumns: selectedLoc ? '1fr 320px' : '1fr', gap: 20 }}>
-            <div className="seal-card" style={{ padding: 24, background: '#ffffff', borderRadius: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: selectedLoc && !isMobile ? '1fr 320px' : '1fr', gap: 20 }}>
+            <div className="seal-card" style={{ padding: 24, borderRadius: 14 }}>
               {/* Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Icon name="warehouse" size={18} style={{ color: 'var(--seal)' }} />
-                  <h2 className="seal-card-title" style={{ fontSize: 16, margin: 0, fontWeight: 800, color: '#0f172a' }}>{floor.label} Plan</h2>
+                  <h2 className="seal-card-title" style={{ fontSize: 16, margin: 0, fontWeight: 800, color: 'var(--ink)' }}>{floor.label} Plan</h2>
                 </div>
                 <div style={{ display: 'flex', gap: 14, fontSize: 12, color: 'var(--ink3)' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--green)' }} /> 0-60%</span>
@@ -249,11 +250,11 @@ export function SealWarehouseLayout() {
                             onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
                           >
                             {loc.flagged && <Icon name="alertTriangle" size={13} style={{ position: 'absolute', top: 6, right: 6, color: 'var(--red)' }} />}
-                            <div style={{ fontWeight: 800, fontSize: 13.5, color: '#0f172a' }}>{loc.code}</div>
+                            <div style={{ fontWeight: 800, fontSize: 13.5, color: 'var(--ink)' }}>{loc.code}</div>
                             <div style={{ fontSize: 12, color: bandColor(loc.occupancyPct), fontWeight: 800, marginTop: 4 }}>
                               {loc.occupancyPct}%
                             </div>
-                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                            <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>
                               {loc.lotCount} {loc.lotCount === 1 ? 'lot' : 'lots'} ({loc.maxStackTiers}T)
                             </div>
                           </div>
@@ -272,9 +273,9 @@ export function SealWarehouseLayout() {
 
             {/* Selected Location Inspector Drawer */}
             {selectedLoc && (
-              <div className="seal-card" style={{ padding: 20, background: '#ffffff', borderRadius: 14, border: '1px solid #e2e8f0' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid #f1f5f9' }}>
-                  <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: '#0f172a' }}>{selectedLoc.code} Rack Details</h3>
+              <div className="seal-card" style={{ padding: 20, borderRadius: 14, border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid var(--bg)' }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: 'var(--ink)' }}>{selectedLoc.code} Rack Details</h3>
                   <button type="button" onClick={() => setSelectedLoc(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                     <Icon name="close" size={16} />
                   </button>
@@ -282,33 +283,33 @@ export function SealWarehouseLayout() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
                   <div>
-                    <span style={{ color: '#64748b' }}>Occupancy Rate:</span>{' '}
+                    <span style={{ color: 'var(--ink3)' }}>Occupancy Rate:</span>{' '}
                     <strong style={{ color: bandColor(selectedLoc.occupancyPct) }}>{selectedLoc.occupancyPct}%</strong>
                   </div>
                   <div>
-                    <span style={{ color: '#64748b' }}>Grid Position:</span>{' '}
+                    <span style={{ color: 'var(--ink3)' }}>Grid Position:</span>{' '}
                     <strong>Row {selectedLoc.gridRow}, Col {selectedLoc.gridCol}</strong>
                   </div>
                   <div>
-                    <span style={{ color: '#64748b' }}>Stacking Tiers:</span>{' '}
+                    <span style={{ color: 'var(--ink3)' }}>Stacking Tiers:</span>{' '}
                     <strong>{selectedLoc.maxStackTiers} Tiers</strong>
                   </div>
                   {selectedLoc.lengthM && (
                     <div>
-                      <span style={{ color: '#64748b' }}>Dimensions:</span>{' '}
+                      <span style={{ color: 'var(--ink3)' }}>Dimensions:</span>{' '}
                       <strong>{selectedLoc.lengthM}m × {selectedLoc.widthM}m × {selectedLoc.heightM}m</strong>
                     </div>
                   )}
                   {selectedLoc.volumeCbm && (
                     <div>
-                      <span style={{ color: '#64748b' }}>Volume Capacity:</span>{' '}
+                      <span style={{ color: 'var(--ink3)' }}>Volume Capacity:</span>{' '}
                       <strong>{formatVolumeDisplay(selectedLoc.volumeCbm)}</strong>
                     </div>
                   )}
 
-                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f1f5f9' }}>
+                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--bg)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                      <span style={{ fontWeight: 800, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>
+                      <span style={{ fontWeight: 800, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink3)' }}>
                         Stored Lots ({selectedLoc.tiers.reduce((s, t) => s + t.lotCount, 0)})
                       </span>
                       <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--seal)' }}>
@@ -318,31 +319,31 @@ export function SealWarehouseLayout() {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 340, overflowY: 'auto', paddingRight: 4 }}>
                       {selectedLoc.tiers.map(t => (
-                        <div key={t.tier} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 10 }}>
+                        <div key={t.tier} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: 10 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                            <span style={{ fontSize: 11, fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink)', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
                               <Icon name="layers" size={12} style={{ color: 'var(--seal)' }} /> Tier {t.tier}
                             </span>
-                            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 6, background: t.lots.length > 0 ? '#dcfce7' : '#f1f5f9', color: t.lots.length > 0 ? '#15803d' : '#94a3b8' }}>
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 6, background: t.lots.length > 0 ? 'var(--green-l)' : 'var(--bg)', color: t.lots.length > 0 ? 'var(--green)' : 'var(--ink3)' }}>
                               {t.lots.length} {t.lots.length === 1 ? 'item' : 'items'}
                             </span>
                           </div>
 
                           {t.lots.length === 0 ? (
-                            <div style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic', padding: '4px 0' }}>Empty tier slot</div>
+                            <div style={{ fontSize: 11, color: 'var(--ink3)', fontStyle: 'italic', padding: '4px 0' }}>Empty tier slot</div>
                           ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {t.lots.map(lot => (
-                                <div key={lot.id} style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 8, padding: '8px 10px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                                  <div style={{ width: 22, height: 22, borderRadius: 6, background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                                <div key={lot.id} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                                  <div style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--blue-l)', color: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
                                     <Icon name="package" size={12} />
                                   </div>
                                   <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', lineHeight: 1.3 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.3 }}>
                                       {lot.description}
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                                      <span style={{ fontSize: 10.5, fontWeight: 700, color: '#64748b', background: '#f1f5f9', padding: '1px 6px', borderRadius: 4 }}>
+                                      <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', padding: '1px 6px', borderRadius: 4 }}>
                                         Qty: {lot.qtyOnHand} {lot.uom}
                                       </span>
                                     </div>

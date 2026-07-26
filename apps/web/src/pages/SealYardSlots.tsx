@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
@@ -11,6 +12,7 @@ interface Compartment { id: string; code: string; name: string; }
 interface YardSlot { id: string; compartmentId: string; code: string; capacityTeu: number; active: boolean; occupiedCount: number; }
 
 export function SealYardSlots() {
+  const isMobile = useIsMobile();
   const [compartments, setCompartments] = useState<Compartment[]>([]);
   const [slots, setSlots] = useState<YardSlot[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,7 +71,7 @@ export function SealYardSlots() {
 
       {showNew && (
         <form onSubmit={handleCreate} className="seal-card" style={{ marginBottom: 20 }}>
-          <div style={{ padding: 20, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, alignItems: 'flex-end' }}>
+          <div style={{ padding: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 14, alignItems: 'flex-end' }}>
             <div className="seal-field-row">
               <label className="seal-field-label">Compartment</label>
               <Select value={newCompartmentId} onValueChange={setNewCompartmentId}>

@@ -8,6 +8,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { SealDocumentPanel } from '../components/SealDocumentPanel.js';
 import { RaiseSealTicketButton } from '../components/RaiseSealTicketButton.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import { CUSTOMS_STATUS_VARIANT, CUSTOMS_STATUS_COLOR_VAR } from '../lib/sealStatus.js';
 import {
   CUSTOMS_STATUS_TRANSITIONS, CUSTOMS_STATUS_LABELS, type CustomsStatus, type SealLot, type SealMovement,
@@ -41,6 +42,7 @@ const ACTION_LABELS: Record<CustomsStatus, string> = {
 export function SealLotDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [lot, setLot] = useState<(SealLot & { legalNextStatuses: CustomsStatus[] }) | null>(null);
   const [movements, setMovements] = useState<SealMovement[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
@@ -191,7 +193,7 @@ export function SealLotDetail() {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20, marginBottom: 20 }}>
         {/* Fiscal panel */}
         <div className="seal-card">
           <div className="seal-card-hdr"><h2 className="seal-card-title">Fiscal State</h2></div>

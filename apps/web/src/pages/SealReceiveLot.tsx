@@ -6,6 +6,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, toDateOnlyString, parseDateOnly } from '../components/ui/date-picker.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import { CUSTOMS_STATUS_ENTRY_POINTS, CUSTOMS_STATUS_LABELS, type CustomsStatus } from '@hudumika/types';
 import './Seal.css';
 
@@ -15,6 +16,7 @@ interface Customer { id: string; name: string; category?: string; }
 
 export function SealReceiveLot() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [compartments, setCompartments] = useState<Compartment[]>([]);
   const [locations, setLocations] = useState<Location[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -135,7 +137,7 @@ export function SealReceiveLot() {
             <input type="text" className="input-field" value={description} onChange={e => setDescription(e.target.value)} placeholder="e.g. Steel Reinforcement Bars (Rebar), 12mm" />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
             <div className="seal-field-row">
               <label className="seal-field-label">HS Code</label>
               <input type="text" className="input-field" value={hsCode} onChange={e => setHsCode(e.target.value)} placeholder="e.g. 7214.20" />
@@ -180,7 +182,7 @@ export function SealReceiveLot() {
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 14 }}>
             <div className="seal-field-row">
               <label className="seal-field-label">Quantity</label>
               <input type="number" min="0" step="any" className="input-field" value={qty} onChange={e => setQty(e.target.value)} placeholder="0" />
@@ -191,7 +193,7 @@ export function SealReceiveLot() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
             <div className="seal-field-row">
               <label className="seal-field-label" title="Used to bill storage per-CBM if this compartment's billing method is set that way">Volume (CBM, optional)</label>
               <input type="number" min="0" step="any" className="input-field" value={volumeCbm} onChange={e => setVolumeCbm(e.target.value)} placeholder="0.00" />
@@ -202,7 +204,7 @@ export function SealReceiveLot() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: 14 }}>
             <div className="seal-field-row">
               <label className="seal-field-label">Customs Value (optional)</label>
               <input type="number" min="0" step="any" className="input-field" value={customsValue} onChange={e => setCustomsValue(e.target.value)} placeholder="0.00" />
@@ -214,7 +216,7 @@ export function SealReceiveLot() {
           </div>
 
           {customsStatus === 'FOREIGN_DUTY_SUSPENDED' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
               <div className="seal-field-row">
                 <label className="seal-field-label" title="Manual estimate — the duty engine is a future increment">Duty at Risk (optional, manual)</label>
                 <input type="number" min="0" step="any" className="input-field" value={dutyAtRisk} onChange={e => setDutyAtRisk(e.target.value)} placeholder="0.00" />
@@ -233,7 +235,7 @@ export function SealReceiveLot() {
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
             <div className="seal-field-row">
               <label className="seal-field-label">Warehoused On</label>
               <DatePicker date={warehousedOn} onChange={setWarehousedOn} />
@@ -252,7 +254,7 @@ export function SealReceiveLot() {
               Dangerous Goods (IMDG)
             </label>
             {isDangerousGoods && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 14 }}>
                 <div className="seal-field-row">
                   <label className="seal-field-label">UN Number</label>
                   <input type="text" className="input-field" value={unNumber} onChange={e => setUnNumber(e.target.value)} placeholder="e.g. UN1993" />

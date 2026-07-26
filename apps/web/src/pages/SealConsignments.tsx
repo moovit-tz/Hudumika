@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -26,6 +27,7 @@ const STATUS_VARIANT: Record<string, 'brand' | 'success' | 'warning' | 'error' |
 const TRANSPORT_DOC_TYPES = ['BL', 'AWB', 'CMR', 'RAIL_WAYBILL'];
 
 export function SealConsignments() {
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [consignments, setConsignments] = useState<Consignment[]>([]);
   const [compartments, setCompartments] = useState<Compartment[]>([]);
@@ -87,7 +89,7 @@ export function SealConsignments() {
 
       {showNew && (
         <form onSubmit={handleCreate} className="seal-card" style={{ marginBottom: 20 }}>
-          <div style={{ padding: 20, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+          <div style={{ padding: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 14 }}>
             <div className="seal-field-row">
               <label className="seal-field-label">Compartment</label>
               <Select value={compartmentId} onValueChange={setCompartmentId}>

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
@@ -134,7 +135,7 @@ export function SealCompartmentDetail() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             {c.logo_url ? (
-              <div style={{ width: 56, height: 56, borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden', padding: 4, background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+              <div style={{ width: 56, height: 56, borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', padding: 4, background: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                 <img src={c.logo_url} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               </div>
             ) : (
@@ -143,14 +144,7 @@ export function SealCompartmentDetail() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <h1 className="seal-page-title" style={{ margin: 0, fontSize: 22 }}>{c.name}</h1>
-                <span className="seal-pill" style={{
-                  background: isSuspended ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)',
-                  color: isSuspended ? 'var(--red)' : '#059669',
-                  border: `1px solid ${isSuspended ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}`,
-                  fontSize: 11, fontWeight: 700, padding: '2px 10px', borderRadius: 20,
-                }}>
-                  {isSuspended ? 'SUSPENDED' : 'ACTIVE'}
-                </span>
+                <Badge variant={isSuspended ? 'error' : 'success'}>{isSuspended ? 'SUSPENDED' : 'ACTIVE'}</Badge>
               </div>
               <div className="seal-mono" style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 4 }}>
                 {c.code} · {c.warehouse_type.replace(/_/g, ' ').toUpperCase()} · Jurisdiction: {c.jurisdiction} · {c.default_storage_days}d storage

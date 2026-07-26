@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '../components/ui/tooltip.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import './Seal.css';
 
 interface HeatLocation {
@@ -37,6 +38,7 @@ function bandBg(pct: number): string {
 export function SealZoneHeatGrid() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [data, setData] = useState<HeatGrid | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -139,7 +141,7 @@ export function SealZoneHeatGrid() {
         {data.zones.length === 0 ? (
           <div className="seal-card"><div className="seal-empty">No zones defined in this compartment yet.</div></div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '2.4fr 1fr', gap: 20 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2.4fr 1fr', gap: 20 }}>
             <div className="seal-card" style={{ padding: 24 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
                 <div className="seal-mode-group">

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -17,6 +18,7 @@ interface Guarantee {
 const INSTRUMENT_TYPES = ['cash', 'bank_guarantee', 'insurance_bond', 'corporate_undertaking'];
 
 export function SealGuarantees() {
+  const isMobile = useIsMobile();
   const [guarantees, setGuarantees] = useState<Guarantee[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNew, setShowNew] = useState(false);
@@ -74,7 +76,7 @@ export function SealGuarantees() {
 
       {showNew && (
         <form onSubmit={handleCreate} className="seal-card" style={{ marginBottom: 20 }}>
-          <div style={{ padding: 20, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+          <div style={{ padding: 20, display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 14 }}>
             <div className="seal-field-row">
               <label className="seal-field-label">Reference</label>
               <input type="text" className="input-field" value={reference} onChange={e => setReference(e.target.value)} placeholder="BG-2026-0041" />
