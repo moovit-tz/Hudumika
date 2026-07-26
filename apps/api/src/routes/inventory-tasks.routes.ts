@@ -72,7 +72,7 @@ export async function inventoryTasksRoutes(fastify: FastifyInstance) {
           assigned_to: b.assignedTo ?? null,
           due_date: b.dueDate ? new Date(b.dueDate) : null,
           note: b.note ?? null,
-          created_by: request.user.id,
+          created_by: request.user.sub,
         }).returningAll().executeTakeFirstOrThrow()
       );
       return mapTask(row);

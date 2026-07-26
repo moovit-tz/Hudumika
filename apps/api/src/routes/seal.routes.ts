@@ -731,7 +731,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
         return reply.status(422).send({ error: `A lot cannot be received directly into ${b.customsStatus}. Valid entry statuses: ${CUSTOMS_STATUS_ENTRY_POINTS.join(', ')}` });
       }
       const lot = await withTenant(request.user.tenant_id, trx =>
-        SealService.receiveLot(trx, request.user.tenant_id, request.user.id, {
+        SealService.receiveLot(trx, request.user.tenant_id, request.user.sub, {
           compartmentId: b.compartmentId, ownerId: b.ownerId, description: b.description,
           hsCode: b.hsCode, countryOfOrigin: b.countryOfOrigin, customsStatus: b.customsStatus,
           entryReference: b.entryReference, locationId: b.locationId, qty: Number(b.qty), uom: b.uom,
@@ -782,7 +782,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
       const b = request.body as any;
       const movement = await withTenant(request.user.tenant_id, trx =>
         SealService.recordMovement(trx, request.user.tenant_id, {
-          actorId: request.user.id,
+          actorId: request.user.sub,
           movementType: b.movementType ?? 'status_change',
           lotId: request.params.id,
           toLocationId: b.toLocationId,
@@ -1035,7 +1035,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
         }
         try {
           const lot = await withTenant(request.user.tenant_id, trx =>
-            SealService.receiveLot(trx, request.user.tenant_id, request.user.id, {
+            SealService.receiveLot(trx, request.user.tenant_id, request.user.sub, {
               compartmentId: consignment.compartment_id, ownerId: consignment.owner_id,
               description: line.description, hsCode: line.hsCode, countryOfOrigin: line.countryOfOrigin,
               customsStatus: line.customsStatus ?? 'FOREIGN_DUTY_SUSPENDED',

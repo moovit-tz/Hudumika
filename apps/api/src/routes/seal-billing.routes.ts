@@ -28,7 +28,7 @@ export async function sealBillingRoutes(fastify: FastifyInstance) {
   fastify.post('/lots/:id/generate-storage-invoice', async (request: any, reply) => {
     try {
       const result = await withTenant(request.user.tenant_id, trx =>
-        SealBillingService.generateStorageInvoice(trx, request.user.tenant_id, request.user.id, request.params.id)
+        SealBillingService.generateStorageInvoice(trx, request.user.tenant_id, request.user.sub, request.params.id)
       );
       return result;
     } catch (err: any) {

@@ -130,7 +130,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
           customer_id: b.customerId,
           reference: `FUL-${Date.now().toString(36).toUpperCase()}`,
           notes: b.notes ?? null,
-          created_by: request.user.id,
+          created_by: request.user.sub,
         }).returningAll().executeTakeFirstOrThrow();
 
         await trx.insertInto('seal_fulfillment_lines').values(
@@ -171,7 +171,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
         if (b.qty > Number(lot.qty_on_hand)) throw new Error(`Cannot pick ${b.qty} — only ${lot.qty_on_hand} on hand for this lot.`);
 
         await SealService.recordMovement(trx, request.user.tenant_id, {
-          actorId: request.user.id, movementType: 'pick', lotId: line.lot_id,
+          actorId: request.user.sub, movementType: 'pick', lotId: line.lot_id,
           qtyDelta: -b.qty, reference: order.reference, reasonCode: 'fulfillment_pick',
         });
 
@@ -226,7 +226,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
         const lines = await trx.selectFrom('seal_fulfillment_lines').selectAll().where('order_id', '=', o.id).execute();
         for (const line of lines) {
           await SealService.recordMovement(trx, request.user.tenant_id, {
-            actorId: request.user.id, movementType: 'release', lotId: line.lot_id,
+            actorId: request.user.sub, movementType: 'release', lotId: line.lot_id,
             qtyDelta: 0, reference: o.reference, reasonCode: 'fulfillment_dispatch',
           });
         }

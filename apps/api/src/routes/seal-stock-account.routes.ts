@@ -95,7 +95,7 @@ export async function sealStockAccountRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'compartmentId, periodStart and periodEnd are required' });
       }
       const period = await withTenant(request.user.tenant_id, trx =>
-        SealStockAccountService.generatePeriod(trx, request.user.tenant_id, request.user.id, {
+        SealStockAccountService.generatePeriod(trx, request.user.tenant_id, request.user.sub, {
           compartmentId: b.compartmentId, periodStart: b.periodStart, periodEnd: b.periodEnd,
         })
       );

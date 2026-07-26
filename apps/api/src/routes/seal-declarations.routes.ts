@@ -150,7 +150,7 @@ export async function sealDeclarationRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'lotId, hsCode, declarationDate, invoiceValue, currency and fxRate are required' });
       }
       const entry = await withTenant(request.user.tenant_id, trx =>
-        SealDeclarationService.createDeclaration(trx, request.user.tenant_id, request.user.id, {
+        SealDeclarationService.createDeclaration(trx, request.user.tenant_id, request.user.sub, {
           lotId: b.lotId, procedureCode: b.procedureCode ?? 'EX_WAREHOUSE_HOME_USE', declarationDate: b.declarationDate,
           hsCode: b.hsCode, countryOfOrigin: b.countryOfOrigin, invoiceValue: Number(b.invoiceValue),
           freight: b.freight != null ? Number(b.freight) : undefined, insurance: b.insurance != null ? Number(b.insurance) : undefined,
@@ -229,7 +229,7 @@ export async function sealDeclarationRoutes(fastify: FastifyInstance) {
   fastify.post('/customs-entries/:id/release', async (request: any, reply) => {
     try {
       const entry = await withTenant(request.user.tenant_id, trx =>
-        SealDeclarationService.release(trx, request.user.tenant_id, request.user.id, request.params.id)
+        SealDeclarationService.release(trx, request.user.tenant_id, request.user.sub, request.params.id)
       );
       return mapDeclaration(entry);
     } catch (err: any) {

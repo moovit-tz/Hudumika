@@ -61,7 +61,7 @@ export async function sealDocumentRoutes(fastify: FastifyInstance) {
           tenant_id: request.user.tenant_id,
           entity_type: entityType, entity_id: entityId, doc_type: docType,
           filename: data.filename, storage_key: upload.storageKey, size_bytes: upload.size,
-          uploaded_by: request.user.id,
+          uploaded_by: request.user.sub,
         }).returningAll().executeTakeFirstOrThrow()
       );
       return row;
@@ -95,7 +95,7 @@ export async function sealDocumentRoutes(fastify: FastifyInstance) {
       return await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_documents').set({
           status: b.status, notes: b.notes ?? undefined,
-          verified_by: b.status === 'VERIFIED' ? request.user.id : undefined,
+          verified_by: b.status === 'VERIFIED' ? request.user.sub : undefined,
           verified_at: b.status === 'VERIFIED' ? new Date() : undefined,
         }).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
       );

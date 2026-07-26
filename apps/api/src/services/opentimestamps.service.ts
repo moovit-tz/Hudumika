@@ -1,4 +1,16 @@
-import { stamp as otsStamp, verify as otsVerify, DetachedTimestampFile, Ops } from 'opentimestamps';
+// `opentimestamps` is a CommonJS package whose named properties
+// (DetachedTimestampFile, Ops, stamp, verify, ...) are attached to
+// module.exports dynamically at runtime, not via static `exports.x = ...`
+// assignments — Node's ESM/CJS interop (cjs-module-lexer) can't see those,
+// so only the default export (the whole module.exports object) is
+// reliably importable here, even though TypeScript's own .d.ts happily
+// type-checks named imports. `stamp`/`verify` also internally call
+// `this.makeMerkleTree`/`this.upgradeTimestamp` etc., so they must be
+// invoked as OpenTimestamps.stamp(...)/OpenTimestamps.verify(...) — a
+// destructured reference loses that `this` binding and fails at runtime
+// even though it type-checks fine.
+import OpenTimestamps from 'opentimestamps';
+const { DetachedTimestampFile, Ops } = OpenTimestamps;
 
 // Thin wrapper over the `opentimestamps` npm client (the real, non-
 // deprecated package — `javascript-opentimestamps` was renamed to plain
@@ -23,7 +35,7 @@ export interface OtsBitcoinConfirmation {
 export async function stampHash(hashHex: string): Promise<Buffer> {
   const hashBytes = Buffer.from(hashHex, 'hex');
   const detached = DetachedTimestampFile.fromHash(new Ops.OpSHA256(), hashBytes);
-  await otsStamp(detached);
+  await OpenTimestamps.stamp(detached);
   return Buffer.from(detached.serializeToBytes());
 }
 
@@ -37,7 +49,7 @@ export async function checkConfirmation(proofBuffer: Buffer, hashHex: string): P
   const hashBytes = Buffer.from(hashHex, 'hex');
   const detachedOriginal = DetachedTimestampFile.fromHash(new Ops.OpSHA256(), hashBytes);
 
-  const result = await otsVerify(detachedProof, detachedOriginal, { ignoreBitcoinNode: true, timeout: 10000 });
+  const result = await OpenTimestamps.verify(detachedProof, detachedOriginal, { ignoreBitcoinNode: true, timeout: 10000 });
 
   const bitcoin = result?.bitcoin
     ? { blockHeight: result.bitcoin.height, blockTime: new Date(result.bitcoin.timestamp * 1000) }

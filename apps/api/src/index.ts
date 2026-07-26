@@ -75,6 +75,7 @@ import { sealEquipmentRoutes } from './routes/seal-equipment.routes.js';
 import { sealSensorsRoutes } from './routes/seal-sensors.routes.js';
 import { sealAutomationRoutes } from './routes/seal-automation.routes.js';
 import { sealFulfillmentRoutes } from './routes/seal-fulfillment.routes.js';
+import { sealLedgerAnchorRoutes } from './routes/seal-ledger-anchor.routes.js';
 import { inventoryCatalogRoutes } from './routes/inventory-catalog.routes.js';
 import { inventoryStockRoutes } from './routes/inventory-stock.routes.js';
 import { inventoryCountsRoutes } from './routes/inventory-counts.routes.js';
@@ -270,6 +271,7 @@ async function main() {
     await server.register(sealSensorsRoutes, { prefix: '/v1/seal' });
     await server.register(sealAutomationRoutes, { prefix: '/v1/seal' });
     await server.register(sealFulfillmentRoutes, { prefix: '/v1/seal' });
+    await server.register(sealLedgerAnchorRoutes, { prefix: '/v1/seal' });
     await server.register(inventoryCatalogRoutes, { prefix: '/v1/inventory' });
     await server.register(inventoryStockRoutes, { prefix: '/v1/inventory' });
     await server.register(inventoryCountsRoutes, { prefix: '/v1/inventory' });

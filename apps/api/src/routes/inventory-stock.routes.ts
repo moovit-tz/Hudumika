@@ -203,7 +203,7 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
       }
       const movement = await withTenant(request.user.tenant_id, trx =>
         InventoryService.recordMovement(trx, request.user.tenant_id, {
-          actorId: request.user.id,
+          actorId: request.user.sub,
           movementType: b.movementType,
           itemId: b.itemId,
           fromLocationId: b.fromLocationId ?? null,

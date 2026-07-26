@@ -44,7 +44,7 @@ export async function sealWarehouseOpsRoutes(fastify: FastifyInstance) {
         trx.insertInto('seal_reefer_readings').values({
           tenant_id: request.user.tenant_id, lot_id: request.params.id,
           temperature_c: String(b.temperatureC), within_range: withinRange,
-          recorded_by: request.user.id, note: b.note ?? null,
+          recorded_by: request.user.sub, note: b.note ?? null,
         }).returningAll().executeTakeFirstOrThrow()
       );
       return { id: row.id, lotId: row.lot_id, recordedAt: row.recorded_at, temperatureC: Number(row.temperature_c), withinRange: row.within_range, note: row.note };

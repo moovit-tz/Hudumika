@@ -96,7 +96,7 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
       const session = await withTenant(request.user.tenant_id, async trx => {
         const row = await trx.insertInto('inventory_count_sessions').values({
           tenant_id: request.user.tenant_id, warehouse_id: b.warehouseId,
-          notes: b.notes ?? null, created_by: request.user.id,
+          notes: b.notes ?? null, created_by: request.user.sub,
         }).returningAll().executeTakeFirstOrThrow();
 
         const stockRows = await trx.selectFrom('inventory_stock_levels')
@@ -129,7 +129,7 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
         const session = await trx.selectFrom('inventory_count_sessions').select('status').where('id', '=', request.params.id).executeTakeFirstOrThrow();
         if (session.status !== 'open') throw new Error(`Cannot record a count — session is ${session.status}.`);
         return trx.updateTable('inventory_count_lines').set({
-          counted_qty: String(b.countedQty), counted_at: new Date(), counted_by: request.user.id,
+          counted_qty: String(b.countedQty), counted_at: new Date(), counted_by: request.user.sub,
         }).where('id', '=', request.params.lineId).where('session_id', '=', request.params.id)
           .returningAll().executeTakeFirstOrThrow();
       });
@@ -164,7 +164,7 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
           const variance = Number(line.counted_qty) - Number(line.expected_qty);
           if (variance === 0) continue;
           await InventoryService.recordMovement(trx, request.user.tenant_id, {
-            actorId: request.user.id, movementType: 'count_correction', itemId: line.item_id,
+            actorId: request.user.sub, movementType: 'count_correction', itemId: line.item_id,
             toLocationId: line.location_id, enteredQty: variance, enteredUom: line.base_uom,
             batchNo: line.batch_no || null, reasonCode: 'stock_count', reference: `count-session:${session.id}`,
           });
