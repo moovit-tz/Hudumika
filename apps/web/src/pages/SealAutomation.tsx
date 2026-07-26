@@ -104,7 +104,7 @@ export function SealAutomation() {
     setEvaluating(true);
     try {
       const res = await apiFetch('/v1/seal/automation-rules/evaluate', { method: 'POST' });
-      showAlert(res.firedCount > 0 ? `${res.firedCount} automation action(s) fired.` : 'No rules matched any current lots or examinations.', { title: 'Automation Check Complete' });
+      showAlert(res.firedCount > 0 ? `${res.firedCount} automation action(s) fired.` : 'No rules matched any current lots or examinations.', { title: 'Automation Check Complete', variant: 'success' });
       reload();
     } catch (err: any) {
       showAlert(err.message || 'Failed to run the automation check.');

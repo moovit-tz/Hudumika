@@ -78,7 +78,7 @@ export function SealCompartmentDetail() {
   async function handleDuplicate() {
     try {
       const res = await apiFetch(`/v1/seal/compartments/${c.id}/duplicate`, { method: 'POST' });
-      showAlert(`Compartment duplicated as ${res.code}`);
+      showAlert(`Compartment duplicated as ${res.code}`, { variant: 'success' });
       navigate(`/seal/compartments/${res.id}`);
     } catch (err: any) {
       showAlert(err.message || 'Failed to duplicate compartment');
@@ -99,7 +99,7 @@ export function SealCompartmentDetail() {
     if (!ok) return;
     try {
       await apiFetch(`/v1/seal/compartments/${c.id}`, { method: 'DELETE' });
-      showAlert('Compartment deleted');
+      showAlert('Compartment deleted', { variant: 'success' });
       navigate('/seal/compartments');
     } catch (err: any) {
       showAlert(err.message || 'Failed to delete compartment');

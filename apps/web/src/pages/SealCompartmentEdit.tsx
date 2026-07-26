@@ -125,7 +125,7 @@ export function SealCompartmentEdit() {
           storageFeePerCbmPerDay: Number(storageFeePerCbmPerDay) || 0,
         }),
       });
-      showAlert('Compartment updated successfully!');
+      showAlert('Compartment updated successfully!', { variant: 'success' });
       navigate(`/seal/compartments/${id}`);
     } catch (err: any) {
       showAlert(err.message || 'Failed to update compartment');

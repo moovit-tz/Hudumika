@@ -692,6 +692,25 @@ export async function sealRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.delete('/locations/:id', async (request: any, reply) => {
+    try {
+      return await withTenant(request.user.tenant_id, async trx => {
+        const occupied = await trx.selectFrom('seal_lots')
+          .select(({ fn }) => fn.count<number>('id').as('n'))
+          .where('current_location_id', '=', request.params.id)
+          .where('qty_on_hand', '>', '0')
+          .executeTakeFirst();
+        if (Number(occupied?.n ?? 0) > 0) {
+          return reply.status(409).send({ error: 'This rack still has lots stored on it — move or release them before deleting it.' });
+        }
+        await trx.deleteFrom('seal_locations').where('id', '=', request.params.id).execute();
+        return { success: true };
+      });
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
   // ── Warehouse layout: real floor plan with mezzanine levels and vertical
   // stacking tiers, built from actual lot placements (current_location_id +
   // stack_tier), not the "heat-grid" page's flat lot-count/capacity ratio.

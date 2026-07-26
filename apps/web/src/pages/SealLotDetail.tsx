@@ -158,7 +158,7 @@ export function SealLotDetail() {
     setGeneratingInvoice(true);
     try {
       const res = await apiFetch(`/v1/seal/lots/${id}/generate-storage-invoice`, { method: 'POST' });
-      showAlert(`Draft invoice ${res.invoice.invoice_number} created for ${res.accrual.totalAmount.toLocaleString()} ${res.accrual.storageFeeCurrency} — review and send it from FinOps.`, { title: 'Storage Invoice Generated' });
+      showAlert(`Draft invoice ${res.invoice.invoice_number} created for ${res.accrual.totalAmount.toLocaleString()} ${res.accrual.storageFeeCurrency} — review and send it from FinOps.`, { title: 'Storage Invoice Generated', variant: 'success' });
       apiFetch(`/v1/seal/lots/${id}/storage-accrual`).then(a => { setAccrual(a); setAccrualError(null); }).catch(err => { setAccrual(null); setAccrualError(err.message || null); });
     } catch (err: any) {
       showAlert(err.message || 'Failed to generate storage invoice.');
