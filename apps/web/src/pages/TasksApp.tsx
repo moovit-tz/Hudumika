@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import {
-  useTodos, useLists, addTodo, updateTodo, deleteTodo, restoreTodo, purgeTodo,
+  useTodos, useLists, addTodo, updateTodo, deleteTodo, restoreTodo, purgeTodo, reorderTodo,
   addSubtask, updateSubtask, deleteSubtask,
   useActiveTaskView, setActiveTaskView, useEvents, useLinkedTasks, inboxListId,
   Todo, TaskStatus,
@@ -50,6 +50,31 @@ export const TasksApp: React.FC = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+
+  // reorderTodo() (calendarStore.ts) was fully implemented — client reorder
+  // + per-sibling PATCH persistence — but had no drag UI ever wired to it.
+  // Reordering only makes sense between tasks in the same list (that's the
+  // unit reorderTodo operates on), so dropping onto a row from a different
+  // list is a no-op rather than silently doing nothing useful.
+  function handleRowDragStart(e: React.DragEvent, id: string) {
+    e.dataTransfer.setData('text/todo-id', id);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggingId(id);
+  }
+  function handleRowDrop(e: React.DragEvent, target: Todo) {
+    e.preventDefault();
+    const draggedId = e.dataTransfer.getData('text/todo-id');
+    setDraggingId(null);
+    if (!draggedId || draggedId === target.id) return;
+    const dragged = allTodos.find(t => t.id === draggedId);
+    if (!dragged || dragged.listId !== target.listId) return;
+    const siblings = allTodos
+      .filter(t => t.listId === target.listId && !t.deletedAt && t.id !== draggedId)
+      .sort((a, b) => a.order - b.order);
+    const targetIdx = siblings.findIndex(t => t.id === target.id);
+    reorderTodo(draggedId, targetIdx === -1 ? siblings.length : targetIdx);
+  }
 
   const listMap = useMemo(() => Object.fromEntries(lists.map(l => [l.id, l])), [lists]);
   const active = allTodos.filter(t => !t.deletedAt);
@@ -136,8 +161,16 @@ export const TasksApp: React.FC = () => {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {incomplete.map(t => (
-              <TaskRow key={t.id} todo={t} list={listMap[t.listId]} expanded={expandedId === t.id} onToggleExpand={() => toggleExpand(t.id)}
-                newSubtaskTitle={newSubtaskTitle} setNewSubtaskTitle={setNewSubtaskTitle} trashed={view === 'trash'} />
+              <div key={t.id}
+                draggable={!isMobile && view !== 'trash'}
+                onDragStart={e => handleRowDragStart(e, t.id)}
+                onDragOver={e => e.preventDefault()}
+                onDrop={e => handleRowDrop(e, t)}
+                style={{ opacity: draggingId === t.id ? 0.4 : 1, cursor: view !== 'trash' && !isMobile ? 'grab' : undefined }}
+              >
+                <TaskRow todo={t} list={listMap[t.listId]} expanded={expandedId === t.id} onToggleExpand={() => toggleExpand(t.id)}
+                  newSubtaskTitle={newSubtaskTitle} setNewSubtaskTitle={setNewSubtaskTitle} trashed={view === 'trash'} />
+              </div>
             ))}
           </div>
         )}
