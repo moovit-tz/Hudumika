@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { useRef, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import '../pages/Contacts.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { AppSidebar } from '../components/AppSidebar.js';
@@ -11,6 +11,39 @@ import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 
 // ── Sidebar content rendered inside AppSidebar via fillNav ─────────────────
+
+// Keeps `currentView`/`selectedLabelId` in sync with the URL, both ways —
+// so a direct visit to /contacts/favorites (or the browser back/forward
+// buttons) actually lands on the right view instead of always showing the
+// default list, and so the URL reflects whatever the sidebar switches to.
+const VIEW_PATH: Record<string, string> = { contacts: '', favorites: 'favorites', merge: 'merge', trash: 'trash' };
+
+function useContactsUrlSync() {
+  const { setCurrentView, setSelectedLabelId } = useContacts();
+  const location = useLocation();
+
+  useEffect(() => {
+    const parts = location.pathname.replace(/^\/contacts\/?/, '').split('/').filter(Boolean);
+    const seg = parts[0];
+    if (seg === 'label' && parts[1]) {
+      setCurrentView('label');
+      setSelectedLabelId(parts[1]);
+    } else if (seg === 'favorites' || seg === 'starred') {
+      setCurrentView('favorites');
+      setSelectedLabelId(null);
+    } else if (seg === 'merge') {
+      setCurrentView('merge');
+      setSelectedLabelId(null);
+    } else if (seg === 'trash') {
+      setCurrentView('trash');
+      setSelectedLabelId(null);
+    } else if (!seg) {
+      setCurrentView('contacts');
+      setSelectedLabelId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+}
 
 function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
   const {
@@ -24,6 +57,8 @@ function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
     openContactModalRef,
   } = useContacts();
 
+  const navigate = useNavigate();
+  useContactsUrlSync();
   const importRef = useRef<HTMLInputElement>(null);
 
   const activeCount = contacts.filter(c => c.status === 'ACTIVE').length;
@@ -34,6 +69,8 @@ function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
     setCurrentView(view as any);
     setSelectedLabelId(labelId ?? null);
     setActiveContact(null);
+    const path = view === 'label' ? `label/${labelId}` : (VIEW_PATH[view] ?? '');
+    navigate(path ? `/contacts/${path}` : '/contacts');
   };
 
   const mainItems: { key: string; label: string; icon: IconName; count: number; badge: boolean }[] = [
@@ -235,8 +272,11 @@ export function ContactsShell() {
               <Routes>
                 <Route element={<PageLayout />}>
                   <Route index element={<Contacts />} />
-                  <Route path="starred" element={<Contacts />} />
-                  <Route path="recent"  element={<Contacts />} />
+                  <Route path="favorites"     element={<Contacts />} />
+                  <Route path="starred"       element={<Contacts />} />{/* legacy alias for favorites, kept so any existing link/bookmark still resolves */}
+                  <Route path="merge"         element={<Contacts />} />
+                  <Route path="trash"         element={<Contacts />} />
+                  <Route path="label/:labelId" element={<Contacts />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/contacts" replace />} />
               </Routes>
