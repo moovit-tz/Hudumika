@@ -8,6 +8,7 @@ import { PageLayout } from '../components/PageLayout.js';
 import { InventoryDashboard } from '../pages/InventoryDashboard.js';
 import { InventoryItems } from '../pages/InventoryItems.js';
 import { InventoryWarehouses } from '../pages/InventoryWarehouses.js';
+import { InventoryStock } from '../pages/InventoryStock.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -20,6 +21,12 @@ const NAV: SidebarSection[] = [
     items: [
       { label: 'Items', icon: 'package', path: '/inventory/items' },
       { label: 'Warehouses', icon: 'warehouse', path: '/inventory/warehouses' },
+    ],
+  },
+  {
+    title: 'STOCK',
+    items: [
+      { label: 'Stock Levels', icon: 'layers', path: '/inventory/stock' },
     ],
   },
 ];
@@ -37,6 +44,7 @@ export function InventoryShell() {
                 <Route index               element={<InventoryDashboard />}  />
                 <Route path="items"        element={<InventoryItems />}      />
                 <Route path="warehouses"   element={<InventoryWarehouses />} />
+                <Route path="stock"        element={<InventoryStock />}      />
               </Route>
             </Routes>
           </div>

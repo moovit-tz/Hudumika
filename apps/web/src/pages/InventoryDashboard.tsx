@@ -58,9 +58,9 @@ export function InventoryDashboard() {
           <div className="inv-card">
             <div className="inv-card-hdr">
               <h2 className="inv-card-title">Warehouses</h2>
-              <button type="button" className="inv-mono" style={{ background: 'none', border: 'none', color: 'var(--teal)', cursor: 'pointer', fontSize: 12.5, fontWeight: 700 }} onClick={() => navigate('/inventory/warehouses')}>
+              <Button type="button" variant="link" size="sm" onClick={() => navigate('/inventory/warehouses')}>
                 Manage →
-              </button>
+              </Button>
             </div>
             <div style={{ padding: 8 }}>
               {warehouses.length === 0 ? (

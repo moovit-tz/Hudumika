@@ -2182,11 +2182,43 @@ export interface InventoryItemUomsTable {
   conversion_factor: string;
 }
 
+export interface InventoryMovementsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  occurred_at: Generated<Date>;
+  actor_id: string | null;
+  actor_type: Generated<string>;
+  movement_type: string; // receipt | issue | transfer | adjust | count_correction
+  item_id: string;
+  from_location_id: string | null;
+  to_location_id: string | null;
+  qty_delta: string; // always in base_uom
+  entered_qty: string;
+  entered_uom: string;
+  batch_no: Generated<string>;
+  expiry_date: Date | null;
+  reason_code: string | null;
+  reference: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface InventoryStockLevelsTable {
+  tenant_id: string;
+  item_id: string;
+  location_id: string;
+  batch_no: Generated<string>;
+  expiry_date: Date | null;
+  qty_on_hand: Generated<string>;
+  updated_at: Generated<Date>;
+}
+
 export interface Database {
   inventory_warehouses: InventoryWarehousesTable;
   inventory_locations: InventoryLocationsTable;
   inventory_items: InventoryItemsTable;
   inventory_item_uoms: InventoryItemUomsTable;
+  inventory_movements: InventoryMovementsTable;
+  inventory_stock_levels: InventoryStockLevelsTable;
   support_tickets: SupportTicketsTable;
   support_messages: SupportMessagesTable;
   support_groups: SupportGroupsTable;
