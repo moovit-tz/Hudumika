@@ -111,10 +111,10 @@ export default async function supportRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
 
   // 1. List all tickets
-  fastify.get('/tickets', async (request, reply) => {
+  fastify.get<{ Querystring: { customer_id?: string } }>('/tickets', async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      const tickets = await trx
+      let query = trx
         .selectFrom('support_tickets as st')
         .leftJoin('customers as c', 'c.id', 'st.customer_id')
         .leftJoin('users as u', 'u.id', 'st.assigned_to')
@@ -127,12 +127,18 @@ export default async function supportRoutes(fastify: FastifyInstance) {
           'u.name as assigned_to', 'u.id as assigned_to_id',
           'g.id as group_id', 'g.name as group_name', 'g.color as group_color',
         ])
+        .where('st.tenant_id', '=', user.tenant_id);
+      if (request.query.customer_id) {
+        query = query.where('st.customer_id', '=', request.query.customer_id);
+      }
+      const tickets = await query
         .orderBy('st.created_at', 'desc')
         .execute();
 
       const counts = await trx
         .selectFrom('support_messages')
         .select(['ticket_id', trx.fn.count('id').as('cnt')])
+        .where('tenant_id', '=', user.tenant_id)
         .groupBy('ticket_id')
         .execute();
 
@@ -149,6 +155,13 @@ export default async function supportRoutes(fastify: FastifyInstance) {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       const b = request.body;
+      const customer = await trx.selectFrom('customers').select('id')
+        .where('id', '=', b.customer_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!customer) {
+        reply.status(404);
+        return { error: 'Customer not found' };
+      }
+
       const slaDeadline = new Date(Date.now() + SLA_HOURS[b.priority] * 3600_000);
       let ticket = await trx
         .insertInto('support_tickets')
@@ -195,6 +208,7 @@ export default async function supportRoutes(fastify: FastifyInstance) {
           'u.name as assigned_to', 'u.id as assigned_to_id',
         ])
         .where('st.id', '=', request.params.id)
+        .where('st.tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
 
       if (!ticket) {
@@ -205,6 +219,7 @@ export default async function supportRoutes(fastify: FastifyInstance) {
       const [messages, assets, invoices, shipments] = await Promise.all([
         trx.selectFrom('support_messages').selectAll()
           .where('ticket_id', '=', ticket.id)
+          .where('tenant_id', '=', user.tenant_id)
           .orderBy('created_at', 'asc').execute(),
 
         trx.selectFrom('customer_assets').selectAll()
@@ -246,6 +261,7 @@ export default async function supportRoutes(fastify: FastifyInstance) {
           'c.email as customer_email', 'c.name as customer_name',
         ])
         .where('st.id', '=', request.params.id)
+        .where('st.tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
 
       if (!ticket) {
@@ -312,6 +328,7 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         .leftJoin('customers as c', 'c.id', 'st.customer_id')
         .select(['st.id', 'st.customer_id', 'c.phone as customer_phone', 'c.email as customer_email'])
         .where('st.id', '=', request.params.id)
+        .where('st.tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
 
       if (!ticket) {
@@ -339,7 +356,14 @@ export default async function supportRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const before = await trx.selectFrom('support_tickets')
         .select(['status', 'assigned_to', 'created_at', 'resolved_at'])
-        .where('id', '=', request.params.id).executeTakeFirst();
+        .where('id', '=', request.params.id)
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+
+      if (!before) {
+        reply.status(404);
+        return { error: 'Ticket not found' };
+      }
 
       const newlyResolved = request.body.status === 'RESOLVED' && before?.status !== 'RESOLVED' && !before?.resolved_at;
       const resolvedAt = newlyResolved ? new Date() : undefined;
@@ -356,6 +380,7 @@ export default async function supportRoutes(fastify: FastifyInstance) {
           updated_at: new Date(),
         })
         .where('id', '=', request.params.id)
+        .where('tenant_id', '=', user.tenant_id)
         .returningAll()
         .executeTakeFirstOrThrow();
 
@@ -379,12 +404,14 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         .leftJoin('customers as c', 'c.id', 'st.customer_id')
         .select(['st.id', 'st.subject', 'st.category', 'st.priority', 'c.name as customer'])
         .where('st.id', '=', request.params.id)
+        .where('st.tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
 
       const messages = await trx
         .selectFrom('support_messages')
         .select(['content', 'author_type', 'channel', 'created_at'])
         .where('ticket_id', '=', request.params.id)
+        .where('tenant_id', '=', user.tenant_id)
         .orderBy('created_at', 'desc')
         .limit(5)
         .execute();
@@ -477,6 +504,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
         .updateTable('support_tickets')
         .set({ group_id: request.body.group_id, updated_at: new Date() })
         .where('id', '=', request.params.id)
+        .where('tenant_id', '=', user.tenant_id)
         .returningAll()
         .executeTakeFirstOrThrow();
 
@@ -492,12 +520,14 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
       const groups = await trx
         .selectFrom('support_groups')
         .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
         .orderBy('created_at', 'asc')
         .execute();
 
       const counts = await trx
         .selectFrom('support_tickets')
         .select(['group_id', trx.fn.count('id').as('cnt')])
+        .where('tenant_id', '=', user.tenant_id)
         .where('group_id', 'is not', null)
         .groupBy('group_id')
         .execute();
@@ -527,7 +557,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
   fastify.delete<{ Params: { id: string } }>('/groups/:id', async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      await trx.deleteFrom('support_groups').where('id', '=', request.params.id).execute();
+      await trx.deleteFrom('support_groups').where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).execute();
       reply.status(204);
       return null;
     });
@@ -540,6 +570,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
       const views = await trx
         .selectFrom('support_views')
         .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
         .orderBy('created_at', 'asc')
         .execute();
       reply.status(200);
@@ -571,7 +602,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
   fastify.delete<{ Params: { id: string } }>('/views/:id', async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      await trx.deleteFrom('support_views').where('id', '=', request.params.id).execute();
+      await trx.deleteFrom('support_views').where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).execute();
       reply.status(204);
       return null;
     });
@@ -591,6 +622,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
       const tickets = await trx
         .selectFrom('support_tickets')
         .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
         .where('created_at', '>=', cutoff)
         .execute();
 
@@ -749,7 +781,9 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       const ticket = await trx.selectFrom('support_tickets').select(['id', 'created_at'])
-        .where('id', '=', request.params.id).executeTakeFirst();
+        .where('id', '=', request.params.id)
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
       if (!ticket) {
         reply.status(404);
         return { error: 'Ticket not found' };
@@ -770,6 +804,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
           updated_at: resolvedAt,
         })
         .where('id', '=', request.params.id)
+        .where('tenant_id', '=', user.tenant_id)
         .returningAll()
         .executeTakeFirstOrThrow();
 
@@ -838,7 +873,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
         ...(b.enabled !== undefined ? { enabled: b.enabled } : {}),
         ...(b.config !== undefined ? { config: JSON.stringify(b.config) } : {}),
         updated_at: new Date(),
-      }).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow();
+      }).where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
       reply.status(200);
       return rule;
     });
@@ -847,7 +882,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
   fastify.delete<{ Params: { id: string } }>('/rules/:id', { preHandler: [requireRole(...MGMT_ROLES)] }, async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      await trx.deleteFrom('support_rules').where('id', '=', request.params.id).execute();
+      await trx.deleteFrom('support_rules').where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).execute();
       reply.status(204);
       return null;
     });
@@ -858,7 +893,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
   fastify.get('/kb/categories', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) =>
-      trx.selectFrom('kb_categories').selectAll().orderBy('name', 'asc').execute()
+      trx.selectFrom('kb_categories').selectAll().where('tenant_id', '=', user.tenant_id).orderBy('name', 'asc').execute()
     );
   });
 
@@ -876,7 +911,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
   fastify.delete<{ Params: { id: string } }>('/kb/categories/:id', { preHandler: [requireRole(...MGMT_ROLES)] }, async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      await trx.deleteFrom('kb_categories').where('id', '=', request.params.id).execute();
+      await trx.deleteFrom('kb_categories').where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).execute();
       reply.status(204);
       return null;
     });
@@ -892,6 +927,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
           'knowledge_base.views', 'knowledge_base.category_id', 'knowledge_base.created_at', 'knowledge_base.updated_at',
           'kb_categories.name as category_name',
         ])
+        .where('knowledge_base.tenant_id', '=', user.tenant_id)
         .orderBy('knowledge_base.updated_at', 'desc')
         .execute()
     );
@@ -926,7 +962,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
         if (request.body.status !== undefined) updates.status = request.body.status;
 
         const article = await trx.updateTable('knowledge_base').set(updates)
-          .where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow();
+          .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
         return article;
       });
     }
@@ -937,7 +973,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
     return withTenant(user.tenant_id, async (trx) => {
       await trx.updateTable('knowledge_base')
         .set({ views: (eb) => eb('views', '+', 1) as any })
-        .where('id', '=', request.params.id).execute();
+        .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).execute();
       return { success: true };
     });
   });
@@ -945,7 +981,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
   fastify.delete<{ Params: { id: string } }>('/kb/articles/:id', { preHandler: [requireRole(...MGMT_ROLES)] }, async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
-      await trx.deleteFrom('knowledge_base').where('id', '=', request.params.id).execute();
+      await trx.deleteFrom('knowledge_base').where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).execute();
       reply.status(204);
       return null;
     });
@@ -956,7 +992,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
   fastify.get('/chat/sessions', async (request) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) =>
-      trx.selectFrom('live_chat_sessions').selectAll().orderBy('updated_at', 'desc').execute()
+      trx.selectFrom('live_chat_sessions').selectAll().where('tenant_id', '=', user.tenant_id).orderBy('updated_at', 'desc').execute()
     );
   });
 
@@ -965,6 +1001,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
     return withTenant(user.tenant_id, async (trx) =>
       trx.selectFrom('live_chat_messages').selectAll()
         .where('session_id', '=', request.params.id)
+        .where('tenant_id', '=', user.tenant_id)
         .orderBy('created_at', 'asc')
         .execute()
     );
@@ -973,6 +1010,13 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
   fastify.post<{ Params: { id: string }; Body: { content: string } }>('/chat/sessions/:id/messages', async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
+      const session = await trx.selectFrom('live_chat_sessions').select('id')
+        .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!session) {
+        reply.status(404);
+        return { error: 'Session not found' };
+      }
+
       const message = await trx.insertInto('live_chat_messages')
         .values({
           tenant_id: user.tenant_id,
@@ -985,7 +1029,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
 
       await trx.updateTable('live_chat_sessions')
         .set({ status: 'active', updated_at: new Date() })
-        .where('id', '=', request.params.id).execute();
+        .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).execute();
 
       reply.status(201);
       return message;
@@ -1002,7 +1046,7 @@ Write a professional, empathetic reply to this customer. Be concise (2–4 sente
         if (request.body.assigned_to !== undefined) updates.assigned_to = request.body.assigned_to;
 
         const session = await trx.updateTable('live_chat_sessions').set(updates)
-          .where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow();
+          .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
         return session;
       });
     }
