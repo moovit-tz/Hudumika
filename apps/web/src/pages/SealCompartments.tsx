@@ -21,8 +21,8 @@ interface Location {
 }
 interface GuaranteeOption { id: string; reference: string; face_value: number; currency: string; }
 
-const WAREHOUSE_TYPES = ['public_bonded', 'private_bonded', 'cfs', 'icd', 'virtual_icd', 'free_zone', 'duty_free_retail', 'excise'];
-const ZONE_TYPES = ['receiving', 'bulk', 'pick', 'vas', 'quarantine', 'outbound', 'yard'];
+const WAREHOUSE_TYPES = ['public_bonded', 'private_bonded', 'cfs', 'icd', 'virtual_icd', 'free_zone', 'duty_free_retail', 'excise', 'sorting_centre'];
+const ZONE_TYPES = ['receiving', 'bulk', 'pick', 'vas', 'quarantine', 'outbound', 'yard', 'sort_lane'];
 const NO_GUARANTEE = '__none__';
 const NO_GEOFENCE = '__none__';
 
@@ -195,6 +195,14 @@ export function SealCompartments() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  {c.warehouse_type === 'sorting_centre' && (
+                    <button
+                      type="button" className="seal-btn-secondary"
+                      onClick={e => { e.stopPropagation(); navigate(`/seal/compartments/${c.id}/sorting-dashboard`); }}
+                    >
+                      <Icon name="arrowUpDown" size={13} /><span>Sorting Dashboard</span>
+                    </button>
+                  )}
                   <button
                     type="button" className="seal-btn-secondary"
                     onClick={e => { e.stopPropagation(); navigate(`/seal/compartments/${c.id}/layout`); }}

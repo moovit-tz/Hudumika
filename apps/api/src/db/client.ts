@@ -308,6 +308,7 @@ export interface SealLotsTable {
   storage_billed_through: Date | null;
   volume_cbm: string | null;
   gross_weight_kg: string | null;
+  destination_label: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

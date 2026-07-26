@@ -75,6 +75,7 @@ function mapLot(row: any) {
     stackTier: row.stack_tier ?? 1,
     volumeCbm: row.volume_cbm != null ? Number(row.volume_cbm) : null,
     grossWeightKg: row.gross_weight_kg != null ? Number(row.gross_weight_kg) : null,
+    destinationLabel: row.destination_label ?? null,
     createdAt: row.created_at,
     legalNextStatuses: legalNextCustomsStatuses(row.customs_status as CustomsStatus),
   };
@@ -349,6 +350,79 @@ export async function sealRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // ── Sorting Centre dashboard ─────────────────────────────────────────
+  // A sorting-centre compartment holds the same seal_lots rows as any
+  // other warehouse type — no parallel "parcel" table — just with
+  // different operational expectations: hours of dwell time, not days,
+  // and grouped by destination_label rather than customs status. Outbound
+  // dispatch of a sorted group reuses Increment 11b's fulfillment orders
+  // unchanged.
+  const SORTING_DWELL_OVERDUE_HOURS = 24;
+  fastify.get('/compartments/:id/sorting-dashboard', async (request: any, reply) => {
+    try {
+      const compartmentId = request.params.id;
+      const { compartment, lots, receipts } = await withTenant(request.user.tenant_id, async trx => {
+        const [compartment, lots] = await Promise.all([
+          trx.selectFrom('seal_compartments').selectAll().where('id', '=', compartmentId).executeTakeFirst(),
+          trx.selectFrom('seal_lots')
+            .select(['id', 'description', 'qty_on_hand', 'uom', 'warehoused_on', 'destination_label', 'current_location_id'])
+            .where('compartment_id', '=', compartmentId)
+            .where('qty_on_hand', '>', '0')
+            .execute(),
+        ]);
+        const lotIds = lots.map(l => l.id);
+        const receipts = lotIds.length > 0
+          ? await trx.selectFrom('seal_movements').select(['lot_id', 'occurred_at'])
+              .where('lot_id', 'in', lotIds).where('movement_type', '=', 'receipt').execute()
+          : [];
+        return { compartment, lots, receipts };
+      });
+      if (!compartment) return reply.status(404).send({ error: 'Compartment not found' });
+
+      // warehoused_on is a DATE column (day-granularity, built for the
+      // bonded-warehouse storage-billing clock) — too coarse for a sorting
+      // centre's hour-level dwell time. The lot's founding 'receipt'
+      // movement carries a real TIMESTAMPTZ, so that's the true arrival
+      // moment used here instead.
+      const receiptAt = new Map(receipts.map(r => [r.lot_id, r.occurred_at]));
+
+      const now = Date.now();
+      const dwellHours = (l: typeof lots[number]) => {
+        const arrivedAt = receiptAt.get(l.id) ?? (l.warehoused_on ? new Date(l.warehoused_on) : null);
+        return arrivedAt ? (now - arrivedAt.getTime()) / 3600000 : 0;
+      };
+
+      const byDestination = new Map<string, { destinationLabel: string | null; lotCount: number; oldestDwellHours: number }>();
+      for (const lot of lots) {
+        const key = lot.destination_label ?? '__unassigned__';
+        const entry = byDestination.get(key) ?? { destinationLabel: lot.destination_label, lotCount: 0, oldestDwellHours: 0 };
+        entry.lotCount++;
+        entry.oldestDwellHours = Math.max(entry.oldestDwellHours, dwellHours(lot));
+        byDestination.set(key, entry);
+      }
+
+      const dwells = lots.map(dwellHours);
+      const overdueLots = lots.filter(l => dwellHours(l) > SORTING_DWELL_OVERDUE_HOURS);
+
+      return {
+        compartment: { id: compartment.id, code: compartment.code, name: compartment.name },
+        lotCount: lots.length,
+        unsortedCount: lots.filter(l => !l.destination_label).length,
+        avgDwellHours: dwells.length > 0 ? Math.round((dwells.reduce((s, d) => s + d, 0) / dwells.length) * 10) / 10 : null,
+        overdueCount: overdueLots.length,
+        overdueThresholdHours: SORTING_DWELL_OVERDUE_HOURS,
+        byDestination: [...byDestination.values()].sort((a, b) => b.oldestDwellHours - a.oldestDwellHours)
+          .map(d => ({ ...d, oldestDwellHours: Math.round(d.oldestDwellHours * 10) / 10 })),
+        overdueLots: overdueLots.map(l => ({
+          id: l.id, description: l.description, qtyOnHand: Number(l.qty_on_hand), uom: l.uom,
+          destinationLabel: l.destination_label, dwellHours: Math.round(dwellHours(l) * 10) / 10,
+        })),
+      };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
   fastify.post('/compartments', async (request: any, reply) => {
     try {
       const b = request.body as any;
@@ -605,6 +679,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
             'seal_lots.warehoused_on', 'seal_lots.expires_on',
             'seal_lots.is_dangerous_goods', 'seal_lots.un_number', 'seal_lots.imdg_class',
             'seal_lots.requires_reefer', 'seal_lots.reefer_setpoint_c', 'seal_lots.stack_tier', 'seal_lots.created_at',
+            'seal_lots.volume_cbm', 'seal_lots.gross_weight_kg', 'seal_lots.destination_label',
           ])
           .orderBy('seal_lots.created_at', 'desc');
         if (compartment_id) query = query.where('seal_lots.compartment_id', '=', compartment_id);
@@ -634,6 +709,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
             'seal_lots.warehoused_on', 'seal_lots.expires_on',
             'seal_lots.is_dangerous_goods', 'seal_lots.un_number', 'seal_lots.imdg_class',
             'seal_lots.requires_reefer', 'seal_lots.reefer_setpoint_c', 'seal_lots.stack_tier', 'seal_lots.created_at',
+            'seal_lots.volume_cbm', 'seal_lots.gross_weight_kg', 'seal_lots.destination_label',
           ])
           .where('seal_lots.id', '=', request.params.id)
           .executeTakeFirst()
@@ -667,6 +743,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
           stackTier: b.stackTier ? Number(b.stackTier) : undefined,
           volumeCbm: b.volumeCbm != null ? Number(b.volumeCbm) : null,
           grossWeightKg: b.grossWeightKg != null ? Number(b.grossWeightKg) : null,
+          destinationLabel: b.destinationLabel ?? null,
         })
       );
       return mapLot(lot);

@@ -24,6 +24,7 @@ import { SealEquipment } from '../pages/SealEquipment.js';
 import { SealAutomation } from '../pages/SealAutomation.js';
 import { SealFulfillment } from '../pages/SealFulfillment.js';
 import { SealFulfillmentDetail } from '../pages/SealFulfillmentDetail.js';
+import { SealSortingDashboard } from '../pages/SealSortingDashboard.js';
 import { SealCompartmentSwitcher } from '../components/SealCompartmentSwitcher.js';
 
 // Declarations moved to ClearOS's Ops Command — these redirect a bookmarked
@@ -98,6 +99,7 @@ export function SealShell() {
                 <Route path="compartments"      element={<SealCompartments />}       />
                 <Route path="compartments/:id/heat-grid" element={<SealZoneHeatGrid />} />
                 <Route path="compartments/:id/layout"    element={<SealWarehouseLayout />} />
+                <Route path="compartments/:id/sorting-dashboard" element={<SealSortingDashboard />} />
                 <Route path="guarantees"        element={<SealGuarantees />}         />
                 <Route path="consignments"      element={<SealConsignments />}       />
                 <Route path="consignments/:id"  element={<SealConsignmentDetail />}  />

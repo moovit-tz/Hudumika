@@ -9,7 +9,7 @@ import { showAlert } from '../lib/alert.js';
 import { CUSTOMS_STATUS_ENTRY_POINTS, CUSTOMS_STATUS_LABELS, type CustomsStatus } from '@hudumika/types';
 import './Seal.css';
 
-interface Compartment { id: string; code: string; name: string; }
+interface Compartment { id: string; code: string; name: string; warehouse_type: string; }
 interface Location { id: string; code: string; }
 interface Customer { id: string; name: string; category?: string; }
 
@@ -44,6 +44,7 @@ export function SealReceiveLot() {
   const [reeferSetpointC, setReeferSetpointC] = useState('');
   const [volumeCbm, setVolumeCbm] = useState('');
   const [grossWeightKg, setGrossWeightKg] = useState('');
+  const [destinationLabel, setDestinationLabel] = useState('');
 
   useEffect(() => {
     apiFetch('/v1/seal/compartments').then(rows => {
@@ -59,6 +60,7 @@ export function SealReceiveLot() {
   }, [compartmentId]);
 
   const isReady = compartmentId && ownerId && description.trim() && qty && Number(qty) > 0 && uom.trim();
+  const isSortingCentre = compartments.find(c => c.id === compartmentId)?.warehouse_type === 'sorting_centre';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -80,6 +82,7 @@ export function SealReceiveLot() {
           isDangerousGoods, unNumber: unNumber.trim() || null, imdgClass: imdgClass.trim() || null,
           requiresReefer, reeferSetpointC: reeferSetpointC ? Number(reeferSetpointC) : null,
           volumeCbm: volumeCbm ? Number(volumeCbm) : null, grossWeightKg: grossWeightKg ? Number(grossWeightKg) : null,
+          destinationLabel: destinationLabel.trim() || null,
         }),
       });
       navigate(`/seal/lots/${lot.id}`);
@@ -169,6 +172,13 @@ export function SealReceiveLot() {
               </SelectContent>
             </Select>
           </div>
+
+          {isSortingCentre && (
+            <div className="seal-field-row">
+              <label className="seal-field-label" title="Where this parcel is headed next — a city, hub code, or route reference">Destination</label>
+              <input type="text" className="input-field" value={destinationLabel} onChange={e => setDestinationLabel(e.target.value)} placeholder="e.g. Arusha Hub / Route 12" />
+            </div>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
             <div className="seal-field-row">

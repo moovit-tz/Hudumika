@@ -250,6 +250,7 @@ export class SealService {
     requiresReefer?: boolean; reeferSetpointC?: number | null;
     stackTier?: number;
     volumeCbm?: number | null; grossWeightKg?: number | null;
+    destinationLabel?: string | null;
   }) {
     if (!CUSTOMS_STATUS_ENTRY_POINTS.includes(input.customsStatus)) {
       throw new Error(`A lot cannot be received directly into ${input.customsStatus} — valid entry statuses are ${CUSTOMS_STATUS_ENTRY_POINTS.join(', ')}`);
@@ -300,6 +301,7 @@ export class SealService {
         stack_tier: stackTier,
         volume_cbm: input.volumeCbm != null ? String(input.volumeCbm) : null,
         gross_weight_kg: input.grossWeightKg != null ? String(input.grossWeightKg) : null,
+        destination_label: input.destinationLabel ?? null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();
