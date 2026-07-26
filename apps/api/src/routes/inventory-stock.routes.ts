@@ -1,5 +1,6 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { InventoryService, UnknownUom, InvalidMovement } from '../services/inventory.service.js';
 
@@ -32,6 +33,37 @@ function mapMovement(row: any) {
 export async function inventoryStockRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('inventory'));
+
+  // Reorder alerts — always computed live from the real projection, never
+  // a stored flag that could drift stale as stock moves.
+  fastify.get('/reorder-alerts', async (request: any, reply) => {
+    try {
+      const rows = await withTenant(request.user.tenant_id, trx =>
+        trx.selectFrom('inventory_items')
+          .leftJoin('inventory_stock_levels', 'inventory_stock_levels.item_id', 'inventory_items.id')
+          .select(({ fn }) => [
+            'inventory_items.id', 'inventory_items.sku', 'inventory_items.name', 'inventory_items.base_uom',
+            'inventory_items.reorder_point', 'inventory_items.reorder_qty',
+            fn.coalesce(fn.sum<string>('inventory_stock_levels.qty_on_hand'), sql.lit('0')).as('total_qty_on_hand'),
+          ])
+          .where('inventory_items.active', '=', true)
+          .where('inventory_items.reorder_point', 'is not', null)
+          .groupBy(['inventory_items.id', 'inventory_items.sku', 'inventory_items.name', 'inventory_items.base_uom', 'inventory_items.reorder_point', 'inventory_items.reorder_qty'])
+          .execute()
+      );
+      const alerts = rows
+        .map(r => ({
+          itemId: r.id, sku: r.sku, name: r.name, baseUom: r.base_uom,
+          reorderPoint: Number(r.reorder_point), reorderQty: r.reorder_qty != null ? Number(r.reorder_qty) : null,
+          totalQtyOnHand: Number(r.total_qty_on_hand),
+        }))
+        .filter(a => a.totalQtyOnHand <= a.reorderPoint)
+        .sort((a, b) => (a.totalQtyOnHand - a.reorderPoint) - (b.totalQtyOnHand - b.reorderPoint));
+      return alerts;
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
 
   fastify.get('/stock-levels', async (request: any, reply) => {
     try {
