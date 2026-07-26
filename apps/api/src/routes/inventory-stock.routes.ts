@@ -65,6 +65,82 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
     }
   });
 
+  // Metrics dashboard (Phase 6) — pure read aggregation over real rows,
+  // no new tables, no fabricated numbers. Every figure traces to an
+  // inventory_movements or inventory_stock_levels row.
+  fastify.get('/metrics', async (request: any, reply) => {
+    try {
+      const cutoff = new Date(Date.now() - 30 * 86400000);
+      const result = await withTenant(request.user.tenant_id, async trx => {
+        const [itemCount, warehouseCount, byWarehouse, recentMovements, lowStock] = await Promise.all([
+          trx.selectFrom('inventory_items').select(({ fn }) => fn.count<number>('id').as('n')).where('active', '=', true).executeTakeFirst(),
+          trx.selectFrom('inventory_warehouses').select(({ fn }) => fn.count<number>('id').as('n')).where('active', '=', true).executeTakeFirst(),
+          trx.selectFrom('inventory_warehouses')
+            .leftJoin('inventory_locations', 'inventory_locations.warehouse_id', 'inventory_warehouses.id')
+            .leftJoin('inventory_stock_levels', 'inventory_stock_levels.location_id', 'inventory_locations.id')
+            .select(({ fn }) => [
+              'inventory_warehouses.id', 'inventory_warehouses.name',
+              fn.count<number>('inventory_stock_levels.item_id').distinct().as('item_count'),
+              fn.coalesce(fn.sum<string>('inventory_stock_levels.qty_on_hand'), sql.lit('0')).as('total_qty'),
+            ])
+            .where('inventory_warehouses.active', '=', true)
+            .groupBy(['inventory_warehouses.id', 'inventory_warehouses.name'])
+            .execute(),
+          trx.selectFrom('inventory_movements')
+            .select(['occurred_at', 'movement_type'])
+            .where('occurred_at', '>=', cutoff)
+            .where('movement_type', 'in', ['receipt', 'issue'])
+            .execute(),
+          trx.selectFrom('inventory_items')
+            .leftJoin('inventory_stock_levels', 'inventory_stock_levels.item_id', 'inventory_items.id')
+            .select(({ fn }) => [
+              'inventory_items.id', 'inventory_items.sku', 'inventory_items.name', 'inventory_items.base_uom',
+              'inventory_items.reorder_point',
+              fn.coalesce(fn.sum<string>('inventory_stock_levels.qty_on_hand'), sql.lit('0')).as('total_qty_on_hand'),
+            ])
+            .where('inventory_items.active', '=', true)
+            .where('inventory_items.reorder_point', 'is not', null)
+            .groupBy(['inventory_items.id', 'inventory_items.sku', 'inventory_items.name', 'inventory_items.base_uom', 'inventory_items.reorder_point'])
+            .execute(),
+        ]);
+
+        const now = Date.now();
+        const dayBuckets = new Map<string, { received: number; issued: number }>();
+        for (let i = 29; i >= 0; i--) {
+          const d = new Date(now - i * 86400000).toISOString().slice(0, 10);
+          dayBuckets.set(d, { received: 0, issued: 0 });
+        }
+        for (const m of recentMovements) {
+          const day = new Date(m.occurred_at).toISOString().slice(0, 10);
+          const bucket = dayBuckets.get(day);
+          if (!bucket) continue;
+          if (m.movement_type === 'receipt') bucket.received++;
+          else if (m.movement_type === 'issue') bucket.issued++;
+        }
+
+        const topLowStock = lowStock
+          .map(r => ({
+            itemId: r.id, sku: r.sku, name: r.name, baseUom: r.base_uom,
+            reorderPoint: Number(r.reorder_point), totalQtyOnHand: Number(r.total_qty_on_hand),
+          }))
+          .filter(r => r.totalQtyOnHand <= r.reorderPoint)
+          .sort((a, b) => (a.totalQtyOnHand - a.reorderPoint) - (b.totalQtyOnHand - b.reorderPoint))
+          .slice(0, 10);
+
+        return {
+          itemCount: Number(itemCount?.n ?? 0),
+          warehouseCount: Number(warehouseCount?.n ?? 0),
+          byWarehouse: byWarehouse.map(w => ({ warehouseId: w.id, name: w.name, itemCount: Number(w.item_count), totalQty: Number(w.total_qty) })),
+          dailyActivity: [...dayBuckets.entries()].map(([date, v]) => ({ date, received: v.received, issued: v.issued })),
+          topLowStock,
+        };
+      });
+      return result;
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
   fastify.get('/stock-levels', async (request: any, reply) => {
     try {
       const { item_id, location_id, warehouse_id } = request.query as { item_id?: string; location_id?: string; warehouse_id?: string };
