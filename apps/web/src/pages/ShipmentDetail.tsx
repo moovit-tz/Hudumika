@@ -146,6 +146,21 @@ function apiTaskToInternal(t: any): InternalTask {
   };
 }
 
+// shipment_time_entries has no separate id/name split for member or task —
+// just `member` and `task_ref` strings — so memberId/taskId reuse those
+// same strings rather than fabricating separate identifiers.
+function apiTimeEntryToInternal(t: any): TimeEntry {
+  const hours = Number(t.hours) || 0;
+  return {
+    id: String(t.id),
+    memberId: t.member || '', memberName: t.member || 'Unknown',
+    taskId: t.task_ref || '', taskTitle: t.task_ref || 'General',
+    duration: `${Math.floor(hours)}:${String(Math.round((hours % 1) * 60)).padStart(2, '0')}:00`,
+    hours, date: new Date(t.log_date || t.created_at || Date.now()),
+    billable: true, note: t.note || undefined,
+  };
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function fdate(d: Date) { return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
@@ -3336,6 +3351,7 @@ export function ShipmentDetail() {
   const [apiJob,     setApiJob]     = useState<ClearanceJob | null>(null);
   const [apiLoading, setApiLoading] = useState(false);
   const [apiTasks,   setApiTasks]   = useState<InternalTask[]>([]);
+  const [apiTimeEntries, setApiTimeEntries] = useState<TimeEntry[]>([]);
   const [tab,        setTab]        = useState<Tab>(() => {
     const requested = searchParams.get('tab');
     const valid = TAB_CFG.some(t => t.id === requested);
@@ -3359,6 +3375,13 @@ export function ShipmentDetail() {
       .catch(() => setApiTasks([]));
   }
 
+  function loadTimeEntries() {
+    if (!id) return;
+    apiFetch(`/v1/shipments/${id}/time-entries`)
+      .then((res: any) => setApiTimeEntries((Array.isArray(res) ? res : res.data || []).map(apiTimeEntryToInternal)))
+      .catch(() => setApiTimeEntries([]));
+  }
+
   // If not in mock store, try fetching from real API
   useEffect(() => {
     if (!mockJob && id) {
@@ -3368,6 +3391,7 @@ export function ShipmentDetail() {
         .catch(() => setApiJob(null))
         .finally(() => setApiLoading(false));
       loadTasks();
+      loadTimeEntries();
     } else {
       setApiJob(null);
     }
@@ -3380,13 +3404,14 @@ export function ShipmentDetail() {
       .then(data => setApiJob(apiToJob(data)))
       .catch(() => {});
     loadTasks();
+    loadTimeEntries();
   }
 
-  // apiToJob always sets tasks: [] (tasks live on their own endpoint, not
-  // embedded in GET /v1/shipments/:id) — layer the separately-fetched real
-  // tasks on top here rather than inside apiToJob, which stays a pure
-  // mapper of the raw shipment record.
-  const job = mockJob || (apiJob ? { ...apiJob, tasks: apiTasks } : null);
+  // apiToJob always sets tasks/timeEntries to [] (they live on their own
+  // endpoints, not embedded in GET /v1/shipments/:id) — layer the
+  // separately-fetched real data on top here rather than inside apiToJob,
+  // which stays a pure mapper of the raw shipment record.
+  const job = mockJob || (apiJob ? { ...apiJob, tasks: apiTasks, timeEntries: apiTimeEntries } : null);
   const isMock = !!mockJob;
 
   if (apiLoading) return (

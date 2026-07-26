@@ -463,6 +463,16 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
   const [aiOpen, setAiOpen] = useState(false);
   const { isCheckedIn, currentEntry, triggerOpen } = useClockIn();
   const [clockOpen, setClockOpen] = useState(false);
+  // clockDuration() below reads Date.now() directly, so nothing forces a
+  // re-render as time passes — without this tick, the displayed duration
+  // was frozen at whatever it happened to be on the last unrelated render
+  // (e.g. the 30s notification poll), not actually live.
+  const [, setClockTick] = useState(0);
+  useEffect(() => {
+    if (!isCheckedIn) return;
+    const t = setInterval(() => setClockTick(v => v + 1), 30000);
+    return () => clearInterval(t);
+  }, [isCheckedIn]);
 
   const openAI = useCallback(() => setAiOpen(true), []);
   const closeAI = useCallback(() => setAiOpen(false), []);
