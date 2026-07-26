@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
+import type { IconName } from '../components/Icon.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { apiFetch } from '../lib/api.js';
@@ -149,7 +150,7 @@ function Seg({ active, onClick, label, icon, fullWidth, grow }: { active: boolea
         fontWeight: active ? 700 : 500, fontSize: 13, cursor: 'pointer',
         transition: 'all .15s ease', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 10
       }}>
-      {icon && <Icon name={icon} size={15} color={active ? 'var(--teal)' : 'var(--ink3)'} />}
+      {icon && <Icon name={icon as IconName} size={15} color={active ? 'var(--teal)' : 'var(--ink3)'} />}
       {label}
     </button>
   );
@@ -708,7 +709,7 @@ export const LandedCostPage: React.FC = () => {
             <div className="lcp-card">
               <StepCaption index={0} />
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="box" size={18} color="var(--teal)" /> Cargo Details
+                <Icon name="package" size={18} color="var(--teal)" /> Cargo Details
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 18 }}>Enter the shipment value and HS classification.</div>
 

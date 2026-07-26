@@ -7,7 +7,7 @@ type IconName = React.ComponentProps<typeof Icon>['name'];
 export const NOTIF_TYPE_CFG: Record<string, { icon: IconName; bg: string; fg: string }> = {
   tag:          { icon: 'tag',         bg: '#e0f2fe', fg: '#0284c7' },
   support:      { icon: 'headphones',  bg: '#f3e8ff', fg: '#7c3aed' },
-  announcement: { icon: 'megaphone',   bg: '#fef9c3', fg: '#ca8a04' },
+  announcement: { icon: 'volume2',   bg: '#fef9c3', fg: '#ca8a04' },
   security:     { icon: 'shield',      bg: '#fee2e2', fg: '#dc2626' },
   task:         { icon: 'checkCircle', bg: '#ecfdf5', fg: '#059669' },
   info:         { icon: 'info',        bg: '#f0f9ff', fg: '#0284c7' },

@@ -5,6 +5,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
 } from 'recharts';
 import { Icon } from '../../components/Icon.js';
+import type { IconName } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import { apiFetch } from '../../lib/api.js';
@@ -223,7 +224,7 @@ export function ComplianceOverview() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 20 }}>
         {metrics.map(m => (
           <div key={m.label} style={{ ...cardStyle, display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px' }}>
-            <FeaturedIcon variant={m.variant} size="md" shape="square"><Icon name={m.icon} size={18} /></FeaturedIcon>
+            <FeaturedIcon variant={m.variant} size="md" shape="square"><Icon name={m.icon as IconName} size={18} /></FeaturedIcon>
             <div>
               <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.1 }}>{m.value}</div>
               <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{m.label}</div>

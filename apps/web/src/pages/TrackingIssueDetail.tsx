@@ -168,7 +168,7 @@ export const TrackingIssueDetail: React.FC = () => {
                 <div key={ev.id} style={{ display: 'flex', gap: 10, position: 'relative' }}>
                   {i < events.length - 1 && <div style={{ position: 'absolute', left: 13, top: 26, bottom: -16, width: 2, background: 'var(--border)' }} />}
                   <div style={{ width: 26, height: 26, borderRadius: '50%', background: ev.event_type === 'RESOLVED' ? '#ecfdf5' : ev.event_type === 'OPENED' ? '#fef9c3' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-                    <Icon name={ev.event_type === 'RESOLVED' ? 'checkCircle' : ev.event_type === 'OPENED' ? 'alertTriangle' : 'messageCircle'} size={13} color={ev.event_type === 'RESOLVED' ? '#059669' : ev.event_type === 'OPENED' ? '#ca8a04' : 'var(--ink3)'} />
+                    <Icon name={ev.event_type === 'RESOLVED' ? 'checkCircle' : ev.event_type === 'OPENED' ? 'alertTriangle' : 'chatBubble'} size={13} color={ev.event_type === 'RESOLVED' ? '#059669' : ev.event_type === 'OPENED' ? '#ca8a04' : 'var(--ink3)'} />
                   </div>
                   <div style={{ flex: 1, paddingBottom: 8 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{ev.description}</div>

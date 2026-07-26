@@ -36,7 +36,7 @@ const NAV: SidebarSection[] = [
   {
     title: 'OPERATIONS',
     items: [
-      { label: 'Tasks', icon: 'checkSquare', path: '/inventory/tasks' },
+      { label: 'Tasks', icon: 'tasks', path: '/inventory/tasks' },
     ],
   },
 ];

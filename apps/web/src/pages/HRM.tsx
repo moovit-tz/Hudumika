@@ -1664,7 +1664,7 @@ export function AttendancePage() {
     <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex:1, overflowY:'auto', display: 'flex', flexDirection: 'column' }}>
       <PageHeader icon="clock" title="Attendances" sub="Daily staff attendance and clock records" backTo="/onepi">
         <button type="button" className="btn btn-secondary" onClick={() => { setBulkEmpIds([]); setShowBulk(true); }} style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <Icon name="checkSquare" size={14} /> Mark Attendance
+          <Icon name="tasks" size={14} /> Mark Attendance
         </button>
       </PageHeader>
 

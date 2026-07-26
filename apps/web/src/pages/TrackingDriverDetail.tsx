@@ -128,7 +128,7 @@ export const TrackingDriverDetail: React.FC = () => {
         {!dismissAlert && (
           <div className="dd-alert">
             <div className="dd-alert-content">
-              <div className="dd-alert-icon"><Icon name="shieldAlert" size={16} /></div>
+              <div className="dd-alert-icon"><Icon name="alertTriangle" size={16} /></div>
               <div className="dd-alert-text">{driver.name} has some unverified information</div>
             </div>
             <div className="dd-alert-close" onClick={() => setDismissAlert(true)}><Icon name="x" size={16} /></div>

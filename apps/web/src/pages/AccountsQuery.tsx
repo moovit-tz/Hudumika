@@ -305,7 +305,7 @@ export function AccountsQuery() {
           disabled={loading}
           style={{ width: '100%', padding: '12px 0', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
-          <Icon name="refreshCw" size={15} color="#fff" />
+          <Icon name="refresh" size={15} color="#fff" />
           {loading ? 'Running…' : 'Run Report'}
         </button>
       </aside>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Icon } from '../components/Icon.js';
+import type { IconName } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 
 const fmtM = (n: number) => `TZS ${(n / 1_000_000).toFixed(1)}M`;
@@ -86,7 +87,7 @@ export const FinanceSalesReport: React.FC = () => {
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name={s.icon} size={18} color={s.color} />
+                <Icon name={s.icon as IconName} size={18} color={s.color} />
               </div>
               <div>
                 <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.03em' }}>{s.value}</div>

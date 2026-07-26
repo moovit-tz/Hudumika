@@ -25,7 +25,7 @@ const NAV: SidebarSection[] = [
     title: 'CUSTOMERS & PARTNERS',
     items: [
       { label: 'Customers',      icon: 'users',      path: '/crm/customers' },
-      { label: 'Chain Partners', icon: 'share2',     path: '/crm/chain-partners' },
+      { label: 'Chain Partners', icon: 'link',     path: '/crm/chain-partners' },
       { label: 'Leads',          icon: 'userPlus',   path: '/crm/leads'     },
       { label: 'Sales',          icon: 'trendingUp', path: '/crm/sales'     },
     ],

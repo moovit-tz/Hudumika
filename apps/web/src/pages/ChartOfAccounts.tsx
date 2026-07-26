@@ -221,10 +221,10 @@ export const ChartOfAccounts: React.FC = () => {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button type="button" className="btn btn-secondary btn-sm" onClick={expandAll} title="Expand all">
-            <Icon name="chevronsDown" size={13} /> All
+            <Icon name="chevronDown" size={13} /> All
           </button>
           <button type="button" className="btn btn-secondary btn-sm" onClick={collapseAll} title="Collapse all">
-            <Icon name="chevronsUp" size={13} /> Collapse
+            <Icon name="chevronUp" size={13} /> Collapse
           </button>
           <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv} title="Export CSV">
             <Icon name="download" size={13} /> Export CSV
@@ -373,7 +373,7 @@ export const ChartOfAccounts: React.FC = () => {
             )}
             <div style={{ display: 'flex', gap: 8, marginTop: 4, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
               <button type="button" className="btn btn-secondary btn-sm" style={{ flex: 1 }} disabled>
-                <Icon name="edit2" size={12} /> Edit
+                <Icon name="edit" size={12} /> Edit
               </button>
               {!selected.is_system && (
                 <button type="button" className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }} disabled>

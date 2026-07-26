@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { apiFetch } from '../lib/api.js';
@@ -16,7 +17,7 @@ interface CustomerOverviewData {
 }
 
 function KpiCard({ icon, iconBg, iconColor, value, label }: {
-  icon: string; iconBg: string; iconColor: string; value: string; label: string;
+  icon: IconName; iconBg: string; iconColor: string; value: string; label: string;
 }) {
   return (
     <div style={{
@@ -42,7 +43,7 @@ function KpiCard({ icon, iconBg, iconColor, value, label }: {
 }
 
 function StatusCard({ label, value, pct, color, icon }: {
-  label: string; value: string; pct: number; color: string; icon: string;
+  label: string; value: string; pct: number; color: string; icon: IconName;
 }) {
   return (
     <div style={{
@@ -309,7 +310,7 @@ export const CustomerOverview: React.FC = () => {
                       e.currentTarget.style.color = 'var(--ink2)';
                     }}
                   >
-                    <Icon name={a.icon} size={13} />
+                    <Icon name={a.icon as IconName} size={13} />
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.label}</span>
                   </Link>
                 ))}

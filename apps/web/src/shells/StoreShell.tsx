@@ -23,7 +23,7 @@ const NAV: SidebarSection[] = [
   {
     title: 'DEVELOPERS',
     items: [
-      { label: 'Submit App', icon: 'code',     path: '/store/developer' },
+      { label: 'Submit App', icon: 'terminal',     path: '/store/developer' },
       { label: 'Store Admin', icon: 'shield',   path: '/store/admin' },
     ],
   },

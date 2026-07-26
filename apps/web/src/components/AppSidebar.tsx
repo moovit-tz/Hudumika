@@ -59,7 +59,7 @@ const APP_ICONS: Record<AppId, IconName> = {
   demurrage:     'alertTriangle', // no longer a distinct shell — merged into cargotracker — kept only to satisfy Record<AppId,...>
   cargotracker:  'map',
   calendar:  'calendar',
-  tasks:     'checkSquare',
+  tasks:     'tasks',
   seal:      'package',
   inventory: 'package',
 };

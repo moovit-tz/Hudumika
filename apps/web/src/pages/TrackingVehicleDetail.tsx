@@ -151,10 +151,10 @@ export const TrackingVehicleDetail: React.FC = () => {
     { key: 'expense', label: 'Add Expense Entry', icon: 'dollarSign' },
     { key: 'service', label: 'Add Service Entry', icon: 'clipboardList' },
     { key: 'issue', label: 'Add Issue', icon: 'alertTriangle' },
-    { key: 'inspection', label: 'Add Inspection Submission', icon: 'checkSquare' },
+    { key: 'inspection', label: 'Add Inspection Submission', icon: 'tasks' },
     { key: 'workorder', label: 'Add Work Order', icon: 'tool' },
     { key: 'reminder', label: 'Add Service Reminder', icon: 'bell' },
-    { key: 'renewal', label: 'Add Vehicle Renewal Reminder', icon: 'refreshCw' },
+    { key: 'renewal', label: 'Add Vehicle Renewal Reminder', icon: 'refresh' },
     { key: 'meter', label: 'Add Meter Entry', icon: 'barChart2' },
   ];
 

@@ -3,7 +3,15 @@ import React from 'react';
 /* Stroke-only SVG icon set — 24×24 viewBox, rounded caps/joins, no fill.
    All paths written to a 24-unit grid so they scale cleanly at any size. */
 
-const P: Record<string, string | string[]> = {
+// `satisfies` (not a `: Record<string, ...>` annotation) is deliberate:
+// an explicit Record annotation widens `keyof typeof P` to plain `string`,
+// which silently defeated IconName's whole purpose — 26 misspelled icon
+// names across the app (e.g. 'gitBranch' before it existed, 'dollar',
+// 'checkSquare') typechecked fine and rendered nothing, completely
+// invisibly, because of this exact pattern. `satisfies` still validates
+// every value's shape while preserving the literal key union so a typo
+// is now a real compile error.
+const P = {
   /* ── Layout / Navigation ── */
   grid:         'M3 3h7v7H3V3zm11 0h7v7h-7V3zM3 14h7v7H3v-7zm11 0h7v7h-7v-7z',
   columns:      'M12 3h7a2 2 0 012 2v14a2 2 0 01-2 2h-7M12 3H5a2 2 0 00-2 2v14a2 2 0 002 2h7M12 3v18',
@@ -181,7 +189,17 @@ const P: Record<string, string | string[]> = {
   siren:           ['M11 17H7a4 4 0 0 1-4-4 8 8 0 0 1 16 0 4 4 0 0 1-4 4h-4z', 'M9 21h6', 'M12 3V1'],
   box3:            ['M8 3H5a2 2 0 0 0-2 2v3', 'M21 8V5a2 2 0 0 0-2-2h-3', 'M3 16v3a2 2 0 0 0 2 2h3', 'M16 21h3a2 2 0 0 0 2-2v-3'],
   trash2:          ['M3 6h18', 'M8 6V4h8v2', 'M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6', 'M10 11v6', 'M14 11v6'],
-};
+
+  /* ── Branching / flows (sidebar icons previously referenced but never defined — see gitBranch etc.) ── */
+  gitBranch:    ['M6 3L6 15', 'M18 9a9 9 0 0 1-9 9', 'M18 9a3 3 0 1 0 0-6a3 3 0 0 0 0 6z', 'M6 21a3 3 0 1 0 0-6a3 3 0 0 0 0 6z'],
+  gitMerge:     ['M18 21a3 3 0 1 0 0-6a3 3 0 0 0 0 6z', 'M6 9a3 3 0 1 0 0-6a3 3 0 0 0 0 6z', 'M6 21V9a9 9 0 0 0 9 9'],
+  bookOpen:     ['M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z', 'M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z'],
+  inbox:        ['M22 12L16 12L14 15L10 15L8 12L2 12', 'M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z'],
+  leaf:         ['M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10z', 'M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12'],
+  cloudRain:    'M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z',
+  unlock:       ['M7 11V7a5 5 0 0 1 9.9-1', 'M5 11h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2z'],
+  bookmark:     'M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z',
+} satisfies Record<string, string | string[]>;
 
 export type IconName = keyof typeof P;
 

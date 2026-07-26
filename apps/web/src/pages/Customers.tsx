@@ -1335,7 +1335,7 @@ export const Customers: React.FC = () => {
           {(financeTab === 'proposals' || financeTab === 'credit-notes') && (
             <div style={{ padding: '32px 28px' }}>
               <EmptyState
-                icon={financeTab === 'proposals' ? 'clipboard' : 'cornerDownLeft'}
+                icon={financeTab === 'proposals' ? 'clipboard' : 'arrowLeft'}
                 title={financeTab === 'proposals' ? 'No proposals' : 'No credit notes'}
                 sub={financeTab === 'proposals' ? 'Quotations sent as proposals will appear here' : 'Issued credit notes will appear here'}
               />

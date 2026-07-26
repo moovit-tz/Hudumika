@@ -34,8 +34,8 @@ const GROUPS: NavGroup[] = [
     label: 'Accounts',
     icon: 'bookOpen',
     items: [
-      { label: 'Payments',         to: '/finance/payments',                      icon: 'dollar'    },
-      { label: 'Products',         to: '/finance/products',                      icon: 'box'       },
+      { label: 'Payments',         to: '/finance/payments',                      icon: 'dollarSign'    },
+      { label: 'Products',         to: '/finance/products',                      icon: 'package'       },
       { label: 'Chart of Accounts',to: '/finance/accounts/chart-of-accounts',    icon: 'list'      },
       { label: 'Ledger',           to: '/finance/accounts/ledger',               icon: 'bookOpen'  },
       { label: 'Trial Balance',    to: '/finance/accounts/trial-balance',        icon: 'barChart'  },

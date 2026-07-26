@@ -979,7 +979,7 @@ export function Contacts() {
                                         style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4 }}
                                         title="Restore"
                                       >
-                                        <Icon name="rotateCcw" size={18} color="var(--cts-accent)" />
+                                        <Icon name="refresh2" size={18} color="var(--cts-accent)" />
                                       </button>
                                       {/* Hard Delete */}
                                       <button

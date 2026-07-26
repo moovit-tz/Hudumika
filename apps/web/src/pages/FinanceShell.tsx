@@ -565,7 +565,7 @@ function InvoiceArchiveList({ invoices, activeId, search, onSearch, filterStatus
   const ALL_STATUSES: FilterStatus[] = ['all', 'Draft', 'Unpaid', 'Partial', 'Paid', 'Overdue', 'Credited'];
 
   function SortIcon({ field }: { field: 'id' | 'date' | 'amount' }) {
-    if (sortField !== field) return <Icon name="chevronsUpDown" size={11} color="var(--ink3)" className="fin-arch-sort-icon" />;
+    if (sortField !== field) return <Icon name="arrowUpDown" size={11} color="var(--ink3)" className="fin-arch-sort-icon" />;
     return <Icon name={sortAsc ? 'chevronUp' : 'chevronDown'} size={11} color="var(--teal)" />;
   }
 

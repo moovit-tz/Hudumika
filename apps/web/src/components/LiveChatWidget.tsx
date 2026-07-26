@@ -40,7 +40,7 @@ export const LiveChatWidget: React.FC = () => {
           transform: isOpen ? 'scale(0.8)' : 'scale(1)'
         }}
       >
-        <Icon name={isOpen ? 'x' : 'messageCircle'} size={28} />
+        <Icon name={isOpen ? 'x' : 'chatBubble'} size={28} />
       </button>
 
       {/* Chat Window */}

@@ -75,7 +75,7 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
         />
         <div className="flex flex-col items-center gap-3 text-center pointer-events-none">
           <div className="w-12 h-12 rounded-full bg-card shadow-sm flex items-center justify-center border border-border text-primary">
-            <Icon name="upload-cloud" size={24} />
+            <Icon name="upload" size={24} />
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">
@@ -117,11 +117,11 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
                   </div>
                 ) : file.status === 'completed' ? (
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                    <Icon name="check-circle" size={14} /> Completed
+                    <Icon name="checkCircle" size={14} /> Completed
                   </div>
                 ) : (
                   <div className="flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400">
-                    <Icon name="alert-circle" size={14} /> Failed
+                    <Icon name="alertCircle" size={14} /> Failed
                   </div>
                 )}
               </div>

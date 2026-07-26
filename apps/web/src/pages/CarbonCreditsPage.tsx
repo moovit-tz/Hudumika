@@ -168,7 +168,7 @@ export const CarbonCreditsPage: React.FC = () => {
           <div style={{ background: 'var(--white)', padding: 24, borderRadius: 12, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 36, height: 36, borderRadius: 8, background: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="box" size={18} />
+                <Icon name="package" size={18} />
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)' }}>OFFSET SHIPMENTS</span>
             </div>

@@ -106,11 +106,11 @@ const onepiNav: NavCategory[] = [
     label: 'Payroll',
     subtitle: 'Salary & Payslips',
     root: '/hrm/payroll',
-    icon: 'dollar',
+    icon: 'dollarSign',
     roles: MGMT_ROLES,
     match: ['/hrm/payroll'],
     items: [
-      { label: 'Payroll', to: '/hrm/payroll', icon: 'dollar', roles: MGMT_ROLES },
+      { label: 'Payroll', to: '/hrm/payroll', icon: 'dollarSign', roles: MGMT_ROLES },
     ],
   },
   {
@@ -123,7 +123,7 @@ const onepiNav: NavCategory[] = [
     match: ['/hrm/activity-logs', '/hrm/login-history', '/hrm/device-management', '/hrm/permissions', '/hrm/announcements'],
     items: [
       { label: 'Activity Logs',    to: '/hrm/activity-logs',     icon: 'activity', roles: MGMT_ROLES },
-      { label: 'Login History',    to: '/hrm/login-history',     icon: 'log',      roles: MGMT_ROLES },
+      { label: 'Login History',    to: '/hrm/login-history',     icon: 'key',      roles: MGMT_ROLES },
       { label: 'Announcements',    to: '/hrm/announcements',     icon: 'bell',     roles: MGMT_ROLES },
       { label: 'Permissions',      to: '/hrm/permissions',       icon: 'lock',     roles: MGMT_ROLES },
     ],

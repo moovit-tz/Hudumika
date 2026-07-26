@@ -815,7 +815,7 @@ export const EmailApp: React.FC = () => {
 
             {emailsLoading && (
               <div className="em-loading">
-                <Icon name="loader" size={18} /><span>Loading…</span>
+                <Icon name="refresh" size={18} /><span>Loading…</span>
               </div>
             )}
 
@@ -897,7 +897,7 @@ export const EmailApp: React.FC = () => {
               </button>
               <div style={{ flex: 1 }} />
               <button type="button" className="em-icon-btn em-icon-btn--primary" onClick={aiSummarise} disabled={aiLoading}>
-                {aiLoading ? <Icon name="loader" size={14} color="#0b57d0" /> : <Icon name="zap" size={14} color="#0b57d0" />}
+                {aiLoading ? <Icon name="refresh" size={14} color="#0b57d0" /> : <Icon name="zap" size={14} color="#0b57d0" />}
                 AI Summary
               </button>
             </div>
@@ -946,7 +946,7 @@ export const EmailApp: React.FC = () => {
                   </div>
                   <div className="em-ai-panel-body">
                     {aiLoading
-                      ? <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink3)', fontSize: 13 }}><Icon name="loader" size={15} color="#0b57d0" /> Generating summary…</div>
+                      ? <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink3)', fontSize: 13 }}><Icon name="refresh" size={15} color="#0b57d0" /> Generating summary…</div>
                       : <p style={{ margin: 0, fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.65 }}>{aiSummary}</p>
                     }
                   </div>

@@ -265,10 +265,10 @@ export function SealWarehouseLayout() {
               <Icon name="grid" size={13} /><span>2D Plan</span>
             </button>
             <button type="button" className={viewMode === '3d' ? 'seal-btn-primary' : 'seal-btn-secondary'} onClick={() => setViewMode('3d')}>
-              <Icon name="box" size={13} /><span>3D View</span>
+              <Icon name="package" size={13} /><span>3D View</span>
             </button>
             <button type="button" className="seal-btn-secondary" onClick={handlePopulateData} disabled={populating}>
-              <Icon name="refreshCw" size={13} /><span>{populating ? 'Populating…' : 'Populate Real Layout'}</span>
+              <Icon name="refresh" size={13} /><span>{populating ? 'Populating…' : 'Populate Real Layout'}</span>
             </button>
             <button type="button" className={showAddForm ? 'seal-btn-primary' : 'seal-btn-secondary'} onClick={() => setShowAddForm(v => !v)}>
               <Icon name="plus" size={13} /><span>Add Rack / Floor</span>
@@ -431,7 +431,7 @@ export function SealWarehouseLayout() {
         {viewMode === '3d' && (
           <div className="seal-card" style={{ padding: 24, marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <Icon name="box" size={18} style={{ color: 'var(--seal)' }} />
+              <Icon name="package" size={18} style={{ color: 'var(--seal)' }} />
               <h2 className="seal-card-title" style={{ fontSize: 16 }}>3D Interactive Warehouse Stack & Routes</h2>
             </div>
             <SealWarehouse3D floors={data.floors} />

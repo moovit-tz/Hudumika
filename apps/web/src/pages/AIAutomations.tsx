@@ -319,12 +319,12 @@ export function AIAutomations() {
           <button className="btn btn-secondary btn-sm" style={{ padding: 6, height: 32, width: 32 }} title="Share"><Icon name="send" size={16} /></button>
           <button className="btn btn-secondary btn-sm" style={{ padding: 6, height: 32, width: 32 }} title="Settings"><Icon name="settings" size={16} /></button>
           <button className="aia-btn-try-ai" onClick={() => setAiOpen(o => !o)}>
-            <Icon name="sparkles" size={14} /> Try AI
+            <Icon name="sparkle" size={14} /> Try AI
           </button>
 
           {aiOpen && (
             <div className="aia-ai-panel">
-              <div className="aia-ai-panel-title"><Icon name="sparkles" size={14} color="#ec4899" /> Describe your automation</div>
+              <div className="aia-ai-panel-title"><Icon name="sparkle" size={14} color="#ec4899" /> Describe your automation</div>
               <textarea
                 className="aia-ai-textarea"
                 placeholder='e.g. "When a shipment clears customs, notify the client and assign a delivery driver"'

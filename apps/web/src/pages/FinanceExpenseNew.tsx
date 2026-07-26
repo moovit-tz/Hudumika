@@ -171,7 +171,7 @@ export const FinanceExpenseNew: React.FC = () => {
               </>
             ) : (
               <>
-                <div style={{ width: 40, height: 40, borderRadius: 4, background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="uploadCloud" size={16} /></div>
+                <div style={{ width: 40, height: 40, borderRadius: 4, background: 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="upload" size={16} /></div>
                 <div style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--ink3)' }}>Click to upload receipt image (PNG, JPG)</div>
               </>
             )}

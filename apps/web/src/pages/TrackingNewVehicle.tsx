@@ -108,7 +108,7 @@ export const TrackingNewVehicle: React.FC = () => {
                 color: activeSection === sec ? 'var(--teal)' : 'var(--ink2)',
                 fontWeight: activeSection === sec ? 700 : 500, fontSize: 13, textAlign: 'left'
               }}>
-              <Icon name={sec === 'Details' ? 'fileText' : sec === 'Maintenance' ? 'tool' : sec === 'Lifecycle' ? 'refreshCw' : sec === 'Financial' ? 'dollarSign' : sec === 'Specifications' ? 'settings' : 'sliders'} size={16} />
+              <Icon name={sec === 'Details' ? 'fileText' : sec === 'Maintenance' ? 'tool' : sec === 'Lifecycle' ? 'refresh' : sec === 'Financial' ? 'dollarSign' : sec === 'Specifications' ? 'settings' : 'sliders'} size={16} />
               {sec}
             </button>
           ))}

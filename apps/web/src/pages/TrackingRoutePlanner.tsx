@@ -297,7 +297,7 @@ export const TrackingRoutePlanner: React.FC = () => {
                     <div className="rp-timeline-content">
                       <div className="rp-tl-type">
                         <div className="rp-tl-type-badge">
-                          <Icon name={idx === 0 ? "playCircle" : idx === route.waypoints.length - 1 ? "checkCircle" : "mapPin"} size={12} />
+                          <Icon name={idx === 0 ? "play" : idx === route.waypoints.length - 1 ? "checkCircle" : "mapPin"} size={12} />
                           {idx === 0 ? "Hook Container" : idx === route.waypoints.length - 1 ? "Transit Warehouse" : "Delivery Stop"}
                         </div>
                         <span style={{ color: 'var(--ink3)' }}>{idx === 0 ? 'Start' : idx === route.waypoints.length - 1 ? 'Termination' : 'Stop'}</span>
