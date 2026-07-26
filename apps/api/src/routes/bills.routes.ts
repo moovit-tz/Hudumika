@@ -46,7 +46,7 @@ export async function billRoutes(fastify: FastifyInstance) {
   });
 
   // POST /v1/bills/recurring
-  fastify.post('/recurring', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+  fastify.post('/recurring', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const body = request.body as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -73,7 +73,7 @@ export async function billRoutes(fastify: FastifyInstance) {
   });
 
   // PATCH /v1/bills/recurring/:id
-  fastify.patch('/recurring/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+  fastify.patch('/recurring/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     const body = request.body as any;
@@ -125,7 +125,7 @@ export async function billRoutes(fastify: FastifyInstance) {
   });
 
   // POST /v1/bills
-  fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+  fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const body = request.body as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -213,7 +213,7 @@ export async function billRoutes(fastify: FastifyInstance) {
   });
 
   // PATCH /v1/bills/:id
-  fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+  fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     const body = request.body as any;
@@ -315,7 +315,7 @@ export async function billRoutes(fastify: FastifyInstance) {
   });
 
   // POST /v1/bills/:id/payment
-  fastify.post('/:id/payment', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+  fastify.post('/:id/payment', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     const { amount, currency, payment_date, method, reference, note } = request.body as any;
@@ -371,7 +371,7 @@ export async function billRoutes(fastify: FastifyInstance) {
   // ── POST /v1/bills/:id/verify-efd ─────────────────────────────────────────
   // Verify a supplier EFD/VFD receipt number against the TRA portal.
   // Optionally saves the receipt number on the bill.
-  fastify.post('/:id/verify-efd', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+  fastify.post('/:id/verify-efd', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user as any;
     const { id } = request.params as { id: string };
     const { efd_receipt_number } = request.body as any;

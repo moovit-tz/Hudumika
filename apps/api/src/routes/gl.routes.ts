@@ -1,4 +1,5 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { requireRole } from '../middleware/rbac.js';
 import type { FastifyInstance } from 'fastify';
 import { GLService } from '../services/gl.service.js';
 import { db } from '../db/client.js';
@@ -42,7 +43,7 @@ export async function glRoutes(fastify: FastifyInstance) {
   });
 
   // Journal Entries
-  fastify.post('/journal-entries', async (request: any, reply) => {
+  fastify.post('/journal-entries', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       const entryId = await GLService.post(tenantId, {

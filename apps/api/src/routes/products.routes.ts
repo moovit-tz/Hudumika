@@ -4,7 +4,7 @@ import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import crypto from 'crypto';
 
-const FIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'] as const;
+const FIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'] as const;
 
 export async function productRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);

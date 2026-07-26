@@ -13,7 +13,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
    * GET /v1/shipments/:id/pnl
    * Get shipment profitability metrics
    */
-  fastify.get('/:id/pnl', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+  fastify.get('/:id/pnl', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
 

@@ -296,7 +296,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   });
 
   // POST /v1/invoices
-  fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+  fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const body = request.body as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -376,7 +376,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   });
 
   // PATCH /v1/invoices/:id
-  fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+  fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     const body = request.body as any;
@@ -474,7 +474,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   });
 
   // POST /v1/invoices/:id/payment
-  fastify.post('/:id/payment', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+  fastify.post('/:id/payment', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     const { amount, method, payment_date, note } = request.body as any;
@@ -533,7 +533,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
 
   // ── POST /v1/invoices/:id/submit-to-tra ──────────────────────────────────────
   // Submit invoice to TRA EFDMS and receive a receipt verification number + QR code.
-  fastify.post('/:id/submit-to-tra', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+  fastify.post('/:id/submit-to-tra', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user as any;
     const { id } = request.params as { id: string };
 
@@ -600,7 +600,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     };
   });
 
-  const FIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'] as const;
+  const FIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'] as const;
 
   // ═══════════════════════════════════════════════════════════════
   // Notes

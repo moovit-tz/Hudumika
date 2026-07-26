@@ -19,7 +19,7 @@ export async function accountingIntegrationRoutes(fastify: FastifyInstance) {
   });
 
   // POST /v1/accounting-integrations/:provider/connect
-  fastify.post('/:provider/connect', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request: any, reply) => {
+  fastify.post('/:provider/connect', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       const { provider } = request.params as { provider: 'XERO' | 'SAGE' | 'QUICKBOOKS' | 'TALLY' };
@@ -34,7 +34,7 @@ export async function accountingIntegrationRoutes(fastify: FastifyInstance) {
   });
 
   // POST /v1/accounting-integrations/:provider/disconnect
-  fastify.post('/:provider/disconnect', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request: any, reply) => {
+  fastify.post('/:provider/disconnect', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       const { provider } = request.params as { provider: 'XERO' | 'SAGE' | 'QUICKBOOKS' | 'TALLY' };
@@ -48,7 +48,7 @@ export async function accountingIntegrationRoutes(fastify: FastifyInstance) {
   });
 
   // POST /v1/accounting-integrations/:provider/sync
-  fastify.post('/:provider/sync', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request: any, reply) => {
+  fastify.post('/:provider/sync', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
       const { provider } = request.params as { provider: 'XERO' | 'SAGE' | 'QUICKBOOKS' | 'TALLY' };

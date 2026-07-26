@@ -48,7 +48,7 @@ export async function supplierRoutes(fastify: FastifyInstance) {
   // new" action from Bill/PO pickers.
   fastify.post(
     '/',
-    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') },
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') },
     async (request, reply) => {
       const user = request.user;
       const body = request.body as Record<string, any>;
@@ -92,7 +92,7 @@ export async function supplierRoutes(fastify: FastifyInstance) {
   // PATCH /v1/suppliers/:id
   fastify.patch(
     '/:id',
-    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') },
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') },
     async (request, reply) => {
       const user = request.user;
       const { id } = request.params as { id: string };

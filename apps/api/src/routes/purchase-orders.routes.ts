@@ -22,7 +22,7 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
   });
 
   // POST /v1/purchase-orders
-  fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request: any, reply) => {
+  fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
     const user = request.user;
     const body = request.body as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -114,7 +114,7 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
   });
 
   // PATCH /v1/purchase-orders/:id
-  fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request: any, reply) => {
+  fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     const body = request.body as any;
@@ -183,7 +183,7 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
   });
 
   // PATCH /v1/purchase-orders/:id/status
-  fastify.patch('/:id/status', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request: any, reply) => {
+  fastify.patch('/:id/status', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     const { status } = request.body as { status: string };

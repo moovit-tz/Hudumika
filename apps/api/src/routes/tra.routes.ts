@@ -198,7 +198,7 @@ export async function traRoutes(fastify: FastifyInstance) {
   // Submit a specific invoice to TRA EFDMS.
   fastify.post(
     '/invoices/:id/submit',
-    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') },
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') },
     async (request, reply) => {
       const user = request.user as any;
       const { id } = request.params as { id: string };
