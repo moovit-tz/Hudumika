@@ -11,6 +11,7 @@ import { InventoryWarehouses } from '../pages/InventoryWarehouses.js';
 import { InventoryStock } from '../pages/InventoryStock.js';
 import { InventoryCounts } from '../pages/InventoryCounts.js';
 import { InventoryCountDetail } from '../pages/InventoryCountDetail.js';
+import { InventoryTasks } from '../pages/InventoryTasks.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -32,6 +33,12 @@ const NAV: SidebarSection[] = [
       { label: 'Stock Counts', icon: 'clipboardList', path: '/inventory/counts' },
     ],
   },
+  {
+    title: 'OPERATIONS',
+    items: [
+      { label: 'Tasks', icon: 'checkSquare', path: '/inventory/tasks' },
+    ],
+  },
 ];
 
 export function InventoryShell() {
@@ -50,6 +57,7 @@ export function InventoryShell() {
                 <Route path="stock"        element={<InventoryStock />}      />
                 <Route path="counts"       element={<InventoryCounts />}     />
                 <Route path="counts/:id"   element={<InventoryCountDetail />} />
+                <Route path="tasks"        element={<InventoryTasks />}      />
               </Route>
             </Routes>
           </div>

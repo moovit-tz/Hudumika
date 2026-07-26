@@ -2236,6 +2236,22 @@ export interface InventoryCountLinesTable {
   counted_by: string | null;
 }
 
+export interface InventoryTasksTable {
+  id: Generated<string>;
+  tenant_id: string;
+  item_id: string | null;
+  warehouse_id: string | null;
+  title: string;
+  status: Generated<string>; // open | in_progress | complete | blocked
+  priority: Generated<string>; // low | medium | high | urgent
+  assigned_to: string | null;
+  due_date: Date | null;
+  note: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface Database {
   inventory_warehouses: InventoryWarehousesTable;
   inventory_locations: InventoryLocationsTable;
@@ -2245,6 +2261,7 @@ export interface Database {
   inventory_stock_levels: InventoryStockLevelsTable;
   inventory_count_sessions: InventoryCountSessionsTable;
   inventory_count_lines: InventoryCountLinesTable;
+  inventory_tasks: InventoryTasksTable;
   support_tickets: SupportTicketsTable;
   support_messages: SupportMessagesTable;
   support_groups: SupportGroupsTable;

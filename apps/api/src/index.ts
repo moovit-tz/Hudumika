@@ -78,6 +78,7 @@ import { sealFulfillmentRoutes } from './routes/seal-fulfillment.routes.js';
 import { inventoryCatalogRoutes } from './routes/inventory-catalog.routes.js';
 import { inventoryStockRoutes } from './routes/inventory-stock.routes.js';
 import { inventoryCountsRoutes } from './routes/inventory-counts.routes.js';
+import { inventoryTasksRoutes } from './routes/inventory-tasks.routes.js';
 import { cmsRoutes } from './routes/cms.routes.js';
 import { complyOcrRoutes } from './routes/comply-ocr.routes.js';
 import { complyLegalRoutes } from './routes/comply-legal.routes.js';
@@ -272,6 +273,7 @@ async function main() {
     await server.register(inventoryCatalogRoutes, { prefix: '/v1/inventory' });
     await server.register(inventoryStockRoutes, { prefix: '/v1/inventory' });
     await server.register(inventoryCountsRoutes, { prefix: '/v1/inventory' });
+    await server.register(inventoryTasksRoutes, { prefix: '/v1/inventory' });
     await server.register(cmsRoutes, { prefix: '/v1/cms' });
     await server.register(complyOcrRoutes, { prefix: '/v1/comply/ocr' });
     await server.register(complyLegalRoutes, { prefix: '/v1/comply/legal' });
