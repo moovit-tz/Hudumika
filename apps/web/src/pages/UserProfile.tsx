@@ -269,9 +269,7 @@ export const UserProfile: React.FC = () => {
       </div>
 
       {/* ── Tab content ── */}
-      {/* Capped narrower than the now-wide profile-container so form fields (2-col grids)
-          stay a comfortable reading/input width instead of stretching edge to edge. */}
-      <div style={{ padding: '0 28px 32px', maxWidth: 960, marginLeft: 0 }}>
+      <div style={{ padding: '0 28px 32px' }}>
 
         {/* ══ PERSONAL INFO ══ */}
         {activeTab === 'personal' && (

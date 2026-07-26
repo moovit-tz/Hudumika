@@ -11,7 +11,7 @@
 .ob-step-dot--active { background: var(--lp-accent, #0d7a6b); transform: scale(1.3); }
 
 /* Wider card for steps with richer content (package grid, review) */
-.login-card.ob-card--wide { max-width: 640px; }
+.login-card.ob-card--wide { max-width: 920px; }
 
 /* ── Field status (email/subdomain availability) ── */
 .ob-field-status { font-size: 12px; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }

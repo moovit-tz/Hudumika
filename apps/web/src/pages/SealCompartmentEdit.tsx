@@ -136,14 +136,14 @@ export function SealCompartmentEdit() {
 
   if (loading) {
     return (
-      <div className="seal-page" style={{ maxWidth: 800, margin: '0 auto' }}>
+      <div className="seal-page">
         <div className="seal-card" style={{ padding: 30 }}><div className="seal-empty">Loading edit form…</div></div>
       </div>
     );
   }
 
   return (
-    <div className="seal-page" style={{ maxWidth: 840, margin: '0 auto', paddingBottom: 60 }}>
+    <div className="seal-page" style={{ paddingBottom: 60 }}>
       {/* Back Link */}
       <div style={{ marginBottom: 16 }}>
         <Link to={`/seal/compartments/${id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--seal)', textDecoration: 'none' }}>

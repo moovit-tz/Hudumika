@@ -481,7 +481,7 @@ body {
 }
 .auth-form-wrap {
   width: 100%;
-  max-width: 420px;
+  max-width: 100%;
 }
 
 /* Form header */

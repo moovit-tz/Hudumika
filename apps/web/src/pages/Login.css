@@ -60,7 +60,7 @@
   border-radius: 12px;
   padding: 40px;
   width: 100%;
-  max-width: 440px;
+  max-width: 640px;
   border: 1px solid var(--lp-card-border, #e0e2e6);
   box-shadow: var(--lp-card-shadow, none);
   display: flex;
@@ -317,7 +317,7 @@
 .reg-signin-link { font-weight: 700; color: var(--lp-accent, #0d7a6b); text-decoration: none; }
 
 /* Register card is slightly wider to accommodate more fields */
-.login-card--reg { max-width: 460px; }
+.login-card--reg { max-width: 720px; }
 
 /* Full-width submit button (register form) */
 .login-submit-btn--full { width: 100%; margin-top: 8px; }

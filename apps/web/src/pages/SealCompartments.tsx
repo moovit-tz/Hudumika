@@ -115,7 +115,7 @@ export function SealCompartments() {
   }
 
   return (
-    <div className="seal-page" style={{ maxWidth: 1100, margin: '0 auto' }}>
+    <div className="seal-page">
       {/* Header matching Image Two */}
       <div className="seal-page-hdr" style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>

@@ -55,7 +55,7 @@ export function CrmChainPartners() {
   }
 
   return (
-    <div style={{ padding: '24px clamp(16px, 4vw, 40px)', maxWidth: 1200, margin: '0 auto' }}>
+    <div style={{ padding: '24px clamp(16px, 4vw, 40px)' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>

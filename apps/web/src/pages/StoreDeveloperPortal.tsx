@@ -67,7 +67,7 @@ export const StoreDeveloperPortal: React.FC = () => {
   }
 
   return (
-    <div className="store-main" style={{ padding: '40px', maxWidth: '800px', margin: '0 auto' }}>
+    <div className="store-main" style={{ padding: '40px' }}>
       <div className="store-section-header">
         <h3 className="store-section-title">Developer Portal</h3>
         <span className="store-section-count">Submit a New App</span>

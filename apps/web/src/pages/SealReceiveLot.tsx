@@ -109,7 +109,7 @@ export function SealReceiveLot() {
       </div>
 
       <form onSubmit={handleSubmit} className="seal-card">
-        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18, maxWidth: 640 }}>
+        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div className="seal-field-row">
             <label className="seal-field-label">Compartment</label>
             <Select value={compartmentId} onValueChange={setCompartmentId}>
