@@ -1,5 +1,18 @@
 import { useSyncExternalStore } from 'react';
 import { apiFetch } from '../lib/api.js';
+import { showAlert } from '../lib/alert.js';
+
+// Every mutator below applies its change to local state immediately (optimistic
+// update), then persists in the background. A failed persist used to be
+// swallowed silently (`.catch(() => {})`) — the UI kept showing the change as
+// if it had saved, with no way to tell the local cache and the server had
+// just diverged. Surface it instead; this never undoes the optimistic
+// update (that would need a per-mutator snapshot/rollback, a larger
+// change), but at minimum the user now knows to retry rather than trusting
+// a save that silently never happened.
+function reportSyncFailure(err: any) {
+  showAlert(err?.message || 'This change could not be saved — check your connection and try again.');
+}
 
 // Tasks + Calendar data layer — backed by /v1/tasks (apps/api/src/routes/tasks.routes.ts).
 // Personal per-user data (each staff member has their own lists/tasks/events),
@@ -175,7 +188,7 @@ export function addEvent(event: Omit<CalendarEvent, 'id'>) {
       id: newEvent.id, title: newEvent.title, start: localToUTCISO(newEvent.start), end: localToUTCISO(newEvent.end),
       description: newEvent.description, location: newEvent.location, category: newEvent.category, guests: newEvent.guests,
     }),
-  }).catch(() => {});
+  }).catch(reportSyncFailure);
   return newEvent;
 }
 
@@ -185,13 +198,13 @@ export function updateEvent(id: string, patch: Partial<CalendarEvent>) {
   const body: Record<string, unknown> = { ...patch };
   if (patch.start) body.start = localToUTCISO(patch.start);
   if (patch.end) body.end = localToUTCISO(patch.end);
-  apiFetch(`/v1/tasks/events/${id}`, { method: 'PATCH', body: JSON.stringify(body) }).catch(() => {});
+  apiFetch(`/v1/tasks/events/${id}`, { method: 'PATCH', body: JSON.stringify(body) }).catch(reportSyncFailure);
 }
 
 export function deleteEvent(id: string) {
   events = events.filter(e => e.id !== id);
   emit();
-  apiFetch(`/v1/tasks/events/${id}`, { method: 'DELETE' }).catch(() => {});
+  apiFetch(`/v1/tasks/events/${id}`, { method: 'DELETE' }).catch(reportSyncFailure);
 }
 
 // ── Store APIs — Lists ──
@@ -204,14 +217,14 @@ export function addList(name: string, color?: string) {
   const newList: TaskList = { id: newId(), name, color: color || TASK_LIST_COLORS[lists.length % TASK_LIST_COLORS.length] };
   lists = [...lists, newList];
   emit();
-  apiFetch('/v1/tasks/lists', { method: 'POST', body: JSON.stringify({ id: newList.id, name: newList.name, color: newList.color }) }).catch(() => {});
+  apiFetch('/v1/tasks/lists', { method: 'POST', body: JSON.stringify({ id: newList.id, name: newList.name, color: newList.color }) }).catch(reportSyncFailure);
   return newList;
 }
 
 export function updateList(id: string, patch: Partial<TaskList>) {
   lists = lists.map(l => l.id === id ? { ...l, ...patch } : l);
   emit();
-  apiFetch(`/v1/tasks/lists/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }).catch(() => {});
+  apiFetch(`/v1/tasks/lists/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }).catch(reportSyncFailure);
 }
 
 export function deleteList(id: string) {
@@ -220,7 +233,7 @@ export function deleteList(id: string) {
   lists = lists.filter(l => l.id !== id);
   if (inboxId) todos = todos.map(t => t.listId === id ? { ...t, listId: inboxId } : t);
   emit();
-  apiFetch(`/v1/tasks/lists/${id}`, { method: 'DELETE' }).catch(() => {});
+  apiFetch(`/v1/tasks/lists/${id}`, { method: 'DELETE' }).catch(reportSyncFailure);
 }
 
 // ── Store APIs — Todos ──
@@ -243,7 +256,7 @@ export function addTodo(input: Partial<Omit<Todo, 'id' | 'createdAt'>> & { title
       id: newTodo.id, title: newTodo.title, listId: newTodo.listId, notes: newTodo.notes, due: newTodo.due,
       starred: newTodo.starred, someday: newTodo.someday, status: newTodo.status, tags: newTodo.tags,
     }),
-  }).catch(() => {});
+  }).catch(reportSyncFailure);
   return newTodo;
 }
 
@@ -266,7 +279,7 @@ export function updateTodo(id: string, patch: Partial<Todo>) {
   if (patch.completed !== undefined) body.completed = patch.completed;
   if (patch.listId !== undefined) body.listId = patch.listId;
   if (patch.order !== undefined) body.sortOrder = patch.order;
-  apiFetch(`/v1/tasks/items/${id}`, { method: 'PATCH', body: JSON.stringify(body) }).catch(() => {});
+  apiFetch(`/v1/tasks/items/${id}`, { method: 'PATCH', body: JSON.stringify(body) }).catch(reportSyncFailure);
 }
 
 export function reorderTodo(id: string, targetOrder: number) {
@@ -278,7 +291,7 @@ export function reorderTodo(id: string, targetOrder: number) {
   todos = todos.map(t => reOrdered.has(t.id) ? { ...t, order: reOrdered.get(t.id)! } : t);
   emit();
   for (const [taskId, order] of reOrdered) {
-    apiFetch(`/v1/tasks/items/${taskId}`, { method: 'PATCH', body: JSON.stringify({ sortOrder: order }) }).catch(() => {});
+    apiFetch(`/v1/tasks/items/${taskId}`, { method: 'PATCH', body: JSON.stringify({ sortOrder: order }) }).catch(reportSyncFailure);
   }
 }
 
@@ -287,27 +300,27 @@ export function deleteTodo(id: string) {
   const deletedAt = new Date().toISOString();
   todos = todos.map(t => t.id === id ? { ...t, deletedAt } : t);
   emit();
-  apiFetch(`/v1/tasks/items/${id}`, { method: 'PATCH', body: JSON.stringify({ deletedAt }) }).catch(() => {});
+  apiFetch(`/v1/tasks/items/${id}`, { method: 'PATCH', body: JSON.stringify({ deletedAt }) }).catch(reportSyncFailure);
 }
 
 export function restoreTodo(id: string) {
   todos = todos.map(t => t.id === id ? { ...t, deletedAt: undefined } : t);
   emit();
-  apiFetch(`/v1/tasks/items/${id}`, { method: 'PATCH', body: JSON.stringify({ deletedAt: null }) }).catch(() => {});
+  apiFetch(`/v1/tasks/items/${id}`, { method: 'PATCH', body: JSON.stringify({ deletedAt: null }) }).catch(reportSyncFailure);
 }
 
 /** Permanently removes a task — only reachable from within Trash. */
 export function purgeTodo(id: string) {
   todos = todos.filter(t => t.id !== id);
   emit();
-  apiFetch(`/v1/tasks/items/${id}?permanent=true`, { method: 'DELETE' }).catch(() => {});
+  apiFetch(`/v1/tasks/items/${id}?permanent=true`, { method: 'DELETE' }).catch(reportSyncFailure);
 }
 
 export function addSubtask(todoId: string, title: string) {
   const sub = { id: newId(), title, completed: false };
   todos = todos.map(t => t.id === todoId ? { ...t, subtasks: [...t.subtasks, sub] } : t);
   emit();
-  apiFetch(`/v1/tasks/items/${todoId}/subtasks`, { method: 'POST', body: JSON.stringify({ id: sub.id, title }) }).catch(() => {});
+  apiFetch(`/v1/tasks/items/${todoId}/subtasks`, { method: 'POST', body: JSON.stringify({ id: sub.id, title }) }).catch(reportSyncFailure);
 }
 
 export function updateSubtask(todoId: string, subtaskId: string, patch: Partial<Subtask>) {
@@ -315,7 +328,7 @@ export function updateSubtask(todoId: string, subtaskId: string, patch: Partial<
     ? { ...t, subtasks: t.subtasks.map(s => s.id === subtaskId ? { ...s, ...patch } : s) }
     : t);
   emit();
-  apiFetch(`/v1/tasks/items/${todoId}/subtasks/${subtaskId}`, { method: 'PATCH', body: JSON.stringify(patch) }).catch(() => {});
+  apiFetch(`/v1/tasks/items/${todoId}/subtasks/${subtaskId}`, { method: 'PATCH', body: JSON.stringify(patch) }).catch(reportSyncFailure);
 }
 
 export function deleteSubtask(todoId: string, subtaskId: string) {
@@ -323,7 +336,7 @@ export function deleteSubtask(todoId: string, subtaskId: string) {
     ? { ...t, subtasks: t.subtasks.filter(s => s.id !== subtaskId) }
     : t);
   emit();
-  apiFetch(`/v1/tasks/items/${todoId}/subtasks/${subtaskId}`, { method: 'DELETE' }).catch(() => {});
+  apiFetch(`/v1/tasks/items/${todoId}/subtasks/${subtaskId}`, { method: 'DELETE' }).catch(reportSyncFailure);
 }
 
 // ── Linked tasks from other apps (read-only) ──
@@ -339,7 +352,7 @@ export function updateAppSettings(patch: Partial<AppSettings>) {
   if (patch.calendarDefaultView !== undefined) body.calendarDefaultView = patch.calendarDefaultView;
   if (patch.weekStartsMonday !== undefined) body.weekStartsMonday = patch.weekStartsMonday;
   if (patch.tasksDefaultView !== undefined) body.tasksDefaultView = patch.tasksDefaultView;
-  apiFetch('/v1/tasks/settings', { method: 'PATCH', body: JSON.stringify(body) }).catch(() => {});
+  apiFetch('/v1/tasks/settings', { method: 'PATCH', body: JSON.stringify(body) }).catch(reportSyncFailure);
 }
 
 // ── Active Tasks view — shared between TasksShell's sidebar and TasksApp's

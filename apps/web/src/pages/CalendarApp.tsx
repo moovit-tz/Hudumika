@@ -59,6 +59,18 @@ export const CalendarApp: React.FC = () => {
   const [eventCategory, setEventCategory] = useState<Category>('work');
   const [eventDescription, setEventDescription] = useState('');
   const [eventLocation, setEventLocation]       = useState('');
+  const [eventGuests, setEventGuests]           = useState<string[]>([]);
+  const [guestInput, setGuestInput]             = useState('');
+  const [draggingEventId, setDraggingEventId]   = useState<string | null>(null);
+
+  function addGuest() {
+    const v = guestInput.trim();
+    if (v && !eventGuests.includes(v)) setEventGuests(g => [...g, v]);
+    setGuestInput('');
+  }
+  function removeGuest(g: string) {
+    setEventGuests(gs => gs.filter(x => x !== g));
+  }
 
   const filteredEvents = allEvents.filter(e => activeCategories[e.category]);
 
@@ -84,13 +96,38 @@ export const CalendarApp: React.FC = () => {
     e.dataTransfer.effectAllowed = 'copy';
   }
 
+  function handleEventDragStart(e: React.DragEvent, ev: CalendarEvent) {
+    e.stopPropagation();
+    e.dataTransfer.setData('eventId', ev.id);
+    e.dataTransfer.effectAllowed = 'move';
+    setDraggingEventId(ev.id);
+  }
+
   function handleDragOver(e: React.DragEvent) {
     e.preventDefault();
-    e.dataTransfer.dropEffect = 'copy';
+    e.dataTransfer.dropEffect = draggingEventId ? 'move' : 'copy';
   }
 
   function handleDrop(e: React.DragEvent, dateStr: string, hourStr?: string) {
     e.preventDefault();
+    setDraggingEventId(null);
+
+    const droppedEventId = e.dataTransfer.getData('eventId');
+    if (droppedEventId) {
+      // Reschedule an existing event to the new day/time, keeping its
+      // original duration — only its start/end shift, nothing else.
+      const ev = allEvents.find(x => x.id === droppedEventId);
+      if (!ev) return;
+      const durationMs = new Date(ev.end).getTime() - new Date(ev.start).getTime();
+      const hh = hourStr || ev.start.slice(11, 16);
+      const newStart = `${dateStr}T${hh}`;
+      const newEnd = new Date(new Date(newStart).getTime() + durationMs);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const newEndStr = `${newEnd.getFullYear()}-${pad(newEnd.getMonth() + 1)}-${pad(newEnd.getDate())}T${pad(newEnd.getHours())}:${pad(newEnd.getMinutes())}`;
+      updateEvent(ev.id, { start: newStart, end: newEndStr });
+      return;
+    }
+
     const todoId = e.dataTransfer.getData('todoId');
     if (!todoId) return;
 
@@ -122,6 +159,7 @@ export const CalendarApp: React.FC = () => {
     setEditingEvent(null);
     setEventTitle(''); setEventDescription(''); setEventLocation('');
     setEventCategory('work');
+    setEventGuests([]); setGuestInput('');
     setEventStart(`${base}T${hh}`);
     setEventEnd(`${base}T${endH}:${String(m).padStart(2, '0')}`);
     setShowModal(true);
@@ -142,6 +180,7 @@ export const CalendarApp: React.FC = () => {
     setEventCategory(ev.category as Category);
     setEventDescription(ev.description || '');
     setEventLocation(ev.location || '');
+    setEventGuests(ev.guests || []); setGuestInput('');
     setShowModal(true);
   }
 
@@ -152,6 +191,7 @@ export const CalendarApp: React.FC = () => {
       category: eventCategory,
       description: eventDescription.trim() || undefined,
       location:    eventLocation.trim()    || undefined,
+      guests:      eventGuests.length > 0 ? eventGuests : undefined,
     };
     editingEvent ? updateEvent(editingEvent.id, payload) : addEvent(payload);
     setShowModal(false);
@@ -204,6 +244,30 @@ export const CalendarApp: React.FC = () => {
         <span style={{ fontSize: isMobile ? 15 : 18, fontWeight: 500, color: 'var(--ink)', marginLeft: isMobile ? 0 : 16, order: isMobile ? 3 : 0, width: isMobile ? '100%' : 'auto' }}>{label}</span>
 
         {!isMobile && <div style={{ flex: 1 }} />}
+
+        {/* Category filter — toggling was already fully wired (filteredEvents),
+            it just had no control to actually drive it. */}
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', order: isMobile ? 4 : 0, width: isMobile ? '100%' : 'auto', flexWrap: 'wrap' }}>
+          {(Object.keys(CATEGORY_MAP) as Category[]).map(cat => {
+            const on = activeCategories[cat];
+            return (
+              <button
+                key={cat}
+                type="button"
+                onClick={() => setActiveCategories(prev => ({ ...prev, [cat]: !prev[cat] }))}
+                title={on ? `Hide ${CATEGORY_MAP[cat].label}` : `Show ${CATEGORY_MAP[cat].label}`}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5, border: 'none', background: 'none',
+                  cursor: 'pointer', padding: '4px 6px', borderRadius: 6, fontSize: 11.5, fontWeight: 600,
+                  color: on ? 'var(--ink2)' : 'var(--ink3)', opacity: on ? 1 : 0.5, whiteSpace: 'nowrap',
+                }}
+              >
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: CATEGORY_MAP[cat].color, flexShrink: 0 }} />
+                {!isMobile && CATEGORY_MAP[cat].label}
+              </button>
+            );
+          })}
+        </div>
 
         {/* View switcher */}
         <div style={{ display: 'flex', background: 'var(--bg)', borderRadius: 8, padding: 4, marginLeft: isMobile ? 'auto' : 0, overflowX: 'auto' }}>
@@ -287,11 +351,16 @@ export const CalendarApp: React.FC = () => {
                           return (
                             <div
                               key={ev.id}
+                              draggable
+                              onDragStart={e => handleEventDragStart(e, ev)}
+                              onDragEnd={() => setDraggingEventId(null)}
                               onClick={e => openPopover(ev, e)}
+                              title="Drag to reschedule"
                               style={{
                                 fontSize: 12, fontWeight: 500, color: '#fff',
                                 background: cfg.color, padding: '4px 8px', borderRadius: 6,
                                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                cursor: 'grab', opacity: draggingEventId === ev.id ? 0.4 : 1,
                               }}
                             >
                               {ev.title}
@@ -372,11 +441,16 @@ export const CalendarApp: React.FC = () => {
                   return (
                     <div
                       key={ev.id}
+                      draggable
+                      onDragStart={e => handleEventDragStart(e, ev)}
+                      onDragEnd={() => setDraggingEventId(null)}
                       onClick={e => openPopover(ev, e)}
+                      title="Drag to reschedule"
                       style={{
                         position: 'absolute', top: top + 2, left, width, height: height - 4,
                         background: cfg.color, borderRadius: 6, padding: '6px 8px',
-                        fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'pointer', zIndex: 10,
+                        fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'grab', zIndex: 10,
+                        opacity: draggingEventId === ev.id ? 0.4 : 1,
                         overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 2,
                         boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
                       }}
@@ -443,11 +517,16 @@ export const CalendarApp: React.FC = () => {
                     return (
                       <div
                         key={ev.id}
+                        draggable
+                        onDragStart={e => handleEventDragStart(e, ev)}
+                        onDragEnd={() => setDraggingEventId(null)}
                         onClick={e => openPopover(ev, e)}
+                        title="Drag to reschedule"
                         style={{
                           position: 'absolute', top: top + 2, left: 64, right: 16, height: height - 4,
                           background: cfg.color, borderRadius: 8, padding: '12px 16px',
-                          fontSize: 14, color: '#fff', cursor: 'pointer', zIndex: 10,
+                          fontSize: 14, color: '#fff', cursor: 'grab', zIndex: 10,
+                          opacity: draggingEventId === ev.id ? 0.4 : 1,
                           display: 'flex', flexDirection: 'column', gap: 4, overflow: 'hidden',
                           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
                         }}
@@ -535,6 +614,28 @@ export const CalendarApp: React.FC = () => {
                 <input type="datetime-local" value={eventEnd} onChange={e => setEventEnd(e.target.value)} style={{ flex: 1, minWidth: 0, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8 }} />
               </div>
               <textarea value={eventDescription} onChange={e => setEventDescription(e.target.value)} placeholder="Description" rows={3} style={{ padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14, resize: 'none' }} />
+              <div>
+                <input
+                  value={guestInput}
+                  onChange={e => setGuestInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addGuest(); } }}
+                  onBlur={addGuest}
+                  placeholder="Add guest email, press Enter"
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14 }}
+                />
+                {eventGuests.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
+                    {eventGuests.map(g => (
+                      <span key={g} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 600, padding: '4px 6px 4px 10px', borderRadius: 20, background: 'var(--bg)', color: 'var(--ink2)' }}>
+                        {g}
+                        <button type="button" onClick={() => removeGuest(g)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 2 }}>
+                          <Icon name="x" size={11} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
                 <button onClick={() => setShowModal(false)} style={{ padding: '10px 18px', border: '1px solid var(--border)', background: 'transparent', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
                 <button onClick={handleSave} style={{ padding: '10px 18px', border: 'none', background: 'var(--teal)', color: '#fff', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>Save</button>
@@ -566,6 +667,12 @@ export const CalendarApp: React.FC = () => {
                 </div>
               </div>
               {ev.description && <div style={{ fontSize: 13, color: 'var(--ink2)', marginLeft: 24, marginBottom: 12 }}>{ev.description}</div>}
+              {ev.guests && ev.guests.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginLeft: 24, marginBottom: 12, fontSize: 12.5, color: 'var(--ink3)' }}>
+                  <Icon name="users" size={13} style={{ marginTop: 1, flexShrink: 0 }} />
+                  <span>{ev.guests.join(', ')}</span>
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button onClick={() => openEdit(ev)} style={{ background: 'none', border: 'none', color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', padding: '4px 8px' }}>Edit</button>
               </div>
