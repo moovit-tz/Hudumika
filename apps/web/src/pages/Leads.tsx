@@ -238,9 +238,9 @@ export const Leads: React.FC = () => {
     try {
       const res = await apiFetch('/v1/leads');
       const data = Array.isArray(res) ? res : (res?.data ?? []);
-      setLeads(data.length > 0 ? data : FALLBACK_LEADS);
-    } catch {
-      setLeads(FALLBACK_LEADS);
+      setLeads(data);
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to load leads');
     } finally { setLoading(false); }
   }, []);
 
@@ -294,13 +294,7 @@ export const Leads: React.FC = () => {
       }
       setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null);
     } catch (err: any) {
-      /* Fallback: local state only */
-      if (editingId) {
-        setLeads(p => p.map(l => l.id === editingId ? { ...l, ...addForm, value: Number(addForm.value) || 0 } : l));
-      } else {
-        setLeads(p => [{ ...addForm, id: Date.now().toString(), value: Number(addForm.value) || 0, created_at: new Date().toISOString().split('T')[0] }, ...p]);
-      }
-      setShowAdd(false); setAddForm({ ...EMPTY_FORM }); setEditingId(null);
+      showAlert(err.message || 'Failed to save lead');
     } finally { setAddSaving(false); }
   }
 
@@ -308,9 +302,11 @@ export const Leads: React.FC = () => {
     if (!(await showConfirm(`Delete "${name}"? This cannot be undone.`, { confirmLabel: 'Delete' }))) return;
     try {
       await apiFetch(`/v1/leads/${id}`, { method: 'DELETE' });
-    } catch { /* allow local removal */ }
-    setLeads(p => p.filter(l => l.id !== id));
-    if (selected?.id === id) { setSelected(null); setView('list'); }
+      setLeads(p => p.filter(l => l.id !== id));
+      if (selected?.id === id) { setSelected(null); setView('list'); }
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to delete lead');
+    }
   }
 
   async function handleProfileSave(e: React.FormEvent) {
@@ -1051,20 +1047,3 @@ export const Leads: React.FC = () => {
     </div>
   );
 };
-
-/* ── Fallback sample data (used when API returns empty) ── */
-const FALLBACK_LEADS: Lead[] = [
-  { id: '1',  company: 'Summit Traders Ltd',    contact_name: 'Ali Hassan',     contact_email: 'ali@summittraders.co.tz',    contact_phone: '+255 712 000 001', source: 'Referral',   stage: 'QUALIFIED',   value: 18_000_000, priority: 'HIGH',   assigned_to: 'Amina Hassan',  expected_close: '2025-03-31', created_at: '2025-01-15', industry: 'Trading',         location: 'Dar es Salaam', website: 'summittraders.co.tz',  notes: 'Interested in FCL sea freight from China.' },
-  { id: '2',  company: 'Serengeti Foods Ltd',   contact_name: 'Jane Mwangi',    contact_email: 'j.mwangi@serengetifoods.com',contact_phone: '+255 712 000 002', source: 'LinkedIn',   stage: 'PROPOSAL',    value: 32_000_000, priority: 'HIGH',   assigned_to: 'John Mwangi',   expected_close: '2025-04-15', created_at: '2025-01-20', industry: 'Food & Beverage', location: 'Arusha',          website: 'serengetifoods.com'  },
-  { id: '3',  company: 'Karibu Electronics',    contact_name: 'Michael Liu',    contact_email: 'mliu@karibu-elec.com',       contact_phone: '+255 712 000 003', source: 'Web Form',   stage: 'CONTACTED',   value:  9_000_000, priority: 'MEDIUM', assigned_to: 'Fatuma Ally',   expected_close: '2025-05-01', created_at: '2025-01-22', industry: 'Electronics',     location: 'Dar es Salaam'  },
-  { id: '4',  company: 'East African Cement',   contact_name: 'Grace Njoro',    contact_email: 'grace@eacement.co.tz',       contact_phone: '+255 712 000 004', source: 'Cold Call',  stage: 'NEW',         value: 55_000_000, priority: 'HIGH',   assigned_to: 'Peter Kimani',  expected_close: '2025-06-30', created_at: '2025-01-28', industry: 'Construction',    location: 'Tanga'          },
-  { id: '5',  company: 'Mara Beverages Co',     contact_name: 'Tom Odhiambo',   contact_email: 'tom@marabev.co.tz',          contact_phone: '+255 712 000 005', source: 'Referral',   stage: 'WON',         value: 24_000_000, priority: 'MEDIUM', assigned_to: 'Amina Hassan',  expected_close: '2025-02-28', created_at: '2025-01-10', industry: 'Food & Beverage', location: 'Mwanza'         },
-  { id: '6',  company: 'Zanzibar Spice Export', contact_name: 'Hawa Rashid',    contact_email: 'hawa@znzspice.co.tz',        contact_phone: '+255 712 000 006', source: 'Partner',    stage: 'NEGOTIATION', value: 41_000_000, priority: 'HIGH',   assigned_to: 'Grace Osei',    expected_close: '2025-03-15', created_at: '2025-02-01', industry: 'Agriculture',     location: 'Zanzibar'       },
-  { id: '7',  company: 'Dar Tech Solutions',    contact_name: 'David Kimani',   contact_email: 'david@dartech.co.tz',        contact_phone: '+255 712 000 007', source: 'Trade Show', stage: 'LOST',        value: 12_000_000, priority: 'LOW',    assigned_to: 'John Mwangi',   expected_close: '2025-02-15', created_at: '2025-01-05', industry: 'Technology',      location: 'Dar es Salaam'  },
-  { id: '8',  company: 'Kilimanjaro Exports',   contact_name: 'Sarah Mushi',    contact_email: 'sarah@kiliexports.co.tz',    contact_phone: '+255 712 000 008', source: 'LinkedIn',   stage: 'QUALIFIED',   value: 28_000_000, priority: 'MEDIUM', assigned_to: 'Fatuma Ally',   expected_close: '2025-04-30', created_at: '2025-02-05', industry: 'Agriculture',     location: 'Moshi'          },
-  { id: '9',  company: 'Safari Logistics',      contact_name: 'Omar Bakr',      contact_email: 'omar@safarilog.co.tz',       contact_phone: '+255 712 000 009', source: 'Web Form',   stage: 'PROPOSAL',    value: 19_000_000, priority: 'MEDIUM', assigned_to: 'Peter Kimani',  expected_close: '2025-04-01', created_at: '2025-02-08', industry: 'Logistics',       location: 'Dar es Salaam'  },
-  { id: '10', company: 'Tanga Port Authority',  contact_name: 'Lucy Mbeki',     contact_email: 'lucy@tangaport.go.tz',       contact_phone: '+255 712 000 010', source: 'Cold Call',  stage: 'CONTACTED',   value: 67_000_000, priority: 'HIGH',   assigned_to: 'Amina Hassan',  expected_close: '2025-07-31', created_at: '2025-02-10', industry: 'Government',      location: 'Tanga'          },
-];
-
-/* keep export for anything that imported SAMPLE_LEADS */
-export const SAMPLE_LEADS = FALLBACK_LEADS;

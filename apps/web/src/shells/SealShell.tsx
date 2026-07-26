@@ -10,6 +10,8 @@ import { SealLots } from '../pages/SealLots.js';
 import { SealLotDetail } from '../pages/SealLotDetail.js';
 import { SealReceiveLot } from '../pages/SealReceiveLot.js';
 import { SealCompartments } from '../pages/SealCompartments.js';
+import { SealCompartmentDetail } from '../pages/SealCompartmentDetail.js';
+import { SealCompartmentEdit } from '../pages/SealCompartmentEdit.js';
 import { SealZoneHeatGrid } from '../pages/SealZoneHeatGrid.js';
 import { SealGuarantees } from '../pages/SealGuarantees.js';
 import { SealConsignments } from '../pages/SealConsignments.js';
@@ -39,7 +41,6 @@ const NAV: SidebarSection[] = [
   {
     items: [
       { label: 'Dashboard', icon: 'home', path: '/seal', exact: true },
-      { label: 'Metrics', icon: 'barChart2', path: '/seal/metrics' },
     ],
   },
   {
@@ -84,19 +85,24 @@ export function SealShell() {
   return (
     <WorkspaceApp appId="seal">
       <div className="app-shell" data-seal="true">
-        <AppSidebar appId="seal" sections={NAV} />
+        <AppSidebar
+          appId="seal"
+          sections={NAV}
+          beforeNav={({ collapsed }) => <SealCompartmentSwitcher collapsed={collapsed} />}
+        />
         <div className="app-main">
           <AppHeader />
-          <SealCompartmentSwitcher />
           <div className="app-shell-content">
             <Routes>
               <Route element={<PageLayout />}>
                 <Route index                    element={<SealDashboard />}          />
-                <Route path="metrics"           element={<SealMetrics />}            />
+                <Route path="metrics"           element={<Navigate to="/seal" replace />} />
                 <Route path="lots"              element={<SealLots />}               />
                 <Route path="lots/new"          element={<SealReceiveLot />}         />
                 <Route path="lots/:id"          element={<SealLotDetail />}          />
                 <Route path="compartments"      element={<SealCompartments />}       />
+                <Route path="compartments/:id"  element={<SealCompartmentDetail />}   />
+                <Route path="compartments/:id/edit" element={<SealCompartmentEdit />} />
                 <Route path="compartments/:id/heat-grid" element={<SealZoneHeatGrid />} />
                 <Route path="compartments/:id/layout"    element={<SealWarehouseLayout />} />
                 <Route path="compartments/:id/sorting-dashboard" element={<SealSortingDashboard />} />

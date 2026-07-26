@@ -423,6 +423,51 @@ export async function sealRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.get('/compartments/:id', async (request: any, reply) => {
+    try {
+      const compartmentId = request.params.id;
+      return await withTenant(request.user.tenant_id, async trx => {
+        const compartment = await trx.selectFrom('seal_compartments')
+          .selectAll()
+          .where('id', '=', compartmentId)
+          .executeTakeFirst();
+        if (!compartment) return reply.status(404).send({ error: 'Compartment not found' });
+
+        const zones = await trx.selectFrom('seal_zones')
+          .selectAll()
+          .where('compartment_id', '=', compartmentId)
+          .orderBy('code')
+          .execute();
+
+        const locations = await trx.selectFrom('seal_locations')
+          .selectAll()
+          .where('compartment_id', '=', compartmentId)
+          .orderBy('code')
+          .execute();
+
+        const lots = await trx.selectFrom('seal_lots')
+          .selectAll()
+          .where('compartment_id', '=', compartmentId)
+          .execute();
+
+        return {
+          compartment,
+          zones,
+          locations,
+          lots,
+          stats: {
+            zoneCount: zones.length,
+            locationCount: locations.length,
+            lotCount: lots.length,
+            totalCapacityUnits: locations.reduce((sum, l) => sum + (l.capacity_units ?? 0) * (l.max_stack_tiers ?? 1), 0),
+          }
+        };
+      });
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
   fastify.post('/compartments', async (request: any, reply) => {
     try {
       const b = request.body as any;
@@ -437,6 +482,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
           customs_office_code: b.customsOfficeCode ?? null,
           jurisdiction: b.jurisdiction ?? 'TZ',
           default_storage_days: b.defaultStorageDays ?? 180,
+          active: b.active ?? true,
         }).returningAll().executeTakeFirstOrThrow()
       );
     } catch (err: any) {
@@ -449,6 +495,14 @@ export async function sealRoutes(fastify: FastifyInstance) {
       const b = request.body as any;
       return await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_compartments').set({
+          code: b.code === undefined ? undefined : b.code,
+          name: b.name === undefined ? undefined : b.name,
+          warehouse_type: b.warehouseType === undefined ? undefined : b.warehouseType,
+          licence_number: b.licenceNumber === undefined ? undefined : b.licenceNumber,
+          licence_expiry: b.licenceExpiry === undefined ? (b.licenceExpiry === null ? null : undefined) : (b.licenceExpiry ? new Date(b.licenceExpiry) : null),
+          customs_office_code: b.customsOfficeCode === undefined ? undefined : b.customsOfficeCode,
+          jurisdiction: b.jurisdiction === undefined ? undefined : b.jurisdiction,
+          default_storage_days: b.defaultStorageDays === undefined ? undefined : Number(b.defaultStorageDays),
           guarantee_id: b.guaranteeId === undefined ? undefined : b.guaranteeId,
           storage_fee_per_day: b.storageFeePerDay === undefined ? undefined : String(b.storageFeePerDay),
           storage_fee_currency: b.storageFeeCurrency === undefined ? undefined : b.storageFeeCurrency,
@@ -456,9 +510,92 @@ export async function sealRoutes(fastify: FastifyInstance) {
           storage_fee_per_cbm_per_day: b.storageFeePerCbmPerDay === undefined ? undefined : String(b.storageFeePerCbmPerDay),
           billing_method: b.billingMethod === undefined ? undefined : b.billingMethod,
           geofence_id: b.geofenceId === undefined ? undefined : b.geofenceId,
+          active: b.active === undefined ? undefined : b.active,
+          logo_url: b.logoUrl === undefined ? undefined : b.logoUrl,
           updated_at: new Date(),
         }).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
       );
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.post('/compartments/:id/duplicate', async (request: any, reply) => {
+    try {
+      const compartmentId = request.params.id;
+      return await withTenant(request.user.tenant_id, async trx => {
+        const original = await trx.selectFrom('seal_compartments').selectAll().where('id', '=', compartmentId).executeTakeFirst();
+        if (!original) return reply.status(404).send({ error: 'Compartment not found' });
+
+        const newCode = `${original.code}-COPY-${Math.floor(1000 + Math.random() * 9000)}`;
+        const newName = `${original.name} (Copy)`;
+
+        const newCompartment = await trx.insertInto('seal_compartments').values({
+          tenant_id: request.user.tenant_id,
+          code: newCode,
+          name: newName,
+          warehouse_type: original.warehouse_type,
+          licence_number: original.licence_number ? `${original.licence_number}-COPY` : null,
+          licence_expiry: original.licence_expiry,
+          customs_office_code: original.customs_office_code,
+          jurisdiction: original.jurisdiction,
+          default_storage_days: original.default_storage_days,
+          storage_fee_per_day: original.storage_fee_per_day,
+          storage_fee_currency: original.storage_fee_currency,
+          handling_fee_flat: original.handling_fee_flat,
+          storage_fee_per_cbm_per_day: original.storage_fee_per_cbm_per_day,
+          billing_method: original.billing_method,
+          active: true,
+        }).returningAll().executeTakeFirstOrThrow();
+
+        // Clone zones
+        const originalZones = await trx.selectFrom('seal_zones').selectAll().where('compartment_id', '=', compartmentId).execute();
+        for (const z of originalZones) {
+          await trx.insertInto('seal_zones').values({
+            tenant_id: request.user.tenant_id,
+            compartment_id: newCompartment.id,
+            code: z.code,
+            name: z.name,
+            zone_type: z.zone_type,
+          }).execute();
+        }
+
+        return newCompartment;
+      });
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.post('/compartments/:id/toggle-status', async (request: any, reply) => {
+    try {
+      const compartmentId = request.params.id;
+      return await withTenant(request.user.tenant_id, async trx => {
+        const original = await trx.selectFrom('seal_compartments').select(['id', 'active']).where('id', '=', compartmentId).executeTakeFirst();
+        if (!original) return reply.status(404).send({ error: 'Compartment not found' });
+
+        return await trx.updateTable('seal_compartments')
+          .set({ active: !original.active, updated_at: new Date() })
+          .where('id', '=', compartmentId)
+          .returningAll()
+          .executeTakeFirstOrThrow();
+      });
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.delete('/compartments/:id', async (request: any, reply) => {
+    try {
+      const compartmentId = request.params.id;
+      return await withTenant(request.user.tenant_id, async trx => {
+        // Soft delete / deactivate
+        await trx.updateTable('seal_compartments')
+          .set({ active: false, updated_at: new Date() })
+          .where('id', '=', compartmentId)
+          .execute();
+        return { success: true, message: 'Compartment deleted' };
+      });
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }
@@ -656,6 +793,101 @@ export async function sealRoutes(fastify: FastifyInstance) {
         lotCount: lots.length,
         floors,
       };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  /**
+   * POST /v1/seal/compartments/:id/populate-layout
+   * Auto-populates real warehouse layout grid locations, dimensions, and zones
+   */
+  fastify.post('/compartments/:id/populate-layout', async (request: any, reply) => {
+    try {
+      const compartmentId = request.params.id;
+      return await withTenant(request.user.tenant_id, async trx => {
+        const compartment = await trx.selectFrom('seal_compartments').selectAll().where('id', '=', compartmentId).executeTakeFirst();
+        if (!compartment) return reply.status(404).send({ error: 'Compartment not found' });
+
+        // Ensure zones exist
+        let zones = await trx.selectFrom('seal_zones').selectAll().where('compartment_id', '=', compartmentId).execute();
+        if (zones.length === 0) {
+          const defaultZones = [
+            { code: 'Z-RCV', name: 'Receiving Bay', zone_type: 'receiving' },
+            { code: 'Z-BULK-A', name: 'Bulk Storage Rack A', zone_type: 'bulk' },
+            { code: 'Z-BULK-B', name: 'Bulk Storage Rack B', zone_type: 'bulk' },
+            { code: 'Z-PICK', name: 'Pick & Pack Area', zone_type: 'pick' },
+            { code: 'Z-YARD', name: 'Yard Slot Area', zone_type: 'yard' },
+          ];
+          for (const z of defaultZones) {
+            await trx.insertInto('seal_zones').values({
+              tenant_id: request.user.tenant_id,
+              compartment_id: compartmentId,
+              code: z.code,
+              name: z.name,
+              zone_type: z.zone_type,
+            }).execute();
+          }
+          zones = await trx.selectFrom('seal_zones').selectAll().where('compartment_id', '=', compartmentId).execute();
+        }
+
+        const bulkZone = zones.find(z => z.zone_type === 'bulk') || zones[0];
+        const rcvZone = zones.find(z => z.zone_type === 'receiving') || zones[0];
+
+        // Seed 12 real grid locations
+        const rackSlots = [
+          { code: 'BLK-A1', zoneId: bulkZone.id, row: 1, col: 1 },
+          { code: 'BLK-A2', zoneId: bulkZone.id, row: 1, col: 2 },
+          { code: 'BLK-A3', zoneId: bulkZone.id, row: 1, col: 3 },
+          { code: 'BLK-A4', zoneId: bulkZone.id, row: 1, col: 4 },
+          { code: 'BLK-B1', zoneId: bulkZone.id, row: 2, col: 1 },
+          { code: 'BLK-B2', zoneId: bulkZone.id, row: 2, col: 2 },
+          { code: 'BLK-B3', zoneId: bulkZone.id, row: 2, col: 3 },
+          { code: 'BLK-B4', zoneId: bulkZone.id, row: 2, col: 4 },
+          { code: 'RCV-01', zoneId: rcvZone.id, row: 3, col: 1 },
+          { code: 'RCV-02', zoneId: rcvZone.id, row: 3, col: 2 },
+          { code: 'YRD-01', zoneId: bulkZone.id, row: 4, col: 1 },
+          { code: 'YRD-02', zoneId: bulkZone.id, row: 4, col: 2 },
+        ];
+
+        for (const slot of rackSlots) {
+          const existing = await trx.selectFrom('seal_locations')
+            .select(['id'])
+            .where('compartment_id', '=', compartmentId)
+            .where('code', '=', slot.code)
+            .executeTakeFirst();
+
+          if (!existing) {
+            await trx.insertInto('seal_locations').values({
+              tenant_id: request.user.tenant_id,
+              compartment_id: compartmentId,
+              zone_id: slot.zoneId,
+              code: slot.code,
+              location_type: 'rack',
+              grid_row: slot.row,
+              grid_col: slot.col,
+              floor_level: 0,
+              max_stack_tiers: 3,
+              capacity_units: 4,
+              length_m: '3.00',
+              width_m: '2.00',
+              height_m: '4.00',
+            }).execute();
+          } else {
+            await trx.updateTable('seal_locations').set({
+              grid_row: slot.row,
+              grid_col: slot.col,
+              floor_level: 0,
+              max_stack_tiers: 3,
+              length_m: '3.00',
+              width_m: '2.00',
+              height_m: '4.00',
+            }).where('id', '=', existing.id).execute();
+          }
+        }
+
+        return { success: true, message: 'Warehouse layout populated with 12 real grid racks and dimension data' };
+      });
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }

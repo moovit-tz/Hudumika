@@ -349,4 +349,48 @@ export async function customerRoutes(fastify: FastifyInstance) {
       message: `Invitation sent to ${customer.phone_wa || customer.phone || 'customer'}.`,
     };
   });
+
+  /**
+   * GET /v1/customers/partners
+   * Fetch all Logistics & Warehousing Chain Partners (ICDs, CFS, Bonded Warehouse operators)
+   */
+  fastify.get('/partners', async (request, reply) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const partners = await trx
+        .selectFrom('customers')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .orderBy('name', 'asc')
+        .execute();
+
+      return { data: partners };
+    });
+  });
+
+  /**
+   * POST /v1/customers/partners
+   * Register a new Logistics & Warehousing Chain Partner
+   */
+  fastify.post('/partners', async (request, reply) => {
+    const user = request.user;
+    const body = request.body as any;
+    if (!body.name) return reply.status(400).send({ error: 'Partner name is required' });
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const created = await trx
+        .insertInto('customers')
+        .values({
+          tenant_id: user.tenant_id,
+          name: body.name,
+          contact_name: body.contactName || null,
+          email: body.email || null,
+          phone: body.phone || null,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+
+      return { success: true, partner: created };
+    });
+  });
 }

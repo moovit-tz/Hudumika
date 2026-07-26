@@ -72,7 +72,7 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
     try {
       const cutoff = new Date(Date.now() - 30 * 86400000);
       const result = await withTenant(request.user.tenant_id, async trx => {
-        const [itemCount, warehouseCount, byWarehouse, recentMovements, lowStock] = await Promise.all([
+        const [itemCount, warehouseCount, byWarehouse, recentMovements, lowStock, itemTotals] = await Promise.all([
           trx.selectFrom('inventory_items').select(({ fn }) => fn.count<number>('id').as('n')).where('active', '=', true).executeTakeFirst(),
           trx.selectFrom('inventory_warehouses').select(({ fn }) => fn.count<number>('id').as('n')).where('active', '=', true).executeTakeFirst(),
           trx.selectFrom('inventory_warehouses')
@@ -102,6 +102,15 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
             .where('inventory_items.reorder_point', 'is not', null)
             .groupBy(['inventory_items.id', 'inventory_items.sku', 'inventory_items.name', 'inventory_items.base_uom', 'inventory_items.reorder_point'])
             .execute(),
+          trx.selectFrom('inventory_items')
+            .leftJoin('inventory_stock_levels', 'inventory_stock_levels.item_id', 'inventory_items.id')
+            .select(({ fn }) => [
+              'inventory_items.id',
+              fn.coalesce(fn.sum<string>('inventory_stock_levels.qty_on_hand'), sql.lit('0')).as('total_qty_on_hand'),
+            ])
+            .where('inventory_items.active', '=', true)
+            .groupBy('inventory_items.id')
+            .execute(),
         ]);
 
         const now = Date.now();
@@ -127,9 +136,12 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
           .sort((a, b) => (a.totalQtyOnHand - a.reorderPoint) - (b.totalQtyOnHand - b.reorderPoint))
           .slice(0, 10);
 
+        const outOfStockCount = itemTotals.filter(r => Number(r.total_qty_on_hand) <= 0).length;
+
         return {
           itemCount: Number(itemCount?.n ?? 0),
           warehouseCount: Number(warehouseCount?.n ?? 0),
+          outOfStockCount,
           byWarehouse: byWarehouse.map(w => ({ warehouseId: w.id, name: w.name, itemCount: Number(w.item_count), totalQty: Number(w.total_qty) })),
           dailyActivity: [...dayBuckets.entries()].map(([date, v]) => ({ date, received: v.received, issued: v.issued })),
           topLowStock,

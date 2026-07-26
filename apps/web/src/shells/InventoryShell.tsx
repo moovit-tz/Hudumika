@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import '../pages/Inventory.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { AppSidebar } from '../components/AppSidebar.js';
@@ -12,13 +12,11 @@ import { InventoryStock } from '../pages/InventoryStock.js';
 import { InventoryCounts } from '../pages/InventoryCounts.js';
 import { InventoryCountDetail } from '../pages/InventoryCountDetail.js';
 import { InventoryTasks } from '../pages/InventoryTasks.js';
-import { InventoryMetrics } from '../pages/InventoryMetrics.js';
 
 const NAV: SidebarSection[] = [
   {
     items: [
       { label: 'Dashboard', icon: 'home', path: '/inventory', exact: true },
-      { label: 'Metrics', icon: 'barChart2', path: '/inventory/metrics' },
     ],
   },
   {
@@ -54,7 +52,7 @@ export function InventoryShell() {
             <Routes>
               <Route element={<PageLayout />}>
                 <Route index               element={<InventoryDashboard />}  />
-                <Route path="metrics"      element={<InventoryMetrics />}    />
+                <Route path="metrics"      element={<Navigate to="/inventory" replace />} />
                 <Route path="items"        element={<InventoryItems />}      />
                 <Route path="warehouses"   element={<InventoryWarehouses />} />
                 <Route path="stock"        element={<InventoryStock />}      />

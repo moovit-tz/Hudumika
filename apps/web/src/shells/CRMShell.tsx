@@ -12,8 +12,8 @@ import { CustomerOverview }   from '../pages/CustomerOverview.js';
 import { Customers }          from '../pages/Customers.js';
 import { CustomerBulkUpload } from '../pages/CustomerBulkUpload.js';
 import { Leads }              from '../pages/Leads.js';
-import { LeadDetail }         from '../pages/LeadDetail.js';
 import { Sales }              from '../pages/Sales.js';
+import { CrmChainPartners }     from '../pages/CrmChainPartners.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -22,11 +22,12 @@ const NAV: SidebarSection[] = [
     ],
   },
   {
-    title: 'CUSTOMERS',
+    title: 'CUSTOMERS & PARTNERS',
     items: [
-      { label: 'Customers', icon: 'users',      path: '/crm/customers' },
-      { label: 'Leads',     icon: 'userPlus',   path: '/crm/leads'     },
-      { label: 'Sales',     icon: 'trendingUp', path: '/crm/sales'     },
+      { label: 'Customers',      icon: 'users',      path: '/crm/customers' },
+      { label: 'Chain Partners', icon: 'share2',     path: '/crm/chain-partners' },
+      { label: 'Leads',          icon: 'userPlus',   path: '/crm/leads'     },
+      { label: 'Sales',          icon: 'trendingUp', path: '/crm/sales'     },
     ],
   },
 ];
@@ -45,9 +46,9 @@ export function CRMShell() {
             <Route element={<PageLayout />}>
               <Route path="overview"      element={<RequireRoles roles={CRM_ROLES}><CustomerOverview /></RequireRoles>} />
               <Route path="customers"     element={<RequireRoles roles={CRM_ROLES}><Customers /></RequireRoles>} />
+              <Route path="chain-partners" element={<RequireRoles roles={CRM_ROLES}><CrmChainPartners /></RequireRoles>} />
               <Route path="customers/bulk-upload" element={<RequireRoles roles={CRM_ROLES}><CustomerBulkUpload /></RequireRoles>} />
               <Route path="leads"         element={<RequireRoles roles={[...MGMT_ROLES, 'SALES']}><Leads /></RequireRoles>} />
-              <Route path="leads/:id"     element={<RequireRoles roles={[...MGMT_ROLES, 'SALES']}><LeadDetail /></RequireRoles>} />
               <Route path="sales"         element={<RequireRoles roles={CRM_ROLES}><Sales /></RequireRoles>} />
             </Route>
 

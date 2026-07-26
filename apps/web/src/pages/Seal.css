@@ -272,5 +272,28 @@
   font-weight: 800;
   margin-top: 6px;
 }
+.seal-switcher-item {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--white);
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.12s ease;
+  width: 100%;
+  font: inherit;
+}
+.seal-switcher-item:hover {
+  background: var(--bg);
+}
+.seal-switcher-item[data-selected="true"] {
+  border-color: var(--seal);
+  background: var(--teal-l);
+  color: var(--seal);
+}
+
 
 

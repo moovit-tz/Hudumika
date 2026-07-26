@@ -190,12 +190,46 @@ export function SealZoneHeatGrid() {
                           </div>
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent>
-                        <div style={{ fontWeight: 700, marginBottom: 2 }}>{loc.code} Location</div>
-                        <div>Occupancy: {loc.occupancyPct}% ({loc.lotCount} / {loc.capacityUnits} lots)</div>
-                        <div style={{ fontSize: 11, opacity: 0.8, marginTop: 4 }}>Status: {loc.flagged ? 'Hold/Alert' : 'Normal Operations'}</div>
+                      <TooltipContent side="top" style={{ width: 250, padding: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 8, paddingBottom: 6, borderBottom: '1px solid rgba(255,255,255,0.12)' }}>
+                          <div style={{ fontWeight: 800, fontSize: 13, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Icon name="layers" size={13} style={{ color: 'var(--seal)' }} />
+                            <span>{loc.code}</span>
+                          </div>
+                          <span style={{
+                            fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 12,
+                            background: loc.flagged ? 'rgba(239,68,68,0.2)' : 'rgba(16,185,129,0.2)',
+                            color: loc.flagged ? '#fca5a5' : '#6ee7b7', border: `1px solid ${loc.flagged ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}`,
+                          }}>
+                            {loc.flagged ? 'Hold / Alert' : 'Normal'}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 10px', fontSize: 11.5 }}>
+                          <div style={{ color: '#94a3b8' }}>Occupancy:</div>
+                          <div style={{ color: '#f8fafc', fontWeight: 700, textAlign: 'right' }}>
+                            {loc.occupancyPct}% <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 400 }}>({loc.lotCount}/{loc.capacityUnits})</span>
+                          </div>
+                        </div>
+
                         {loc.lots.length > 0 && (
-                          <div style={{ fontSize: 11, marginTop: 4 }}>{loc.lots.map(l => l.description).join(', ')}</div>
+                          <div style={{ marginTop: 8, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: 11 }}>
+                            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#94a3b8', marginBottom: 4, fontWeight: 700 }}>
+                              Stored Lots ({loc.lots.length})
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                              {loc.lots.slice(0, 2).map((l, idx) => (
+                                <div key={idx} style={{ color: '#e2e8f0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 220 }}>
+                                  • {l.description}
+                                </div>
+                              ))}
+                              {loc.lots.length > 2 && (
+                                <div style={{ color: '#94a3b8', fontSize: 10, fontStyle: 'italic' }}>
+                                  +{loc.lots.length - 2} more items…
+                                </div>
+                              )}
+                            </div>
+                          </div>
                         )}
                       </TooltipContent>
                     </Tooltip>

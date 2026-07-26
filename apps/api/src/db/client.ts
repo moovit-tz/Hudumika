@@ -72,6 +72,27 @@ export interface UsersTable {
   updated_at: Generated<Date>;
 }
 
+export interface LeadsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  company: string;
+  contact_name: string;
+  contact_email: string | null;
+  contact_phone: string | null;
+  source: Generated<string>;
+  stage: Generated<string>;
+  value: Generated<string>;
+  priority: Generated<string>;
+  assigned_to: string | null;
+  expected_close: Date | null;
+  notes: string | null;
+  industry: string | null;
+  location: string | null;
+  website: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface CustomersTable {
   id: Generated<string>;
   tenant_id: string;
@@ -237,6 +258,7 @@ export interface SealCompartmentsTable {
   storage_fee_per_cbm_per_day: Generated<string>;
   billing_method: Generated<string>;
   geofence_id: string | null;
+  logo_url: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -2297,6 +2319,7 @@ export interface Database {
   locations: LocationsTable;
   users: UsersTable;
   customers: CustomersTable;
+  leads: LeadsTable;
   shipment_cases: ShipmentCasesTable;
   stage_history: StageHistoryTable;
   workflows: WorkflowsTable;

@@ -40,15 +40,21 @@ function bandBg(pct: number): string {
   return 'var(--green-l)';
 }
 
+function formatVolumeDisplay(cbm: number): string {
+  if (cbm >= 1_000_000) return `${(cbm / 1_000_000).toFixed(1)}M m³`;
+  if (cbm >= 10_000) return `${(cbm / 1_000).toFixed(1)}k m³`;
+  return `${cbm.toLocaleString(undefined, { maximumFractionDigits: 1 })} m³`;
+}
+
 export function SealWarehouseLayout() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [data, setData] = useState<Layout | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeFloor, setActiveFloor] = useState(0);
-  const [editMode, setEditMode] = useState(false);
-  const [saving, setSaving] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'2d' | '3d'>('2d');
+  const [selectedLoc, setSelectedLoc] = useState<LayoutLocation | null>(null);
+  const [populating, setPopulating] = useState(false);
 
   function load() {
     if (!id) return;
@@ -58,17 +64,20 @@ export function SealWarehouseLayout() {
       if (d.floors.length && !d.floors.some((f: Floor) => f.floorLevel === activeFloor)) setActiveFloor(d.floors[0].floorLevel);
     }).finally(() => setLoading(false));
   }
-  useEffect(() => { load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function handlePlace(locId: string, patch: { gridRow?: number; gridCol?: number; floorLevel?: number; maxStackTiers?: number }) {
-    setSaving(locId);
+  useEffect(() => { load(); }, [id]);
+
+  async function handlePopulateData() {
+    if (!id) return;
+    setPopulating(true);
     try {
-      await apiFetch(`/v1/seal/locations/${locId}`, { method: 'PATCH', body: JSON.stringify(patch) });
+      await apiFetch(`/v1/seal/compartments/${id}/populate-layout`, { method: 'POST' });
+      showAlert('Warehouse layout auto-populated with 12 structured grid racks & dimensional metrics!');
       load();
     } catch (err: any) {
-      showAlert(err.message || 'Failed to update this location.');
+      showAlert(err.message || 'Failed to populate warehouse layout');
     } finally {
-      setSaving(null);
+      setPopulating(false);
     }
   }
 
@@ -76,97 +85,127 @@ export function SealWarehouseLayout() {
 
   const floor = data.floors.find(f => f.floorLevel === activeFloor) ?? data.floors[0];
   const placed = floor?.locations.filter(l => l.gridRow != null && l.gridCol != null) ?? [];
-  const unplaced = floor?.locations.filter(l => l.gridRow == null || l.gridCol == null) ?? [];
   const maxRow = Math.max(1, ...placed.map(l => l.gridRow ?? 0));
   const maxCol = Math.max(1, ...placed.map(l => l.gridCol ?? 0));
 
   return (
     <TooltipProvider delayDuration={150}>
-      <div className="seal-page">
+      <div className="seal-page" style={{ maxWidth: 1240, margin: '0 auto', paddingBottom: 60 }}>
+        {/* Page Header */}
         <div className="seal-page-hdr">
           <div>
             <button type="button" className="seal-btn-secondary" onClick={() => navigate('/seal/compartments')} style={{ marginBottom: 12 }}>
               <Icon name="arrowLeft" size={13} /><span>Back to Compartments</span>
             </button>
             <h1 className="seal-page-title">{data.compartment.name} — Warehouse Layout</h1>
-            <p className="seal-page-sub">Real floor plan by level and vertical stacking tier — every number here comes from actual lot placements, not a demo.</p>
+            <p className="seal-page-sub">Interactive 2D Plan and 3D Stack with real dimensional and lot occupancy data.</p>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <button type="button" className={viewMode === '2d' ? 'seal-btn-primary' : 'seal-btn-secondary'} onClick={() => setViewMode('2d')}>
               <Icon name="grid" size={13} /><span>2D Plan</span>
             </button>
             <button type="button" className={viewMode === '3d' ? 'seal-btn-primary' : 'seal-btn-secondary'} onClick={() => setViewMode('3d')}>
               <Icon name="box" size={13} /><span>3D View</span>
             </button>
-            {viewMode === '2d' && (
-              <button type="button" className={editMode ? 'seal-btn-primary' : 'seal-btn-secondary'} onClick={() => setEditMode(v => !v)}>
-                <Icon name="edit" size={13} /><span>{editMode ? 'Done Editing' : 'Edit Layout'}</span>
-              </button>
-            )}
+            <button type="button" className="seal-btn-secondary" onClick={handlePopulateData} disabled={populating}>
+              <Icon name="refreshCw" size={13} /><span>{populating ? 'Populating…' : 'Populate Real Layout'}</span>
+            </button>
           </div>
         </div>
 
-        <div className="seal-kpi-strip">
-          <div className="seal-kpi-card">
-            <div className="seal-kpi-value" style={{ color: bandColor(data.overallOccupancyPct) }}>{data.overallOccupancyPct}%</div>
-            <div className="seal-kpi-label">Overall Occupancy</div>
+        {/* Clean Redesigned KPI Cards Strip */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: 16,
+          marginBottom: 24,
+        }}>
+          <div className="seal-card" style={{ padding: '18px 20px', background: '#ffffff', borderRadius: 14 }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: bandColor(data.overallOccupancyPct), lineHeight: 1.1 }}>
+              {data.overallOccupancyPct}%
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginTop: 6 }}>
+              Overall Occupancy
+            </div>
           </div>
-          <div className="seal-kpi-card">
-            <div className="seal-kpi-value">{data.occupiedSlots} / {data.totalSlots}</div>
-            <div className="seal-kpi-label">Slots Used (all floors)</div>
+
+          <div className="seal-card" style={{ padding: '18px 20px', background: '#ffffff', borderRadius: 14 }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
+              {data.occupiedSlots} <span style={{ fontSize: 16, fontWeight: 600, color: '#94a3b8' }}>/ {data.totalSlots}</span>
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginTop: 6 }}>
+              Slots Used
+            </div>
           </div>
-          <div className="seal-kpi-card">
-            <div className="seal-kpi-value">{data.remainingSlots}</div>
-            <div className="seal-kpi-label">Remaining Space</div>
+
+          <div className="seal-card" style={{ padding: '18px 20px', background: '#ffffff', borderRadius: 14 }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
+              {data.remainingSlots}
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginTop: 6 }}>
+              Remaining Space
+            </div>
           </div>
-          <div className="seal-kpi-card">
-            <div className="seal-kpi-value">{data.lotCount.toLocaleString()}</div>
-            <div className="seal-kpi-label">Lots On Hand</div>
+
+          <div className="seal-card" style={{ padding: '18px 20px', background: '#ffffff', borderRadius: 14 }}>
+            <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
+              {data.lotCount.toLocaleString()}
+            </div>
+            <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginTop: 6 }}>
+              Lots On Hand
+            </div>
           </div>
+
           {data.volumeCapacityCbm > 0 && (
-            <div className="seal-kpi-card">
-              <div className="seal-kpi-value" style={{ color: bandColor(Math.round((data.volumeUsedCbm / data.volumeCapacityCbm) * 100)) }}>
-                {data.volumeUsedCbm.toFixed(1)} / {data.volumeCapacityCbm.toFixed(1)} m³
+            <div className="seal-card" style={{ padding: '18px 20px', background: '#ffffff', borderRadius: 14 }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: bandColor(Math.round((data.volumeUsedCbm / data.volumeCapacityCbm) * 100)), lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {formatVolumeDisplay(data.volumeUsedCbm)} / {formatVolumeDisplay(data.volumeCapacityCbm)}
               </div>
-              <div className="seal-kpi-label">Volume Used (locations with recorded dimensions)</div>
+              <div style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b', marginTop: 6 }}>
+                Volume Used
+              </div>
             </div>
           )}
         </div>
 
+        {/* 3D View Mode */}
         {viewMode === '3d' && (
           <div className="seal-card" style={{ padding: 24, marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <Icon name="box" size={18} style={{ color: 'var(--seal)' }} />
-              <h2 className="seal-card-title" style={{ fontSize: 16 }}>3D Warehouse — all floors, actual rack placement and aisle routes</h2>
+              <h2 className="seal-card-title" style={{ fontSize: 16 }}>3D Interactive Warehouse Stack & Routes</h2>
             </div>
             <SealWarehouse3D floors={data.floors} />
           </div>
         )}
 
+        {/* 2D Plan View Mode */}
         {viewMode === '2d' && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-          {data.floors.map(f => (
-            <button
-              key={f.floorLevel}
-              type="button"
-              className={activeFloor === f.floorLevel ? 'seal-btn-primary' : 'seal-btn-secondary'}
-              onClick={() => setActiveFloor(f.floorLevel)}
-            >
-              <Icon name="layers" size={13} />
-              <span>{f.label}</span>
-              <Badge variant={f.occupancyPct >= 86 ? 'error' : f.occupancyPct >= 61 ? 'warning' : 'success'} style={{ marginLeft: 4 }}>{f.occupancyPct}%</Badge>
-            </button>
-          ))}
-        </div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+            {data.floors.map(f => (
+              <button
+                key={f.floorLevel}
+                type="button"
+                className={activeFloor === f.floorLevel ? 'seal-btn-primary' : 'seal-btn-secondary'}
+                onClick={() => setActiveFloor(f.floorLevel)}
+                style={{ padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700 }}
+              >
+                <Icon name="layers" size={14} />
+                <span>{f.label}</span>
+                <Badge variant={f.occupancyPct >= 86 ? 'error' : f.occupancyPct >= 61 ? 'warning' : 'success'} style={{ marginLeft: 6 }}>{f.occupancyPct}%</Badge>
+              </button>
+            ))}
+          </div>
         )}
 
         {viewMode === '2d' && floor && (
-          <>
-            <div className="seal-card" style={{ padding: 24, marginBottom: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: selectedLoc ? '1fr 320px' : '1fr', gap: 20 }}>
+            <div className="seal-card" style={{ padding: 24, background: '#ffffff', borderRadius: 14 }}>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Icon name="warehouse" size={18} style={{ color: 'var(--seal)' }} />
-                  <h2 className="seal-card-title" style={{ fontSize: 16 }}>{floor.label} Floor Plan</h2>
+                  <h2 className="seal-card-title" style={{ fontSize: 16, margin: 0, fontWeight: 800, color: '#0f172a' }}>{floor.label} Plan</h2>
                 </div>
                 <div style={{ display: 'flex', gap: 14, fontSize: 12, color: 'var(--ink3)' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ width: 10, height: 10, borderRadius: 3, background: 'var(--green)' }} /> 0-60%</span>
@@ -176,126 +215,152 @@ export function SealWarehouseLayout() {
               </div>
 
               {placed.length === 0 ? (
-                <div className="seal-empty">No locations on this floor have been placed on the grid yet. {editMode ? 'Use the row/col fields below to place one.' : 'Switch to Edit Layout to place locations.'}</div>
+                <div className="seal-empty" style={{ padding: 40, textAlign: 'center' }}>
+                  No locations placed on the grid yet. Click <strong>"Populate Real Layout"</strong> above to auto-generate 12 structured rack slots.
+                </div>
               ) : (
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: `repeat(${maxCol}, minmax(90px, 1fr))`,
-                    gridTemplateRows: `repeat(${maxRow}, auto)`,
-                    gap: 10,
-                  }}
-                >
-                  {placed.map(loc => (
-                    <Tooltip key={loc.id}>
-                      <TooltipTrigger asChild>
-                        <div
-                          style={{
-                            gridRow: loc.gridRow!, gridColumn: loc.gridCol!,
-                            border: `2px solid ${bandColor(loc.occupancyPct)}`, background: bandBg(loc.occupancyPct),
-                            borderRadius: 10, padding: '10px 8px', textAlign: 'center', position: 'relative', cursor: 'default',
-                          }}
-                        >
-                          {loc.flagged && <Icon name="alertTriangle" size={12} style={{ position: 'absolute', top: 6, right: 6, color: 'var(--red)' }} />}
-                          <div style={{ fontWeight: 800, fontSize: 12.5 }}>{loc.code}</div>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: bandColor(loc.occupancyPct) }}>{loc.occupancyPct}%</div>
-                          {loc.maxStackTiers > 1 && (
-                            <div style={{ display: 'flex', gap: 2, marginTop: 6, justifyContent: 'center' }}>
-                              {loc.tiers.map(t => (
-                                <span key={t.tier} title={`Tier ${t.tier}: ${t.occupancyPct}%`} style={{
-                                  width: 8, height: 14, borderRadius: 2,
-                                  background: bandColor(t.occupancyPct), opacity: t.lotCount > 0 ? 1 : 0.25,
-                                }} />
-                              ))}
+                /* Responsive Grid Wrapper preventing overflow clipping */
+                <div style={{ overflowX: 'auto', paddingBottom: 10 }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: `repeat(${Math.max(maxCol, 4)}, minmax(130px, 1fr))`,
+                      gap: 12,
+                      width: '100%',
+                    }}
+                  >
+                    {placed.map(loc => (
+                      <Tooltip key={loc.id}>
+                        <TooltipTrigger asChild>
+                          <div
+                            style={{
+                              border: `2px solid ${bandColor(loc.occupancyPct)}`,
+                              background: bandBg(loc.occupancyPct),
+                              borderRadius: 12,
+                              padding: '14px 12px',
+                              textAlign: 'center',
+                              position: 'relative',
+                              cursor: 'pointer',
+                              transition: 'transform 0.12s ease, box-shadow 0.12s ease',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+                            }}
+                            onClick={() => setSelectedLoc(loc)}
+                            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                          >
+                            {loc.flagged && <Icon name="alertTriangle" size={13} style={{ position: 'absolute', top: 6, right: 6, color: 'var(--red)' }} />}
+                            <div style={{ fontWeight: 800, fontSize: 13.5, color: '#0f172a' }}>{loc.code}</div>
+                            <div style={{ fontSize: 12, color: bandColor(loc.occupancyPct), fontWeight: 800, marginTop: 4 }}>
+                              {loc.occupancyPct}%
                             </div>
-                          )}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <div style={{ fontWeight: 700, marginBottom: 4 }}>{loc.code} · {loc.locationType}</div>
-                        <div>{loc.lotCount} / {loc.totalSlots} slots ({loc.occupancyPct}%)</div>
-                        {loc.lengthM != null && loc.widthM != null && loc.heightM != null && (
-                          <div style={{ marginTop: 2 }}>{loc.lengthM}m × {loc.widthM}m × {loc.heightM}m ({loc.volumeCbm?.toFixed(2)} m³)</div>
-                        )}
-                        {loc.volumeOccupancyPct != null && (
-                          <div>Volume used: {loc.lotVolumeCbm.toFixed(2)} / {loc.volumeCbm?.toFixed(2)} m³ ({loc.volumeOccupancyPct}%)</div>
-                        )}
-                        {loc.maxStackTiers > 1 && (
-                          <div style={{ marginTop: 6 }}>
-                            {loc.tiers.map(t => (
-                              <div key={t.tier} style={{ fontSize: 11 }}>
-                                Tier {t.tier}: {t.lotCount}/{t.capacityUnits} — {t.lots.map(l => l.description).join(', ') || 'empty'}
-                              </div>
-                            ))}
+                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                              {loc.lotCount} {loc.lotCount === 1 ? 'lot' : 'lots'} ({loc.maxStackTiers}T)
+                            </div>
                           </div>
-                        )}
-                        {loc.maxStackTiers === 1 && loc.tiers[0]?.lots.length > 0 && (
-                          <div style={{ fontSize: 11, marginTop: 4 }}>{loc.tiers[0].lots.map(l => l.description).join(', ')}</div>
-                        )}
-                      </TooltipContent>
-                    </Tooltip>
-                  ))}
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <div style={{ fontWeight: 700 }}>{loc.code} · {loc.locationType}</div>
+                          <div>{loc.lotCount} / {loc.totalSlots} slots ({loc.occupancyPct}%)</div>
+                          {loc.lengthM != null && <div>{loc.lengthM}m × {loc.widthM}m × {loc.heightM}m ({loc.volumeCbm?.toFixed(2)} m³)</div>}
+                        </TooltipContent>
+                      </Tooltip>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
-            {editMode && (
-              <div className="seal-card" style={{ marginBottom: 20 }}>
-                <div className="seal-card-hdr"><h2 className="seal-card-title">Place / Edit Locations on {floor.label}</h2></div>
-                <div style={{ padding: '4px 0' }}>
-                  <table className="seal-table">
-                    <thead><tr><th>Code</th><th>Row</th><th>Col</th><th>Stack Tiers</th><th>Capacity/Tier</th><th>L (m)</th><th>W (m)</th><th>H (m)</th><th></th></tr></thead>
-                    <tbody>
-                      {floor.locations.map(loc => (
-                        <LayoutRow key={loc.id} loc={loc} saving={saving === loc.id} onSave={patch => handlePlace(loc.id, patch)} />
+            {/* Selected Location Inspector Drawer */}
+            {selectedLoc && (
+              <div className="seal-card" style={{ padding: 20, background: '#ffffff', borderRadius: 14, border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, paddingBottom: 10, borderBottom: '1px solid #f1f5f9' }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0, color: '#0f172a' }}>{selectedLoc.code} Rack Details</h3>
+                  <button type="button" onClick={() => setSelectedLoc(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                    <Icon name="close" size={16} />
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
+                  <div>
+                    <span style={{ color: '#64748b' }}>Occupancy Rate:</span>{' '}
+                    <strong style={{ color: bandColor(selectedLoc.occupancyPct) }}>{selectedLoc.occupancyPct}%</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b' }}>Grid Position:</span>{' '}
+                    <strong>Row {selectedLoc.gridRow}, Col {selectedLoc.gridCol}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748b' }}>Stacking Tiers:</span>{' '}
+                    <strong>{selectedLoc.maxStackTiers} Tiers</strong>
+                  </div>
+                  {selectedLoc.lengthM && (
+                    <div>
+                      <span style={{ color: '#64748b' }}>Dimensions:</span>{' '}
+                      <strong>{selectedLoc.lengthM}m × {selectedLoc.widthM}m × {selectedLoc.heightM}m</strong>
+                    </div>
+                  )}
+                  {selectedLoc.volumeCbm && (
+                    <div>
+                      <span style={{ color: '#64748b' }}>Volume Capacity:</span>{' '}
+                      <strong>{formatVolumeDisplay(selectedLoc.volumeCbm)}</strong>
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <span style={{ fontWeight: 800, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>
+                        Stored Lots ({selectedLoc.tiers.reduce((s, t) => s + t.lotCount, 0)})
+                      </span>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--seal)' }}>
+                        {selectedLoc.maxStackTiers} Stack Tiers
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 340, overflowY: 'auto', paddingRight: 4 }}>
+                      {selectedLoc.tiers.map(t => (
+                        <div key={t.tier} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 10 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                            <span style={{ fontSize: 11, fontWeight: 800, color: '#0f172a', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <Icon name="layers" size={12} style={{ color: 'var(--seal)' }} /> Tier {t.tier}
+                            </span>
+                            <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 6, background: t.lots.length > 0 ? '#dcfce7' : '#f1f5f9', color: t.lots.length > 0 ? '#15803d' : '#94a3b8' }}>
+                              {t.lots.length} {t.lots.length === 1 ? 'item' : 'items'}
+                            </span>
+                          </div>
+
+                          {t.lots.length === 0 ? (
+                            <div style={{ fontSize: 11, color: '#94a3b8', fontStyle: 'italic', padding: '4px 0' }}>Empty tier slot</div>
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {t.lots.map(lot => (
+                                <div key={lot.id} style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: 8, padding: '8px 10px', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                                  <div style={{ width: 22, height: 22, borderRadius: 6, background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                                    <Icon name="package" size={12} />
+                                  </div>
+                                  <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', lineHeight: 1.3 }}>
+                                      {lot.description}
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                                      <span style={{ fontSize: 10.5, fontWeight: 700, color: '#64748b', background: '#f1f5f9', padding: '1px 6px', borderRadius: 4 }}>
+                                        Qty: {lot.qtyOnHand} {lot.uom}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
-
-            {unplaced.length > 0 && !editMode && (
-              <div className="seal-empty">{unplaced.length} location(s) on this floor aren't placed on the grid yet — switch to Edit Layout to place them.</div>
-            )}
-          </>
+          </div>
         )}
       </div>
     </TooltipProvider>
-  );
-}
-
-function LayoutRow({ loc, saving, onSave }: { loc: LayoutLocation; saving: boolean; onSave: (patch: any) => void }) {
-  const [row, setRow] = useState(String(loc.gridRow ?? ''));
-  const [col, setCol] = useState(String(loc.gridCol ?? ''));
-  const [tiers, setTiers] = useState(String(loc.maxStackTiers));
-  const [capacity, setCapacity] = useState(String(loc.capacityUnits));
-  const [length, setLength] = useState(loc.lengthM != null ? String(loc.lengthM) : '');
-  const [width, setWidth] = useState(loc.widthM != null ? String(loc.widthM) : '');
-  const [height, setHeight] = useState(loc.heightM != null ? String(loc.heightM) : '');
-
-  return (
-    <tr>
-      <td style={{ fontWeight: 700 }}>{loc.code}</td>
-      <td><input type="number" min="1" className="input-field" style={{ width: 70 }} value={row} onChange={e => setRow(e.target.value)} /></td>
-      <td><input type="number" min="1" className="input-field" style={{ width: 70 }} value={col} onChange={e => setCol(e.target.value)} /></td>
-      <td><input type="number" min="1" className="input-field" style={{ width: 70 }} value={tiers} onChange={e => setTiers(e.target.value)} /></td>
-      <td><input type="number" min="1" className="input-field" style={{ width: 90 }} value={capacity} onChange={e => setCapacity(e.target.value)} /></td>
-      <td><input type="number" min="0" step="any" className="input-field" style={{ width: 70 }} value={length} onChange={e => setLength(e.target.value)} /></td>
-      <td><input type="number" min="0" step="any" className="input-field" style={{ width: 70 }} value={width} onChange={e => setWidth(e.target.value)} /></td>
-      <td><input type="number" min="0" step="any" className="input-field" style={{ width: 70 }} value={height} onChange={e => setHeight(e.target.value)} /></td>
-      <td>
-        <button
-          type="button" className="seal-btn-secondary" disabled={saving}
-          onClick={() => onSave({
-            gridRow: row ? Number(row) : null, gridCol: col ? Number(col) : null,
-            maxStackTiers: Number(tiers) || 1, capacityUnits: Number(capacity) || 1,
-            lengthM: length ? Number(length) : null, widthM: width ? Number(width) : null, heightM: height ? Number(height) : null,
-          })}
-        >
-          {saving ? 'Saving…' : 'Save'}
-        </button>
-      </td>
-    </tr>
   );
 }

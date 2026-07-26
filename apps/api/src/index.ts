@@ -17,6 +17,7 @@ import { authRoutes } from './routes/auth.routes.js';
 import { tenantRoutes } from './routes/tenant.routes.js';
 import { shipmentRoutes } from './routes/shipments.routes.js';
 import { customerRoutes } from './routes/customers.routes.js';
+import { leadsRoutes } from './routes/leads.routes.js';
 import { workflowRoutes } from './routes/workflows.routes.js';
 import { documentRoutes } from './routes/documents.routes.js';
 import { financeRoutes } from './routes/finance.routes.js';
@@ -205,6 +206,7 @@ async function main() {
     await server.register(authRoutes, { prefix: '/auth' });
     await server.register(shipmentRoutes, { prefix: '/v1/shipments' });
     await server.register(customerRoutes, { prefix: '/v1/customers' });
+    await server.register(leadsRoutes, { prefix: '/v1/leads' });
     await server.register(workflowRoutes, { prefix: '/v1/workflows' });
     await server.register(documentRoutes, { prefix: '/v1/documents' });
     await server.register(documentRoutes, { prefix: '/v1/shipments' }); // alias: frontend uses /v1/shipments/:id/documents/...
