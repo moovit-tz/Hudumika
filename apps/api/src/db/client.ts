@@ -581,6 +581,17 @@ export interface SealLedgerAnchorsTable {
   created_at: Generated<Date>;
 }
 
+export interface DomainEventsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  event_type: string;
+  source_app: string;
+  entity_type: string;
+  entity_id: string | null;
+  payload: unknown; // JSONB
+  created_at: Generated<Date>;
+}
+
 export interface SealFulfillmentOrdersTable {
   id: Generated<string>;
   tenant_id: string;
@@ -2345,6 +2356,7 @@ export interface Database {
   seal_reefer_readings: SealReeferReadingsTable;
   seal_yard_slots: SealYardSlotsTable;
   seal_ledger_anchors: SealLedgerAnchorsTable;
+  domain_events: DomainEventsTable;
   seal_tasks: SealTasksTable;
   seal_equipment: SealEquipmentTable;
   seal_equipment_maintenance_records: SealEquipmentMaintenanceRecordsTable;

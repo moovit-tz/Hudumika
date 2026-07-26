@@ -3,6 +3,7 @@ import { WorkflowService } from './workflow.service.js';
 import { NotificationService } from './notification.service.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { resolveWorkflowForNewShipment, loadResolvedWorkflow, pickStartStep } from './workflow-resolver.service.js';
+import { emitDomainEvent, emitDomainEventStandalone } from './domain-events.service.js';
 import type { ShipmentType, ClearanceStage, Container, DocumentType, RiskFlagType } from '@hudumika/types';
 
 export class ShipmentService {
@@ -127,6 +128,10 @@ export class ShipmentService {
 
       // 6. Trigger notifications (offloaded dynamically)
       NotificationService.triggerNotification(tenantId, shipment.id, 'CASE_OPENED').catch(console.error);
+      emitDomainEvent(trx, tenantId, {
+        type: 'shipment.case_opened', sourceApp: 'clearos', entityType: 'shipment', entityId: shipment.id,
+        payload: { refNumber: shipment.ref_number, customerId: shipment.customer_id, assignedTo: shipment.assigned_to },
+      }).catch(console.error);
 
       return shipment;
     });
@@ -151,6 +156,10 @@ export class ShipmentService {
     }).catch(console.error);
     NotificationService.notifyListeners(tenantId, shipmentId, 'STAGE_ADVANCED', {
       stageLabel: nextStage,
+    }).catch(console.error);
+    emitDomainEventStandalone(tenantId, {
+      type: 'shipment.stage_advanced', sourceApp: 'clearos', entityType: 'shipment', entityId: shipmentId,
+      payload: { stage: nextStage, note: note ?? null },
     }).catch(console.error);
 
     // Run risk scoring calculation in the background when stage changes
@@ -564,11 +573,19 @@ export class ShipmentService {
               ? String(Math.round((now.getTime() - new Date(shipment.sla_deadline).getTime()) / (1000 * 60 * 60)))
               : '0';
             NotificationService.triggerNotification(tenantId, shipmentId, 'SLA_BREACH', { hoursExceeded }).catch(console.error);
+            emitDomainEvent(trx, tenantId, {
+              type: 'shipment.sla_breach', sourceApp: 'clearos', entityType: 'shipment', entityId: shipmentId,
+              payload: { hoursExceeded, stage: shipment.stage },
+            }).catch(console.error);
           } else if (af.severity === 'HIGH' && af.type === 'DEMURRAGE') {
             NotificationService.triggerNotification(tenantId, shipmentId, 'DEMURRAGE_RISK', {
               hoursLeft: '0',
               freeTimeEnd: shipment.free_time_end?.toString() || '',
               remainingStages: shipment.stage,
+            }).catch(console.error);
+            emitDomainEvent(trx, tenantId, {
+              type: 'shipment.demurrage_risk', sourceApp: 'clearos', entityType: 'shipment', entityId: shipmentId,
+              payload: { freeTimeEnd: shipment.free_time_end?.toString() || '', stage: shipment.stage },
             }).catch(console.error);
           }
         }

@@ -11,6 +11,7 @@ import { env } from './config/env.js';
 import { db } from './db/client.js';
 import { authPlugin } from './middleware/auth.js';
 import { bootstrapJobs } from './jobs/index.js';
+import { bootstrapSubscribers } from './subscribers/index.js';
 import { initAisTracker, stopAisTracker } from './jobs/ais-tracker.js';
 
 import { authRoutes } from './routes/auth.routes.js';
@@ -302,6 +303,7 @@ async function main() {
     });
 
     // 5. Start jobs scheduler
+    bootstrapSubscribers();
     await bootstrapJobs();
     await initAisTracker();
 

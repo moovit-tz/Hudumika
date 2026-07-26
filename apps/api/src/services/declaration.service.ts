@@ -1,5 +1,6 @@
 import { withTenant } from '../db/client.js';
 import { NotificationService } from './notification.service.js';
+import { emitDomainEvent } from './domain-events.service.js';
 import type {
   DeclarationStatus,
   SelectivityChannel,
@@ -127,6 +128,13 @@ export class DeclarationService {
             'DECLARATION_TRANSFERRED'
           ).catch(console.error);
         }
+      }
+
+      if (newStatus === 'RELEASED') {
+        emitDomainEvent(trx, tenantId, {
+          type: 'declaration.released', sourceApp: 'clearos', entityType: 'declaration', entityId: declarationId,
+          payload: { shipmentId: updated.shipment_id, tancisRef: updated.tancis_ref, tansadNumber: updated.tansad_number },
+        }).catch(console.error);
       }
 
       return updated;
