@@ -2212,6 +2212,30 @@ export interface InventoryStockLevelsTable {
   updated_at: Generated<Date>;
 }
 
+export interface InventoryCountSessionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  warehouse_id: string;
+  status: Generated<string>; // open | posted | cancelled
+  started_at: Generated<Date>;
+  posted_at: Date | null;
+  created_by: string | null;
+  notes: string | null;
+}
+
+export interface InventoryCountLinesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  session_id: string;
+  item_id: string;
+  location_id: string;
+  batch_no: Generated<string>;
+  expected_qty: string;
+  counted_qty: string | null;
+  counted_at: Date | null;
+  counted_by: string | null;
+}
+
 export interface Database {
   inventory_warehouses: InventoryWarehousesTable;
   inventory_locations: InventoryLocationsTable;
@@ -2219,6 +2243,8 @@ export interface Database {
   inventory_item_uoms: InventoryItemUomsTable;
   inventory_movements: InventoryMovementsTable;
   inventory_stock_levels: InventoryStockLevelsTable;
+  inventory_count_sessions: InventoryCountSessionsTable;
+  inventory_count_lines: InventoryCountLinesTable;
   support_tickets: SupportTicketsTable;
   support_messages: SupportMessagesTable;
   support_groups: SupportGroupsTable;

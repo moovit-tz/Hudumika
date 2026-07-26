@@ -9,6 +9,8 @@ import { InventoryDashboard } from '../pages/InventoryDashboard.js';
 import { InventoryItems } from '../pages/InventoryItems.js';
 import { InventoryWarehouses } from '../pages/InventoryWarehouses.js';
 import { InventoryStock } from '../pages/InventoryStock.js';
+import { InventoryCounts } from '../pages/InventoryCounts.js';
+import { InventoryCountDetail } from '../pages/InventoryCountDetail.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -27,6 +29,7 @@ const NAV: SidebarSection[] = [
     title: 'STOCK',
     items: [
       { label: 'Stock Levels', icon: 'layers', path: '/inventory/stock' },
+      { label: 'Stock Counts', icon: 'clipboardList', path: '/inventory/counts' },
     ],
   },
 ];
@@ -45,6 +48,8 @@ export function InventoryShell() {
                 <Route path="items"        element={<InventoryItems />}      />
                 <Route path="warehouses"   element={<InventoryWarehouses />} />
                 <Route path="stock"        element={<InventoryStock />}      />
+                <Route path="counts"       element={<InventoryCounts />}     />
+                <Route path="counts/:id"   element={<InventoryCountDetail />} />
               </Route>
             </Routes>
           </div>
