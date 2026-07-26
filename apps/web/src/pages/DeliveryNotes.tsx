@@ -164,12 +164,12 @@ const MOCK_NOTES: DN[] = [
 
 // ── Status config ─────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
-  pending:             { label: 'Pending',             color: '#92400e', bg: '#fef3c7' },
-  fully_delivered:     { label: 'Fully Delivered',     color: '#065f46', bg: '#ecfdf5' },
-  partially_delivered: { label: 'Partially Delivered', color: '#1e40af', bg: '#dbeafe' },
-  damaged:             { label: 'Goods Damaged',       color: '#9a3412', bg: '#ffedd5' },
-  missing:             { label: 'Missing Items',       color: '#6b21a8', bg: '#f3e8ff' },
-  returned:            { label: 'Returned',            color: '#374151', bg: '#f3f4f6' },
+  pending:             { label: 'Pending',             color: 'var(--gold)', bg: 'var(--gold-l)' },
+  fully_delivered:     { label: 'Fully Delivered',     color: 'var(--green)', bg: 'var(--green-l)' },
+  partially_delivered: { label: 'Partially Delivered', color: 'var(--blue)', bg: 'var(--blue-l)' },
+  damaged:             { label: 'Goods Damaged',       color: 'var(--gold)', bg: 'var(--gold-l)' },
+  missing:             { label: 'Missing Items',       color: 'var(--purple)', bg: 'var(--purple-l)' },
+  returned:            { label: 'Returned',            color: 'var(--ink2)', bg: 'var(--bg)' },
 };
 
 const STATUS_OPTIONS = [
@@ -580,7 +580,7 @@ function NoteDrawer({ note, onSave, onClose, isMobile }: { note: DN; onSave: (n:
                         </Select>
                       </td>
                       <td style={{ padding: '4px 4px', width: 68 }}>
-                        <div style={{ ...inp, padding: '5px 7px', fontSize: 12, textAlign: 'center', color: row.variance < 0 ? '#dc2626' : 'var(--ink)', background: 'var(--bg)' }}>{row.variance || 0}</div>
+                        <div style={{ ...inp, padding: '5px 7px', fontSize: 12, textAlign: 'center', color: row.variance < 0 ? 'var(--red)' : 'var(--ink)', background: 'var(--bg)' }}>{row.variance || 0}</div>
                       </td>
                       <td style={{ padding: '4px 4px' }}><input title="Remarks" placeholder="Notes…" style={{ ...inp, padding: '5px 7px', fontSize: 12 }} value={row.remarks} onChange={e => updateRow(i, 'remarks', e.target.value)} /></td>
                       <td style={{ padding: '4px 4px', textAlign: 'center' }}>
@@ -606,7 +606,7 @@ function NoteDrawer({ note, onSave, onClose, isMobile }: { note: DN; onSave: (n:
                 const on = f.statusFlags.includes(key);
                 const cfg = STATUS_CFG[key];
                 return (
-                  <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 9, border: `1.5px solid ${on ? cfg.color + '55' : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: on ? 700 : 400, color: on ? cfg.color : 'var(--ink2)' }}>
+                  <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 9, border: `1.5px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: on ? 700 : 400, color: on ? cfg.color : 'var(--ink2)' }}>
                     <input type="checkbox" checked={on} onChange={() => toggleStatus(key)} style={{ accentColor: cfg.color }} />
                     {label}
                   </label>
@@ -677,7 +677,7 @@ function NoteDetailPanel({ note, onClose, onEdit, onDelete }: {
           <Icon name="edit" size={15} color="var(--ink3)" />
         </button>
         <button type="button" title="Close" onClick={onClose} style={ib}
-          onMouseEnter={e => (e.currentTarget.style.background = '#fee2e2')}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-l)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
           <Icon name="x" size={15} color="var(--ink3)" />
         </button>
@@ -688,7 +688,7 @@ function NoteDetailPanel({ note, onClose, onEdit, onDelete }: {
         <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
         <div style={{ flex: 1 }} />
         <button type="button" style={tb} onClick={onEdit}><Icon name="edit" size={13} color="var(--ink3)" /> Edit</button>
-        <button type="button" style={{ ...tb, background: ORANGE, color: '#fff', border: 'none' }} onClick={() => window.print()}>
+        <button type="button" style={{ ...tb, background: 'var(--teal)', color: '#fff', border: 'none' }} onClick={() => window.print()}>
           <Icon name="printer" size={13} color="#fff" /> Print
         </button>
         <button type="button" style={{ ...tb, color: 'var(--red)', borderColor: 'var(--red)' }} onClick={onDelete}>
@@ -697,7 +697,7 @@ function NoteDetailPanel({ note, onClose, onEdit, onDelete }: {
       </div>
 
       {/* Note preview */}
-      <div id="dn-print-area" style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', padding: '16px 12px', background: '#f1f5f9' }}>
+      <div id="dn-print-area" style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', padding: '16px 12px', background: 'var(--bg)' }}>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <div style={{ transform: 'scale(0.9)', transformOrigin: 'top center', marginBottom: -80 }}>
             <PrintTemplate note={note} />
@@ -855,10 +855,10 @@ export const DeliveryNotes: React.FC = () => {
       <div style={{ padding: '16px 28px', display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : isSplit ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)', gap: 10 }}>
         {[
           { label: 'Total Notes',       value: total,     color: 'var(--navy)', filter: 'all' },
-          { label: 'Fully Delivered',   value: fullyDone, color: '#065f46',     filter: 'fully_delivered'     },
-          { label: 'Partial',           value: partial,   color: '#1e40af',     filter: 'partially_delivered' },
-          { label: 'Issues',            value: issues,    color: '#9a3412',     filter: 'damaged'             },
-          { label: 'Pending',           value: pending,   color: '#92400e',     filter: 'pending'             },
+          { label: 'Fully Delivered',   value: fullyDone, color: 'var(--green)',     filter: 'fully_delivered'     },
+          { label: 'Partial',           value: partial,   color: 'var(--blue)',     filter: 'partially_delivered' },
+          { label: 'Issues',            value: issues,    color: 'var(--gold)',     filter: 'damaged'             },
+          { label: 'Pending',           value: pending,   color: 'var(--gold)',     filter: 'pending'             },
         ].map(s => (
           <div
             key={s.label}

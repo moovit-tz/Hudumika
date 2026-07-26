@@ -913,15 +913,15 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
         )}
 
         {/* Three charge sections */}
-        <ChargeSectionEditor title="Clearing Charges — Paid in TZS" color="#0d9488" group="clearing" currency="TZS" items={clearing} onChange={setClearing} />
-        <ChargeSectionEditor title="Shipping Line Charges — Paid in USD" color="#2563eb" group="shipping" currency="USD" items={shipping} onChange={setShipping} />
+        <ChargeSectionEditor title="Clearing Charges — Paid in TZS" color="var(--teal)" group="clearing" currency="TZS" items={clearing} onChange={setClearing} />
+        <ChargeSectionEditor title="Shipping Line Charges — Paid in USD" color="var(--blue)" group="shipping" currency="USD" items={shipping} onChange={setShipping} />
         <div style={{ position: 'relative' }}>
           {shipment && activeShipmentFull && (
-            <button type="button" onClick={() => setShowTimesheets(true)} style={{ position: 'absolute', top: 3, right: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 6, background: '#f3e8ff', color: '#7c3aed', border: '1px solid #e9d5ff', fontSize: 11, fontWeight: 700, cursor: 'pointer', zIndex: 10 }}>
-              <Icon name="clock" size={12} color="#7c3aed" /> Import Unbilled Time
+            <button type="button" onClick={() => setShowTimesheets(true)} style={{ position: 'absolute', top: 3, right: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 6, background: 'var(--purple-l)', color: 'var(--purple)', border: '1px solid var(--purple)', fontSize: 11, fontWeight: 700, cursor: 'pointer', zIndex: 10 }}>
+              <Icon name="clock" size={12} color="var(--purple)" /> Import Unbilled Time
             </button>
           )}
-          <ChargeSectionEditor title="Other Charges — Paid in TZS" color="#7c3aed" group="other" currency="TZS" items={other} onChange={setOther} />
+          <ChargeSectionEditor title="Other Charges — Paid in TZS" color="var(--purple)" group="other" currency="TZS" items={other} onChange={setOther} />
         </div>
 
         {/* Grand total */}
@@ -1143,8 +1143,8 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
         <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: st.bg, color: st.color }}>{st.label}</span>
         {traFiscalized ? (
-          <span title={`Verification #: ${inv.traRctvnum}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: '#e6f4ea', color: '#059669' }}>
-            <Icon name="checkCircle" size={12} color="#059669" /> TRA Fiscalized
+          <span title={`Verification #: ${inv.traRctvnum}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: 'var(--green-l)', color: 'var(--green)' }}>
+            <Icon name="checkCircle" size={12} color="var(--green)" /> TRA Fiscalized
           </span>
         ) : onSubmitTRA ? (
           <button type="button" onClick={submitToTRA} disabled={traSubmitting || inv.status === 'Draft' || !inv._dbId}
@@ -1154,8 +1154,8 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               : inv.traStatus === 'failed' ? (inv.traAckMsg || 'Previous submission failed — retry')
               : 'Submit this invoice to TRA EFDMS for fiscalization'
             }
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: (traSubmitting || inv.status === 'Draft' || !inv._dbId) ? 'default' : 'pointer', background: inv.status === 'Draft' || !inv._dbId ? 'var(--bg)' : inv.traStatus === 'failed' ? '#fee2e2' : '#fff8e1', color: inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? '#cf222e' : '#9a6700', opacity: traSubmitting ? 0.7 : 1 }}>
-            <Icon name={inv.traStatus === 'failed' ? 'refresh' : 'send'} size={12} color={inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? '#cf222e' : '#9a6700'} />
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: (traSubmitting || inv.status === 'Draft' || !inv._dbId) ? 'default' : 'pointer', background: inv.status === 'Draft' || !inv._dbId ? 'var(--bg)' : inv.traStatus === 'failed' ? 'var(--red-l)' : 'var(--gold-l)', color: inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)', opacity: traSubmitting ? 0.7 : 1 }}>
+            <Icon name={inv.traStatus === 'failed' ? 'refresh' : 'send'} size={12} color={inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)'} />
             {traSubmitting ? 'Submitting…' : inv.traStatus === 'failed' ? 'Retry TRA Submission' : 'Submit to TRA'}
           </button>
         ) : null}
@@ -1180,13 +1180,13 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           )}
         </div>
         <button type="button" onClick={() => { setShowPayment(v => !v); setPayAmt(String(Math.round(due))); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 9, border: 'none', background: showPayment ? '#047857' : '#059669', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 9, border: 'none', background: showPayment ? 'var(--green)' : 'var(--green)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
           <Icon name="dollarSign" size={13} color="#fff" /> Payment
         </button>
       </div>
 
       {traError && (
-        <div style={{ padding: '8px 20px', background: '#fdecea', color: '#cf222e', fontSize: 12, fontWeight: 600, borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <div style={{ padding: '8px 20px', background: 'var(--red-l)', color: 'var(--red)', fontSize: 12, fontWeight: 600, borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           TRA submission failed: {traError}
         </div>
       )}
@@ -1216,7 +1216,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>Outstanding: <strong style={{ color: due > 0 ? 'var(--red)' : 'var(--green)', fontFamily: 'var(--mono)' }}>{fmt(due, 'TZS')}</strong></div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={submitPayment} style={{ padding: '7px 18px', borderRadius: 7, border: 'none', background: '#059669', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>Save Payment</button>
+            <button type="button" onClick={submitPayment} style={{ padding: '7px 18px', borderRadius: 7, border: 'none', background: 'var(--green)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>Save Payment</button>
             <button type="button" onClick={() => setShowPayment(false)} style={tbBtn}>Cancel</button>
           </div>
         </div>
@@ -1242,12 +1242,12 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
 
             {/* QR Code — center. Once fiscalized, this must be the TRA verify-portal
                 URL (what a real EFD receipt prints), not an internal reference code. */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px', border: '1px solid var(--border)', borderRadius: 9, background: traFiscalized ? '#e6f4ea' : 'var(--bg)', alignSelf: 'flex-start', minWidth: 116 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '12px', border: '1px solid var(--border)', borderRadius: 9, background: traFiscalized ? 'var(--green-l)' : 'var(--bg)', alignSelf: 'flex-start', minWidth: 116 }}>
               <QRCodeSVG value={traFiscalized ? inv.traQrUrl! : qrData} size={88} level="M" />
               <div style={{ fontSize: 9, color: 'var(--ink3)', textAlign: 'center', lineHeight: 1.4 }}>
                 {traFiscalized ? (
                   <>
-                    <div style={{ fontWeight: 700, color: '#059669' }}>TRA Verified</div>
+                    <div style={{ fontWeight: 700, color: 'var(--green)' }}>TRA Verified</div>
                     <div>{inv.traRctvnum}</div>
                   </>
                 ) : (
@@ -1305,11 +1305,11 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                 <span style={{ fontSize: 15, fontWeight: 900, fontFamily: 'var(--mono)' }}>{fmt(T.grandTotalTZS, 'TZS')}</span>
               </div>
               {inv.received > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#059669', marginBottom: 4, paddingLeft: 4 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--green)', marginBottom: 4, paddingLeft: 4 }}>
                   <span>Less: Received</span><span style={{ fontFamily: 'var(--mono)' }}>({fmt(inv.received, 'TZS')})</span>
                 </div>
               )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 800, color: due > 0 ? 'var(--red)' : '#059669', borderTop: '2px solid var(--border)', paddingTop: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 800, color: due > 0 ? 'var(--red)' : 'var(--green)', borderTop: '2px solid var(--border)', paddingTop: 8 }}>
                 <span>Amount Due</span>
                 <span style={{ fontFamily: 'var(--mono)' }}>{fmt(Math.max(0, due), 'TZS')}</span>
               </div>
@@ -1318,9 +1318,9 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
 
           {/* Carbon segment — live from the linked shipment, not a tradeable credit */}
           {inv.shipmentCarbon && (
-            <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 9, padding: '16px 20px', marginBottom: 16 }}>
+            <div style={{ background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 9, padding: '16px 20px', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <Icon name="globe" size={15} color="#059669" strokeWidth={1.75} />
+                <Icon name="globe" size={15} color="var(--green)" strokeWidth={1.75} />
                 <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)' }}>Carbon Footprint (Estimate)</span>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(3, 1fr)', gap: 16 }}>
@@ -1329,7 +1329,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
                   <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>CO₂ emissions</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: '#059669' }}>{Number(inv.shipmentCarbon.carbon_credits_saved).toFixed(2)}</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--green)' }}>{Number(inv.shipmentCarbon.carbon_credits_saved).toFixed(2)}</div>
                   <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Credits saved (est.)</div>
                 </div>
                 {inv.shipmentCarbon.distance_km != null && (
@@ -1886,7 +1886,7 @@ export const Billing: React.FC = () => {
                   );
                 })}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 8 }}>
                 <div>
                   <label style={{ display: 'block', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Method</label>
                   <Select value={batchMethod} onValueChange={setBatchMethod}>

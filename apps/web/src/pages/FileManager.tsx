@@ -486,7 +486,7 @@ function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onShare }: 
         <button onClick={()=>onShare(item)} style={{ flex: item.type==='folder' ? 1 : undefined, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', padding:'6px 10px', cursor:'pointer', color:GD.blue }}>
           <Icon name="userPlus" size={14} color={GD.blue} />
         </button>
-        <button onClick={()=>onStar(item)} style={{ background: item.starred ? '#fef3c7' : 'var(--bg)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', padding:'6px 10px', cursor:'pointer', color: item.starred ? '#f59e0b' : 'var(--ink3)' }}>
+        <button onClick={()=>onStar(item)} style={{ background: item.starred ? 'var(--gold-l)' : 'var(--bg)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', padding:'6px 10px', cursor:'pointer', color: item.starred ? '#f59e0b' : 'var(--ink3)' }}>
           <Icon name="star" size={14} color={item.starred ? '#f59e0b' : 'var(--ink3)'} />
         </button>
         <button onClick={()=>onDelete(item)} style={{ background:'var(--bg)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', padding:'6px 10px', cursor:'pointer', color:'var(--red)' }}>
@@ -559,24 +559,24 @@ function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onShare }: 
 
 /* ── Config ── */
 export const TYPE_CFG: Record<string, { icon: IconName; color: string; bg: string; label: string }> = {
-  folder: { icon:'folder',     color:'#f59e0b',      bg:'#fef3c7',        label:'Folder'  },
-  pdf:    { icon:'file',       color:'#ef4444',      bg:'#fef2f2',        label:'PDF'     },
-  docx:   { icon:'fileText',   color:'#3b82f6',      bg:'#eff6ff',        label:'Word'    },
-  doc:    { icon:'fileText',   color:'#3b82f6',      bg:'#eff6ff',        label:'Word'    },
-  xlsx:   { icon:'barChart',   color:'#22c55e',      bg:'#ecfdf5',        label:'Excel'   },
-  xls:    { icon:'barChart',   color:'#22c55e',      bg:'#ecfdf5',        label:'Excel'   },
-  csv:    { icon:'barChart',   color:'#059669',      bg:'#ecfdf5',        label:'CSV'     },
-  png:    { icon:'camera',     color:'#a855f7',      bg:'#faf5ff',        label:'Image'   },
-  jpg:    { icon:'camera',     color:'#a855f7',      bg:'#faf5ff',        label:'Image'   },
-  jpeg:   { icon:'camera',     color:'#a855f7',      bg:'#faf5ff',        label:'Image'   },
-  gif:    { icon:'camera',     color:'#a855f7',      bg:'#faf5ff',        label:'GIF'     },
-  pptx:   { icon:'layers',     color:'#f97316',      bg:'#fff7ed',        label:'Slides'  },
-  zip:    { icon:'briefcase',  color:'#ca8a04',      bg:'#fefce8',        label:'Archive' },
-  rar:    { icon:'briefcase',  color:'#ca8a04',      bg:'#fefce8',        label:'Archive' },
-  txt:    { icon:'fileText',   color:'#6b7280',      bg:'#f9fafb',        label:'Text'    },
-  xml:    { icon:'fileText',   color:'#0891b2',      bg:'#ecfeff',        label:'XML'     },
-  mp4:    { icon:'monitor',    color:'#7c3aed',      bg:'#ede9fe',        label:'Video'   },
-  mp3:    { icon:'headphones', color:'#0891b2',      bg:'#cffafe',        label:'Audio'   },
+  folder: { icon:'folder',     color:'var(--gold)',   bg:'var(--gold-l)',   label:'Folder'  },
+  pdf:    { icon:'file',       color:'var(--red)',    bg:'var(--red-l)',    label:'PDF'     },
+  docx:   { icon:'fileText',   color:'var(--blue)',   bg:'var(--blue-l)',   label:'Word'    },
+  doc:    { icon:'fileText',   color:'var(--blue)',   bg:'var(--blue-l)',   label:'Word'    },
+  xlsx:   { icon:'barChart',   color:'var(--green)',  bg:'var(--green-l)',  label:'Excel'   },
+  xls:    { icon:'barChart',   color:'var(--green)',  bg:'var(--green-l)',  label:'Excel'   },
+  csv:    { icon:'barChart',   color:'var(--green)',  bg:'var(--green-l)',  label:'CSV'     },
+  png:    { icon:'camera',     color:'var(--purple)', bg:'var(--purple-l)', label:'Image'   },
+  jpg:    { icon:'camera',     color:'var(--purple)', bg:'var(--purple-l)', label:'Image'   },
+  jpeg:   { icon:'camera',     color:'var(--purple)', bg:'var(--purple-l)', label:'Image'   },
+  gif:    { icon:'camera',     color:'var(--purple)', bg:'var(--purple-l)', label:'GIF'     },
+  pptx:   { icon:'layers',     color:'var(--gold)',   bg:'var(--gold-l)',   label:'Slides'  },
+  zip:    { icon:'briefcase',  color:'var(--gold)',   bg:'var(--gold-l)',   label:'Archive' },
+  rar:    { icon:'briefcase',  color:'var(--gold)',   bg:'var(--gold-l)',   label:'Archive' },
+  txt:    { icon:'fileText',   color:'var(--ink3)',   bg:'var(--bg)',       label:'Text'    },
+  xml:    { icon:'fileText',   color:'var(--blue)',   bg:'var(--blue-l)',   label:'XML'     },
+  mp4:    { icon:'monitor',    color:'var(--purple)', bg:'var(--purple-l)', label:'Video'   },
+  mp3:    { icon:'headphones', color:'var(--blue)',   bg:'var(--blue-l)',   label:'Audio'   },
 };
 export function tcfg(t: string) { return TYPE_CFG[t.toLowerCase()] ?? TYPE_CFG.txt; }
 
@@ -808,9 +808,9 @@ export const FileManager: React.FC = () => {
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'var(--bg)' }}>
       {error && (
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'10px 20px', background:'#fef2f2', borderBottom:'1px solid #fecaca', color:'#991b1b', fontSize:'var(--text-base)' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'10px 20px', background:'var(--red-l)', borderBottom:'1px solid var(--red)', color:'var(--red)', fontSize:'var(--text-base)' }}>
           <span>{error}</span>
-          <button onClick={dismissError} style={{ background:'none', border:'none', cursor:'pointer', color:'#991b1b', padding:4 }}><Icon name="close" size={14} color="#991b1b" /></button>
+          <button onClick={dismissError} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--red)', padding:4 }}><Icon name="close" size={14} color="var(--red)" /></button>
         </div>
       )}
 

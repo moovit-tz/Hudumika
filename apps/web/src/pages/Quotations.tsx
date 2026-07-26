@@ -699,7 +699,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
           {/* Contact */}
           <div style={card}>
             <SHdr title="Contact / Customer"/>
-            <div style={{ padding:20, display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+            <div style={{ padding:20, display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:16 }}>
               <div style={{ gridColumn:'1/-1' }}>
                 <label style={lbl}>Select Customer or Lead *</label>
                 <ContactSelector customers={customers} leads={leads} value={f.customer_id} onChange={onContact}/>
@@ -730,7 +730,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
           {/* Shipment & Quote Info */}
           <div style={card}>
             <SHdr title="Shipment &amp; Quote Details"/>
-            <div style={{ padding:20, display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+            <div style={{ padding:20, display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:16 }}>
               <div style={{ gridColumn:'1/-1' }}>
                 <label style={lbl}>Quotation Subject / Title *</label>
                 <input type="text" title="Title" placeholder="e.g. Sea Freight � Dar es Salaam to Hamburg � 1x20ft FCL" value={f.title}
@@ -931,7 +931,7 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
                   <StatusBadge status={quote.status}/>
                 </div>
                 {(quote.origin_port||quote.destination_port)&&(
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', gap:16, background:'var(--bg)', borderRadius: 9, padding:16 }}>
+                  <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr auto 1fr', gap:16, background:'var(--bg)', borderRadius: 9, padding:16 }}>
                     <div>
                       <div style={{ fontSize:10, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4 }}>Origin</div>
                       <div style={{ fontSize:15, fontWeight:700 }}>{quote.origin_port||'�'}</div>
