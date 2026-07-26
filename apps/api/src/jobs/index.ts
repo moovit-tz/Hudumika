@@ -10,6 +10,7 @@ import { runSupportRulesJob } from './support-rules.job.js';
 import { runGpswoxSyncJob } from './gpswox-sync.job.js';
 import { runWorkflowCommQueueJob } from './workflow-comm.job.js';
 import { runSealLedgerAnchorJob, runSealLedgerAnchorConfirmationSweepJob } from './seal-ledger-anchor.job.js';
+import { runDeclarationLedgerAnchorJob, runDeclarationLedgerAnchorConfirmationSweepJob } from './declaration-ledger-anchor.job.js';
 
 let redisConnection: Redis | null = null;
 let riskQueue: Queue | null = null;
@@ -17,6 +18,7 @@ let reminderQueue: Queue | null = null;
 let gpswoxQueue: Queue | null = null;
 let workflowCommQueue: Queue | null = null;
 let sealAnchorQueue: Queue | null = null;
+let declarationAnchorQueue: Queue | null = null;
 
 /**
  * Initializes BullMQ or falls back to in-memory intervals if Redis is not running
@@ -62,6 +64,7 @@ function startBullMQ(): void {
     gpswoxQueue = new Queue('gpswox-sync', { connection: redisConnection as any });
     workflowCommQueue = new Queue('workflow-comms', { connection: redisConnection as any });
     sealAnchorQueue = new Queue('seal-ledger-anchor', { connection: redisConnection as any });
+    declarationAnchorQueue = new Queue('declaration-ledger-anchor', { connection: redisConnection as any });
 
     // Worker for risk scans
     new Worker(
@@ -134,6 +137,20 @@ function startBullMQ(): void {
       { connection: redisConnection as any }
     );
 
+    // Worker for ClearOS declaration ledger anchoring — same daily
+    // stamp + hourly confirmation-sweep shape as SEAL's.
+    new Worker(
+      'declaration-ledger-anchor',
+      async (job) => {
+        if (job.name === 'stamp') {
+          await runDeclarationLedgerAnchorJob();
+        } else if (job.name === 'confirmation-sweep') {
+          await runDeclarationLedgerAnchorConfirmationSweepJob();
+        }
+      },
+      { connection: redisConnection as any }
+    );
+
     // Schedule repeatable jobs
     riskQueue.add('scan', {}, {
       repeat: { every: 15 * 60 * 1000 } // Every 15 minutes
@@ -177,6 +194,14 @@ function startBullMQ(): void {
     }).catch(console.error);
 
     sealAnchorQueue.add('confirmation-sweep', {}, {
+      repeat: { every: 60 * 60 * 1000 } // Every hour — re-check pending anchors for Bitcoin confirmation
+    }).catch(console.error);
+
+    declarationAnchorQueue.add('stamp', {}, {
+      repeat: { pattern: '0 3 * * *' } // Daily at 3:00 AM — anchor every ClearOS tenant's declaration ledger to Bitcoin
+    }).catch(console.error);
+
+    declarationAnchorQueue.add('confirmation-sweep', {}, {
       repeat: { every: 60 * 60 * 1000 } // Every hour — re-check pending anchors for Bitcoin confirmation
     }).catch(console.error);
 
@@ -243,5 +268,16 @@ function startIntervalFallback(): void {
   // (real Bitcoin confirmation takes hours to days).
   setInterval(() => {
     runSealLedgerAnchorConfirmationSweepJob().catch(console.error);
+  }, 60 * 60 * 1000);
+
+  // ClearOS declaration ledger anchoring — same "not on startup" reasoning
+  // as SEAL's anchor job above (each stamp is a real external network call
+  // and a permanent DB row; tsx watch restarts frequently in dev).
+  setInterval(() => {
+    runDeclarationLedgerAnchorJob().catch(console.error);
+  }, 24 * 60 * 60 * 1000);
+
+  setInterval(() => {
+    runDeclarationLedgerAnchorConfirmationSweepJob().catch(console.error);
   }, 60 * 60 * 1000);
 }

@@ -581,6 +581,24 @@ export interface SealLedgerAnchorsTable {
   created_at: Generated<Date>;
 }
 
+export interface DeclarationLedgerAnchorsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  checkpoint_hash: string;
+  snapshot: unknown; // JSONB [{declarationId, eventId, hash}, ...]
+  declaration_count: number;
+  ots_proof: Buffer;
+  ots_proof_upgraded: Buffer | null;
+  status: Generated<string>; // pending | confirmed | failed
+  bitcoin_block_height: number | null;
+  bitcoin_block_time: Date | null;
+  trigger: string; // manual | scheduled
+  requested_by: string | null;
+  error_message: string | null;
+  last_checked_at: Date | null;
+  created_at: Generated<Date>;
+}
+
 export interface DeclarationEventsTable {
   id: Generated<string>;
   tenant_id: string;
@@ -2397,6 +2415,7 @@ export interface Database {
   tax_lines: TaxLinesTable;
   declaration_attachments: DeclarationAttachmentsTable;
   declaration_events: DeclarationEventsTable;
+  declaration_ledger_anchors: DeclarationLedgerAnchorsTable;
   // Demurrage Engine
   demurrage_tariffs: DemurrageTariffsTable;
   container_tracking: ContainerTrackingTable;

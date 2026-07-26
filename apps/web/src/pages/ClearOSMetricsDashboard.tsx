@@ -2,13 +2,16 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip,
 } from 'chart.js';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, apiDownload } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { exportCsv, ExportButton, StatTile, DataTable, ClickableBarChart } from '../components/AnalyticsKit.js';
 import type { ColumnDef } from '../components/AnalyticsKit.js';
 import type { StageBottleneck, OfficerPerformance, KPIResponse } from '@hudumika/types';
+import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
+import { showAlert } from '../lib/alert.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
@@ -59,6 +62,123 @@ function MetricSection({ title, icon, iconColor, onExport, statTiles, chart, tab
       </button>
 
       {expanded && table}
+    </div>
+  );
+}
+
+interface LedgerAnchor {
+  id: string;
+  checkpointHash: string;
+  declarationCount: number;
+  status: 'pending' | 'confirmed' | 'failed';
+  bitcoinBlockHeight: number | null;
+  bitcoinBlockTime: string | null;
+  trigger: 'manual' | 'scheduled';
+  errorMessage: string | null;
+  lastCheckedAt: string | null;
+  createdAt: string;
+}
+
+/**
+ * Tenant-wide external anchoring for the declaration_events hash chain
+ * (see declaration.service.ts / declaration-anchor.service.ts): daily,
+ * plus on-demand here, a checkpoint of every declaration's chain-tip is
+ * stamped to Bitcoin via OpenTimestamps, so a customs authority or auditor
+ * can verify the ledger independently of trusting Hudumika's database at
+ * all. Status is only ever what the API actually returns — "confirmed" is
+ * never shown unless OpenTimestamps itself reported a real Bitcoin block.
+ */
+function LedgerIntegritySection() {
+  const [anchors, setAnchors] = useState<LedgerAnchor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [anchoring, setAnchoring] = useState(false);
+  const [checkingId, setCheckingId] = useState<string | null>(null);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    apiFetch('/v1/declarations/anchors').then(setAnchors).catch(() => setAnchors([])).finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function anchorNow() {
+    setAnchoring(true);
+    try {
+      await apiFetch('/v1/declarations/anchors', { method: 'POST' });
+      load();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to anchor the declaration ledger.');
+    } finally {
+      setAnchoring(false);
+    }
+  }
+
+  async function checkConfirmation(id: string) {
+    setCheckingId(id);
+    try {
+      await apiFetch(`/v1/declarations/anchors/${id}/check`, { method: 'POST' });
+      load();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to check confirmation.');
+    } finally {
+      setCheckingId(null);
+    }
+  }
+
+  function downloadProof(id: string, hash: string) {
+    apiDownload(`/v1/declarations/anchors/${id}/proof`, `${hash}.ots`).catch(err => showAlert(err.message || 'Download failed'));
+  }
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="shield" size={14} color="var(--gold)" strokeWidth={1.75} />
+          </div>
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>Ledger Integrity</h2>
+        </div>
+        <Button size="sm" onClick={anchorNow} disabled={anchoring}>
+          <Icon name="lock" size={13} /> {anchoring ? 'Anchoring…' : 'Anchor Now'}
+        </Button>
+      </div>
+      <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 14, lineHeight: 1.6 }}>
+        Every declaration's tamper-evident history is periodically anchored to Bitcoin via OpenTimestamps, so its state at a point in time can be verified independently of Hudumika's own database.
+      </div>
+      {loading ? (
+        <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading anchor history…</div>
+      ) : anchors.length === 0 ? (
+        <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No anchors yet — click "Anchor Now" to create the first one.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {anchors.map(a => (
+            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, flexWrap: 'wrap' }}>
+              <Badge variant={a.status === 'confirmed' ? 'success' : a.status === 'failed' ? 'error' : 'warning'}>
+                {a.status === 'confirmed' ? 'Confirmed' : a.status === 'failed' ? 'Failed' : 'Pending'}
+              </Badge>
+              <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }} title={a.checkpointHash}>
+                {a.checkpointHash.slice(0, 16)}…
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--ink2)' }}>{a.declarationCount} declaration{a.declarationCount !== 1 ? 's' : ''}</span>
+              <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{a.trigger === 'manual' ? 'Manual' : 'Scheduled'} · {new Date(a.createdAt).toLocaleString()}</span>
+              {a.status === 'confirmed' && a.bitcoinBlockHeight && (
+                <span style={{ fontSize: 11.5, color: 'var(--green)' }}>Block {a.bitcoinBlockHeight}</span>
+              )}
+              <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+                {a.status === 'pending' && (
+                  <Button size="sm" variant="outline" onClick={() => checkConfirmation(a.id)} disabled={checkingId === a.id}>
+                    {checkingId === a.id ? 'Checking…' : 'Check Confirmation'}
+                  </Button>
+                )}
+                <button type="button" onClick={() => downloadProof(a.id, a.checkpointHash)}
+                  style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, padding: '6px 4px' }}>
+                  <Icon name="download" size={13} /> Download Proof
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -306,6 +426,8 @@ export const ClearOSMetricsDashboard: React.FC = () => {
                 />
               }
             />
+
+            <LedgerIntegritySection />
 
           </div>
         )}

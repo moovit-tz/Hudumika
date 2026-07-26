@@ -608,6 +608,32 @@ export class DeclarationService {
     });
   }
 
+  /** Builds the deterministic checkpoint a tenant's declaration ledger
+   *  anchors against: every declaration's current chain-tip event (the
+   *  per-declaration hash chain means a single tenant-wide chain doesn't
+   *  exist — this is the closest real analogue, a canonical snapshot of
+   *  every declaration's latest proven-linked hash at this moment). Sorted
+   *  by declaration_id so the same ledger state always produces the same
+   *  checkpoint_hash regardless of query-execution order. Mirrors
+   *  SealService.buildCompartmentCheckpoint exactly. */
+  static async buildTenantCheckpoint(trx: Transaction<Database>, tenantId: string): Promise<{ snapshot: { declarationId: string; eventId: string; hash: string }[]; checkpointHash: string }> {
+    const tips = await trx.selectFrom('declaration_events as e')
+      .where('e.tenant_id', '=', tenantId)
+      .select(['e.declaration_id', 'e.id', 'e.hash'])
+      .distinctOn('e.declaration_id')
+      .orderBy('e.declaration_id')
+      .orderBy('e.id', 'desc')
+      .execute();
+
+    const snapshot = tips
+      .map(t => ({ declarationId: t.declaration_id, eventId: String(t.id), hash: t.hash }))
+      .sort((a, b) => a.declarationId.localeCompare(b.declarationId));
+
+    const checkpointHash = createHash('sha256').update(JSON.stringify(snapshot)).digest('hex');
+
+    return { snapshot, checkpointHash };
+  }
+
   /** Re-derives every declaration_events row's hash from its stored payload
    *  and confirms the chain hasn't been rewritten — mirrors SealService.verifyChain. */
   static async verifyChain(tenantId: string, declarationId: string): Promise<{ valid: boolean; brokenAtEventId: string | null; checked: number }> {

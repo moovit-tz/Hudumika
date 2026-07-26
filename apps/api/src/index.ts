@@ -78,6 +78,7 @@ import { sealSensorsRoutes } from './routes/seal-sensors.routes.js';
 import { sealAutomationRoutes } from './routes/seal-automation.routes.js';
 import { sealFulfillmentRoutes } from './routes/seal-fulfillment.routes.js';
 import { sealLedgerAnchorRoutes } from './routes/seal-ledger-anchor.routes.js';
+import { declarationLedgerAnchorRoutes } from './routes/declaration-ledger-anchor.routes.js';
 import { inventoryCatalogRoutes } from './routes/inventory-catalog.routes.js';
 import { inventoryStockRoutes } from './routes/inventory-stock.routes.js';
 import { inventoryCountsRoutes } from './routes/inventory-counts.routes.js';
@@ -218,6 +219,7 @@ async function main() {
     await server.register(notificationRoutes, { prefix: '/v1/notifications' });
     await server.register(webhookRoutes, { prefix: '/v1/webhooks' });
     await server.register(declarationRoutes, { prefix: '/v1/declarations' });
+    await server.register(declarationLedgerAnchorRoutes, { prefix: '/v1/declarations' });
     await server.register(referenceRoutes, { prefix: '/v1/reference' });
     await server.register(demurrageRoutes, { prefix: '/v1/demurrage' });
     await server.register(quotationRoutes, { prefix: '/v1/quotations' });
