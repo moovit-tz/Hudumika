@@ -3,6 +3,29 @@ import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import type { CreateCustomerInput, CustomerAnalytics } from '@hudumika/types';
+import { parse } from 'csv-parse/sync';
+
+// CSV header normalization — accept "Company Name", "company_name", "Company", etc.
+function normalizeHeaders(row: Record<string, unknown>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(row)) {
+    const key = k.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    out[key] = typeof v === 'string' ? v.trim() : v == null ? '' : String(v);
+  }
+  return out;
+}
+
+function pick(norm: Record<string, string>, aliases: string[]): string | undefined {
+  for (const a of aliases) {
+    const v = norm[a];
+    if (v !== undefined && v !== '') return v;
+  }
+  return undefined;
+}
+
+function parseCsv(buf: Buffer): Record<string, unknown>[] {
+  return parse(buf, { columns: true, skip_empty_lines: true, trim: true, bom: true }) as Record<string, unknown>[];
+}
 
 export async function customerRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -103,6 +126,68 @@ export async function customerRoutes(fastify: FastifyInstance) {
 
       reply.status(211);
       return customer;
+    });
+  });
+
+  /**
+   * POST /v1/customers/bulk-import
+   * Multipart CSV/Excel — CustomerBulkUpload.tsx. Every row becomes a real
+   * insert (not a fabricated "50 clients imported" success message like the
+   * old frontend-only version); rows missing the required company_name are
+   * skipped and reported back rather than silently dropped.
+   */
+  fastify.post('/bulk-import', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'SALES') }, async (request, reply) => {
+    const user = request.user;
+    const file = await request.file();
+    if (!file) return reply.status(400).send({ error: 'No file uploaded' });
+
+    let records: Record<string, unknown>[];
+    try {
+      records = parseCsv(await file.toBuffer());
+    } catch (e: any) {
+      return reply.status(400).send({ error: 'Could not parse file: ' + (e.message || 'invalid format') });
+    }
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const summary = { total: records.length, inserted: 0, skipped: 0, errors: [] as string[] };
+      const colors = ['#0b7264', '#0e1f3d', '#1849a9', '#5b3ea8', '#b57d0a'];
+
+      for (let i = 0; i < records.length; i++) {
+        const norm = normalizeHeaders(records[i]);
+        const name = pick(norm, ['company_name', 'name', 'company', 'client_name']);
+        if (!name) {
+          summary.skipped++;
+          summary.errors.push(`Row ${i + 2}: missing company_name`);
+          continue;
+        }
+        const email = pick(norm, ['email']) ?? null;
+        const phone = pick(norm, ['phone', 'phone_wa', 'whatsapp']) ?? null;
+        const country = pick(norm, ['country']) ?? null;
+        const address = pick(norm, ['address']) ?? null;
+        const currency = pick(norm, ['currency']) ?? 'TZS';
+
+        await trx.insertInto('customers').values({
+          tenant_id: user.tenant_id,
+          name,
+          email,
+          phone_wa: phone,
+          country,
+          address,
+          currency,
+          category: 'sme',
+          preferred_channel: 'WHATSAPP',
+          avatar_initials: name.substring(0, 2).toUpperCase(),
+          avatar_color: colors[i % colors.length],
+          assigned_officer_id: user.role === 'OFFICER' ? user.sub : null,
+          active: true,
+          created_at: new Date(),
+          updated_at: new Date(),
+        }).execute();
+        summary.inserted++;
+      }
+
+      reply.status(201);
+      return { data: summary };
     });
   });
 

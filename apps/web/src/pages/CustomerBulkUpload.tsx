@@ -2,10 +2,55 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { FileUploader } from '../components/ui/file-uploader.js';
+import { BASE_URL } from '../lib/api.js';
+
+const TEMPLATE_COLUMNS = ['company_name', 'email', 'phone', 'country', 'address', 'currency'];
+
+interface ImportSummary {
+  total: number;
+  inserted: number;
+  skipped: number;
+  errors: string[];
+}
+
+function downloadCsvTemplate() {
+  const csv = TEMPLATE_COLUMNS.join(',') + '\n' + 'Acme Freight Ltd,ops@acmefreight.co.tz,+255700000000,TZ,"Dar es Salaam, Tanzania",TZS\n';
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'customer-import-template.csv';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
 
 export const CustomerBulkUpload: React.FC = () => {
   const [file, setFile] = useState<File | null>(null);
-  const [uploaded, setUploaded] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [summary, setSummary] = useState<ImportSummary | null>(null);
+  const [error, setError] = useState('');
+
+  async function handleImport() {
+    if (!file) return;
+    setUploading(true);
+    setError('');
+    try {
+      const token = localStorage.getItem('hudumika_token');
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch(`${BASE_URL}/v1/customers/bulk-import`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        body: form,
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Import failed');
+      setSummary(json.data);
+    } catch (e: any) {
+      setError(e.message || 'Import failed');
+    } finally {
+      setUploading(false);
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--bg)' }}>
@@ -20,7 +65,7 @@ export const CustomerBulkUpload: React.FC = () => {
         </Link>
         <div>
           <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Bulk Upload Clients</div>
-          <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Import multiple clients at once using a CSV or Excel file</div>
+          <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Import multiple clients at once using a CSV file</div>
         </div>
       </div>
 
@@ -37,36 +82,52 @@ export const CustomerBulkUpload: React.FC = () => {
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Download Template</div>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Use our template to ensure your data is formatted correctly</div>
             </div>
-            <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+            <button onClick={downloadCsvTemplate} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
               <Icon name="download" size={13} /> CSV Template
-            </button>
-            <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-              <Icon name="download" size={13} /> Excel Template
             </button>
           </div>
 
           {/* Drop zone */}
-          {!uploaded && (
+          {!summary && (
             <FileUploader
-              accept=".csv,.xlsx,.xls"
+              accept=".csv"
               multiple={false}
               onUpload={(files) => { if (files[0]) setFile(files[0]); }}
-              uploadingFiles={file ? [{ id: '1', name: file.name, size: file.size, progress: 100, status: 'completed' }] : []}
+              uploadingFiles={file ? [{ id: '1', name: file.name, size: file.size, progress: uploading ? 60 : 100, status: uploading ? 'uploading' : 'completed' }] : []}
               onRemoveFile={() => setFile(null)}
             />
           )}
 
+          {error && (
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 9, padding: '14px 18px', fontSize: 13, color: '#b91c1c' }}>
+              {error}
+            </div>
+          )}
+
           {/* Upload success */}
-          {uploaded && (
-            <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 9, padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <Icon name="checkCircle" size={24} color="#059669" />
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#047857' }}>Upload successful!</div>
-                <div style={{ fontSize: 12, color: '#065f46', marginTop: 2 }}>50 clients imported. You can view them in the Customer List.</div>
+          {summary && (
+            <div style={{ background: summary.inserted > 0 ? '#ecfdf5' : '#fef2f2', border: `1px solid ${summary.inserted > 0 ? '#a7f3d0' : '#fecaca'}`, borderRadius: 9, padding: '20px 24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <Icon name={summary.inserted > 0 ? 'checkCircle' : 'alertCircle'} size={24} color={summary.inserted > 0 ? '#059669' : '#dc2626'} />
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: summary.inserted > 0 ? '#047857' : '#991b1b' }}>
+                    {summary.inserted} of {summary.total} client{summary.total !== 1 ? 's' : ''} imported
+                  </div>
+                  {summary.skipped > 0 && (
+                    <div style={{ fontSize: 12, color: '#065f46', marginTop: 2 }}>{summary.skipped} row{summary.skipped !== 1 ? 's' : ''} skipped</div>
+                  )}
+                </div>
+                {summary.inserted > 0 && (
+                  <Link to="/customers" style={{ marginLeft: 'auto', padding: '7px 16px', borderRadius: 9, border: 'none', background: '#059669', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}>
+                    View List
+                  </Link>
+                )}
               </div>
-              <Link to="/customers" style={{ marginLeft: 'auto', padding: '7px 16px', borderRadius: 9, border: 'none', background: '#059669', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}>
-                View List
-              </Link>
+              {summary.errors.length > 0 && (
+                <ul style={{ margin: '12px 0 0', paddingLeft: 20, fontSize: 12, color: '#7f1d1d' }}>
+                  {summary.errors.slice(0, 10).map((e, i) => <li key={i}>{e}</li>)}
+                </ul>
+              )}
             </div>
           )}
 
@@ -100,19 +161,21 @@ export const CustomerBulkUpload: React.FC = () => {
           </div>
 
           {/* Action buttons */}
-          {file && !uploaded && (
+          {file && !summary && (
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setFile(null)}
+                disabled={uploading}
                 style={{ padding: '8px 18px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
               >
                 Cancel
               </button>
               <button
-                onClick={() => setUploaded(true)}
-                style={{ padding: '8px 22px', borderRadius: 9, border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7 }}
+                onClick={handleImport}
+                disabled={uploading}
+                style={{ padding: '8px 22px', borderRadius: 9, border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: uploading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', gap: 7, opacity: uploading ? 0.7 : 1 }}
               >
-                <Icon name="upload" size={14} /> Upload &amp; Import
+                <Icon name="upload" size={14} /> {uploading ? 'Uploading…' : 'Upload & Import'}
               </button>
             </div>
           )}
