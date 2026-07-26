@@ -9,12 +9,14 @@ import { runTRAZReportJob } from './tra-zreport.job.js';
 import { runSupportRulesJob } from './support-rules.job.js';
 import { runGpswoxSyncJob } from './gpswox-sync.job.js';
 import { runWorkflowCommQueueJob } from './workflow-comm.job.js';
+import { runSealLedgerAnchorJob, runSealLedgerAnchorConfirmationSweepJob } from './seal-ledger-anchor.job.js';
 
 let redisConnection: Redis | null = null;
 let riskQueue: Queue | null = null;
 let reminderQueue: Queue | null = null;
 let gpswoxQueue: Queue | null = null;
 let workflowCommQueue: Queue | null = null;
+let sealAnchorQueue: Queue | null = null;
 
 /**
  * Initializes BullMQ or falls back to in-memory intervals if Redis is not running
@@ -59,6 +61,7 @@ function startBullMQ(): void {
     reminderQueue = new Queue('reminders', { connection: redisConnection as any });
     gpswoxQueue = new Queue('gpswox-sync', { connection: redisConnection as any });
     workflowCommQueue = new Queue('workflow-comms', { connection: redisConnection as any });
+    sealAnchorQueue = new Queue('seal-ledger-anchor', { connection: redisConnection as any });
 
     // Worker for risk scans
     new Worker(
@@ -116,6 +119,21 @@ function startBullMQ(): void {
       { connection: redisConnection as any }
     );
 
+    // Worker for SEAL ledger anchoring — a daily stamp pass plus a more
+    // frequent confirmation sweep (proof confirmation lags the stamp by
+    // hours to days, independent of the stamp cadence itself).
+    new Worker(
+      'seal-ledger-anchor',
+      async (job) => {
+        if (job.name === 'stamp') {
+          await runSealLedgerAnchorJob();
+        } else if (job.name === 'confirmation-sweep') {
+          await runSealLedgerAnchorConfirmationSweepJob();
+        }
+      },
+      { connection: redisConnection as any }
+    );
+
     // Schedule repeatable jobs
     riskQueue.add('scan', {}, {
       repeat: { every: 15 * 60 * 1000 } // Every 15 minutes
@@ -152,6 +170,14 @@ function startBullMQ(): void {
 
     workflowCommQueue.add('send-due', {}, {
       repeat: { every: 2 * 60 * 1000 } // Every 2 minutes — delayed workflow-step auto-comms
+    }).catch(console.error);
+
+    sealAnchorQueue.add('stamp', {}, {
+      repeat: { pattern: '0 3 * * *' } // Daily at 3:00 AM — anchor every non-empty compartment to Bitcoin
+    }).catch(console.error);
+
+    sealAnchorQueue.add('confirmation-sweep', {}, {
+      repeat: { every: 60 * 60 * 1000 } // Every hour — re-check pending anchors for Bitcoin confirmation
     }).catch(console.error);
 
     console.log('🚀 BullMQ Workers and repeat schedules initialized.');
@@ -202,4 +228,20 @@ function startIntervalFallback(): void {
   setInterval(() => {
     runWorkflowCommQueueJob().catch(console.error);
   }, 2 * 60 * 1000);
+
+  // SEAL ledger anchoring — deliberately NOT run in the "immediately on
+  // startup" pass above: each stamp is a real external network call and a
+  // permanent DB row, and tsx watch restarts this process frequently
+  // during development, so an immediate run would create a fresh anchor
+  // on every save. Daily stamp pass, same cadence group as the other daily
+  // jobs above but its own timer to keep this comment self-contained.
+  setInterval(() => {
+    runSealLedgerAnchorJob().catch(console.error);
+  }, 24 * 60 * 60 * 1000);
+
+  // Confirmation sweep — hourly, independent of the daily stamp cadence
+  // (real Bitcoin confirmation takes hours to days).
+  setInterval(() => {
+    runSealLedgerAnchorConfirmationSweepJob().catch(console.error);
+  }, 60 * 60 * 1000);
 }
