@@ -8,6 +8,7 @@ import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { ClickableBarChart } from '../components/AnalyticsKit.js';
 import { apiFetch } from '../lib/api.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import { CUSTOMS_STATUS_VARIANT } from '../lib/sealStatus.js';
 import { CUSTOMS_STATUS_LABELS, type CustomsStatus } from '@hudumika/types';
@@ -39,13 +40,14 @@ interface Metrics {
 }
 
 function bandColor(pct: number): string {
-  if (pct >= 86) return '#ef4444';
-  if (pct >= 61) return '#3b82f6';
-  return '#00ffb3';
+  if (pct >= 86) return 'var(--red)';
+  if (pct >= 61) return 'var(--gold)';
+  return 'var(--green)';
 }
 
 export function SealDashboard() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [dashData, setDashData] = useState<DashboardData | null>(null);
   const [metricsData, setMetricsData] = useState<Metrics | null>(null);
   const [compartments, setCompartments] = useState<Compartment[]>([]);
@@ -158,7 +160,7 @@ export function SealDashboard() {
           </div>
 
           {/* Grid Layout: Status Breakdown & Compartments Visualizer */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 24 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 24, marginBottom: 24 }}>
             {/* Left: Lots by Customs Status */}
             <div className="seal-card">
               <div className="seal-card-hdr">

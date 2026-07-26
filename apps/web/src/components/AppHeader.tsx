@@ -150,7 +150,7 @@ export function AppHeader({
   // ── User dropdown (Now handled by DropdownMenu) ──
 
   // ── Avatar color via CSS custom property ──
-  const appColor = activeApp ? branding.getAppColor(activeApp, APP_COLORS[activeApp] ?? '#64748b') : '#64748b';
+  const appColor = activeApp ? branding.getAppColor(activeApp, APP_COLORS[activeApp] ?? 'var(--ink3)') : 'var(--ink3)';
   const avatarRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     avatarRef.current?.style.setProperty('--avatar-color', appColor);

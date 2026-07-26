@@ -129,7 +129,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav }: Pr
   const [dsRev, setDsRev] = useState(0);
   const [subOpen, setSubOpen] = useState(false);
   const { planLabel, monthlyPrice } = useTenantPlan();
-  const appColor   = branding.getAppColor(appId, APP_COLORS[appId] ?? '#64748b');
+  const appColor   = branding.getAppColor(appId, APP_COLORS[appId] ?? 'var(--ink3)');
 
   function toggleTheme(dark: boolean) {
     setIsDark(dark);

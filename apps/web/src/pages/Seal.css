@@ -81,19 +81,20 @@
 
 .seal-mono { font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace; font-size: 12.5px; }
 
+.seal-btn-primary, .seal-btn-secondary {
+  display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px;
+  border-radius: 9px; font-family: var(--font); font-size: 13px; cursor: pointer;
+  text-decoration: none; line-height: 1.2;
+}
 .seal-btn-primary {
-  display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px;
-  background: var(--seal); color: #fff; border: none; border-radius: 9px;
-  font-family: var(--font); font-size: 13px; font-weight: 700; cursor: pointer;
-  text-decoration: none; transition: opacity 0.12s;
+  background: var(--seal); color: #fff; border: none; font-weight: 700;
+  transition: opacity 0.12s;
 }
 .seal-btn-primary:hover { opacity: 0.88; }
 .seal-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 .seal-btn-secondary {
-  display: inline-flex; align-items: center; gap: 7px; padding: 8px 14px;
   background: var(--white); color: var(--ink); border: 1px solid var(--border);
-  border-radius: 9px; font-family: var(--font); font-size: 12.5px; font-weight: 600;
-  cursor: pointer; transition: background 0.1s, border-color 0.1s;
+  font-weight: 600; transition: background 0.1s, border-color 0.1s;
 }
 .seal-btn-secondary:hover { background: var(--bg); border-color: var(--ink3); }
 .seal-btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
