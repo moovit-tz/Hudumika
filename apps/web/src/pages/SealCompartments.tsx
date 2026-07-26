@@ -21,7 +21,7 @@ interface Location {
 }
 interface GuaranteeOption { id: string; reference: string; face_value: number; currency: string; }
 
-const WAREHOUSE_TYPES = ['public_bonded', 'private_bonded', 'cfs', 'icd', 'virtual_icd', 'free_zone', 'duty_free_retail', 'excise', 'sorting_centre'];
+const WAREHOUSE_TYPES = ['public_bonded', 'private_bonded', 'cfs', 'icd', 'virtual_icd', 'free_zone', 'duty_free_retail', 'excise', 'sorting_centre', 'fulfillment_centre'];
 const ZONE_TYPES = ['receiving', 'bulk', 'pick', 'vas', 'quarantine', 'outbound', 'yard', 'sort_lane'];
 const NO_GUARANTEE = '__none__';
 const NO_GEOFENCE = '__none__';

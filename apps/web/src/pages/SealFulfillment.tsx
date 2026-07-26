@@ -32,8 +32,9 @@ export function SealFulfillment() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [lots, setLots] = useState<Lot[]>([]);
   const [newCustomerId, setNewCustomerId] = useState('');
-  const [newLotId, setNewLotId] = useState('');
-  const [newQty, setNewQty] = useState('');
+  const [pendingLotId, setPendingLotId] = useState('');
+  const [pendingQty, setPendingQty] = useState('');
+  const [newLines, setNewLines] = useState<{ lotId: string; description: string; qty: string; uom: string }[]>([]);
 
   function reload() {
     setLoading(true);
@@ -52,16 +53,28 @@ export function SealFulfillment() {
     apiFetch(`/v1/seal/lots?${params.toString()}`).then((rows: Lot[]) => setLots(rows.filter(l => l.ownerId === newCustomerId)));
   }, [newCustomerId, compartmentId]);
 
+  function handleAddLine() {
+    if (!pendingLotId || !pendingQty || Number(pendingQty) <= 0) return;
+    const lot = lots.find(l => l.id === pendingLotId);
+    if (!lot) return;
+    setNewLines(prev => [...prev.filter(l => l.lotId !== pendingLotId), { lotId: lot.id, description: lot.description, qty: pendingQty, uom: lot.uom }]);
+    setPendingLotId(''); setPendingQty('');
+  }
+
+  function handleRemoveLine(lotId: string) {
+    setNewLines(prev => prev.filter(l => l.lotId !== lotId));
+  }
+
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!compartmentId || !newCustomerId || !newLotId || !newQty) return;
+    if (!compartmentId || !newCustomerId || newLines.length === 0) return;
     setSaving(true);
     try {
       const order = await apiFetch('/v1/seal/fulfillment-orders', {
         method: 'POST',
-        body: JSON.stringify({ compartmentId, customerId: newCustomerId, lines: [{ lotId: newLotId, qty: Number(newQty) }] }),
+        body: JSON.stringify({ compartmentId, customerId: newCustomerId, lines: newLines.map(l => ({ lotId: l.lotId, qty: Number(l.qty) })) }),
       });
-      setShowNew(false); setNewCustomerId(''); setNewLotId(''); setNewQty('');
+      setShowNew(false); setNewCustomerId(''); setNewLines([]); setPendingLotId(''); setPendingQty('');
       navigate(`/seal/fulfillment/${order.id}`);
     } catch (err: any) {
       showAlert(err.message || 'Failed to create this fulfillment order.');
@@ -86,31 +99,54 @@ export function SealFulfillment() {
 
       {showNew && (
         <form onSubmit={handleCreate} className="seal-card" style={{ marginBottom: 20 }}>
-          <div className="seal-form-grid-3">
-            <div className="seal-field-row">
+          <div style={{ padding: 20 }}>
+            <div className="seal-field-row" style={{ marginBottom: 14 }}>
               <label className="seal-field-label">Customer</label>
               <Combobox
                 options={customers.map(c => ({ value: c.id, label: c.name }))}
-                value={newCustomerId} onChange={v => { setNewCustomerId(v); setNewLotId(''); }}
+                value={newCustomerId} onChange={v => { setNewCustomerId(v); setNewLines([]); setPendingLotId(''); setPendingQty(''); }}
                 placeholder="Search customers…" searchPlaceholder="Search…" emptyText="No matching customers."
               />
             </div>
-            <div className="seal-field-row">
-              <label className="seal-field-label">Lot</label>
-              <Select value={newLotId} onValueChange={setNewLotId} disabled={!newCustomerId}>
-                <SelectTrigger className="input-field"><SelectValue placeholder={newCustomerId ? 'Choose a lot' : 'Choose a customer first'} /></SelectTrigger>
-                <SelectContent>
-                  {lots.map(l => <SelectItem key={l.id} value={l.id}>{l.description} ({l.qtyOnHand} {l.uom} on hand)</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="seal-field-row">
-              <label className="seal-field-label">Quantity to Fulfill</label>
-              <Input type="number" min="0" step="any" value={newQty} onChange={e => setNewQty(e.target.value)} placeholder="0" />
+
+            {newLines.length > 0 && (
+              <table className="seal-table" style={{ marginBottom: 14 }}>
+                <thead><tr><th>Lot</th><th>Quantity</th><th></th></tr></thead>
+                <tbody>
+                  {newLines.map(l => (
+                    <tr key={l.lotId}>
+                      <td>{l.description}</td>
+                      <td>{l.qty} {l.uom}</td>
+                      <td><Button type="button" variant="ghost" size="sm" onClick={() => handleRemoveLine(l.lotId)}><Icon name="x" size={13} /></Button></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div className="seal-field-row" style={{ minWidth: 240, flex: 1 }}>
+                <label className="seal-field-label">Lot</label>
+                <Select value={pendingLotId} onValueChange={setPendingLotId} disabled={!newCustomerId}>
+                  <SelectTrigger className="input-field"><SelectValue placeholder={newCustomerId ? 'Choose a lot' : 'Choose a customer first'} /></SelectTrigger>
+                  <SelectContent>
+                    {lots.filter(l => !newLines.some(nl => nl.lotId === l.id)).map(l => (
+                      <SelectItem key={l.id} value={l.id}>{l.description} ({l.qtyOnHand} {l.uom} on hand)</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="seal-field-row" style={{ width: 140 }}>
+                <label className="seal-field-label">Quantity</label>
+                <Input type="number" min="0" step="any" value={pendingQty} onChange={e => setPendingQty(e.target.value)} placeholder="0" />
+              </div>
+              <Button type="button" variant="outline" disabled={!pendingLotId || !pendingQty} onClick={handleAddLine}>
+                <Icon name="plus" size={13} /><span>Add Line</span>
+              </Button>
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>
-            <Button type="submit" disabled={saving || !newCustomerId || !newLotId || !newQty}>{saving ? 'Creating…' : 'Create Order'}</Button>
+            <Button type="submit" disabled={saving || !newCustomerId || newLines.length === 0}>{saving ? 'Creating…' : `Create Order (${newLines.length} line${newLines.length === 1 ? '' : 's'})`}</Button>
           </div>
         </form>
       )}

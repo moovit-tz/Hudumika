@@ -48,6 +48,8 @@ export function SealLotDetail() {
   const [reference, setReference] = useState('');
   const [acting, setActing] = useState<string | null>(null);
   const [transferTo, setTransferTo] = useState<string>('');
+  const [returnQty, setReturnQty] = useState('');
+  const [returnReference, setReturnReference] = useState('');
   const [verifyResult, setVerifyResult] = useState<{ valid: boolean; checked: number } | null>(null);
   const [reeferReadings, setReeferReadings] = useState<ReeferReading[]>([]);
   const [newReading, setNewReading] = useState('');
@@ -102,6 +104,26 @@ export function SealLotDetail() {
       load();
     } catch (err: any) {
       showAlert(err.message || 'Transfer failed.');
+    } finally {
+      setActing(null);
+    }
+  }
+
+  async function handleReturn() {
+    if (!id || !returnQty || Number(returnQty) <= 0) return;
+    setActing('return');
+    try {
+      await apiFetch(`/v1/seal/lots/${id}/movements`, {
+        method: 'POST',
+        body: JSON.stringify({
+          movementType: 'return', qtyDelta: Number(returnQty),
+          reasonCode: 'customer_return', reference: returnReference.trim() || null,
+        }),
+      });
+      setReturnQty(''); setReturnReference('');
+      load();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to process this return.');
     } finally {
       setActing(null);
     }
@@ -271,6 +293,22 @@ export function SealLotDetail() {
             </Select>
             <button type="button" className="seal-btn-secondary" disabled={!transferTo || acting !== null} onClick={handleTransfer}>
               {acting === 'transfer' ? 'Moving…' : 'Move (No Fiscal Effect)'}
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+            <input
+              type="number" min="0" step="any" className="input-field" style={{ width: 120 }}
+              value={returnQty} onChange={e => setReturnQty(e.target.value)}
+              placeholder={`Qty (${lot.uom})`}
+            />
+            <input
+              type="text" className="input-field" style={{ width: 200 }}
+              value={returnReference} onChange={e => setReturnReference(e.target.value)}
+              placeholder="RMA / return reference"
+            />
+            <button type="button" className="seal-btn-secondary" disabled={!returnQty || Number(returnQty) <= 0 || acting !== null} onClick={handleReturn}>
+              {acting === 'return' ? 'Processing…' : 'Process Return'}
             </button>
           </div>
         </div>

@@ -91,7 +91,7 @@ export function legalNextCustomsStatuses(from: CustomsStatus): CustomsStatus[] {
   return (CUSTOMS_STATUS_TRANSITIONS[from] ?? []).map(t => t.to);
 }
 
-export type SealMovementType = 'receipt' | 'putaway' | 'pick' | 'transfer' | 'adjust' | 'release' | 'destroy' | 'status_change';
+export type SealMovementType = 'receipt' | 'putaway' | 'pick' | 'transfer' | 'adjust' | 'release' | 'destroy' | 'status_change' | 'return';
 
 export interface SealCompartment {
   id: string;
