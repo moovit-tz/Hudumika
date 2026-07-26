@@ -196,7 +196,7 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
             <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)', borderRadius: 8, padding: '18px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Net Pay</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>After all deductions — {monthLabel}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>After all deductions ï¿½ {monthLabel}</div>
               </div>
               <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
                 TZS {net.toLocaleString()}
@@ -205,7 +205,7 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
 
             {/* PAYE Note */}
             <div style={{ padding: '10px 14px', background: '#fefce8', border: '1px solid #fef08a', borderRadius: 6, marginBottom: 20, fontSize: 11, color: '#713f12' }}>
-              <strong>PAYE calculated per TRA Tanzania rates:</strong> 0% up to TZS 270,000 · 8% (270k–520k) · 20% (520k–760k) · 25% (760k–1M) · 30% above TZS 1,000,000
+              <strong>PAYE calculated per TRA Tanzania rates:</strong> 0% up to TZS 270,000 ï¿½ 8% (270kï¿½520k) ï¿½ 20% (520kï¿½760k) ï¿½ 25% (760kï¿½1M) ï¿½ 30% above TZS 1,000,000
             </div>
 
             {/* Signatures */}
@@ -223,7 +223,7 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
             </div>
 
             <div style={{ textAlign: 'center', marginTop: 24, fontSize: 10, color: '#94a3b8' }}>
-              This is a computer-generated payslip · Moovit ClearOS · Generated on {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
+              This is a computer-generated payslip ï¿½ Moovit ClearOS ï¿½ Generated on {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
             </div>
           </div>
         </div>
@@ -414,17 +414,17 @@ export function EmployeesPage() {
   ];
 
   const ROLE_COLORS: Record<string, { bg: string; color: string }> = {
-    Manager:      { bg: '#ede9fe', color: '#7c3aed' },
+    Manager:      { bg: 'var(--purple-l)', color: 'var(--purple)' },
     Officer:      { bg: 'var(--teal-l)', color: 'var(--teal)' },
     Finance:      { bg: 'rgba(16,185,129,.12)', color: 'var(--green)' },
-    'Tenant Admin': { bg: '#fce7f3', color: '#be185d' },
+    'Tenant Admin': { bg: 'var(--purple-l)', color: 'var(--purple)' },
   };
   function roleColor(role: string) { return ROLE_COLORS[role] || { bg: 'var(--bg)', color: 'var(--ink3)' }; }
-  function statusBar(s: EmpStatus) { return s === 'ACTIVE' ? '#10b981' : s === 'ON_LEAVE' ? '#f59e0b' : '#94a3b8'; }
+  function statusBar(s: EmpStatus) { return s === 'ACTIVE' ? '#10b981' : s === 'ON_LEAVE' ? 'var(--gold)' : 'var(--ink3)'; }
 
   return (
     <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex: 1, overflowY: 'auto' }}>
-      <PageHeader icon="users" title="Manage Staff" sub={`${employees.filter(e => e.status === 'ACTIVE').length} active · ${employees.length} total`} backTo="/onepi">
+      <PageHeader icon="users" title="Manage Staff" sub={`${employees.filter(e => e.status === 'ACTIVE').length} active ï¿½ ${employees.length} total`} backTo="/onepi">
         <PrimaryBtn label="Invite User" icon="userPlus" onClick={() => setShowOnboard(true)} />
       </PageHeader>
 
@@ -452,7 +452,7 @@ export function EmployeesPage() {
         {/* Search */}
         <div style={{ position: 'relative', width: 260 }}>
           <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email…"
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or emailï¿½"
             style={{ width: '100%', padding: '7px 10px 7px 32px', border: '1px solid var(--border)', borderRadius: 9, fontFamily: 'var(--font)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
         </div>
 
@@ -608,15 +608,15 @@ export function EmployeesPage() {
 
 /* --- Roles & Permissions (full implementation) ------------- */
 
-const ROLE_META: Record<string, { color: string; desc: string; label: string }> = {
-  ADMIN:       { color:'#7c3aed', label:'Admin',          desc:'Full access to all modules except super-admin settings' },
-  MANAGER:     { color:'#2563eb', label:'Manager',        desc:'Manage teams, approve workflows, view all reports'      },
-  FINANCE:     { color:'#059669', label:'Finance',        desc:'Finance module: invoices, payments, payroll, reports'   },
-  SALES:       { color:'#f59e0b', label:'Sales',          desc:'Sales pipeline, CRM, leads and customer management'     },
-  SENIOR:      { color:'#0891b2', label:'Senior Officer', desc:'Senior ops: all shipments, clearance, docs'             },
-  JUNIOR:      { color:'#64748b', label:'Junior Officer', desc:'Entry-level: assigned clearance tasks, limited access'  },
-  OFFICER:     { color:'#64748b', label:'Officer',        desc:'Core operations: shipments, clearing, invoicing'        },
-  TENANT_ADMIN:{ color:'#7c3aed', label:'Tenant Admin',  desc:'Full tenant access including billing and settings'      },
+const ROLE_META: Record<string, { color: string; bg: string; desc: string; label: string }> = {
+  ADMIN:       { color:'var(--purple)', bg:'var(--purple-l)', label:'Admin',          desc:'Full access to all modules except super-admin settings' },
+  MANAGER:     { color:'var(--blue)', bg:'var(--blue-l)', label:'Manager',        desc:'Manage teams, approve workflows, view all reports'      },
+  FINANCE:     { color:'var(--green)', bg:'var(--green-l)', label:'Finance',        desc:'Finance module: invoices, payments, payroll, reports'   },
+  SALES:       { color:'var(--gold)', bg:'var(--gold-l)', label:'Sales',          desc:'Sales pipeline, CRM, leads and customer management'     },
+  SENIOR:      { color:'var(--blue)', bg:'var(--blue-l)', label:'Senior Officer', desc:'Senior ops: all shipments, clearance, docs'             },
+  JUNIOR:      { color:'var(--ink3)', bg:'var(--bg)', label:'Junior Officer', desc:'Entry-level: assigned clearance tasks, limited access'  },
+  OFFICER:     { color:'var(--ink3)', bg:'var(--bg)', label:'Officer',        desc:'Core operations: shipments, clearing, invoicing'        },
+  TENANT_ADMIN:{ color:'var(--purple)', bg:'var(--purple-l)', label:'Tenant Admin',  desc:'Full tenant access including billing and settings'      },
 };
 
 const RESOURCE_LABELS: Record<string, string> = {
@@ -627,8 +627,8 @@ const RESOURCE_LABELS: Record<string, string> = {
 const RESOURCES = Object.keys(RESOURCE_LABELS);
 const ACTIONS   = ['view','create','edit','delete','approve','export'];
 const ACTION_COLORS: Record<string,string> = {
-  view:'var(--teal)', create:'var(--green)', edit:'#f59e0b',
-  delete:'var(--red)', approve:'#7c3aed', export:'#0ea5e9',
+  view:'var(--teal)', create:'var(--green)', edit:'var(--gold)',
+  delete:'var(--red)', approve:'var(--purple)', export:'#0ea5e9',
 };
 
 interface PermRow { id?: string; role: string; resource: string; action: string; allowed: boolean }
@@ -689,7 +689,7 @@ export function RolesPage() {
         {dirty && (
           <button type="button" onClick={save} disabled={saving}
             style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', borderRadius:8, border:'none', background:'var(--teal)', color:'#fff', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer' }}>
-            <Icon name="save" size={14} color="#fff" />{saving ? 'Saving…' : 'Save Changes'}
+            <Icon name="save" size={14} color="#fff" />{saving ? 'Savingï¿½' : 'Save Changes'}
           </button>
         )}
       </PageHeader>
@@ -705,10 +705,10 @@ export function RolesPage() {
             <div key={key} onClick={() => setSelected(isActive ? null : key)}
               style={{ background:'var(--white)', borderRadius:10, border:`2px solid ${isActive ? meta.color : 'var(--border)'}`,
                 padding:20, cursor:'pointer', transition:'all 0.15s',
-                boxShadow: isActive ? `0 4px 20px ${meta.color}22` : '0 1px 4px rgba(0,0,0,0.04)',
+                boxShadow: isActive ? '0 4px 20px rgba(0,0,0,0.08)' : '0 1px 4px rgba(0,0,0,0.04)',
               }}>
               <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:14 }}>
-                <div style={{ width:44, height:44, borderRadius:10, background:meta.color+'18', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                <div style={{ width:44, height:44, borderRadius:10, background:meta.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                   <Icon name="shield" size={22} color={meta.color} strokeWidth={1.8} />
                 </div>
                 <div style={{ flex:1 }}>
@@ -734,7 +734,7 @@ export function RolesPage() {
                   const hasView = isAllowed(key, r, 'view');
                   return (
                     <span key={r} style={{ fontSize:10, padding:'2px 7px', borderRadius:5, fontWeight:600,
-                      background: hasView ? meta.color+'18' : 'var(--bg)',
+                      background: hasView ? meta.bg : 'var(--bg)',
                       color: hasView ? meta.color : 'var(--ink3)' }}>
                       {RESOURCE_LABELS[r]}
                     </span>
@@ -750,12 +750,12 @@ export function RolesPage() {
       {selected && selMeta && (
         <div style={{ background:'var(--white)', borderRadius:10, border:`1px solid var(--border)`, overflow:'hidden', marginBottom:24 }}>
           <div style={{ padding:'14px 20px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:12,
-            background: selMeta.color+'0a' }}>
-            <div style={{ width:34, height:34, borderRadius:8, background:selMeta.color+'20', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            background: selMeta.bg }}>
+            <div style={{ width:34, height:34, borderRadius:8, background:selMeta.bg, display:'flex', alignItems:'center', justifyContent:'center' }}>
               <Icon name="shield" size={17} color={selMeta.color} />
             </div>
             <div>
-              <div style={{ fontSize:14, fontWeight:800, color:'var(--ink)' }}>{selMeta.label} — Permission Matrix</div>
+              <div style={{ fontSize:14, fontWeight:800, color:'var(--ink)' }}>{selMeta.label} ï¿½ Permission Matrix</div>
               <div style={{ fontSize:11.5, color:'var(--ink3)' }}>Click checkboxes to grant or revoke access. Save when done.</div>
             </div>
           </div>
@@ -799,7 +799,7 @@ export function RolesPage() {
                           if (on !== !allOn) toggle(selected, res, a);
                         })}
                           style={{ fontSize:11, fontWeight:700, padding:'3px 8px', borderRadius:6, border:'none', cursor:'pointer',
-                            background: allOn ? selMeta.color+'18' : 'var(--bg)', color: allOn ? selMeta.color : 'var(--ink3)', fontFamily:'var(--font)' }}>
+                            background: allOn ? selMeta.bg : 'var(--bg)', color: allOn ? selMeta.color : 'var(--ink3)', fontFamily:'var(--font)' }}>
                           {allOn ? 'Revoke all' : 'Grant all'}
                         </button>
                       </td>
@@ -828,7 +828,7 @@ export function RolesPage() {
             const pct = Math.round((count / Math.max(1, Object.values(userCounts).reduce((a,b) => a+b, 0))) * 100);
             return (
               <div key={key} style={{ display:'flex', alignItems:'center', gap:14, padding:'9px 18px', borderBottom:'1px solid var(--border)' }}>
-                <div style={{ width:32, height:32, borderRadius:8, background:meta.color+'18', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+                <div style={{ width:32, height:32, borderRadius:8, background:meta.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
                   <Icon name="shield" size={15} color={meta.color} />
                 </div>
                 <div style={{ flex:1 }}>
@@ -889,18 +889,18 @@ export function PermissionsPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="key" title="Permission Matrix" sub="Full cross-role permission overview — toggle access per module and action" backTo="/onepi">
+      <PageHeader icon="key" title="Permission Matrix" sub="Full cross-role permission overview ï¿½ toggle access per module and action" backTo="/onepi">
         {dirty && (
           <button type="button" onClick={save} disabled={saving}
             style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', borderRadius:8, border:'none', background:'var(--teal)', color:'#fff', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer' }}>
-            <Icon name="save" size={14} color="#fff" />{saving ? 'Saving…' : 'Save Changes'}
+            <Icon name="save" size={14} color="#fff" />{saving ? 'Savingï¿½' : 'Save Changes'}
           </button>
         )}
       </PageHeader>
 
       {/* Filter */}
       <div style={{ marginBottom:16, maxWidth:340 }}>
-        <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter modules…"
+        <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter modulesï¿½"
           style={{ width:'100%', padding:'8px 12px', border:'1px solid var(--border)', borderRadius:8, fontSize:13, fontFamily:'var(--font)', color:'var(--ink)', background:'var(--white)', boxSizing:'border-box' as const }} />
       </div>
 
@@ -914,7 +914,7 @@ export function PermissionsPage() {
                 </th>
                 {displayRoles.map(([key, meta]) => (
                   <th key={key} colSpan={ACTIONS.length}
-                    style={{ padding:'10px 8px', textAlign:'center', borderBottom:'1px solid var(--border)', borderLeft:'2px solid var(--border)', background:meta.color+'0d' }}>
+                    style={{ padding:'10px 8px', textAlign:'center', borderBottom:'1px solid var(--border)', borderLeft:'2px solid var(--border)', background:meta.bg }}>
                     <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:5 }}>
                       <div style={{ width:8, height:8, borderRadius:'50%', background:meta.color }} />
                       <span style={{ fontSize:11, fontWeight:800, color:meta.color }}>{meta.label}</span>
@@ -1143,7 +1143,7 @@ export function DepartmentsPage() {
           {depts.map(d => (
             <tr key={d.name} style={{ borderBottom:'1px solid var(--border)' }}>
               <TD bold>{d.name}</TD>
-              <TD>{d.head === '-' ? <span style={{ color:'var(--ink3)' }}>—</span> : <div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={d.head} size={24} />{d.head}</div>}</TD>
+              <TD>{d.head === '-' ? <span style={{ color:'var(--ink3)' }}>ï¿½</span> : <div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={d.head} size={24} />{d.head}</div>}</TD>
               <TD right bold>{d.employees}</TD>
               <TD><Badge status={d.status} /></TD>
               <TD right>{d.id && <ActionBtn label="Edit" onClick={() => { setShowNew(false); setEditing(d); }} />}</TD>
@@ -1223,7 +1223,7 @@ export function TeamsPage() {
         {teams.map(t => (
           <div key={t.id} style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', padding:18 }}>
             <div style={{ fontWeight:700, fontSize:14, color:'var(--ink)', marginBottom:4 }}>{t.name}</div>
-            <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:12 }}>Lead: {t.lead_name || '—'} · {t.members.length} member{t.members.length!==1?'s':''}</div>
+            <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:12 }}>Lead: {t.lead_name || 'ï¿½'} ï¿½ {t.members.length} member{t.members.length!==1?'s':''}</div>
             <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:12 }}>
               {t.members.map(m => (
                 <div key={m.user_id} style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -1605,7 +1605,7 @@ export function AttendancePage() {
           status: mapAttStatus(a.status),
         })));
       }
-    } catch { /* keep empty — falls back to no records rendered */ }
+    } catch { /* keep empty ï¿½ falls back to no records rendered */ }
   }, []);
 
   useEffect(() => { loadStaff(); loadAttendance(); }, [loadStaff, loadAttendance]);
@@ -1635,6 +1635,17 @@ export function AttendancePage() {
       case 'Half-Day': return 'var(--purple)';
       case 'On Leave': return 'var(--blue)';
       default: return 'var(--ink3)';
+    }
+  };
+
+  const getStatusBg = (s: AttendanceStatus) => {
+    switch(s) {
+      case 'Present': return 'var(--green-l)';
+      case 'Absent': return 'var(--red-l)';
+      case 'Late': return 'var(--gold-l)';
+      case 'Half-Day': return 'var(--purple-l)';
+      case 'On Leave': return 'var(--blue-l)';
+      default: return 'var(--bg)';
     }
   };
 
@@ -1734,7 +1745,7 @@ export function AttendancePage() {
                       <td key={dStr} onClick={() => setActiveCell({ empId: emp.id, date: dStr })} style={{ padding: 0, borderRight: '1px solid var(--border)', cursor: 'pointer', verticalAlign: 'middle', textAlign: 'center', background: isWeekend ? 'var(--bg)' : 'transparent', position: 'relative' }}>
                         <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 36 }} className="cell-hover-parent">
                           {a ? (
-                            <div style={{ width: 22, height: 22, borderRadius: '50%', background: getStatusColor(a.status) + '1a', color: getStatusColor(a.status), display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={`${a.status} ${a.clockIn ? `(${a.clockIn} - ${a.clockOut})` : ''}`}>
+                            <div style={{ width: 22, height: 22, borderRadius: '50%', background: getStatusBg(a.status), color: getStatusColor(a.status), display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={`${a.status} ${a.clockIn ? `(${a.clockIn} - ${a.clockOut})` : ''}`}>
                               <Icon name={getStatusIcon(a.status) as any} size={12} />
                             </div>
                           ) : (
@@ -1797,7 +1808,7 @@ export function AttendancePage() {
           <div style={{ padding: '16px', display: 'flex', gap: 16, borderTop: '1px solid var(--border)' }}>
             {(['Present', 'Absent', 'Late', 'Half-Day', 'On Leave'] as AttendanceStatus[]).map(s => (
               <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--ink2)' }}>
-                <div style={{ width: 16, height: 16, borderRadius: '50%', background: getStatusColor(s) + '1a', color: getStatusColor(s), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 16, height: 16, borderRadius: '50%', background: getStatusBg(s), color: getStatusColor(s), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Icon name={getStatusIcon(s) as any} size={10} />
                 </div>
                 {s}
@@ -1860,7 +1871,7 @@ export function AttendancePage() {
                     <TD bold>{d.toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}</TD>
                     <TD>
                       {a ? (
-                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: getStatusColor(a.status)+'1a', color: getStatusColor(a.status), fontWeight: 700 }}>
+                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, background: getStatusBg(a.status), color: getStatusColor(a.status), fontWeight: 700 }}>
                           {a.status}
                         </span>
                       ) : (
@@ -2004,7 +2015,7 @@ export function ShiftsPage() {
       const data = await apiFetch('/v1/hr/shifts');
       if (Array.isArray(data) && data.length > 0) {
         setShiftTypes(data.map((s: any): ShiftType => ({
-          id: s.id, name: s.name, startTime: s.start_time, endTime: s.end_time, color: s.color || '#0891b2',
+          id: s.id, name: s.name, startTime: s.start_time, endTime: s.end_time, color: s.color || 'var(--blue)',
         })));
       }
     } catch { /* keep mock */ }
@@ -2343,7 +2354,7 @@ export function HolidaysPage() {
                 <tr key={h.date} style={{ borderBottom:'1px solid var(--border)' }}>
                   <TD mono muted>{h.date}</TD>
                   <TD bold>{h.name}</TD>
-                  <TD><span style={{ fontSize:11, padding:'2px 8px', borderRadius:4, background: h.type==='Public'?'rgba(59,130,246,.12)':'rgba(124,58,237,.12)', color: h.type==='Public'?'var(--blue)':'#7c3aed', fontWeight:700 }}>{h.type}</span></TD>
+                  <TD><span style={{ fontSize:11, padding:'2px 8px', borderRadius:4, background: h.type==='Public'?'rgba(59,130,246,.12)':'rgba(124,58,237,.12)', color: h.type==='Public'?'var(--blue)':'var(--purple)', fontWeight:700 }}>{h.type}</span></TD>
                   <TD right>{h.id && <ActionBtn label="Delete" color="var(--red)" onClick={() => handleDelete(h.id!)} />}</TD>
                 </tr>
               ))}
@@ -2517,11 +2528,11 @@ export function PayrollPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="dollarSign" title="Payroll" sub={`Monthly payroll — ${monthLabel}`} backTo="/onepi">
+      <PageHeader icon="dollarSign" title="Payroll" sub={`Monthly payroll ï¿½ ${monthLabel}`} backTo="/onepi">
         <button type="button" className="btn btn-secondary" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6 }}>
           <Icon name="download" size={13} color="var(--ink2)" /> Export
         </button>
-        <PrimaryBtn label={running ? 'Running…' : 'Run Payroll'} onClick={running ? undefined : runPayroll} />
+        <PrimaryBtn label={running ? 'Runningï¿½' : 'Run Payroll'} onClick={running ? undefined : runPayroll} />
       </PageHeader>
       <MetricsRow cards={[
         { title:'Total Payroll', value:'TZS ' + (total/1_000_000).toFixed(1) + 'M', trend:3.2, sub1Label:'BASIC',      sub1Value:'TZS '+(payroll.reduce((s,p)=>s+p.basic,0)/1_000_000).toFixed(1)+'M', sub2Label:'ALLOWANCES', sub2Value:'TZS '+(payroll.reduce((s,p)=>s+p.allow,0)/1_000_000).toFixed(1)+'M', bars:spark(400,15,'up'), barColor:'var(--green-l)', barHighlight:'var(--green)' },
@@ -2576,7 +2587,8 @@ export function AnnouncementsPage() {
     try { await apiFetch(`/v1/hr/announcements/${id}`, { method: 'DELETE' }); } catch { load(); }
   }
 
-  const catColor: Record<string, string> = { HR:'#7c3aed', Policy:'#e8461a', IT:'#0891b2' };
+  const catColor: Record<string, string> = { HR:'var(--purple)', Policy:'var(--teal)', IT:'var(--blue)' };
+  const catBg: Record<string, string> = { HR:'var(--purple-l)', Policy:'var(--teal-l)', IT:'var(--blue-l)' };
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
       <PageHeader icon="volume2" title="Announcements" sub="Company-wide announcements and notices" backTo="/onepi">
@@ -2642,7 +2654,7 @@ export function AnnouncementsPage() {
           <div key={a.id} style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', padding:20 }}>
             <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16, marginBottom:10 }}>
               <div>
-                <span style={{ fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:4, background:(catColor[a.category]||'#666')+'1a', color:catColor[a.category]||'#666', marginRight:8 }}>{a.category}</span>
+                <span style={{ fontSize:11, fontWeight:700, padding:'2px 8px', borderRadius:4, background:catBg[a.category]||'var(--bg)', color:catColor[a.category]||'var(--ink2)', marginRight:8 }}>{a.category}</span>
                 <span style={{ fontSize:11, color:'var(--ink3)' }}>Visible to: {a.audience}</span>
               </div>
               <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0 }}>
@@ -2666,6 +2678,7 @@ export function AnnouncementsPage() {
 /* -- Page routing -- */
 export function HrmDashboard() {
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [metrics, setMetrics] = useState<any>(null);
 
   useEffect(() => {
@@ -2678,7 +2691,7 @@ export function HrmDashboard() {
   const kpis = [
     { label:'Total Staff',       value: hr.total_staff,       icon:'users'      as IconName, color:'var(--teal)',  bg:'rgba(8,145,178,0.1)',  path:'/onepi/employees' },
     { label:'Present Today',     value: hr.today_present,     icon:'check'      as IconName, color:'var(--green)', bg:'rgba(16,185,129,0.1)', path:'/onepi/attendance' },
-    { label:'On Leave',          value: hr.on_leave,          icon:'calendar'   as IconName, color:'#f59e0b',      bg:'rgba(245,158,11,0.1)', path:'/onepi/leaves' },
+    { label:'On Leave',          value: hr.on_leave,          icon:'calendar'   as IconName, color:'var(--gold)',      bg:'rgba(245,158,11,0.1)', path:'/onepi/leaves' },
     { label:'Pending Leaves',    value: hr.pending_leaves,    icon:'clock'      as IconName, color:'var(--red)',   bg:'rgba(239,68,68,0.1)',  path:'/onepi/leaves' },
   ];
 
@@ -2707,7 +2720,7 @@ export function HrmDashboard() {
       </div>
 
       {/* Main grid */}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
+      <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:20 }}>
 
         {/* Attendance summary */}
         <div style={{ background:'var(--white)', borderRadius:9, border:'1px solid var(--border)', overflow:'hidden' }}>
@@ -2718,7 +2731,7 @@ export function HrmDashboard() {
           <div style={{ padding:'16px 18px' }}>
             {[
               { label:'Present',  val:hr.today_present, total:hr.active_staff, color:'var(--green)' },
-              { label:'On Leave', val:hr.on_leave,      total:hr.active_staff, color:'#f59e0b'      },
+              { label:'On Leave', val:hr.on_leave,      total:hr.active_staff, color:'var(--gold)'      },
               { label:'Absent',   val:hr.today_absent,  total:hr.active_staff, color:'var(--red)'   },
             ].map(row => {
               const pct = hr.active_staff > 0 ? Math.round((row.val / hr.active_staff) * 100) : 0;
@@ -2749,7 +2762,7 @@ export function HrmDashboard() {
           </div>
           <div style={{ padding:'14px 18px' }}>
             {DEPARTMENTS.map((d, i) => {
-              const colors = ['var(--teal)','var(--blue)','#7c3aed','var(--green)','#f59e0b','var(--red)'];
+              const colors = ['var(--teal)','var(--blue)','var(--purple)','var(--green)','var(--gold)','var(--red)'];
               const pct = Math.round((d.employees / DEPARTMENTS.reduce((s,x) => s+x.employees, 0)) * 100);
               return (
                 <div key={d.name} style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10 }}>
@@ -2768,14 +2781,14 @@ export function HrmDashboard() {
         {/* Payroll summary */}
         <div style={{ background:'var(--white)', borderRadius:9, border:'1px solid var(--border)', overflow:'hidden' }}>
           <div style={{ padding:'11px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Payroll — This Month</span>
+            <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Payroll ï¿½ This Month</span>
             <Link to="/onepi/payroll" style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)', textDecoration:'none' }}>View All ?</Link>
           </div>
           <div style={{ padding:'16px 18px' }}>
             {[
               { label:'Paid',       count:PAYROLL.filter(p=>p.status==='PAID').length,       color:'var(--green)', bg:'rgba(16,185,129,0.1)' },
               { label:'Processing', count:PAYROLL.filter(p=>p.status==='PROCESSING').length, color:'var(--blue)',  bg:'rgba(59,130,246,0.1)' },
-              { label:'Pending',    count:PAYROLL.filter(p=>p.status==='PENDING').length,    color:'#f59e0b',      bg:'rgba(245,158,11,0.1)' },
+              { label:'Pending',    count:PAYROLL.filter(p=>p.status==='PENDING').length,    color:'var(--gold)',      bg:'rgba(245,158,11,0.1)' },
             ].map(row => (
               <div key={row.label} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', background:row.bg, borderRadius:7, marginBottom:8 }}>
                 <span style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>{row.label}</span>
@@ -2798,16 +2811,16 @@ export function HrmDashboard() {
           </div>
           <div style={{ padding:'14px 16px', display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px,1fr))', gap:10 }}>
             {[
-              { label:'Manage Staff',    icon:'users'      as IconName, path:'/onepi/employees',   color:'#2563eb', bg:'rgba(37,99,235,0.08)' },
+              { label:'Manage Staff',    icon:'users'      as IconName, path:'/onepi/employees',   color:'var(--blue)', bg:'rgba(37,99,235,0.08)' },
               { label:'Attendance',      icon:'clock'      as IconName, path:'/onepi/attendance',  color:'var(--teal)', bg:'rgba(20,184,166,0.08)' },
-              { label:'Leave Requests',  icon:'calendar'   as IconName, path:'/onepi/leaves',      color:'#f59e0b', bg:'rgba(245,158,11,0.08)' },
-              { label:'Payroll',         icon:'dollarSign' as IconName, path:'/onepi/payroll',     color:'#059669', bg:'rgba(22,163,74,0.08)' },
-              { label:'Departments',     icon:'building'   as IconName, path:'/onepi/departments', color:'#7c3aed', bg:'rgba(124,58,237,0.08)' },
-              { label:'Shift Roster',    icon:'timer'      as IconName, path:'/onepi/shifts',      color:'#0891b2', bg:'rgba(8,145,178,0.08)' },
-              { label:'Roles & Access',  icon:'shield'     as IconName, path:'/onepi/roles',       color:'#dc2626', bg:'rgba(220,38,38,0.08)' },
-              { label:'Announcements',   icon:'volume2'    as IconName, path:'/onepi/announcements',color:'#64748b',bg:'rgba(100,116,139,0.08)' },
-              { label:'Org Chart',       icon:'users'      as IconName, path:'/onepi/org-chart',   color:'#0891b2', bg:'rgba(8,145,178,0.08)' },
-              { label:'Invitations',     icon:'userPlus'   as IconName, path:'/onepi/invitations', color:'#7c3aed', bg:'rgba(124,58,237,0.08)' },
+              { label:'Leave Requests',  icon:'calendar'   as IconName, path:'/onepi/leaves',      color:'var(--gold)', bg:'rgba(245,158,11,0.08)' },
+              { label:'Payroll',         icon:'dollarSign' as IconName, path:'/onepi/payroll',     color:'var(--green)', bg:'rgba(22,163,74,0.08)' },
+              { label:'Departments',     icon:'building'   as IconName, path:'/onepi/departments', color:'var(--purple)', bg:'rgba(124,58,237,0.08)' },
+              { label:'Shift Roster',    icon:'timer'      as IconName, path:'/onepi/shifts',      color:'var(--blue)', bg:'rgba(8,145,178,0.08)' },
+              { label:'Roles & Access',  icon:'shield'     as IconName, path:'/onepi/roles',       color:'var(--red)', bg:'rgba(220,38,38,0.08)' },
+              { label:'Announcements',   icon:'volume2'    as IconName, path:'/onepi/announcements',color:'var(--ink3)',bg:'rgba(100,116,139,0.08)' },
+              { label:'Org Chart',       icon:'users'      as IconName, path:'/onepi/org-chart',   color:'var(--blue)', bg:'rgba(8,145,178,0.08)' },
+              { label:'Invitations',     icon:'userPlus'   as IconName, path:'/onepi/invitations', color:'var(--purple)', bg:'rgba(124,58,237,0.08)' },
             ].map(m => (
               <Link key={m.path} to={m.path}
                 style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, cursor:'pointer', fontFamily:'var(--font)', textAlign:'left', textDecoration:'none' }}

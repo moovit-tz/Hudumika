@@ -32,33 +32,33 @@ interface Transaction { id:string; txRef:string; companyId:string; plan:PlanId; 
    CONFIG
 ══════════════════════════════════════════════════ */
 const PLAN_CFG: Record<PlanId,{label:string;color:string;bg:string}> = {
-  starter:    { label:'Starter',    color:'#0891b2', bg:'#ecfeff'  },
-  growth:     { label:'Growth',     color:'#7c3aed', bg:'#ede9fe'  },
-  scale:      { label:'Scale',      color:'#2563eb', bg:'#dbeafe'  },
-  enterprise: { label:'Enterprise', color:'#0d7a6b', bg:'#ccfbf1'  },
+  starter:    { label:'Starter',    color:'var(--blue)', bg:'var(--blue-l)'  },
+  growth:     { label:'Growth',     color:'var(--purple)', bg:'var(--purple-l)'  },
+  scale:      { label:'Scale',      color:'var(--blue)', bg:'var(--blue-l)'  },
+  enterprise: { label:'Enterprise', color:'var(--teal)', bg:'var(--teal-l)'  },
 };
 const CO_CFG: Record<CoStatus,{label:string;color:string;bg:string}> = {
-  active:    { label:'Active',    color:'#059669', bg:'#ecfdf5' },
-  inactive:  { label:'Inactive',  color:'#6b7280', bg:'#f3f4f6' },
-  trial:     { label:'Trial',     color:'#d97706', bg:'#fef3c7' },
-  suspended: { label:'Suspended', color:'#ef4444', bg:'#fef2f2' },
+  active:    { label:'Active',    color:'var(--green)', bg:'var(--green-l)' },
+  inactive:  { label:'Inactive',  color:'var(--ink3)', bg:'var(--bg)' },
+  trial:     { label:'Trial',     color:'var(--gold)', bg:'var(--gold-l)' },
+  suspended: { label:'Suspended', color:'var(--red)', bg:'var(--red-l)' },
 };
 const SUB_CFG: Record<SubStatus,{label:string;color:string;bg:string}> = {
-  active:    { label:'Active',    color:'#059669', bg:'#ecfdf5' },
-  expired:   { label:'Expired',   color:'#ef4444', bg:'#fef2f2' },
-  trial:     { label:'Trial',     color:'#d97706', bg:'#fef3c7' },
-  cancelled: { label:'Cancelled', color:'#6b7280', bg:'#f3f4f6' },
+  active:    { label:'Active',    color:'var(--green)', bg:'var(--green-l)' },
+  expired:   { label:'Expired',   color:'var(--red)', bg:'var(--red-l)' },
+  trial:     { label:'Trial',     color:'var(--gold)', bg:'var(--gold-l)' },
+  cancelled: { label:'Cancelled', color:'var(--ink3)', bg:'var(--bg)' },
 };
 const DOM_CFG: Record<DomainStatus,{label:string;color:string;bg:string}> = {
-  active:  { label:'Active',  color:'#059669', bg:'#ecfdf5' },
-  pending: { label:'Pending', color:'#d97706', bg:'#fef3c7' },
-  expired: { label:'Expired', color:'#ef4444', bg:'#fef2f2' },
+  active:  { label:'Active',  color:'var(--green)', bg:'var(--green-l)' },
+  pending: { label:'Pending', color:'var(--gold)', bg:'var(--gold-l)' },
+  expired: { label:'Expired', color:'var(--red)', bg:'var(--red-l)' },
 };
 const TX_CFG: Record<TxStatus,{label:string;color:string;bg:string}> = {
-  completed: { label:'Completed', color:'#059669', bg:'#ecfdf5' },
-  pending:   { label:'Pending',   color:'#d97706', bg:'#fef3c7' },
-  failed:    { label:'Failed',    color:'#ef4444', bg:'#fef2f2' },
-  refunded:  { label:'Refunded',  color:'#0891b2', bg:'#ecfeff' },
+  completed: { label:'Completed', color:'var(--green)', bg:'var(--green-l)' },
+  pending:   { label:'Pending',   color:'var(--gold)', bg:'var(--gold-l)' },
+  failed:    { label:'Failed',    color:'var(--red)', bg:'var(--red-l)' },
+  refunded:  { label:'Refunded',  color:'var(--blue)', bg:'var(--blue-l)' },
 };
 const METHOD_LABELS: Record<PayMethod,string> = { card:'Credit Card', bank:'Bank Transfer', mpesa:'M-Pesa', paypal:'PayPal' };
 
@@ -127,11 +127,11 @@ const TRANSACTIONS: Transaction[] = [
 ];
 
 
-const ACT_CFG: Record<ActivityType,{color:string;icon:string}> = {
-  company: { color:'#3b82f6', icon:'building'   },
-  user:    { color:'#7c3aed', icon:'user'        },
-  billing: { color:'#0d7a6b', icon:'dollarSign'  },
-  system:  { color:'#d97706', icon:'settings'    },
+const ACT_CFG: Record<ActivityType,{color:string;bg:string;icon:string}> = {
+  company: { color:'var(--blue)', bg:'var(--blue-l)', icon:'building'   },
+  user:    { color:'var(--purple)', bg:'var(--purple-l)', icon:'user'        },
+  billing: { color:'var(--teal)', bg:'var(--teal-l)', icon:'dollarSign'  },
+  system:  { color:'var(--gold)', bg:'var(--gold-l)', icon:'settings'    },
 };
 
 const MOCK_ACTIVITY: ActivityLog[] = [
@@ -230,8 +230,8 @@ function KPICard({ title, value, change, icon, color, spark }: { title:string; v
           <div style={{ fontSize:11, color:'var(--ink3)', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.07em', fontWeight:700 }}>{title}</div>
           <div style={{ fontSize:26, fontWeight:800, color:'var(--ink)', letterSpacing:'-0.02em', lineHeight:1 }}>{value}</div>
           <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:8 }}>
-            <span style={{ fontSize:12, fontWeight:700, color:pos?'#059669':'#ef4444', display:'flex', alignItems:'center', gap:2 }}>
-              <Icon name={pos?'arrowUp':'arrowDown'} size={11} color={pos?'#059669':'#ef4444'} />
+            <span style={{ fontSize:12, fontWeight:700, color:pos?'var(--green)':'var(--red)', display:'flex', alignItems:'center', gap:2 }}>
+              <Icon name={pos?'arrowUp':'arrowDown'} size={11} color={pos?'var(--green)':'var(--red)'} />
               {Math.abs(change)}%
             </span>
             <span style={{ fontSize:11, color:'var(--ink3)' }}>vs last month</span>
@@ -333,9 +333,9 @@ const MONTHLY_REV = [
   {label:'Dec',value:17200},{label:'Jan',value:16400},{label:'Feb',value:18046},
 ];
 const PLAN_DIST = [
-  { label:'Starter',      pct:25, color:'#0891b2' },
-  { label:'Professional', pct:37, color:'#7c3aed' },
-  { label:'Enterprise',   pct:38, color:'#0d7a6b' },
+  { label:'Starter',      pct:25, color:'var(--blue)' },
+  { label:'Professional', pct:37, color:'var(--purple)' },
+  { label:'Enterprise',   pct:38, color:'var(--teal)' },
 ];
 const EXPIRING = SUBSCRIPTIONS.filter(s=>s.status==='active').slice(0,4);
 
@@ -368,10 +368,10 @@ export function DashboardView() {
 
       {/* KPI row */}
       <div style={{ display:'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap:16, marginBottom:24 }}>
-        <KPICard title="Total Companies"    value={String(kpis.totalCompanies)}    change={19.01} icon="building"    color="#3b82f6" spark={spark.companies}   />
-        <KPICard title="Active Companies"   value={String(kpis.activeCompanies)}   change={-12}   icon="check"       color="#059669" spark={spark.active}      />
-        <KPICard title="Total Subscribers"  value={`${kpis.totalSubscribers} users`}  change={6}     icon="users"       color="#7c3aed" spark={spark.subscribers} />
-        <KPICard title="Total Earnings"     value={fmtCurrency(kpis.totalEarnings)}    change={-8}    icon="dollarSign"  color="#0d7a6b" spark={spark.earnings}    />
+        <KPICard title="Total Companies"    value={String(kpis.totalCompanies)}    change={19.01} icon="building"    color="var(--blue)" spark={spark.companies}   />
+        <KPICard title="Active Companies"   value={String(kpis.activeCompanies)}   change={-12}   icon="check"       color="var(--green)" spark={spark.active}      />
+        <KPICard title="Total Subscribers"  value={`${kpis.totalSubscribers} users`}  change={6}     icon="users"       color="var(--purple)" spark={spark.subscribers} />
+        <KPICard title="Total Earnings"     value={fmtCurrency(kpis.totalEarnings)}    change={-8}    icon="dollarSign"  color="var(--teal)" spark={spark.earnings}    />
       </div>
 
       {/* Charts row */}
@@ -395,9 +395,9 @@ export function DashboardView() {
               <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>Company Growth</div>
               <div style={{ fontSize:11, color:'var(--ink3)' }}>Registrations per month</div>
             </div>
-            <span style={{ fontSize:12, fontWeight:700, color:'#059669', background:'#ecfdf5', padding:'3px 8px', borderRadius:20 }}>+6% MoM</span>
+            <span style={{ fontSize:12, fontWeight:700, color:'var(--green)', background:'var(--green-l)', padding:'3px 8px', borderRadius:20 }}>+6% MoM</span>
           </div>
-          <BarChart data={[{label:'Sep',value:1},{label:'Oct',value:1},{label:'Nov',value:2},{label:'Dec',value:1},{label:'Jan',value:2},{label:'Feb',value:1}]} color="#3b82f6" />
+          <BarChart data={[{label:'Sep',value:1},{label:'Oct',value:1},{label:'Nov',value:2},{label:'Dec',value:1},{label:'Jan',value:2},{label:'Feb',value:1}]} color="var(--blue)" />
         </div>
 
         {/* Plans donut */}
@@ -480,25 +480,26 @@ interface CoForm { name:string; email:string; phone:string; plan:PlanId; owner:s
 const CO_FORM_DEFAULT: CoForm = { name:'', email:'', phone:'', plan:'starter', owner:'', country:'Tanzania' };
 
 const TENANT_APPS: { id: string; name: string; color: string }[] = [
-  { id: 'clearos',   name: 'ClearOS',  color: '#ea580c' },
-  { id: 'finops',    name: 'FinOps',   color: '#0284c7' },
-  { id: 'onepi',     name: 'NexusHR',  color: '#0d9488' },
-  { id: 'bliss',     name: 'Bliss',    color: '#7c3aed' },
-  { id: 'complyos',  name: 'ComplyOS', color: '#059669' },
-  { id: 'crm',       name: 'CRM',      color: '#059669' },
-  { id: 'cloud',     name: 'Cloud',    color: '#0369a1' },
-  { id: 'email',     name: 'Email',    color: '#0078d4' },
-  { id: 'contacts',  name: 'Contacts', color: '#1a73e8' },
-  { id: 'ai',        name: 'AI',       color: '#6d28d9' },
-  { id: 'store',     name: 'Store',    color: '#8b5cf6' },
-  { id: 'oneid',     name: 'Ondi',     color: '#4361EE' },
-  { id: 'tracking',  name: 'Tracking', color: '#0891b2' },
-  { id: 'workspace', name: 'Admin',    color: '#64748b' },
-  { id: 'demurrage',     name: 'Demurrage',    color: '#dc2626' },
-  { id: 'cargotracker',  name: 'CargoTracker', color: '#4f46e5' },
+  { id: 'clearos',   name: 'ClearOS',  color: 'var(--gold)' },
+  { id: 'finops',    name: 'FinOps',   color: 'var(--blue)' },
+  { id: 'onepi',     name: 'NexusHR',  color: 'var(--teal)' },
+  { id: 'bliss',     name: 'Bliss',    color: 'var(--purple)' },
+  { id: 'complyos',  name: 'ComplyOS', color: 'var(--green)' },
+  { id: 'crm',       name: 'CRM',      color: 'var(--green)' },
+  { id: 'cloud',     name: 'Cloud',    color: 'var(--blue)' },
+  { id: 'email',     name: 'Email',    color: 'var(--blue)' },
+  { id: 'contacts',  name: 'Contacts', color: 'var(--blue)' },
+  { id: 'ai',        name: 'AI',       color: 'var(--purple)' },
+  { id: 'store',     name: 'Store',    color: 'var(--purple)' },
+  { id: 'oneid',     name: 'Ondi',     color: 'var(--blue)' },
+  { id: 'tracking',  name: 'Tracking', color: 'var(--blue)' },
+  { id: 'workspace', name: 'Admin',    color: 'var(--ink3)' },
+  { id: 'demurrage',     name: 'Demurrage',    color: 'var(--red)' },
+  { id: 'cargotracker',  name: 'CargoTracker', color: 'var(--purple)' },
 ];
 
 export function CompaniesView() {
+  const isMobile = useIsMobile();
   const { impersonate } = useAuth();
   const [impersonating, setImpersonating] = useState<string|null>(null);
   const [tenants, setTenants]     = useState<ApiTenant[]>([]);
@@ -705,7 +706,7 @@ export function CompaniesView() {
                     {impersonating === co.id ? 'Switching…' : 'Login As'}
                   </button>
                   <ActBtn icon="edit" color="var(--teal)" title="Edit company" onClick={()=>openEdit(co)} />
-                  <ActBtn icon="trash" color="#ef4444" title="Delete company" onClick={()=>deleteCompany(co.id)} />
+                  <ActBtn icon="trash" color="var(--red)" title="Delete company" onClick={()=>deleteCompany(co.id)} />
                 </div>
               </TD>
             </TR>
@@ -723,7 +724,7 @@ export function CompaniesView() {
               <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Add Company</span>
               <button type="button" title="Close" onClick={()=>setShowAdd(false)} className="dp-close"><Icon name="close" size={16} /></button>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14 }}>
+            <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:14 }}>
               {([
                 { label:'Company Name *', key:'name',    placeholder:'Summit Traders Ltd' },
                 { label:'Owner Name',     key:'owner',   placeholder:'Amina Hassan' },
@@ -834,9 +835,9 @@ export function SubscriptionsView() {
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:22 }}>
         <StatCard label="Total Subscriptions" value={counts.total}   color="var(--teal)"  />
-        <StatCard label="Active"               value={counts.active}  color="#059669"      />
-        <StatCard label="Trial"                value={counts.trial}   color="#d97706"      />
-        <StatCard label="Expired / Cancelled"  value={counts.expired} color="#ef4444"      />
+        <StatCard label="Active"               value={counts.active}  color="var(--green)"      />
+        <StatCard label="Trial"                value={counts.trial}   color="var(--gold)"      />
+        <StatCard label="Expired / Cancelled"  value={counts.expired} color="var(--red)"      />
       </div>
 
       <div className="sa-toolbar">
@@ -1027,7 +1028,7 @@ export function PackagesView() {
                 <span style={{ fontSize:13, color:'var(--ink3)' }}>/{billing==='monthly'?'mo':'yr'}</span>
               </div>
               {billing==='annual' && (
-                <div style={{ fontSize:11, color:'#059669', fontWeight:600, marginTop:2 }}>Save ${(pkg.monthly*12-pkg.annual).toFixed(0)}/yr vs monthly</div>
+                <div style={{ fontSize:11, color:'var(--green)', fontWeight:600, marginTop:2 }}>Save ${(pkg.monthly*12-pkg.annual).toFixed(0)}/yr vs monthly</div>
               )}
             </div>
 
@@ -1141,7 +1142,7 @@ export function PackagesView() {
                     body: JSON.stringify({
                       code, name: newPkg.name.trim(),
                       monthly_price: newPkg.monthly, annual_price: newPkg.annual, max_users: newPkg.maxUsers,
-                      features: ['Custom features'], color: '#6366f1', popular: false, sort_order: 99,
+                      features: ['Custom features'], color: 'var(--purple)', popular: false, sort_order: 99,
                     }),
                   });
                   reload();
@@ -1188,9 +1189,9 @@ export function DomainsView() {
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:22 }}>
         <StatCard label="Total Domains"  value={stats.total}   color="var(--teal)"  />
-        <StatCard label="Active"         value={stats.active}  color="#059669"      />
-        <StatCard label="SSL Secured"    value={stats.ssl}     color="#7c3aed"      />
-        <StatCard label="Pending"        value={stats.pending} color="#d97706"      />
+        <StatCard label="Active"         value={stats.active}  color="var(--green)"      />
+        <StatCard label="SSL Secured"    value={stats.ssl}     color="var(--purple)"      />
+        <StatCard label="Pending"        value={stats.pending} color="var(--gold)"      />
       </div>
 
       <div className="sa-toolbar">
@@ -1226,8 +1227,8 @@ export function DomainsView() {
               </TD>
               <TD>
                 {d.ssl
-                  ? <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, fontWeight:700, color:'#059669', background:'#ecfdf5', padding:'3px 8px', borderRadius:20 }}><Icon name="lock" size={10} color="#059669" />SSL Active</span>
-                  : <span style={{ fontSize:11, fontWeight:700, color:'#ef4444', background:'#fef2f2', padding:'3px 8px', borderRadius:20 }}>No SSL</span>
+                  ? <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, fontWeight:700, color:'var(--green)', background:'var(--green-l)', padding:'3px 8px', borderRadius:20 }}><Icon name="lock" size={10} color="var(--green)" />SSL Active</span>
+                  : <span style={{ fontSize:11, fontWeight:700, color:'var(--red)', background:'var(--red-l)', padding:'3px 8px', borderRadius:20 }}>No SSL</span>
                 }
               </TD>
               <TD><Badge cfg={DOM_CFG[d.status]} /></TD>
@@ -1236,7 +1237,7 @@ export function DomainsView() {
                 <div style={{ display:'flex', gap:2 }}>
                   <ActBtn icon="eye"   title="View"   onClick={()=>{}} />
                   <ActBtn icon="edit"  title="Edit"   onClick={()=>{}} />
-                  <ActBtn icon="trash" color="#ef4444" title="Delete" onClick={()=>setDomains(p=>p.filter(x=>x.id!==d.id))} />
+                  <ActBtn icon="trash" color="var(--red)" title="Delete" onClick={()=>setDomains(p=>p.filter(x=>x.id!==d.id))} />
                 </div>
               </TD>
             </TR>
@@ -1278,9 +1279,9 @@ export function TransactionsView() {
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:22 }}>
         <StatCard label="Total Revenue"      value={fmtCurrency(stats.total)} color="var(--teal)"  />
-        <StatCard label="Completed"          value={stats.completed}          color="#059669"      />
-        <StatCard label="Pending"            value={stats.pending}            color="#d97706"      />
-        <StatCard label="Failed"             value={stats.failed}             color="#ef4444"      />
+        <StatCard label="Completed"          value={stats.completed}          color="var(--green)"      />
+        <StatCard label="Pending"            value={stats.pending}            color="var(--gold)"      />
+        <StatCard label="Failed"             value={stats.failed}             color="var(--red)"      />
       </div>
 
       <div className="sa-toolbar">
@@ -1351,9 +1352,9 @@ export function FinanceView() {
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:24 }}>
         <KPICard title="Monthly Recurring Revenue" value={fmtCurrency(totalMRR)} change={8.2}   icon="trendingUp"  color="var(--teal)"  spark={MRR_DATA.map(d=>d.value)} />
-        <KPICard title="Annual Recurring Revenue"  value={fmtCurrency(totalARR)} change={8.2}   icon="barChart"    color="#7c3aed"     spark={MRR_DATA.map(d=>d.value*12)} />
-        <KPICard title="Total Revenue Collected"   value="$21,046"               change={-4.1}  icon="dollarSign"  color="#f59e0b"     spark={MONTHLY_REV.map(d=>d.value)} />
-        <KPICard title="Active Paid Subscribers"   value="5"                     change={0}     icon="users"       color="#ef4444"     spark={[3,3,4,4,4,5,5,5,5,5,5,5]} />
+        <KPICard title="Annual Recurring Revenue"  value={fmtCurrency(totalARR)} change={8.2}   icon="barChart"    color="var(--purple)"     spark={MRR_DATA.map(d=>d.value*12)} />
+        <KPICard title="Total Revenue Collected"   value="$21,046"               change={-4.1}  icon="dollarSign"  color="var(--gold)"     spark={MONTHLY_REV.map(d=>d.value)} />
+        <KPICard title="Active Paid Subscribers"   value="5"                     change={0}     icon="users"       color="var(--red)"     spark={[3,3,4,4,4,5,5,5,5,5,5,5]} />
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 360px', gap:20 }}>
@@ -1458,7 +1459,7 @@ export function ActivityView() {
           const co = a.companyId ? coByID(a.companyId) : null;
           return (
             <div key={a.id} style={{ display:'flex', alignItems:'flex-start', gap:14, padding:'14px 22px', borderBottom: i < filtered.length-1 ? '1px solid var(--border)' : 'none' }}>
-              <div style={{ width:34, height:34, borderRadius: 9, background:`${cfg.color}18`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:2 }}>
+              <div style={{ width:34, height:34, borderRadius: 9, background:cfg.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:2 }}>
                 <Icon name={cfg.icon as any} size={16} color={cfg.color} />
               </div>
               <div style={{ flex:1 }}>
@@ -1467,7 +1468,7 @@ export function ActivityView() {
                   <span style={{ fontSize:13, color:'var(--ink2)' }}>{a.action}</span>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:4, flexWrap:'wrap' }}>
-                  <span style={{ fontSize:11, fontWeight:600, color:cfg.color, background:`${cfg.color}14`, padding:'2px 8px', borderRadius: 9 }}>{TYPE_LABELS[a.type]}</span>
+                  <span style={{ fontSize:11, fontWeight:600, color:cfg.color, background:cfg.bg, padding:'2px 8px', borderRadius: 9 }}>{TYPE_LABELS[a.type]}</span>
                   <span style={{ fontSize:12, color:'var(--ink3)' }}>{a.target}</span>
                   {co && (
                     <div style={{ display:'flex', alignItems:'center', gap:5 }}>

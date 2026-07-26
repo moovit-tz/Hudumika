@@ -58,8 +58,8 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
       {/* Dropzone */}
       <div
         className={cn(
-          "relative flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed transition-all duration-200 bg-gray-50/50",
-          isDragging ? "border-[#7c3aed] bg-[#f3efff]" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+          "relative flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed transition-all duration-200 bg-muted/50",
+          isDragging ? "border-primary bg-primary/10" : "border-border hover:border-muted-foreground/40 hover:bg-muted"
         )}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
@@ -74,14 +74,14 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
           onChange={handleChange}
         />
         <div className="flex flex-col items-center gap-3 text-center pointer-events-none">
-          <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center border border-gray-100 text-[#7c3aed]">
+          <div className="w-12 h-12 rounded-full bg-card shadow-sm flex items-center justify-center border border-border text-primary">
             <Icon name="upload-cloud" size={24} />
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-900">
+            <p className="text-sm font-semibold text-foreground">
               Click or drag files here to upload
             </p>
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Supports CSV, XLS, PDF up to {maxSize ? `${Math.round(maxSize / 1024 / 1024)}MB` : '50MB'}
             </p>
           </div>
@@ -92,45 +92,45 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
       {uploadingFiles.length > 0 && (
         <div className="flex flex-col gap-3 mt-2">
           {uploadingFiles.map((file) => (
-            <div key={file.id} className="flex items-center gap-4 p-3 rounded-xl border border-gray-100 bg-white shadow-sm">
-              <div className="w-10 h-10 rounded-lg bg-[#f3efff] text-[#7c3aed] flex items-center justify-center shrink-0">
+            <div key={file.id} className="flex items-center gap-4 p-3 rounded-xl border border-border bg-card shadow-sm">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
                 <Icon name="file" size={20} />
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1.5">
-                  <p className="text-sm font-semibold text-gray-900 truncate pr-4">{file.name}</p>
-                  <p className="text-xs font-medium text-gray-500 shrink-0">
+                  <p className="text-sm font-semibold text-foreground truncate pr-4">{file.name}</p>
+                  <p className="text-xs font-medium text-muted-foreground shrink-0">
                     {(file.size / 1024 / 1024).toFixed(2)} MB
                   </p>
                 </div>
-                
+
                 {file.status === 'uploading' ? (
                   <div className="flex items-center gap-3">
-                    <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-[#7c3aed] rounded-full transition-all duration-300"
+                    <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all duration-300"
                         style={{ width: `${file.progress}%` }}
                       />
                     </div>
-                    <span className="text-[10px] font-bold text-[#7c3aed] w-8 text-right">{file.progress}%</span>
+                    <span className="text-[10px] font-bold text-primary w-8 text-right">{file.progress}%</span>
                   </div>
                 ) : file.status === 'completed' ? (
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                     <Icon name="check-circle" size={14} /> Completed
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 text-xs font-semibold text-red-600">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-red-600 dark:text-red-400">
                     <Icon name="alert-circle" size={14} /> Failed
                   </div>
                 )}
               </div>
 
               {onRemoveFile && (
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => onRemoveFile(file.id)}
-                  className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-full transition-colors shrink-0"
+                  className="p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors shrink-0"
                 >
                   <Icon name="x" size={16} />
                 </button>

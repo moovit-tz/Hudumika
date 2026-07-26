@@ -283,7 +283,7 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
   return (
     <div ref={ref} style={{
       background: `linear-gradient(150deg, ${NAVY} 0%, ${NAVY2} 100%)`,
-      borderRadius: 18, padding: '22px 22px 18px', color: '#f1f5f9',
+      borderRadius: 18, padding: '22px 22px 18px', color: 'var(--bg)',
       fontFamily: 'var(--font)', border: '1px solid rgba(255,255,255,.06)',
       boxShadow: '0 24px 64px rgba(0,0,0,.4)', position: 'relative', overflow: 'hidden',
     }}>
@@ -298,7 +298,7 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
             <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={17} color="#fff" />
           </div>
           <div>
-            <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 3 }}>
+            <div style={{ fontSize: 9, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 3 }}>
               {result.tracking_type === 'AWB' ? 'Air Waybill' : 'Bill of Lading'} · {result.carrier}
             </div>
             <div style={{ fontSize: 15, fontWeight: 800, fontFamily: 'var(--mono)', letterSpacing: '.03em' }}>
@@ -317,7 +317,7 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
           <div style={{ textAlign: 'center', minWidth: 54 }}>
             <div style={{ fontSize: 19, fontWeight: 900, fontFamily: 'var(--mono)', letterSpacing: '-.01em' }}>{result.origin_code}</div>
-            <div style={{ fontSize: 9, color: '#475569', marginTop: 1, maxWidth: 54, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{result.origin_name}</div>
+            <div style={{ fontSize: 9, color: 'var(--ink2)', marginTop: 1, maxWidth: 54, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{result.origin_name}</div>
           </div>
           <div style={{ flex: 1, position: 'relative', height: 30, display: 'flex', alignItems: 'center' }}>
             <div style={{ position: 'absolute', left: 0, right: 0, height: 2, background: 'rgba(255,255,255,.06)', borderRadius: 2 }} />
@@ -330,12 +330,12 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
           </div>
           <div style={{ textAlign: 'center', minWidth: 54 }}>
             <div style={{ fontSize: 19, fontWeight: 900, fontFamily: 'var(--mono)', letterSpacing: '-.01em' }}>{result.dest_code}</div>
-            <div style={{ fontSize: 9, color: '#475569', marginTop: 1, maxWidth: 54, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{result.dest_name}</div>
+            <div style={{ fontSize: 9, color: 'var(--ink2)', marginTop: 1, maxWidth: 54, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{result.dest_name}</div>
           </div>
         </div>
-        <div style={{ textAlign: 'center', fontSize: 10, color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+        <div style={{ textAlign: 'center', fontSize: 10, color: 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
           <Icon name="mapPin" size={10} color={BRAND} />
-          Currently at <strong style={{ color: '#94a3b8', marginLeft: 3 }}>{result.current_location}</strong>
+          Currently at <strong style={{ color: 'var(--ink3)', marginLeft: 3 }}>{result.current_location}</strong>
         </div>
       </div>
 
@@ -352,8 +352,8 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
               <Icon name={m.icon} size={12} color={BRAND} />
             </div>
             <div>
-              <div style={{ fontSize: 8, color: '#475569', textTransform: 'uppercase', letterSpacing: '.07em' }}>{m.label}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#f1f5f9', marginTop: 1 }}>{m.value}</div>
+              <div style={{ fontSize: 8, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.07em' }}>{m.label}</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--bg)', marginTop: 1 }}>{m.value}</div>
             </div>
           </div>
         ))}
@@ -365,9 +365,9 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
           <div style={{ width: 18, height: 18, borderRadius: 5, background: `linear-gradient(135deg,${NAVY2},${BRAND})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="globe" size={9} color="#fff" />
           </div>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#334155', letterSpacing: '.04em' }}>Hudumika ClearOS</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink2)', letterSpacing: '.04em' }}>Hudumika ClearOS</span>
         </div>
-        <span style={{ fontSize: 9, color: '#1e293b' }}>{result.source === 'mock' ? 'Demo' : 'Live'} · {fmtDate(new Date().toISOString())}</span>
+        <span style={{ fontSize: 9, color: 'var(--ink)' }}>{result.source === 'mock' ? 'Demo' : 'Live'} · {fmtDate(new Date().toISOString())}</span>
       </div>
     </div>
   );
@@ -621,8 +621,8 @@ export const Tracker: React.FC = () => {
         titleEm="tracker"
         subtitle="Track air waybills and bills of lading · save snapshots · embed in shipment cards."
         actions={result?.source === 'mock' ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 13px', background: '#fefce8', border: '1px solid #fde047', borderRadius: 10, fontSize: 11, color: '#a16207', fontWeight: 700 }}>
-            <Icon name="alertCircle" size={13} color="#a16207" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 13px', background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 10, fontSize: 11, color: 'var(--gold)', fontWeight: 700 }}>
+            <Icon name="alertCircle" size={13} color="var(--gold)" />
             Demo mode — add Ship24 key in Settings for live data
           </div>
         ) : undefined}
@@ -722,8 +722,8 @@ export const Tracker: React.FC = () => {
           </div>
 
           {error && (
-            <div style={{ marginTop: 12, padding: '11px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 10, fontSize: 13, color: '#dc2626', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Icon name="alertCircle" size={14} color="#dc2626" />
+            <div style={{ marginTop: 12, padding: '11px 14px', background: 'var(--red-l)', border: '1px solid #fca5a5', borderRadius: 10, fontSize: 13, color: 'var(--red)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="alertCircle" size={14} color="var(--red)" />
               {error}
             </div>
           )}
@@ -736,7 +736,7 @@ export const Tracker: React.FC = () => {
             {[
               { icon: 'compass' as IconName, label: 'Air Waybill', eg: '006-12345678', c: BRAND },
               { icon: 'anchor'  as IconName, label: 'Bill of Lading', eg: 'MAEU1234567890', c: NAVY },
-              { icon: 'container' as IconName, label: 'Container', eg: 'MSCU1234567', c: '#d97706' },
+              { icon: 'container' as IconName, label: 'Container', eg: 'MSCU1234567', c: 'var(--gold)' },
             ].map(h => (
               <div key={h.label} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
                 <div style={{ width: 28, height: 28, borderRadius: 8, background: h.c + '14', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -759,7 +759,7 @@ export const Tracker: React.FC = () => {
           <div style={{
             background: `linear-gradient(150deg,${NAVY},${NAVY2})`,
             borderRadius: 16, border: '1px solid rgba(255,255,255,.06)',
-            padding: isMobile ? '20px 18px' : '24px 30px', marginBottom: 16, color: '#f1f5f9',
+            padding: isMobile ? '20px 18px' : '24px 30px', marginBottom: 16, color: 'var(--bg)',
             boxShadow: '0 8px 32px rgba(0,0,0,.2)',
           }}>
             {/* Top row: carrier + BL + status */}
@@ -769,12 +769,12 @@ export const Tracker: React.FC = () => {
                   <Icon name={result.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={20} color={BRAND} />
                 </div>
                 <div>
-                  <div style={{ fontSize: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: '.09em', marginBottom: 2 }}>{result.carrier}{result.service_name ? ` · ${result.service_name}` : ''}</div>
+                  <div style={{ fontSize: 10, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.09em', marginBottom: 2 }}>{result.carrier}{result.service_name ? ` · ${result.service_name}` : ''}</div>
                   <div style={{ fontSize: isMobile ? 16 : 20, fontWeight: 900, fontFamily: 'var(--mono)', letterSpacing: '.02em', lineHeight: 1.1 }}>{result.tracking_number}</div>
                   {result.vessel_name && (
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <Icon name="ship" size={11} color="#64748b" />
-                      {result.vessel_name}{result.voyage_number ? <span style={{ fontFamily: 'var(--mono)', color: '#475569' }}> · VOY {result.voyage_number}</span> : ''}
+                    <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Icon name="ship" size={11} color="var(--ink3)" />
+                      {result.vessel_name}{result.voyage_number ? <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink2)' }}> · VOY {result.voyage_number}</span> : ''}
                     </div>
                   )}
                 </div>
@@ -804,8 +804,8 @@ export const Tracker: React.FC = () => {
                 {result.containers.map(c => (
                   <div key={c.number} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', borderRadius: 7, padding: '4px 10px', fontSize: 11 }}>
                     <Icon name="container" size={11} color={BRAND} />
-                    <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: '#f1f5f9', letterSpacing: '.03em' }}>{c.number}</span>
-                    <span style={{ color: '#475569', fontSize: 10 }}>{c.size}</span>
+                    <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--bg)', letterSpacing: '.03em' }}>{c.number}</span>
+                    <span style={{ color: 'var(--ink2)', fontSize: 10 }}>{c.size}</span>
                   </div>
                 ))}
                 {result.co2_emission && (
@@ -821,7 +821,7 @@ export const Tracker: React.FC = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 10 : 20, marginBottom: 18 }}>
               <div style={{ textAlign: 'center', minWidth: isMobile ? 52 : 72, flexShrink: 0 }}>
                 <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 900, fontFamily: 'var(--mono)', lineHeight: 1, letterSpacing: '-.01em' }}>{result.origin_code}</div>
-                <div style={{ fontSize: 10, color: '#475569', marginTop: 3 }}>{result.origin_name}</div>
+                <div style={{ fontSize: 10, color: 'var(--ink2)', marginTop: 3 }}>{result.origin_name}</div>
               </div>
               <div style={{ flex: 1, position: 'relative', height: 48, display: 'flex', alignItems: 'center' }}>
                 <div style={{ position: 'absolute', left: 0, right: 0, height: 3, background: 'rgba(255,255,255,.07)', borderRadius: 3 }} />
@@ -837,7 +837,7 @@ export const Tracker: React.FC = () => {
               </div>
               <div style={{ textAlign: 'center', minWidth: isMobile ? 52 : 72, flexShrink: 0 }}>
                 <div style={{ fontSize: isMobile ? 22 : 30, fontWeight: 900, fontFamily: 'var(--mono)', lineHeight: 1, letterSpacing: '-.01em' }}>{result.dest_code}</div>
-                <div style={{ fontSize: 10, color: '#475569', marginTop: 3 }}>{result.dest_name}</div>
+                <div style={{ fontSize: 10, color: 'var(--ink2)', marginTop: 3 }}>{result.dest_name}</div>
               </div>
             </div>
 
@@ -860,11 +860,11 @@ export const Tracker: React.FC = () => {
               value={(() => { const d = daysUntil(result.eta); return d == null ? '—' : d > 0 ? `~${d}` : d === 0 ? 'Today' : 'Overdue'; })()}
               sub={(() => { const d = daysUntil(result.eta); return d != null && d < 0 ? `${Math.abs(d)}d overdue` : d != null && d <= 3 ? 'Arriving very soon' : undefined; })()}
             />
-            <KpiCard icon="layers" label="Journey Progress" accent="#059669"
+            <KpiCard icon="layers" label="Journey Progress" accent="var(--green)"
               value={`${result.progress_pct}%`}
               sub={`${result.events.length} tracking events`}
             />
-            <KpiCard icon="truck" label="Carrier & Mode" accent="#d97706"
+            <KpiCard icon="truck" label="Carrier & Mode" accent="var(--gold)"
               value={result.carrier}
               sub={result.tracking_type === 'AWB' ? 'Air Freight' : 'Ocean Freight'}
             />
@@ -924,7 +924,7 @@ export const Tracker: React.FC = () => {
                             {/* Port name cell */}
                             <td style={{ padding: '10px 12px', verticalAlign: 'middle' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: isActive ? 'var(--teal)' : pc.events.every(e => e.act) ? '#059669' : 'var(--border)' }} />
+                                <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: isActive ? 'var(--teal)' : pc.events.every(e => e.act) ? 'var(--green)' : 'var(--border)' }} />
                                 <div>
                                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.2 }}>{pc.port_name}</div>
                                   <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -1036,8 +1036,8 @@ export const Tracker: React.FC = () => {
                     }
                   </button>
                 ) : (
-                  <div style={{ padding: '11px 14px', borderRadius: 11, background: '#ecfdf5', border: '1px solid #86efac', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#047857', fontWeight: 700 }}>
-                    <Icon name="checkCircle" size={15} color="#047857" />
+                  <div style={{ padding: '11px 14px', borderRadius: 11, background: 'var(--green-l)', border: '1px solid #86efac', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--green)', fontWeight: 700 }}>
+                    <Icon name="checkCircle" size={15} color="var(--green)" />
                     Snapshot saved
                   </div>
                 )}
@@ -1097,7 +1097,7 @@ export const Tracker: React.FC = () => {
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
                   {[
-                    { label: 'On-time Rate', value: `${carrierReliability.on_time_pct}%`, accent: carrierReliability.on_time_pct >= 80 ? '#059669' : carrierReliability.on_time_pct >= 50 ? '#d97706' : '#dc2626' },
+                    { label: 'On-time Rate', value: `${carrierReliability.on_time_pct}%`, accent: carrierReliability.on_time_pct >= 80 ? 'var(--green)' : carrierReliability.on_time_pct >= 50 ? 'var(--gold)' : 'var(--red)' },
                     { label: 'Avg Deviation', value: carrierReliability.avg_deviation_days === null ? '—' : `${carrierReliability.avg_deviation_days > 0 ? '+' : ''}${carrierReliability.avg_deviation_days}d`, accent: 'var(--ink)' },
                     { label: 'Avg Transit', value: carrierReliability.avg_transit_days === null ? '—' : `${carrierReliability.avg_transit_days}d`, accent: 'var(--ink)' },
                   ].map(s => (
@@ -1133,13 +1133,13 @@ export const Tracker: React.FC = () => {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {demurrageContainers.map((c: any) => (
-                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 9, background: c.demurrage_days > 0 ? '#fef2f2' : 'var(--bg)', border: `1px solid ${c.demurrage_days > 0 ? '#fca5a5' : 'var(--border)'}` }}>
+                    <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', borderRadius: 9, background: c.demurrage_days > 0 ? 'var(--red-l)' : 'var(--bg)', border: `1px solid ${c.demurrage_days > 0 ? '#fca5a5' : 'var(--border)'}` }}>
                       <div>
                         <div style={{ fontSize: 12.5, fontWeight: 700, fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{c.container_number}</div>
                         <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2 }}>{c.container_size} · {c.status}</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: c.demurrage_days > 0 ? '#dc2626' : 'var(--ink2)' }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: c.demurrage_days > 0 ? 'var(--red)' : 'var(--ink2)' }}>
                           {c.demurrage_days > 0 ? `${c.demurrage_days}d` : 'On time'}
                         </div>
                         {c.demurrage_cost > 0 && (
@@ -1193,20 +1193,20 @@ export const Tracker: React.FC = () => {
               const st = getStatus(snap.status_code);
               const evts = parseEvents(snap.events);
               return (
-                <div key={snap.id} style={{ background: `linear-gradient(150deg,${NAVY},${NAVY2})`, borderRadius: 14, border: '1px solid rgba(255,255,255,.07)', padding: '16px 18px', color: '#f1f5f9', position: 'relative' }}>
+                <div key={snap.id} style={{ background: `linear-gradient(150deg,${NAVY},${NAVY2})`, borderRadius: 14, border: '1px solid rgba(255,255,255,.07)', padding: '16px 18px', color: 'var(--bg)', position: 'relative' }}>
                   <button onClick={() => deleteSnap(snap.id)} style={{ position: 'absolute', top: 10, right: 10, width: 26, height: 26, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.07)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name="x" size={12} color="#64748b" />
+                    <Icon name="x" size={12} color="var(--ink3)" />
                   </button>
 
                   {editingId === snap.id ? (
                     <div style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
                       <input value={editNumber} onChange={e => setEditNumber(e.target.value)} placeholder="Tracking number"
-                        style={{ height: 30, borderRadius: 7, border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.07)', color: '#f1f5f9', padding: '0 10px', fontSize: 12, fontFamily: 'var(--mono)' }} />
+                        style={{ height: 30, borderRadius: 7, border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.07)', color: 'var(--bg)', padding: '0 10px', fontSize: 12, fontFamily: 'var(--mono)' }} />
                       <input value={editCarrier} onChange={e => setEditCarrier(e.target.value)} placeholder="Carrier"
-                        style={{ height: 30, borderRadius: 7, border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.07)', color: '#f1f5f9', padding: '0 10px', fontSize: 12 }} />
+                        style={{ height: 30, borderRadius: 7, border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.07)', color: 'var(--bg)', padding: '0 10px', fontSize: 12 }} />
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button className="tr-btn" onClick={saveEdit} style={{ flex: 1, height: 28, borderRadius: 7, border: 'none', background: BRAND, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Save</button>
-                        <button className="tr-btn" onClick={() => setEditingId(null)} style={{ flex: 1, height: 28, borderRadius: 7, border: '1px solid rgba(255,255,255,.15)', background: 'transparent', color: '#94a3b8', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+                        <button className="tr-btn" onClick={() => setEditingId(null)} style={{ flex: 1, height: 28, borderRadius: 7, border: '1px solid rgba(255,255,255,.15)', background: 'transparent', color: 'var(--ink3)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
                       </div>
                     </div>
                   ) : (
@@ -1215,21 +1215,21 @@ export const Tracker: React.FC = () => {
                         <Icon name={snap.tracking_type === 'AWB' ? 'compass' : 'anchor'} size={15} color={BRAND} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 9, color: '#475569', textTransform: 'uppercase', letterSpacing: '.09em' }}>{snap.tracking_type} · {snap.carrier}</div>
+                        <div style={{ fontSize: 9, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.09em' }}>{snap.tracking_type} · {snap.carrier}</div>
                         <div style={{ fontSize: 13, fontWeight: 800, fontFamily: 'var(--mono)' }}>{snap.tracking_number}</div>
                       </div>
                       <button className="tr-btn" title="Edit entry" onClick={() => startEdit(snap)} style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                        <Icon name="edit" size={11} color="#94a3b8" />
+                        <Icon name="edit" size={11} color="var(--ink3)" />
                       </button>
                       <button className="tr-btn" title="Refresh tracking status" onClick={() => retrack(snap)} disabled={retrackingId === snap.id} style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 20, opacity: retrackingId === snap.id ? 0.5 : 1 }}>
-                        <Icon name="refresh" size={11} color="#94a3b8" />
+                        <Icon name="refresh" size={11} color="var(--ink3)" />
                       </button>
                     </div>
                   )}
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10 }}>
-                    <Icon name="mapPin" size={10} color="#475569" />
-                    <span style={{ fontSize: 11, color: '#64748b' }}>{snap.origin_name} → {snap.dest_name}</span>
+                    <Icon name="mapPin" size={10} color="var(--ink2)" />
+                    <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{snap.origin_name} → {snap.dest_name}</span>
                   </div>
 
                   <div style={{ height: 3, background: 'rgba(255,255,255,.07)', borderRadius: 3, marginBottom: 10, overflow: 'hidden' }}>
@@ -1240,18 +1240,18 @@ export const Tracker: React.FC = () => {
                     <span style={{ fontSize: 11, fontWeight: 700, color: st.fg, display: 'flex', alignItems: 'center', gap: 4 }}>
                       <Icon name={st.icon} size={11} color={st.fg} />{st.label}
                     </span>
-                    <span style={{ fontSize: 10, color: '#475569', fontFamily: 'var(--mono)' }}>
+                    <span style={{ fontSize: 10, color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>
                       {fmtDate(snap.eta)}{days != null ? ` · ${days > 0 ? `${days}d` : days === 0 ? 'today' : 'OVD'}` : ''}
                     </span>
                   </div>
 
                   {/* Snap actions */}
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button className="tr-btn" onClick={() => copyLink(snap.share_token)} style={{ flex: 1, height: 30, borderRadius: 7, border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                      <Icon name="link" size={10} color="#94a3b8" />Share
+                    <button className="tr-btn" onClick={() => copyLink(snap.share_token)} style={{ flex: 1, height: 30, borderRadius: 7, border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                      <Icon name="link" size={10} color="var(--ink3)" />Share
                     </button>
-                    <button className="tr-btn" onClick={() => { const base = { tracking_number: snap.tracking_number, tracking_type: snap.tracking_type, carrier: snap.carrier ?? '', origin_name: snap.origin_name ?? '', origin_code: '', dest_name: snap.dest_name ?? '', dest_code: '', current_location: snap.current_location ?? '', status: snap.status ?? '', status_code: snap.status_code ?? '', eta: snap.eta, progress_pct: snap.progress_pct, events: parseEvents(snap.events), source: 'mock' as const }; generatePDF(base); }} style={{ flex: 1, height: 30, borderRadius: 7, border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                      <Icon name="fileText" size={10} color="#94a3b8" />PDF
+                    <button className="tr-btn" onClick={() => { const base = { tracking_number: snap.tracking_number, tracking_type: snap.tracking_type, carrier: snap.carrier ?? '', origin_name: snap.origin_name ?? '', origin_code: '', dest_name: snap.dest_name ?? '', dest_code: '', current_location: snap.current_location ?? '', status: snap.status ?? '', status_code: snap.status_code ?? '', eta: snap.eta, progress_pct: snap.progress_pct, events: parseEvents(snap.events), source: 'mock' as const }; generatePDF(base); }} style={{ flex: 1, height: 30, borderRadius: 7, border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                      <Icon name="fileText" size={10} color="var(--ink3)" />PDF
                     </button>
                     {!snap.shipment_id
                       ? <div style={{ flex: 2 }}>
@@ -1260,7 +1260,7 @@ export const Tracker: React.FC = () => {
                             value="" onChange={v => v && linkSnap(snap.id, v)}
                             disabled={linkingId === snap.id}
                             placeholder="Link to shipment…"
-                            triggerClassName="h-[30px] rounded-[7px] border-[rgba(255,255,255,.09)] bg-[rgba(255,255,255,.04)] text-[10px] font-bold text-[#94a3b8] px-1.5 shadow-none"
+                            triggerClassName="h-[30px] rounded-[7px] border-[rgba(255,255,255,.09)] bg-[rgba(255,255,255,.04)] text-[10px] font-bold text-[var(--ink3)] px-1.5 shadow-none"
                           />
                         </div>
                       : <div style={{ flex: 2, height: 30, borderRadius: 7, border: '1px solid rgba(74,222,128,.25)', background: 'rgba(74,222,128,.07)', fontSize: 10, fontWeight: 700, color: '#4ade80', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
@@ -1270,8 +1270,8 @@ export const Tracker: React.FC = () => {
                   </div>
 
                   {evts[0] && (
-                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,.05)', fontSize: 10, color: '#334155', display: 'flex', alignItems: 'center', gap: 5 }}>
-                      <Icon name="activity" size={10} color="#334155" />
+                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,.05)', fontSize: 10, color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                      <Icon name="activity" size={10} color="var(--ink2)" />
                       {evts[0].description} · {fmtDate(evts[0].timestamp)}
                     </div>
                   )}

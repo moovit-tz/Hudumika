@@ -477,23 +477,23 @@ function CustomerAttentionPanel({ job }: { job: ClearanceJob }) {
 
   if (!blocker) {
     return (
-      <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <Icon name="checkCircle" size={18} color="#059669" />
+      <div style={{ background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <Icon name="checkCircle" size={18} color="var(--green)" />
         <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#047857' }}>You're all caught up</div>
-          <div style={{ fontSize: 12, color: '#065f46', marginTop: 1 }}>Nothing is blocking your shipment right now.</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)' }}>You're all caught up</div>
+          <div style={{ fontSize: 12, color: 'var(--green)', marginTop: 1 }}>Nothing is blocking your shipment right now.</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 12, padding: '14px 18px' }}>
+    <div style={{ background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 12, padding: '14px 18px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-        <Icon name="alertCircle" size={16} color="#c2410c" />
-        <span style={{ fontSize: 13, fontWeight: 800, color: '#c2410c' }}>Needs your attention</span>
+        <Icon name="alertCircle" size={16} color="var(--gold)" />
+        <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--gold)' }}>Needs your attention</span>
       </div>
-      <div style={{ fontSize: 12.5, color: '#9a3412', lineHeight: 1.5 }}>{blocker}</div>
+      <div style={{ fontSize: 12.5, color: 'var(--gold)', lineHeight: 1.5 }}>{blocker}</div>
     </div>
   );
 }
@@ -1173,10 +1173,10 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{msg.userName}</span>
                 <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{fdatetime(msg.ts)}</span>
-                {msg.isInternal && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, padding: '2px 7px', borderRadius: 3, background: '#f1f5f9', color: 'var(--ink3)', border: '1px solid var(--border)', fontWeight: 600 }}><Icon name="lock" size={9} /> Internal Only</span>}
+                {msg.isInternal && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, padding: '2px 7px', borderRadius: 3, background: 'var(--bg)', color: 'var(--ink3)', border: '1px solid var(--border)', fontWeight: 600 }}><Icon name="lock" size={9} /> Internal Only</span>}
                 {msg.channels.filter(c => c !== 'internal').map(c => <ChBadge key={c} ch={c} />)}
               </div>
-              <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.6, padding: '12px 16px', background: msg.isInternal ? '#f8fafc' : 'var(--white)', border: '1px solid var(--border)', borderRadius: '0 10px 10px 10px', borderTopLeftRadius: 2 }}>
+              <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.6, padding: '12px 16px', background: msg.isInternal ? 'var(--bg)' : 'var(--white)', border: '1px solid var(--border)', borderRadius: '0 10px 10px 10px', borderTopLeftRadius: 2 }}>
                 {msg.content}
                 {msg.attachments?.map(a => (
                   <div key={a} style={{ marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: 'var(--bg)', borderRadius: 6, border: '1px solid var(--border)', fontSize: 12, color: 'var(--teal)', cursor: 'pointer' }}>
@@ -1209,7 +1209,7 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
               const past = stageIdx(s.id) < stageIdx(job.stage);
               return (
                 <button key={s.id} type="button" onClick={() => handleSetStage(s.id)}
-                  style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 7, cursor: 'pointer', border: `1.5px solid ${cur ? 'var(--teal)' : past ? '#a7f3d0' : 'var(--border)'}`, background: cur ? 'var(--teal)' : past ? '#ecfdf5' : 'var(--white)', color: cur ? '#fff' : past ? '#059669' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 7, cursor: 'pointer', border: `1.5px solid ${cur ? 'var(--teal)' : past ? 'var(--green)' : 'var(--border)'}`, background: cur ? 'var(--teal)' : past ? 'var(--green-l)' : 'var(--white)', color: cur ? '#fff' : past ? 'var(--green)' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 10, opacity: .7 }}>{i + 1}</span> {s.short}
                 </button>
               );
@@ -1221,7 +1221,7 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>Post to:</span>
-          <button type="button" onClick={() => setIsInternal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${isInternal ? 'var(--ink3)' : 'var(--border)'}`, background: isInternal ? '#f1f5f9' : 'var(--white)', color: isInternal ? 'var(--ink)' : 'var(--ink3)' }}><Icon name="lock" size={11} /> Internal Note</button>
+          <button type="button" onClick={() => setIsInternal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${isInternal ? 'var(--ink3)' : 'var(--border)'}`, background: isInternal ? 'var(--bg)' : 'var(--white)', color: isInternal ? 'var(--ink)' : 'var(--ink3)' }}><Icon name="lock" size={11} /> Internal Note</button>
           <button type="button" onClick={() => { setIsInternal(false); if (!chans.length) setChans(['whatsapp']); }} style={{ padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${!isInternal ? CH_CFG.whatsapp.color : 'var(--border)'}`, background: !isInternal ? CH_CFG.whatsapp.bg : 'var(--white)', color: !isInternal ? CH_CFG.whatsapp.color : 'var(--ink3)' }}>↗ Share Update</button>
           {!isInternal && (['whatsapp', 'email', 'teams', 'sms'] as Channel[]).map(ch => {
             const cfg = CH_CFG[ch]; const on = chans.includes(ch);
@@ -1353,9 +1353,9 @@ function OverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: boolean }
         {[
           { label: 'Tasks',        value: `${doneTasks}/${totalTasks}`, sub: `${totalTasks - doneTasks} open`,         color: 'var(--teal)', icon: 'checkCircle' as IconName },
           { label: 'Days Left',    value: daysLeft !== null ? (daysLeft >= 0 ? String(daysLeft) : 'Overdue') : '—', sub: job.dueDate ? fdate(job.dueDate) : 'No due date', color: daysLeft !== null && daysLeft < 0 ? 'var(--red)' : 'var(--ink)', icon: 'clock' as IconName },
-          { label: 'Hours Logged', value: totalHours.toFixed(1),        sub: `${job.timeEntries.length} entries`,     color: '#2563eb', icon: 'activity' as IconName },
-          { label: 'Documents',    value: String(job.documents.length),  sub: `${job.documents.filter(d => d.extracted?.status === 'done').length} AI extracted`, color: '#7c3aed', icon: 'folder' as IconName },
-          { label: 'Total Charges',value: totalCharges > 0 ? `TZS ${(totalCharges/1_000_000).toFixed(1)}M` : '—', sub: `${job.ledger.filter(e => e.type==='charge').length} entries`, color: '#dc2626', icon: 'receipt' as IconName },
+          { label: 'Hours Logged', value: totalHours.toFixed(1),        sub: `${job.timeEntries.length} entries`,     color: 'var(--blue)', icon: 'activity' as IconName },
+          { label: 'Documents',    value: String(job.documents.length),  sub: `${job.documents.filter(d => d.extracted?.status === 'done').length} AI extracted`, color: 'var(--purple)', icon: 'folder' as IconName },
+          { label: 'Total Charges',value: totalCharges > 0 ? `TZS ${(totalCharges/1_000_000).toFixed(1)}M` : '—', sub: `${job.ledger.filter(e => e.type==='charge').length} entries`, color: 'var(--red)', icon: 'receipt' as IconName },
         ].map(c => (
           <div key={c.label} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
@@ -1373,21 +1373,21 @@ function OverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: boolean }
         <Card title="Financial Summary">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
             <span style={{ fontSize: 13, color: 'var(--ink2)' }}>Total charges: <strong style={{ color: 'var(--ink)' }}>{fmtTZS(totalCharges)}</strong></span>
-            <span style={{ fontSize: 13, color: 'var(--ink2)' }}>Paid: <strong style={{ color: 'var(--green, #059669)' }}>{fmtTZS(totalPaid)}</strong></span>
+            <span style={{ fontSize: 13, color: 'var(--ink2)' }}>Paid: <strong style={{ color: 'var(--green, var(--green))' }}>{fmtTZS(totalPaid)}</strong></span>
           </div>
           <div style={{ display: 'flex', height: 10, borderRadius: 6, overflow: 'hidden', background: 'var(--bg)' }}>
             {totalCharges > 0 && (
               <>
-                <div style={{ width: `${Math.min(100, (totalPaid / totalCharges) * 100)}%`, background: '#059669' }} />
-                {balanceDue > 0 && <div style={{ width: `${Math.min(100, (balanceDue / totalCharges) * 100)}%`, background: isOverdueBal ? '#dc2626' : '#f59e0b' }} />}
+                <div style={{ width: `${Math.min(100, (totalPaid / totalCharges) * 100)}%`, background: 'var(--green)' }} />
+                {balanceDue > 0 && <div style={{ width: `${Math.min(100, (balanceDue / totalCharges) * 100)}%`, background: isOverdueBal ? 'var(--red)' : 'var(--gold)' }} />}
               </>
             )}
           </div>
           <div style={{ display: 'flex', gap: 18, marginTop: 10, flexWrap: 'wrap', fontSize: 11.5 }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ink2)' }}><span style={{ width: 8, height: 8, borderRadius: 2, background: '#059669', display: 'inline-block' }} />Paid {fmtTZS(totalPaid)}</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ink2)' }}><span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--green)', display: 'inline-block' }} />Paid {fmtTZS(totalPaid)}</span>
             {balanceDue > 0 && (
               <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--ink2)' }}>
-                <span style={{ width: 8, height: 8, borderRadius: 2, background: isOverdueBal ? '#dc2626' : '#f59e0b', display: 'inline-block' }} />
+                <span style={{ width: 8, height: 8, borderRadius: 2, background: isOverdueBal ? 'var(--red)' : 'var(--gold)', display: 'inline-block' }} />
                 {isOverdueBal ? 'Overdue' : 'Due'} {fmtTZS(balanceDue)}
               </span>
             )}
@@ -1465,7 +1465,7 @@ function OverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: boolean }
                     <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{DOC_TYPE_LABEL[d.type] ?? d.type} · {fdate(d.uploadedAt)}</div>
                   </div>
                   {d.extracted?.status === 'done' && (
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: 'rgba(124,58,237,0.1)', color: '#7c3aed', flexShrink: 0 }}>AI ✓</span>
+                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: 'rgba(124,58,237,0.1)', color: 'var(--purple)', flexShrink: 0 }}>AI ✓</span>
                   )}
                   <button type="button" onClick={() => viewDoc(d)} title="View" style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name="eye" size={13} color="var(--ink3)" />
@@ -1570,11 +1570,11 @@ function LinkedAppsPanel({ shipmentId, isMobile }: { shipmentId: string; isMobil
   }
   if (data.demurrage_containers.length > 0) {
     cards.push({
-      app: 'Demurrage', icon: 'alertTriangle', color: '#dc2626', href: '/demurrage',
+      app: 'Demurrage', icon: 'alertTriangle', color: 'var(--red)', href: '/demurrage',
       body: data.demurrage_containers.slice(0, 3).map(c => (
         <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0' }}>
           <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{c.container_number}</span>
-          <span style={{ color: c.demurrage_days > 0 ? '#dc2626' : 'var(--ink3)', fontWeight: c.demurrage_days > 0 ? 700 : 400 }}>
+          <span style={{ color: c.demurrage_days > 0 ? 'var(--red)' : 'var(--ink3)', fontWeight: c.demurrage_days > 0 ? 700 : 400 }}>
             {c.demurrage_days > 0 ? `${c.demurrage_days}d · ${c.demurrage_currency} ${Number(c.demurrage_cost).toLocaleString()}` : c.status}
           </span>
         </div>
@@ -1594,7 +1594,7 @@ function LinkedAppsPanel({ shipmentId, isMobile }: { shipmentId: string; isMobil
   }
   if (data.transport_trips.length > 0) {
     cards.push({
-      app: 'HuduFreight — Transport', icon: 'truck', color: '#0891b2', href: '/tracking/trips',
+      app: 'HuduFreight — Transport', icon: 'truck', color: 'var(--blue)', href: '/tracking/trips',
       body: data.transport_trips.slice(0, 3).map(t => (
         <div key={t.id} style={{ fontSize: 12, padding: '4px 0' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -1637,17 +1637,17 @@ function LinkedAppsPanel({ shipmentId, isMobile }: { shipmentId: string; isMobil
 // ─── Tasks Tab ────────────────────────────────────────────────────────────────
 
 const TASK_STATUS_CFG: Record<TaskStatus, { label: string; color: string; bg: string }> = {
-  not_started:       { label: 'Not Started',       color: '#64748b', bg: '#f1f5f9' },
-  in_progress:       { label: 'In Progress',       color: '#2563eb', bg: '#dbeafe' },
-  testing:           { label: 'Testing',           color: '#7c3aed', bg: '#ede9fe' },
-  awaiting_feedback: { label: 'Awaiting Feedback', color: '#ca8a04', bg: '#fef9c3' },
-  complete:          { label: 'Complete',           color: '#059669', bg: '#ecfdf5' },
+  not_started:       { label: 'Not Started',       color: 'var(--ink3)', bg: 'var(--bg)' },
+  in_progress:       { label: 'In Progress',       color: 'var(--blue)', bg: '#dbeafe' },
+  testing:           { label: 'Testing',           color: 'var(--purple)', bg: 'var(--purple-l)' },
+  awaiting_feedback: { label: 'Awaiting Feedback', color: 'var(--gold)', bg: 'var(--gold-l)' },
+  complete:          { label: 'Complete',           color: 'var(--green)', bg: 'var(--green-l)' },
 };
 const PRIORITY_CFG: Record<string, { label: string; color: string }> = {
-  low:    { label: 'Low',    color: '#059669' },
-  medium: { label: 'Medium', color: '#ca8a04' },
-  high:   { label: 'High',   color: '#ea580c' },
-  urgent: { label: 'Urgent', color: '#dc2626' },
+  low:    { label: 'Low',    color: 'var(--green)' },
+  medium: { label: 'Medium', color: 'var(--gold)' },
+  high:   { label: 'High',   color: 'var(--gold)' },
+  urgent: { label: 'Urgent', color: 'var(--red)' },
 };
 
 function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: ClearanceJob; isMobile: boolean; shipmentId: string; isLive: boolean; onRefresh: () => void }) {
@@ -1985,7 +1985,7 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
                 </td>
                 <td style={{ padding: '10px 16px', fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fdate(entry.date)}</td>
                 <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{entry.duration}</td>
-                <td style={{ padding: '10px 16px', fontSize: 14, fontWeight: 700, color: '#2563eb' }}>{entry.hours.toFixed(2)}</td>
+                <td style={{ padding: '10px 16px', fontSize: 14, fontWeight: 700, color: 'var(--blue)' }}>{entry.hours.toFixed(2)}</td>
                 <td style={{ padding: '10px 16px', fontSize: 12, color: 'var(--ink3)', maxWidth: 180 }}>
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{entry.note || '—'}</span>
                 </td>
@@ -1996,7 +1996,7 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
             <tfoot>
               <tr style={{ background: 'var(--bg)', borderTop: '2px solid var(--border)' }}>
                 <td colSpan={4} style={{ padding: '10px 16px', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>TOTAL</td>
-                <td style={{ padding: '10px 16px', fontSize: 15, fontWeight: 800, color: '#2563eb' }}>{totalHours.toFixed(2)}</td>
+                <td style={{ padding: '10px 16px', fontSize: 15, fontWeight: 800, color: 'var(--blue)' }}>{totalHours.toFixed(2)}</td>
                 <td />
               </tr>
             </tfoot>
@@ -2025,7 +2025,7 @@ function ExtractedView({ doc }: { doc: ShipDoc }) {
   if (ex.status === 'failed')  return <div style={{ fontSize: 13, color: 'var(--red)' }}>Extraction failed. Please retry.</div>;
   return (
     <div>
-      {ex.summary && <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 14, padding: '10px 14px', background: '#ecfdf5', borderRadius: 6, borderLeft: '3px solid #059669', lineHeight: 1.5 }}>{ex.summary}</div>}
+      {ex.summary && <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 14, padding: '10px 14px', background: 'var(--green-l)', borderRadius: 6, borderLeft: '3px solid var(--green)', lineHeight: 1.5 }}>{ex.summary}</div>}
       {ex.sections?.map(sec => (
         <div key={sec.title} style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{sec.title}</div>
@@ -2033,7 +2033,7 @@ function ExtractedView({ doc }: { doc: ShipDoc }) {
             {sec.fields.map((f, i) => (
               <div key={f.label} style={{ display: 'flex', padding: '8px 14px', background: i % 2 === 0 ? 'var(--white)' : 'var(--bg)', borderBottom: i < sec.fields.length - 1 ? '1px solid var(--border)' : 'none', gap: 16 }}>
                 <span style={{ fontSize: 12, color: 'var(--ink3)', width: 200, flexShrink: 0 }}>{f.label}</span>
-                <span style={{ fontSize: 13, fontWeight: 600, color: f.flag === 'err' ? 'var(--red)' : f.flag === 'warn' ? '#ca8a04' : 'var(--ink)' }}>{f.value}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: f.flag === 'err' ? 'var(--red)' : f.flag === 'warn' ? 'var(--gold)' : 'var(--ink)' }}>{f.value}</span>
               </div>
             ))}
           </div>
@@ -2066,7 +2066,7 @@ function ExtractedView({ doc }: { doc: ShipDoc }) {
 }
 
 const CLOUD_CFG: Record<string, { label: string; color: string; bg: string }> = {
-  gdrive:     { label: 'Google Drive',  color: '#1a73e8', bg: '#e8f0fe' },
+  gdrive:     { label: 'Google Drive',  color: '#1a73e8', bg: 'var(--blue-l)' },
   onedrive:   { label: 'OneDrive',      color: '#0078d4', bg: '#deecf9' },
   box:        { label: 'Box',           color: '#0061d5', bg: '#dde8f8' },
   dropbox:    { label: 'Dropbox',       color: '#0061ff', bg: '#ddeaff' },
@@ -2241,11 +2241,11 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
       </div>
 
       {extracted.length > 0 && (
-        <div style={{ display: 'flex', gap: 16, padding: '14px 20px', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12, marginBottom: 20 }}>
-          <div style={{ fontSize: 28, fontWeight: 700, color: '#059669' }}>{extracted.length}</div>
+        <div style={{ display: 'flex', gap: 16, padding: '14px 20px', background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 12, marginBottom: 20 }}>
+          <div style={{ fontSize: 28, fontWeight: 700, color: 'var(--green)' }}>{extracted.length}</div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#059669' }}>Documents Extracted by AI</div>
-            <div style={{ fontSize: 12, color: '#047857' }}>Data captured from {extracted.map(d => d.name).join(', ')}</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)' }}>Documents Extracted by AI</div>
+            <div style={{ fontSize: 12, color: 'var(--green)' }}>Data captured from {extracted.map(d => d.name).join(', ')}</div>
           </div>
         </div>
       )}
@@ -2263,7 +2263,7 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
             <Icon name="upload" size={14} /> Upload Document
           </button>
         </div>
-        {uploadError && <div style={{ fontSize: 12, color: '#dc2626' }}>{uploadError}</div>}
+        {uploadError && <div style={{ fontSize: 12, color: 'var(--red)' }}>{uploadError}</div>}
       </div>
 
       {stagedFiles.length > 0 && (
@@ -2332,8 +2332,8 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                   {ex?.status === 'done' && ex.summary && <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.summary}</div>}
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                  {ex?.status === 'done'       && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, background: '#ecfdf5', color: '#059669', fontWeight: 700, border: '1px solid #a7f3d0' }}>✓ AI Extracted · {ex.confidence}%</span>}
-                  {ex?.status === 'processing' && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, background: '#fef9c3', color: '#ca8a04', fontWeight: 700 }}>Processing…</span>}
+                  {ex?.status === 'done'       && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, background: 'var(--green-l)', color: 'var(--green)', fontWeight: 700, border: '1px solid var(--green)' }}>✓ AI Extracted · {ex.confidence}%</span>}
+                  {ex?.status === 'processing' && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, background: 'var(--gold-l)', color: 'var(--gold)', fontWeight: 700 }}>Processing…</span>}
                   {(!ex || ex.status === 'pending') && (
                     <button type="button" onClick={e => { e.stopPropagation(); handleExtract(doc.id); }} style={{ fontSize: 12, padding: '5px 12px', borderRadius: 6, border: '1px solid var(--teal)', color: 'var(--teal)', background: 'var(--white)', cursor: 'pointer', fontWeight: 700 }}>
                       Extract with AI
@@ -2360,6 +2360,7 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
 // ─── CO2 / Sustainability Tab ──────────────────────────────────────────────────
 
 function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shipmentId: string; isLive: boolean; onRefresh: () => void }) {
+  const isMobile = useIsMobile();
   const [calcSaving, setCalcSaving] = useState(false);
   const [calcError, setCalcError] = useState('');
   const { user } = useAuth();
@@ -2402,21 +2403,21 @@ function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shi
       {/* Results */}
       {job.co2EmissionsKg !== undefined && (
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 220, background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 12, padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#059669' }}>
+          <div style={{ flex: 1, minWidth: 220, background: 'var(--green-l)', border: '1px solid var(--green)', borderRadius: 12, padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: 'var(--green)' }}>
               <Icon name="activity" size={16} />
               <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total CO₂ Emissions</span>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: '#047857', fontFamily: 'var(--mono)' }}>
+            <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--green)', fontFamily: 'var(--mono)' }}>
               {job.co2EmissionsKg.toLocaleString()} <span style={{ fontSize: 16, fontWeight: 600 }}>kg</span>
             </div>
           </div>
-          <div style={{ flex: 1, minWidth: 220, background: '#fefce8', border: '1px solid #fef08a', borderRadius: 12, padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: '#ca8a04' }}>
+          <div style={{ flex: 1, minWidth: 220, background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 12, padding: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, color: 'var(--gold)' }}>
               <Icon name="sun" size={16} />
               <span style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Carbon Credits Saved</span>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: '#a16207', fontFamily: 'var(--mono)' }}>
+            <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--gold)', fontFamily: 'var(--mono)' }}>
               {job.carbonCreditsSaved?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span style={{ fontSize: 16, fontWeight: 600 }}>credits</span>
             </div>
           </div>
@@ -2428,25 +2429,25 @@ function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shi
           <span style={{ fontSize: 12, color: 'var(--ink3)' }}>GLEC Framework v3.2 / ISO 14083 — computed directly from this shipment's route and weight.</span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0 24px', margin: '16px 0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: '0 24px', margin: '16px 0' }}>
           <SpecRow label="Origin" value={job.origin && job.origin !== '—' ? job.origin : 'Not set'} />
           <SpecRow label="Destination" value={job.destination && job.destination !== '—' ? job.destination : 'Not set'} />
           <SpecRow label="Gross Weight" value={job.weight || 'Not set'} />
         </div>
 
         {!canCalculate && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, fontSize: 12.5, color: '#92400e', marginBottom: 14 }}>
-            <Icon name="alertCircle" size={14} color="#92400e" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 12, fontSize: 12.5, color: 'var(--gold)', marginBottom: 14 }}>
+            <Icon name="alertCircle" size={14} color="var(--gold)" />
             Add {[!hasOriginDest && 'origin/destination', !hasWeight && 'gross weight'].filter(Boolean).join(' and ')} on the Edit page to enable calculation.
           </div>
         )}
 
         {calcError && (
-          <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 12, fontSize: 12.5, color: '#dc2626', marginBottom: 14 }}>{calcError}</div>
+          <div style={{ padding: '10px 14px', background: 'var(--red-l)', border: '1px solid var(--red)', borderRadius: 12, fontSize: 12.5, color: 'var(--red)', marginBottom: 14 }}>{calcError}</div>
         )}
 
         <button type="button" onClick={handleCalculate} disabled={!canCalculate || calcSaving}
-          style={{ padding: '11px 22px', background: canCalculate ? '#059669' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 13.5, fontWeight: 700, cursor: canCalculate && !calcSaving ? 'pointer' : 'default', opacity: calcSaving ? 0.7 : 1 }}>
+          style={{ padding: '11px 22px', background: canCalculate ? 'var(--green)' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 13.5, fontWeight: 700, cursor: canCalculate && !calcSaving ? 'pointer' : 'default', opacity: calcSaving ? 0.7 : 1 }}>
           {calcSaving ? 'Calculating…' : job.co2EmissionsKg !== undefined ? 'Recalculate CO₂' : 'Calculate CO₂'}
         </button>
 
@@ -2463,6 +2464,7 @@ function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shi
 // ─── Ledger Tab ───────────────────────────────────────────────────────────────
 
 function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shipmentId: string; isLive: boolean; onRefresh: () => void }) {
+  const isMobile = useIsMobile();
   const [showForm,  setShowForm]  = useState(false);
   const [entryType, setEntryType] = useState<'charge' | 'payment'>('charge');
   const [category,  setCategory]  = useState('CLEARANCE');
@@ -2482,7 +2484,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
   const totalPaid    = payments.reduce((s, e) => s + e.amount, 0);
   const balance      = totalPaid - totalCharges;
 
-  function sColor(s: string) { return s === 'paid' ? '#059669' : s === 'overdue' ? '#dc2626' : '#ca8a04'; }
+  function sColor(s: string) { return s === 'paid' ? 'var(--green)' : s === 'overdue' ? 'var(--red)' : 'var(--gold)'; }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -2533,16 +2535,16 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
           <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px', marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Shipment Economics</div>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: marginPct >= 20 ? '#ecfdf5' : marginPct >= 0 ? '#fef3c7' : '#fee2e2', color: marginPct >= 20 ? '#059669' : marginPct >= 0 ? '#ca8a04' : '#dc2626' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: marginPct >= 20 ? 'var(--green-l)' : marginPct >= 0 ? 'var(--gold-l)' : 'var(--red-l)', color: marginPct >= 20 ? 'var(--green)' : marginPct >= 0 ? 'var(--gold)' : 'var(--red)' }}>
                 {marginPct >= 0 ? '+' : ''}{marginPct}% margin
               </span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
               {([
-                { label: 'Revenue',        value: fmtTZS(revenue),     color: '#059669', icon: 'arrowUp' },
-                { label: 'Expenses',       value: fmtTZS(expenses),    color: '#dc2626', icon: 'arrowDown' },
-                { label: 'Gross Margin',   value: fmtTZS(Math.abs(grossMargin)), color: grossMargin >= 0 ? '#059669' : '#dc2626', icon: grossMargin >= 0 ? 'checkCircle' : 'alertTriangle' },
-                { label: 'Ops Budget (20%)', value: fmtTZS(opsBudget), color: '#2563eb', icon: 'sliders' },
+                { label: 'Revenue',        value: fmtTZS(revenue),     color: 'var(--green)', icon: 'arrowUp' },
+                { label: 'Expenses',       value: fmtTZS(expenses),    color: 'var(--red)', icon: 'arrowDown' },
+                { label: 'Gross Margin',   value: fmtTZS(Math.abs(grossMargin)), color: grossMargin >= 0 ? 'var(--green)' : 'var(--red)', icon: grossMargin >= 0 ? 'checkCircle' : 'alertTriangle' },
+                { label: 'Ops Budget (20%)', value: fmtTZS(opsBudget), color: 'var(--blue)', icon: 'sliders' },
               ] as { label: string; value: string; color: string; icon: IconName }[]).map(c => (
                 <div key={c.label} style={{ padding: '14px 16px', background: 'var(--bg)', borderRadius: 12, border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}><Icon name={c.icon} size={10} /> {c.label}</div>
@@ -2554,10 +2556,10 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
             <div style={{ marginBottom: 6 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink3)', marginBottom: 5 }}>
                 <span>Operations budget utilisation</span>
-                <span style={{ fontWeight: 700, color: opsUtil > 90 ? '#dc2626' : 'var(--ink)' }}>{opsUtil}% of {fmtTZS(opsBudget)}</span>
+                <span style={{ fontWeight: 700, color: opsUtil > 90 ? 'var(--red)' : 'var(--ink)' }}>{opsUtil}% of {fmtTZS(opsBudget)}</span>
               </div>
               <div style={{ height: 8, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${opsUtil}%`, background: opsUtil > 90 ? '#dc2626' : opsUtil > 60 ? '#ca8a04' : '#059669', borderRadius: 4, transition: 'width 0.4s' }} />
+                <div style={{ height: '100%', width: `${opsUtil}%`, background: opsUtil > 90 ? 'var(--red)' : opsUtil > 60 ? 'var(--gold)' : 'var(--green)', borderRadius: 4, transition: 'width 0.4s' }} />
               </div>
               <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>20% of billed charges reserved for operations spend</div>
             </div>
@@ -2566,11 +2568,11 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
       })()}
 
       {/* Summary cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, 1fr)', gap: 14, marginBottom: 24 }}>
         {[
-          { label: 'Total Charges',  value: fmtTZS(totalCharges), color: '#dc2626',  sub: `${charges.filter(e => e.status === 'pending').length} pending` },
-          { label: 'Total Received', value: fmtTZS(totalPaid),    color: '#059669',  sub: `${payments.length} payments` },
-          { label: balance >= 0 ? 'Net Surplus' : 'Balance Due', value: fmtTZS(Math.abs(balance)), color: balance >= 0 ? '#059669' : '#ca8a04', sub: balance >= 0 ? 'Client ahead' : 'Outstanding' },
+          { label: 'Total Charges',  value: fmtTZS(totalCharges), color: 'var(--red)',  sub: `${charges.filter(e => e.status === 'pending').length} pending` },
+          { label: 'Total Received', value: fmtTZS(totalPaid),    color: 'var(--green)',  sub: `${payments.length} payments` },
+          { label: balance >= 0 ? 'Net Surplus' : 'Balance Due', value: fmtTZS(Math.abs(balance)), color: balance >= 0 ? 'var(--green)' : 'var(--gold)', sub: balance >= 0 ? 'Client ahead' : 'Outstanding' },
         ].map(card => (
           <div key={card.label} style={{ padding: '16px 20px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--white)' }}>
             <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{card.label}</div>
@@ -2604,7 +2606,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
                 </button>
               ))}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10, marginBottom: 10 }}>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 4 }}>Category</label>
                 <Select value={category} onValueChange={setCategory}>
@@ -2638,7 +2640,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
       {/* Charges table */}
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
         <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Charges</span><span style={{ fontFamily: 'var(--mono)', color: '#dc2626' }}>{fmtTZS(totalCharges)}</span>
+          <span>Charges</span><span style={{ fontFamily: 'var(--mono)', color: 'var(--red)' }}>{fmtTZS(totalCharges)}</span>
         </div>
         {charges.length === 0 ? (
           <div style={{ padding: '16px 20px', fontSize: 13, color: 'var(--ink3)' }}>No charges recorded.</div>
@@ -2664,7 +2666,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
             <tfoot>
               <tr style={{ background: 'var(--bg)', borderTop: '2px solid var(--border)' }}>
                 <td colSpan={4} style={{ padding: '11px 20px', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>TOTAL</td>
-                <td style={{ padding: '11px 20px', fontSize: 15, fontWeight: 700, color: '#dc2626', textAlign: 'right' }}>{fmtTZS(totalCharges)}</td>
+                <td style={{ padding: '11px 20px', fontSize: 15, fontWeight: 700, color: 'var(--red)', textAlign: 'right' }}>{fmtTZS(totalCharges)}</td>
               </tr>
             </tfoot>
           </table></div>
@@ -2674,7 +2676,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
       {/* Payments */}
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
         <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Payments Received</span><span style={{ fontFamily: 'var(--mono)', color: '#059669' }}>{fmtTZS(totalPaid)}</span>
+          <span>Payments Received</span><span style={{ fontFamily: 'var(--mono)', color: 'var(--green)' }}>{fmtTZS(totalPaid)}</span>
         </div>
         {payments.length === 0 ? (
           <div style={{ padding: '20px', fontSize: 13, color: 'var(--ink3)' }}>No payments recorded.</div>
@@ -2685,7 +2687,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
               {e.reference && <div style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--mono)', marginTop: 1 }}>Ref: {e.reference}</div>}
               <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{fdate(e.date)}</div>
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#059669' }}>+{fmtTZS(e.amount)}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--green)' }}>+{fmtTZS(e.amount)}</div>
           </div>
         ))}
       </div>
@@ -2759,7 +2761,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
     setChannels(prev => prev.includes(ch) ? prev.filter(c => c !== ch) : [...prev, ch]);
   }
 
-  const STATUS_COLOR: Record<string, string> = { ACTIVE: '#059669', ON_LEAVE: '#ca8a04' };
+  const STATUS_COLOR: Record<string, string> = { ACTIVE: 'var(--green)', ON_LEAVE: 'var(--gold)' };
 
   async function handleConfirm() {
     if (staffLoading || staffError || selected.length === 0 || confirming) return;
@@ -2890,7 +2892,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
           <div style={{ display: 'flex', gap: 6 }}>
             {(['email', 'whatsapp'] as Channel[]).map(ch => {
               const on = channels.includes(ch);
-              const COLORS: Record<string, string> = { email: 'var(--teal)', whatsapp: '#059669', sms: '#d97706', teams: '#7c3aed' };
+              const COLORS: Record<string, string> = { email: 'var(--teal)', whatsapp: 'var(--green)', sms: 'var(--gold)', teams: 'var(--purple)' };
               return (
                 <button key={ch} type="button" onClick={() => toggleCh(ch)}
                   style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 12, cursor: 'pointer', border: `1.5px solid ${on ? COLORS[ch] : 'var(--border)'}`, background: on ? `${COLORS[ch]}18` : 'var(--white)', color: on ? COLORS[ch] : 'var(--ink3)', transition: 'all .12s', textTransform: 'capitalize' }}>
@@ -3067,7 +3069,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
           <span style={{ display: 'flex', gap: 5 }}>
             <span style={{ padding: '1px 7px', background: 'var(--bg)', borderRadius: 12, fontSize: 10, fontWeight: 700, color: 'var(--ink3)' }}>{job.listeners.length}</span>
             {customers.length > 0 && (
-              <span style={{ padding: '1px 7px', background: waActive ? '#ecfdf5' : 'var(--bg)', color: waActive ? '#059669' : 'var(--ink3)', borderRadius: 12, fontSize: 10, fontWeight: 700 }}>WA {waActive ? '✓' : '✕'}</span>
+              <span style={{ padding: '1px 7px', background: waActive ? 'var(--green-l)' : 'var(--bg)', color: waActive ? 'var(--green)' : 'var(--ink3)', borderRadius: 12, fontSize: 10, fontWeight: 700 }}>WA {waActive ? '✓' : '✕'}</span>
             )}
           </span>
         </div>
@@ -3079,7 +3081,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.name}</div>
-                  <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.03em', background: l.type === 'internal' ? '#f1f5f9' : '#ecfdf5', color: l.type === 'internal' ? 'var(--ink3)' : '#065f46' }}>
+                  <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.03em', background: l.type === 'internal' ? 'var(--bg)' : 'var(--green-l)', color: l.type === 'internal' ? 'var(--ink3)' : 'var(--green)' }}>
                     {l.type === 'internal' ? 'Internal' : 'Customer'}
                   </span>
                 </div>
@@ -3120,17 +3122,17 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
       )}
 
       {/* WhatsApp Bot Toggle */}
-      <div style={{ background: waActive ? '#ecfdf5' : 'var(--white)', border: `1px solid ${waActive ? '#a7f3d0' : 'var(--border)'}`, borderRadius: 12, padding: '13px 16px', transition: 'background 0.2s, border-color 0.2s' }}>
+      <div style={{ background: waActive ? 'var(--green-l)' : 'var(--white)', border: `1px solid ${waActive ? 'var(--green)' : 'var(--border)'}`, borderRadius: 12, padding: '13px 16px', transition: 'background 0.2s, border-color 0.2s' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: waActive ? '#059669' : 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: waActive ? 'var(--green)' : 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
             WhatsApp Bot {waActive ? 'Active' : 'Inactive'}
           </div>
           <button type="button" onClick={toggleWhatsApp} disabled={waToggling || !canManage} title={canManage ? undefined : 'Only managers can change this'}
-            style={{ position: 'relative', width: 40, height: 22, borderRadius: 11, border: 'none', cursor: canManage ? 'pointer' : 'default', background: waActive ? '#059669' : '#d1d5db', transition: 'background 0.2s', padding: 0, flexShrink: 0, opacity: canManage ? 1 : 0.7 }}>
+            style={{ position: 'relative', width: 40, height: 22, borderRadius: 11, border: 'none', cursor: canManage ? 'pointer' : 'default', background: waActive ? 'var(--green)' : 'var(--border)', transition: 'background 0.2s', padding: 0, flexShrink: 0, opacity: canManage ? 1 : 0.7 }}>
             <div style={{ position: 'absolute', top: 3, left: waActive ? 20 : 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
           </button>
         </div>
-        <div style={{ fontSize: 12, color: waActive ? '#047857' : 'var(--ink3)', lineHeight: 1.5 }}>
+        <div style={{ fontSize: 12, color: waActive ? 'var(--green)' : 'var(--ink3)', lineHeight: 1.5 }}>
           {waActive ? 'ClearOS is connected to the customer\'s WhatsApp group. Updates push in real-time.' : 'WhatsApp notifications are paused. Toggle to reconnect.'}
         </div>
       </div>
@@ -3144,7 +3146,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
         ].map(item => (
           <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 16px', borderBottom: '1px solid var(--border)' }}>
             <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{item.label}</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: item.warn ? '#dc2626' : 'var(--ink)' }}>{item.value}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: item.warn ? 'var(--red)' : 'var(--ink)' }}>{item.value}</span>
           </div>
         ))}
       </div>
@@ -3271,7 +3273,7 @@ export function ShipmentDetail() {
         {/* Job identity — hero band (also carries wayfinding + primary actions); collapsible */}
         <div style={{
           padding: heroFolded ? (isMobile ? '14px 16px' : '16px 28px') : (isMobile ? '20px 16px 28px' : '26px 28px 36px'),
-          background: `linear-gradient(120deg, var(--teal) 0%, #0b2540 100%)`,
+          background: `linear-gradient(120deg, var(--teal) 0%, var(--navy) 100%)`,
           position: 'relative', overflow: 'hidden', transition: 'padding 0.15s ease',
         }}>
           {/* Decorative freight-crate motif */}
@@ -3294,7 +3296,7 @@ export function ShipmentDetail() {
                 </Link>
               )}
               {!isMock && <span style={{ fontSize: 10.5, padding: '2px 7px', background: 'rgba(255,255,255,0.16)', color: '#fff', borderRadius: 4, fontWeight: 700 }}>LIVE</span>}
-              {isOverdue && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: '#fecaca' }}><Icon name="alertTriangle" size={11} /> Overdue</span>}
+              {isOverdue && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: 'var(--red-l)' }}><Icon name="alertTriangle" size={11} /> Overdue</span>}
               
               {!isMobile && <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.3)', margin: '0 4px' }} />}
               
