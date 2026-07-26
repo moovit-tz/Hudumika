@@ -124,6 +124,28 @@ function apiToJob(data: any): ClearanceJob {
   };
 }
 
+// shipment_tasks.status (008_shipment_tasks_time_entries.sql) uses a
+// different vocabulary ('open'/'blocked') than the frontend's TaskStatus
+// ('not_started'/'awaiting_feedback') — map explicitly rather than passing
+// the raw value through, which would silently fall out of every status
+// filter bucket (TASK_STATUS_CFG has no 'open'/'blocked' entry).
+function apiTaskToInternal(t: any): InternalTask {
+  const statusMap: Record<string, TaskStatus> = {
+    open: 'not_started', in_progress: 'in_progress', complete: 'complete', blocked: 'awaiting_feedback',
+  };
+  return {
+    id: String(t.id),
+    title: t.title,
+    status: statusMap[t.status] || 'not_started',
+    priority: (t.priority || 'medium') as InternalTask['priority'],
+    assignees: t.assigned_to ? [friendlyAssignee(String(t.assigned_to))] : [],
+    startDate: new Date(t.created_at || Date.now()),
+    dueDate: t.due_date ? new Date(t.due_date) : new Date(Date.now() + 7 * 86400000),
+    tags: [],
+    description: t.note || undefined,
+  };
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function fdate(d: Date) { return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
@@ -3313,6 +3335,7 @@ export function ShipmentDetail() {
   const triggerOpen = () => triggerOpenRaw(job ? { shipmentId: job.id, shipmentRef: job.sysRef || job.id } : undefined);
   const [apiJob,     setApiJob]     = useState<ClearanceJob | null>(null);
   const [apiLoading, setApiLoading] = useState(false);
+  const [apiTasks,   setApiTasks]   = useState<InternalTask[]>([]);
   const [tab,        setTab]        = useState<Tab>(() => {
     const requested = searchParams.get('tab');
     const valid = TAB_CFG.some(t => t.id === requested);
@@ -3329,6 +3352,13 @@ export function ShipmentDetail() {
 
   const isStaff = !!(user && user.role !== 'CUSTOMER');
 
+  function loadTasks() {
+    if (!id) return;
+    apiFetch(`/v1/shipments/${id}/tasks`)
+      .then((res: any) => setApiTasks((Array.isArray(res) ? res : res.data || []).map(apiTaskToInternal)))
+      .catch(() => setApiTasks([]));
+  }
+
   // If not in mock store, try fetching from real API
   useEffect(() => {
     if (!mockJob && id) {
@@ -3337,9 +3367,11 @@ export function ShipmentDetail() {
         .then(data => setApiJob(apiToJob(data)))
         .catch(() => setApiJob(null))
         .finally(() => setApiLoading(false));
+      loadTasks();
     } else {
       setApiJob(null);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, mockJob]);
 
   function refreshJob() {
@@ -3347,9 +3379,14 @@ export function ShipmentDetail() {
     apiFetch(`/v1/shipments/${id}`)
       .then(data => setApiJob(apiToJob(data)))
       .catch(() => {});
+    loadTasks();
   }
 
-  const job = mockJob || apiJob;
+  // apiToJob always sets tasks: [] (tasks live on their own endpoint, not
+  // embedded in GET /v1/shipments/:id) — layer the separately-fetched real
+  // tasks on top here rather than inside apiToJob, which stays a pure
+  // mapper of the raw shipment record.
+  const job = mockJob || (apiJob ? { ...apiJob, tasks: apiTasks } : null);
   const isMock = !!mockJob;
 
   if (apiLoading) return (
