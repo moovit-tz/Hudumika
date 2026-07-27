@@ -1,38 +1,29 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { apiFetch } from '../lib/api.js';
+import type { ExpenseListItem } from './Expenses.js';
 
 const fmtM = (n: number) => `TZS ${(n / 1_000_000).toFixed(1)}M`;
-const fmtFull = (n: number) => `TZS ${n.toLocaleString()}`;
+const fmtFull = (n: number) => `TZS ${Math.round(n).toLocaleString()}`;
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-const MONTHLY = [3100000, 3800000, 4200000, 3900000, 4800000, 4100000];
-
-const CATEGORIES = ['Customs Duties', 'Port Charges', 'Freight Costs', 'Staff Costs', 'Office & Admin', 'Vehicle & Fuel'];
-const CAT_TOTALS = [6200000, 4800000, 5100000, 3900000, 1800000, 2100000];
-
-const EXPENSES = [
-  { id: 'EXP-0891', name: 'Dar Port Terminal Fee',      category: 'Port Charges',  date: '10 Jun 2026', amount: 480000,  tax: 86400,  total: 566400  },
-  { id: 'EXP-0890', name: 'Customs Clearance Duty — Simba', category: 'Customs Duties', date: '09 Jun 2026', amount: 1200000, tax: 0,     total: 1200000 },
-  { id: 'EXP-0889', name: 'Fuel — Fleet Vehicles',      category: 'Vehicle & Fuel', date: '08 Jun 2026', amount: 320000,  tax: 57600,  total: 377600  },
-  { id: 'EXP-0888', name: 'Ocean Freight — Maersk',     category: 'Freight Costs',  date: '07 Jun 2026', amount: 850000,  tax: 0,      total: 850000  },
-  { id: 'EXP-0887', name: 'Staff Salaries — June',      category: 'Staff Costs',    date: '05 Jun 2026', amount: 2200000, tax: 0,      total: 2200000 },
-  { id: 'EXP-0886', name: 'Zanzibar Port Storage',      category: 'Port Charges',   date: '04 Jun 2026', amount: 290000,  tax: 52200,  total: 342200  },
-  { id: 'EXP-0885', name: 'Office Rent — June',         category: 'Office & Admin', date: '01 Jun 2026', amount: 450000,  tax: 81000,  total: 531000  },
-  { id: 'EXP-0884', name: 'Air Freight — DHL Express',  category: 'Freight Costs',  date: '30 May 2026', amount: 660000,  tax: 0,      total: 660000  },
-  { id: 'EXP-0883', name: 'Customs Duty — Kilimanjaro', category: 'Customs Duties', date: '28 May 2026', amount: 980000,  tax: 0,      total: 980000  },
-  { id: 'EXP-0882', name: 'Truck Maintenance',          category: 'Vehicle & Fuel', date: '25 May 2026', amount: 185000,  tax: 33300,  total: 218300  },
-];
-
-const CAT_COLORS: Record<string, string> = {
-  'Customs Duties': 'var(--blue)',
-  'Port Charges':   'var(--teal)',
-  'Freight Costs':  'var(--purple)',
-  'Staff Costs':    '#f59e0b',
-  'Office & Admin': 'var(--green)',
-  'Vehicle & Fuel': 'var(--red)',
+// Same real category taxonomy Expenses.tsx uses (finance_expenses.category +
+// the two synthetic fleet-sourced categories, FUEL/MAINTENANCE).
+const CATS: Record<string, { label: string; color: string }> = {
+  PORT_CHARGES:    { label: 'Port Charges',    color: 'var(--blue)' },
+  CUSTOMS_DUTY:    { label: 'Customs Duty',    color: '#cf222e' },
+  FREIGHT:         { label: 'Freight',         color: 'var(--teal)' },
+  HANDLING:        { label: 'Handling',        color: '#9a6700' },
+  TRANSPORT:       { label: 'Transport',       color: '#6e40c9' },
+  INSPECTION_FEE:  { label: 'Inspection Fee',  color: '#059669' },
+  AGENT_FEE:       { label: 'Agent Fee',       color: '#cf222e' },
+  MISCELLANEOUS:   { label: 'Miscellaneous',   color: 'var(--ink3)' },
+  FUEL:            { label: 'Fuel',            color: '#0891b2' },
+  MAINTENANCE:     { label: 'Maintenance',     color: '#7c3aed' },
 };
+function catLabel(cat: string) { return CATS[cat]?.label ?? cat; }
+function catColor(cat: string) { return CATS[cat]?.color ?? 'var(--ink3)'; }
 
 function BarChart({ labels, values, color }: { labels: string[]; values: number[]; color: string }) {
   const max = Math.max(...values, 1);
@@ -49,15 +40,80 @@ function BarChart({ labels, values, color }: { labels: string[]; values: number[
   );
 }
 
-const PERIODS = ['This Month', 'Last Month', 'This Quarter', 'This Year', 'Last Year'];
+const PERIODS = ['This Month', 'Last Month', 'This Quarter', 'This Year', 'Last Year'] as const;
+type Period = typeof PERIODS[number];
+
+function periodRange(period: Period): { from: Date; to: Date } {
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
+  switch (period) {
+    case 'This Month': return { from: new Date(y, m, 1), to: new Date(y, m + 1, 1) };
+    case 'Last Month': return { from: new Date(y, m - 1, 1), to: new Date(y, m, 1) };
+    case 'This Quarter': { const qStart = m - (m % 3); return { from: new Date(y, qStart, 1), to: new Date(y, qStart + 3, 1) }; }
+    case 'This Year': return { from: new Date(y, 0, 1), to: new Date(y + 1, 0, 1) };
+    case 'Last Year': return { from: new Date(y - 1, 0, 1), to: new Date(y, 0, 1) };
+  }
+}
 
 export const FinanceExpensesReport: React.FC = () => {
-  const [period, setPeriod] = useState('This Year');
+  const [period, setPeriod] = useState<Period>('This Year');
   const [category, setCategory] = useState('All Categories');
+  const [rawExpenses, setRawExpenses] = useState<ExpenseListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
-  const totalExpenses = MONTHLY.reduce((a, b) => a + b, 0);
-  const totalTax = EXPENSES.reduce((a, b) => a + b.tax, 0);
-  const filtered = category === 'All Categories' ? EXPENSES : EXPENSES.filter(e => e.category === category);
+  useEffect(() => {
+    apiFetch('/v1/finance/expenses')
+      .then((res: any) => setRawExpenses(Array.isArray(res?.data) ? res.data.filter((e: ExpenseListItem) => !e.is_revenue) : []))
+      .catch((err: any) => setLoadError(err.message || 'Failed to load expenses'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const { expenses, monthLabels, monthlyTotals, totalExpenses, thisMonthTotal, categoryBreakdown, largestCategory } = useMemo(() => {
+    const { from, to } = periodRange(period);
+    const withDate = rawExpenses.map(e => ({ e, date: new Date(e.date) }));
+    const inPeriod = withDate.filter(x => x.date >= from && x.date < to);
+    const expenses = (category === 'All Categories' ? inPeriod : inPeriod.filter(x => x.e.category === category))
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
+
+    const monthCount = period === 'This Quarter' ? 3 : (period === 'This Month' || period === 'Last Month') ? 1 : 12;
+    const monthLabels: string[] = [];
+    const monthlyTotals: number[] = [];
+    for (let i = 0; i < monthCount; i++) {
+      const d = new Date(from.getFullYear(), from.getMonth() + i, 1);
+      monthLabels.push(d.toLocaleDateString('en-GB', { month: 'short' }));
+      const bucketEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+      monthlyTotals.push(inPeriod.filter(x => x.date >= d && x.date < bucketEnd).reduce((s, x) => s + x.e.amount, 0));
+    }
+
+    const totalExpenses = inPeriod.reduce((s, x) => s + x.e.amount, 0);
+    const now = new Date();
+    const curMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const thisMonthTotal = withDate.filter(x => x.date >= curMonthStart).reduce((s, x) => s + x.e.amount, 0);
+
+    const byCat = new Map<string, number>();
+    inPeriod.forEach(x => byCat.set(x.e.category, (byCat.get(x.e.category) || 0) + x.e.amount));
+    const categoryBreakdown = Array.from(byCat.entries()).sort((a, b) => b[1] - a[1]);
+    const largestCategory = categoryBreakdown[0] ? catLabel(categoryBreakdown[0][0]) : '—';
+
+    return { expenses, monthLabels, monthlyTotals, totalExpenses, thisMonthTotal, categoryBreakdown, largestCategory };
+  }, [rawExpenses, period, category]);
+
+  const allCategories = useMemo(() => Array.from(new Set(rawExpenses.map(e => e.category))).sort(), [rawExpenses]);
+
+  function exportCsv() {
+    const rows = [
+      ['Name', 'Category', 'Date', 'Amount'],
+      ...expenses.map(x => [x.e.name, catLabel(x.e.category), x.e.date.split('T')[0], String(Math.round(x.e.amount))]),
+    ];
+    const csv = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `expenses-report-${period.toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
@@ -72,16 +128,16 @@ export const FinanceExpensesReport: React.FC = () => {
             <SelectTrigger aria-label="Category" style={{ width: 'auto', height: 'auto', padding: '7px 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="All Categories">All Categories</SelectItem>
-              {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              {allCategories.map(c => <SelectItem key={c} value={c}>{catLabel(c)}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={period} onValueChange={setPeriod}>
+          <Select value={period} onValueChange={v => setPeriod(v as Period)}>
             <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 'auto', padding: '7px 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
             <SelectContent>
               {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
             </SelectContent>
           </Select>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={exportCsv} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             <Icon name="download" size={13} /> Export
           </button>
         </div>
@@ -92,10 +148,9 @@ export const FinanceExpensesReport: React.FC = () => {
         {/* Summary cards */}
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           {[
-            { label: 'Total Expenses',   value: fmtM(totalExpenses),            icon: 'receipt',      color: 'var(--red)',    bg: '#fef2f2'       },
-            { label: 'Total Tax Paid',   value: fmtFull(totalTax),              icon: 'percent',      color: '#f59e0b',       bg: '#fffbeb'       },
-            { label: 'Largest Category', value: 'Freight Costs',                icon: 'package',      color: 'var(--purple)', bg: '#f5f3ff'       },
-            { label: 'This Month',       value: fmtM(MONTHLY[MONTHLY.length-1]),icon: 'calendar',     color: 'var(--blue)',   bg: '#eff6ff'       },
+            { label: `Total Expenses (${period})`, value: fmtM(totalExpenses),      icon: 'receipt',  color: 'var(--red)',    bg: '#fef2f2' },
+            { label: 'Largest Category',            value: largestCategory,          icon: 'package',  color: 'var(--purple)', bg: '#f5f3ff' },
+            { label: 'This Month',                  value: fmtM(thisMonthTotal),      icon: 'calendar', color: 'var(--blue)',   bg: '#eff6ff' },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -114,7 +169,7 @@ export const FinanceExpensesReport: React.FC = () => {
           <div style={{ flex: 2, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Monthly Expenses</div>
             <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 16 }}>{period}</div>
-            <BarChart labels={MONTHS} values={MONTHLY} color="var(--red)" />
+            <BarChart labels={monthLabels} values={monthlyTotals} color="var(--red)" />
           </div>
 
           {/* Category breakdown */}
@@ -123,14 +178,15 @@ export const FinanceExpensesReport: React.FC = () => {
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>By Category</span>
             </div>
             <div style={{ padding: '4px 0' }}>
-              {CATEGORIES.map((cat, i) => {
-                const total = CAT_TOTALS.reduce((a, b) => a + b, 0);
-                const pct = Math.round((CAT_TOTALS[i] / total) * 100);
-                const color = CAT_COLORS[cat] ?? 'var(--ink3)';
+              {categoryBreakdown.length === 0 ? (
+                <div style={{ padding: '20px 18px', textAlign: 'center', color: 'var(--ink3)', fontSize: 12 }}>No expenses in this period</div>
+              ) : categoryBreakdown.map(([cat, amt]) => {
+                const pct = totalExpenses > 0 ? Math.round((amt / totalExpenses) * 100) : 0;
+                const color = catColor(cat);
                 return (
                   <div key={cat} style={{ padding: '9px 18px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, color: 'var(--ink2)', fontWeight: 500 }}>{cat}</span>
+                      <span style={{ fontSize: 11, color: 'var(--ink2)', fontWeight: 500 }}>{catLabel(cat)}</span>
                       <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{pct}%</span>
                     </div>
                     <div style={{ height: 4, borderRadius: 2, background: 'var(--border)', overflow: 'hidden' }}>
@@ -151,28 +207,28 @@ export const FinanceExpensesReport: React.FC = () => {
           <div className="rtbl-wrap" style={{ overflowX: 'auto' }}><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
-                {['Expense #', 'Name', 'Category', 'Date', 'Net Amount', 'Tax', 'Total'].map(h => (
+                {['Name', 'Category', 'Date', 'Amount'].map(h => (
                   <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {filtered.map((exp, i) => {
-                const catColor = CAT_COLORS[exp.category] ?? 'var(--ink3)';
-                return (
-                  <tr key={exp.id} style={{ borderBottom: i < filtered.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                    <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 600, fontFamily: 'var(--mono)', fontSize: 11 }}>{exp.id}</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 500 }}>{exp.name}</td>
-                    <td style={{ padding: '10px 16px' }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: catColor, background: catColor + '1a', borderRadius: 5, padding: '2px 7px' }}>{exp.category}</span>
-                    </td>
-                    <td style={{ padding: '10px 16px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{exp.date}</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 500, fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(exp.amount)}</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--ink3)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{exp.tax > 0 ? fmtFull(exp.tax) : '—'}</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 700, fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(exp.total)}</td>
-                  </tr>
-                );
-              })}
+              {loading ? (
+                <tr><td colSpan={4} style={{ padding: '32px', textAlign: 'center', color: 'var(--ink3)' }}>Loading…</td></tr>
+              ) : loadError ? (
+                <tr><td colSpan={4} style={{ padding: '32px', textAlign: 'center', color: 'var(--red)' }}>{loadError}</td></tr>
+              ) : expenses.length === 0 ? (
+                <tr><td colSpan={4} style={{ padding: '32px', textAlign: 'center', color: 'var(--ink3)' }}>No expenses in this period.</td></tr>
+              ) : expenses.map((x, i) => (
+                <tr key={x.e.id} style={{ borderBottom: i < expenses.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                  <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 500 }}>{x.e.name}</td>
+                  <td style={{ padding: '10px 16px' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: catColor(x.e.category), background: catColor(x.e.category) + '1a', borderRadius: 5, padding: '2px 7px' }}>{catLabel(x.e.category)}</span>
+                  </td>
+                  <td style={{ padding: '10px 16px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{x.date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 700, fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(x.e.amount)}</td>
+                </tr>
+              ))}
             </tbody>
           </table></div>
         </div>
