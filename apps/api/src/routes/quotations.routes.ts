@@ -3,6 +3,16 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { quotationService } from '../services/quotation.service.js';
 import { withTenant } from '../db/client.js';
 
+// Matches the frontend's actual route grant for /quotations (FIN_ROLES +
+// SENIOR, apps/web/src/lib/permissions.ts) — the inline checks below used
+// to allow OFFICER (a role the frontend route guard never lets reach this
+// page at all, so a dead grant) while blocking ADMIN/FINANCE/SALES/SENIOR,
+// who the frontend explicitly permits: any of those four could see the
+// Quotations page and every one of its buttons, then get 403'd the moment
+// they tried to create, edit, or convert a quote.
+const QUOTE_WRITE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR'];
+const QUOTE_DELETE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'];
+
 export async function quotationRoutes(app: FastifyInstance) {
   app.addHook('preHandler', app.authenticate);
   app.addHook('preHandler', requireEntitlement('clearos'));
@@ -26,7 +36,7 @@ export async function quotationRoutes(app: FastifyInstance) {
 
   app.post('/', async (req: FastifyRequest, reply: FastifyReply) => {
     const user = (req as any).user;
-    if (!['SUPER_ADMIN', 'TENANT_ADMIN', 'OFFICER', 'MANAGER'].includes(user.role)) {
+    if (!QUOTE_WRITE_ROLES.includes(user.role)) {
       return reply.code(403).send({ error: 'Insufficient permissions' });
     }
     const body = req.body as any;
@@ -44,7 +54,7 @@ export async function quotationRoutes(app: FastifyInstance) {
 
   app.post('/:id/convert', async (req: FastifyRequest, reply: FastifyReply) => {
     const user = (req as any).user;
-    if (!['SUPER_ADMIN', 'TENANT_ADMIN', 'OFFICER', 'MANAGER'].includes(user.role)) {
+    if (!QUOTE_WRITE_ROLES.includes(user.role)) {
       return reply.code(403).send({ error: 'Insufficient permissions' });
     }
     const { id } = req.params as any;
@@ -55,7 +65,7 @@ export async function quotationRoutes(app: FastifyInstance) {
   // PATCH /:id — full quotation update (recomputes totals from lines)
   app.patch('/:id', async (req: FastifyRequest, reply: FastifyReply) => {
     const user = (req as any).user;
-    if (!['SUPER_ADMIN', 'TENANT_ADMIN', 'OFFICER', 'MANAGER'].includes(user.role)) {
+    if (!QUOTE_WRITE_ROLES.includes(user.role)) {
       return reply.code(403).send({ error: 'Insufficient permissions' });
     }
     const { id } = req.params as any;
@@ -145,7 +155,7 @@ export async function quotationRoutes(app: FastifyInstance) {
   // DELETE /:id — hard delete
   app.delete('/:id', async (req: FastifyRequest, reply: FastifyReply) => {
     const user = (req as any).user;
-    if (!['SUPER_ADMIN', 'TENANT_ADMIN', 'MANAGER'].includes(user.role)) {
+    if (!QUOTE_DELETE_ROLES.includes(user.role)) {
       return reply.code(403).send({ error: 'Insufficient permissions' });
     }
     const { id } = req.params as any;
