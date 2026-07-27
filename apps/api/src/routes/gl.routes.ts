@@ -8,6 +8,12 @@ export async function glRoutes(fastify: FastifyInstance) {
   // Ensure user is authenticated for all GL routes
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('finops'));
+  // Every route in this file reads or writes GL data — gate the whole
+  // plugin by role once here rather than per-route, so a new report
+  // endpoint added later doesn't silently ship without one (as every GET
+  // report endpoint here originally did — only authenticate + entitlement,
+  // no role check at all).
+  fastify.addHook('preHandler', requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'));
 
   // Chart of Accounts
   fastify.get('/chart-of-accounts', async (request: any, reply) => {
