@@ -62,7 +62,7 @@ import { deliveryNoteRoutes } from './routes/delivery-notes.routes.js';
 import { accountingIntegrationRoutes } from './routes/accounting-integration.routes.js';
 import { nexusHRRoutes } from './routes/nexushr.routes.js';
 import { contactsRoutes } from './routes/contacts.routes.js';
-import { emailRoutes } from './routes/email.routes.js';
+import { emailRoutes, emailSendRoutes } from './routes/email.routes.js';
 import { complyRoutes } from './routes/comply.routes.js';
 import { sealRoutes } from './routes/seal.routes.js';
 import { sealDocumentRoutes } from './routes/seal-documents.routes.js';
@@ -261,7 +261,8 @@ async function main() {
     await server.register(accountingIntegrationRoutes, { prefix: '/v1/accounting-integrations' });
     await server.register(nexusHRRoutes, { prefix: '/v1/hr' });
     await server.register(contactsRoutes, { prefix: '/v1/contacts' });
-    await server.register(emailRoutes, { prefix: '/v1/email' });
+    await server.register(emailRoutes, { prefix: '/v1/emails' });
+    await server.register(emailSendRoutes, { prefix: '/v1/email' });
     await server.register(complyRoutes, { prefix: '/v1/comply' });
     await server.register(sealRoutes, { prefix: '/v1/seal' });
     await server.register(sealDocumentRoutes, { prefix: '/v1/seal' });
