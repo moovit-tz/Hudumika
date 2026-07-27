@@ -2,6 +2,7 @@ import { sql } from 'kysely';
 import { db } from '../db/client.js';
 import { hashPassword } from '../lib/password.js';
 import { PaymentsIntegration } from '../integrations/payments.js';
+import { GLService } from './gl.service.js';
 import type { OnboardingCompleteInput, OnboardingCompleteResponse, TenantPlan, JWTPayload } from '@hudumika/types';
 import type { FastifyInstance } from 'fastify';
 
@@ -105,6 +106,8 @@ export class OnboardingService {
       }).returningAll().executeTakeFirstOrThrow();
 
       await sql`SELECT set_config('app.tenant_id', ${tenant.id}, true)`.execute(trx);
+
+      await GLService.seedChartOfAccounts(trx, tenant.id);
 
       const admin = await trx.insertInto('users').values({
         tenant_id: tenant.id,

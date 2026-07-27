@@ -23,11 +23,13 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       let q = trx.selectFrom('invoice_payments')
         .innerJoin('sales_invoices', 'sales_invoices.id', 'invoice_payments.invoice_id')
+        .leftJoin('users', 'users.id', 'invoice_payments.created_by')
         .select([
           'invoice_payments.id', 'invoice_payments.invoice_id', 'invoice_payments.amount',
           'invoice_payments.method', 'invoice_payments.payment_date', 'invoice_payments.note',
           'invoice_payments.created_at',
-          'sales_invoices.invoice_number', 'sales_invoices.customer_id',
+          'sales_invoices.invoice_number', 'sales_invoices.customer_id', 'sales_invoices.client_name',
+          'users.name as logged_by',
         ])
         .where('invoice_payments.tenant_id', '=', user.tenant_id);
       if (scopedCustomerId) q = q.where('sales_invoices.customer_id', '=', scopedCustomerId);

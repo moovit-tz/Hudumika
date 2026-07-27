@@ -1,14 +1,85 @@
-import { db, withTenant } from '../db/client.js';
-import type { 
-  PostingRequest, 
-  TrialBalanceReport, 
-  BalanceSheetReport, 
-  ProfitLossReport, 
-  LedgerReport, 
-  AgedReport 
+import { db, withTenant, type Database } from '../db/client.js';
+import type { Kysely, Transaction } from 'kysely';
+import type {
+  PostingRequest,
+  TrialBalanceReport,
+  BalanceSheetReport,
+  ProfitLossReport,
+  LedgerReport,
+  AgedReport
 } from '@hudumika/types';
 
+// Standard chart of accounts every tenant needs for GLService.post() to be
+// able to resolve the account codes it posts against (AR/cash/VAT/etc.) —
+// same set migration 021_finance_gl.sql seeded for tenants that existed at
+// the time, but nothing seeds this for a tenant created afterward. Every
+// tenant onboarded since then has had zero chart_of_accounts rows, meaning
+// any GL posting (recording an invoice or bill payment) throws a 500
+// ("null value in column account_id violates not-null constraint") the
+// first time it's attempted.
+const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE'; subtype: string; parentCode?: string; normalBalance: 'DEBIT' | 'CREDIT' }[] = [
+  { code: '1000', name: 'Cash and Cash Equivalents', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
+  { code: '1001', name: 'Cash on Hand', type: 'ASSET', subtype: 'CURRENT_ASSET', parentCode: '1000', normalBalance: 'DEBIT' },
+  { code: '1010', name: 'Bank Account (TZS)', type: 'ASSET', subtype: 'CURRENT_ASSET', parentCode: '1000', normalBalance: 'DEBIT' },
+  { code: '1011', name: 'Bank Account (USD)', type: 'ASSET', subtype: 'CURRENT_ASSET', parentCode: '1000', normalBalance: 'DEBIT' },
+  { code: '1100', name: 'Accounts Receivable', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
+  { code: '1200', name: 'Prepaid Expenses', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
+  { code: '1300', name: 'Inventory', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
+  { code: '1500', name: 'Fixed Assets (net)', type: 'ASSET', subtype: 'FIXED_ASSET', normalBalance: 'DEBIT' },
+  { code: '1501', name: 'Office Equipment', type: 'ASSET', subtype: 'FIXED_ASSET', parentCode: '1500', normalBalance: 'DEBIT' },
+  { code: '1502', name: 'Motor Vehicles', type: 'ASSET', subtype: 'FIXED_ASSET', parentCode: '1500', normalBalance: 'DEBIT' },
+  { code: '1503', name: 'Accumulated Depreciation', type: 'ASSET', subtype: 'FIXED_ASSET', parentCode: '1500', normalBalance: 'CREDIT' },
+  { code: '2000', name: 'Accounts Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
+  { code: '2100', name: 'Accrued Liabilities', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
+  { code: '2200', name: 'VAT Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
+  { code: '2300', name: 'Withholding Tax Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
+  { code: '2500', name: 'Long-term Loans', type: 'LIABILITY', subtype: 'LONG_TERM_LIABILITY', normalBalance: 'CREDIT' },
+  { code: '3000', name: 'Share Capital', type: 'EQUITY', subtype: 'EQUITY', normalBalance: 'CREDIT' },
+  { code: '3100', name: 'Retained Earnings', type: 'EQUITY', subtype: 'RETAINED_EARNINGS', normalBalance: 'CREDIT' },
+  { code: '4000', name: 'Freight Revenue', type: 'REVENUE', subtype: 'OPERATING_REVENUE', normalBalance: 'CREDIT' },
+  { code: '4100', name: 'Customs Clearance Fees', type: 'REVENUE', subtype: 'OPERATING_REVENUE', normalBalance: 'CREDIT' },
+  { code: '4200', name: 'Port Handling Revenue', type: 'REVENUE', subtype: 'OPERATING_REVENUE', normalBalance: 'CREDIT' },
+  { code: '4300', name: 'Transport Revenue', type: 'REVENUE', subtype: 'OPERATING_REVENUE', normalBalance: 'CREDIT' },
+  { code: '4500', name: 'Other Revenue', type: 'REVENUE', subtype: 'OTHER_REVENUE', normalBalance: 'CREDIT' },
+  { code: '5000', name: 'Port & Customs Charges', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
+  { code: '5001', name: 'Freight Costs', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
+  { code: '5002', name: 'Transport Costs', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
+  { code: '5003', name: 'Storage & Demurrage', type: 'EXPENSE', subtype: 'COST_OF_SERVICES', normalBalance: 'DEBIT' },
+  { code: '5100', name: 'Salaries & Wages', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
+  { code: '5101', name: 'Office Rent', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
+  { code: '5102', name: 'Utilities', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
+  { code: '5200', name: 'Bank Charges', type: 'EXPENSE', subtype: 'FINANCE_COST', normalBalance: 'DEBIT' },
+  { code: '5201', name: 'Interest Expense', type: 'EXPENSE', subtype: 'FINANCE_COST', normalBalance: 'DEBIT' },
+];
+
 export class GLService {
+  /**
+   * Seeds the standard chart of accounts for a tenant. Idempotent — safe to
+   * call on every tenant creation and re-runnable via backfill migration,
+   * since (tenant_id, code) is unique and conflicts are ignored.
+   */
+  static async seedChartOfAccounts(trx: Transaction<Database> | Kysely<Database>, tenantId: string): Promise<void> {
+    const existing = await trx.selectFrom('chart_of_accounts').select('code').where('tenant_id', '=', tenantId).execute();
+    if (existing.length > 0) return;
+
+    const codeToId = new Map<string, string>();
+    for (const acc of STANDARD_COA) {
+      const row = await trx.insertInto('chart_of_accounts').values({
+        tenant_id: tenantId,
+        code: acc.code,
+        name: acc.name,
+        type: acc.type,
+        subtype: acc.subtype,
+        parent_id: acc.parentCode ? (codeToId.get(acc.parentCode) ?? null) : null,
+        normal_balance: acc.normalBalance,
+        is_system: true,
+      }).onConflict(oc => oc.columns(['tenant_id', 'code']).doNothing())
+        .returning('id')
+        .executeTakeFirst();
+      if (row) codeToId.set(acc.code, row.id);
+    }
+  }
+
   /** Core posting engine — the ONLY path that writes to journal_lines */
   static async post(tenantId: string, req: PostingRequest): Promise<string> {
     return withTenant(tenantId, async (trx) => {

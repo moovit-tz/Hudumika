@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { requireRole } from '../middleware/rbac.js';
 import { db } from '../db/client.js';
 import { sql } from 'kysely';
+import { GLService } from '../services/gl.service.js';
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -151,7 +152,9 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       })
       .returningAll()
       .executeTakeFirstOrThrow();
-    
+
+    await GLService.seedChartOfAccounts(db, result.id);
+
     return result;
   });
 
