@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
-import { MOCK_COA, FLAT_COA } from '../data/glStore.js';
 import { useFullLayout } from '../hooks/useFullLayout.js';
 import type { ChartOfAccount, AccountType } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 
 function flattenTree(tree: ChartOfAccount[]): ChartOfAccount[] {
   const result: ChartOfAccount[] = [];
@@ -133,21 +134,79 @@ export const ChartOfAccounts: React.FC = () => {
   const isFullLayout = useFullLayout();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<AccountType | 'ALL'>('ALL');
-  const [coaTree, setCoaTree] = useState<ChartOfAccount[]>(MOCK_COA);
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(MOCK_COA.map(a => a.id)));
+  const [coaTree, setCoaTree] = useState<ChartOfAccount[]>([]);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<ChartOfAccount | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [editing, setEditing] = useState<ChartOfAccount | null>(null);
+  const [fCode, setFCode] = useState('');
+  const [fName, setFName] = useState('');
+  const [fType, setFType] = useState<AccountType>('ASSET');
+  const [fParentId, setFParentId] = useState('');
+  const [fDescription, setFDescription] = useState('');
+  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    apiFetch('/v1/finance/chart-of-accounts')
+  const loadAccounts = React.useCallback(() => {
+    return apiFetch('/v1/finance/chart-of-accounts')
       .then((res: { accounts: ChartOfAccount[] }) => {
-        if (res.accounts?.length) {
-          setCoaTree(res.accounts);
-          setExpanded(new Set(flattenTree(res.accounts).map(a => a.id)));
-        }
+        const accounts = res.accounts ?? [];
+        setCoaTree(accounts);
+        setExpanded(new Set(flattenTree(accounts).map(a => a.id)));
       })
-      .catch(() => { /* keep mock */ });
+      .catch((err: any) => setLoadError(err.message || 'Failed to load chart of accounts'))
+      .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { loadAccounts(); }, [loadAccounts]);
+
+  function openNewAccountForm() {
+    setEditing(null);
+    setFCode(''); setFName(''); setFType('ASSET'); setFParentId(''); setFDescription('');
+    setShowForm(true);
+  }
+
+  function openEditForm(a: ChartOfAccount) {
+    setEditing(a);
+    setFCode(a.code); setFName(a.name); setFType(a.type); setFParentId(a.parent_id ?? ''); setFDescription(a.description ?? '');
+    setShowForm(true);
+  }
+
+  async function handleSaveAccount() {
+    if (!fCode.trim() || !fName.trim()) { showAlert('Code and name are required'); return; }
+    setSaving(true);
+    try {
+      if (editing) {
+        await apiFetch(`/v1/finance/chart-of-accounts/${editing.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ name: fName, description: fDescription || null, parent_id: fParentId || null }),
+        });
+      } else {
+        await apiFetch('/v1/finance/chart-of-accounts', {
+          method: 'POST',
+          body: JSON.stringify({ code: fCode, name: fName, type: fType, parent_id: fParentId || null, description: fDescription || undefined }),
+        });
+      }
+      setShowForm(false);
+      await loadAccounts();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to save account');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteAccount(a: ChartOfAccount) {
+    if (!(await showConfirm(`Delete account "${a.code} — ${a.name}"?`, { confirmLabel: 'Delete' }))) return;
+    try {
+      await apiFetch(`/v1/finance/chart-of-accounts/${a.id}`, { method: 'DELETE' });
+      setSelected(null);
+      await loadAccounts();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to delete account');
+    }
+  }
 
   const flat = useMemo(() => flattenTree(coaTree), [coaTree]);
 
@@ -229,7 +288,7 @@ export const ChartOfAccounts: React.FC = () => {
           <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv} title="Export CSV">
             <Icon name="download" size={13} /> Export CSV
           </button>
-          <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowForm(true)} title="New account">
+          <button type="button" className="btn btn-primary btn-sm" onClick={openNewAccountForm} title="New account">
             <Icon name="plus" size={13} color="#fff" /> New Account
           </button>
         </div>
@@ -303,7 +362,17 @@ export const ChartOfAccounts: React.FC = () => {
         </div>
 
         {/* Tree rows */}
-        {displayTree.length === 0 ? (
+        {loading ? (
+          <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--ink3)' }}>Loading chart of accounts…</div>
+        ) : loadError ? (
+          <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--red, #dc2626)' }}>{loadError}</div>
+        ) : coaTree.length === 0 ? (
+          <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--ink3)' }}>
+            <Icon name="folder" size={28} color="var(--ink3)" />
+            <div style={{ marginTop: 12, fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>No accounts configured yet</div>
+            <div style={{ fontSize: 13, marginTop: 4 }}>Add your first account to get started</div>
+          </div>
+        ) : displayTree.length === 0 ? (
           <div style={{ padding: '48px 32px', textAlign: 'center', color: 'var(--ink3)' }}>
             <Icon name="search" size={28} color="var(--ink3)" />
             <div style={{ marginTop: 12, fontWeight: 600, fontSize: 14, color: 'var(--ink)' }}>No accounts match</div>
@@ -372,11 +441,11 @@ export const ChartOfAccounts: React.FC = () => {
               </div>
             )}
             <div style={{ display: 'flex', gap: 8, marginTop: 4, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-              <button type="button" className="btn btn-secondary btn-sm" style={{ flex: 1 }} disabled>
+              <button type="button" className="btn btn-secondary btn-sm" style={{ flex: 1 }} onClick={() => openEditForm(selected)}>
                 <Icon name="edit" size={12} /> Edit
               </button>
               {!selected.is_system && (
-                <button type="button" className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }} disabled>
+                <button type="button" className="btn btn-secondary btn-sm" style={{ color: 'var(--red)' }} onClick={() => handleDeleteAccount(selected)}>
                   <Icon name="trash2" size={12} />
                 </button>
               )}
@@ -385,25 +454,25 @@ export const ChartOfAccounts: React.FC = () => {
         </div>
       )}
 
-      {/* New Account placeholder modal */}
+      {/* New / Edit Account modal */}
       {showForm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => setShowForm(false)}>
           <div style={{ background: 'var(--white)', borderRadius: 12, padding: '28px 32px', width: 420, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 20 }}>New Account</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 20 }}>{editing ? 'Edit Account' : 'New Account'}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Code</label>
-                <input className="input-field" style={{ width: '100%' }} placeholder="e.g. 1150" />
+                <input className="input-field" style={{ width: '100%' }} placeholder="e.g. 1150" value={fCode} onChange={e => setFCode(e.target.value)} disabled={!!editing} />
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Name</label>
-                <input className="input-field" style={{ width: '100%' }} placeholder="Account name" />
+                <input className="input-field" style={{ width: '100%' }} placeholder="Account name" value={fName} onChange={e => setFName(e.target.value)} />
               </div>
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Type</label>
-                <Select defaultValue={TYPE_ORDER[0]}>
+                <Select value={fType} onValueChange={v => setFType(v as AccountType)} disabled={!!editing}>
                   <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {TYPE_ORDER.map(t => <SelectItem key={t} value={t}>{TYPE_CFG[t].label}</SelectItem>)}
@@ -413,19 +482,20 @@ export const ChartOfAccounts: React.FC = () => {
               <div>
                 <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Parent Account</label>
                 <Combobox
-                  options={[{ value: '', label: '— None (top-level) —' }, ...flat.map(a => ({ value: a.id, label: `${a.code} — ${a.name}` }))]}
-                  value="" onChange={() => {}}
+                  options={[{ value: '', label: '— None (top-level) —' }, ...flat.filter(a => a.id !== editing?.id).map(a => ({ value: a.id, label: `${a.code} — ${a.name}` }))]}
+                  value={fParentId} onChange={setFParentId}
                   placeholder="— None (top-level) —"
                 />
               </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Description</label>
+                <input className="input-field" style={{ width: '100%' }} placeholder="Optional" value={fDescription} onChange={e => setFDescription(e.target.value)} />
+              </div>
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 24, justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowForm(false)}>Cancel</button>
-              <button type="button" className="btn btn-primary btn-sm" disabled>Save Account</button>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowForm(false)} disabled={saving}>Cancel</button>
+              <button type="button" className="btn btn-primary btn-sm" onClick={handleSaveAccount} disabled={saving}>{saving ? 'Saving…' : 'Save Account'}</button>
             </div>
-            <p style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 12, textAlign: 'center' }}>
-              Requires backend GL routes (Track A — A5)
-            </p>
           </div>
         </div>
       )}

@@ -42,6 +42,77 @@ export async function glRoutes(fastify: FastifyInstance) {
     }
   });
 
+  const COA_WRITE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'] as const;
+
+  // POST /v1/finance/chart-of-accounts — create a new account
+  fastify.post('/chart-of-accounts', { preHandler: requireRole(...COA_WRITE_ROLES) }, async (request: any, reply) => {
+    const tenantId = request.user.tenant_id;
+    const b = request.body as { code: string; name: string; type: string; subtype?: string; parent_id?: string | null; description?: string; normal_balance?: 'DEBIT' | 'CREDIT' };
+    if (!b.code || !b.name || !b.type) return reply.status(400).send({ error: 'code, name, and type are required' });
+
+    try {
+      const account = await db.insertInto('chart_of_accounts').values({
+        tenant_id: tenantId,
+        code: b.code,
+        name: b.name,
+        type: b.type as any,
+        subtype: b.subtype ?? null,
+        parent_id: b.parent_id || null,
+        description: b.description ?? null,
+        normal_balance: b.normal_balance ?? (b.type === 'ASSET' || b.type === 'EXPENSE' ? 'DEBIT' : 'CREDIT'),
+        is_system: false,
+      }).returningAll().executeTakeFirstOrThrow();
+      reply.status(201);
+      return account;
+    } catch (err: any) {
+      if (err.code === '23505') return reply.status(409).send({ error: `Account code "${b.code}" already exists` });
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // PATCH /v1/finance/chart-of-accounts/:id
+  fastify.patch('/chart-of-accounts/:id', { preHandler: requireRole(...COA_WRITE_ROLES) }, async (request: any, reply) => {
+    const tenantId = request.user.tenant_id;
+    const { id } = request.params as { id: string };
+    const b = request.body as Record<string, any>;
+    const editable = ['name', 'description', 'subtype', 'parent_id', 'is_active'];
+    const patch: Record<string, any> = { updated_at: new Date() };
+    for (const key of editable) if (key in b) patch[key] = b[key];
+
+    const account = await db.updateTable('chart_of_accounts')
+      .set(patch)
+      .where('id', '=', id)
+      .where('tenant_id', '=', tenantId)
+      .returningAll()
+      .executeTakeFirst();
+    if (!account) return reply.status(404).send({ error: 'Account not found' });
+    return account;
+  });
+
+  // DELETE /v1/finance/chart-of-accounts/:id — system accounts can never be removed
+  // (GLService.post() posts against fixed codes like 1010/1100/2200 by convention).
+  fastify.delete('/chart-of-accounts/:id', { preHandler: requireRole(...COA_WRITE_ROLES) }, async (request: any, reply) => {
+    const tenantId = request.user.tenant_id;
+    const { id } = request.params as { id: string };
+
+    const account = await db.selectFrom('chart_of_accounts').selectAll()
+      .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (!account) return reply.status(404).send({ error: 'Account not found' });
+    if (account.is_system) return reply.status(400).send({ error: 'System accounts cannot be deleted' });
+
+    const usedInJournal = await db.selectFrom('journal_lines').select('id')
+      .where('account_id', '=', id).executeTakeFirst();
+    if (usedInJournal) return reply.status(400).send({ error: 'Account has journal activity and cannot be deleted' });
+
+    const hasChildren = await db.selectFrom('chart_of_accounts').select('id')
+      .where('parent_id', '=', id).executeTakeFirst();
+    if (hasChildren) return reply.status(400).send({ error: 'Account has sub-accounts and cannot be deleted' });
+
+    await db.deleteFrom('chart_of_accounts').where('id', '=', id).where('tenant_id', '=', tenantId).execute();
+    reply.status(204);
+    return null;
+  });
+
   // Journal Entries
   fastify.post('/journal-entries', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
     try {
