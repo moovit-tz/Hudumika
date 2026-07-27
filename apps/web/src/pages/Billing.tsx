@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { Icon } from '../components/Icon.js';
 import { getCompany, subscribeCompany } from '../data/companyStore.js';
@@ -704,12 +704,12 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange }:
 }
 
 /* ── Invoice Editor (Create + Edit) ── */
-export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = false }: {
+export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = false, presetCustomer = null }: {
   initial: Invoice | null; nextId: string;
-  onSave: (inv: Invoice) => void; onCancel: () => void; isMobile?: boolean;
+  onSave: (inv: Invoice) => void; onCancel: () => void; isMobile?: boolean; presetCustomer?: PickerItem | null;
 }) {
   const today = new Date().toLocaleDateString('en-GB').split('/').join('-');
-  const [client, setClient]       = useState(initial?.client ?? '');
+  const [client, setClient]       = useState(initial?.client ?? presetCustomer?.label ?? '');
   const [addr, setAddr]           = useState(initial?.clientAddress.join('\n') ?? '');
   const [billDate, setBillDate]   = useState(initial?.billDate ?? today);
   const [dueDate, setDueDate]     = useState(initial?.dueDate ?? '');
@@ -722,7 +722,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   const [terms, setTerms]         = useState(initial?.terms ?? 'Payment due within 14 days. All 3rd party charges are estimates and subject to actuals.');
 
   const [customer, setCustomer] = useState<PickerItem | null>(
-    initial?.customerId ? { id: initial.customerId, label: initial.client } : null,
+    initial?.customerId ? { id: initial.customerId, label: initial.client } : presetCustomer,
   );
   const [shipment, setShipment] = useState<PickerItem | null>(
     initial?.shipmentRef ? { id: initial.shipmentRef, label: initial.shipmentRef } : null,
@@ -1502,9 +1502,11 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
 export const Billing: React.FC = () => {
   const isMobile = useIsMobile();
   const { fmt } = useCurrency();
+  const location = useLocation();
   const [invoices, setInvoices]         = useState<Invoice[]>([]);
   const [apiLoading, setApiLoading] = useState(true);
   const [selectedId, setSelectedId]     = useState<string | null>(null);
+  const [presetCustomer, setPresetCustomer] = useState<PickerItem | null>(null);
 
   useEffect(() => {
     apiFetch('/v1/invoices')
@@ -1518,6 +1520,27 @@ export const Billing: React.FC = () => {
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [search, setSearch]             = useState('');
   const [sortAsc, setSortAsc]           = useState(false);
+
+  // Arriving from a customer's profile (Customers.tsx "+ Create Invoice" /
+  // "+ Record Payment") — previously this query param was silently ignored,
+  // dropping the user on a generic, unscoped Billing page.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const customerId = params.get('customer_id');
+    if (!customerId) return;
+    apiFetch(`/v1/customers/${customerId}`)
+      .then((c: any) => {
+        const item: PickerItem = { id: c.id, label: c.name };
+        setPresetCustomer(item);
+        if (params.get('new') === '1') {
+          setSelectedId(null);
+          setMode('create');
+        } else {
+          setSearch(c.name);
+        }
+      })
+      .catch(() => {});
+  }, [location.search]);
 
   /* ── Filters popover ── */
   const [showFilters, setShowFilters]     = useState(false);
@@ -1853,7 +1876,7 @@ export const Billing: React.FC = () => {
             <InvoiceEditor initial={selectedInvoice} nextId={nextId} onSave={handleSaveInvoice} onCancel={() => setMode('view')} isMobile={isMobile} />
           )}
           {mode === 'create' && (
-            <InvoiceEditor initial={null} nextId={nextId} onSave={handleSaveInvoice} onCancel={() => { setMode('list'); setSelectedId(null); }} isMobile={isMobile} />
+            <InvoiceEditor initial={null} nextId={nextId} onSave={handleSaveInvoice} onCancel={() => { setMode('list'); setSelectedId(null); }} isMobile={isMobile} presetCustomer={presetCustomer} />
           )}
         </div>
       </div>

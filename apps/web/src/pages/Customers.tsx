@@ -860,7 +860,7 @@ export const Customers: React.FC = () => {
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', marginBottom: 12 }}>Quick Actions</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {([
-                    { label: 'Create Invoice',    icon: 'fileText'   as IconName, path: `/billing?customer_id=${sel.id}` },
+                    { label: 'Create Invoice',    icon: 'fileText'   as IconName, path: `/billing?customer_id=${sel.id}&new=1` },
                     { label: 'Add Shipment',      icon: 'ship'       as IconName, action: () => setMainTab('shipments') },
                     { label: 'Record Payment',    icon: 'creditCard' as IconName, action: () => { setMainTab('finance'); setFinanceTab('payments'); } },
                     { label: 'Generate Statement',icon: 'barChart'   as IconName, action: () => { setMainTab('finance'); setFinanceTab('statement'); } },
@@ -1205,7 +1205,7 @@ export const Customers: React.FC = () => {
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>
                   {finLoading ? 'Loading…' : `${custInvoices.length} invoice${custInvoices.length !== 1 ? 's' : ''}`}
                 </span>
-                <Link to={`/billing?customer_id=${sel.id}`} className="btn btn-primary btn-sm">+ Create Invoice</Link>
+                <Link to={`/billing?customer_id=${sel.id}&new=1`} className="btn btn-primary btn-sm">+ Create Invoice</Link>
               </div>
               {finLoading && <div style={{ padding: '32px 28px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading invoices…</div>}
               {!finLoading && custInvoices.length === 0 && (
