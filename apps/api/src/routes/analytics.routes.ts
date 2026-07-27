@@ -42,7 +42,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
    * GET /v1/analytics/kpi
    * Command Center live KPI stats. Cached 60 seconds in Redis.
    */
-  fastify.get('/kpi', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SENIOR') }, async (request, reply) => {
+  fastify.get('/kpi', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SENIOR', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const cacheKey = `tenant:${user.tenant_id}:kpis`;
 
@@ -334,7 +334,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
    * declaration activity, top customers, and a lines-based financial
    * summary — all computed from real rows, not display copy.
    */
-  fastify.get('/customer-overview', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SENIOR') }, async (request, reply) => {
+  fastify.get('/customer-overview', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SENIOR', 'SALES') }, async (request, reply) => {
     const user = request.user;
 
     return withTenant(user.tenant_id, async (trx) => {
@@ -485,7 +485,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
    * (co2.service.ts) by transport mode, customer, and month. This is an
    * internal ESG reporting figure, not a registry-issued tradeable credit.
    */
-  fastify.get('/carbon', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SENIOR') }, async (request, reply) => {
+  fastify.get('/carbon', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SENIOR', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const { date_from, date_to } = request.query as { date_from?: string; date_to?: string };
 
