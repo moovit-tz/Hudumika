@@ -2,6 +2,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { AccountingIntegrationService } from '../services/accounting-integration.service.js';
 import { requireRole } from '../middleware/rbac.js';
+import { db } from '../db/client.js';
 
 export async function accountingIntegrationRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -59,6 +60,27 @@ export async function accountingIntegrationRoutes(fastify: FastifyInstance) {
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }
+  });
+
+  // POST /v1/accounting-integrations/marketplace/:providerId/request
+  // No real integration exists for any of these providers (Wave, FreshBooks,
+  // Zoho, NetSuite, MYOB, Odoo, Stripe, Square, Flutterwave, M-Pesa, PayPal,
+  // Airtel) — this just records the interest so a real person can follow up,
+  // instead of a button that faked success with nothing persisted anywhere.
+  fastify.post('/marketplace/:providerId/request', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
+    const tenantId = request.user.tenant_id;
+    const { providerId } = request.params as { providerId: string };
+    const { providerName } = request.body as { providerName: string };
+    if (!providerName) return reply.status(400).send({ error: 'providerName is required' });
+
+    const row = await db.insertInto('accounting_marketplace_requests').values({
+      tenant_id: tenantId,
+      provider_id: providerId,
+      provider_name: providerName,
+      requested_by: request.user.sub,
+    }).returningAll().executeTakeFirstOrThrow();
+    reply.status(201);
+    return row;
   });
 
   // GET /v1/accounting-integrations/oauth-callback

@@ -151,9 +151,17 @@ export function AccountingIntegrations() {
 
   const handleInstall = async (item: MarketplaceItem) => {
     setInstallingId(item.id);
-    await new Promise(r => setTimeout(r, 800));
-    showAlert(`${item.name} has been added to your integration queue. Our team will reach out to complete setup.`);
-    setInstallingId(null);
+    try {
+      await apiFetch(`/v1/accounting-integrations/marketplace/${item.id}/request`, {
+        method: 'POST',
+        body: JSON.stringify({ providerName: item.name }),
+      });
+      showAlert(`${item.name} has been added to your integration queue. Our team will reach out to complete setup.`);
+    } catch (err) {
+      showAlert(err instanceof Error ? err.message : 'Failed to request integration');
+    } finally {
+      setInstallingId(null);
+    }
   };
 
   const filteredMarketplace = MARKETPLACE.filter(item => {

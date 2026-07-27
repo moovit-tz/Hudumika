@@ -2544,6 +2544,7 @@ export interface Database {
   delivery_note_lines: DeliveryNoteLinesTable;
   // Accounting Integrations
   accounting_integrations: AccountingIntegrationsTable;
+  accounting_marketplace_requests: AccountingMarketplaceRequestsTable;
   accounting_sync_logs: AccountingSyncLogsTable;
   // NexusHR Core
   hr_legal_entities: HrLegalEntitiesTable;
@@ -3358,6 +3359,16 @@ export interface AccountingSyncLogsTable {
   status: 'SUCCESS' | 'FAILED';
   error_message: string | null;
   synced_at: Generated<Date>;
+}
+
+export interface AccountingMarketplaceRequestsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  provider_id: string;
+  provider_name: string;
+  requested_by: string | null;
+  status: Generated<'pending' | 'contacted' | 'completed' | 'declined'>;
+  created_at: Generated<Date>;
 }
 
 export interface ChartOfAccountsTable {
