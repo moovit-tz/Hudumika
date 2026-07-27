@@ -104,6 +104,28 @@ export async function billRoutes(fastify: FastifyInstance) {
 
   // ── Supplier Bills ────────────────────────────────────────────────────────
 
+  // GET /v1/bills/payments  (must be before /:id) — every bill payment for
+  // the tenant; Bills.tsx filters this client-side per bill it's viewing.
+  // Previously the frontend never called any endpoint for this at all — its
+  // "payments" state was seeded once from a hardcoded MOCK_PAYMENTS array
+  // and only ever grew via optimistic local pushes that vanished on reload.
+  fastify.get('/payments', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      return trx.selectFrom('bill_payments')
+        .innerJoin('supplier_bills', 'supplier_bills.id', 'bill_payments.bill_id')
+        .select([
+          'bill_payments.id', 'bill_payments.bill_id', 'bill_payments.amount', 'bill_payments.currency',
+          'bill_payments.payment_date', 'bill_payments.method', 'bill_payments.reference', 'bill_payments.note',
+          'bill_payments.created_at',
+          'supplier_bills.bill_number', 'supplier_bills.supplier_name',
+        ])
+        .where('bill_payments.tenant_id', '=', user.tenant_id)
+        .orderBy('bill_payments.created_at', 'desc')
+        .execute();
+    });
+  });
+
   // GET /v1/bills
   fastify.get('/', async (request) => {
     const user = request.user;

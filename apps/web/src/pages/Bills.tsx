@@ -152,155 +152,14 @@ function mapApiRecurring(d: any): RecurringBill {
   };
 }
 
-// ── Mock Data ──────────────────────────────────────────────────────────────────
-
-export const MOCK_BILLS: Bill[] = [
-  {
-    id:'f84e12c1-d4b9-4c17-91f1-3312e75e9b81', bill_number:'BILL-2026-001', supplier_id:'sup-001', supplier_name:'Maersk Line Tanzania',
-    bill_date:'2026-01-10', due_date:'2026-02-09', status:'PAID', currency:'USD',
-    subtotal:1800, tax_amount:0, total:1800, paid_amount:1800, po_number:'PO-2026-001', shipment_ref:'CLR-2026-0001',
-    lines:[
-      { _key:'l1', description:'Terminal Handling Charge (THC) — 20ft FCL ×2', category:'PORT', qty:2, unit_price:750, tax_rate:0 },
-      { _key:'l2', description:'Bill of Lading Processing Fee', category:'CUSTOMS', qty:1, unit_price:60, tax_rate:0 },
-      { _key:'l3', description:'Documentation Handling', category:'PROFESSIONAL', qty:1, unit_price:240, tax_rate:0 },
-    ],
-    notes:'THC charges for 2 × 20ft containers discharged Dar es Salaam port.',
-    created_at:'2026-01-10T08:00:00Z',
-  },
-  {
-    id:'83d81b3c-62a2-4a7b-a251-171b9e28de82', bill_number:'BILL-2026-002', supplier_id:'sup-003', supplier_name:'M&G Customs Clearance Ltd',
-    bill_date:'2026-01-13', due_date:'2026-01-28', status:'PAID', currency:'TZS',
-    subtotal:420000, tax_amount:75600, total:495600, paid_amount:495600, po_number:'PO-2026-002', shipment_ref:'CLR-2026-0001',
-    lines:[
-      { _key:'l1', description:'Customs Clearance & Entry Filing', category:'CUSTOMS', qty:1, unit_price:350000, tax_rate:18 },
-      { _key:'l2', description:'Documentation Set — BL, Packing List, CoO', category:'CUSTOMS', qty:1, unit_price:70000, tax_rate:18 },
-    ],
-    notes:'Clearance services for CLR-2026-0001. TANCIS entry CE-2026-001.',
-    created_at:'2026-01-13T08:00:00Z',
-  },
-  {
-    id:'c9c0b11c-7f55-44cb-bf5d-16f316223e73', bill_number:'BILL-2026-003', supplier_id:'sup-002', supplier_name:'Tanzania Ports Authority (TPA)',
-    bill_date:'2026-02-01', due_date:'2026-02-01', status:'OVERDUE', currency:'TZS',
-    subtotal:1745000, tax_amount:0, total:1745000, paid_amount:0, po_number:'PO-2026-005', shipment_ref:'CLR-2026-0002',
-    lines:[
-      { _key:'l1', description:'Container THC — 20ft FCL ×3', category:'PORT', qty:3, unit_price:350000, tax_rate:0 },
-      { _key:'l2', description:'Port Entry Permit — Heavy Cargo', category:'PORT', qty:1, unit_price:180000, tax_rate:0 },
-      { _key:'l3', description:'Port Scanning (X-Ray) Fee', category:'PORT', qty:3, unit_price:38333, tax_rate:0 },
-    ],
-    notes:'Payment was due on arrival date. Dispute raised on THC overcharge (tkt-004). HOLD pending resolution.',
-    created_at:'2026-02-01T08:00:00Z',
-  },
-  {
-    id:'6a6c0b1a-8c9f-431e-a4b5-12e3f5b74584', bill_number:'BILL-2026-004', supplier_id:'sup-006', supplier_name:'DHL Global Forwarding Tanzania',
-    bill_date:'2026-05-15', due_date:'2026-06-29', status:'PARTIAL', currency:'USD',
-    subtotal:4900, tax_amount:0, total:4900, paid_amount:2000, po_number:'PO-2026-004', shipment_ref:'CLR-2026-0004',
-    lines:[
-      { _key:'l1', description:'Air Freight — JNIA to NBO (850kg CW)', category:'FREIGHT', qty:850, unit_price:4.5, tax_rate:0 },
-      { _key:'l2', description:'Airport Handling & Documentation', category:'PROFESSIONAL', qty:1, unit_price:280, tax_rate:0 },
-      { _key:'l3', description:'Dangerous Goods DG Surcharge', category:'FREIGHT', qty:1, unit_price:395, tax_rate:0 },
-      { _key:'l4', description:'Fuel Surcharge (FSC)', category:'FREIGHT', qty:850, unit_price:0.3, tax_rate:0 },
-    ],
-    notes:'Air cargo CLR-2026-0004. Partial payment of $2,000 received 30 May. Balance due 29 Jun.',
-    created_at:'2026-05-15T08:00:00Z',
-  },
-  {
-    id:'bill-005', bill_number:'BILL-2026-005', supplier_id:'sup-007', supplier_name:'UAP Old Mutual Cargo Insurance',
-    bill_date:'2026-02-01', due_date:'2026-03-03', status:'PAID', currency:'USD',
-    subtotal:480, tax_amount:86.4, total:566.4, paid_amount:566.4, po_number:'PO-2026-007', shipment_ref:'CLR-2026-0002',
-    lines:[
-      { _key:'l1', description:'Marine Cargo Insurance — Open Cover Policy MAP-2026-0019', category:'INSURANCE', qty:1, unit_price:480, tax_rate:18 },
-    ],
-    notes:'Policy covers all sea freight shipments Feb–Apr 2026.',
-    created_at:'2026-02-01T08:00:00Z',
-  },
-  {
-    id:'bill-006', bill_number:'BILL-2026-006', supplier_id:'sup-005', supplier_name:'Port Bonded Warehouses Ltd',
-    bill_date:'2026-01-20', due_date:'2026-02-19', status:'PAID', currency:'USD',
-    subtotal:125, tax_amount:22.5, total:147.5, paid_amount:147.5, po_number:'PO-2026-006', shipment_ref:'CLR-2026-0001',
-    lines:[
-      { _key:'l1', description:'Bonded Storage — 5 days × $25/day', category:'WAREHOUSE', qty:5, unit_price:25, tax_rate:18 },
-    ],
-    created_at:'2026-01-20T08:00:00Z',
-  },
-  {
-    id:'bill-007', bill_number:'BILL-2026-007', supplier_id:'sup-004', supplier_name:'Dar Transport Solutions Ltd',
-    bill_date:'2026-03-14', due_date:'2026-03-14', status:'POSTED', currency:'TZS',
-    subtotal:280000, tax_amount:50400, total:330400, paid_amount:0, po_number:'PO-2026-003', shipment_ref:'CLR-2026-0003',
-    lines:[
-      { _key:'l1', description:'Inland Transport — Dar port to Mikocheni ICD', category:'TRANSPORT', qty:1, unit_price:280000, tax_rate:18 },
-    ],
-    notes:'COD — driver collected but payment not yet confirmed.',
-    created_at:'2026-03-14T08:00:00Z',
-  },
-  {
-    id:'bill-008', bill_number:'BILL-2026-008', supplier_id:'sup-003', supplier_name:'M&G Customs Clearance Ltd',
-    bill_date:'2026-02-08', due_date:'2026-02-23', status:'PAID', currency:'TZS',
-    subtotal:890000, tax_amount:160200, total:1050200, paid_amount:1050200, po_number:'PO-2026-008', shipment_ref:'CLR-2026-0002',
-    lines:[
-      { _key:'l1', description:'Customs Duty — TANSAD TD-2026-047', category:'CUSTOMS', qty:1, unit_price:750000, tax_rate:18 },
-      { _key:'l2', description:'Amendment Filing Fee', category:'CUSTOMS', qty:1, unit_price:140000, tax_rate:18 },
-    ],
-    notes:'Duty payment for CLR-2026-0002. TANSAD amended after HS code correction.',
-    created_at:'2026-02-08T08:00:00Z',
-  },
-  {
-    id:'bill-009', bill_number:'BILL-2026-009', supplier_id:'sup-002', supplier_name:'Tanzania Ports Authority (TPA)',
-    bill_date:'2026-03-05', due_date:'2026-03-05', status:'PAID', currency:'TZS',
-    subtotal:115000, tax_amount:0, total:115000, paid_amount:115000, shipment_ref:'CLR-2026-0003',
-    lines:[
-      { _key:'l1', description:'X-Ray Scanning Fee — 3 containers', category:'PORT', qty:3, unit_price:38333, tax_rate:0 },
-    ],
-    created_at:'2026-03-05T08:00:00Z',
-  },
-  {
-    id:'bill-010', bill_number:'BILL-2026-010', supplier_id:'sup-001', supplier_name:'Maersk Line Tanzania',
-    bill_date:'2026-06-01', due_date:'2026-07-01', status:'DRAFT', currency:'USD',
-    subtotal:2400, tax_amount:0, total:2400, paid_amount:0,
-    lines:[
-      { _key:'l1', description:'Sea Freight — 40ft HC FCL (CNTR: MSCU9401822)', category:'FREIGHT', qty:1, unit_price:2000, tax_rate:0 },
-      { _key:'l2', description:'Bunker Adjustment Factor (BAF)', category:'FREIGHT', qty:1, unit_price:280, tax_rate:0 },
-      { _key:'l3', description:'Peak Season Surcharge (PSS)', category:'FREIGHT', qty:1, unit_price:120, tax_rate:0 },
-    ],
-    notes:'Draft bill for upcoming shipment. Awaiting BL confirmation.',
-    created_at:'2026-06-01T08:00:00Z',
-  },
-  {
-    id:'bill-011', bill_number:'BILL-2026-011', supplier_id:'sup-003', supplier_name:'M&G Customs Clearance Ltd',
-    bill_date:'2026-06-01', due_date:'2026-06-16', status:'POSTED', currency:'TZS',
-    subtotal:80000, tax_amount:14400, total:94400, paid_amount:0, recurring_id:'rec-001',
-    lines:[
-      { _key:'l1', description:'Monthly Retainer — Customs Clearance Services (June 2026)', category:'CUSTOMS', qty:1, unit_price:80000, tax_rate:18 },
-    ],
-    notes:'Monthly retainer under contract MGC-2026-RET-002.',
-    created_at:'2026-06-01T08:00:00Z',
-  },
-  {
-    id:'bill-012', bill_number:'BILL-2026-012', supplier_id:'sup-006', supplier_name:'DHL Global Forwarding Tanzania',
-    bill_date:'2026-06-15', due_date:'2026-07-30', status:'POSTED', currency:'USD',
-    subtotal:500, tax_amount:0, total:500, paid_amount:0, recurring_id:'rec-002',
-    lines:[
-      { _key:'l1', description:'Monthly Forwarding & Handling Fee (June 2026)', category:'FREIGHT', qty:1, unit_price:500, tax_rate:0 },
-    ],
-    created_at:'2026-06-15T08:00:00Z',
-  },
-];
-
-export const MOCK_RECURRING: RecurringBill[] = [
-  { id:'rec-001', name:'M&G Monthly Customs Retainer', supplier_id:'sup-003', supplier_name:'M&G Customs Clearance Ltd', frequency:'MONTHLY', currency:'TZS', amount:80000, tax_rate:18, category:'CUSTOMS', description:'Monthly retainer for all customs entry filings and clearance services.', payment_terms:'Net 15', next_due:'2026-07-01', state:'ACTIVE', bills_generated:6, total_spend:480000, created_at:'2026-01-01T00:00:00Z' },
-  { id:'rec-002', name:'DHL Monthly Handling Fee', supplier_id:'sup-006', supplier_name:'DHL Global Forwarding Tanzania', frequency:'MONTHLY', currency:'USD', amount:500, tax_rate:0, category:'FREIGHT', description:'Fixed monthly forwarding and handling fee per MOU DHL-2026-MOU-003.', payment_terms:'Net 45', next_due:'2026-07-15', state:'ACTIVE', bills_generated:3, total_spend:1500, created_at:'2026-04-01T00:00:00Z' },
-  { id:'rec-003', name:'Bonded Warehouse Monthly Storage', supplier_id:'sup-005', supplier_name:'Port Bonded Warehouses Ltd', frequency:'MONTHLY', currency:'USD', amount:250, tax_rate:18, category:'WAREHOUSE', description:'Monthly bonded storage access fee for general cargo allocation.', payment_terms:'Net 30', next_due:'2026-07-01', state:'ACTIVE', bills_generated:6, total_spend:1500, created_at:'2026-01-01T00:00:00Z' },
-  { id:'rec-004', name:'Annual Compliance & KYC Renewal', supplier_id:'sup-003', supplier_name:'M&G Customs Clearance Ltd', frequency:'ANNUAL', currency:'USD', amount:1500, tax_rate:18, category:'PROFESSIONAL', description:'Annual TISCAN license and compliance renewal management fee.', payment_terms:'Net 30', next_due:'2027-01-01', end_date:'2028-01-01', state:'ACTIVE', bills_generated:1, total_spend:1500, created_at:'2026-01-01T00:00:00Z' },
-];
-
-const MOCK_PAYMENTS: Payment[] = [
-  { id:'pay-001', bill_id:'bill-001', amount:1800,    currency:'USD', date:'2026-01-25', method:'Bank Transfer', reference:'TRX-CRDB-20260125-001', note:'Full payment — wire transfer' },
-  { id:'pay-002', bill_id:'bill-002', amount:495600,  currency:'TZS', date:'2026-01-28', method:'Bank Transfer', reference:'TRX-NMB-20260128-002' },
-  { id:'pay-003', bill_id:'bill-004', amount:2000,    currency:'USD', date:'2026-05-30', method:'Bank Transfer', reference:'TRX-CITI-20260530-003', note:'Partial — balance due 29 Jun 2026' },
-  { id:'pay-004', bill_id:'bill-005', amount:566.4,   currency:'USD', date:'2026-02-10', method:'Bank Transfer', reference:'TRX-NMB-20260210-004' },
-  { id:'pay-005', bill_id:'bill-006', amount:147.5,   currency:'USD', date:'2026-01-28', method:'Bank Transfer', reference:'TRX-SC-20260128-005' },
-  { id:'pay-006', bill_id:'bill-008', amount:1050200, currency:'TZS', date:'2026-02-15', method:'Bank Transfer', reference:'TRX-NMB-20260215-006' },
-  { id:'pay-007', bill_id:'bill-009', amount:115000,  currency:'TZS', date:'2026-03-12', method:'Bank Transfer', reference:'TRX-NMB-20260312-007' },
-];
+function mapApiPayment(d: any): Payment {
+  return {
+    id: d.id, bill_id: d.bill_id,
+    amount: Number(d.amount) || 0, currency: d.currency || 'USD',
+    date: d.payment_date ? String(d.payment_date).split('T')[0] : '',
+    method: d.method || '', reference: d.reference || '', note: d.note || undefined,
+  };
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -973,9 +832,9 @@ type AppView  = 'list'|'detail'|'form';
 export const Bills: React.FC = () => {
   const isMobile = useIsMobile();
   const { fmt } = useCurrency();
-  const [bills, setBills]           = useState<Bill[]>(MOCK_BILLS);
-  const [recurring, setRecurring]   = useState<RecurringBill[]>(MOCK_RECURRING);
-  const [payments, setPayments]     = useState<Payment[]>(MOCK_PAYMENTS);
+  const [bills, setBills]           = useState<Bill[]>([]);
+  const [recurring, setRecurring]   = useState<RecurringBill[]>([]);
+  const [payments, setPayments]     = useState<Payment[]>([]);
   const [suppliers, setSuppliers]   = useState<any[]>([]);
   const [tab, setTab]               = useState<MainTab>('bills');
   const [view, setView]             = useState<AppView>('list');
@@ -995,10 +854,13 @@ export const Bills: React.FC = () => {
   // Load from API on mount
   useEffect(() => {
     apiFetch('/v1/bills')
-      .then((d: any) => { if (Array.isArray(d) && d.length > 0) setBills(d.map(mapApiBill)); })
+      .then((d: any) => { if (Array.isArray(d)) setBills(d.map(mapApiBill)); })
       .catch(() => {});
     apiFetch('/v1/bills/recurring')
-      .then((d: any) => { if (Array.isArray(d) && d.length > 0) setRecurring(d.map(mapApiRecurring)); })
+      .then((d: any) => { if (Array.isArray(d)) setRecurring(d.map(mapApiRecurring)); })
+      .catch(() => {});
+    apiFetch('/v1/bills/payments')
+      .then((d: any) => { if (Array.isArray(d)) setPayments(d.map(mapApiPayment)); })
       .catch(() => {});
     apiFetch('/v1/suppliers')
       .then((d: any) => { if (Array.isArray(d)) setSuppliers(d); })
@@ -1130,8 +992,11 @@ export const Bills: React.FC = () => {
     setPayTarget(null);
     apiFetch(`/v1/bills/${bill.id}/payment`, {
       method: 'POST', body: JSON.stringify({ amount, currency: bill.currency, payment_date: date, method, reference: ref, note }),
-    }).then(() => apiFetch('/v1/bills'))
-      .then((d: any) => { if (Array.isArray(d)) setBills(d.map(mapApiBill)); })
+    }).then(() => Promise.all([apiFetch('/v1/bills'), apiFetch('/v1/bills/payments')]))
+      .then(([billsRes, paymentsRes]: any) => {
+        if (Array.isArray(billsRes)) setBills(billsRes.map(mapApiBill));
+        if (Array.isArray(paymentsRes)) setPayments(paymentsRes.map(mapApiPayment));
+      })
       .catch(() => {});
   }
 
