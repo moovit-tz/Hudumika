@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { MobileNavContext } from '../shells/WorkspaceApp.js';
 import { showAlert } from '../lib/alert.js';
+import { useEvents, addEvent, deleteEvent, useTodos, addTodo, updateTodo, deleteTodo, inboxListId } from '../data/calendarStore.js';
 import './EmailApp.css';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -83,130 +84,6 @@ const LABEL_COLORS: Record<Label, string> = {
   Urgent:    'var(--red)',
 };
 
-// ─── Mock Data ─────────────────────────────────────────────────────────────────
-
-const d = (daysAgo: number, hour = 9, min = 0): Date => {
-  const dt = new Date();
-  dt.setDate(dt.getDate() - daysAgo);
-  dt.setHours(hour, min, 0, 0);
-  return dt;
-};
-
-const MOCK_EMAILS: Email[] = [
-  {
-    id: 'e001',
-    folder: 'inbox',
-    from: { name: 'Tanzania Revenue Authority', email: 'customs@tra.go.tz' },
-    to: [{ name: 'ClearOS Operations', email: 'ops@clearos.co.tz' }],
-    subject: 'Customs Duty Assessment — Import Declaration TZ-48821',
-    body: `Dear ClearOS Freight Services,\n\nPlease find attached the customs duty assessment for Import Declaration TZ-48821 filed on 18 June 2026.\n\nTotal Assessable Value: USD 142,500\nCustoms Duty (25%): TZS 9,053,250\nVAT (18%): TZS 4,342,560\nRDL (1.5%): TZS 543,195\nCPF (0.6%): TZS 217,278\n\nTotal Amount Due: TZS 14,156,283\n\nKindly effect payment within 7 working days to avoid penalties and storage charges. Payment should be made via TRA Taxpayer Portal.\n\nFor any queries, please contact us at customs@tra.go.tz or call +255 22 211 5055.\n\nRegards,\nCustoms Commissioner\nTanzania Revenue Authority`,
-    snippet: 'Customs duty assessment for Import Declaration TZ-48821. Total Amount Due: TZS 14,156,283...',
-    date: d(0, 8, 22),
-    read: false,
-    starred: true,
-    labels: ['Finance', 'Urgent'],
-    hasAttachment: true,
-  },
-  {
-    id: 'e002',
-    folder: 'inbox',
-    from: { name: 'Dar es Salaam Port Authority', email: 'ops@dpa.go.tz' },
-    to: [{ name: 'ClearOS Operations', email: 'ops@clearos.co.tz' }],
-    subject: 'URGENT: Demurrage Notice — Container TXCU4829310',
-    body: `Dear Agent,\n\nThis is to notify you that container TXCU4829310 has exceeded the free storage period of 7 days at TICTS terminal.\n\nVessel: MSC AMELIA\nVOY: MA624\nContainer: TXCU4829310 (40ft HC)\nFree Period Expired: 19 June 2026\nAccrued Demurrage: USD 480 (4 days @ USD 120/day)\n\nDemurrage will continue to accrue at USD 120 per day until the container is collected. Please arrange for immediate collection to avoid further charges.\n\nPayment of outstanding demurrage must be settled before the Delivery Order is released.\n\nPort Operations\nDar es Salaam Port Authority`,
-    snippet: 'Container TXCU4829310 has exceeded free storage. Demurrage accruing at USD 120/day...',
-    date: d(0, 9, 5),
-    read: false,
-    starred: true,
-    labels: ['Shipments', 'Urgent'],
-    hasAttachment: false,
-  },
-  {
-    id: 'e003',
-    folder: 'inbox',
-    from: { name: 'Alibaba International Logistics', email: 'shipments@alibaba-logistics.com' },
-    to: [{ name: 'ClearOS Operations', email: 'ops@clearos.co.tz' }],
-    subject: 'Booking Confirmation — Shipment Ref: ALIBABA-99281A',
-    body: `Dear Partner,\n\nWe are pleased to confirm the sea freight booking for your shipment. Below are the details:\n\nShipper: Shenzhen Yantian Electronics Co.\nConsignee: Dar es Salaam Wholesale Traders Ltd\nBooking Ref: ALIBABA-99281A\nVessel/Voyage: COSCO SHIPPING KILIMANJARO / 012E\nPort of Loading: Shenzhen (Yantian), China\nPort of Discharge: Dar es Salaam, Tanzania\nEstimated Time of Loading (ETD): 28 June 2026\nEstimated Time of Arrival (ETA): 18 July 2026\nCargo: 2 x 40ft Containers (General Merchandise)\n\nPlease ensure all export documentation is submitted at least 48 hours before ETD.\n\nBest regards,\nAlibaba Logistics Team`,
-    snippet: 'Sea freight booking confirmation for COSCO SHIPPING KILIMANJARO / 012E. ETA: 18 July...',
-    date: d(0, 10, 15),
-    read: true,
-    starred: false,
-    labels: ['Shipments'],
-    hasAttachment: true,
-  },
-  {
-    id: 'e004',
-    folder: 'inbox',
-    from: { name: 'Karibu Trading Co. Ltd', email: 'finance@kaributrading.co.tz' },
-    to: [{ name: 'ClearOS Operations', email: 'ops@clearos.co.tz' }],
-    subject: 'RE: Outstanding Freight Invoice #IV-2026-0488',
-    body: `Hi Operations Team,\n\nWe have processed the payment for Freight Invoice #IV-2026-0488. The bank transfer slip is attached to this email.\n\nPayment Details:\nInvoice No: IV-2026-0488\nAmount Paid: TZS 4,820,000\nBank: NMB Bank Tanzania\nTransaction Ref: TXN99827164A\n\nPlease confirm receipt and issue the original Bill of Lading so we can proceed with cargo clearance at the port.\n\nThanks,\nSarah Mushi\nFinance Department`,
-    snippet: 'Payment processed for Freight Invoice #IV-2026-0488. Bank receipt attached...',
-    date: d(0, 11, 30),
-    read: true,
-    starred: false,
-    labels: ['Shipments'],
-    hasAttachment: true,
-  },
-  {
-    id: 'e005',
-    folder: 'inbox',
-    from: { name: 'Amani Korir', email: 'amani.korir@eastafricacargo.com' },
-    to: [{ name: 'ClearOS Operations', email: 'ops@clearos.co.tz' }],
-    subject: 'TZ-Kenya Border Clearance Update (Namanga)',
-    body: `Hello Team,\n\nQuick update regarding the road transit consignment through the Namanga border:\n\nTruck Reg: T 488 DFL / T 902 DFJ\nConsignment: Agricultural Spare Parts\nStatus: Currently undergoing customs verification on the Kenyan side. The system was down for 2 hours this morning but is now back online.\nExpected Release: Late this afternoon.\n\nWe will update you as soon as the truck exits the border post.\n\nBest,\nAmani Korir\nBorder Clearance Coordinator`,
-    snippet: 'Namanga border transit status: Undergoing customs verification. Expected release today...',
-    date: d(1, 14, 10),
-    read: true,
-    starred: false,
-    labels: ['Shipments'],
-    hasAttachment: false,
-  },
-  {
-    id: 'e006',
-    folder: 'inbox',
-    from: { name: 'Farida Hassan', email: 'farida.hassan@nexushr.co.tz' },
-    to: [{ name: 'ClearOS Operations', email: 'ops@clearos.co.tz' }],
-    subject: 'July 2026 Payroll Sheets & Performance Bonuses',
-    body: `Hi team,\n\nI have uploaded the draft payroll sheets for July 2026 for the Logistics and Operations division. Please review the overtime calculations and performance bonuses.\n\nTotal staff: 42\nTotal payroll value: TZS 82,450,000\nKey additions: Bonus allocations for top-performing clearing agents.\n\nPlease submit your approvals by Friday, 3 July, to ensure timely disbursement.\n\nBest,\nFarida Hassan\nHR Director`,
-    snippet: 'Draft payroll sheets for July 2026 uploaded. Please review overtime and bonuses...',
-    date: d(1, 16, 45),
-    read: true,
-    starred: false,
-    labels: ['Finance', 'HR'],
-    hasAttachment: true,
-  },
-  {
-    id: 'e007',
-    folder: 'inbox',
-    from: { name: 'PVOC Kenya — KEBS', email: 'pvoc@kebs.org' },
-    to: [{ name: 'ClearOS Operations', email: 'ops@clearos.co.tz' }],
-    subject: 'Pre-Export Verification of Conformity (PVOC) Certificate Issued',
-    body: `Dear Applicant,\n\nWe are pleased to inform you that the Pre-Export Verification of Conformity (PVOC) Certificate has been successfully issued for your shipment.\n\nCertificate No: KEBS-PVOC-2026-99281\nExporter: Shanghai Heavy Machinery Corp.\nImporter: Nairobi Construction Supplies Ltd\nProduct: Industrial Steel Pipes\nConformity Status: Pass\n\nThe digital certificate has been transmitted directly to Kenya Revenue Authority (KRA) KenTrade system.\n\nRegards,\nKEBS PVOC Department`,
-    snippet: 'PVOC Certificate KEBS-PVOC-2026-99281 successfully issued for machinery shipment...',
-    date: d(2, 10, 5),
-    read: true,
-    starred: false,
-    labels: ['Shipments'],
-    hasAttachment: false,
-  },
-  {
-    id: 'e008',
-    folder: 'inbox',
-    from: { name: 'Sunrise Imports Ltd', email: 'orders@sunriseimports.co.tz' },
-    to: [{ name: 'ClearOS Operations', email: 'ops@clearos.co.tz' }],
-    subject: 'Request for Freight Quotation: 20ft Container from Mumbai',
-    body: `Dear ClearOS Team,\n\nWe would like to request a freight quotation for a 20ft GP container from Nhava Sheva (Mumbai) to Dar es Salaam Port.\n\nCommodity: Ceramic Tiles\nWeight: 21 Metric Tons\nIncoterm: FOB Nhava Sheva Port\nReady Date: 10 July 2026\n\nPlease include all local port charges in Dar es Salaam, clearing agency fees, and delivery to our warehouse in Mikocheni Industrial Area.\n\nLooking forward to your competitive quote.\n\nBest regards,\nRajesh Patel\nManaging Director`,
-    snippet: 'Quote request: 20ft container containing ceramic tiles from Nhava Sheva (Mumbai)...',
-    date: d(2, 15, 20),
-    read: true,
-    starred: false,
-    labels: ['Finance'],
-    hasAttachment: false,
-  },
-];
-
 // ─── Avatar ─────────────────────────────────────────────────────────────────────
 
 const Avatar: React.FC<{ name: string; size?: number }> = ({ name, size = 32 }) => (
@@ -239,7 +116,7 @@ export const EmailApp: React.FC = () => {
     return 'inbox';
   })();
 
-  const [emails, setEmails] = useState<Email[]>(MOCK_EMAILS);
+  const [emails, setEmails] = useState<Email[]>([]);
   const [emailsLoading, setEmailsLoading] = useState(false);
   const [activeFolder, setActiveFolder] = useState<Folder>(folderFromPath);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -326,41 +203,51 @@ export const EmailApp: React.FC = () => {
   // Companion panel
   const [activeCompanion, setActiveCompanion] = useState<'calendar' | 'notes' | 'tasks' | 'contacts' | null>(null);
 
-  // ── Calendar state ────────────────────────────────────────────────────────────
-  const [events, setEvents] = useState([
-    { id: 'ev1', time: '09:30', title: 'Daily Standup Meeting' },
-    { id: 'ev2', time: '11:00', title: 'TRA Customs Declaration Review' },
-    { id: 'ev3', time: '14:00', title: 'Client Onboarding Seminar' },
-    { id: 'ev4', time: '16:30', title: 'Weekly Operations Sync' },
-  ]);
+  // ── Calendar state — shared real store (same one Calendar/Tasks apps use) ─────
+  const allEvents = useEvents();
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const events = allEvents
+    .filter(ev => ev.start.slice(0, 10) === todayStr)
+    .sort((a, b) => a.start.localeCompare(b.start))
+    .map(ev => ({ id: ev.id, time: ev.start.slice(11, 16), title: ev.title }));
   const [newEventTitle, setNewEventTitle] = useState('');
   const [newEventTime, setNewEventTime] = useState('10:00');
   const [showAddEvent, setShowAddEvent] = useState(false);
+  const [monthOffset, setMonthOffset] = useState(0);
 
   const handleAddEvent = () => {
     if (!newEventTitle.trim()) return;
-    setEvents(prev => [...prev, { id: `ev-${Date.now()}`, time: newEventTime, title: newEventTitle }]);
+    const [h, m] = newEventTime.split(':');
+    const startH = Number(h) || 0, startM = Number(m) || 0;
+    const endH = (startH + 1) % 24;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    addEvent({
+      title: newEventTitle,
+      start: `${todayStr}T${pad(startH)}:${pad(startM)}`,
+      end: `${todayStr}T${pad(endH)}:${pad(startM)}`,
+      category: 'work',
+    });
     setNewEventTitle('');
     setShowAddEvent(false);
   };
 
-  // ── Tasks state ───────────────────────────────────────────────────────────────
-  const [tasks, setTasks] = useState([
-    { id: 't1', title: 'Confirm TRA duty payment receipt', completed: false },
-    { id: 't2', title: 'Call Dar es Salaam port agent', completed: false },
-    { id: 't3', title: 'Review July draft payroll sheet', completed: true },
-    { id: 't4', title: 'Draft freight quote for Rajesh Patel', completed: false },
-  ]);
+  // ── Tasks state — shared real store (same one the Tasks app uses) ────────────
+  const allTodos = useTodos();
+  const tasks = allTodos.filter(t => !t.deletedAt).sort((a, b) => Number(a.completed) - Number(b.completed) || a.order - b.order);
   const [newTaskTitle, setNewTaskTitle] = useState('');
 
   const handleAddTask = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && newTaskTitle.trim()) {
-      setTasks(prev => [...prev, { id: `t-${Date.now()}`, title: newTaskTitle, completed: false }]);
+      const listId = inboxListId();
+      if (listId) addTodo({ title: newTaskTitle, listId });
       setNewTaskTitle('');
     }
   };
-  const toggleTask = (id: string) => setTasks(prev => prev.map(t => t.id === id ? { ...t, completed: !t.completed } : t));
-  const deleteTask = (id: string, e: React.MouseEvent) => { e.stopPropagation(); setTasks(prev => prev.filter(t => t.id !== id)); };
+  const toggleTask = (id: string) => {
+    const t = allTodos.find(x => x.id === id);
+    if (t) updateTodo(id, { completed: !t.completed });
+  };
+  const deleteTask = (id: string, e: React.MouseEvent) => { e.stopPropagation(); deleteTodo(id); };
 
   // ── Contacts state ────────────────────────────────────────────────────────────
   const [contactTab, setContactTab] = useState<'thread' | 'all'>('thread');
@@ -405,25 +292,23 @@ export const EmailApp: React.FC = () => {
     setEmailsLoading(true);
     try {
       const data = await apiFetch(`/v1/emails?folder=${activeFolder}`);
-      if (Array.isArray(data) && data.length > 0) {
-        setEmails(data.map((e: any) => ({
-          id: String(e.id),
-          folder: (e.folder ?? activeFolder) as Folder,
-          from: e.from ?? { name: 'Unknown', email: '' },
-          to: Array.isArray(e.to) ? e.to : [{ name: String(e.to ?? ''), email: String(e.to ?? '') }],
-          cc: e.cc,
-          subject: e.subject ?? '(no subject)',
-          body: e.body ?? '',
-          snippet: e.snippet ?? String(e.body ?? '').slice(0, 100),
-          date: new Date(e.date ?? Date.now()),
-          read: Boolean(e.read),
-          starred: Boolean(e.starred),
-          labels: Array.isArray(e.labels) ? e.labels : [],
-          hasAttachment: Boolean(e.hasAttachment),
-        })));
-      }
-    } catch {
-      // Keep mock data already in state
+      setEmails(Array.isArray(data) ? data.map((e: any) => ({
+        id: String(e.id),
+        folder: (e.folder ?? activeFolder) as Folder,
+        from: e.from ?? { name: 'Unknown', email: '' },
+        to: Array.isArray(e.to) ? e.to : [{ name: String(e.to ?? ''), email: String(e.to ?? '') }],
+        cc: e.cc,
+        subject: e.subject ?? '(no subject)',
+        body: e.body ?? '',
+        snippet: e.snippet ?? String(e.body ?? '').slice(0, 100),
+        date: new Date(e.date ?? Date.now()),
+        read: Boolean(e.read),
+        starred: Boolean(e.starred),
+        labels: Array.isArray(e.labels) ? e.labels : [],
+        hasAttachment: Boolean(e.hasAttachment),
+      })) : []);
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to load emails');
     } finally {
       setEmailsLoading(false);
     }
@@ -468,14 +353,21 @@ export const EmailApp: React.FC = () => {
     setReplyOpen(false);
     setAiSummary(null);
     setAiPanelOpen(false);
-    setEmails(prev => prev.map(e => e.id === id ? { ...e, read: true } : e));
     const em = emails.find(e => e.id === id);
+    if (em && !em.read) {
+      setEmails(prev => prev.map(e => e.id === id ? { ...e, read: true } : e));
+      apiFetch(`/v1/emails/${id}`, { method: 'PATCH', body: JSON.stringify({ read: true }) }).catch(() => {});
+    }
     if (em) { setReplySubject(`Re: ${em.subject}`); setReplyBody(''); }
   }
 
   function toggleStar(id: string, evt: React.MouseEvent) {
     evt.stopPropagation();
-    setEmails(prev => prev.map(e => e.id === id ? { ...e, starred: !e.starred } : e));
+    const em = emails.find(e => e.id === id);
+    const next = !em?.starred;
+    setEmails(prev => prev.map(e => e.id === id ? { ...e, starred: next } : e));
+    apiFetch(`/v1/emails/${id}`, { method: 'PATCH', body: JSON.stringify({ starred: next }) })
+      .catch(() => { setEmails(prev => prev.map(e => e.id === id ? { ...e, starred: !next } : e)); showAlert('Failed to update star'); });
   }
 
   function toggleSelect(id: string, evt: React.MouseEvent) {
@@ -484,19 +376,24 @@ export const EmailApp: React.FC = () => {
   }
 
   function bulkDelete() {
+    const ids = Array.from(selected);
     setEmails(prev => prev.map(e => selected.has(e.id) ? { ...e, folder: 'trash' } : e));
     if (selectedId && selected.has(selectedId)) setSelectedId(null);
     setSelected(new Set());
+    Promise.all(ids.map(id => apiFetch(`/v1/emails/${id}`, { method: 'PATCH', body: JSON.stringify({ folder: 'trash' }) })))
+      .catch(() => showAlert('Some messages failed to move to Trash'));
   }
 
   function archiveEmail(id: string) {
     setEmails(prev => prev.map(e => e.id === id ? { ...e, folder: 'trash' } : e));
     setSelectedId(null);
+    apiFetch(`/v1/emails/${id}`, { method: 'PATCH', body: JSON.stringify({ folder: 'trash' }) }).catch(() => showAlert('Failed to move message to Trash'));
   }
 
   function markUnread(id: string) {
     setEmails(prev => prev.map(e => e.id === id ? { ...e, read: false } : e));
     setSelectedId(null);
+    apiFetch(`/v1/emails/${id}`, { method: 'PATCH', body: JSON.stringify({ read: false }) }).catch(() => showAlert('Failed to mark unread'));
   }
 
   function changeFolder(folder: Folder) {
@@ -516,30 +413,25 @@ export const EmailApp: React.FC = () => {
           body: replyBody,
         }),
       });
-      const newEmail: Email = {
-        id: `sent-${Date.now()}`,
-        folder: 'sent',
-        from: { name: 'ClearOS Operations', email: 'ops@clearos.co.tz' },
-        to: [{ name: selectedEmail.from.name, email: selectedEmail.from.email }],
-        subject: replySubject || `Re: ${selectedEmail.subject}`,
-        body: replyBody,
-        snippet: replyBody.slice(0, 120),
-        date: new Date(),
-        read: true,
-        starred: false,
-        labels: [],
-      };
-      setEmails(prev => [newEmail, ...prev]);
       setReplyOpen(false);
       setReplyBody('');
+      if (activeFolder === 'sent') loadEmails();
     } catch (err: any) {
       showAlert(err.message || 'Failed to send reply');
     }
   }
 
-  function openCompose() {
-    setCompose({ to: '', cc: '', bcc: '', subject: '', body: '', showCc: false, showBcc: false });
+  function openCompose(prefill?: Partial<ComposeData>) {
+    setCompose({ to: '', cc: '', bcc: '', subject: '', body: '', showCc: false, showBcc: false, ...prefill });
     setComposeOpen(true);
+  }
+
+  function forwardEmail() {
+    if (!selectedEmail) return;
+    openCompose({
+      subject: `Fwd: ${selectedEmail.subject}`,
+      body: `\n\n---------- Forwarded message ----------\nFrom: ${selectedEmail.from.name} <${selectedEmail.from.email}>\nDate: ${fmtDateLong(selectedEmail.date)}\nSubject: ${selectedEmail.subject}\n\n${selectedEmail.body}`,
+    });
   }
 
   async function sendCompose() {
@@ -547,23 +439,10 @@ export const EmailApp: React.FC = () => {
     try {
       await apiFetch('/v1/email/send', {
         method: 'POST',
-        body: JSON.stringify({ to: compose.to, subject: compose.subject, body: compose.body }),
+        body: JSON.stringify({ to: compose.to, cc: compose.cc || undefined, subject: compose.subject, body: compose.body }),
       });
-      const newEmail: Email = {
-        id: `sent-${Date.now()}`,
-        folder: 'sent',
-        from: { name: 'ClearOS Operations', email: 'ops@clearos.co.tz' },
-        to: compose.to.split(',').map(a => ({ name: a.trim(), email: a.trim() })),
-        subject: compose.subject,
-        body: compose.body,
-        snippet: compose.body.slice(0, 120),
-        date: new Date(),
-        read: true,
-        starred: false,
-        labels: [],
-      };
-      setEmails(prev => [newEmail, ...prev]);
       setComposeOpen(false);
+      if (activeFolder === 'sent') loadEmails();
     } catch (err: any) {
       showAlert(err.message || 'Failed to send email');
     }
@@ -593,26 +472,41 @@ export const EmailApp: React.FC = () => {
   // ── Companion render helpers ──────────────────────────────────────────────────
 
   const renderCalendar = () => {
-    const days = Array.from({ length: 30 }, (_, i) => i + 1);
+    const now = new Date();
+    const viewMonth = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+    const monthLabel = viewMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    const firstWeekday = (viewMonth.getDay() + 6) % 7; // Monday-first
+    const daysInMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0).getDate();
+    const eventDaysWithCount = new Map<number, number>();
+    allEvents.forEach(ev => {
+      const evDate = new Date(ev.start);
+      if (evDate.getFullYear() === viewMonth.getFullYear() && evDate.getMonth() === viewMonth.getMonth()) {
+        eventDaysWithCount.set(evDate.getDate(), (eventDaysWithCount.get(evDate.getDate()) || 0) + 1);
+      }
+    });
+    const cells: (number | null)[] = [...Array(firstWeekday).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div style={{ border: '0.5px solid var(--border)', borderRadius: 9, padding: 12, background: 'var(--bg)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>June 2026</span>
+            <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{monthLabel}</span>
             <div style={{ display: 'flex', gap: 4 }}>
-              <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}><Icon name="chevronLeft" size={13} /></button>
-              <button type="button" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}><Icon name="chevronRight" size={13} /></button>
+              <button type="button" onClick={() => setMonthOffset(m => m - 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}><Icon name="chevronLeft" size={13} /></button>
+              <button type="button" onClick={() => setMonthOffset(m => m + 1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}><Icon name="chevronRight" size={13} /></button>
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, textAlign: 'center', fontSize: 10, fontWeight: 600, color: 'var(--ink3)', marginBottom: 6 }}>
             <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
-            {days.map(dd => {
-              const isToday = dd === 30;
+            {cells.map((dd, i) => {
+              if (dd === null) return <div key={`pad-${i}`} />;
+              const isToday = monthOffset === 0 && dd === now.getDate();
+              const hasEvents = eventDaysWithCount.has(dd);
               return (
-                <div key={dd} style={{ fontSize: 11, fontWeight: isToday ? 800 : 500, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: isToday ? '#0b57d0' : 'transparent', color: isToday ? '#fff' : 'var(--ink)', cursor: 'pointer' }}>
+                <div key={dd} style={{ position: 'relative', fontSize: 11, fontWeight: isToday ? 800 : 500, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: isToday ? '#0b57d0' : 'transparent', color: isToday ? '#fff' : 'var(--ink)', cursor: 'pointer' }}>
                   {dd}
+                  {hasEvents && !isToday && <span style={{ position: 'absolute', bottom: 1, width: 3, height: 3, borderRadius: '50%', background: '#0b57d0' }} />}
                 </div>
               );
             })}
@@ -645,7 +539,7 @@ export const EmailApp: React.FC = () => {
                   <span style={{ fontSize: 11, fontWeight: 700, color: '#0b57d0' }}>{ev.time}</span>
                 </div>
                 <div style={{ flex: 1, fontSize: 12, color: 'var(--ink)', fontWeight: 500, display: 'flex', alignItems: 'center' }}>{ev.title}</div>
-                <button type="button" onClick={() => setEvents(prev => prev.filter(x => x.id !== ev.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5, display: 'flex', alignSelf: 'center' }}>
+                <button type="button" onClick={() => deleteEvent(ev.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5, display: 'flex', alignSelf: 'center' }}>
                   <Icon name="trash" size={12} />
                 </button>
               </div>
@@ -979,7 +873,7 @@ export const EmailApp: React.FC = () => {
                 <button type="button" className="em-icon-btn em-icon-btn--pill" onClick={() => setReplyOpen(true)}>
                   <Icon name="arrowLeft" size={14} /> Reply
                 </button>
-                <button type="button" className="em-icon-btn em-icon-btn--pill">
+                <button type="button" className="em-icon-btn em-icon-btn--pill" onClick={forwardEmail}>
                   <Icon name="send" size={14} /> Forward
                 </button>
               </div>
