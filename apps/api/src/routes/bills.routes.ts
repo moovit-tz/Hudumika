@@ -81,7 +81,7 @@ export async function billRoutes(fastify: FastifyInstance) {
       const existing = await trx.selectFrom('recurring_bills').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Recurring bill not found' });
       const updates: any = { updated_at: new Date() };
-      const fields = ['name', 'supplier_id', 'supplier_name', 'frequency', 'currency', 'amount', 'tax_rate', 'category', 'description', 'payment_terms', 'next_due', 'end_date', 'state'];
+      const fields = ['name', 'supplier_id', 'supplier_name', 'frequency', 'currency', 'amount', 'tax_rate', 'category', 'description', 'payment_terms', 'next_due', 'end_date', 'state', 'bills_generated', 'total_spend'];
       for (const f of fields) {
         if (body[f] !== undefined) updates[f] = body[f];
       }

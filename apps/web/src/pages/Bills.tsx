@@ -1001,16 +1001,24 @@ export const Bills: React.FC = () => {
   }
 
   function handleGenerate(r: RecurringBill) {
-    const nb: Bill = {
-      id:genId(), bill_number:genNum(bills), supplier_id:r.supplier_id, supplier_name:r.supplier_name,
-      bill_date:r.next_due, due_date: advanceDate(r.next_due, r.frequency === 'MONTHLY' ? 'MONTHLY' : r.frequency).split('T')[0],
-      status:'POSTED', currency:r.currency,
-      subtotal:r.amount, tax_amount:r.amount*r.tax_rate/100, total:r.amount*(1+r.tax_rate/100), paid_amount:0,
-      lines:[{ _key:newKey(), description:`${r.name} — ${fmtDate(r.next_due)}`, category:r.category, qty:1, unit_price:r.amount, tax_rate:r.tax_rate }],
-      recurring_id:r.id, notes:`Generated from recurring template "${r.name}".`, created_at:new Date().toISOString(),
+    const dueDate = advanceDate(r.next_due, r.frequency === 'MONTHLY' ? 'MONTHLY' : r.frequency).split('T')[0];
+    const payload = {
+      supplier_id: r.supplier_id, supplier_name: r.supplier_name,
+      bill_date: r.next_due, due_date: dueDate, status: 'POSTED', currency: r.currency,
+      recurring_id: r.id, notes: `Generated from recurring template "${r.name}".`,
+      items: [{ description: `${r.name} — ${fmtDate(r.next_due)}`, category: r.category, qty: 1, unit_price: r.amount, tax_rate: r.tax_rate, sort_order: 0 }],
     };
-    setBills(p => [nb, ...p]);
-    setRecurring(p => p.map(x => x.id === r.id ? { ...x, next_due:advanceDate(r.next_due, r.frequency), bills_generated:x.bills_generated+1, total_spend:x.total_spend+nb.total } : x));
+    apiFetch('/v1/bills', { method: 'POST', body: JSON.stringify(payload) })
+      .then(() => apiFetch(`/v1/bills/recurring/${r.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ next_due: advanceDate(r.next_due, r.frequency), bills_generated: r.bills_generated + 1, total_spend: r.total_spend + r.amount * (1 + r.tax_rate / 100) }),
+      }))
+      .then(() => Promise.all([apiFetch('/v1/bills'), apiFetch('/v1/bills/recurring')]))
+      .then(([billsRes, recurRes]: any) => {
+        if (Array.isArray(billsRes)) setBills(billsRes.map(mapApiBill));
+        if (Array.isArray(recurRes)) setRecurring(recurRes.map(mapApiRecurring));
+      })
+      .catch((err: any) => showAlert(err.message || 'Failed to generate bill'));
   }
 
   // ── Metrics ─────────────────────────────────────────────────────────────────
@@ -1018,7 +1026,8 @@ export const Bills: React.FC = () => {
   const totalBills   = bills.length;
   const unpaidBills  = effectiveBills.filter(b => b.status === 'POSTED' || b.status === 'PARTIAL' || b.status === 'OVERDUE');
   const overdueBills = effectiveBills.filter(b => b.status === 'OVERDUE');
-  const paidThisMonth= effectiveBills.filter(b => b.status === 'PAID' && b.bill_date.startsWith('2026-06'));
+  const currentMonthStr = new Date().toISOString().slice(0, 7);
+  const paidThisMonth= effectiveBills.filter(b => b.status === 'PAID' && b.bill_date.startsWith(currentMonthStr));
   const outstanding  = unpaidBills.reduce((a,b) => a + (b.total - b.paid_amount), 0);
   const overdueAmt   = overdueBills.reduce((a,b) => a + (b.total - b.paid_amount), 0);
 
