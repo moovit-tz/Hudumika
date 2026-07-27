@@ -110,6 +110,24 @@ export const FinanceLedger: React.FC = () => {
     return groups;
   }, [filtered]);
 
+  function exportCsv() {
+    const rows = [
+      ['Code', 'Account', 'Type', 'Opening Balance', 'Period Debit', 'Period Credit', 'Closing Balance'],
+      ...filtered.map(a => [
+        a.account_code, a.account_name, TYPE_CFG[a.account_type].label,
+        String(a.opening_debit - a.opening_credit), String(a.period_debit), String(a.period_credit),
+        String(a.closing_debit - a.closing_credit),
+      ]),
+    ];
+    const csv = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `ledger-${period.label.replace(/\s+/g, '-')}.csv`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
   if (loading) return <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading ledger…</div>;
 
   return (
@@ -127,7 +145,7 @@ export const FinanceLedger: React.FC = () => {
               {PERIODS.map((p, i) => <SelectItem key={p.label} value={String(i)}>{p.label}</SelectItem>)}
             </SelectContent>
           </Select>
-          <button type="button" title="Export ledger" className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+          <button type="button" title="Export ledger" className="btn btn-secondary btn-sm" style={{ gap: 6 }} onClick={exportCsv}>
             <Icon name="download" size={13} />Export
           </button>
         </div>

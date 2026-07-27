@@ -90,6 +90,20 @@ export const FinanceTrialBalance: React.FC = () => {
     ) as Record<AccountType, { debit: number; credit: number }>,
   [rows]);
 
+  function exportCsv() {
+    const rows2 = [
+      ['Code', 'Account Name', 'Type', 'Debit', 'Credit'],
+      ...filtered.map(a => [a.account_code, a.account_name, TYPE_CFG[a.account_type].label, String(a.closing_debit), String(a.closing_credit)]),
+    ];
+    const csv = rows2.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `trial-balance-${period.label.replace(/\s+/g, '-')}.csv`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
   if (loading) return <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading trial balance…</div>;
   if (error) return <div style={{ padding: '48px 0', textAlign: 'center', color: '#ef4444' }}>{error}</div>;
 
@@ -108,10 +122,10 @@ export const FinanceTrialBalance: React.FC = () => {
               {PERIODS.map((p, i) => <SelectItem key={p.label} value={String(i)}>{p.label}</SelectItem>)}
             </SelectContent>
           </Select>
-          <button type="button" title="Export trial balance" className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+          <button type="button" title="Export trial balance" className="btn btn-secondary btn-sm" style={{ gap: 6 }} onClick={exportCsv}>
             <Icon name="download" size={13} />Export
           </button>
-          <button type="button" title="Print trial balance" className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+          <button type="button" title="Print trial balance" className="btn btn-secondary btn-sm" style={{ gap: 6 }} onClick={() => window.print()}>
             <Icon name="fileText" size={13} />Print
           </button>
         </div>

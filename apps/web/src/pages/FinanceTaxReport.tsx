@@ -100,6 +100,20 @@ export const FinanceTaxReport: React.FC = () => {
   const totalTax = summary.reduce((a, b) => a + b.taxAmt, 0);
   const totalInv = summary.reduce((a, b) => a + b.invoices, 0);
 
+  function exportCsv() {
+    const rows = [
+      ['Ref', 'Description', 'Date', 'Tax Type', 'Taxable Amount', 'Tax Amount', 'Rate'],
+      ...transactions.map(t => [t.ref, t.description, t.date, t.taxType, String(t.taxable), String(t.taxAmt), `${t.rate}%`]),
+    ];
+    const csv = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `tax-report-${period.replace(/\s+/g, '-')}.csv`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
 
@@ -115,7 +129,7 @@ export const FinanceTaxReport: React.FC = () => {
               {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
             </SelectContent>
           </Select>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={exportCsv} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             <Icon name="download" size={13} /> Export
           </button>
         </div>

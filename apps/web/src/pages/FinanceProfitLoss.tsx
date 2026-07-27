@@ -159,6 +159,21 @@ export const FinanceProfitLoss: React.FC = () => {
   const grossMargin = revenueTotal !== 0 ? ((grossProfit / revenueTotal) * 100).toFixed(1) : '0.0';
   const netMargin = revenueTotal !== 0 ? ((netProfit / revenueTotal) * 100).toFixed(1) : '0.0';
 
+  function exportCsv() {
+    const rows = [
+      ['Section', 'Line', 'Amount'],
+      ...incomeRows.filter(r => r.label && !r.separator).map(r => ['Income', r.label, String(r.amount)]),
+      ...costRows.filter(r => r.label && !r.separator).map(r => ['Costs & Profit', r.label, String(r.amount)]),
+    ];
+    const csv = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `profit-loss-${period.replace(/\s+/g, '-')}.csv`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
 
@@ -174,7 +189,7 @@ export const FinanceProfitLoss: React.FC = () => {
               {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
             </SelectContent>
           </Select>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={exportCsv} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             <Icon name="download" size={13} /> Export
           </button>
         </div>

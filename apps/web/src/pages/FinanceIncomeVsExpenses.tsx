@@ -80,6 +80,20 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
     .map((m, i) => ({ month: m, income: income[i], expense: expenses[i], net: income[i] - expenses[i] }))
     .filter(row => row.income > 0 || row.expense > 0);
 
+  function exportCsv() {
+    const rows = [
+      ['Month', 'Income', 'Expenses', 'Net'],
+      ...monthlyRows.map(r => [r.month, String(r.income), String(r.expense), String(r.net)]),
+    ];
+    const csv = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `income-vs-expenses-${year}.csv`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
 
@@ -95,7 +109,7 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
               {YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
             </SelectContent>
           </Select>
-          <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={exportCsv} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             <Icon name="download" size={13} /> Export
           </button>
         </div>
