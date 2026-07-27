@@ -10,6 +10,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showConfirm } from '../lib/confirm.js';
+import { getCompany } from '../data/companyStore.js';
 
 // Types and Interfaces
 // Mirrors the backend's purchase_orders.status CHECK constraint
@@ -64,77 +65,133 @@ interface Warehouse {
   name: string;
 }
 
-// Global Mock Databases
-export const MOCK_PRODUCTS: Product[] = [
-  {
-    id: 'prod-1',
-    name: 'Cordless Drill Machine',
-    sku: 'AUTO-PROD-030',
-    description: 'Rechargeable cordless drill with variable speed and multiple drill bit attachments',
-    unitPrice: 70,
-    taxRates: [{ name: 'GST', rate: 18 }, { name: 'VAT', rate: 12 }]
-  },
-  {
-    id: 'prod-2',
-    name: 'Brake Pad Set',
-    sku: 'AUTO-PART-032',
-    description: 'Durable replacement brake pads compatible with most mid-size cars and SUVs',
-    unitPrice: 40,
-    taxRates: [{ name: 'GST', rate: 18 }]
-  },
-  {
-    id: 'prod-3',
-    name: 'Light Bulb',
-    sku: 'HOME-PART-014',
-    description: 'Standard household light bulb for daily lighting needs',
-    unitPrice: 250,
-    taxRates: [{ name: 'GST', rate: 18 }]
-  },
-  {
-    id: 'prod-4',
-    name: 'Safety Vest',
-    sku: 'SAFE-VEST-001',
-    description: 'High-visibility reflective safety vest for outdoor work',
-    unitPrice: 15,
-    taxRates: [{ name: 'GST', rate: 18 }]
-  },
-  {
-    id: 'prod-5',
-    name: 'Hard Hat',
-    sku: 'SAFE-HAT-002',
-    description: 'Standard protective industrial hard hat',
-    unitPrice: 25,
-    taxRates: [{ name: 'GST', rate: 18 }]
-  }
-];
+// Product catalog: GET /v1/products (products.routes.ts) — same real catalog
+// FinanceProducts.tsx manages. Warehouses: GET /v1/inventory/warehouses
+// (inventory-catalog.routes.ts) — purchase_orders.warehouse_id has no FK
+// (loose VARCHAR + a denormalized warehouse_name), so this is an optional
+// reference list, not a hard dependency.
+function mapApiProduct(p: any): Product {
+  return {
+    id: p.id,
+    name: p.name,
+    sku: p.code || '',
+    description: p.description || '',
+    unitPrice: Number(p.purchase_price) || 0,
+    taxRates: Number(p.tax_rate) > 0 ? [{ name: 'Tax', rate: Number(p.tax_rate) }] : [],
+  };
+}
 
-// Vendor/supplier records are real rows served by /v1/suppliers — see allSuppliers below.
+function mapApiWarehouse(w: any): Warehouse {
+  return { id: w.id, name: w.name };
+}
 
-const MOCK_WAREHOUSES: Warehouse[] = [
-  { id: 'gulf', name: 'Gulf Coast Distribution' },
-  { id: 'east', name: 'East Coast Logistics' },
-  { id: 'main', name: 'Main Warehouse' },
-  { id: 'bonded', name: 'Bonded Port Terminal' }
-];
+// Real print/PDF export — opens a formatted print window and triggers the
+// browser's native print dialog (the same window.open + window.print()
+// mechanism Billing.tsx and Quotations.tsx already use for invoice/quote
+// PDFs). Replaces a setTimeout that faked a "Downloaded PDF successfully!"
+// toast without ever producing a file.
+function openPOPrintWindow(
+  po: PurchaseOrder, vendor: Supplier | undefined, warehouse: Warehouse | undefined,
+  totals: { subtotal: number; discount: number; tax: number; total: number }, products: Product[]
+) {
+  const co = getCompany();
+  const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2 }).format(n);
+  const rows = po.items.map(item => {
+    const prod = products.find(p => p.id === item.productId);
+    const base = item.qty * item.unitPrice;
+    const disc = base * (item.discountPct / 100);
+    const taxable = base - disc;
+    const taxAmt = prod ? prod.taxRates.reduce((s, t) => s + taxable * (t.rate / 100), 0) : 0;
+    return `<tr>
+      <td>${prod?.name || 'Item'}<br><span style="color:#9ca3af;font-size:9px">${prod?.sku || ''}</span></td>
+      <td style="text-align:center">${item.qty}</td>
+      <td style="text-align:right;font-family:monospace">${fmt(item.unitPrice)}</td>
+      <td style="text-align:right;font-family:monospace">${item.discountPct > 0 ? `-${fmt(disc)}` : '—'}</td>
+      <td style="text-align:right;font-family:monospace">${fmt(taxAmt)}</td>
+      <td style="text-align:right;font-family:monospace;font-weight:700">${fmt(taxable + taxAmt)}</td>
+    </tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>${po.po_number}</title><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;color:#111;padding:24px 32px;font-size:11px}
+.top{display:flex;justify-content:space-between;margin-bottom:16px}
+.po-no{font-size:18px;font-weight:900;color:#0b1e3a;margin-bottom:4px}
+.from{line-height:1.6;color:#555}.from strong{color:#111;font-size:12px}
+.meta{text-align:right;font-size:11px;color:#6b7280}
+.meta div{display:flex;justify-content:flex-end;gap:12px;margin-bottom:3px}
+.mid{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;margin-bottom:14px}
+.lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:3px}
+table{width:100%;border-collapse:collapse;margin-bottom:12px}
+thead tr{background:#f9fafb;border-bottom:1px solid #e5e7eb}
+th{padding:5px 8px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;letter-spacing:.04em}
+td{padding:6px 8px;border-bottom:1px solid #f3f4f6;vertical-align:top}
+.totals{margin-left:auto;width:260px}
+.totals div{display:flex;justify-content:space-between;padding:4px 8px;font-size:11px}
+.grand{background:#0b1e3a;color:#fff;font-weight:800;font-size:12px;border-radius:6px;margin-top:4px}
+.notes{margin-top:16px;padding-top:10px;border-top:1px solid #e5e7eb}
+.notes h4{font-size:10px;font-weight:700;margin-bottom:4px;color:#374151}
+.notes p{font-size:10px;color:#6b7280;line-height:1.6}
+@media print{body{padding:10px 16px}}
+</style></head><body>
+<div class="top">
+  <div class="from">
+    <div style="font-size:16px;font-weight:800;color:#111;margin-bottom:4px">${co.name}</div>
+    ${co.address}<br>${co.city}, ${co.country}
+  </div>
+  <div class="meta">
+    <div class="po-no" style="justify-content:flex-end">${po.po_number}</div>
+    <div><span>Order Date:</span><strong style="color:#111">${po.orderDate || '—'}</strong></div>
+    <div><span>Due Date:</span><strong style="color:#111">${po.dueDate || '—'}</strong></div>
+    <div><span>Payment Terms:</span><strong style="color:#111">${po.paymentTerms || '—'}</strong></div>
+  </div>
+</div>
+<div class="mid">
+  <div>
+    <div class="lbl">Vendor</div>
+    <div style="font-size:13px;font-weight:700">${vendor?.name || 'Unknown Vendor'}</div>
+    <div style="color:#555">${vendor?.email || ''}</div>
+  </div>
+  <div style="text-align:right">
+    <div class="lbl">Warehouse</div>
+    <div style="font-size:13px;font-weight:700">${warehouse?.name || '—'}</div>
+  </div>
+</div>
+<table><thead><tr>
+  <th>Product</th><th style="text-align:center">Qty</th><th style="text-align:right">Unit Price</th>
+  <th style="text-align:right">Discount</th><th style="text-align:right">Tax</th><th style="text-align:right">Total</th>
+</tr></thead><tbody>${rows || '<tr><td colspan="6" style="color:#9ca3af;font-style:italic">No items</td></tr>'}</tbody></table>
+<div class="totals">
+  <div><span>Subtotal</span><span style="font-family:monospace">${fmt(totals.subtotal)}</span></div>
+  ${totals.discount > 0 ? `<div><span>Discount</span><span style="font-family:monospace;color:#dc2626">-${fmt(totals.discount)}</span></div>` : ''}
+  <div><span>Tax</span><span style="font-family:monospace">${fmt(totals.tax)}</span></div>
+  <div class="grand"><span>Total</span><span style="font-family:monospace">${fmt(totals.total)}</span></div>
+</div>
+${po.notes ? `<div class="notes"><h4>NOTES</h4><p>${po.notes}</p></div>` : ''}
+<script>window.onload=function(){window.print()}</script>
+</body></html>`;
+
+  const win = window.open('', '_blank', 'width=860,height=1000');
+  if (win) { win.document.write(html); win.document.close(); }
+}
 
 // Purchase orders are now real rows served by /v1/purchase-orders
 // (apps/api/src/routes/purchase-orders.routes.ts). The mapping helpers below
 // translate between that backend shape and this page's existing UI shape.
-// Product catalog is a closed local set (MOCK_PRODUCTS), so each line's SKU
-// is round-tripped through purchase_order_lines.category to resolve back to
-// a productId on load.
-function apiLineToItem(line: any): POItem {
-  const prod = MOCK_PRODUCTS.find(p => p.sku === line.category) || MOCK_PRODUCTS[0];
+// Each line's SKU is round-tripped through purchase_order_lines.category to
+// resolve back to a productId on load, against the real product catalog.
+function apiLineToItem(line: any, products: Product[]): POItem {
+  const prod = products.find(p => p.sku === line.category);
   return {
-    productId: prod.id,
+    productId: prod?.id || '',
     qty: Number(line.qty) || 1,
     unitPrice: Number(line.unit_price) || 0,
     discountPct: 0, // discount is baked into unit_price before it's sent to the backend
   };
 }
 
-function itemToApiLine(item: POItem) {
-  const prod = MOCK_PRODUCTS.find(p => p.id === item.productId);
+function itemToApiLine(item: POItem, products: Product[]) {
+  const prod = products.find(p => p.id === item.productId);
   const taxRate = prod ? prod.taxRates.reduce((sum, t) => sum + t.rate, 0) : 0;
   return {
     description: prod?.name || 'Item',
@@ -145,7 +202,7 @@ function itemToApiLine(item: POItem) {
   };
 }
 
-function apiToPO(apiPo: any, lines: any[]): PurchaseOrder {
+function apiToPO(apiPo: any, lines: any[], products: Product[]): PurchaseOrder {
   return {
     id: apiPo.id,
     po_number: apiPo.po_number,
@@ -155,7 +212,7 @@ function apiToPO(apiPo: any, lines: any[]): PurchaseOrder {
     dueDate: apiPo.expected_date ? String(apiPo.expected_date).slice(0, 10) : '',
     paymentTerms: apiPo.payment_terms || '',
     notes: apiPo.notes || '',
-    items: (lines || []).map(apiLineToItem),
+    items: (lines || []).map(l => apiLineToItem(l, products)),
     status: fromApiStatus(apiPo.status),
     balancePaid: 0, // POs don't track payment; that lives on the linked supplier bill
   };
@@ -187,6 +244,14 @@ export const PurchaseOrders: React.FC = () => {
   const [pos, setPOs] = useState<PurchaseOrder[]>([]);
   const [loadingPOs, setLoadingPOs] = useState(true);
 
+  // Real product catalog (GET /v1/products) and warehouses (GET /v1/inventory/warehouses).
+  const [products, setProducts] = useState<Product[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  useEffect(() => {
+    apiFetch('/v1/products').then((d: any) => { if (Array.isArray(d)) setProducts(d.map(mapApiProduct)); }).catch(() => {});
+    apiFetch('/v1/inventory/warehouses').then((d: any) => { if (Array.isArray(d)) setWarehouses(d.map(mapApiWarehouse)); }).catch(() => {});
+  }, []);
+
   const loadPOs = React.useCallback(async () => {
     try {
       const res: any = await apiFetch('/v1/purchase-orders');
@@ -194,9 +259,9 @@ export const PurchaseOrders: React.FC = () => {
       const withLines = await Promise.all(list.map(async (po: any) => {
         try {
           const detail: any = await apiFetch(`/v1/purchase-orders/${po.id}`);
-          return apiToPO(po, detail?.lines || []);
+          return apiToPO(po, detail?.lines || [], products);
         } catch {
-          return apiToPO(po, []);
+          return apiToPO(po, [], products);
         }
       }));
       setPOs(withLines);
@@ -205,7 +270,7 @@ export const PurchaseOrders: React.FC = () => {
     } finally {
       setLoadingPOs(false);
     }
-  }, []);
+  }, [products]);
 
   useEffect(() => { loadPOs(); }, [loadPOs]);
   useEffect(() => {
@@ -276,10 +341,10 @@ export const PurchaseOrders: React.FC = () => {
   const [formDueDate, setFormDueDate] = useState('');
   const [formPaymentTerms, setFormPaymentTerms] = useState('');
   const [formNotes, setFormNotes] = useState('');
-  const [formItems, setFormItems] = useState<POItem[]>([{ productId: MOCK_PRODUCTS[0].id, qty: 1, unitPrice: MOCK_PRODUCTS[0].unitPrice, discountPct: 0 }]);
+  const [formItems, setFormItems] = useState<POItem[]>([]);
 
-  // Reference date for Overdue checking (June 15, 2026)
-  const REF_DATE = new Date('2026-06-15');
+  // Reference date for Overdue checking
+  const REF_DATE = new Date();
 
   // Helper: Calculate sums for a PO
   const getPOTotals = useMemo(() => {
@@ -289,15 +354,14 @@ export const PurchaseOrders: React.FC = () => {
       let tax = 0;
 
       items.forEach(item => {
-        const prod = MOCK_PRODUCTS.find(p => p.id === item.productId);
-        if (!prod) return;
+        const prod = products.find(p => p.id === item.productId);
 
         const base = item.qty * item.unitPrice;
         const disc = base * (item.discountPct / 100);
         const taxable = base - disc;
 
         let itemTax = 0;
-        prod.taxRates.forEach(tr => {
+        prod?.taxRates.forEach(tr => {
           itemTax += taxable * (tr.rate / 100);
         });
 
@@ -309,7 +373,7 @@ export const PurchaseOrders: React.FC = () => {
       const total = subtotal - discount + tax;
       return { subtotal, discount, tax, total };
     };
-  }, []);
+  }, [products]);
 
   // Filtered and Sorted POs
   const processedPOs = useMemo(() => {
@@ -379,7 +443,7 @@ export const PurchaseOrders: React.FC = () => {
     if (!po) return null;
 
     const vendor = allSuppliers.find(s => s.id === po.vendorId);
-    const warehouse = MOCK_WAREHOUSES.find(w => w.id === po.warehouseId);
+    const warehouse = warehouses.find(w => w.id === po.warehouseId);
     const totals = getPOTotals(po.items);
     const balance = Math.max(0, totals.total - po.balancePaid);
     const isOverdue = po.status !== 'Received' && po.status !== 'Cancelled' && new Date(po.dueDate) < REF_DATE;
@@ -392,7 +456,7 @@ export const PurchaseOrders: React.FC = () => {
       balance,
       isOverdue
     };
-  }, [selectedPoId, pos, getPOTotals]);
+  }, [selectedPoId, pos, getPOTotals, warehouses]);
 
   // Load Form Data for Editing
   const handleEditInit = (id: string) => {
@@ -423,12 +487,14 @@ export const PurchaseOrders: React.FC = () => {
     const firstVendor = allSuppliers[0];
     setFormVendor(firstVendor?.id || '');
     setFormVendorItem(firstVendor ? { id: firstVendor.id, label: firstVendor.name, sublabel: firstVendor.email || undefined } : null);
-    setFormWarehouse(MOCK_WAREHOUSES[0].id);
-    setFormOrderDate('2026-06-15');
-    setFormDueDate('2026-07-15');
+    setFormWarehouse(warehouses[0]?.id || '');
+    const today = new Date();
+    const due = new Date(today.getTime() + 30 * 86400000);
+    setFormOrderDate(today.toISOString().slice(0, 10));
+    setFormDueDate(due.toISOString().slice(0, 10));
     setFormPaymentTerms('Net 30');
     setFormNotes('');
-    setFormItems([{ productId: MOCK_PRODUCTS[0].id, qty: 1, unitPrice: MOCK_PRODUCTS[0].unitPrice, discountPct: 0 }]);
+    setFormItems([{ productId: products[0]?.id || '', qty: 1, unitPrice: products[0]?.unitPrice || 0, discountPct: 0 }]);
     setViewMode('CREATE');
   };
 
@@ -436,7 +502,7 @@ export const PurchaseOrders: React.FC = () => {
   const handleAddFormItem = () => {
     setFormItems(prev => [
       ...prev,
-      { productId: MOCK_PRODUCTS[0].id, qty: 1, unitPrice: MOCK_PRODUCTS[0].unitPrice, discountPct: 0 }
+      { productId: products[0]?.id || '', qty: 1, unitPrice: products[0]?.unitPrice || 0, discountPct: 0 }
     ]);
   };
 
@@ -456,7 +522,7 @@ export const PurchaseOrders: React.FC = () => {
 
       // If product changes, auto-populate SKU/description price
       if (field === 'productId') {
-        const prod = MOCK_PRODUCTS.find(p => p.id === value);
+        const prod = products.find(p => p.id === value);
         if (prod) {
           updated.unitPrice = prod.unitPrice;
         }
@@ -481,7 +547,7 @@ export const PurchaseOrders: React.FC = () => {
   const handleSavePO = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formVendor || !formWarehouse || !formOrderDate || !formDueDate) {
+    if (!formVendor || !formOrderDate || !formDueDate) {
       showToast('Please fill out all required fields', 'error');
       return;
     }
@@ -492,17 +558,17 @@ export const PurchaseOrders: React.FC = () => {
     }
 
     const vendor = allSuppliers.find(s => s.id === formVendor);
-    const warehouse = MOCK_WAREHOUSES.find(w => w.id === formWarehouse);
+    const warehouse = warehouses.find(w => w.id === formWarehouse);
     const payload: any = {
       supplier_id: formVendor,
       supplier_name: vendor?.name || null,
-      warehouse_id: formWarehouse,
+      warehouse_id: formWarehouse || null,
       warehouse_name: warehouse?.name || null,
       order_date: formOrderDate,
       expected_date: formDueDate,
       payment_terms: formPaymentTerms,
       notes: formNotes,
-      lines: formItems.map(itemToApiLine),
+      lines: formItems.map(item => itemToApiLine(item, products)),
     };
 
     try {
@@ -538,18 +604,20 @@ export const PurchaseOrders: React.FC = () => {
     if (!original) return;
 
     const vendor = allSuppliers.find(s => s.id === original.vendorId);
-    const warehouse = MOCK_WAREHOUSES.find(w => w.id === original.warehouseId);
+    const warehouse = warehouses.find(w => w.id === original.warehouseId);
+    const today = new Date();
+    const due = new Date(today.getTime() + 30 * 86400000);
     const payload = {
       po_number: nextPoNumber(),
       supplier_id: original.vendorId,
       supplier_name: vendor?.name || null,
-      warehouse_id: original.warehouseId,
+      warehouse_id: original.warehouseId || null,
       warehouse_name: warehouse?.name || null,
-      order_date: '2026-06-15',
-      expected_date: '2026-07-15',
+      order_date: today.toISOString().slice(0, 10),
+      expected_date: due.toISOString().slice(0, 10),
       payment_terms: original.paymentTerms,
       notes: original.notes,
-      lines: original.items.map(itemToApiLine),
+      lines: original.items.map(item => itemToApiLine(item, products)),
     };
 
     try {
@@ -582,15 +650,16 @@ export const PurchaseOrders: React.FC = () => {
     }
   };
 
-  // Simulated PDF download
+  // Real PDF export via the browser print dialog (see openPOPrintWindow)
   const [downloading, setDownloading] = useState<string | null>(null);
-  const handleDownloadPDF = (poNum: string) => {
-    setDownloading(poNum);
-    showToast(`Generating PDF for ${poNum}...`, 'info');
-    setTimeout(() => {
-      setDownloading(null);
-      showToast(`Downloaded PDF file successfully!`, 'success');
-    }, 1200);
+  const handleDownloadPDF = (id: string) => {
+    const po = pos.find(p => p.id === id);
+    if (!po) return;
+    setDownloading(po.po_number);
+    const vendor = allSuppliers.find(s => s.id === po.vendorId);
+    const warehouse = warehouses.find(w => w.id === po.warehouseId);
+    openPOPrintWindow(po, vendor, warehouse, getPOTotals(po.items), products);
+    setDownloading(null);
   };
 
   // Toggle sort field helper
@@ -973,7 +1042,7 @@ export const PurchaseOrders: React.FC = () => {
 
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 6 }}>
                         <button
-                          onClick={() => handleDownloadPDF(po.po_number)}
+                          onClick={() => handleDownloadPDF(po.id)}
                           disabled={downloading === po.po_number}
                           style={{
                             width: 28,
@@ -1204,7 +1273,7 @@ export const PurchaseOrders: React.FC = () => {
                             <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                               <div style={{ display: 'inline-flex', gap: 5, justifyContent: 'flex-end', alignItems: 'center' }}>
                                 <button
-                                  onClick={() => handleDownloadPDF(po.po_number)}
+                                  onClick={() => handleDownloadPDF(po.id)}
                                   disabled={downloading === po.po_number}
                                   style={{
                                     width: 26,
@@ -1500,7 +1569,7 @@ export const PurchaseOrders: React.FC = () => {
               >
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
-                    onClick={() => handleDownloadPDF(currentDetailsPo.po_number)}
+                    onClick={() => handleDownloadPDF(currentDetailsPo.id)}
                     disabled={downloading === currentDetailsPo.po_number}
                     style={{
                       display: 'flex',
@@ -1581,7 +1650,7 @@ export const PurchaseOrders: React.FC = () => {
                   </thead>
                   <tbody>
                     {currentDetailsPo.items.map((item, idx) => {
-                      const prod = MOCK_PRODUCTS.find(p => p.id === item.productId);
+                      const prod = products.find(p => p.id === item.productId);
                       if (!prod) return null;
 
                       const base = item.qty * item.unitPrice;
@@ -1673,11 +1742,11 @@ export const PurchaseOrders: React.FC = () => {
 
                 {/* Warehouse Dropdown */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Warehouse *</label>
-                  <Select value={formWarehouse} onValueChange={setFormWarehouse}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Warehouse</label>
+                  <Select value={formWarehouse} onValueChange={setFormWarehouse} disabled={warehouses.length === 0}>
+                    <SelectTrigger><SelectValue placeholder={warehouses.length === 0 ? 'No warehouses configured' : 'Select warehouse…'} /></SelectTrigger>
                     <SelectContent>
-                      {MOCK_WAREHOUSES.map(w => (
+                      {warehouses.map(w => (
                         <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -1754,7 +1823,7 @@ export const PurchaseOrders: React.FC = () => {
                   </thead>
                   <tbody>
                     {formItems.map((item, idx) => {
-                      const prod = MOCK_PRODUCTS.find(p => p.id === item.productId);
+                      const prod = products.find(p => p.id === item.productId);
                       const base = item.qty * item.unitPrice;
                       const disc = base * (item.discountPct / 100);
                       const taxable = base - disc;
@@ -1778,7 +1847,7 @@ export const PurchaseOrders: React.FC = () => {
                           {/* Product select */}
                           <td style={{ padding: '12px 12px' }}>
                             <Combobox
-                              options={MOCK_PRODUCTS.map(p => ({ value: p.id, label: `${p.name} [${p.sku}]` }))}
+                              options={products.map(p => ({ value: p.id, label: `${p.name} [${p.sku}]` }))}
                               value={item.productId} onChange={v => handleFormItemChange(idx, 'productId', v)}
                             />
                           </td>
