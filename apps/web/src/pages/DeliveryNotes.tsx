@@ -32,15 +32,10 @@ interface DN {
   discrepancyNotes: string;
 }
 
-// ── Mock linked invoices ──────────────────────────────────────────────────────
-const MOCK_INVOICES = [
-  { no: 'INV-2026-0028', client: 'Tanzania Breweries Ltd',  address: "Plot 74, Chang'ombe Road", city: 'Dar es Salaam', contact: 'John Makundi',    phone: '+255 764 123 456', email: 'jmakundi@tbl.co.tz'       },
-  { no: 'INV-2026-0027', client: 'TANESCO',                 address: 'Umeme Park, Morogoro Rd',  city: 'Dar es Salaam', contact: 'Ibrahim Salim',   phone: '+255 754 987 654', email: 'ibrahim@tanesco.co.tz'     },
-  { no: 'INV-2026-0025', client: 'Azam Marine Ltd',         address: 'Ferry Terminal, Kivukoni', city: 'Dar es Salaam', contact: 'Ali Hassan',       phone: '+255 756 321 654', email: 'ali@azammarine.co.tz'     },
-  { no: 'INV-2026-0022', client: 'NMB Bank HQ',             address: 'Haile Selassie Road',      city: 'Dar es Salaam', contact: 'Fatuma Ally',      phone: '+255 744 567 890', email: 'fatuma@nmb.co.tz'         },
-  { no: 'INV-2026-0018', client: 'Serengeti Breweries',     address: 'Moshi Road',               city: 'Arusha',        contact: 'James Kimaro',     phone: '+255 755 432 109', email: 'james@serengeti.co.tz'    },
-  { no: 'INV-2026-0015', client: 'Kilimanjaro Airport Ltd', address: 'Airport Road',             city: 'Moshi',         contact: 'Grace Mwakyusa',   phone: '+255 762 098 765', email: 'grace@kia.co.tz'          },
-];
+// ── Linked invoice option (real data — GET /v1/invoices joined against GET /v1/customers) ──
+interface InvoiceOption {
+  no: string; client: string; address: string; city: string; contact: string; phone: string; email: string;
+}
 
 // ── Mock notes ────────────────────────────────────────────────────────────────
 function blankRows(from: number, count: number): GoodsRow[] {
@@ -115,52 +110,6 @@ function dnToApi(n: DN): any {
   };
 }
 
-const MOCK_NOTES: DN[] = [
-  {
-    id: '1', noteNo: 'DN-2026-0003', date: '14 Jun 2026', time: '09:30', dispatchRef: 'DSP-2026-0047',
-    invoiceNo: 'INV-2026-0028',
-    consigneeName: 'Tanzania Breweries Ltd', contactPerson: 'John Makundi', phone: '+255 764 123 456',
-    email: 'jmakundi@tbl.co.tz', deliveryAddress: "Plot 74, Chang'ombe Road", city: 'Dar es Salaam',
-    driverName: 'Peter Mwanga', vehicleNo: 'T 123 DAE', driverContact: '+255 712 345 678',
-    carrier: 'Internal Fleet', deliveryDate: '14 Jun 2026', deliveryTime: '14:00',
-    rows: [
-      { no: 1, description: 'Barley Malt (50kg Bags)', qtySent: 20, qtyReceived: 20, condition: 'Good', variance: 0,  remarks: '' },
-      { no: 2, description: 'Hops Extract (5L Drums)', qtySent: 5,  qtyReceived: 5,  condition: 'Good', variance: 0,  remarks: '' },
-      { no: 3, description: 'CO2 Cylinders',           qtySent: 10, qtyReceived: 9,  condition: 'Good', variance: -1, remarks: '1 missing at origin' },
-      ...blankRows(4, 2),
-    ],
-    statusFlags: ['partially_delivered'], discrepancyNotes: '1 CO2 cylinder not found at origin loading point.',
-  },
-  {
-    id: '2', noteNo: 'DN-2026-0002', date: '12 Jun 2026', time: '08:00', dispatchRef: 'DSP-2026-0041',
-    invoiceNo: 'INV-2026-0027',
-    consigneeName: 'TANESCO', contactPerson: 'Ibrahim Salim', phone: '+255 754 987 654',
-    email: 'ibrahim@tanesco.co.tz', deliveryAddress: 'Umeme Park, Morogoro Rd', city: 'Dar es Salaam',
-    driverName: 'Hamisi Juma', vehicleNo: 'T 456 DAE', driverContact: '+255 768 456 789',
-    carrier: 'Internal Fleet', deliveryDate: '12 Jun 2026', deliveryTime: '13:30',
-    rows: [
-      { no: 1, description: 'Electrical Transformers (500kVA)', qtySent: 3, qtyReceived: 3, condition: 'Good', variance: 0, remarks: '' },
-      { no: 2, description: 'Cable Rolls (500m / Roll)',        qtySent: 8, qtyReceived: 8, condition: 'Good', variance: 0, remarks: '' },
-      ...blankRows(3, 3),
-    ],
-    statusFlags: ['fully_delivered'], discrepancyNotes: '',
-  },
-  {
-    id: '3', noteNo: 'DN-2026-0001', date: '10 Jun 2026', time: '07:45', dispatchRef: 'DSP-2026-0033',
-    invoiceNo: 'INV-2026-0025',
-    consigneeName: 'Azam Marine Ltd', contactPerson: 'Ali Hassan', phone: '+255 756 321 654',
-    email: 'ali@azammarine.co.tz', deliveryAddress: 'Ferry Terminal, Kivukoni', city: 'Dar es Salaam',
-    driverName: 'David Msonde', vehicleNo: 'T 789 DAE', driverContact: '+255 745 654 321',
-    carrier: 'Air Tanzania', deliveryDate: '10 Jun 2026', deliveryTime: '16:00',
-    rows: [
-      { no: 1, description: 'Marine Engine Parts',  qtySent: 4,  qtyReceived: 3,  condition: 'Damaged', variance: -1, remarks: '1 unit cracked on arrival' },
-      { no: 2, description: 'Safety Life Jackets',  qtySent: 50, qtyReceived: 50, condition: 'Good',    variance: 0,  remarks: '' },
-      { no: 3, description: 'Navigation Charts',    qtySent: 12, qtyReceived: 12, condition: 'Good',    variance: 0,  remarks: '' },
-      ...blankRows(4, 2),
-    ],
-    statusFlags: ['damaged'], discrepancyNotes: '1 marine engine part arrived cracked. Photos taken and reported to carrier.',
-  },
-];
 
 // ── Status config ─────────────────────────────────────────────────────────────
 const STATUS_CFG: Record<string, { label: string; color: string; bg: string }> = {
@@ -394,7 +343,7 @@ function FRow({ label, children, span = false }: { label: string; children: Reac
 }
 
 // ── Create / Edit Drawer ──────────────────────────────────────────────────────
-function NoteDrawer({ note, onSave, onClose, isMobile }: { note: DN; onSave: (n: DN) => void; onClose: () => void; isMobile: boolean }) {
+function NoteDrawer({ note, onSave, onClose, isMobile, invoices }: { note: DN; onSave: (n: DN) => void; onClose: () => void; isMobile: boolean; invoices: InvoiceOption[] }) {
   const [f, setF] = useState<DN>(note);
   const [selectedJobId, setSelectedJobId] = useState('');
   const jobs = getJobs();
@@ -417,7 +366,7 @@ function NoteDrawer({ note, onSave, onClose, isMobile }: { note: DN; onSave: (n:
   }
 
   function pickInvoice(invoiceNo: string) {
-    const inv = MOCK_INVOICES.find(i => i.no === invoiceNo);
+    const inv = invoices.find(i => i.no === invoiceNo);
     if (inv) {
       setF(prev => ({
         ...prev, invoiceNo,
@@ -495,7 +444,7 @@ function NoteDrawer({ note, onSave, onClose, isMobile }: { note: DN; onSave: (n:
             {selectedJobId && (
               <FRow label="Invoice Number" span>
                 <Combobox
-                  options={MOCK_INVOICES.map(inv => ({ value: inv.no, label: `${inv.no} · ${inv.client}` }))}
+                  options={invoices.map(inv => ({ value: inv.no, label: `${inv.no} · ${inv.client}` }))}
                   value={f.invoiceNo} onChange={pickInvoice} placeholder="— Select Invoice —"
                 />
               </FRow>
@@ -509,7 +458,7 @@ function NoteDrawer({ note, onSave, onClose, isMobile }: { note: DN; onSave: (n:
               <div style={{ padding: '12px 24px', display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '10px 16px' }}>
                 <FRow label="Invoice Number" span>
                   <Combobox
-                    options={MOCK_INVOICES.map(inv => ({ value: inv.no, label: `${inv.no} · ${inv.client}` }))}
+                    options={invoices.map(inv => ({ value: inv.no, label: `${inv.no} · ${inv.client}` }))}
                     value={f.invoiceNo} onChange={pickInvoice} placeholder="— Select Invoice —"
                   />
                 </FRow>
@@ -710,8 +659,10 @@ function NoteDetailPanel({ note, onClose, onEdit, onDelete }: {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export const DeliveryNotes: React.FC = () => {
-  const [notes, setNotes]           = useState<DN[]>(MOCK_NOTES);
+  const [notes, setNotes]           = useState<DN[]>([]);
   const [loading, setLoading]       = useState(true);
+  const [loadError, setLoadError]   = useState('');
+  const [invoices, setInvoices]     = useState<InvoiceOption[]>([]);
   const [filterStatus, setFilterStatus] = useState('all');
   const [search, setSearch]         = useState('');
   const [drawerNote, setDrawerNote] = useState<DN | null>(null);
@@ -724,7 +675,7 @@ export const DeliveryNotes: React.FC = () => {
     try {
       const res = await apiFetch('/v1/delivery-notes');
       const data = Array.isArray(res) ? res : (res?.delivery_notes ?? []);
-      
+
       const withLines = await Promise.all(data.map(async (dn: any) => {
         try {
           const detail = await apiFetch(`/v1/delivery-notes/${dn.id}`);
@@ -734,13 +685,38 @@ export const DeliveryNotes: React.FC = () => {
         }
       }));
 
-      setNotes(withLines.length > 0 ? withLines : MOCK_NOTES);
-    } catch {
-      setNotes(MOCK_NOTES);
+      setNotes(withLines);
+      setLoadError('');
+    } catch (err: any) {
+      setLoadError(err.message || 'Failed to load delivery notes');
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { loadNotes(); }, [loadNotes]);
+  const loadInvoices = useCallback(async () => {
+    try {
+      const [invRes, custRes] = await Promise.all([
+        apiFetch('/v1/invoices').catch(() => []),
+        apiFetch('/v1/customers').catch(() => ({ data: [] })),
+      ]);
+      const customers: any[] = Array.isArray(custRes?.data) ? custRes.data : [];
+      const custById = new Map<string, any>(customers.map((c: any) => [c.id, c]));
+      const opts: InvoiceOption[] = (Array.isArray(invRes) ? invRes : []).map((inv: any) => {
+        const cust = custById.get(inv.customer_id);
+        return {
+          no: inv.invoice_number,
+          client: inv.client_name || cust?.name || 'Unknown',
+          address: inv.client_address || cust?.address || '',
+          city: cust?.city || '',
+          contact: cust?.contact_name || '',
+          phone: cust?.phone_wa || '',
+          email: cust?.email || '',
+        };
+      });
+      setInvoices(opts);
+    } catch { /* invoice picker just stays empty */ }
+  }, []);
+
+  useEffect(() => { loadNotes(); loadInvoices(); }, [loadNotes, loadInvoices]);
 
   function newBlankNote(): DN {
     const next = String(notes.length + 4).padStart(4, '0');
@@ -832,6 +808,7 @@ export const DeliveryNotes: React.FC = () => {
           onSave={saveNote}
           onClose={() => setDrawerNote(null)}
           isMobile={isMobile}
+          invoices={invoices}
         />
       )}
 
@@ -909,7 +886,17 @@ export const DeliveryNotes: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 && (
+            {loading && (
+              <tr>
+                <td colSpan={9} style={{ padding: '40px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading delivery notes…</td>
+              </tr>
+            )}
+            {!loading && loadError && (
+              <tr>
+                <td colSpan={9} style={{ padding: '40px 0', textAlign: 'center', color: 'var(--red, #dc2626)', fontSize: 13 }}>{loadError}</td>
+              </tr>
+            )}
+            {!loading && !loadError && filtered.length === 0 && (
               <tr>
                 <td colSpan={9} style={{ padding: '40px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No delivery notes found.</td>
               </tr>
