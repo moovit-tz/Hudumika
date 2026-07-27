@@ -45,7 +45,9 @@ export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
   fastify.get('/warehouses', async (request: any, reply) => {
     try {
       const rows = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('inventory_warehouses').selectAll().where('active', '=', true).orderBy('code').execute()
+        trx.selectFrom('inventory_warehouses').selectAll()
+          .where('tenant_id', '=', request.user.tenant_id)
+          .where('active', '=', true).orderBy('code').execute()
       );
       return rows.map(mapWarehouse);
     } catch (err: any) {
@@ -76,7 +78,10 @@ export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
       if (b.address !== undefined) patch.address = b.address;
       if (b.active !== undefined) patch.active = b.active;
       const row = await withTenant(request.user.tenant_id, trx =>
-        trx.updateTable('inventory_warehouses').set(patch).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
+        trx.updateTable('inventory_warehouses').set(patch)
+          .where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id)
+          .returningAll().executeTakeFirstOrThrow()
       );
       return mapWarehouse(row);
     } catch (err: any) {
@@ -96,6 +101,7 @@ export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
             'inventory_locations.name', 'inventory_locations.location_type', 'inventory_locations.is_pickable',
             'inventory_warehouses.name as warehouse_name',
           ])
+          .where('inventory_locations.tenant_id', '=', request.user.tenant_id)
           .orderBy('inventory_locations.code');
         if (warehouse_id) q = q.where('inventory_locations.warehouse_id', '=', warehouse_id);
         return q.execute();
@@ -137,6 +143,7 @@ export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
             'inventory_items.reorder_point', 'inventory_items.reorder_qty', 'inventory_items.active',
             'inventory_items.created_at', 'products.name as product_name',
           ])
+          .where('inventory_items.tenant_id', '=', request.user.tenant_id)
           .where('inventory_items.active', '=', true)
           .orderBy('inventory_items.name');
         if (q) query = query.where(eb => eb.or([
@@ -181,7 +188,10 @@ export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
       if (b.reorderQty !== undefined) patch.reorder_qty = b.reorderQty != null ? String(b.reorderQty) : null;
       if (b.active !== undefined) patch.active = b.active;
       const row = await withTenant(request.user.tenant_id, trx =>
-        trx.updateTable('inventory_items').set(patch).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
+        trx.updateTable('inventory_items').set(patch)
+          .where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id)
+          .returningAll().executeTakeFirstOrThrow()
       );
       return mapItem(row);
     } catch (err: any) {
@@ -193,7 +203,10 @@ export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
   fastify.get('/items/:id/uoms', async (request: any, reply) => {
     try {
       const rows = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('inventory_item_uoms').selectAll().where('item_id', '=', request.params.id).execute()
+        trx.selectFrom('inventory_item_uoms').selectAll()
+          .where('item_id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id)
+          .execute()
       );
       return rows.map(mapUom);
     } catch (err: any) {
