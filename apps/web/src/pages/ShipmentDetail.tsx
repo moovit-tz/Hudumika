@@ -143,6 +143,11 @@ function apiTaskToInternal(t: any): InternalTask {
     dueDate: t.due_date ? new Date(t.due_date) : new Date(Date.now() + 7 * 86400000),
     tags: [],
     description: t.note || undefined,
+    productId: t.product_id || undefined,
+    serviceName: t.service_name || undefined,
+    serviceRate: t.service_rate != null ? Number(t.service_rate) : undefined,
+    serviceCurrency: t.service_currency || undefined,
+    serviceUnit: t.service_unit || undefined,
   };
 }
 
@@ -158,6 +163,11 @@ function apiTimeEntryToInternal(t: any): TimeEntry {
     duration: `${Math.floor(hours)}:${String(Math.round((hours % 1) * 60)).padStart(2, '0')}:00`,
     hours, date: new Date(t.log_date || t.created_at || Date.now()),
     billable: true, note: t.note || undefined,
+    productId: t.product_id || undefined,
+    serviceName: t.service_name || undefined,
+    serviceRate: t.service_rate != null ? Number(t.service_rate) : undefined,
+    serviceCurrency: t.service_currency || undefined,
+    serviceUnit: t.service_unit || undefined,
   };
 }
 
@@ -167,6 +177,10 @@ function fdate(d: Date) { return d.toLocaleDateString('en-GB', { day: '2-digit',
 function ftime(d: Date) { return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }); }
 function fdatetime(d: Date) { return `${fdate(d)}, ${ftime(d)}`; }
 function fmtTZS(n: number) { return 'TZS ' + n.toLocaleString('en'); }
+function fmtServiceRate(amount: number, currency: string) {
+  try { return new Intl.NumberFormat('en-US', { style: 'currency', currency, minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(amount); }
+  catch { return `${currency} ${amount.toLocaleString('en')}`; }
+}
 function avatarBg(name: string) {
   const c = ['#e8461a', '#2563eb', '#059669', '#7c3aed', '#ca8a04', '#0891b2'];
   let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % c.length;
@@ -1848,9 +1862,11 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
   const [newAssignee,  setNewAssignee]  = useState(job.assignees[0] || '');
   const [newDue,       setNewDue]       = useState('');
   const [newPriority,  setNewPriority]  = useState<'medium' | 'low' | 'high' | 'urgent'>('medium');
+  const [newProductId, setNewProductId] = useState('');
   const [addSaving,    setAddSaving]    = useState(false);
   const [taskTypes,    setTaskTypes]    = useState<{ id: string; name: string }[]>([]);
   const [staff,        setStaff]        = useState<{ id: string; name: string }[]>([]);
+  const [services,     setServices]     = useState<{ id: string; name: string; sale_price: number; currency: string; unit: string }[]>([]);
   const { user } = useAuth();
   const { isCheckedIn, triggerOpen: triggerOpenRaw } = useClockIn();
   const triggerOpen = () => triggerOpenRaw({ shipmentId: job.id, shipmentRef: job.sysRef || job.id });
@@ -1864,6 +1880,14 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
     apiFetch('/v1/hr/staff').then((res: any) => {
       const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
       setStaff(list.filter(u => u.status !== 'INACTIVE').map(u => ({ id: u.id, name: u.name })));
+    }).catch(() => {});
+    // Products & Services catalog (ClearOS → Tools → Products & Services) —
+    // lets a task be tagged with which billable clearing/freight service it's
+    // for, so the rate carries through to Timesheets and can be recalled when
+    // writing the invoice in FinOps.
+    apiFetch('/v1/products?status=active').then((res: any) => {
+      const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
+      setServices(list.map(p => ({ id: p.id, name: p.name, sale_price: Number(p.sale_price) || 0, currency: p.currency, unit: p.unit })));
     }).catch(() => {});
   }, []);
 
@@ -1896,10 +1920,11 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
         await handleAddTaskType();
       }
       const assigneeName = staff.find(s => s.id === newAssignee)?.name;
+      const service = services.find(s => s.id === newProductId);
       if (isLive) {
         await apiFetch(`/v1/shipments/${shipmentId}/tasks`, {
           method: 'POST',
-          body: JSON.stringify({ title: newTitle, priority: newPriority, assigned_to: newAssignee || undefined, due_date: newDue || undefined }),
+          body: JSON.stringify({ title: newTitle, priority: newPriority, assigned_to: newAssignee || undefined, due_date: newDue || undefined, product_id: newProductId || undefined }),
         });
         onRefresh();
       } else {
@@ -1907,10 +1932,12 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
           id: 'task-' + Date.now(), title: newTitle, status: 'not_started', priority: newPriority,
           assignees: newAssignee ? [assigneeName || newAssignee] : [], startDate: new Date(),
           dueDate: newDue ? new Date(newDue) : new Date(Date.now() + 7 * 86400000), tags: [],
+          productId: service?.id, serviceName: service?.name, serviceRate: service?.sale_price,
+          serviceCurrency: service?.currency, serviceUnit: service?.unit,
         };
         updateJob(job.id, j => ({ ...j, tasks: [...j.tasks, task] }));
       }
-      setNewTitle(''); setNewDue(''); setNewTitleCustom(false); setShowAdd(false);
+      setNewTitle(''); setNewDue(''); setNewTitleCustom(false); setNewProductId(''); setShowAdd(false);
     } catch (err: any) { showAlert(err.message || 'Failed to create task'); } finally { setAddSaving(false); }
   }
 
@@ -1982,6 +2009,13 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
               </Select>
             </div>
           </div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Billable Service (optional)</label>
+            <Combobox
+              options={[{ value: '', label: 'No service (unbilled)' }, ...services.map(s => ({ value: s.id, label: s.name, sublabel: `${fmtServiceRate(s.sale_price, s.currency)}/${s.unit}` }))]}
+              value={newProductId} onChange={setNewProductId} placeholder="No service (unbilled)"
+            />
+          </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="submit" className="btn btn-primary btn-sm" disabled={addSaving}>{addSaving ? 'Saving…' : 'Add Task'}</button>
             <button type="button" onClick={() => setShowAdd(false)} className="btn btn-secondary btn-sm">Cancel</button>
@@ -1994,12 +2028,12 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
         <table className="rtbl" style={{ borderCollapse: 'collapse' }}>
           <thead>
-            <tr>{['#','Task','Status','Start','Due','Assignees','Priority','Tags'].map(h => (
+            <tr>{['#','Task','Service','Status','Start','Due','Assignees','Priority','Tags'].map(h => (
               <th key={h} style={{ padding: '10px 14px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
             ))}</tr>
           </thead>
           <tbody>
-            {visible.length === 0 && <tr><td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No tasks match this filter.</td></tr>}
+            {visible.length === 0 && <tr><td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No tasks match this filter.</td></tr>}
             {visible.map((task, i) => {
               const sCfg = TASK_STATUS_CFG[task.status];
               const pCfg = PRIORITY_CFG[task.priority];
@@ -2010,6 +2044,14 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                   <td style={{ padding: '10px 14px', maxWidth: 240 }}>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.title}</div>
                     {task.description && <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.description}</div>}
+                  </td>
+                  <td style={{ padding: '10px 14px', maxWidth: 160 }}>
+                    {task.serviceName ? (
+                      <>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{task.serviceName}</div>
+                        <div style={{ fontSize: 11, color: 'var(--teal)', fontWeight: 600 }}>{fmtServiceRate(task.serviceRate || 0, task.serviceCurrency || 'USD')}/{task.serviceUnit}</div>
+                      </>
+                    ) : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>}
                   </td>
                   <td style={{ padding: '10px 14px' }}>
                     <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: sCfg.bg, color: sCfg.color, whiteSpace: 'nowrap' }}>{sCfg.label}</span>
@@ -2052,8 +2094,10 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
   const [logHours,  setLogHours]  = useState('');
   const [logNote,   setLogNote]   = useState('');
   const [logDate,   setLogDate]   = useState(new Date().toISOString().slice(0, 10));
+  const [logProductId, setLogProductId] = useState(job.tasks[0]?.productId || '');
   const [logSaving, setLogSaving] = useState(false);
   const [staff,     setStaff]     = useState<{ id: string; name: string }[]>([]);
+  const [services,  setServices]  = useState<{ id: string; name: string; sale_price: number; currency: string; unit: string }[]>([]);
   const { user } = useAuth();
   const { isCheckedIn, triggerOpen: triggerOpenRaw } = useClockIn();
   const triggerOpen = () => triggerOpenRaw({ shipmentId: job.id, shipmentRef: job.sysRef || job.id });
@@ -2064,7 +2108,24 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
       const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
       setStaff(list.filter(u => u.status !== 'INACTIVE').map(u => ({ id: u.id, name: u.name })));
     }).catch(() => {});
+    apiFetch('/v1/products?status=active').then((res: any) => {
+      const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
+      setServices(list.map(p => ({ id: p.id, name: p.name, sale_price: Number(p.sale_price) || 0, currency: p.currency, unit: p.unit })));
+    }).catch(() => {});
   }, []);
+
+  // hourly-unit services bill hours × rate; everything else (per-shipment,
+  // per-container, per-set, ...) bills the flat rate once per logged entry —
+  // multiplying a per-shipment clearance fee by hours worked would overstate it.
+  function entryAmount(e: TimeEntry): number | null {
+    if (e.serviceRate == null) return null;
+    return e.serviceUnit === 'hour' || e.serviceUnit === 'hr' ? e.hours * e.serviceRate : e.serviceRate;
+  }
+  const billableByCurrency = job.timeEntries.reduce<Record<string, number>>((acc, e) => {
+    const amt = entryAmount(e);
+    if (amt != null && e.serviceCurrency) acc[e.serviceCurrency] = (acc[e.serviceCurrency] || 0) + amt;
+    return acc;
+  }, {});
 
   const totalHours = job.timeEntries.reduce((s, e) => s + e.hours, 0);
 
@@ -2074,12 +2135,13 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
     if (!clockGate(isStaff, isCheckedIn, triggerOpen)) return;
     const h = parseFloat(logHours);
     const memberName = staff.find(s => s.id === logMember)?.name || logMember;
+    const service = services.find(s => s.id === logProductId);
     setLogSaving(true);
     try {
       if (isLive) {
         await apiFetch(`/v1/shipments/${shipmentId}/time-entries`, {
           method: 'POST',
-          body: JSON.stringify({ member: memberName, task_ref: job.tasks.find(t => t.id === logTask)?.title || undefined, hours: h, note: logNote || undefined, log_date: logDate }),
+          body: JSON.stringify({ member: memberName, task_ref: job.tasks.find(t => t.id === logTask)?.title || undefined, hours: h, note: logNote || undefined, log_date: logDate, product_id: logProductId || undefined }),
         });
         onRefresh();
       } else {
@@ -2089,6 +2151,8 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
           taskId: logTask, taskTitle: task?.title || 'General',
           duration: `${Math.floor(h)}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}:00`,
           hours: h, date: new Date(logDate), billable: true, note: logNote || undefined,
+          productId: service?.id, serviceName: service?.name, serviceRate: service?.sale_price,
+          serviceCurrency: service?.currency, serviceUnit: service?.unit,
         };
         updateJob(job.id, j => ({ ...j, timeEntries: [...j.timeEntries, entry] }));
       }
@@ -2099,9 +2163,12 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
   return (
     <div>
       {/* Toolbar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
         <div style={{ fontSize: 13, color: 'var(--ink3)' }}>
           Total: <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{totalHours.toFixed(1)} hrs</span> across {job.timeEntries.length} entries
+          {Object.entries(billableByCurrency).length > 0 && (
+            <span> · Billable: <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{Object.entries(billableByCurrency).map(([cur, amt]) => fmtServiceRate(amt, cur)).join(' + ')}</span></span>
+          )}
         </div>
         <button type="button" onClick={() => setShowLog(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
           <Icon name="clock" size={14} /> Log Time
@@ -2122,7 +2189,11 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
             </div>
             <div>
               <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Task</label>
-              <Select value={logTask || '__general__'} onValueChange={v => setLogTask(v === '__general__' ? '' : v)}>
+              <Select value={logTask || '__general__'} onValueChange={v => {
+                const taskId = v === '__general__' ? '' : v;
+                setLogTask(taskId);
+                setLogProductId(job.tasks.find(t => t.id === taskId)?.productId || '');
+              }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="__general__">General</SelectItem>
@@ -2140,6 +2211,13 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
             </div>
           </div>
           <div style={{ marginBottom: 10 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Billable Service (optional)</label>
+            <Combobox
+              options={[{ value: '', label: 'No service (unbilled)' }, ...services.map(s => ({ value: s.id, label: s.name, sublabel: `${fmtServiceRate(s.sale_price, s.currency)}/${s.unit}` }))]}
+              value={logProductId} onChange={setLogProductId} placeholder="No service (unbilled)"
+            />
+          </div>
+          <div style={{ marginBottom: 10 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink3)', display: 'block', marginBottom: 3 }}>Note (optional)</label>
             <input value={logNote} onChange={e => setLogNote(e.target.value)} className="input-field" placeholder="What was worked on…" style={{ width: '100%' }} />
           </div>
@@ -2155,13 +2233,15 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
         <table className="rtbl" style={{ borderCollapse: 'collapse' }}>
           <thead>
-            <tr>{['Member','Task','Date','Duration','Hours','Note'].map(h => (
+            <tr>{['Member','Task','Service','Date','Duration','Hours','Amount','Note'].map(h => (
               <th key={h} style={{ padding: '10px 16px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
             ))}</tr>
           </thead>
           <tbody>
-            {job.timeEntries.length === 0 && <tr><td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No time logged yet. Click "Log Time" to start tracking.</td></tr>}
-            {[...job.timeEntries].reverse().map((entry, i) => (
+            {job.timeEntries.length === 0 && <tr><td colSpan={8} style={{ padding: '24px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No time logged yet. Click "Log Time" to start tracking.</td></tr>}
+            {[...job.timeEntries].reverse().map((entry, i) => {
+              const amt = entryAmount(entry);
+              return (
               <tr key={entry.id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--white)' : 'var(--bg)' }}>
                 <td style={{ padding: '10px 16px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -2172,20 +2252,28 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
                 <td style={{ padding: '10px 16px', fontSize: 12.5, color: 'var(--ink2)', maxWidth: 200 }}>
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{entry.taskTitle}</span>
                 </td>
+                <td style={{ padding: '10px 16px', fontSize: 12, color: 'var(--ink3)', maxWidth: 160 }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{entry.serviceName || '—'}</span>
+                </td>
                 <td style={{ padding: '10px 16px', fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fdate(entry.date)}</td>
                 <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{entry.duration}</td>
                 <td style={{ padding: '10px 16px', fontSize: 14, fontWeight: 700, color: 'var(--blue)' }}>{entry.hours.toFixed(2)}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 700, color: 'var(--teal)', whiteSpace: 'nowrap' }}>{amt != null ? fmtServiceRate(amt, entry.serviceCurrency || 'USD') : '—'}</td>
                 <td style={{ padding: '10px 16px', fontSize: 12, color: 'var(--ink3)', maxWidth: 180 }}>
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{entry.note || '—'}</span>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
           {job.timeEntries.length > 0 && (
             <tfoot>
               <tr style={{ background: 'var(--bg)', borderTop: '2px solid var(--border)' }}>
                 <td colSpan={4} style={{ padding: '10px 16px', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>TOTAL</td>
                 <td style={{ padding: '10px 16px', fontSize: 15, fontWeight: 800, color: 'var(--blue)' }}>{totalHours.toFixed(2)}</td>
+                <td style={{ padding: '10px 16px', fontSize: 13, fontWeight: 800, color: 'var(--teal)', whiteSpace: 'nowrap' }}>
+                  {Object.entries(billableByCurrency).map(([cur, amt]) => fmtServiceRate(amt, cur)).join(' + ') || '—'}
+                </td>
                 <td />
               </tr>
             </tfoot>

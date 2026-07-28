@@ -1385,6 +1385,11 @@ export interface ShipmentTasksTable {
   labels: any; // JSONB string[]
   cover_color: string | null;
   created_by: string | null;
+  product_id: string | null;
+  service_name: string | null;
+  service_rate: number | null;
+  service_currency: string | null;
+  service_unit: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -1422,6 +1427,11 @@ export interface ShipmentTimeEntriesTable {
   hours: number;
   note: string | null;
   log_date: Date;
+  product_id: string | null;
+  service_name: string | null;
+  service_rate: number | null;
+  service_currency: string | null;
+  service_unit: string | null;
   created_at: Generated<Date>;
 }
 

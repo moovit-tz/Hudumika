@@ -115,6 +115,11 @@ export interface InternalTask {
   tags: string[];
   description?: string;
   timeEstimateH?: number;
+  productId?: string;
+  serviceName?: string;
+  serviceRate?: number;
+  serviceCurrency?: string;
+  serviceUnit?: string;
 }
 
 export interface TimeEntry {
@@ -128,6 +133,11 @@ export interface TimeEntry {
   date: Date;
   billable: boolean;
   note?: string;
+  productId?: string;
+  serviceName?: string;
+  serviceRate?: number;
+  serviceCurrency?: string;
+  serviceUnit?: string;
 }
 
 export interface ActivityEvent {

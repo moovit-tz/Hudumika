@@ -674,6 +674,23 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * Looks up a Products & Services catalog entry (tenant-scoped) and returns
+   * the fields to snapshot onto a task/time-entry — name/rate/currency/unit
+   * are copied at link time rather than trusting whatever the client sent,
+   * since these numbers back real billing.
+   */
+  async function snapshotProduct(trx: any, tenantId: string, productId: string | null | undefined) {
+    if (!productId) return { product_id: null, service_name: null, service_rate: null, service_currency: null, service_unit: null };
+    const product = await trx.selectFrom('products').selectAll()
+      .where('id', '=', productId).where('tenant_id', '=', tenantId).executeTakeFirst();
+    if (!product) return { product_id: null, service_name: null, service_rate: null, service_currency: null, service_unit: null };
+    return {
+      product_id: product.id, service_name: product.name,
+      service_rate: product.sale_price, service_currency: product.currency, service_unit: product.unit,
+    };
+  }
+
+  /**
    * GET /v1/shipments/:id/tasks
    */
   fastify.get('/:id/tasks', async (request, reply) => {
@@ -691,15 +708,17 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/tasks', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { title, priority, assigned_to, due_date, note } = request.body as any;
+    const { title, priority, assigned_to, due_date, note, product_id } = request.body as any;
     if (!title) return reply.status(400).send({ error: 'title is required' });
     return withTenant(user.tenant_id, async (trx) => {
+      const snapshot = await snapshotProduct(trx, user.tenant_id, product_id);
       const task = await trx.insertInto('shipment_tasks').values({
         tenant_id: user.tenant_id, shipment_id: id,
         title, status: 'open', priority: priority || 'medium',
         assigned_to: assigned_to || null, due_date: due_date || null, note: note || null,
         created_by: user.name || user.sub,
         created_at: new Date(), updated_at: new Date(),
+        ...snapshot,
       }).returningAll().executeTakeFirstOrThrow();
 
       // Notify assigned user (skip self-assign)
@@ -800,6 +819,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       if (k in body) patch[k] = k === 'labels' ? JSON.stringify(body[k]) : body[k];
     }
     return withTenant(user.tenant_id, async (trx) => {
+      if ('product_id' in body) Object.assign(patch, await snapshotProduct(trx, user.tenant_id, body.product_id));
       const t = await trx.updateTable('shipment_tasks').set(patch).where('id', '=', taskId).returningAll().executeTakeFirst();
       if (!t) return reply.status(404).send({ error: 'Task not found' });
       return t;
@@ -1065,9 +1085,10 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/time-entries', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { member, task_ref, hours, note, log_date } = request.body as any;
+    const { member, task_ref, hours, note, log_date, product_id } = request.body as any;
     if (!hours) return reply.status(400).send({ error: 'hours is required' });
     return withTenant(user.tenant_id, async (trx) => {
+      const snapshot = await snapshotProduct(trx, user.tenant_id, product_id);
       const entry = await trx.insertInto('shipment_time_entries').values({
         tenant_id: user.tenant_id, shipment_id: id,
         member: member || user.name || 'Officer',
@@ -1076,6 +1097,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         note: note || null,
         log_date: log_date ? new Date(log_date) : new Date(),
         created_at: new Date(),
+        ...snapshot,
       }).returningAll().executeTakeFirstOrThrow();
       return entry;
     });
