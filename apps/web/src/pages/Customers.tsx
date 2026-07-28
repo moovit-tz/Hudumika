@@ -22,8 +22,8 @@ interface Customer {
   name: string;
   email?: string;
   phone_wa?: string;
-  tin_number?: string;
-  contact_person?: string;
+  tax_id?: string;
+  contact_name?: string;
   address?: string;
   created_at: string;
   shipment_count?: number;
@@ -232,7 +232,11 @@ export const Customers: React.FC = () => {
 
   /* Create modal */
   const [showCreate, setShowCreate] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: '', email: '', phone_wa: '', tin_number: '', contact_person: '', address: '' });
+  // Keys match the real POST /v1/customers body fields exactly (tax_id/
+  // contact_name, not tax_id/contact_name) — this form used to send
+  // the wrong key names, so the TIN and contact person were silently
+  // dropped server-side on every "Add Customer" ever submitted here.
+  const [createForm, setCreateForm] = useState({ name: '', email: '', phone_wa: '', tax_id: '', contact_name: '', address: '' });
   const [createSaving, setCreateSaving] = useState(false);
 
   /* List-view state */
@@ -354,10 +358,10 @@ export const Customers: React.FC = () => {
     try {
       await apiFetch(`/v1/customers/${selected.id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ contact_person: contactForm.name, email: contactForm.email || selected.email, phone_wa: contactForm.phone || selected.phone_wa }),
+        body: JSON.stringify({ contact_name: contactForm.name, email: contactForm.email || selected.email, phone_wa: contactForm.phone || selected.phone_wa }),
       });
-      setSelected(prev => prev ? { ...prev, contact_person: contactForm.name, email: contactForm.email || prev.email, phone_wa: contactForm.phone || prev.phone_wa } : prev);
-      setCustomers(cs => cs.map(c => c.id === selected.id ? { ...c, contact_person: contactForm.name } : c));
+      setSelected(prev => prev ? { ...prev, contact_name: contactForm.name, email: contactForm.email || prev.email, phone_wa: contactForm.phone || prev.phone_wa } : prev);
+      setCustomers(cs => cs.map(c => c.id === selected.id ? { ...c, contact_name: contactForm.name } : c));
       setShowAddContact(false);
       setContactForm({ name: '', email: '', phone: '', role: '' });
     } catch (err: any) { showAlert(err.message || 'Failed to save contact'); } finally { setContactSaving(false); }
@@ -371,8 +375,8 @@ export const Customers: React.FC = () => {
       await apiFetch(`/v1/customers/${selected.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
-          name: form.name, email: form.email, phone_wa: form.phone_wa, tin_number: form.tin_number,
-          contact_person: form.contact_person, address: form.address, website: form.website,
+          name: form.name, email: form.email, phone_wa: form.phone_wa, tax_id: form.tax_id,
+          contact_name: form.contact_name, address: form.address, website: form.website,
           city: form.city, country: form.country, vat_number: form.vat_number,
           import_license: form.import_license, preferred_port: form.preferred_port,
           freight_terms: form.freight_terms, commodity_type: form.commodity_type,
@@ -392,7 +396,7 @@ export const Customers: React.FC = () => {
     try {
       await apiFetch('/v1/customers', { method: 'POST', body: JSON.stringify(createForm) });
       setShowCreate(false);
-      setCreateForm({ name: '', email: '', phone_wa: '', tin_number: '', contact_person: '', address: '' });
+      setCreateForm({ name: '', email: '', phone_wa: '', tax_id: '', contact_name: '', address: '' });
       loadCustomers();
     } catch (err: any) { showAlert(err.message); } finally { setCreateSaving(false); }
   };
@@ -403,7 +407,7 @@ export const Customers: React.FC = () => {
       c.name.toLowerCase().includes(q) ||
       c.email?.toLowerCase().includes(q) ||
       c.phone_wa?.includes(search) ||
-      c.contact_person?.toLowerCase().includes(q);
+      c.contact_name?.toLowerCase().includes(q);
     const matchStatus = statusFilter === 'all' || (c.account_status || 'Active') === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -414,8 +418,8 @@ export const Customers: React.FC = () => {
       `"${c.name.replace(/"/g,'""')}"`,
       `"${(c.email||'').replace(/"/g,'""')}"`,
       `"${(c.phone_wa||'').replace(/"/g,'""')}"`,
-      `"${(c.contact_person||'').replace(/"/g,'""')}"`,
-      `"${(c.tin_number||'').replace(/"/g,'""')}"`,
+      `"${(c.contact_name||'').replace(/"/g,'""')}"`,
+      `"${(c.tax_id||'').replace(/"/g,'""')}"`,
       c.account_status||'Active',
       c.created_at ? new Date(c.created_at).toLocaleDateString('en-GB') : '',
     ].join(',')).join('\n');
@@ -636,8 +640,8 @@ export const Customers: React.FC = () => {
                           </td>
                           {visibleCols.email   && <td style={{ fontSize: 13, color: 'var(--ink2)' }}>{c.email || <span style={{ color: 'var(--ink3)' }}>—</span>}</td>}
                           {visibleCols.phone   && <td style={{ fontSize: 13, color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>{c.phone_wa || <span style={{ color: 'var(--ink3)', fontFamily: 'var(--font)' }}>—</span>}</td>}
-                          {visibleCols.contact && <td style={{ fontSize: 13, color: 'var(--ink2)' }}>{c.contact_person || <span style={{ color: 'var(--ink3)' }}>—</span>}</td>}
-                          {visibleCols.tin     && <td><TinChip tin={c.tin_number} /></td>}
+                          {visibleCols.contact && <td style={{ fontSize: 13, color: 'var(--ink2)' }}>{c.contact_name || <span style={{ color: 'var(--ink3)' }}>—</span>}</td>}
+                          {visibleCols.tin     && <td><TinChip tin={c.tax_id} /></td>}
                           {visibleCols.joined  && <td style={{ fontSize: 12.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fmtDate(c.created_at)}</td>}
                           <td><StatusBadge status={status} /></td>
                           <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
@@ -699,8 +703,8 @@ export const Customers: React.FC = () => {
                   { label: 'Company Name *', key: 'name',           placeholder: 'Acme Imports Ltd',             required: true },
                   { label: 'Email',          key: 'email',          placeholder: 'info@acme.co.tz'               },
                   { label: 'WhatsApp Number',key: 'phone_wa',       placeholder: '+255712345678'                 },
-                  { label: 'TIN Number',     key: 'tin_number',     placeholder: '123-456-789'                   },
-                  { label: 'Contact Person', key: 'contact_person', placeholder: 'John Doe'                      },
+                  { label: 'TIN Number',     key: 'tax_id',         placeholder: '123-456-789'                   },
+                  { label: 'Contact Person', key: 'contact_name',   placeholder: 'John Doe'                      },
                   { label: 'Address',        key: 'address',        placeholder: '14 Harbor Road, Dar es Salaam' },
                 ].map(({ label, key, placeholder, required }) => (
                   <div key={key}>
@@ -840,10 +844,10 @@ export const Customers: React.FC = () => {
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink3)', marginBottom: 14 }}>Key Information</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {[
-                    { label: 'Contact Person', value: sel.contact_person },
+                    { label: 'Contact Person', value: sel.contact_name },
                     { label: 'Email', value: sel.email },
                     { label: 'Phone / WhatsApp', value: sel.phone_wa },
-                    { label: 'TIN Number', value: sel.tin_number, mono: true },
+                    { label: 'TIN Number', value: sel.tax_id, mono: true },
                     { label: 'Preferred Port', value: sel.preferred_port },
                     { label: 'Freight Terms', value: sel.freight_terms },
                     { label: 'Credit Terms', value: sel.credit_days ? `Net ${sel.credit_days} days` : undefined },
@@ -905,7 +909,7 @@ export const Customers: React.FC = () => {
                 <ViewField label="Company Name" value={sel.name} />
                 <ViewField label="Email" value={sel.email} />
                 <ViewField label="Phone / WhatsApp" value={sel.phone_wa} />
-                <ViewField label="Contact Person" value={sel.contact_person} />
+                <ViewField label="Contact Person" value={sel.contact_name} />
                 <ViewField label="Website" value={sel.website} />
                 <ViewField label="Client Type" value={sel.client_type} />
                 <ViewField label="Currency" value={sel.currency || 'TZS'} />
@@ -915,7 +919,7 @@ export const Customers: React.FC = () => {
 
             <Section title="Tax & Compliance">
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '16px 32px' }}>
-                <ViewField label="TIN Number" value={sel.tin_number} mono />
+                <ViewField label="TIN Number" value={sel.tax_id} mono />
                 <ViewField label="VAT / VRN Number" value={sel.vat_number} mono />
                 <ViewField label="Import License No." value={sel.import_license} mono />
               </div>
@@ -950,7 +954,7 @@ export const Customers: React.FC = () => {
                 <div className="prof-field full"><label className="prof-label">Company Name *</label><input className="prof-input" value={form.name || ''} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} required /></div>
                 <div className="prof-field"><label className="prof-label">Email</label><input className="prof-input" type="email" value={form.email || ''} onChange={e => setForm(p => ({ ...p, email: e.target.value }))} /></div>
                 <div className="prof-field"><label className="prof-label">Phone / WhatsApp</label><input className="prof-input" value={form.phone_wa || ''} onChange={e => setForm(p => ({ ...p, phone_wa: e.target.value }))} placeholder="+255..." /></div>
-                <div className="prof-field"><label className="prof-label">Contact Person</label><input className="prof-input" value={form.contact_person || ''} onChange={e => setForm(p => ({ ...p, contact_person: e.target.value }))} /></div>
+                <div className="prof-field"><label className="prof-label">Contact Person</label><input className="prof-input" value={form.contact_name || ''} onChange={e => setForm(p => ({ ...p, contact_name: e.target.value }))} /></div>
                 <div className="prof-field"><label className="prof-label">Website</label><input className="prof-input" value={form.website || ''} onChange={e => setForm(p => ({ ...p, website: e.target.value }))} placeholder="https://" /></div>
                 <div className="prof-field"><label className="prof-label">Client Type</label>
                   <Select value={form.client_type || '__none__'} onValueChange={v => setForm(p => ({ ...p, client_type: v === '__none__' ? '' : v }))}>
@@ -996,7 +1000,7 @@ export const Customers: React.FC = () => {
 
             <Section title="Tax & Compliance">
               <div className="prof-grid">
-                <div className="prof-field"><label className="prof-label">TIN Number</label><input className="prof-input" value={form.tin_number || ''} onChange={e => setForm(p => ({ ...p, tin_number: e.target.value }))} placeholder="xxx-xxx-xxx" style={{ fontFamily: 'var(--mono)' }} /></div>
+                <div className="prof-field"><label className="prof-label">TIN Number</label><input className="prof-input" value={form.tax_id || ''} onChange={e => setForm(p => ({ ...p, tax_id: e.target.value }))} placeholder="xxx-xxx-xxx" style={{ fontFamily: 'var(--mono)' }} /></div>
                 <div className="prof-field"><label className="prof-label">VAT / VRN Number</label><input className="prof-input" value={form.vat_number || ''} onChange={e => setForm(p => ({ ...p, vat_number: e.target.value }))} placeholder="10-xxxxxxx-x" style={{ fontFamily: 'var(--mono)' }} /></div>
                 <div className="prof-field"><label className="prof-label">Import License No.</label><input className="prof-input" value={form.import_license || ''} onChange={e => setForm(p => ({ ...p, import_license: e.target.value }))} placeholder="TBS/IMP/..." /></div>
               </div>
@@ -1077,12 +1081,12 @@ export const Customers: React.FC = () => {
             <button type="button" className="btn btn-primary btn-sm" onClick={() => setShowAddContact(true)}>+ Add Contact</button>
           </div>
 
-          {sel.contact_person ? (
+          {sel.contact_name ? (
             <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden', marginBottom: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '16px 20px' }}>
-                <Avatar name={sel.contact_person} size={44} />
+                <Avatar name={sel.contact_name} size={44} />
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>{sel.contact_person}</div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>{sel.contact_name}</div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Primary Contact</div>
                   <div style={{ display: 'flex', gap: 16, marginTop: 6, flexWrap: 'wrap' }}>
                     {sel.email && (
@@ -1105,7 +1109,7 @@ export const Customers: React.FC = () => {
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                   <span className="badge badge-teal" style={{ fontSize: 9.5 }}>PRIMARY</span>
                   <button type="button" aria-label="Edit contact"
-                    onClick={() => { setContactForm({ name: sel.contact_person || '', email: sel.email || '', phone: sel.phone_wa || '', role: 'Primary Contact' }); setShowAddContact(true); }}
+                    onClick={() => { setContactForm({ name: sel.contact_name || '', email: sel.email || '', phone: sel.phone_wa || '', role: 'Primary Contact' }); setShowAddContact(true); }}
                     style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 7, padding: '4px 10px', cursor: 'pointer', fontSize: 12, color: 'var(--ink2)', fontFamily: 'var(--font)' }}>
                     Edit
                   </button>
@@ -1699,7 +1703,7 @@ export const Customers: React.FC = () => {
                 <div style={{ width: 1, background: 'var(--border)' }} />
                 <HeroStat label="Credit Terms" value={sel.credit_days ? `Net ${sel.credit_days}d` : 'COD'} />
                 <div style={{ width: 1, background: 'var(--border)' }} />
-                <HeroStat label="TIN" value={maskTin(sel.tin_number) || '—'} />
+                <HeroStat label="TIN" value={maskTin(sel.tax_id) || '—'} />
               </div>
             </div>
 

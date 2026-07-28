@@ -1,18 +1,25 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from './Icon.js';
+import { FeaturedIcon, type FeaturedIconProps } from './ui/featured-icon.js';
 
 type IconName = React.ComponentProps<typeof Icon>['name'];
 
-export const NOTIF_TYPE_CFG: Record<string, { icon: IconName; bg: string; fg: string }> = {
-  tag:          { icon: 'tag',         bg: '#e0f2fe', fg: '#0284c7' },
-  support:      { icon: 'headphones',  bg: '#f3e8ff', fg: '#7c3aed' },
-  announcement: { icon: 'volume2',   bg: '#fef9c3', fg: '#ca8a04' },
-  security:     { icon: 'shield',      bg: '#fee2e2', fg: '#dc2626' },
-  task:         { icon: 'checkCircle', bg: '#ecfdf5', fg: '#059669' },
-  info:         { icon: 'info',        bg: '#f0f9ff', fg: '#0284c7' },
-  chat:         { icon: 'chatBubble',  bg: '#f3e8ff', fg: '#7c3aed' },
-  mention:      { icon: 'atSign',      bg: '#fef3c7', fg: '#d97706' },
+// Mapped onto FeaturedIcon's 6 semantic variants (brand/gray/success/warning/
+// error/info) instead of the hand-rolled hex bg/fg pairs this used to carry —
+// those never actually themed for dark mode (no [data-theme="dark"] override
+// existed for them), where FeaturedIcon's tokens already do, per CLAUDE.md's
+// design-system rule that icon-in-a-tinted-chip patterns reuse the shared
+// --teal-l/--green-l/etc. tokens rather than inventing their own colors.
+export const NOTIF_TYPE_CFG: Record<string, { icon: IconName; variant: FeaturedIconProps['variant'] }> = {
+  tag:          { icon: 'tag',         variant: 'info'    },
+  support:      { icon: 'headphones',  variant: 'brand'   },
+  announcement: { icon: 'volume2',     variant: 'warning' },
+  security:     { icon: 'shield',      variant: 'error'   },
+  task:         { icon: 'checkCircle', variant: 'success' },
+  info:         { icon: 'info',        variant: 'info'    },
+  chat:         { icon: 'chatBubble',  variant: 'brand'   },
+  mention:      { icon: 'atSign',      variant: 'warning' },
 };
 
 export function notifRelTime(iso: string): string {
@@ -46,11 +53,13 @@ export function NotificationListItem({ n, onMarkRead, onNavigate }: {
 
   const content = (
     <>
-      <div className="notif-panel-item-icon" data-type={n.avatar_url ? undefined : (n.type ?? 'info')}>
-        {n.avatar_url
-          ? <img src={n.avatar_url} alt="" className="notif-panel-item-avatar" />
-          : <Icon name={cfg.icon} size={17} color={cfg.fg} strokeWidth={2} />}
-      </div>
+      {n.avatar_url ? (
+        <img src={n.avatar_url} alt="" className="notif-panel-item-avatar" />
+      ) : (
+        <FeaturedIcon variant={cfg.variant} size="sm" shape="square" className="h-9 w-9">
+          <Icon name={cfg.icon} size={17} strokeWidth={2} />
+        </FeaturedIcon>
+      )}
       <div className="notif-panel-item-body">
         <div className={`notif-panel-item-title${n.read ? '' : ' notif-panel-item-title--bold'}`}>{n.title}</div>
         {n.message && <div className="notif-panel-item-msg">{n.message}</div>}

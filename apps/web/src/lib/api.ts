@@ -1,5 +1,24 @@
 export const BASE_URL = 'http://localhost:3001';
 
+/** Clears the stored session and bounces to the login page. Called whenever the
+ * API rejects our token (expired/invalid) so the user gets a clean re-login
+ * prompt instead of every page independently surfacing the raw 401 body. */
+function handleUnauthorized() {
+  localStorage.removeItem('hudumika_token');
+  localStorage.removeItem('hudumika_user');
+  localStorage.removeItem('hudumika_super_token');
+  localStorage.removeItem('hudumika_super_user');
+  if (!window.location.pathname.startsWith('/login')) {
+    window.location.href = '/login?expired=1';
+  }
+}
+
+async function throwForErrorResponse(response: Response): Promise<never> {
+  if (response.status === 401) handleUnauthorized();
+  const err = await response.json().catch(() => ({}));
+  throw new Error(err.message || err.error || err.detail || `Request failed with status ${response.status}`);
+}
+
 export async function apiFetch(path: string, options: RequestInit = {}) {
   const token = localStorage.getItem('hudumika_token');
   
@@ -22,8 +41,7 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
   });
 
   if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.message || err.error || err.detail || `Request failed with status ${response.status}`);
+    await throwForErrorResponse(response);
   }
 
   return response.json();
@@ -37,8 +55,7 @@ export async function apiDownload(path: string, filename: string) {
 
   const response = await fetch(`${BASE_URL}${path}`, { headers });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.message || err.error || err.detail || `Request failed with status ${response.status}`);
+    await throwForErrorResponse(response);
   }
 
   const blob = await response.blob();
@@ -60,8 +77,7 @@ export async function apiFetchBlob(path: string): Promise<Blob> {
 
   const response = await fetch(`${BASE_URL}${path}`, { headers });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.message || err.error || err.detail || `Request failed with status ${response.status}`);
+    await throwForErrorResponse(response);
   }
 
   return response.blob();
@@ -75,8 +91,7 @@ export async function apiViewBlob(path: string) {
 
   const response = await fetch(`${BASE_URL}${path}`, { headers });
   if (!response.ok) {
-    const err = await response.json().catch(() => ({}));
-    throw new Error(err.message || err.error || err.detail || `Request failed with status ${response.status}`);
+    await throwForErrorResponse(response);
   }
 
   const blob = await response.blob();

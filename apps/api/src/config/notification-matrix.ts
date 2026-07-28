@@ -2,6 +2,17 @@ import type { NotificationRule } from '@hudumika/types';
 
 export const NOTIFICATION_MATRIX: NotificationRule[] = [
   {
+    // Fired by notifyListeners() (not the role-based recipients above) from
+    // the Shipment Detail "Key Dates" panel's edit action — notifies exactly
+    // whoever is configured as a listener for that specific shipment, same
+    // as everything else in that sidebar section.
+    trigger: 'KEY_DATE_CHANGED',
+    recipients: ['CUSTOMER', 'ASSIGNED_OFFICER'],
+    channels: ['WHATSAPP', 'EMAIL', 'IN_APP'],
+    template: 'Update for shipment {{refNumber}}: {{dateLabel}} changed to {{newValue}}.',
+    priority: 'NORMAL',
+  },
+  {
     trigger: 'CASE_OPENED',
     recipients: ['CUSTOMER', 'ASSIGNED_OFFICER'],
     channels: ['WHATSAPP', 'EMAIL', 'IN_APP'],

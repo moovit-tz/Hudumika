@@ -258,6 +258,7 @@
 
 /* ── Page footer ── */
 .login-footer       { display: flex; justify-content: space-between; width: 100%; max-width: 440px; margin-top: 24px; font-size: 12px; color: var(--lp-page-text, #5f6368); padding: 0 8px; transition: color 0.2s ease; }
+.login-footer--accounts { max-width: 442px; }
 .login-footer-links { display: flex; gap: 16px; }
 .login-footer-link  { color: var(--lp-page-link, #5f6368); text-decoration: none; }
 
@@ -318,6 +319,7 @@
 
 /* Register card is slightly wider to accommodate more fields */
 .login-card--reg { max-width: 720px; }
+.login-card--accounts { max-width: 442px; }
 
 /* Full-width submit button (register form) */
 .login-submit-btn--full { width: 100%; margin-top: 8px; }

@@ -7,6 +7,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { getHudumikaFooterHtml } from '../lib/watermark.js';
 import { SealDocumentPanel } from '../components/SealDocumentPanel.js';
+import { STATUS_VARIANT } from './SealConsignments.js';
 import { validateContainerNumber } from '@hudumika/types';
 import './Seal.css';
 
@@ -212,7 +213,7 @@ export function SealConsignmentDetail() {
           <h1 className="seal-page-title">{consignment.transport_doc_type} {consignment.transport_doc_number ?? ''}</h1>
           <p className="seal-page-sub">{consignment.owner_name ?? 'Unknown owner'} · {consignment.goods_description ?? 'No description'}</p>
         </div>
-        <Badge variant="brand">{consignment.status.replace(/_/g, ' ')}</Badge>
+        <Badge variant={STATUS_VARIANT[consignment.status] ?? 'brand'}>{consignment.status.replace(/_/g, ' ')}</Badge>
       </div>
 
       <div style={{ marginBottom: 20 }}>

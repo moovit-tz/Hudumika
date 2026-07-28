@@ -55,8 +55,8 @@
 .wh-welcome-name {
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-style: italic;
-  font-weight: 400;
-  color: var(--ink3);
+  font-weight: 700;
+  color: var(--teal);
   letter-spacing: 0;
 }
 
@@ -1016,10 +1016,6 @@
 
 [data-theme="dark"] .wh-welcome-greeting {
   color: rgba(255, 255, 255, 0.4);
-}
-
-[data-theme="dark"] .wh-welcome-name {
-  color: rgba(255, 255, 255, 0.35);
 }
 
 [data-theme="dark"] .wh-welcome-time {

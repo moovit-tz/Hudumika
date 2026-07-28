@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, BASE_URL } from '../lib/api.js';
 import { useEntitlements, resetEntitlementsCache } from '../hooks/useEntitlements.js';
 import { Switch } from '../components/ui/switch.js';
 import { useAuth } from '../hooks/useAuth.js';
@@ -7,7 +7,7 @@ import { Icon, type IconName } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 
-const APP_META: Record<string, { name: string; desc: string; icon: IconName }> = {
+export const APP_META: Record<string, { name: string; desc: string; icon: IconName }> = {
   clearos:      { name: 'ClearOS',       desc: 'Customs clearance, declarations, shipment tracking.', icon: 'package' },
   finops:       { name: 'FinOps',        desc: 'Invoicing, bills, ledgers and financial reports.',     icon: 'dollarSign' },
   contacts:     { name: 'Contacts',      desc: 'Shared customer, vendor and partner contact directory.', icon: 'users' },
@@ -111,7 +111,7 @@ export const Utilities: React.FC = () => {
 
   const pingWs = () => {
     try {
-      const ws = new WebSocket(`ws://localhost:3001/ws`);
+      const ws = new WebSocket(`${BASE_URL.replace(/^http/, 'ws')}/ws`);
       ws.onopen = () => { setPingResult('✓ WebSocket connected'); ws.close(); };
       ws.onerror = () => setPingResult('✗ WebSocket failed');
     } catch { setPingResult('✗ WebSocket failed'); }
@@ -218,7 +218,7 @@ export const Utilities: React.FC = () => {
             action={
               <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink2)', lineHeight: 1.8 }}>
                 <div>Browser: {navigator.userAgent.split(' ').slice(-2).join(' ')}</div>
-                <div>API: {window.location.hostname === 'localhost' ? 'http://localhost:3001' : window.location.origin}</div>
+                <div>API: {BASE_URL}</div>
                 <div>Build: Hudumika Workspaces v1.0</div>
               </div>
             }

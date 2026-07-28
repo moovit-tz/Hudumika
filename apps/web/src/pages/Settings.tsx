@@ -1,4 +1,4 @@
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
@@ -11,6 +11,9 @@ import './Settings.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { useEntitlements, resetEntitlementsCache } from '../hooks/useEntitlements.js';
+import { useAuth } from '../hooks/useAuth.js';
+import { APP_META } from './Utilities.js';
 
 // -- Settings API context ---------------------------------------------------
 interface SettingsCtxType { s: Record<string, any>; save: (key: string, data: Record<string, any>) => Promise<void> }
@@ -78,12 +81,13 @@ const NAV: Array<{ group: string; items: Array<{ key: string; label: string; ico
 ];
 
 // -- primitives -------------------------------------------------------------
-const Toggle: React.FC<{ value: boolean; onChange: (v: boolean) => void }> = ({ value, onChange }) => (
+const Toggle: React.FC<{ value: boolean; onChange: (v: boolean) => void; disabled?: boolean }> = ({ value, onChange, disabled }) => (
   <button
     type="button"
     onClick={() => onChange(!value)}
     className={`s-tog${value ? ' s-tog--on' : ''}`}
     title={value ? 'Disable' : 'Enable'}
+    disabled={disabled}
   >
     <span className="s-tog-thumb" />
   </button>
@@ -135,6 +139,23 @@ const SaveRow: React.FC<{ extra?: React.ReactNode; onSave?: () => void; saving?:
 // -- helpers -----------------------------------------------------------------
 function useFields<T extends Record<string, string>>(init: T): [T, (k: keyof T, v: string) => void] {
   const [f, setF] = useState<T>(init);
+  const set = (k: keyof T, v: string) => setF(prev => ({ ...prev, [k]: v }));
+  return [f, set];
+}
+
+/** Like useFields, but re-syncs its initial values from the already-saved
+ * settings blob (SettingsCtx's `s[key]`) the first time it becomes available —
+ * fixes every section that "saves successfully" but always shows hardcoded
+ * defaults again on reload, because plain useState(init) only reads its
+ * initializer once and `s` arrives asynchronously after GET /v1/settings resolves. */
+function useSettingsFields<T extends Record<string, string>>(key: string, defaults: T): [T, (k: keyof T, v: string) => void] {
+  const { s } = useContext(SettingsCtx);
+  const [f, setF] = useState<T>(defaults);
+  const hydrated = useRef(false);
+  useEffect(() => {
+    if (hydrated.current) return;
+    if (s[key]) { setF(prev => ({ ...prev, ...s[key] })); hydrated.current = true; }
+  }, [s, key]);
   const set = (k: keyof T, v: string) => setF(prev => ({ ...prev, [k]: v }));
   return [f, set];
 }
@@ -263,7 +284,7 @@ const CompanySection: React.FC = () => {
 // -- section: Localization ---------------------------------------------------
 const LocalizationSection: React.FC = () => {
   const { language, setLanguage, LANGUAGES } = useLocale();
-  const [f, set] = useFields({ lang: language, tz: 'Africa/Dar_es_Salaam', date: 'DD/MM/YYYY', time: '24', week: '1', currPos: 'before', decimals: '2', decSep: '.', thouSep: ',' });
+  const [f, set] = useSettingsFields('localization', { lang: language, tz: 'Africa/Dar_es_Salaam', date: 'DD/MM/YYYY', time: '24', week: '1', currPos: 'before', decimals: '2', decSep: '.', thouSep: ',' });
   const { save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -378,12 +399,41 @@ const LocalizationSection: React.FC = () => {
 // -- section: Email ----------------------------------------------------------
 const EmailSection: React.FC = () => {
   const [protocol, setProtocol] = useState('smtp');
-  const [f, set] = useFields({ host: '', port: '587', user: '', pass: '', enc: 'tls', fromName: 'Hudumika', fromEmail: '', sig: '' });
+  const [f, set] = useSettingsFields('email', { host: '', port: '587', user: '', pass: '', enc: 'tls', fromName: 'Hudumika', fromEmail: '', sig: '' });
   const [preview, setPreview] = useState(true);
-  const { save } = useContext(SettingsCtx);
+  const { s, save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const hydratedExtra = useRef(false);
+
+  useEffect(() => {
+    if (hydratedExtra.current) return;
+    if (s.email) {
+      setProtocol(s.email.protocol ?? 'smtp');
+      setPreview(s.email.preview ?? true);
+      hydratedExtra.current = true;
+    }
+  }, [s]);
+
   async function handleSave() { setSaving(true); try { await save('email', { protocol, ...f, preview }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
+
+  async function handleTestEmail() {
+    setTesting(true); setTestResult(null);
+    try {
+      await apiFetch('/v1/settings/email/test', {
+        method: 'POST',
+        body: JSON.stringify({ host: f.host, port: Number(f.port), user: f.user, pass: f.pass, enc: f.enc, fromName: f.fromName, fromEmail: f.fromEmail }),
+      });
+      setTestResult({ ok: true, msg: 'Test email sent successfully.' });
+    } catch (err: any) {
+      setTestResult({ ok: false, msg: err?.message || 'Failed to send test email.' });
+    } finally {
+      setTesting(false);
+      setTimeout(() => setTestResult(null), 5000);
+    }
+  }
   return (
     <>
       <Card title="Email Protocol">
@@ -426,7 +476,21 @@ const EmailSection: React.FC = () => {
           <textarea className="input-field s-resize-v s-font-mono" rows={4} value={f.sig} onChange={e => set('sig', e.target.value)} placeholder="HTML signature appended to outgoing emails�" />
         </Field>
       </Card>
-      <SaveRow extra={<button type="button" className="btn btn-secondary">Send Test Email</button>} saving={saving} saved={saved} onSave={handleSave} />
+      <SaveRow
+        extra={
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button type="button" className="btn btn-secondary" onClick={handleTestEmail} disabled={testing}>
+              {testing ? 'Sending…' : 'Send Test Email'}
+            </button>
+            {testResult && (
+              <span style={{ fontSize: 12, fontWeight: 600, color: testResult.ok ? 'var(--green, #059669)' : 'var(--red, #dc2626)' }}>
+                {testResult.ok ? 'Sent' : testResult.msg}
+              </span>
+            )}
+          </div>
+        }
+        saving={saving} saved={saved} onSave={handleSave}
+      />
     </>
   );
 };
@@ -495,21 +559,58 @@ const FinanceGeneralSection: React.FC = () => {
 
 // -- section: Invoices -------------------------------------------------------
 const InvoicesSection: React.FC = () => {
-  const [f, set] = useFields({ prefix: 'INV-', pad: '4', due: '30', terms: '', footer: '', payInstr: '', nextInv: '1' });
+  // prefix/pad/nextInv are backed by the real numbering counters (GET/PATCH
+  // /v1/settings/numbering/invoice, consumed by invoices.routes.ts POST /) —
+  // kept OUT of the generic useSettingsFields blob so a stale copy in the
+  // JSONB settings blob can never drift from what the real counter produces.
+  const [f, set] = useSettingsFields('invoices', { due: '30', terms: '', footer: '', payInstr: '' });
+  const [prefix, setPrefix] = useState('INV-');
+  const [pad, setPad] = useState('4');
+  const [nextInv, setNextInv] = useState('1');
   const [logo, setLogo] = useState(true);
   const [partial, setPartial] = useState(true);
   const [showPayInstr, setShowPayInstr] = useState(false);
   const [editNo, setEditNo] = useState(false);
-  const { save } = useContext(SettingsCtx);
+  const { s, save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  async function handleSave() { setSaving(true); try { await save('invoices', { ...f, logo, partial, showPayInstr, editNo }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
+  const hydratedExtra = useRef(false);
+
+  useEffect(() => {
+    if (hydratedExtra.current) return;
+    if (s.invoices) {
+      setLogo(s.invoices.logo ?? true);
+      setPartial(s.invoices.partial ?? true);
+      setShowPayInstr(s.invoices.showPayInstr ?? false);
+      setEditNo(s.invoices.editNo ?? false);
+      hydratedExtra.current = true;
+    }
+  }, [s]);
+
+  useEffect(() => {
+    apiFetch('/v1/settings/numbering/invoice')
+      .then((d: any) => { setPrefix(d.prefix ?? 'INV-'); setPad(String(d.pad_length ?? 4)); setNextInv(String(d.next_number ?? 1)); })
+      .catch(() => {});
+  }, []);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await save('invoices', { ...f, logo, partial, showPayInstr, editNo });
+      const num = await apiFetch('/v1/settings/numbering/invoice', {
+        method: 'PATCH',
+        body: JSON.stringify({ prefix, pad_length: Number(pad), next_number: Number(nextInv) }),
+      });
+      setPrefix(num.prefix); setPad(String(num.pad_length)); setNextInv(String(num.next_number));
+      setSaved(true); setTimeout(() => setSaved(false), 2000);
+    } catch {} finally { setSaving(false); }
+  }
   return (
     <>
       <Card title="Invoice Format">
-        <Field label="Prefix" hint="e.g. INV-0001"><input className="input-field" value={f.prefix} onChange={e => set('prefix', e.target.value)} /></Field>
+        <Field label="Prefix" hint="e.g. INV-0001"><input className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
         <Field label="Number Padding">
-          <Select value={f.pad} onValueChange={v => set('pad', v)}>
+          <Select value={pad} onValueChange={setPad}>
             <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="3">3 digits (001)</SelectItem>
@@ -538,8 +639,8 @@ const InvoicesSection: React.FC = () => {
           </Field>
         )}
       </Card>
-      <Card title="Numbering">
-        <Field label="Next Invoice #" hint="Starting number for the next auto-generated invoice"><input className="input-field" type="number" placeholder="1" value={f.nextInv} onChange={e => set('nextInv', e.target.value)} /></Field>
+      <Card title="Numbering" desc="Backed by the real invoice number counter used by ClearOS/FinOps when issuing invoices.">
+        <Field label="Next Invoice #" hint="Starting number for the next auto-generated invoice"><input className="input-field" type="number" placeholder="1" value={nextInv} onChange={e => setNextInv(e.target.value)} /></Field>
         <ToggleRow label="Allow Manual Invoice Number Editing" hint="Let users override the auto-generated invoice number" value={editNo} onChange={setEditNo} />
       </Card>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
@@ -549,18 +650,50 @@ const InvoicesSection: React.FC = () => {
 
 // -- section: Quotations -----------------------------------------------------
 const QuotationsSection: React.FC = () => {
-  const [f, set] = useFields({ prefix: 'QT-', validity: '14', terms: '', footer: '', nextEst: '1' });
+  // prefix/nextEst are backed by the real numbering counters (GET/PATCH
+  // /v1/settings/numbering/quotation) — kept out of the generic settings blob.
+  const [f, set] = useSettingsFields('quotations', { validity: '14', terms: '', footer: '' });
+  const [prefix, setPrefix] = useState('QT-');
+  const [nextEst, setNextEst] = useState('1');
   const [logo, setLogo] = useState(true);
   const [notif, setNotif] = useState(true);
-  const { save } = useContext(SettingsCtx);
+  const { s, save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  async function handleSave() { setSaving(true); try { await save('quotations', { ...f, logo, notif }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
+  const hydratedExtra = useRef(false);
+
+  useEffect(() => {
+    if (hydratedExtra.current) return;
+    if (s.quotations) {
+      setLogo(s.quotations.logo ?? true);
+      setNotif(s.quotations.notif ?? true);
+      hydratedExtra.current = true;
+    }
+  }, [s]);
+
+  useEffect(() => {
+    apiFetch('/v1/settings/numbering/quotation')
+      .then((d: any) => { setPrefix(d.prefix ?? 'QT-'); setNextEst(String(d.next_number ?? 1)); })
+      .catch(() => {});
+  }, []);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await save('quotations', { ...f, logo, notif });
+      const num = await apiFetch('/v1/settings/numbering/quotation', {
+        method: 'PATCH',
+        body: JSON.stringify({ prefix, next_number: Number(nextEst) }),
+      });
+      setPrefix(num.prefix); setNextEst(String(num.next_number));
+      setSaved(true); setTimeout(() => setSaved(false), 2000);
+    } catch {} finally { setSaving(false); }
+  }
   return (
     <>
-      <Card title="Quotation Format">
-        <Field label="Quote Prefix" hint="e.g. QT-0001"><input className="input-field" value={f.prefix} onChange={e => set('prefix', e.target.value)} /></Field>
-        <Field label="Next Estimate #" hint="Starting number for the next auto-generated quote"><input className="input-field" type="number" placeholder="1" value={f.nextEst} onChange={e => set('nextEst', e.target.value)} /></Field>
+      <Card title="Quotation Format" desc="Numbering is backed by the real quotation counter used when converting/issuing quotes.">
+        <Field label="Quote Prefix" hint="e.g. QT-0001"><input className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
+        <Field label="Next Estimate #" hint="Starting number for the next auto-generated quote"><input className="input-field" type="number" placeholder="1" value={nextEst} onChange={e => setNextEst(e.target.value)} /></Field>
         <Field label="Validity Days" hint="Days before quote expires"><input className="input-field" type="number" placeholder="14" value={f.validity} onChange={e => set('validity', e.target.value)} /></Field>
         <ToggleRow label="Show Logo on Quote PDF" value={logo} onChange={setLogo} />
         <ToggleRow label="Notify When Quote is Converted to Invoice" value={notif} onChange={setNotif} />
@@ -578,17 +711,46 @@ const QuotationsSection: React.FC = () => {
 
 // -- section: Purchase Orders ------------------------------------------------
 const PurchaseOrdersSection: React.FC = () => {
-  const [f, set] = useFields({ prefix: 'PO-', threshold: '1000000' });
+  // prefix is backed by the real numbering counter (GET/PATCH
+  // /v1/settings/numbering/purchase_order) — kept out of the generic settings
+  // blob. This section has no pad/next-number field in its UI.
+  const [f, set] = useSettingsFields('purchase-orders', { threshold: '1000000' });
+  const [prefix, setPrefix] = useState('PO-');
   const [autoNo, setAutoNo] = useState(true);
   const [approval, setApproval] = useState(true);
-  const { save } = useContext(SettingsCtx);
+  const { s, save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  async function handleSave() { setSaving(true); try { await save('purchase-orders', { ...f, autoNo, approval }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
+  const hydratedExtra = useRef(false);
+
+  useEffect(() => {
+    if (hydratedExtra.current) return;
+    if (s['purchase-orders']) {
+      setAutoNo(s['purchase-orders'].autoNo ?? true);
+      setApproval(s['purchase-orders'].approval ?? true);
+      hydratedExtra.current = true;
+    }
+  }, [s]);
+
+  useEffect(() => {
+    apiFetch('/v1/settings/numbering/purchase_order')
+      .then((d: any) => { setPrefix(d.prefix ?? 'PO-'); })
+      .catch(() => {});
+  }, []);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await save('purchase-orders', { ...f, autoNo, approval });
+      const num = await apiFetch('/v1/settings/numbering/purchase_order', { method: 'PATCH', body: JSON.stringify({ prefix }) });
+      setPrefix(num.prefix);
+      setSaved(true); setTimeout(() => setSaved(false), 2000);
+    } catch {} finally { setSaving(false); }
+  }
   return (
     <>
-      <Card title="Purchase Order Settings">
-        <Field label="PO Number Prefix"><input className="input-field" value={f.prefix} onChange={e => set('prefix', e.target.value)} /></Field>
+      <Card title="Purchase Order Settings" desc="Prefix is backed by the real PO counter used when issuing purchase orders.">
+        <Field label="PO Number Prefix"><input className="input-field" value={prefix} onChange={e => setPrefix(e.target.value)} /></Field>
         <ToggleRow label="Auto-Number Purchase Orders" value={autoNo} onChange={setAutoNo} />
         <ToggleRow label="Require Approval for Large Orders" hint="Orders above the threshold need admin approval" value={approval} onChange={setApproval} />
         {approval && (
@@ -610,7 +772,13 @@ const TaxRatesSection: React.FC = () => {
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [newRate, setNewRate] = useState('');
-  const { save } = useContext(SettingsCtx);
+  const { s, save } = useContext(SettingsCtx);
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    if (hydrated.current) return;
+    if (s['tax-rates']?.rates) { setRates(s['tax-rates'].rates); hydrated.current = true; }
+  }, [s]);
 
   return (
     <Card title="Tax Rates" desc="Manage VAT and other tax rates applied to transactions."
@@ -661,9 +829,16 @@ const CurrenciesSection: React.FC = () => {
     { code: 'KES', name: 'Kenyan Shilling', symbol: 'KSh', rate: 0.052, isBase: false },
     { code: 'AED', name: 'UAE Dirham', symbol: 'AED', rate: 0.00143, isBase: false },
   ]);
-  const { save } = useContext(SettingsCtx);
+  const { s, save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    if (hydrated.current) return;
+    if (s.currencies?.currencies) { setCurrencies(s.currencies.currencies); hydrated.current = true; }
+  }, [s]);
+
   async function handleSave() { setSaving(true); try { await save('currencies', { currencies }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
   return (
     <>
@@ -883,7 +1058,35 @@ const PaymentGatewaysSection: React.FC = () => {
   );
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
-  const { save } = useContext(SettingsCtx);
+  const [testing, setTesting] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<Record<string, { ok: boolean; message: string }>>({});
+  const { s, save } = useContext(SettingsCtx);
+  const hydrated = useRef(false);
+
+  // Rehydrate from whichever save path last wrote this gateway's data: the
+  // per-gateway "Save" button writes a top-level `gw-<id>` key directly on
+  // the settings blob, while the bulk "Save All Changes" button nests all
+  // enabled gateways under `payment-gateways`. Check the top-level key first.
+  useEffect(() => {
+    if (hydrated.current) return;
+    if (Object.keys(s).length === 0) return;
+    const nextEnabled: Record<string, boolean> = {};
+    const nextSandbox: Record<string, boolean> = { ...sandbox };
+    const nextValues: Record<string, Record<string, string>> = { ...values };
+    for (const gw of GATEWAYS) {
+      const data = s[`gw-${gw.id}`] ?? s['payment-gateways']?.[`gw-${gw.id}`];
+      if (data) {
+        nextEnabled[gw.id] = true;
+        if (typeof data.sandbox === 'boolean') nextSandbox[gw.id] = data.sandbox;
+        nextValues[gw.id] = { ...nextValues[gw.id], ...data };
+      }
+    }
+    setEnabled(e => ({ ...e, ...nextEnabled }));
+    setSandbox(nextSandbox);
+    setValues(nextValues);
+    hydrated.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [s]);
 
   function setVal(gid: string, key: string, val: string) {
     setValues(v => ({ ...v, [gid]: { ...v[gid], [key]: val } }));
@@ -892,6 +1095,18 @@ const PaymentGatewaysSection: React.FC = () => {
   function toggleEnabled(gid: string, v: boolean) {
     setEnabled(e => ({ ...e, [gid]: v }));
     if (v) setExpanded(ex => ({ ...ex, [gid]: true }));
+  }
+
+  async function testGateway(gw: GatewayDef) {
+    setTesting(gw.id);
+    try {
+      const res = await apiFetch(`/v1/settings/payment-gateways/${gw.id}/test`, { method: 'POST', body: JSON.stringify(values[gw.id] ?? {}) });
+      setTestResults(r => ({ ...r, [gw.id]: { ok: true, message: res.message || 'Connected.' } }));
+    } catch (err: any) {
+      setTestResults(r => ({ ...r, [gw.id]: { ok: false, message: err?.message || 'Test failed.' } }));
+    } finally {
+      setTesting(null);
+    }
   }
 
   const enabledCount = Object.values(enabled).filter(Boolean).length;
@@ -1008,7 +1223,14 @@ const PaymentGatewaysSection: React.FC = () => {
                         {/* Actions */}
                         <div className="s-gw-foot">
                           <button type="button" className="btn btn-primary btn-sm" title="Save gateway" onClick={() => save(`gw-${gw.id}`, { enabled: true, sandbox: sbx, ...values[gw.id] }).catch(() => {})}>Save</button>
-                          <button type="button" className="btn btn-secondary btn-sm" title="Test Connection">Test Connection</button>
+                          <button type="button" className="btn btn-secondary btn-sm" title="Test Connection" disabled={testing === gw.id} onClick={() => testGateway(gw)}>
+                            {testing === gw.id ? 'Testing…' : 'Test Connection'}
+                          </button>
+                          {testResults[gw.id] && (
+                            <span style={{ fontSize: 11.5, marginLeft: 8, fontWeight: 600, color: testResults[gw.id].ok ? 'var(--green, #059669)' : 'var(--red, #dc2626)' }}>
+                              {testResults[gw.id].message}
+                            </span>
+                          )}
                         </div>
                       </div>
                     )}
@@ -1038,7 +1260,22 @@ const ExpensesCategoriesSection: React.FC = () => {
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [newColor, setNewColor] = useState('#2563eb');
-  const doAdd = () => { if (newName) { setCats(cs => [...cs, { id: Date.now().toString(), name: newName, color: newColor }]); setNewName(''); setAdding(false); } };
+  const { s, save } = useContext(SettingsCtx);
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    if (hydrated.current) return;
+    if (s['expenses-categories']?.categories) { setCats(s['expenses-categories'].categories); hydrated.current = true; }
+  }, [s]);
+
+  const doAdd = () => {
+    if (newName) {
+      const next = [...cats, { id: Date.now().toString(), name: newName, color: newColor }];
+      setCats(next);
+      save('expenses-categories', { categories: next }).catch(() => {});
+      setNewName(''); setAdding(false);
+    }
+  };
   return (
     <Card title="Expense Categories" desc="Categories used to classify business expenses."
       action={<button type="button" className="btn btn-primary btn-sm" onClick={() => setAdding(true)}>+ Add</button>}>
@@ -1047,7 +1284,7 @@ const ExpensesCategoriesSection: React.FC = () => {
           <div key={c.id} className="s-cat">
             <div className="s-cat-dot" style={{ background: c.color }} />
             <div className="s-cat-name">{c.name}</div>
-            <button type="button" title={`Remove ${c.name}`} onClick={() => setCats(cs => cs.filter(x => x.id !== c.id))} className="s-cat-rm">�</button>
+            <button type="button" title={`Remove ${c.name}`} onClick={() => { const next = cats.filter(x => x.id !== c.id); setCats(next); save('expenses-categories', { categories: next }).catch(() => {}); }} className="s-cat-rm">�</button>
           </div>
         ))}
         {adding && (
@@ -1069,9 +1306,24 @@ const FeatCustomersSection: React.FC = () => {
   const [vat, setVat] = useState(true);
   const [groups, setGroups] = useState(true);
   const [defaultGroup, setDefaultGroup] = useState('none');
-  const { save } = useContext(SettingsCtx);
+  const { s, save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    if (hydrated.current) return;
+    if (s['feat-customers']) {
+      const d = s['feat-customers'];
+      setPortal(d.portal ?? true);
+      setSelfReg(d.selfReg ?? false);
+      setVat(d.vat ?? true);
+      setGroups(d.groups ?? true);
+      setDefaultGroup(d.defaultGroup ?? 'none');
+      hydrated.current = true;
+    }
+  }, [s]);
+
   async function handleSave() { setSaving(true); try { await save('feat-customers', { portal, selfReg, vat, groups, defaultGroup }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
   return (
     <>
@@ -1103,13 +1355,26 @@ const FeatCustomersSection: React.FC = () => {
 
 // -- section: Google ---------------------------------------------------------
 const GoogleSection: React.FC = () => {
-  const [f, set] = useFields({ gaId: '', mapsKey: '', rcSite: '', rcSecret: '', oauthId: '', oauthSecret: '' });
+  const [f, set] = useSettingsFields('int-google', { gaId: '', mapsKey: '', rcSite: '', rcSecret: '', oauthId: '', oauthSecret: '' });
   const [ga, setGa] = useState(false);
   const [maps, setMaps] = useState(false);
   const [rc, setRc] = useState(false);
-  const { save } = useContext(SettingsCtx);
+  const { s, save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const hydratedExtra = useRef(false);
+
+  useEffect(() => {
+    if (hydratedExtra.current) return;
+    if (s['int-google']) {
+      const d = s['int-google'];
+      setGa(d.ga ?? false);
+      setMaps(d.maps ?? false);
+      setRc(d.rc ?? false);
+      hydratedExtra.current = true;
+    }
+  }, [s]);
+
   async function handleSave() { setSaving(true); try { await save('int-google', { ...f, ga, maps, rc }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
   return (
     <>
@@ -1139,7 +1404,7 @@ const GoogleSection: React.FC = () => {
 
 // -- section: ShipsGo / Ship24 -----------------------------------------------
 const ShipsGoSection: React.FC = () => {
-  const [f, set] = useFields({ shipsgo_api_key: '', ship24_api_key: '' });
+  const [f, set] = useSettingsFields('int-shipsgo', { shipsgo_api_key: '', ship24_api_key: '' });
   const { save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -1164,7 +1429,7 @@ const ShipsGoSection: React.FC = () => {
 
 // -- section: GPSWOX ---------------------------------------------------------
 const GpswoxSection: React.FC = () => {
-  const [f, set] = useFields({ base_url: '', email: '', password: '' });
+  const [f, set] = useSettingsFields('int-gpswox', { base_url: '', email: '', password: '' });
   const { save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -1219,10 +1484,17 @@ const GpswoxSection: React.FC = () => {
 // -- section: Pusher ---------------------------------------------------------
 const PusherSection: React.FC = () => {
   const [on, setOn] = useState(false);
-  const [f, set] = useFields({ appId: '', key: '', secret: '', cluster: 'ap2' });
-  const { save } = useContext(SettingsCtx);
+  const [f, set] = useSettingsFields('int-pusher', { appId: '', key: '', secret: '', cluster: 'ap2' });
+  const { s, save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const hydratedExtra = useRef(false);
+
+  useEffect(() => {
+    if (hydratedExtra.current) return;
+    if (s['int-pusher']) { setOn(s['int-pusher'].on ?? false); hydratedExtra.current = true; }
+  }, [s]);
+
   async function handleSave() { setSaving(true); try { await save('int-pusher', { on, ...f }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
   return (
     <>
@@ -1250,10 +1522,17 @@ const PusherSection: React.FC = () => {
 // -- section: OpenAI ---------------------------------------------------------
 const OpenAISection: React.FC = () => {
   const [on, setOn] = useState(false);
-  const [f, set] = useFields({ apiKey: '', org: '', model: 'claude-sonnet-4-6', temp: '0.7', maxTokens: '2048' });
-  const { save } = useContext(SettingsCtx);
+  const [f, set] = useSettingsFields('int-ai', { apiKey: '', org: '', model: 'claude-sonnet-4-6', temp: '0.7', maxTokens: '2048' });
+  const { s, save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const hydratedExtra = useRef(false);
+
+  useEffect(() => {
+    if (hydratedExtra.current) return;
+    if (s['int-ai']) { setOn(s['int-ai'].on ?? false); hydratedExtra.current = true; }
+  }, [s]);
+
   async function handleSave() { setSaving(true); try { await save('int-ai', { on, ...f }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
   return (
     <>
@@ -1291,10 +1570,17 @@ const OpenAISection: React.FC = () => {
 // -- section: SMS ------------------------------------------------------------
 const SMSSection: React.FC = () => {
   const [provider, setProvider] = useState('africas_talking');
-  const [f, set] = useFields({ atUser: '', atKey: '', atSender: '', twilioSid: '', twilioToken: '', twilioFrom: '' });
-  const { save } = useContext(SettingsCtx);
+  const [f, set] = useSettingsFields('int-sms', { atUser: '', atKey: '', atSender: '', twilioSid: '', twilioToken: '', twilioFrom: '' });
+  const { s, save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const hydratedExtra = useRef(false);
+
+  useEffect(() => {
+    if (hydratedExtra.current) return;
+    if (s['int-sms']) { setProvider(s['int-sms'].provider ?? 'africas_talking'); hydratedExtra.current = true; }
+  }, [s]);
+
   async function handleSave() { setSaving(true); try { await save('int-sms', { provider, ...f }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
   return (
     <>
@@ -1491,7 +1777,7 @@ const TRASection: React.FC = () => {
 
 // -- section: PDF ------------------------------------------------------------
 const PDFSection: React.FC = () => {
-  const [f, set] = useFields({ engine: 'wkhtmltopdf', paper: 'A4', orient: 'portrait', mTop: '10', mRight: '10', mBottom: '10', mLeft: '10' });
+  const [f, set] = useSettingsFields('other-pdf', { engine: 'wkhtmltopdf', paper: 'A4', orient: 'portrait', mTop: '10', mRight: '10', mBottom: '10', mLeft: '10' });
   const { save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -1543,48 +1829,97 @@ const PDFSection: React.FC = () => {
 
 
 // -- section: Modules --------------------------------------------------------
-const MODULE_LIST: { name: string; desc: string; icon: IconName; on: boolean }[] = [
-  { name: 'CRM & Leads',     desc: 'Lead management, pipeline, and customer tracking',  icon: 'target',       on: true  },
-  { name: 'Support Tickets', desc: 'Help desk and customer support ticket system',       icon: 'headphones',   on: true  },
-  { name: 'Project Tasks',   desc: 'Task management and project tracking',               icon: 'tasks',        on: false },
-  { name: 'Subscriptions',   desc: 'Recurring billing and subscription management',      icon: 'refresh',      on: false },
-  { name: 'Inventory',       desc: 'Stock management and warehousing',                   icon: 'package',      on: false },
-  { name: 'HR & Payroll',    desc: 'Employee management, leave, and payroll',            icon: 'briefcase',    on: false },
-  { name: 'E-Commerce',      desc: 'Product catalog and online storefront',              icon: 'shoppingCart', on: false },
-];
-
+// Real module-enable system (same data source as Utilities.tsx's Modules
+// block): the tenant's actual entitled apps + the `enabled-apps` override map
+// fetched via GET /v1/settings, PATCHed back as a full override map and
+// followed by resetEntitlementsCache() so the nav picks up the change.
 const ModulesSection: React.FC = () => {
-  const [mods, setMods] = useState(MODULE_LIST);
+  const { user } = useAuth();
+  const canManageModules = !!user && ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'].includes(user.role);
+  const entitlements = useEntitlements();
+  const [overrides, setOverrides] = useState<Record<string, boolean> | null>(null);
+  const [moduleSaving, setModuleSaving] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiFetch('/v1/settings').then(res => setOverrides(res.settings?.['enabled-apps'] || {})).catch(() => setOverrides({}));
+  }, []);
+
+  const moduleKeys = entitlements ? Object.keys(entitlements.features).filter(k => k in APP_META) : [];
+
+  async function toggleModule(key: string, nextOn: boolean) {
+    // The settings PATCH replaces the whole 'enabled-apps' object rather than deep-merging it,
+    // so every save must include the full override map, not just the key that changed.
+    const nextOverrides = { ...(overrides ?? {}), [key]: nextOn };
+    const prevOverrides = overrides;
+    setOverrides(nextOverrides);
+    setModuleSaving(key);
+    try {
+      await apiFetch('/v1/settings', { method: 'PATCH', body: JSON.stringify({ 'enabled-apps': nextOverrides }) });
+      resetEntitlementsCache();
+    } catch (err: any) {
+      setOverrides(prevOverrides);
+      showAlert(`Failed to update module: ${err.message}`);
+    } finally {
+      setModuleSaving(null);
+    }
+  }
+
   return (
     <div>
-      <p className="s-mods-desc">Enable or disable application modules to match your workflow.</p>
-      <div className="s-mods-grid">
-        {mods.map((m, i) => (
-          <div key={i} className={`s-mod-card${m.on ? ' s-mod-card--on' : ''}`}>
-            <div className={`s-mod-icon${m.on ? ' s-mod-icon--on' : ''}`}>
-              <Icon name={m.icon} size={20} strokeWidth={1.8} color={m.on ? 'var(--teal)' : 'var(--ink3)'} />
-            </div>
-            <div className="s-mod-body">
-              <div className="s-mod-name">{m.name}</div>
-              <div className="s-mod-desc">{m.desc}</div>
-              <Toggle value={m.on} onChange={v => setMods(ms => ms.map((x, j) => j === i ? { ...x, on: v } : x))} />
-            </div>
-          </div>
-        ))}
-      </div>
+      <p className="s-mods-desc">
+        {canManageModules
+          ? 'Enable or disable application modules to match your workflow. Every plan includes every module — this just controls what shows up in the nav.'
+          : 'Apps enabled for this account. Ask an admin to change these.'}
+      </p>
+      {!entitlements || overrides === null ? (
+        <p style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading modules…</p>
+      ) : (
+        <div className="s-mods-grid">
+          {moduleKeys.map(key => {
+            const meta = APP_META[key];
+            const on = overrides[key] ?? entitlements.features[key] ?? true;
+            const maintenance = entitlements.appStatus[key] === 'maintenance';
+            return (
+              <div key={key} className={`s-mod-card${on ? ' s-mod-card--on' : ''}`} style={{ opacity: maintenance ? 0.6 : 1 }}>
+                <div className={`s-mod-icon${on ? ' s-mod-icon--on' : ''}`}>
+                  <Icon name={meta.icon} size={20} strokeWidth={1.8} color={on ? 'var(--teal)' : 'var(--ink3)'} />
+                </div>
+                <div className="s-mod-body">
+                  <div className="s-mod-name">{meta.name}</div>
+                  <div className="s-mod-desc">{maintenance ? 'Under maintenance' : meta.desc}</div>
+                  <Toggle value={on} onChange={v => toggleModule(key, v)} disabled={!canManageModules || maintenance || moduleSaving === key} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
 
 // -- section: Notifications --------------------------------------------------
 const NotificationsSection: React.FC = () => {
-  const { save } = useContext(SettingsCtx);
+  const { s, save } = useContext(SettingsCtx);
   const [whatsapp, setWhatsapp] = useState(true);
   const [emailNotifs, setEmailNotifs] = useState(false);
   const [demurrageDays, setDemurrageDays] = useState(3);
   const [slaHours, setSlaHours] = useState(24);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    if (hydrated.current) return;
+    if (s.notifications) {
+      const d = s.notifications;
+      setWhatsapp(d.whatsapp ?? true);
+      setEmailNotifs(d.email ?? false);
+      setDemurrageDays(d.demurrage_alert_days ?? 3);
+      setSlaHours(d.sla_reminder_hours ?? 24);
+      hydrated.current = true;
+    }
+  }, [s]);
 
   async function handleSave() {
     setSaving(true);
@@ -1627,12 +1962,24 @@ const FREIGHT_SLA_DEFAULTS: Record<string, number> = {
 };
 
 const FreightSection: React.FC = () => {
-  const { save } = useContext(SettingsCtx);
+  const { s, save } = useContext(SettingsCtx);
   const [freeTime, setFreeTime] = useState(7);
   const [autoRisk, setAutoRisk] = useState(true);
   const [sla, setSla] = useState({ ...FREIGHT_SLA_DEFAULTS });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const hydrated = useRef(false);
+
+  useEffect(() => {
+    if (hydrated.current) return;
+    if (s.freight) {
+      const d = s.freight;
+      setFreeTime(d.free_time_days ?? 7);
+      setAutoRisk(d.auto_risk_flags ?? true);
+      if (d.sla_days) setSla({ ...FREIGHT_SLA_DEFAULTS, ...d.sla_days });
+      hydrated.current = true;
+    }
+  }, [s]);
 
   async function handleSave() {
     setSaving(true);
@@ -1659,6 +2006,9 @@ const FreightSection: React.FC = () => {
           </div>
         ))}
       </Card>
+      <p className="s-fld-hint" style={{ margin: '4px 2px 12px' }}>
+        Per-stage SLA targets shown here are reference/planning values — live enforcement uses each shipment's assigned Workflow (see ClearOS ▸ Workflow Builder).
+      </p>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
   );

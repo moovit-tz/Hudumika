@@ -91,7 +91,7 @@ export function Trend({ val, invert = false }: { val: number; invert?: boolean }
   return (
     <span className="mc-trend" data-up={String(up)}>
       <Icon name={up ? 'arrowUp' : 'arrowDown'} size={10} strokeWidth={2.5}
-        color={up ? '#059669' : '#dc2626'} duotone={false} />
+        color={up ? 'var(--green)' : 'var(--red)'} duotone={false} />
       {Math.abs(val).toFixed(1)}%
     </span>
   );

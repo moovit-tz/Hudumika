@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { NotificationCentre } from './NotificationCentre.js';
-import { Icon } from './Icon.js';
+import { Icon, type IconName } from './Icon.js';
 import { APP_COLORS, ActiveAppContext, MobileNavContext } from '../shells/WorkspaceApp.js';
 import { useBranding } from '../hooks/useBranding.js';
 import { useLocale } from '../hooks/useLocale.js';
@@ -16,6 +16,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from './ui/dropdown-menu.js';
+import { Popover, PopoverAnchor, PopoverContent } from './ui/popover.js';
 import './AppHeader.css';
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -26,6 +27,22 @@ function getInitials(name?: string | null): string {
   if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? '?';
   return ((parts[0][0] ?? '') + (parts[parts.length - 1][0] ?? '')).toUpperCase();
 }
+
+// ── Global cross-app search (GET /v1/search, see apps/api/src/routes/search.routes.ts) ──
+// Header search boxes previously only did something on the 2 pages that wired
+// their own onAppSearchChange (Cloud, Contacts) — everywhere else, typing here
+// did nothing. This hits the same cross-tenant-safe search endpoint regardless
+// of which app is currently open, so the box always finds something and jumps
+// straight to it, on top of whatever page-local filtering (if any) also runs.
+interface GlobalSearchHit { id: string; label: string; sublabel: string | null; path: string }
+const SEARCH_CATEGORIES: Record<string, { label: string; icon: IconName }> = {
+  shipments: { label: 'Shipments', icon: 'ship' },
+  customers: { label: 'Customers', icon: 'users' },
+  invoices:  { label: 'Invoices',  icon: 'invoice' },
+  staff:     { label: 'Staff',     icon: 'user' },
+  drivers:   { label: 'Drivers',   icon: 'truck' },
+  vehicles:  { label: 'Vehicles',  icon: 'container' },
+};
 
 // ── Main component ─────────────────────────────────────────────
 
@@ -165,6 +182,74 @@ export function AppHeader({
   const handleSearch = isHub ? onHubSearchChange! : isAppSearch ? onAppSearchChange! : setLocalSearch;
   const searchPlaceholder = isHub ? t('header.searchHub') : isAppSearch ? (appSearchPlaceholder ?? t('header.searchDefault')) : t('header.searchDefault');
 
+  // ── Global cross-app search results ──
+  const navigate = useNavigate();
+  const [resultsOpen, setResultsOpen] = useState(false);
+  const [globalResults, setGlobalResults] = useState<Record<string, GlobalSearchHit[]>>({});
+  const [globalSearching, setGlobalSearching] = useState(false);
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    const q = searchValue.trim();
+    if (q.length < 2) { setGlobalResults({}); setGlobalSearching(false); return; }
+    setGlobalSearching(true);
+    searchDebounceRef.current = setTimeout(() => {
+      apiFetch(`/v1/search?q=${encodeURIComponent(q)}`)
+        .then(res => setGlobalResults(res.data || {}))
+        .catch(() => setGlobalResults({}))
+        .finally(() => setGlobalSearching(false));
+    }, 250);
+    return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
+  }, [searchValue]);
+
+  function handleSearchFocus() {
+    if (searchValue.trim().length >= 2) setResultsOpen(true);
+  }
+  function handleSearchInput(v: string) {
+    handleSearch(v);
+    setResultsOpen(v.trim().length >= 2);
+  }
+  function handleResultClick(path: string) {
+    setResultsOpen(false);
+    setMobileSearchOpen(false);
+    handleSearch('');
+    navigate(path);
+  }
+
+  const hasGlobalResults = Object.keys(globalResults).length > 0;
+  const resultsPanel = (
+    <>
+      {globalSearching && (
+        <div className="px-3 py-2.5 text-sm font-medium text-muted-foreground">Searching…</div>
+      )}
+      {!globalSearching && !hasGlobalResults && (
+        <div className="px-3 py-2.5 text-sm font-medium text-muted-foreground">No matches for &ldquo;{searchValue.trim()}&rdquo;</div>
+      )}
+      {!globalSearching && Object.entries(globalResults).map(([cat, hits]) => (
+        <div key={cat} className="mb-1 last:mb-0">
+          <div className="px-2.5 pt-1.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            {SEARCH_CATEGORIES[cat]?.label || cat}
+          </div>
+          {hits.map(h => (
+            <button
+              key={h.id}
+              type="button"
+              onClick={() => handleResultClick(h.path)}
+              className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors hover:bg-accent"
+            >
+              <Icon name={SEARCH_CATEGORIES[cat]?.icon || 'search'} size={14} className="shrink-0 text-muted-foreground" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-semibold text-foreground">{h.label}</div>
+                {h.sublabel && <div className="truncate text-xs text-muted-foreground">{h.sublabel}</div>}
+              </div>
+            </button>
+          ))}
+        </div>
+      ))}
+    </>
+  );
+
   return (
     <>
       <header className="app-header">
@@ -218,26 +303,39 @@ export function AppHeader({
           </div>
 
           {/* Center: Search — centered in hub; left-anchored expanding right in app mode */}
-          <div className="app-header-hub-search desktop-search">
-            <Icon name="search" size={15} />
-            <input
-              type="text"
-              className="app-header-hub-search-input"
-              placeholder={searchPlaceholder}
-              value={searchValue}
-              onChange={e => handleSearch(e.target.value)}
-            />
-            {searchValue && (
-              <button
-                type="button"
-                className="app-header-hub-search-clear"
-                onClick={() => handleSearch('')}
-              >
-                ✕
-              </button>
-            )}
-          </div>
-          
+          <Popover open={resultsOpen} onOpenChange={setResultsOpen}>
+            <PopoverAnchor asChild>
+              <div className="app-header-hub-search desktop-search">
+                <Icon name="search" size={15} />
+                <input
+                  type="text"
+                  className="app-header-hub-search-input"
+                  placeholder={searchPlaceholder}
+                  value={searchValue}
+                  onFocus={handleSearchFocus}
+                  onChange={e => handleSearchInput(e.target.value)}
+                />
+                {searchValue && (
+                  <button
+                    type="button"
+                    className="app-header-hub-search-clear"
+                    onClick={() => { handleSearch(''); setResultsOpen(false); }}
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </PopoverAnchor>
+            <PopoverContent
+              align="start"
+              className="w-[--radix-popover-trigger-width] min-w-[320px] max-h-105 overflow-y-auto p-1.5"
+              onOpenAutoFocus={e => e.preventDefault()}
+              onCloseAutoFocus={e => e.preventDefault()}
+            >
+              {resultsPanel}
+            </PopoverContent>
+          </Popover>
+
           <button className="app-header-icon-btn mobile-search-btn" onClick={() => setMobileSearchOpen(true)} title="Search">
             <Icon name="search" size={20} />
           </button>
@@ -268,32 +366,40 @@ export function AppHeader({
             )}
 
             {/* Notifications */}
-            <DropdownMenu open={notifOpen} onOpenChange={setNotifOpen}>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className={`app-header-icon-btn${notifOpen ? ' app-header-icon-btn--open' : ''}`}
-                  title={t('header.notifications')}
-                >
-                  <Icon name="bell" size={17} />
-                  {unreadCount > 0 && (
-                    <span className="app-header-badge">
-                      {unreadCount > 99 ? '99+' : unreadCount}
-                    </span>
-                  )}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" sideOffset={10} className="notif-dropdown-content">
-                <NotificationCentre
-                  onClose={() => setNotifOpen(false)}
-                  notifs={notifs}
-                  unreadCount={unreadCount}
-                  onMarkRead={handleMarkRead}
-                  onMarkAllRead={handleMarkAllRead}
-                  onReload={loadNotifs}
-                />
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Plain fixed-position panel pinned to the header's top-right
+                corner — same technique as AppLauncher.tsx's `.app-lnch-panel`
+                (position: fixed; top/right), not Radix's trigger-relative
+                Popper positioning. The bell isn't the header's rightmost icon
+                (theme/language/launcher/avatar sit after it), so aligning to
+                the bell itself always leaves a gap to the true right edge;
+                anchoring to the viewport corner like the launcher does avoids
+                that entirely. */}
+            <button
+              type="button"
+              className={`app-header-icon-btn${notifOpen ? ' app-header-icon-btn--open' : ''}`}
+              onClick={() => setNotifOpen(o => !o)}
+              title={t('header.notifications')}
+            >
+              <Icon name="bell" size={17} />
+              {unreadCount > 0 && (
+                <span className="app-header-badge">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+            {notifOpen && (
+              <div className="app-header-notif-backdrop" onClick={() => setNotifOpen(false)} />
+            )}
+            <div className={`app-header-notif-panel${notifOpen ? ' app-header-notif-panel--open' : ''}`}>
+              <NotificationCentre
+                onClose={() => setNotifOpen(false)}
+                notifs={notifs}
+                unreadCount={unreadCount}
+                onMarkRead={handleMarkRead}
+                onMarkAllRead={handleMarkAllRead}
+                onReload={loadNotifs}
+              />
+            </div>
 
             {/* Theme toggle */}
             <button
@@ -390,6 +496,11 @@ export function AppHeader({
               />
               <button className="app-header-search-modal-close" onClick={() => setMobileSearchOpen(false)}>Close</button>
             </div>
+            {searchValue.trim().length >= 2 && (
+              <div className="app-header-search-modal-results">
+                {resultsPanel}
+              </div>
+            )}
           </div>
         </div>
       )}

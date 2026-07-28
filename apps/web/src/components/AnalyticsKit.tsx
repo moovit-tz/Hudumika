@@ -168,33 +168,62 @@ export function DataTable<T>({ rows, columns, rowKey, pageSize = 8, emptyMessage
   );
 }
 
+// Below this many categories, autoSkip:false + 45° rotation forces every
+// label to render regardless of available width — with a long category list
+// (e.g. 19 clearance stages, or raw workflow-step names) that either
+// squeezes the chart illegibly on mobile or lets it sprawl far wider than
+// its card on desktop. A per-bar minimum width + horizontal scroll keeps
+// every bar/label a legible fixed size and scrolls instead of squishing.
+const MIN_BAR_SLOT_PX = 64;
+
+function truncateLabel(label: string, max = 14): string {
+  return label.length > max ? `${label.slice(0, max - 1)}…` : label;
+}
+
 /* ── Clickable bar chart — click a bar to jump straight to that row in a detail table ── */
 export function ClickableBarChart({ labels, values, barColors, onBarClick, yLabel }: {
   labels: string[]; values: number[]; barColors: string[]; onBarClick?: (index: number) => void; yLabel: string;
 }) {
   const chartRef = useRef<any>(null);
+  const minWidth = Math.max(labels.length * MIN_BAR_SLOT_PX, 0);
   return (
-    <div style={{ height: 220 }}>
-      <Bar
-        ref={chartRef}
-        data={{ labels, datasets: [{ label: yLabel, data: values, backgroundColor: barColors, borderRadius: 4, maxBarThickness: 34 }] }}
-        options={{
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx) => `${yLabel}: ${ctx.formattedValue}` } } },
-          scales: {
-            x: { ticks: { color: 'var(--ink3)', font: { size: 10.5 }, autoSkip: false, maxRotation: 45, minRotation: 0 }, grid: { display: false } },
-            y: { ticks: { color: 'var(--ink3)', font: { size: 11 } }, grid: { color: 'rgba(128,128,128,0.15)' }, beginAtZero: true },
-          },
-          onHover: (event, elements) => {
-            const target = event.native?.target as HTMLElement | undefined;
-            if (target) target.style.cursor = onBarClick && elements.length > 0 ? 'pointer' : 'default';
-          },
-          onClick: (_evt, elements) => {
-            if (onBarClick && elements.length > 0) onBarClick(elements[0].index);
-          },
-        }}
-      />
+    <div style={{ height: 240, overflowX: 'auto', overflowY: 'hidden' }}>
+      <div style={{ height: 220, minWidth: minWidth ? `${minWidth}px` : '100%' }}>
+        <Bar
+          ref={chartRef}
+          data={{ labels, datasets: [{ label: yLabel, data: values, backgroundColor: barColors, borderRadius: 4, maxBarThickness: 34 }] }}
+          options={{
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  title: (items) => (items[0] ? labels[items[0].dataIndex] : ''),
+                  label: (ctx) => `${yLabel}: ${ctx.formattedValue}`,
+                },
+              },
+            },
+            scales: {
+              x: {
+                ticks: {
+                  color: 'var(--ink3)', font: { size: 10.5 }, autoSkip: false, maxRotation: 45, minRotation: 0,
+                  callback: (_value, index) => truncateLabel(labels[index] ?? ''),
+                },
+                grid: { display: false },
+              },
+              y: { ticks: { color: 'var(--ink3)', font: { size: 11 } }, grid: { color: 'rgba(128,128,128,0.15)' }, beginAtZero: true },
+            },
+            onHover: (event, elements) => {
+              const target = event.native?.target as HTMLElement | undefined;
+              if (target) target.style.cursor = onBarClick && elements.length > 0 ? 'pointer' : 'default';
+            },
+            onClick: (_evt, elements) => {
+              if (onBarClick && elements.length > 0) onBarClick(elements[0].index);
+            },
+          }}
+        />
+      </div>
     </div>
   );
 }

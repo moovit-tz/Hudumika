@@ -1,6 +1,7 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { ContactsService } from '../services/contacts.service.js';
+import { parse } from 'csv-parse/sync';
 
 export async function contactsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -149,20 +150,102 @@ export async function contactsRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Import contacts
-  fastify.post('/import', async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      const { contacts } = request.body as { contacts: any[] };
-      const actor = { id: request.user.sub, name: request.user.name };
-      const results = [];
-      for (const contactData of contacts) {
-        const res = await ContactsService.createContact(tenantId, contactData, actor);
-        results.push(res);
+  // Import contacts — real multipart file upload (CSV or vCard .vcf), not
+  // the old client-parsed-JSON-array shape. Any contact manager that can
+  // export CSV or .vcf (Outlook, Apple Contacts, phone contact apps, a
+  // second Google export path, etc.) works here without its own OAuth
+  // integration — see contacts-sync.routes.ts for the real Google OAuth sync.
+  fastify.post('/import', async (request, reply) => {
+    const user = request.user;
+    const file = await request.file();
+    if (!file) return reply.status(400).send({ error: 'No file uploaded' });
+
+    const buf = await file.toBuffer();
+    const isVcard = /\.vcf$/i.test(file.filename || '') || buf.toString('utf8', 0, 20).includes('BEGIN:VCARD');
+
+    const rows: { first_name: string; last_name: string | null; email: string | null; phone: string | null; company: string | null; job_title: string | null }[] = [];
+
+    if (isVcard) {
+      const text = buf.toString('utf8');
+      const cards = text.split(/BEGIN:VCARD/i).slice(1);
+      for (const card of cards) {
+        const line = (prefix: string) => card.split(/\r?\n/).find((l) => l.toUpperCase().startsWith(prefix));
+        const getValue = (prefix: string) => { const l = line(prefix); return l ? l.slice(l.indexOf(':') + 1).trim() : null; };
+
+        const fn = getValue('FN:');
+        const n = line('N:');
+        let firstName = fn || '';
+        let lastName: string | null = null;
+        if (n) {
+          const parts = n.slice(n.indexOf(':') + 1).split(';');
+          lastName = parts[0]?.trim() || null;
+          firstName = parts[1]?.trim() || fn || '';
+        }
+        if (!firstName && !lastName) continue;
+
+        rows.push({
+          first_name: firstName || lastName || 'Unnamed',
+          last_name: lastName,
+          email: getValue('EMAIL'),
+          phone: getValue('TEL'),
+          company: getValue('ORG'),
+          job_title: getValue('TITLE:'),
+        });
       }
-      return { success: true, count: results.length };
-    } catch (err: any) {
-      return reply.status(400).send({ error: err.message });
+    } else {
+      let records: Record<string, unknown>[];
+      try {
+        records = parse(buf, { columns: true, skip_empty_lines: true, trim: true, bom: true }) as Record<string, unknown>[];
+      } catch (e: any) {
+        return reply.status(400).send({ error: 'Could not parse file: ' + (e.message || 'invalid CSV format') });
+      }
+
+      const norm = (row: Record<string, unknown>) => {
+        const out: Record<string, string> = {};
+        for (const [k, v] of Object.entries(row)) {
+          const key = k.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+          out[key] = typeof v === 'string' ? v.trim() : v == null ? '' : String(v);
+        }
+        return out;
+      };
+      const pick = (r: Record<string, string>, aliases: string[]) => {
+        for (const a of aliases) { if (r[a]) return r[a]; }
+        return null;
+      };
+
+      for (const raw of records) {
+        const r = norm(raw);
+        // Google Contacts CSV export uses "First Name"/"Last Name"; Outlook uses similar; a plain "Name" column gets split naively.
+        let firstName = pick(r, ['first_name', 'given_name']);
+        let lastName = pick(r, ['last_name', 'family_name', 'surname']);
+        if (!firstName && !lastName) {
+          const full = pick(r, ['name', 'full_name']);
+          if (full) { const parts = full.split(' '); firstName = parts[0]; lastName = parts.slice(1).join(' ') || null; }
+        }
+        if (!firstName) continue;
+
+        rows.push({
+          first_name: firstName,
+          last_name: lastName,
+          email: pick(r, ['email', 'e_mail_address', 'e_mail_1_value']),
+          phone: pick(r, ['phone', 'phone_number', 'phone_1_value']),
+          company: pick(r, ['company', 'organization', 'organization_1_name']),
+          job_title: pick(r, ['job_title', 'title', 'organization_1_title']),
+        });
+      }
     }
+
+    if (rows.length === 0) {
+      return reply.status(400).send({ error: 'No usable contacts found in that file (need at least a name).' });
+    }
+
+    const tenantId = user.tenant_id;
+    const actor = { id: user.sub, name: user.name };
+    let inserted = 0;
+    for (const row of rows) {
+      await ContactsService.createContact(tenantId, { ...row, source: isVcard ? 'vcard_import' : 'csv_import' }, actor);
+      inserted++;
+    }
+    return { imported: inserted, total: rows.length };
   });
 }

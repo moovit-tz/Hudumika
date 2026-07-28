@@ -79,6 +79,19 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
     } catch (err) {
       return reply.status(401).send({ error: 'Unauthorized: Invalid or expired token' });
     }
+
+    // A JWT with no exp is otherwise valid forever — device_id (see auth.routes.ts
+    // login / hr_devices.revoked_at) is the actual revocation mechanism: "Sign Out"
+    // in Workspace ▸ Security sets revoked_at, and every request re-checks it live
+    // against the DB rather than trusting whatever the token claimed at sign-in.
+    if (request.user.device_id) {
+      const device = await db.selectFrom('hr_devices').select('revoked_at')
+        .where('id', '=', request.user.device_id).executeTakeFirst();
+      if (device?.revoked_at) {
+        return reply.status(401).send({ error: 'Unauthorized: Session has been signed out' });
+      }
+    }
+
     await enforceUsageGate(request, reply);
   });
 });

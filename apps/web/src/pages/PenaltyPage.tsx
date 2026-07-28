@@ -4,28 +4,6 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Icon, type IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 
-const USD_TO_TZS = 2540;
-
-function chapterDutyRate(hs: string): number {
-  const ch = parseInt(hs.slice(0, 2), 10);
-  if (isNaN(ch)) return 25;
-  if (ch >= 1  && ch <= 24) return 25;
-  if (ch >= 25 && ch <= 27) return 5;
-  if (ch >= 28 && ch <= 38) return 10;
-  if (ch >= 39 && ch <= 40) return 25;
-  if (ch >= 41 && ch <= 46) return 10;
-  if (ch >= 47 && ch <= 49) return 25;
-  if (ch >= 50 && ch <= 67) return 25;
-  if (ch >= 68 && ch <= 70) return 25;
-  if (ch === 71)             return 0;
-  if (ch >= 72 && ch <= 83) return 10;
-  if (ch >= 84 && ch <= 85) return 10;
-  if (ch === 87)             return 25;
-  if (ch >= 86 && ch <= 89) return 10;
-  if (ch >= 90 && ch <= 92) return 10;
-  return 25;
-}
-
 interface PenResult {
   violation_type: string;
   duty_shortfall_tzs: number;
@@ -44,7 +22,7 @@ const fmtUsd = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionD
 
 function RRow({ label, value, red }: { label: string; value: string; red?: boolean }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
       <span style={{ fontSize: red ? 13 : 12.5, color: 'var(--ink2)', fontWeight: red ? 700 : 400 }}>{label}</span>
       <span style={{ fontSize: red ? 15 : 13, fontWeight: 700, color: red ? '#dc2626' : 'var(--ink)' }}>{value}</span>
     </div>
@@ -60,15 +38,16 @@ function StepBar({ current, steps }: { current: number; steps: string[] }) {
             <div style={{
               width: 30, height: 30, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 12.5, fontWeight: 700, flexShrink: 0,
-              background: i <= current ? '#dc2626' : 'var(--border)',
+              background: i <= current ? 'var(--teal, #0d9488)' : 'var(--border)',
               color: i <= current ? '#fff' : 'var(--ink3)',
+              transition: 'background 0.15s ease',
             }}>
               {i < current ? <Icon name="check" size={13} color="#ffffff" strokeWidth={3} /> : i + 1}
             </div>
             <span style={{ fontSize: 13, fontWeight: i === current ? 700 : 400, color: i === current ? 'var(--ink)' : 'var(--ink3)', whiteSpace: 'nowrap' }}>{label}</span>
           </div>
           {i < steps.length - 1 && (
-            <div style={{ flex: 1, height: 2, background: i < current ? '#dc2626' : 'var(--border)', margin: '0 16px', minWidth: 24, borderRadius: 2 }} />
+            <div style={{ flex: 1, height: 2, background: i < current ? 'var(--teal, #0d9488)' : 'var(--border)', margin: '0 16px', minWidth: 24, borderRadius: 2, transition: 'background 0.15s ease' }} />
           )}
         </React.Fragment>
       ))}
@@ -99,7 +78,6 @@ const VIOLATION_CARDS = [
 
 const STEP_LABELS = ['Violation Type', 'Declaration Values', 'Penalty Assessment'];
 
-
 export const PenaltyPage: React.FC = () => {
   usePageSEO('Penalty Estimator', 'Estimate Tanzania customs penalties under CEMA CAP 403.');
   const [step,       setStep]      = useState<1 | 2 | 3>(1);
@@ -116,7 +94,6 @@ export const PenaltyPage: React.FC = () => {
   const [aiError,    setAiError]   = useState('');
   const [error,      setError]     = useState('');
   const [calcLoading, setCalcLoading] = useState(false);
-  const [savedId,    setSavedId]   = useState<string | null>(null);
 
   async function calculate() {
     const dc = parseFloat(declared);
@@ -165,8 +142,6 @@ export const PenaltyPage: React.FC = () => {
         setAiError('AI analysis returned no summary. Please try again.');
       }
     } catch (e: any) {
-      // Surface the real reason (e.g. "AI not configured.") instead of silently
-      // displaying the raw local breakdown as if it were an AI summary.
       setAiError(e?.message || 'AI analysis failed. Please try again.');
     }
     setAiPending(false);
@@ -217,9 +192,9 @@ export const PenaltyPage: React.FC = () => {
 
       {/* ── Step 1: Violation Type ── */}
       {step === 1 && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 28 }}>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Select Violation Type</div>
-          <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 24 }}>Choose the type of customs violation to estimate the applicable penalty.</div>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, padding: 28 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Select Violation Type</div>
+          <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 24 }}>Choose the type of customs violation to estimate the applicable penalty.</div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
             {VIOLATION_CARDS.map(card => {
@@ -229,29 +204,30 @@ export const PenaltyPage: React.FC = () => {
                   key={card.value}
                   onClick={() => setViolation(card.value)}
                   style={{
-                    border: `2px solid ${selected ? '#dc2626' : 'var(--border)'}`,
-                    borderRadius: 12,
+                    border: `2px solid ${selected ? 'var(--teal, #0d9488)' : 'var(--border)'}`,
+                    borderRadius: 14,
                     padding: '24px 20px',
-                    background: selected ? 'rgba(220,38,38,0.08)' : 'var(--white)',
+                    background: selected ? 'var(--teal-l, rgba(13, 148, 136, 0.07))' : 'var(--white)',
                     cursor: 'pointer',
-                    transition: 'all .14s',
+                    transition: 'all .16s ease',
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 12,
                     userSelect: 'none',
+                    boxShadow: selected ? '0 4px 16px rgba(13, 148, 136, 0.12)' : 'none',
                   }}
                 >
                   <div style={{ marginBottom: 4 }}>
-                    <Icon name={card.icon} size={36} color={selected ? '#dc2626' : 'var(--ink)'} />
+                    <Icon name={card.icon} size={36} color={selected ? 'var(--teal, #0d9488)' : 'var(--ink2)'} />
                   </div>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: selected ? '#dc2626' : 'var(--ink)', lineHeight: 1.35 }}>{card.title}</div>
-                  <div style={{ fontSize: 12.5, color: selected ? '#dc2626' : 'var(--ink3)', lineHeight: 1.6 }}>{card.description}</div>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, color: selected ? 'var(--teal, #0d9488)' : 'var(--ink)', lineHeight: 1.35 }}>{card.title}</div>
+                  <div style={{ fontSize: 12.5, color: selected ? 'var(--ink)' : 'var(--ink3)', lineHeight: 1.6 }}>{card.description}</div>
                   {selected && (
                     <div style={{ marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <div style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--teal, #0d9488)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <span style={{ color: '#fff', fontSize: 11, fontWeight: 700 }}>✓</span>
                       </div>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#dc2626' }}>Selected</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal, #0d9488)' }}>Selected</span>
                     </div>
                   )}
                 </div>
@@ -260,9 +236,13 @@ export const PenaltyPage: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button type="button" onClick={() => setStep(2)}
-              style={{ padding: '10px 32px', borderRadius: 8, border: 'none', background: '#dc2626', color: '#fff', fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>
-              Continue
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => setStep(2)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 28px', borderRadius: 10, fontSize: 13.5 }}
+            >
+              <span>Continue</span>
               <span style={{ fontSize: 15 }}>→</span>
             </button>
           </div>
@@ -271,15 +251,15 @@ export const PenaltyPage: React.FC = () => {
 
       {/* ── Step 2: Declaration Values ── */}
       {step === 2 && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 28 }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, padding: 28 }}>
           {/* Info banner */}
-          <div style={{ padding: '12px 16px', borderRadius: 9, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)', marginBottom: 24, fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>
+          <div style={{ padding: '14px 18px', borderRadius: 10, background: 'var(--teal-l, rgba(13, 148, 136, 0.07))', border: '1px solid rgba(13, 148, 136, 0.2)', marginBottom: 24, fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>
             Penalty rates: <strong>Under-declaration 3× duty shortfall</strong> (s.133) · <strong>Mis-classification 1.5× duty diff.</strong> (s.128) · Late payment <strong>2%/month</strong> · No PVoC <strong>TZS 10M</strong> · No DI <strong>TZS 5M</strong> — Tanzania CEMA CAP 403
           </div>
 
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 20 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 20 }}>
             Enter Declaration Values
-            <span style={{ marginLeft: 10, fontSize: 12, fontWeight: 400, color: '#dc2626', background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.2)', borderRadius: 6, padding: '2px 10px' }}>
+            <span style={{ marginLeft: 10, fontSize: 12, fontWeight: 600, color: 'var(--teal, #0d9488)', background: 'var(--teal-l, rgba(13, 148, 136, 0.08))', border: '1px solid rgba(13, 148, 136, 0.2)', borderRadius: 6, padding: '3px 10px' }}>
               {VIOLATION_CARDS.find(c => c.value === violation)?.title}
             </span>
           </div>
@@ -332,7 +312,7 @@ export const PenaltyPage: React.FC = () => {
               ] as const).map(([val, set, label]) => (
                 <label key={label} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', fontSize: 13, color: 'var(--ink2)', userSelect: 'none' }}>
                   <input type="checkbox" checked={val} onChange={e => set(e.target.checked)}
-                    style={{ accentColor: '#dc2626', width: 15, height: 15, cursor: 'pointer' }} />
+                    style={{ accentColor: 'var(--teal, #0d9488)', width: 15, height: 15, cursor: 'pointer' }} />
                   {label}
                 </label>
               ))}
@@ -348,6 +328,7 @@ export const PenaltyPage: React.FC = () => {
             </button>
             <button
               type="button"
+              className="btn btn-primary"
               onClick={() => {
                 const dc = parseFloat(declared);
                 if (!dc || dc <= 0) { setError('Enter the declared CIF value.'); return; }
@@ -356,9 +337,9 @@ export const PenaltyPage: React.FC = () => {
                 setSummary('');
                 setStep(3);
               }}
-              style={{ padding: '10px 32px', borderRadius: 8, border: 'none', background: '#dc2626', color: '#fff', fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 28px', borderRadius: 10, fontSize: 13.5 }}
             >
-              Calculate Penalty
+              <span>Calculate Penalty</span>
               <span style={{ fontSize: 15 }}>→</span>
             </button>
           </div>
@@ -370,25 +351,30 @@ export const PenaltyPage: React.FC = () => {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Estimate button shown while no result yet */}
           {!result && (
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-              <div style={{ fontSize: 13.5, color: 'var(--ink3)' }}>Calculating estimate…</div>
-              <button type="button" onClick={calculate}
-                style={{ padding: '11px 36px', borderRadius: 8, border: 'none', background: '#dc2626', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, padding: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+              <div style={{ fontSize: 13.5, color: 'var(--ink3)' }}>{calcLoading ? 'Calculating estimate…' : 'Ready to calculate estimate.'}</div>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={calculate}
+                disabled={calcLoading}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 36px', borderRadius: 10, fontSize: 14 }}
+              >
                 <Icon name="alertCircle" size={15} color="#fff" />
-                Estimate Penalty
+                <span>{calcLoading ? 'Calculating…' : 'Estimate Penalty'}</span>
               </button>
             </div>
           )}
 
           {/* Result breakdown */}
           {result && (
-            <div style={{ background: 'var(--white)', border: '1px solid #dc2626', borderRadius: 12, overflow: 'hidden' }}>
-              <div style={{ padding: '14px 22px', background: 'rgba(220,38,38,0.08)', borderBottom: '1px solid rgba(220,38,38,0.2)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Icon name="alertCircle" size={16} color="#dc2626" />
+            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+              <div style={{ padding: '14px 22px', background: 'var(--teal-l, rgba(13, 148, 136, 0.08))', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Icon name="alertCircle" size={16} color="var(--teal, #0d9488)" />
                 <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Penalty Breakdown</span>
                 <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--ink3)' }}>EAC CET · CEMA CAP 403</span>
               </div>
-              <div style={{ padding: '18px 26px' }}>
+              <div style={{ padding: '20px 26px' }}>
                 {result.breakdown.map((b, i) => (
                   <RRow key={i}
                     label={b.label}
@@ -397,14 +383,14 @@ export const PenaltyPage: React.FC = () => {
                   />
                 ))}
                 {result.total_penalty_tzs === 0 && <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '8px 0' }}>No penalties apply with the inputs provided.</div>}
-                <div style={{ height: 1, background: '#dc2626', opacity: .3, margin: '4px 0' }} />
+                <div style={{ height: 1, background: 'var(--border)', margin: '8px 0' }} />
                 <RRow label="Total Estimated Penalty" value={`TZS ${fmt(result.total_penalty_tzs)}`} red />
 
                 {result.legal_references.length > 0 && (
-                  <div style={{ marginTop: 20, padding: '16px 18px', borderRadius: 9, background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.2)' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Legal Basis — CEMA CAP 403</div>
+                  <div style={{ marginTop: 20, padding: '16px 18px', borderRadius: 10, background: 'var(--teal-l, rgba(13, 148, 136, 0.06))', border: '1px solid rgba(13, 148, 136, 0.2)' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal, #0d9488)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 10 }}>Legal Basis — CEMA CAP 403</div>
                     {result.legal_references.map((b, i) => (
-                      <div key={i} style={{ fontSize: 12.5, color: 'var(--ink2)', paddingLeft: 12, borderLeft: '2px solid #dc2626', marginBottom: 6, lineHeight: 1.6 }}>{b}</div>
+                      <div key={i} style={{ fontSize: 12.5, color: 'var(--ink2)', paddingLeft: 12, borderLeft: '2px solid var(--teal, #0d9488)', marginBottom: 6, lineHeight: 1.6 }}>{b}</div>
                     ))}
                   </div>
                 )}
@@ -414,9 +400,9 @@ export const PenaltyPage: React.FC = () => {
 
           {/* AI Analysis panel */}
           {summary && (
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden' }}>
               <div style={{ padding: '12px 22px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="zap" size={15} color="#dc2626" />
+                <Icon name="zap" size={15} color="var(--teal, #0d9488)" />
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>AI Analysis</span>
                 <button type="button" onClick={() => setSummary('')} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 18, lineHeight: 1, padding: 0 }}>×</button>
               </div>
@@ -441,7 +427,7 @@ export const PenaltyPage: React.FC = () => {
               ← Back
             </button>
             <button type="button" onClick={resetAll}
-              style={{ padding: '9px 24px', borderRadius: 8, border: '1px solid rgba(220,38,38,0.3)', background: 'rgba(220,38,38,0.06)', color: '#dc2626', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+              style={{ padding: '9px 24px', borderRadius: 8, border: '1px solid rgba(13, 148, 136, 0.3)', background: 'var(--teal-l, rgba(13, 148, 136, 0.08))', color: 'var(--teal, #0d9488)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
               Start New Assessment
             </button>
           </div>

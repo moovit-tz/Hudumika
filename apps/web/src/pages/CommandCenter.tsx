@@ -11,6 +11,7 @@ import { CustomerGroup } from '../components/CustomerGroup.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { Button } from '../components/ui/button.js';
+import { Badge } from '../components/ui/badge.js';
 import { showAlert } from '../lib/alert.js';
 import type { ShipmentCase, ShipmentType, Workflow } from '@hudumika/types';
 import { CLEARANCE_STAGES, STAGE_LABELS } from '@hudumika/types';
@@ -141,12 +142,15 @@ const STAGE_COLORS: Partial<Record<ClearanceStage, string>> = {
 
 /* ── Risk label config (Trello-style) — only red (blocking/costly) and gold
    (actionable, not blocking) are used; keeps the board to 3 status colors
-   (red/gold/green) plus the brand teal, instead of a distinct hue per risk. */
-const RISK_META: Record<string, { label: string; color: string; bg: string }> = {
-  SLA_BREACH:  { label: 'SLA Breach',   color: 'var(--red)',  bg: 'var(--red-l)' },
-  DEMURRAGE:   { label: 'Demurrage',    color: 'var(--red)',  bg: 'var(--red-l)' },
-  MISSING_DOC: { label: 'Missing Docs', color: 'var(--gold)', bg: 'var(--gold-l)' },
-  CUSTOMS:     { label: 'Customs Hold', color: 'var(--red)',  bg: 'var(--red-l)' },
+   (red/gold/green) plus the brand teal, instead of a distinct hue per risk.
+   `variant` maps straight onto the shared `Badge` component's soft-tint
+   variants (ui/badge.tsx) so risk chips render via the design system's
+   status-pill primitive instead of a hand-rolled inline-styled <span>. */
+const RISK_META: Record<string, { label: string; variant: 'error' | 'warning'; urgent: boolean }> = {
+  SLA_BREACH:  { label: 'SLA Breach',   variant: 'error',   urgent: true },
+  DEMURRAGE:   { label: 'Demurrage',    variant: 'error',   urgent: true },
+  MISSING_DOC: { label: 'Missing Docs', variant: 'warning', urgent: false },
+  CUSTOMS:     { label: 'Customs Hold', variant: 'error',   urgent: true },
 };
 
 const TYPE_SHORT: Record<string, string> = {
@@ -289,7 +293,7 @@ function KanbanBoard({ groups, refresh, activeWorkflow }: { groups: any[], refre
             <div style={{ overflowY: 'auto', padding: '8px 8px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {ships.map((ship: any) => {
                 const risks = (ship.active_risk_types || []) as string[];
-                const urgent = risks.some(r => (RISK_META[r]?.color || '') === 'var(--red)');
+                const urgent = risks.some(r => RISK_META[r]?.urgent);
                 const initials = ship._customer
                   .split(' ').map((w: string) => w[0] || '').join('').slice(0, 2).toUpperCase();
                 const createdDate = new Date(ship.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -330,19 +334,16 @@ function KanbanBoard({ groups, refresh, activeWorkflow }: { groups: any[], refre
                     {/* Subtitle: customer name */}
                     <div className="cos-card-subtitle">{ship._customer}</div>
 
-                    {/* Risk text chips */}
+                    {/* Risk chips — shared Badge component (soft-tint variants),
+                        not a hand-rolled inline-styled span. */}
                     {risks.length > 0 && (
                       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 9 }}>
                         {risks.map(r => {
-                          const rm = RISK_META[r] || { label: r, color: 'var(--ink3)', bg: 'var(--border)' };
+                          const rm = RISK_META[r];
                           return (
-                            <span key={r} style={{
-                              fontSize: 10, fontWeight: 700, color: rm.color,
-                              background: rm.bg, borderRadius: 4,
-                              padding: '2px 6px', letterSpacing: '0.02em',
-                            }}>
-                              {rm.label}
-                            </span>
+                            <Badge key={r} variant={rm?.variant ?? 'gray'} className="px-1.5 py-0 text-[10px] font-bold leading-[1.6] tracking-[0.02em]">
+                              {rm?.label ?? r}
+                            </Badge>
                           );
                         })}
                       </div>
@@ -494,16 +495,55 @@ export const CommandCenter: React.FC = () => {
   const canCreate = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER'].includes(user?.role || '');
   const isJunior  = user?.role === 'JUNIOR' || user?.role === 'OFFICER';
 
-  // KPI cells config
+  // KPI cells config — values show an em-dash while the underlying
+  // useShipments() fetch is in flight, instead of flashing "0" for a beat.
   const kpiCells = [
-    { key: 'active',    label: 'Active Shipments',   value: fmt(kpis?.active_cases),           cls: 't', cell: '',      metric: 'active' as Metric },
-    { key: 'dem',       label: 'Demurrage Risk',      value: fmt(kpis?.demurrage_risk),          cls: 'r', cell: 'alert', metric: 'demurrage' as Metric },
-    { key: 'sla',       label: 'SLA Breached',        value: fmt(kpis?.sla_breached),                cls: 'r', cell: 'alert', metric: 'sla' as Metric },
-    { key: 'del',       label: 'Delivered Today',     value: fmt(kpis?.delivered_today),             cls: 'g', cell: '',      metric: 'delivered' as Metric },
-    { key: 'penalty',   label: 'Penalty Exposure',    value: `${fmtM(kpis?.penalty_exposure_tzs)} TZS`, cls: 'a', cell: 'warn', metric: null },
-    { key: 'ontime',    label: 'On-Time Rate',        value: `${kpis?.on_time_rate_pct ?? 0}%`,     cls: 'g', cell: '',      metric: null },
-    { key: 'month',     label: 'This Month',          value: fmt(kpis?.cases_this_month),        cls: 'n', cell: '',      metric: null },
+    { key: 'active',    label: 'Active Shipments',   value: loading ? '—' : fmt(kpis?.active_cases),           cls: 't', cell: '',      metric: 'active' as Metric },
+    { key: 'dem',       label: 'Demurrage Risk',      value: loading ? '—' : fmt(kpis?.demurrage_risk),          cls: 'r', cell: 'alert', metric: 'demurrage' as Metric },
+    { key: 'sla',       label: 'SLA Breached',        value: loading ? '—' : fmt(kpis?.sla_breached),                cls: 'r', cell: 'alert', metric: 'sla' as Metric },
+    { key: 'del',       label: 'Delivered Today',     value: loading ? '—' : fmt(kpis?.delivered_today),             cls: 'g', cell: '',      metric: 'delivered' as Metric },
+    { key: 'penalty',   label: 'Penalty Exposure',    value: loading ? '—' : `${fmtM(kpis?.penalty_exposure_tzs)} TZS`, cls: 'a', cell: 'warn', metric: null },
+    { key: 'ontime',    label: 'On-Time Rate',        value: loading ? '—' : `${kpis?.on_time_rate_pct ?? 0}%`,     cls: 'g', cell: '',      metric: null },
+    { key: 'month',     label: 'This Month',          value: loading ? '—' : fmt(kpis?.cases_this_month),        cls: 'n', cell: '',      metric: null },
   ];
+
+  // Renders one KPI strip cell — a real <button> (toggles selectedMetric,
+  // clearing back to null on a second click of the same cell) for anything
+  // with a `metric`, or a plain non-interactive <div> for informational-only
+  // cells (penalty exposure, on-time rate, this month) so they don't get a
+  // pointer cursor/hover/focus affordance that implies they do something.
+  const kpiCell = (cell: (typeof kpiCells)[number]) => {
+    const clickable = cell.metric !== null;
+    const active = clickable && selectedMetric === cell.metric;
+    const cls = [
+      'cc-kpi-cell', cell.cls,
+      clickable ? 'cc-kpi-cell--clickable' : '',
+      active ? 'cc-kpi-cell--active' : '',
+      cell.cell ? `cc-kpi-cell--${cell.cell}` : '',
+    ].filter(Boolean).join(' ');
+    const inner = (
+      <>
+        <span className="cc-kpi-cell-label">
+          {cell.cell === 'alert' && <span className="cc-kpi-dot" />}
+          {cell.label}
+        </span>
+        <span className="cc-kpi-cell-value">{cell.value}</span>
+      </>
+    );
+    return clickable ? (
+      <button
+        key={cell.key}
+        type="button"
+        className={cls}
+        aria-pressed={active}
+        onClick={() => setSelectedMetric(m => (m === cell.metric ? null : cell.metric))}
+      >
+        {inner}
+      </button>
+    ) : (
+      <div key={cell.key} className={cls}>{inner}</div>
+    );
+  };
 
   const fld = (label: string, value: string, onChange: (v: string) => void, rest?: any) => (
     <div className="cc-fld">
@@ -607,6 +647,15 @@ export const CommandCenter: React.FC = () => {
               </Button>
             </div>
           </div>
+        </div>
+
+        {/* ── KPI Strip — click a cell to filter the list/board below to that
+            metric (toggles off on a second click of the same cell); cells with
+            no `metric` (penalty exposure, on-time rate, this month) are
+            informational only. Always visible, independent of the collapsible
+            toolbar below, since these are the primary at-a-glance numbers. */}
+        <div className="cc-kpi-row">
+          {kpiCells.map(kpiCell)}
         </div>
 
         {/* Collapsible Ops Summary & Filters — one row, wraps as a unit on narrow screens */}

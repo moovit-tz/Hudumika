@@ -480,11 +480,14 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       'eta', 'free_time_end', 'sla_deadline', 'assigned_to',
       'gross_weight_kg', 'cif_value_usd', 'container_numbers', 'internal_notes',
       'whatsapp_bot_active',
+      // Key Dates panel (Shipment Detail sidebar) — editing either sends a
+      // real notification to the shipment's listeners, below.
+      'due_date', 'created_at',
     ];
 
     const patch: Record<string, any> = { updated_at: new Date() };
     for (const key of allowed) {
-      if (key in body) patch[key] = body[key];
+      if (key in body) patch[key] = key === 'due_date' || key === 'created_at' ? (body[key] ? new Date(body[key]) : null) : body[key];
     }
 
     if (Object.keys(patch).length === 1) {
@@ -492,7 +495,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     }
 
     return withTenant(user.tenant_id, async (trx) => {
-      const prev = await trx.selectFrom('shipment_cases').select(['assigned_to'])
+      const prev = await trx.selectFrom('shipment_cases').select(['assigned_to', 'due_date', 'created_at'])
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
 
       const updated = await trx
@@ -525,6 +528,18 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
             content: `${user.name || 'Someone'} assigned you to shipment ${updated.ref_number || id}`,
             read: false, status: 'SENT', created_at: new Date(),
           } as any).execute();
+        }
+      }
+
+      // Key Dates changed — notify this shipment's listeners (WhatsApp/Email/
+      // in-app, per each listener's own channel choice) rather than silently
+      // updating a date no one downstream ever finds out about.
+      for (const [key, label] of [['due_date', 'Due date'], ['created_at', 'Created date']] as const) {
+        if (key in body && String(prev?.[key] ?? '') !== String(updated[key] ?? '')) {
+          NotificationService.notifyListeners(user.tenant_id, id, 'KEY_DATE_CHANGED', {
+            dateLabel: label,
+            newValue: updated[key] ? new Date(updated[key] as any).toLocaleDateString('en-GB') : 'cleared',
+          }).catch((err) => fastify.log.error('KEY_DATE_CHANGED notify failed: %s', err.message));
         }
       }
 
@@ -741,11 +756,12 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const { type, people, channels } = request.body as { type: 'internal' | 'customer'; people: { id?: string; name: string; role?: string }[]; channels: string[] };
     if (type !== 'internal' && type !== 'customer') return reply.status(400).send({ error: 'type must be internal or customer' });
     if (!Array.isArray(people) || people.length === 0) return reply.status(400).send({ error: 'people is required' });
+    const isUuid = (val?: string) => !!val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
     return withTenant(user.tenant_id, async (trx) => {
       const rows = await trx.insertInto('shipment_listeners').values(
         people.map((p) => ({
           tenant_id: user.tenant_id, shipment_id: id, type,
-          user_id: p.id || null, name: p.name, role: p.role || null,
+          user_id: isUuid(p.id) ? p.id! : null, name: p.name, role: p.role || null,
           channels: JSON.stringify(channels || []), created_by: user.sub,
         }))
       ).returningAll().execute();

@@ -62,6 +62,7 @@ import { deliveryNoteRoutes } from './routes/delivery-notes.routes.js';
 import { accountingIntegrationRoutes } from './routes/accounting-integration.routes.js';
 import { nexusHRRoutes } from './routes/nexushr.routes.js';
 import { contactsRoutes } from './routes/contacts.routes.js';
+import { contactsSyncRoutes } from './routes/contacts-sync.routes.js';
 import { emailRoutes, emailSendRoutes } from './routes/email.routes.js';
 import { complyRoutes } from './routes/comply.routes.js';
 import { sealRoutes } from './routes/seal.routes.js';
@@ -104,6 +105,9 @@ import { apiKeysRoutes } from './routes/api-keys.routes.js';
 import { storeRoutes } from './routes/store.routes.js';
 import { searchRoutes } from './routes/search.routes.js';
 import { tasksRoutes } from './routes/tasks.routes.js';
+import securityRoutes from './routes/security.routes.js';
+import billingRoutes from './routes/billing.routes.js';
+import platformSupportRoutes from './routes/platform-support.routes.js';
 import { isMeteredPath, incrementUsage } from './lib/usage.js';
 
 const server = fastify({
@@ -261,6 +265,7 @@ async function main() {
     await server.register(accountingIntegrationRoutes, { prefix: '/v1/accounting-integrations' });
     await server.register(nexusHRRoutes, { prefix: '/v1/hr' });
     await server.register(contactsRoutes, { prefix: '/v1/contacts' });
+    await server.register(contactsSyncRoutes, { prefix: '/v1/contacts' });
     await server.register(emailRoutes, { prefix: '/v1/emails' });
     await server.register(emailSendRoutes, { prefix: '/v1/email' });
     await server.register(complyRoutes, { prefix: '/v1/comply' });
@@ -300,6 +305,9 @@ async function main() {
     await server.register(storeRoutes, { prefix: '/v1/store' });
     await server.register(searchRoutes, { prefix: '/v1/search' });
     await server.register(tasksRoutes, { prefix: '/v1/tasks' });
+    await server.register(securityRoutes, { prefix: '/v1/security' });
+    await server.register(billingRoutes, { prefix: '/v1/billing' });
+    await server.register(platformSupportRoutes, { prefix: '/v1/platform-support' });
 
     // Health check
     server.get('/health', async () => {

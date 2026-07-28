@@ -17,9 +17,10 @@ interface NotificationCentreProps {
 }
 
 // ── Component ─────────────────────────────────────────────────
-// Rendered as the arbitrary-JSX child of a DropdownMenuContent by AppHeader —
-// Radix owns the open/close, positioning, portal and outside-click/Escape
-// handling; this component only owns the tab filter + list rendering.
+// Rendered inside AppHeader's fixed-position .app-header-notif-panel wrapper
+// (same technique as AppLauncher's panel) — that wrapper + its sibling
+// backdrop own open/close, positioning and outside-click; this component only
+// owns the tab filter + list rendering.
 
 export const NotificationCentre: React.FC<NotificationCentreProps> = ({
   onClose, notifs, unreadCount,
@@ -35,7 +36,7 @@ export const NotificationCentre: React.FC<NotificationCentreProps> = ({
     : notifs.filter(n => !n.read);
 
   return (
-      <div className="notif-panel notif-panel--open">
+      <div className="notif-panel">
 
         {/* ── Header (navy) ── */}
         <div className="notif-panel-hdr">

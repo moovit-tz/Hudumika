@@ -5,6 +5,7 @@ import { Redis } from 'ioredis';
 import { sql } from 'kysely';
 import { env } from '../config/env.js';
 import type { KPIResponse, StageBottleneck, OfficerPerformance, ClearanceStage } from '@hudumika/types';
+import { STAGE_LABELS } from '@hudumika/types';
 
 // Expected max duration per stage (hours) — business SLA policy used to
 // flag real breaches against actual stage_history durations, not a guess.
@@ -65,38 +66,42 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
       const now = new Date();
       const next48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
 
-      // Active cases
-      const activeCountResult = await trx
+      // Every query below is explicitly tenant-scoped — RLS alone doesn't
+      // protect this (see CLAUDE.md); none of these had a tenant_id filter
+      // at all before, so this whole KPI panel was silently aggregating
+      // every tenant's shipment_cases together for everyone.
+      const active_cases = Number((await trx
         .selectFrom('shipment_cases')
         .select(trx.fn.count('id').as('cnt'))
+        .where('tenant_id', '=', user.tenant_id)
         .where('stage', 'not in', ['CLOSED', 'DELIVERY'])
-        .executeTakeFirst();
-      const active_cases = Number(activeCountResult?.cnt ?? 0);
+        .executeTakeFirst())?.cnt ?? 0);
 
       // Demurrage risk: free_time_end in next 48 hours and not delivered
-      const demurrageResult = await trx
+      const demurrage_risk = Number((await trx
         .selectFrom('shipment_cases')
         .select(trx.fn.count('id').as('cnt'))
+        .where('tenant_id', '=', user.tenant_id)
         .where('stage', 'not in', ['CLOSED', 'DELIVERY'])
         .where('free_time_end', 'is not', null)
         .where('free_time_end', '<=', next48h)
-        .executeTakeFirst();
-      const demurrage_risk = Number(demurrageResult?.cnt ?? 0);
+        .executeTakeFirst())?.cnt ?? 0);
 
       // SLA Breached: stage SLA deadline exceeded
-      const slaResult = await trx
+      const sla_breached = Number((await trx
         .selectFrom('shipment_cases')
         .select(trx.fn.count('id').as('cnt'))
+        .where('tenant_id', '=', user.tenant_id)
         .where('stage', 'not in', ['CLOSED', 'DELIVERY'])
         .where('sla_deadline', '<', now)
-        .executeTakeFirst();
-      const sla_breached = Number(slaResult?.cnt ?? 0);
+        .executeTakeFirst())?.cnt ?? 0);
 
       // Delivered today
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const deliveredResult = await trx
+      const delivered_today = Number((await trx
         .selectFrom('shipment_cases')
         .select(trx.fn.count('id').as('cnt'))
+        .where('tenant_id', '=', user.tenant_id)
         .where((eb) =>
           eb.or([
             eb('stage', '=', 'DELIVERY'),
@@ -104,13 +109,13 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
           ])
         )
         .where('updated_at', '>=', todayStart)
-        .executeTakeFirst();
-      const delivered_today = Number(deliveredResult?.cnt ?? 0);
+        .executeTakeFirst())?.cnt ?? 0);
 
       // Penalty exposure (demurrage costs accumulating right now)
       const shipments = await trx
         .selectFrom('shipment_cases')
         .select(['free_time_end', 'stage'])
+        .where('tenant_id', '=', user.tenant_id)
         .where('stage', 'not in', ['CLOSED', 'DELIVERY'])
         .where('free_time_end', '<', now)
         .execute();
@@ -126,20 +131,20 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
 
       // Cases this month
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const monthlyCount = await trx
+      const cases_this_month = Number((await trx
         .selectFrom('shipment_cases')
         .select(trx.fn.count('id').as('cnt'))
+        .where('tenant_id', '=', user.tenant_id)
         .where('created_at', '>=', monthStart)
-        .executeTakeFirst();
-      const cases_this_month = Number(monthlyCount?.cnt ?? 0);
+        .executeTakeFirst())?.cnt ?? 0);
 
       // On-time rate: % of closed cases that never had an SLA_BREACH risk flag raised
-      const closedResult = await trx
+      const closed_cases = Number((await trx
         .selectFrom('shipment_cases')
         .select(trx.fn.count('id').as('cnt'))
+        .where('tenant_id', '=', user.tenant_id)
         .where('stage', '=', 'CLOSED')
-        .executeTakeFirst();
-      const closed_cases = Number(closedResult?.cnt ?? 0);
+        .executeTakeFirst())?.cnt ?? 0);
 
       let on_time_rate_pct = 100;
       if (closed_cases > 0) {
@@ -147,6 +152,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
           .selectFrom('risk_flags')
           .innerJoin('shipment_cases', 'shipment_cases.id', 'risk_flags.shipment_id')
           .select(sql<string>`count(distinct risk_flags.shipment_id)`.as('cnt'))
+          .where('risk_flags.tenant_id', '=', user.tenant_id)
           .where('risk_flags.type', '=', 'SLA_BREACH')
           .where('shipment_cases.stage', '=', 'CLOSED')
           .executeTakeFirst();
@@ -161,6 +167,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
           sql<string>`coalesce(sum(co2_emissions_kg), 0)`.as('total_co2'),
           sql<string>`coalesce(sum(carbon_credits_saved), 0)`.as('total_credits'),
         ])
+        .where('tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
       const total_co2_emissions_kg = Math.round(Number(co2Result?.total_co2 ?? 0) * 100) / 100;
       const total_carbon_credits_saved = Math.round(Number(co2Result?.total_credits ?? 0) * 10000) / 10000;
@@ -200,7 +207,12 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
     const user = request.user;
 
     return withTenant(user.tenant_id, async (trx) => {
-      // Aggregate avg/p90 duration and case count from stage_history
+      // Aggregate avg/p90 duration and case count from stage_history —
+      // tenant-scoped explicitly (RLS alone doesn't protect this; see
+      // CLAUDE.md). This was missing entirely before, so every tenant's
+      // "Stage Bottlenecks" silently aggregated every OTHER tenant's stage
+      // durations too — including foreign workflow-step UUIDs that then
+      // couldn't resolve to a real name below and rendered as a raw UUID.
       const history = await trx
         .selectFrom('stage_history')
         .select([
@@ -209,6 +221,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
           sql<number>`percentile_cont(0.9) within group (order by duration_h)`.as('p90_h'),
           trx.fn.count('id').as('cnt'),
         ])
+        .where('tenant_id', '=', user.tenant_id)
         .where('duration_h', 'is not', null)
         .groupBy('stage')
         .execute();
@@ -222,6 +235,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
       const legacyBreaches = await trx
         .selectFrom('stage_history')
         .select(['stage', trx.fn.count('id').as('cnt')])
+        .where('tenant_id', '=', user.tenant_id)
         .where('duration_h', 'is not', null)
         .where((eb) =>
           eb.or(
@@ -233,20 +247,44 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
         .groupBy('stage')
         .execute();
 
-      const customBreaches = await trx
-        .selectFrom('stage_history')
-        .innerJoin('workflow_steps', 'workflow_steps.id', 'stage_history.stage')
-        .select(['stage_history.stage as stage', trx.fn.count('stage_history.id').as('cnt')])
-        .where('stage_history.duration_h', 'is not', null)
-        .where('stage_history.tenant_id', '=', user.tenant_id)
-        .whereRef('stage_history.duration_h', '>', 'workflow_steps.sla_hours')
-        .groupBy('stage_history.stage')
-        .execute();
+      // Raw SQL (not the query builder) because this join compares
+      // workflow_steps.id (uuid) against stage_history.stage (varchar, since
+      // that column also holds plain ClearanceStage literals like
+      // 'DOCS_RECEIVED' for legacy shipments) — Postgres has no uuid =
+      // character varying operator, so the comparison must cast one side
+      // explicitly. Casting the uuid to ::text (always safe) rather than
+      // casting stage to ::uuid (would throw on every legacy literal row,
+      // which aren't valid UUIDs) is the direction that can't fail at runtime.
+      const customBreachesResult = await sql<{ stage: string; cnt: string }>`
+        SELECT stage_history.stage AS stage, COUNT(stage_history.id) AS cnt
+        FROM stage_history
+        INNER JOIN workflow_steps ON workflow_steps.id::text = stage_history.stage
+        WHERE stage_history.duration_h IS NOT NULL
+          AND stage_history.tenant_id = ${user.tenant_id}
+          AND stage_history.duration_h > workflow_steps.sla_hours
+        GROUP BY stage_history.stage
+      `.execute(trx);
+      const customBreaches = customBreachesResult.rows;
 
       const breachByStage = new Map([...legacyBreaches, ...customBreaches].map((b) => [b.stage, Number(b.cnt)]));
 
+      // Custom-workflow rows carry a workflow_steps.id, not a readable name —
+      // the chart/table used to render that raw UUID directly. Resolve every
+      // non-legacy stage value to the step's real name in one query.
+      const customStageIds = history.map((h) => h.stage).filter((s) => !(s in STAGE_LABELS));
+      const stepNameMap = new Map<string, string>();
+      if (customStageIds.length > 0) {
+        const steps = await trx.selectFrom('workflow_steps')
+          .select(['id', 'name'])
+          .where('id', 'in', customStageIds)
+          .where('tenant_id', '=', user.tenant_id)
+          .execute();
+        for (const s of steps) stepNameMap.set(s.id, s.name);
+      }
+
       const bottlenecks: StageBottleneck[] = history.map((h) => ({
         stage: h.stage,
+        stage_label: STAGE_LABELS[h.stage as ClearanceStage] ?? stepNameMap.get(h.stage) ?? h.stage,
         avg_hours: parseFloat(Number(h.avg_h || 0).toFixed(1)),
         p90_hours: parseFloat(Number(h.p90_h || 0).toFixed(1)),
         case_count: Number(h.cnt),
@@ -265,9 +303,13 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
     const user = request.user;
 
     return withTenant(user.tenant_id, async (trx) => {
+      // Explicitly tenant-scoped throughout — none of these had a tenant_id
+      // filter before, so this endpoint mixed every tenant's staff and
+      // shipments into one global officer-performance ranking.
       const officers = await trx
         .selectFrom('users')
         .select(['id', 'name', 'role'])
+        .where('tenant_id', '=', user.tenant_id)
         .where('role', 'in', ['OFFICER', 'JUNIOR', 'SENIOR'])
         .where('active', '=', true)
         .execute();
@@ -275,12 +317,14 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
       const shipments = await trx
         .selectFrom('shipment_cases')
         .select(['id', 'assigned_to', 'stage', 'created_at'])
+        .where('tenant_id', '=', user.tenant_id)
         .execute();
 
       // Real close timestamps per shipment, from stage_history's CLOSED entry
       const closedEntries = await trx
         .selectFrom('stage_history')
         .select(['shipment_id', 'entered_at'])
+        .where('tenant_id', '=', user.tenant_id)
         .where('stage', '=', 'CLOSED')
         .execute();
       const closedAtByShipment = new Map(closedEntries.map((c) => [c.shipment_id, c.entered_at]));
@@ -289,6 +333,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
       const demurrageFlags = await trx
         .selectFrom('risk_flags')
         .select(['shipment_id'])
+        .where('tenant_id', '=', user.tenant_id)
         .where('type', '=', 'DEMURRAGE')
         .execute();
       const demurrageShipmentIds = new Set(demurrageFlags.map((f) => f.shipment_id));
@@ -357,8 +402,12 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
         DELIVERY: 'CLEARED', EMPTY_RETURN: 'CLEARED', INVOICING: 'CLEARED', CLOSED: 'CLEARED',
       };
 
+      // Explicitly tenant-scoped throughout this endpoint — none of these had
+      // a tenant_id filter before, mixing every tenant's shipments/
+      // declarations/invoices/customers into one shared "customer overview".
       const shipments = await trx.selectFrom('shipment_cases')
         .select(['id', 'stage', 'customer_id', 'created_at', 'free_time_end', 'sla_deadline'])
+        .where('tenant_id', '=', user.tenant_id)
         .execute();
 
       const shipmentStatus = { IN_TRANSIT: 0, AT_PORT: 0, CUSTOMS_HOLD: 0, CLEARED: 0 };
@@ -373,6 +422,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
       // ── Declarations today / pending ───────────────────────────
       const declarations = await trx.selectFrom('declarations')
         .select(['id', 'status', 'created_at', 'updated_at'])
+        .where('tenant_id', '=', user.tenant_id)
         .execute();
       const declFiledToday = declarations.filter(d => d.created_at >= todayStart).length;
       const declApprovedToday = declarations.filter(d => ['ACCEPTED', 'RELEASED'].includes(d.status) && d.updated_at >= todayStart).length;
@@ -393,6 +443,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
       // ── Financial summary (this month's sales invoices) ────────
       const invoices = await trx.selectFrom('sales_invoices')
         .select(['id', 'customer_id', 'client_name', 'status', 'received', 'due_date', 'bill_date'])
+        .where('tenant_id', '=', user.tenant_id)
         .where('bill_date', '>=', monthStart)
         .execute();
       const invoiceIds = invoices.map(i => i.id);
@@ -425,7 +476,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
       // ── Top customers by shipment volume this month ────────────
       const topCustomerIds = [...shipmentsByCustomer.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([id]) => id);
       const customerRows = topCustomerIds.length > 0
-        ? await trx.selectFrom('customers').select(['id', 'name']).where('id', 'in', topCustomerIds).execute()
+        ? await trx.selectFrom('customers').select(['id', 'name']).where('tenant_id', '=', user.tenant_id).where('id', 'in', topCustomerIds).execute()
         : [];
       const customerNameById = new Map(customerRows.map(c => [c.id, c.name]));
       const topCustomers = topCustomerIds.map(id => ({
@@ -441,6 +492,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
         const closedIds = closedCases.map(s => s.id);
         const breached = await trx.selectFrom('risk_flags')
           .select(sql<string>`count(distinct shipment_id)`.as('cnt'))
+          .where('tenant_id', '=', user.tenant_id)
           .where('type', '=', 'SLA_BREACH')
           .where('shipment_id', 'in', closedIds)
           .executeTakeFirst();
@@ -497,6 +549,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
           'sc.id', 'sc.type', 'sc.customer_id', 'c.name as customer_name',
           'sc.co2_emissions_kg', 'sc.carbon_credits_saved', 'sc.created_at',
         ])
+        .where('sc.tenant_id', '=', user.tenant_id)
         .where('sc.deleted_at', 'is', null);
       if (date_from) query = query.where('sc.created_at', '>=', new Date(date_from));
       if (date_to) query = query.where('sc.created_at', '<=', new Date(date_to));

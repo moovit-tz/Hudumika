@@ -3,6 +3,9 @@ import { withTenant } from '../db/client.js';
 import { sql } from 'kysely';
 import { requireRole } from '../middleware/rbac.js';
 import nodemailer from 'nodemailer';
+import { getDocSequence, setDocSequence, type DocType } from '../lib/doc-numbering.js';
+
+const DOC_TYPES: DocType[] = ['invoice', 'quotation', 'purchase_order'];
 
 export async function settingsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -157,4 +160,83 @@ export async function settingsRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ ok: false, error: friendly });
     }
   });
+
+  // GET/PATCH /v1/settings/numbering/:docType — real atomic counters backing
+  // Settings ▸ Invoices/Quotations/Purchase Orders "Numbering" cards, consumed
+  // by invoices.routes.ts / purchase-orders.routes.ts via lib/doc-numbering.ts
+  // (replacing the old `INV-${Date.now()}` fallback that ignored these fields entirely).
+  fastify.get<{ Params: { docType: string } }>('/numbering/:docType', async (request, reply) => {
+    const user = request.user;
+    if (!DOC_TYPES.includes(request.params.docType as DocType)) return reply.status(400).send({ error: 'Unknown document type' });
+    return withTenant(user.tenant_id, (trx) => getDocSequence(trx, user.tenant_id, request.params.docType as DocType));
+  });
+
+  fastify.patch<{ Params: { docType: string }; Body: { prefix?: string; pad_length?: number; next_number?: number } }>(
+    '/numbering/:docType',
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    async (request, reply) => {
+      const user = request.user;
+      if (!DOC_TYPES.includes(request.params.docType as DocType)) return reply.status(400).send({ error: 'Unknown document type' });
+      return withTenant(user.tenant_id, (trx) => setDocSequence(trx, user.tenant_id, request.params.docType as DocType, request.body));
+    }
+  );
+
+  // POST /v1/settings/payment-gateways/:id/test — a REAL authenticated ping
+  // against the gateway's own API for the providers with a simple key-based
+  // REST endpoint we can safely call read-only (never charges anything).
+  // Providers without one (mobile money APIs needing OAuth/cert exchange,
+  // manual bank transfer) honestly report that live testing isn't available
+  // here rather than fabricating a "Connected" result.
+  fastify.post<{ Params: { id: string }; Body: Record<string, string> }>(
+    '/payment-gateways/:id/test',
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    async (request, reply) => {
+      const { id } = request.params;
+      const v = request.body || {};
+      try {
+        switch (id) {
+          case 'stripe': {
+            if (!v.sec) return reply.status(400).send({ ok: false, message: 'Secret key is required.' });
+            const res = await fetch('https://api.stripe.com/v1/balance', { headers: { Authorization: `Bearer ${v.sec}` } });
+            if (res.ok) return { ok: true, message: 'Stripe secret key verified.' };
+            return reply.status(400).send({ ok: false, message: 'Stripe rejected this secret key.' });
+          }
+          case 'paystack': {
+            if (!v.secretKey) return reply.status(400).send({ ok: false, message: 'Secret key is required.' });
+            const res = await fetch('https://api.paystack.co/transaction/totals', { headers: { Authorization: `Bearer ${v.secretKey}` } });
+            if (res.ok) return { ok: true, message: 'Paystack secret key verified.' };
+            return reply.status(400).send({ ok: false, message: 'Paystack rejected this secret key.' });
+          }
+          case 'flutterwave': {
+            if (!v.secretKey) return reply.status(400).send({ ok: false, message: 'Secret key is required.' });
+            const res = await fetch('https://api.flutterwave.com/v3/balances', { headers: { Authorization: `Bearer ${v.secretKey}` } });
+            if (res.ok) return { ok: true, message: 'Flutterwave secret key verified.' };
+            return reply.status(400).send({ ok: false, message: 'Flutterwave rejected this secret key.' });
+          }
+          case 'razorpay': {
+            if (!v.keyId || !v.keySecret) return reply.status(400).send({ ok: false, message: 'Key ID and Key Secret are required.' });
+            const auth = Buffer.from(`${v.keyId}:${v.keySecret}`).toString('base64');
+            const res = await fetch('https://api.razorpay.com/v1/payments?count=1', { headers: { Authorization: `Basic ${auth}` } });
+            if (res.ok) return { ok: true, message: 'Razorpay credentials verified.' };
+            return reply.status(400).send({ ok: false, message: 'Razorpay rejected these credentials.' });
+          }
+          case 'paypal': {
+            if (!v.clientId || !v.secret) return reply.status(400).send({ ok: false, message: 'Client ID and Client Secret are required.' });
+            const auth = Buffer.from(`${v.clientId}:${v.secret}`).toString('base64');
+            const res = await fetch('https://api-m.sandbox.paypal.com/v1/oauth2/token', {
+              method: 'POST',
+              headers: { Authorization: `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+              body: 'grant_type=client_credentials',
+            });
+            if (res.ok) return { ok: true, message: 'PayPal credentials verified (sandbox).' };
+            return reply.status(400).send({ ok: false, message: 'PayPal rejected these credentials.' });
+          }
+          default:
+            return { ok: false, message: 'Live connection testing isn\'t available for this gateway yet — verify credentials directly with the provider.' };
+        }
+      } catch (e: any) {
+        return reply.status(502).send({ ok: false, message: `Could not reach the provider: ${e.message}` });
+      }
+    }
+  );
 }

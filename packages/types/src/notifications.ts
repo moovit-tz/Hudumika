@@ -17,6 +17,7 @@ export type NotificationTrigger =
   | 'CASE_OPENED'
   | 'CASE_CLOSED'
   | 'MESSAGE_RECEIVED'
+  | 'KEY_DATE_CHANGED'
   // ── TANESW / Declaration Events ──
   | 'DECLARATION_TRANSFERRED'
   | 'SELECTIVITY_GREEN'

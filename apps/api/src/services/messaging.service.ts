@@ -1,5 +1,6 @@
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { EmailIntegration } from '../integrations/email.js';
+import { SmsIntegration } from '../integrations/sms.js';
 import { db } from '../db/client.js';
 import type { MessageChannel, MessageDirection } from '@hudumika/types';
 
@@ -37,9 +38,8 @@ export class MessagingService {
         externalRef = `email-${Date.now()}`;
       }
     } else if (channel === 'SMS' && customerPhone) {
-      // Mock SMS integration for now
-      console.log(`[SMS] Sending to ${customerPhone}: ${content}`);
-      externalRef = `sms-${Date.now()}`;
+      const res = await SmsIntegration.sendSms(tenantId, customerPhone, content);
+      if (res.success && res.messageId) externalRef = res.messageId;
     }
 
     // Save outbound message to DB

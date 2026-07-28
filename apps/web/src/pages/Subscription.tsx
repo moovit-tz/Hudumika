@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import { useAuth } from '../hooks/useAuth.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, apiDownload } from '../lib/api.js';
 import './Subscription.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Switch } from '../components/ui/switch.js';
 import { useCompany, setCompany } from '../data/companyStore.js';
-import { useEntitlements } from '../hooks/useEntitlements.js';
+import { useEntitlements, resetEntitlementsCache } from '../hooks/useEntitlements.js';
+import { APP_META } from './Utilities.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 
@@ -81,39 +84,65 @@ function useSeatCount(): number {
   return seats;
 }
 
-const PAYMENT_HISTORY = [
-  { no: 'INV-2026-0604', desc: 'Enterprise Plan — Jun 2026', issued: '01 Jun 2026', due: '01 Jun 2026', amount: '$599.00', status: 'Paid'    },
-  { no: 'INV-2026-0504', desc: 'Enterprise Plan — May 2026', issued: '01 May 2026', due: '01 May 2026', amount: '$599.00', status: 'Paid'    },
-  { no: 'INV-2026-0404', desc: 'Enterprise Plan — Apr 2026', issued: '01 Apr 2026', due: '01 Apr 2026', amount: '$599.00', status: 'Paid'    },
-  { no: 'INV-2026-0304', desc: 'Maintenance Add-on — Mar 2026', issued: '01 Mar 2026', due: '15 Mar 2026', amount: '$99.00', status: 'Paid' },
-  { no: 'INV-2026-0104', desc: 'Enterprise Plan — Jan 2026', issued: '01 Jan 2026', due: '15 Jan 2026', amount: '$599.00', status: 'Due'     },
-];
+/** Relative-time formatter for session `last_used_at` — same pattern as TopBar.tsx's relTime(), duplicated locally since it's not exported from there. */
+function relTime(dateStr: string | null | undefined): string {
+  if (!dateStr) return '—';
+  const ms = Date.now() - new Date(dateStr).getTime();
+  const sec = Math.floor(ms / 1000);
+  if (sec < 60) return `${Math.max(sec, 0)} sec ago`;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} min ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr} hrs ago`;
+  return `${Math.floor(hr / 24)} days ago`;
+}
 
-const MODULES = [
-  { id: 'clearance',   name: 'Customs Clearance',  desc: 'TANCIS declaration, stage tracking, document management.', icon: 'shield' as IconName,      active: true,  version: 'v2.4.1' },
-  { id: 'crm',         name: 'CRM & Sales',        desc: 'Customer management, leads, quotations and contracts.',     icon: 'users' as IconName,       active: true,  version: 'v1.9.0' },
-  { id: 'finance',     name: 'Finance & Billing',  desc: 'Invoicing, ledgers, expense tracking and reports.',         icon: 'barChart' as IconName,    active: true,  version: 'v1.6.3' },
-  { id: 'hrm',         name: 'HRM',                desc: 'Staff directory, roles, departments and time tracking.',     icon: 'briefcase' as IconName,   active: true,  version: 'v1.2.0' },
-  { id: 'filemanager', name: 'File Manager',       desc: 'Secure document storage with AI extraction support.',       icon: 'folder' as IconName,      active: true,  version: 'v1.3.2' },
-  { id: 'demurrage',   name: 'Demurrage Tracker',  desc: 'Monitor container dwell times and calculate penalties.',     icon: 'clock' as IconName,       active: true,  version: 'v1.1.0' },
-  { id: 'tanesw',      name: 'TANESW Integration', desc: 'Real-time Tanzania e-Single Window API connector.',         icon: 'globe' as IconName,       active: false, version: 'v0.9.5' },
-  { id: 'analytics',   name: 'Advanced Analytics', desc: 'Deep-dive dashboards, custom charts and KPI tracking.',     icon: 'pieChart' as IconName,    active: false, version: 'v1.0.0' },
-  { id: 'whatsapp',    name: 'WhatsApp Bot',       desc: 'Automated customer updates via WhatsApp Business API.',     icon: 'chatBubble' as IconName,  active: true,  version: 'v2.0.1' },
-];
+function fmtDate(d: string | null | undefined): string {
+  if (!d) return '—';
+  const dt = new Date(d);
+  if (isNaN(dt.getTime())) return '—';
+  return dt.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
 
-const SUPPORT_TICKETS = [
-  { id: 'TKT-0142', subject: 'TANCIS sync failing for port of Tanga', status: 'Open',   priority: 'High',   updated: '12 Jun 2026' },
-  { id: 'TKT-0138', subject: 'Invoice PDF not generating correctly',   status: 'Closed', priority: 'Medium', updated: '08 Jun 2026' },
-  { id: 'TKT-0121', subject: 'WhatsApp notifications delay > 10 min',  status: 'Closed', priority: 'Medium', updated: '29 May 2026' },
-  { id: 'TKT-0117', subject: 'Request: bulk import shipments from CSV', status: 'Open',  priority: 'Low',    updated: '22 May 2026' },
-];
+/** Real subscription invoices — replaces the old PAYMENT_HISTORY fixture. Generates the current
+ *  period's invoice (idempotent) on mount so there's always at least one real row to show. */
+function useInvoices() {
+  const [invoices, setInvoices] = useState<any[] | null>(null);
 
-const USAGE_STATS = [
-  { label: 'Shipments This Month', value: '47', max: 'Unlimited', pct: 0 },
-  { label: 'Active Users',         value: '8',  max: 'Unlimited', pct: 0 },
-  { label: 'Storage Used',         value: '38.4 GB', max: '500 GB', pct: 8 },
-  { label: 'API Calls (month)',     value: '12,480', max: 'Unlimited', pct: 0 },
-];
+  const reload = useCallback(async () => {
+    try {
+      setInvoices(await apiFetch('/v1/billing/invoices'));
+    } catch {
+      setInvoices([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try { await apiFetch('/v1/billing/invoices/generate', { method: 'POST' }); } catch { /* best-effort; GET still runs */ }
+      await reload();
+    })();
+  }, [reload]);
+
+  return { invoices, reload };
+}
+
+/** Real payment methods — replaces the hardcoded Visa/PayPal fixture rows. */
+function usePaymentMethods() {
+  const [methods, setMethods] = useState<any[] | null>(null);
+
+  const reload = useCallback(async () => {
+    try {
+      setMethods(await apiFetch('/v1/billing/payment-methods'));
+    } catch {
+      setMethods([]);
+    }
+  }, []);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  return { methods, reload };
+}
 
 // ─── Small helpers ────────────────────────────────────────────────────────────
 
@@ -150,24 +179,30 @@ function CardHead({ title, sub, right }: { title: string; sub?: string; right?: 
 }
 
 function StatusBadge({ status }: { status: string }) {
+  // Keys are case-insensitive so this covers both the old display-cased fixture
+  // strings (Paid/Open/High…) and the real API's UPPER_SNAKE enums (OPEN, IN_PROGRESS,
+  // due/paid/overdue/cancelled) without needing two lookup tables.
   const cfg: Record<string, { bg: string; color: string }> = {
-    Paid:   { bg: '#ecfdf5', color: '#059669' }, Due:    { bg: '#fef9c3', color: '#ca8a04' },
-    Open:   { bg: '#dbeafe', color: '#2563eb' }, Closed: { bg: '#f1f5f9', color: '#64748b' },
-    High:   { bg: '#fee2e2', color: '#dc2626' }, Medium: { bg: '#fef9c3', color: '#ca8a04' }, Low: { bg: '#f1f5f9', color: '#64748b' },
-    Active: { bg: '#ecfdf5', color: '#059669' },
+    PAID:     { bg: '#ecfdf5', color: '#059669' }, DUE:        { bg: '#fef9c3', color: '#ca8a04' },
+    OVERDUE:  { bg: '#fee2e2', color: '#dc2626' }, CANCELLED:  { bg: '#f1f5f9', color: '#64748b' },
+    OPEN:     { bg: '#dbeafe', color: '#2563eb' }, IN_PROGRESS:{ bg: '#fef9c3', color: '#ca8a04' },
+    RESOLVED: { bg: '#ecfdf5', color: '#059669' }, CLOSED:     { bg: '#f1f5f9', color: '#64748b' },
+    HIGH:     { bg: '#fee2e2', color: '#dc2626' }, URGENT:     { bg: '#fee2e2', color: '#dc2626' },
+    NORMAL:   { bg: '#fef9c3', color: '#ca8a04' }, MEDIUM:     { bg: '#fef9c3', color: '#ca8a04' }, LOW: { bg: '#f1f5f9', color: '#64748b' },
+    ACTIVE:   { bg: '#ecfdf5', color: '#059669' },
   };
-  const c = cfg[status] || cfg.Low;
+  const c = cfg[status.toUpperCase()] || cfg.LOW;
   return <span style={{ padding: '2px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: c.bg, color: c.color, whiteSpace: 'nowrap' }}>{status}</span>;
 }
 
-function Btn({ label, icon, onClick, variant = 'ghost' }: { label: string; icon?: IconName; onClick?: () => void; variant?: 'primary' | 'ghost' | 'danger' }) {
+function Btn({ label, icon, onClick, variant = 'ghost', disabled = false }: { label: string; icon?: IconName; onClick?: () => void; variant?: 'primary' | 'ghost' | 'danger'; disabled?: boolean }) {
   const style: Record<string, React.CSSProperties> = {
     primary: { background: 'var(--teal)', color: '#fff', border: 'none' },
     ghost:   { background: 'var(--white)', color: 'var(--ink)', border: '1.5px solid var(--border)' },
     danger:  { background: 'var(--white)', color: 'var(--red)', border: '1.5px solid var(--border)' },
   };
   return (
-    <button onClick={onClick} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 9, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', ...style[variant] }}>
+    <button onClick={onClick} disabled={disabled} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 9, fontSize: 12.5, fontWeight: 600, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.55 : 1, fontFamily: 'var(--font)', ...style[variant] }}>
       {icon && <Icon name={icon} size={13} strokeWidth={2} />}
       {label}
     </button>
@@ -358,7 +393,7 @@ function CompanyInfoTab({ tenant }: { tenant: any }) {
 
 // ─── Tab: Billing ─────────────────────────────────────────────────────────────
 
-function BillingTab({ tenant }: { tenant: any }) {
+function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t: SubTab) => void }) {
   const plans = usePlans();
   const currentPlan = tenant?.plan || 'starter';
   const plan = plans[currentPlan as PlanKey] || plans.starter;
@@ -368,12 +403,59 @@ function BillingTab({ tenant }: { tenant: any }) {
   const priceLabel = isCustomPricing ? 'Custom' : `$${plan.pricePerSeat}/user`;
   const priceMonthlyTotal = isCustomPricing ? 'Custom' : `$${monthlyTotal!.toLocaleString()}`;
 
+  const { invoices, reload: reloadInvoices } = useInvoices();
+  const { methods } = usePaymentMethods();
+  const defaultMethod = methods?.find(m => m.is_default) ?? null;
+  // Invoices come back newest-period-first per the API contract, so [0] is the current period.
+  const current = invoices?.[0] ?? null;
+  const [paying, setPaying] = useState<string | null>(null);
+
+  function fmtAmount(inv: any) { return `${inv.currency} ${Number(inv.amount).toFixed(2)}`; }
+  function planNameFor(code: string) { return plans[code as PlanKey]?.name ?? code; }
+  function descFor(inv: any) { return `${planNameFor(inv.plan_code)} Plan — ${fmtDate(inv.period_start)}`; }
+
+  async function payInvoice(id: string) {
+    if (!defaultMethod) {
+      showAlert('Add a payment method on the Payments tab before paying an invoice.', { title: 'No payment method on file' });
+      return;
+    }
+    setPaying(id);
+    try {
+      await apiFetch(`/v1/billing/invoices/${id}/pay`, { method: 'POST', body: JSON.stringify({ payment_method_id: defaultMethod.id }) });
+      await reloadInvoices();
+    } catch (err: any) {
+      showAlert(`Payment failed: ${err.message}`);
+    } finally {
+      setPaying(null);
+    }
+  }
+
+  async function downloadInvoice(inv: any) {
+    try {
+      await apiDownload(`/v1/billing/invoices/${inv.id}/download`, `${inv.invoice_number}.html`);
+    } catch (err: any) {
+      showAlert(`Download failed: ${err.message}`);
+    }
+  }
+
+  // No bulk-export endpoint exists — loops the same per-invoice download call across every
+  // row rather than fabricating a combined statement.
+  async function downloadAll() {
+    if (!invoices?.length) return;
+    for (const inv of invoices) await downloadInvoice(inv);
+  }
+
+  async function cancelSubscription() {
+    if (!(await showConfirm('Are you sure you want to cancel your subscription?', { variant: 'danger', confirmLabel: 'Cancel Subscription' }))) return;
+    showAlert('Contact support to cancel your subscription — self-service cancellation isn’t available yet.', { variant: 'info', title: 'Contact support' });
+  }
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Current plan + next payment */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16 }}>
         <Card>
-          <CardHead title="Current Subscription" sub="Your active plan and renewal details." right={<Btn label="Change Plan" icon="layers" />} />
+          <CardHead title="Current Subscription" sub="Your active plan and renewal details." right={<Btn label="Change Plan" icon="layers" onClick={() => onNavigateTab('plans')} />} />
           <div style={{ padding: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
               <div style={{ width: 52, height: 52, borderRadius: 9, background: plan.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -392,8 +474,8 @@ function BillingTab({ tenant }: { tenant: any }) {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
               {[
-                { label: 'Renewal',      value: '01 Jul 2026',  icon: 'calendar' as IconName },
-                { label: 'Start Date',   value: '01 Jun 2024',  icon: 'clock'    as IconName },
+                { label: 'Renewal',      value: fmtDate(current?.due_date ?? current?.period_end),  icon: 'calendar' as IconName },
+                { label: 'Start Date',   value: fmtDate(tenant?.created_at),  icon: 'clock'    as IconName },
                 { label: 'Next Payment', value: priceMonthlyTotal, icon: 'creditCard' as IconName },
                 { label: 'Status',       value: tenant?.active ? 'Active' : 'Inactive', icon: 'check' as IconName, green: tenant?.active },
               ].map(item => (
@@ -407,8 +489,7 @@ function BillingTab({ tenant }: { tenant: any }) {
               ))}
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-              <button style={{ flex: 1, padding: '9px 0', border: `1.5px solid ${plan.color}`, borderRadius: 9, background: plan.bg, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: plan.color, fontFamily: 'var(--font)' }}>View Invoice</button>
-              <button style={{ padding: '9px 18px', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--red)', fontFamily: 'var(--font)' }}>Cancel Subscription</button>
+              <button onClick={cancelSubscription} style={{ padding: '9px 18px', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--red)', fontFamily: 'var(--font)' }}>Cancel Subscription</button>
             </div>
           </div>
         </Card>
@@ -418,9 +499,9 @@ function BillingTab({ tenant }: { tenant: any }) {
           <CardHead title="Billing Summary" />
           <div style={{ padding: '16px 20px' }}>
             {[
-              ['Amount Due', isCustomPricing ? 'Custom' : priceMonthlyTotal + '.00'],
-              ['Due Date',   '01 Jul 2026'],
-              ['Currency',   'USD'],
+              ['Amount Due', current ? fmtAmount(current) : '—'],
+              ['Due Date',   fmtDate(current?.due_date)],
+              ['Currency',   current?.currency || 'USD'],
               ['Tax',        'Included'],
             ].map(([k, v]) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
@@ -428,15 +509,23 @@ function BillingTab({ tenant }: { tenant: any }) {
                 <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{v}</span>
               </div>
             ))}
-            <button style={{ width: '100%', marginTop: 16, padding: '10px 0', border: 'none', borderRadius: 9, background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontSize: 13.5, fontWeight: 700, fontFamily: 'var(--font)' }}>Pay Now</button>
-            <button style={{ width: '100%', marginTop: 8, padding: '9px 0', border: '1.5px solid var(--border)', borderRadius: 9, background: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)' }}>Download Statement</button>
+            {current && current.status !== 'paid' ? (
+              <button onClick={() => payInvoice(current.id)} disabled={paying === current.id} style={{ width: '100%', marginTop: 16, padding: '10px 0', border: 'none', borderRadius: 9, background: 'var(--teal)', color: '#fff', cursor: paying === current.id ? 'default' : 'pointer', opacity: paying === current.id ? 0.6 : 1, fontSize: 13.5, fontWeight: 700, fontFamily: 'var(--font)' }}>
+                {paying === current.id ? 'Processing…' : 'Pay Now'}
+              </button>
+            ) : (
+              <div style={{ width: '100%', marginTop: 16, padding: '10px 0', textAlign: 'center', borderRadius: 9, background: 'var(--teal-l)', color: 'var(--teal)', fontSize: 13.5, fontWeight: 700 }}>
+                {current ? 'Paid' : 'No invoice yet'}
+              </div>
+            )}
+            <button onClick={() => current && downloadInvoice(current)} disabled={!current} style={{ width: '100%', marginTop: 8, padding: '9px 0', border: '1.5px solid var(--border)', borderRadius: 9, background: 'none', cursor: current ? 'pointer' : 'default', opacity: current ? 1 : 0.5, fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)' }}>Download Statement</button>
           </div>
         </Card>
       </div>
 
       {/* Billing history table */}
       <Card>
-        <CardHead title="Invoice History" sub="Download PDF invoices and track payment status." right={<Btn label="Download All" icon="download" />} />
+        <CardHead title="Invoice History" sub="Download invoices and track payment status." right={<Btn label="Download All" icon="download" onClick={downloadAll} disabled={!invoices?.length} />} />
         <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse' }}>
           <thead>
             <tr>{['Invoice No.','Description','Issued','Due Date','Amount','Status',''].map(h => (
@@ -444,18 +533,25 @@ function BillingTab({ tenant }: { tenant: any }) {
             ))}</tr>
           </thead>
           <tbody>
-            {PAYMENT_HISTORY.map((row, i) => (
-              <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}
+            {invoices === null && (
+              <tr><td colSpan={7} style={{ padding: 20, textAlign: 'center', fontSize: 12.5, color: 'var(--ink3)' }}>Loading invoices…</td></tr>
+            )}
+            {invoices?.length === 0 && (
+              <tr><td colSpan={7} style={{ padding: 20, textAlign: 'center', fontSize: 12.5, color: 'var(--ink3)' }}>No invoices yet.</td></tr>
+            )}
+            {invoices?.map((inv) => (
+              <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)' }}
                 onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                 onMouseLeave={e => (e.currentTarget.style.background = '')}>
-                <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--teal)', fontWeight: 600 }}>{row.no}</td>
-                <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)' }}>{row.desc.replace('Enterprise Plan', plan.name + ' Plan')}</td>
-                <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink3)' }}>{row.issued}</td>
-                <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink3)' }}>{row.due}</td>
-                <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{row.no.includes('INV') && !row.desc.includes('Add-on') ? (isCustomPricing ? 'Custom' : priceMonthlyTotal + '.00') : row.amount}</td>
-                <td style={{ padding: '12px 16px' }}><StatusBadge status={row.status} /></td>
-                <td style={{ padding: '12px 12px', textAlign: 'right' }}>
-                  <Btn label="PDF" icon="download" />
+                <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--teal)', fontWeight: 600 }}>{inv.invoice_number}</td>
+                <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)' }}>{descFor(inv)}</td>
+                <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink3)' }}>{fmtDate(inv.period_start)}</td>
+                <td style={{ padding: '12px 16px', fontSize: 12.5, color: 'var(--ink3)' }}>{fmtDate(inv.due_date)}</td>
+                <td style={{ padding: '12px 16px', fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{fmtAmount(inv)}</td>
+                <td style={{ padding: '12px 16px' }}><StatusBadge status={inv.status} /></td>
+                <td style={{ padding: '12px 12px', textAlign: 'right', display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                  {inv.status !== 'paid' && <Btn label="Pay" icon="creditCard" variant="primary" onClick={() => payInvoice(inv.id)} disabled={paying === inv.id} />}
+                  <Btn label="PDF" icon="download" onClick={() => downloadInvoice(inv)} />
                 </td>
               </tr>
             ))}
@@ -468,46 +564,163 @@ function BillingTab({ tenant }: { tenant: any }) {
 
 // ─── Tab: Payments ────────────────────────────────────────────────────────────
 
-function PaymentsTab({ tenant }: { tenant?: any }) {
+const METHOD_TYPES: { value: 'card' | 'mobile_money'; label: string }[] = [
+  { value: 'card', label: 'Card' },
+  { value: 'mobile_money', label: 'Mobile Money' },
+];
+
+function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTab) => void }) {
+  const { user } = useAuth();
+  const { methods, reload: reloadMethods } = usePaymentMethods();
+  const { invoices, reload: reloadInvoices } = useInvoices();
+
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [methodType, setMethodType] = useState<'card' | 'mobile_money'>('card');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvc, setCardCvc] = useState('');
+  const [phone, setPhone] = useState('');
+  const [provider, setProvider] = useState('');
+  const [methodLabel, setMethodLabel] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [payingUpcoming, setPayingUpcoming] = useState(false);
+
+  const upcoming = invoices?.find((inv: any) => inv.status === 'due' || inv.status === 'overdue') ?? null;
+  const paidInvoices = (invoices ?? []).filter((inv: any) => !!inv.tx_ref);
+
+  function methodLabelFor(id: string | null) {
+    if (!id) return '—';
+    const m = methods?.find(mm => mm.id === id);
+    return m ? (m.label || `${m.brand ?? ''} •••• ${m.last4 ?? ''}`) : '—';
+  }
+
+  function resetForm() {
+    setCardNumber(''); setCardExpiry(''); setCardCvc(''); setPhone(''); setProvider(''); setMethodLabel(''); setFormError(null);
+  }
+
+  async function submitAdd() {
+    setFormError(null);
+    setSaving(true);
+    try {
+      const body: Record<string, string> = methodType === 'card'
+        ? { type: 'card', card_number: cardNumber, card_expiry: cardExpiry, card_cvc: cardCvc, ...(methodLabel ? { label: methodLabel } : {}) }
+        : { type: 'mobile_money', phone, ...(provider ? { provider } : {}), ...(methodLabel ? { label: methodLabel } : {}) };
+      await apiFetch('/v1/billing/payment-methods', { method: 'POST', body: JSON.stringify(body) });
+      await reloadMethods();
+      setShowAddForm(false);
+      resetForm();
+    } catch (err: any) {
+      setFormError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function setDefault(id: string) {
+    try {
+      await apiFetch(`/v1/billing/payment-methods/${id}/default`, { method: 'PATCH' });
+      await reloadMethods();
+    } catch (err: any) {
+      showAlert(`Failed to set default: ${err.message}`);
+    }
+  }
+
+  async function removeMethod(id: string) {
+    if (!(await showConfirm('Remove this payment method?', { variant: 'danger', confirmLabel: 'Remove' }))) return;
+    try {
+      await apiFetch(`/v1/billing/payment-methods/${id}`, { method: 'DELETE' });
+      await reloadMethods();
+    } catch (err: any) {
+      showAlert(`Failed to remove: ${err.message}`);
+    }
+  }
+
+  async function payUpcoming() {
+    if (!upcoming) return;
+    const def = methods?.find(m => m.is_default);
+    if (!def) {
+      showAlert('Add a payment method below before paying.', { title: 'No payment method on file' });
+      return;
+    }
+    setPayingUpcoming(true);
+    try {
+      await apiFetch(`/v1/billing/invoices/${upcoming.id}/pay`, { method: 'POST', body: JSON.stringify({ payment_method_id: def.id }) });
+      await reloadInvoices();
+      showAlert('Payment successful.', { variant: 'success', title: 'Paid' });
+    } catch (err: any) {
+      showAlert(`Payment failed: ${err.message}`);
+    } finally {
+      setPayingUpcoming(false);
+    }
+  }
+
+  function fmtAmount(inv: any) { return `${inv.currency} ${Number(inv.amount).toFixed(2)}`; }
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Payment methods */}
         <Card>
-          <CardHead title="Payment Methods" sub="Manage cards and accounts used for billing." right={<Btn label="Add Method" icon="plus" variant="primary" />} />
+          <CardHead title="Payment Methods" sub="Manage cards and accounts used for billing." right={<Btn label="Add Method" icon="plus" variant="primary" onClick={() => setShowAddForm(v => !v)} />} />
           <div style={{ padding: '0 20px 8px' }}>
-            {[
-              { type: 'Visa',    last4: '9484', expiry: '08 / 2028', holder: (tenant?.name || 'Company').toUpperCase(), primary: true  },
-              { type: 'PayPal',  last4: '',     expiry: '',           holder: tenant?.email || 'billing@company.com', primary: false },
-            ].map((m, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ width: 52, height: 36, borderRadius: 6, background: m.primary ? '#1a3260' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name="creditCard" size={18} strokeWidth={1.75} style={{ color: m.primary ? '#fff' : 'var(--ink3)' } as React.CSSProperties} />
+            {methods === null && <div style={{ padding: '14px 0', fontSize: 12.5, color: 'var(--ink3)' }}>Loading payment methods…</div>}
+            {methods?.length === 0 && !showAddForm && <div style={{ padding: '14px 0', fontSize: 12.5, color: 'var(--ink3)' }}>No payment methods yet — add one below.</div>}
+            {methods?.map((m) => (
+              <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 0', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ width: 52, height: 36, borderRadius: 6, background: m.is_default ? '#1a3260' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Icon name={m.type === 'mobile_money' ? 'smartphone' : 'creditCard'} size={18} strokeWidth={1.75} style={{ color: m.is_default ? '#fff' : 'var(--ink3)' } as React.CSSProperties} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
-                    {m.type}{m.last4 ? ` •••• ${m.last4}` : ''}
-                    {m.primary && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9, background: '#ecfdf5', color: '#059669', fontSize: 10, fontWeight: 700 }}>Default</span>}
+                    {m.label || m.brand}{m.last4 ? ` •••• ${m.last4}` : ''}
+                    {m.is_default && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9, background: '#ecfdf5', color: '#059669', fontSize: 10, fontWeight: 700 }}>Default</span>}
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{m.holder}{m.expiry ? ` · Expires ${m.expiry}` : ''}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{m.exp_month && m.exp_year ? `Expires ${String(m.exp_month).padStart(2, '0')}/${m.exp_year}` : (m.type === 'mobile_money' ? 'Mobile money' : '')}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  {!m.primary && <Btn label="Set Default" />}
-                  <Btn label="Remove" variant="danger" />
+                  {!m.is_default && <Btn label="Set Default" onClick={() => setDefault(m.id)} />}
+                  <Btn label="Remove" variant="danger" onClick={() => removeMethod(m.id)} />
                 </div>
               </div>
             ))}
-            <div style={{ paddingBottom: 12 }}>
-              <button style={{ width: '100%', marginTop: 14, padding: '10px 0', border: '1.5px dashed var(--border)', borderRadius: 9, background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                <Icon name="plus" size={14} strokeWidth={2.5} /> Add Payment Method
-              </button>
-            </div>
+
+            {showAddForm && (
+              <div style={{ padding: '14px 0' }}>
+                <FormRow label="Type">
+                  <Select value={methodType} onValueChange={(v: any) => setMethodType(v)}>
+                    <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {METHOD_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </FormRow>
+                {methodType === 'card' ? (
+                  <>
+                    <FormRow label="Card Number"><input value={cardNumber} onChange={e => setCardNumber(e.target.value)} placeholder="4242 4242 4242 4242" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
+                    <FormRow label="Expiry (MM/YY)"><input value={cardExpiry} onChange={e => setCardExpiry(e.target.value)} placeholder="08/28" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
+                    <FormRow label="CVC"><input value={cardCvc} onChange={e => setCardCvc(e.target.value)} placeholder="123" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
+                  </>
+                ) : (
+                  <>
+                    <FormRow label="Phone Number"><input value={phone} onChange={e => setPhone(e.target.value)} placeholder="0755 000 000" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
+                    <FormRow label="Provider"><input value={provider} onChange={e => setProvider(e.target.value)} placeholder="M-Pesa, Tigo Pesa, Airtel Money…" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
+                  </>
+                )}
+                <FormRow label="Label (optional)"><input value={methodLabel} onChange={e => setMethodLabel(e.target.value)} placeholder="e.g. Company Visa" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
+                {formError && <div style={{ color: 'var(--red)', fontSize: 12.5, marginTop: 8 }}>{formError}</div>}
+                <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+                  <Btn label={saving ? 'Saving…' : 'Save Method'} icon="save" variant="primary" onClick={submitAdd} disabled={saving} />
+                  <Btn label="Cancel" onClick={() => { setShowAddForm(false); resetForm(); }} />
+                </div>
+              </div>
+            )}
           </div>
         </Card>
 
         {/* Transaction history */}
         <Card>
-          <CardHead title="Payment Transactions" sub="All successful charges and refunds." />
+          <CardHead title="Payment Transactions" sub="All successful subscription charges." />
           <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse' }}>
             <thead>
               <tr>{['Date','Description','Method','Amount','Status'].map(h => (
@@ -515,15 +728,18 @@ function PaymentsTab({ tenant }: { tenant?: any }) {
               ))}</tr>
             </thead>
             <tbody>
-              {PAYMENT_HISTORY.map((row, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}
+              {invoices !== null && paidInvoices.length === 0 && (
+                <tr><td colSpan={5} style={{ padding: 20, textAlign: 'center', fontSize: 12.5, color: 'var(--ink3)' }}>No payments yet.</td></tr>
+              )}
+              {paidInvoices.map((inv: any) => (
+                <tr key={inv.id} style={{ borderBottom: '1px solid var(--border)' }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                   onMouseLeave={e => (e.currentTarget.style.background = '')}>
-                  <td style={{ padding: '11px 16px', fontSize: 12.5, color: 'var(--ink3)' }}>{row.issued}</td>
-                  <td style={{ padding: '11px 16px', fontSize: 13, color: 'var(--ink)' }}>{row.desc}</td>
-                  <td style={{ padding: '11px 16px', fontSize: 12.5, color: 'var(--ink3)' }}>Visa ••9484</td>
-                  <td style={{ padding: '11px 16px', fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{row.amount}</td>
-                  <td style={{ padding: '11px 16px' }}><StatusBadge status={row.status} /></td>
+                  <td style={{ padding: '11px 16px', fontSize: 12.5, color: 'var(--ink3)' }}>{fmtDate(inv.paid_at)}</td>
+                  <td style={{ padding: '11px 16px', fontSize: 13, color: 'var(--ink)' }}>{inv.invoice_number}</td>
+                  <td style={{ padding: '11px 16px', fontSize: 12.5, color: 'var(--ink3)' }}>{methodLabelFor(inv.payment_method_id)}</td>
+                  <td style={{ padding: '11px 16px', fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{fmtAmount(inv)}</td>
+                  <td style={{ padding: '11px 16px' }}><StatusBadge status={inv.status} /></td>
                 </tr>
               ))}
             </tbody>
@@ -536,23 +752,30 @@ function PaymentsTab({ tenant }: { tenant?: any }) {
         <Card>
           <CardHead title="Upcoming Invoice" />
           <div style={{ padding: 20 }}>
-            <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>$5,999.00</div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>Due on 01 Jul 2026</div>
-            {[['Enterprise Plan (12 mo)', '$5,999.00'], ['Tax', 'Included'], ['Total', '$5,999.00']].map(([k, v], i) => (
-              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '8px 0', borderBottom: '1px solid var(--border)', fontWeight: i === 2 ? 700 : 400, color: i === 2 ? 'var(--ink)' : 'var(--ink3)' }}>
-                <span>{k}</span><span>{v}</span>
-              </div>
-            ))}
-            <button style={{ width: '100%', marginTop: 16, padding: '11px 0', border: 'none', borderRadius: 9, background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)' }}>Pay Now</button>
+            {upcoming ? (
+              <>
+                <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>{fmtAmount(upcoming)}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>Due on {fmtDate(upcoming.due_date)}</div>
+                {[[`${upcoming.plan_code} (${upcoming.seats} seat${upcoming.seats === 1 ? '' : 's'})`, fmtAmount(upcoming)], ['Tax', 'Included'], ['Total', fmtAmount(upcoming)]].map(([k, v], i) => (
+                  <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '8px 0', borderBottom: '1px solid var(--border)', fontWeight: i === 2 ? 700 : 400, color: i === 2 ? 'var(--ink)' : 'var(--ink3)' }}>
+                    <span>{k}</span><span>{v}</span>
+                  </div>
+                ))}
+                <button onClick={payUpcoming} disabled={payingUpcoming} style={{ width: '100%', marginTop: 16, padding: '11px 0', border: 'none', borderRadius: 9, background: 'var(--teal)', color: '#fff', cursor: payingUpcoming ? 'default' : 'pointer', opacity: payingUpcoming ? 0.6 : 1, fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)' }}>
+                  {payingUpcoming ? 'Processing…' : 'Pay Now'}
+                </button>
+              </>
+            ) : (
+              <div style={{ fontSize: 13, color: 'var(--ink3)' }}>No upcoming invoice due.</div>
+            )}
           </div>
         </Card>
         <Card>
-          <CardHead title="Billing Contact" />
+          <CardHead title="Billing Contact" sub="The account this workspace's billing notices go to." />
           <div style={{ padding: '0 20px 16px' }}>
-            {[['Name','Alhassan Musa'],['Email','billing@dangote.co.tz'],['Phone','+255 754 320 000']].map(([k,v]) => (
+            {[['Name', user?.name || '—'], ['Email', user?.email || '—'], ['Phone', user?.phone || '—']].map(([k, v]) => (
               <FormRow key={k} label={k}><span style={{ fontSize: 13 }}>{v}</span></FormRow>
             ))}
-            <div style={{ marginTop: 12 }}><Btn label="Edit Billing Contact" icon="edit" /></div>
           </div>
         </Card>
       </div>
@@ -563,7 +786,112 @@ function PaymentsTab({ tenant }: { tenant?: any }) {
 // ─── Tab: Security ────────────────────────────────────────────────────────────
 
 function SecurityTab() {
-  const [show2FA, setShow2FA] = useState(false);
+  const { logout } = useAuth();
+
+  // ── Change password ──────────────────────────────────────────
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [pwSaving, setPwSaving] = useState(false);
+
+  async function updatePassword() {
+    if (newPw.length < 8) { showAlert('New password must be at least 8 characters.'); return; }
+    if (newPw !== confirmPw) { showAlert('New password and confirmation do not match.'); return; }
+    setPwSaving(true);
+    try {
+      await apiFetch('/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password: currentPw, new_password: newPw }) });
+      showAlert('Password updated.', { variant: 'success', title: 'Success' });
+      setCurrentPw(''); setNewPw(''); setConfirmPw('');
+    } catch (err: any) {
+      showAlert(err.message);
+    } finally {
+      setPwSaving(false);
+    }
+  }
+
+  // ── 2FA ───────────────────────────────────────────────────────
+  const [twoFA, setTwoFA] = useState<{ enabled: boolean; enabled_at: string | null } | null>(null);
+  const [setupData, setSetupData] = useState<{ secret: string; uri: string } | null>(null);
+  const [verifyCode, setVerifyCode] = useState('');
+  const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
+  const [showDisable, setShowDisable] = useState(false);
+  const [disableCode, setDisableCode] = useState('');
+  const [twoFABusy, setTwoFABusy] = useState(false);
+
+  useEffect(() => {
+    apiFetch('/v1/security/2fa/status').then(setTwoFA).catch(() => setTwoFA({ enabled: false, enabled_at: null }));
+  }, []);
+
+  async function startSetup() {
+    setTwoFABusy(true);
+    try {
+      setSetupData(await apiFetch('/v1/security/2fa/setup', { method: 'POST' }));
+    } catch (err: any) {
+      showAlert(err.message);
+    } finally {
+      setTwoFABusy(false);
+    }
+  }
+
+  async function verifyAndEnable() {
+    setTwoFABusy(true);
+    try {
+      const res = await apiFetch('/v1/security/2fa/verify', { method: 'POST', body: JSON.stringify({ token: verifyCode }) });
+      setBackupCodes(res.backup_codes);
+      setTwoFA({ enabled: true, enabled_at: new Date().toISOString() });
+      setSetupData(null);
+      setVerifyCode('');
+    } catch (err: any) {
+      showAlert(err.message);
+    } finally {
+      setTwoFABusy(false);
+    }
+  }
+
+  async function disable2FA() {
+    setTwoFABusy(true);
+    try {
+      await apiFetch('/v1/security/2fa/disable', { method: 'POST', body: JSON.stringify({ token: disableCode }) });
+      setTwoFA({ enabled: false, enabled_at: null });
+      setShowDisable(false);
+      setDisableCode('');
+      setBackupCodes(null);
+    } catch (err: any) {
+      showAlert(err.message);
+    } finally {
+      setTwoFABusy(false);
+    }
+  }
+
+  // ── Sessions ──────────────────────────────────────────────────
+  const [sessions, setSessions] = useState<any[] | null>(null);
+
+  const reloadSessions = useCallback(async () => {
+    try { setSessions(await apiFetch('/v1/security/sessions')); } catch { setSessions([]); }
+  }, []);
+
+  useEffect(() => { reloadSessions(); }, [reloadSessions]);
+
+  async function signOutSession(id: string) {
+    try {
+      const res = await apiFetch(`/v1/security/sessions/${id}`, { method: 'DELETE' });
+      if (res.was_current) { logout(); return; }
+      await reloadSessions();
+    } catch (err: any) {
+      showAlert(err.message);
+    }
+  }
+
+  async function signOutOthers() {
+    if (!(await showConfirm('Sign out of every other session? Those devices will need to log in again.', { variant: 'warning', confirmLabel: 'Sign Out Others' }))) return;
+    try {
+      await apiFetch('/v1/security/sessions/revoke-others', { method: 'POST' });
+      await reloadSessions();
+    } catch (err: any) {
+      showAlert(err.message);
+    }
+  }
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -571,13 +899,17 @@ function SecurityTab() {
         <Card>
           <CardHead title="Change Password" sub="Use a strong password that you don't use elsewhere." />
           <div style={{ padding: '0 20px 20px' }}>
-            {['Current Password', 'New Password', 'Confirm New Password'].map(label => (
-              <FormRow key={label} label={label}>
-                <input type="password" placeholder="••••••••••••" className="input-field" style={{ fontSize: 13, padding: '8px 12px', width: '100%' }} />
-              </FormRow>
-            ))}
+            <FormRow label="Current Password">
+              <input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} placeholder="••••••••••••" className="input-field" style={{ fontSize: 13, padding: '8px 12px', width: '100%' }} />
+            </FormRow>
+            <FormRow label="New Password">
+              <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="••••••••••••" className="input-field" style={{ fontSize: 13, padding: '8px 12px', width: '100%' }} />
+            </FormRow>
+            <FormRow label="Confirm New Password">
+              <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} placeholder="••••••••••••" className="input-field" style={{ fontSize: 13, padding: '8px 12px', width: '100%' }} />
+            </FormRow>
             <div style={{ marginTop: 16, display: 'flex', gap: 10 }}>
-              <Btn label="Update Password" icon="save" variant="primary" />
+              <Btn label={pwSaving ? 'Updating…' : 'Update Password'} icon="save" variant="primary" onClick={updatePassword} disabled={pwSaving || !currentPw || newPw.length < 8} />
             </div>
           </div>
         </Card>
@@ -585,51 +917,85 @@ function SecurityTab() {
         {/* 2FA */}
         <Card>
           <CardHead title="Two-Factor Authentication" sub="Add an extra layer of protection to your account." right={
-            <button onClick={() => setShow2FA(v => !v)} style={{ width: 44, height: 24, borderRadius: 9, background: show2FA ? 'var(--teal)' : 'var(--border)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s' }}>
-              <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: show2FA ? 23 : 3, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-            </button>
+            twoFA?.enabled ? <span style={{ padding: '3px 10px', borderRadius: 20, background: '#ecfdf5', color: '#059669', fontSize: 11, fontWeight: 700 }}>Enabled</span> : undefined
           } />
           <div style={{ padding: '16px 20px' }}>
-            <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: show2FA ? 12 : 0 }}>
-              {show2FA ? 'Two-factor authentication is enabled. Scan the QR code with your authenticator app.' : 'Enable 2FA to require a verification code when signing in from a new device.'}
-            </div>
-            {show2FA && (
-              <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
-                <div style={{ width: 100, height: 100, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name="camera" size={32} strokeWidth={1.5} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
+            {twoFA === null && <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Loading…</div>}
+
+            {twoFA && !twoFA.enabled && !setupData && (
+              <>
+                <div style={{ fontSize: 13, color: 'var(--ink3)', lineHeight: 1.6, marginBottom: 12 }}>
+                  Enable 2FA to require a verification code from your authenticator app when signing in.
                 </div>
-                <div>
-                  <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 8 }}>Can't scan? Enter this code manually:</div>
-                  <div style={{ fontFamily: 'var(--mono)', fontSize: 15, fontWeight: 700, color: 'var(--ink)', letterSpacing: '0.1em', background: 'var(--bg)', padding: '8px 14px', borderRadius: 6, marginBottom: 12 }}>JBSW Y3DP EHPK 3PXP</div>
-                  <input placeholder="Enter 6-digit code to verify" className="input-field" style={{ fontSize: 13, padding: '8px 12px', width: '100%', marginBottom: 10 }} />
-                  <Btn label="Verify & Enable" variant="primary" />
+                <Btn label="Enable 2FA" icon="shield" variant="primary" onClick={startSetup} disabled={twoFABusy} />
+              </>
+            )}
+
+            {setupData && (
+              <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <div style={{ flexShrink: 0 }}>
+                  <QRCodeSVG value={setupData.uri} size={120} level="M" />
+                </div>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 8 }}>Scan with your authenticator app, or enter this code manually:</div>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 700, color: 'var(--ink)', letterSpacing: '0.05em', background: 'var(--bg)', padding: '8px 14px', borderRadius: 6, marginBottom: 12, wordBreak: 'break-all' }}>{setupData.secret}</div>
+                  <input value={verifyCode} onChange={e => setVerifyCode(e.target.value)} placeholder="Enter 6-digit code to verify" className="input-field" style={{ fontSize: 13, padding: '8px 12px', width: '100%', marginBottom: 10 }} />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <Btn label="Verify & Enable" variant="primary" onClick={verifyAndEnable} disabled={twoFABusy || verifyCode.length < 6} />
+                    <Btn label="Cancel" onClick={() => { setSetupData(null); setVerifyCode(''); }} />
+                  </div>
                 </div>
               </div>
+            )}
+
+            {backupCodes && (
+              <div style={{ marginTop: 16, padding: 14, background: 'var(--bg)', borderRadius: 9, border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Save these backup codes — shown only once</div>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 12.5, color: 'var(--ink2)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                  {backupCodes.map(c => <div key={c}>{c}</div>)}
+                </div>
+              </div>
+            )}
+
+            {twoFA?.enabled && !setupData && (
+              <>
+                <div style={{ fontSize: 13, color: '#059669', fontWeight: 600, marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Icon name="checkCircle" size={14} strokeWidth={2} />
+                  Two-factor authentication is enabled{twoFA.enabled_at ? ` since ${fmtDate(twoFA.enabled_at)}` : ''}.
+                </div>
+                {!showDisable ? (
+                  <Btn label="Disable 2FA" variant="danger" onClick={() => setShowDisable(true)} />
+                ) : (
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <input value={disableCode} onChange={e => setDisableCode(e.target.value)} placeholder="6-digit code" className="input-field" style={{ fontSize: 13, padding: '8px 12px', width: 160 }} />
+                    <Btn label="Confirm Disable" variant="danger" onClick={disable2FA} disabled={twoFABusy || disableCode.length < 6} />
+                    <Btn label="Cancel" onClick={() => { setShowDisable(false); setDisableCode(''); }} />
+                  </div>
+                )}
+              </>
             )}
           </div>
         </Card>
 
         {/* Active sessions */}
         <Card>
-          <CardHead title="Active Sessions" sub="All devices currently signed in." right={<Btn label="Sign Out All" variant="danger" />} />
+          <CardHead title="Active Sessions" sub="All devices currently signed in." right={<Btn label="Sign Out Other Sessions" variant="danger" onClick={signOutOthers} />} />
           <div>
-            {[
-              { device: 'Chrome on Windows 11', ip: '196.33.224.45', location: 'Dar es Salaam, TZ', last: 'Active now', current: true },
-              { device: 'Safari on iPhone 15',  ip: '196.33.219.12', location: 'Dar es Salaam, TZ', last: '2 hours ago', current: false },
-              { device: 'Chrome on MacBook',    ip: '41.222.4.93',   location: 'Nairobi, KE',        last: '3 days ago', current: false },
-            ].map((s, i, arr) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
+            {sessions === null && <div style={{ padding: '16px 20px', fontSize: 12.5, color: 'var(--ink3)' }}>Loading sessions…</div>}
+            {sessions?.length === 0 && <div style={{ padding: '16px 20px', fontSize: 12.5, color: 'var(--ink3)' }}>No sessions found.</div>}
+            {sessions?.filter(s => s.active).map((s, i, arr) => (
+              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 20px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none' }}>
                 <div style={{ width: 40, height: 40, borderRadius: 9, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name="monitor" size={18} strokeWidth={1.75} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
+                  <Icon name={s.device_type === 'mobile' ? 'smartphone' : 'monitor'} size={18} strokeWidth={1.75} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                    {s.device}
-                    {s.current && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9, background: '#ecfdf5', color: '#059669', fontSize: 10, fontWeight: 700 }}>This device</span>}
+                    {s.device_label || s.user_agent || 'Unknown device'}
+                    {s.is_current && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9, background: '#ecfdf5', color: '#059669', fontSize: 10, fontWeight: 700 }}>This device</span>}
                   </div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>{s.ip} · {s.location} · {s.last}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Last active {relTime(s.last_used_at)}</div>
                 </div>
-                {!s.current && <Btn label="Sign Out" variant="danger" />}
+                <Btn label="Sign Out" variant="danger" onClick={() => signOutSession(s.id)} />
               </div>
             ))}
           </div>
@@ -638,14 +1004,6 @@ function SecurityTab() {
 
       {/* Right: tips */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <Card>
-          <CardHead title="Security Score" />
-          <div style={{ padding: 20, textAlign: 'center' }}>
-            <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#ecfdf5', border: '4px solid #059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 22, fontWeight: 800, color: '#059669' }}>74</div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#059669', marginBottom: 4 }}>Good</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Enable 2FA to reach 100</div>
-          </div>
-        </Card>
         <Card>
           <CardHead title="Security Tips" />
           <div style={{ padding: '12px 20px 16px' }}>
@@ -843,47 +1201,68 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
 // ─── Tab: Modules ─────────────────────────────────────────────────────────────
 
 function ModulesTab() {
-  const [states, setStates] = useState<Record<string, boolean>>(() =>
-    Object.fromEntries(MODULES.map(m => [m.id, m.active]))
-  );
+  const { user } = useAuth();
+  const canManage = !!user && ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'].includes(user.role);
+  const entitlements = useEntitlements();
+  const [overrides, setOverrides] = useState<Record<string, boolean> | null>(null);
+  const [saving, setSaving] = useState<string | null>(null);
+
+  useEffect(() => {
+    apiFetch('/v1/settings').then(res => setOverrides(res.settings?.['enabled-apps'] || {})).catch(() => setOverrides({}));
+  }, []);
+
+  const moduleKeys = entitlements ? Object.keys(entitlements.features).filter(k => k in APP_META) : [];
+
+  async function toggle(key: string, enabled: boolean) {
+    // Full override map must be sent every time — the settings PATCH replaces
+    // 'enabled-apps' wholesale rather than deep-merging (same as Utilities.tsx).
+    const next = { ...(overrides ?? {}), [key]: enabled };
+    setOverrides(next);
+    setSaving(key);
+    try {
+      await apiFetch('/v1/settings', { method: 'PATCH', body: JSON.stringify({ 'enabled-apps': next }) });
+      resetEntitlementsCache();
+    } catch (err: any) {
+      setOverrides(overrides);
+      showAlert(`Failed to update module: ${err.message}`);
+    } finally {
+      setSaving(null);
+    }
+  }
+
   return (
     <div>
       <SectionHead
         title="Installed Modules"
-        sub="Enable or disable modules for your Hudumika installation. Changes take effect immediately."
+        sub={canManage
+          ? 'Enable or disable modules for your Hudumika installation. Changes take effect immediately.'
+          : 'Modules enabled for your account. Ask an admin to change these.'}
       />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-        {MODULES.map(m => {
-          const active = states[m.id];
-          return (
-            <Card key={m.id}>
-              <div style={{ padding: '16px 18px' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <div style={{ width: 42, height: 42, borderRadius: 9, background: active ? 'var(--teal-l)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Icon name={m.icon} size={20} strokeWidth={1.75} style={{ color: active ? 'var(--teal)' : 'var(--ink3)' } as React.CSSProperties} />
+      {(!entitlements || overrides === null) ? (
+        <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading modules…</div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+          {moduleKeys.map(key => {
+            const meta = APP_META[key];
+            const active = overrides[key] ?? entitlements.features[key] ?? true;
+            const maintenance = entitlements.appStatus[key] === 'maintenance';
+            return (
+              <Card key={key}>
+                <div style={{ padding: '16px 18px', opacity: maintenance ? 0.6 : 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div style={{ width: 42, height: 42, borderRadius: 9, background: active ? 'var(--teal-l)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon name={meta.icon} size={20} strokeWidth={1.75} style={{ color: active ? 'var(--teal)' : 'var(--ink3)' } as React.CSSProperties} />
+                    </div>
+                    <Switch checked={active} disabled={!canManage || maintenance || saving === key} onCheckedChange={(v: boolean) => toggle(key, v)} />
                   </div>
-                  {/* Toggle */}
-                  <button
-                    onClick={() => setStates(s => ({ ...s, [m.id]: !s[m.id] }))}
-                    style={{ width: 40, height: 22, borderRadius: 9, background: active ? 'var(--teal)' : 'var(--border)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
-                  >
-                    <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: active ? 21 : 3, transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-                  </button>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{meta.name}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5 }}>{maintenance ? 'Under maintenance' : meta.desc}</div>
                 </div>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{m.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5, marginBottom: 12 }}>{m.desc}</div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{m.version}</span>
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <Btn label="Download" icon="download" />
-                    {!active && <Btn label="Install" icon="plus" variant="primary" />}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -891,102 +1270,154 @@ function ModulesTab() {
 // ─── Tab: Reports ─────────────────────────────────────────────────────────────
 
 function ReportsTab() {
+  const seats = useSeatCount();
+  const entitlements = useEntitlements();
+  const usage = entitlements?.usage;
+  const modulesOn = entitlements ? Object.values(entitlements.features).filter(Boolean).length : null;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Usage stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-        {USAGE_STATS.map(s => (
-          <Card key={s.label}>
-            <div style={{ padding: '16px 18px' }}>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{s.label}</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>{s.value}</div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: s.pct > 0 ? 8 : 0 }}>of {s.max}</div>
-              {s.pct > 0 && (
-                <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-                  <div style={{ width: `${s.pct}%`, height: '100%', background: s.pct > 80 ? 'var(--red)' : 'var(--teal)', borderRadius: 2 }} />
-                </div>
-              )}
-            </div>
-          </Card>
-        ))}
+      {/* Current-period usage — no historical activity log exists on the backend, so this
+          shows only the real current period rather than fabricating months of history. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+        <Card>
+          <div style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Active Seats</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)' }}>{seats}</div>
+          </div>
+        </Card>
+        <Card>
+          <div style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Items This Period{usage?.period ? ` (${usage.period})` : ''}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>{usage ? usage.used : '—'}</div>
+            <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: usage && usage.limit !== null ? 8 : 0 }}>{usage ? (usage.limit !== null ? `of ${usage.limit}` : 'Unlimited') : 'Loading…'}</div>
+            {usage && usage.limit !== null && (
+              <div style={{ height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
+                <div style={{ width: `${Math.min(100, (usage.used / usage.limit) * 100)}%`, height: '100%', background: usage.used >= usage.limit ? 'var(--red)' : 'var(--teal)', borderRadius: 2 }} />
+              </div>
+            )}
+          </div>
+        </Card>
+        <Card>
+          <div style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Modules Enabled</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--navy)' }}>{modulesOn ?? '—'}</div>
+          </div>
+        </Card>
       </div>
-
-      {/* Activity report */}
-      <Card>
-        <CardHead title="Usage Activity" sub="Shipment processing and user activity over the last 30 days." right={<Btn label="Export CSV" icon="download" />} />
-        <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>{['Period','Shipments Processed','TANCIS Filings','Documents Uploaded','Active Users'].map(h => (
-              <th key={h} style={{ padding: '9px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>{h}</th>
-            ))}</tr>
-          </thead>
-          <tbody>
-            {[
-              ['Jun 2026 (MTD)', '47', '32', '124', '8'],
-              ['May 2026',       '63', '51', '198', '7'],
-              ['Apr 2026',       '58', '44', '173', '8'],
-              ['Mar 2026',       '71', '60', '212', '9'],
-              ['Feb 2026',       '44', '38', '141', '7'],
-            ].map(([period, ...vals], i) => (
-              <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
-                onMouseLeave={e => (e.currentTarget.style.background = '')}>
-                <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{period}</td>
-                {vals.map((v, j) => (
-                  <td key={j} style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>{v}</td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table></div>
-      </Card>
     </div>
   );
 }
 
 // ─── Tab: Support ─────────────────────────────────────────────────────────────
 
+const TICKET_CATEGORIES = [
+  { value: 'general', label: 'General' },
+  { value: 'billing', label: 'Billing' },
+  { value: 'technical', label: 'Technical' },
+  { value: 'account', label: 'Account' },
+  { value: 'feature_request', label: 'Feature Request' },
+];
+
 function SupportTab() {
   const [showNew, setShowNew] = useState(false);
+  const [tickets, setTickets] = useState<any[] | null>(null);
+  const [subject, setSubject] = useState('');
+  const [priority, setPriority] = useState<'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'>('NORMAL');
+  const [category, setCategory] = useState('general');
+  const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [thread, setThread] = useState<any | null>(null);
+  const [reply, setReply] = useState('');
+
+  const reload = useCallback(async () => {
+    try { setTickets(await apiFetch('/v1/platform-support/tickets')); } catch { setTickets([]); }
+  }, []);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  async function submitTicket() {
+    setFormError(null);
+    if (!subject.trim() || !message.trim()) { setFormError('Subject and description are required.'); return; }
+    setSubmitting(true);
+    try {
+      await apiFetch('/v1/platform-support/tickets', { method: 'POST', body: JSON.stringify({ subject, category, priority, message }) });
+      setSubject(''); setMessage(''); setCategory('general'); setPriority('NORMAL');
+      setShowNew(false);
+      await reload();
+    } catch (err: any) {
+      setFormError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function toggleTicket(id: string) {
+    if (expandedId === id) { setExpandedId(null); setThread(null); return; }
+    setExpandedId(id);
+    setThread(null);
+    try {
+      setThread(await apiFetch(`/v1/platform-support/tickets/${id}`));
+    } catch (err: any) {
+      showAlert(err.message);
+    }
+  }
+
+  async function sendReply() {
+    if (!thread || !reply.trim()) return;
+    try {
+      await apiFetch(`/v1/platform-support/tickets/${thread.id}/reply`, { method: 'POST', body: JSON.stringify({ message: reply }) });
+      setReply('');
+      setThread(await apiFetch(`/v1/platform-support/tickets/${thread.id}`));
+      await reload();
+    } catch (err: any) {
+      showAlert(err.message);
+    }
+  }
+
+  const openCount = tickets?.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length ?? 0;
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20 }}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* New ticket */}
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <Btn label="Open New Ticket" icon="plus" variant="primary" onClick={() => setShowNew(v => !v)} />
-          <input placeholder="Search tickets…" className="input-field" style={{ flex: 1, fontSize: 13, padding: '8px 12px' }} />
         </div>
 
         {showNew && (
           <Card>
             <CardHead title="New Support Ticket" />
             <div style={{ padding: '0 20px 20px' }}>
-              <FormRow label="Subject"><input placeholder="Describe the issue briefly…" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
+              <FormRow label="Subject"><input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Describe the issue briefly…" className="input-field" style={{ width: '100%', fontSize: 13, padding: '8px 12px' }} /></FormRow>
               <FormRow label="Priority">
-                <Select defaultValue="Low">
+                <Select value={priority} onValueChange={(v: any) => setPriority(v)}>
                   <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Low">Low</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="High">High</SelectItem>
-                    <SelectItem value="Critical">Critical</SelectItem>
+                    <SelectItem value="LOW">Low</SelectItem>
+                    <SelectItem value="NORMAL">Normal</SelectItem>
+                    <SelectItem value="HIGH">High</SelectItem>
+                    <SelectItem value="URGENT">Urgent</SelectItem>
                   </SelectContent>
                 </Select>
               </FormRow>
-              <FormRow label="Module">
-                <Select defaultValue={MODULES[0]?.name}>
+              <FormRow label="Category">
+                <Select value={category} onValueChange={setCategory}>
                   <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {MODULES.map(m => <SelectItem key={m.id} value={m.name}>{m.name}</SelectItem>)}
+                    {TICKET_CATEGORIES.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </FormRow>
               <div style={{ marginTop: 14 }}>
                 <label style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Description</label>
-                <textarea rows={4} placeholder="Provide steps to reproduce, screenshots, or any relevant details…" className="input-field" style={{ width: '100%', fontSize: 13, padding: '10px 12px', resize: 'none', boxSizing: 'border-box' as const }} />
+                <textarea value={message} onChange={e => setMessage(e.target.value)} rows={4} placeholder="Provide steps to reproduce, screenshots, or any relevant details…" className="input-field" style={{ width: '100%', fontSize: 13, padding: '10px 12px', resize: 'none', boxSizing: 'border-box' as const }} />
               </div>
+              {formError && <div style={{ color: 'var(--red)', fontSize: 12.5, marginTop: 8 }}>{formError}</div>}
               <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                <Btn label="Submit Ticket" icon="send" variant="primary" onClick={() => setShowNew(false)} />
+                <Btn label={submitting ? 'Submitting…' : 'Submit Ticket'} icon="send" variant="primary" onClick={submitTicket} disabled={submitting} />
                 <Btn label="Cancel" onClick={() => setShowNew(false)} />
               </div>
             </div>
@@ -995,7 +1426,7 @@ function SupportTab() {
 
         {/* Ticket list */}
         <Card>
-          <CardHead title="My Tickets" sub={`${SUPPORT_TICKETS.filter(t => t.status === 'Open').length} open`} />
+          <CardHead title="My Tickets" sub={tickets ? `${openCount} open` : undefined} />
           <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse' }}>
             <thead>
               <tr>{['Ticket ID','Subject','Priority','Status','Last Updated',''].map(h => (
@@ -1003,19 +1434,52 @@ function SupportTab() {
               ))}</tr>
             </thead>
             <tbody>
-              {SUPPORT_TICKETS.map((t, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = '')}>
-                  <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--teal)', fontWeight: 600 }}>{t.id}</td>
-                  <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)', maxWidth: 280 }}>
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{t.subject}</span>
-                  </td>
-                  <td style={{ padding: '12px 16px' }}><StatusBadge status={t.priority} /></td>
-                  <td style={{ padding: '12px 16px' }}><StatusBadge status={t.status} /></td>
-                  <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>{t.updated}</td>
-                  <td style={{ padding: '12px 12px' }}><Btn label="View" icon="eye" /></td>
-                </tr>
+              {tickets === null && (
+                <tr><td colSpan={6} style={{ padding: 20, textAlign: 'center', fontSize: 12.5, color: 'var(--ink3)' }}>Loading tickets…</td></tr>
+              )}
+              {tickets?.length === 0 && (
+                <tr><td colSpan={6} style={{ padding: 20, textAlign: 'center', fontSize: 12.5, color: 'var(--ink3)' }}>No support tickets yet.</td></tr>
+              )}
+              {tickets?.map((t) => (
+                <React.Fragment key={t.id}>
+                  <tr style={{ borderBottom: '1px solid var(--border)' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
+                    onMouseLeave={e => (e.currentTarget.style.background = '')}>
+                    <td style={{ padding: '12px 16px', fontSize: 12.5, fontFamily: 'var(--mono)', color: 'var(--teal)', fontWeight: 600 }}>{t.ref_number}</td>
+                    <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--ink)', maxWidth: 280 }}>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{t.subject}</span>
+                    </td>
+                    <td style={{ padding: '12px 16px' }}><StatusBadge status={t.priority} /></td>
+                    <td style={{ padding: '12px 16px' }}><StatusBadge status={t.status} /></td>
+                    <td style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>{fmtDate(t.updated_at)}</td>
+                    <td style={{ padding: '12px 12px' }}><Btn label={expandedId === t.id ? 'Hide' : 'View'} icon="eye" onClick={() => toggleTicket(t.id)} /></td>
+                  </tr>
+                  {expandedId === t.id && (
+                    <tr>
+                      <td colSpan={6} style={{ padding: '14px 16px', background: 'var(--bg)' }}>
+                        {!thread ? (
+                          <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading thread…</div>
+                        ) : (
+                          <div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+                              {thread.messages.map((m: any) => (
+                                <div key={m.id} style={{ fontSize: 12.5, padding: '8px 10px', borderRadius: 8, background: m.is_platform_staff ? 'var(--teal-l)' : 'var(--white)', border: '1px solid var(--border)' }}>
+                                  <div style={{ fontWeight: 700, marginBottom: 2 }}>{m.author_name}{m.is_platform_staff ? ' · Hudumika Support' : ''}</div>
+                                  <div style={{ color: 'var(--ink2)' }}>{m.content}</div>
+                                  <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 4 }}>{new Date(m.created_at).toLocaleString()}</div>
+                                </div>
+                              ))}
+                            </div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <input value={reply} onChange={e => setReply(e.target.value)} placeholder="Reply…" className="input-field" style={{ flex: 1, fontSize: 12.5, padding: '7px 10px' }} />
+                              <Btn label="Send" icon="send" variant="primary" onClick={sendReply} disabled={!reply.trim()} />
+                            </div>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table></div>
@@ -1028,27 +1492,34 @@ function SupportTab() {
           <CardHead title="Contact Us" />
           <div style={{ padding: '12px 20px 16px' }}>
             {[
-              { icon: 'headphones' as IconName, label: 'Priority Support',  sub: 'Enterprise: 4h response SLA', color: '#6e40c9' },
-              { icon: 'mail'       as IconName, label: 'Email Support',     sub: 'support@hudumika.tz',        color: 'var(--teal)' },
-              { icon: 'chatBubble' as IconName, label: 'WhatsApp Chat',     sub: '+255 800 123 456',              color: '#059669' },
-            ].map(c => (
-              <div key={c.label} style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)', alignItems: 'center', cursor: 'pointer' }}>
-                <div style={{ width: 38, height: 38, borderRadius: 9, background: c.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Icon name={c.icon} size={17} strokeWidth={1.75} style={{ color: c.color } as React.CSSProperties} />
+              { icon: 'headphones' as IconName, label: 'Priority Support', sub: 'Enterprise: 4h response SLA', color: '#6e40c9', href: undefined },
+              { icon: 'mail'       as IconName, label: 'Email Support',    sub: 'support@hudumika.tz',         color: 'var(--teal)', href: 'mailto:support@hudumika.tz' },
+              { icon: 'chatBubble' as IconName, label: 'WhatsApp Chat',    sub: '+255 800 123 456',            color: '#059669', href: 'https://wa.me/255800123456' },
+            ].map(c => {
+              const row = (
+                <div style={{ display: 'flex', gap: 12, padding: '12px 0', borderBottom: '1px solid var(--border)', alignItems: 'center', cursor: c.href ? 'pointer' : 'default' }}>
+                  <div style={{ width: 38, height: 38, borderRadius: 9, background: c.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Icon name={c.icon} size={17} strokeWidth={1.75} style={{ color: c.color } as React.CSSProperties} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{c.label}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{c.sub}</div>
+                  </div>
+                  {c.href && <Icon name="chevronRight" size={14} strokeWidth={2} style={{ marginLeft: 'auto', color: 'var(--ink3)' } as React.CSSProperties} />}
                 </div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{c.label}</div>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>{c.sub}</div>
-                </div>
-                <Icon name="chevronRight" size={14} strokeWidth={2} style={{ marginLeft: 'auto', color: 'var(--ink3)' } as React.CSSProperties} />
-              </div>
-            ))}
+              );
+              return c.href
+                ? <a key={c.label} href={c.href} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}>{row}</a>
+                : <div key={c.label}>{row}</div>;
+            })}
           </div>
         </Card>
 
         <Card>
           <CardHead title="Resources" />
           <div style={{ padding: '12px 20px 16px' }}>
+            {/* No real docs/status pages exist in this app yet — decorative only, so the
+                cursor and external-link affordance are removed rather than promising a link that goes nowhere. */}
             {[
               { label: 'Documentation',      icon: 'fileText'  as IconName },
               { label: 'Video Tutorials',    icon: 'monitor'   as IconName },
@@ -1056,10 +1527,10 @@ function SupportTab() {
               { label: 'Release Notes',      icon: 'bell'      as IconName },
               { label: 'System Status',      icon: 'activity'  as IconName },
             ].map(r => (
-              <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--border)', cursor: 'pointer' }}>
+              <div key={r.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
                 <Icon name={r.icon} size={14} strokeWidth={2} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
                 <span style={{ fontSize: 13, color: 'var(--ink2)', flex: 1 }}>{r.label}</span>
-                <Icon name="externalLink" size={12} strokeWidth={2} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
+                <span style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Coming soon</span>
               </div>
             ))}
           </div>
@@ -1135,9 +1606,6 @@ export const Subscription: React.FC = () => {
             <div style={{ padding: '5px 12px', borderRadius: 20, background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: tenant?.active ? '#4ade80' : '#ef4444', display: 'inline-block' }} /> {tenant?.active ? 'ACTIVE' : 'INACTIVE'}
             </div>
-            <div style={{ padding: '5px 12px', borderRadius: 20, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', fontSize: 12, fontWeight: 600 }}>
-              EXP: 01 Jul 2026
-            </div>
           </div>
         </div>
 
@@ -1162,8 +1630,8 @@ export const Subscription: React.FC = () => {
       {/* ── Tab content ── */}
       <div className="sub-tab-content">
         {tab === 'company'  && <CompanyInfoTab tenant={tenant} />}
-        {tab === 'billing'  && <BillingTab tenant={tenant} />}
-        {tab === 'payments' && <PaymentsTab tenant={tenant} />}
+        {tab === 'billing'  && <BillingTab tenant={tenant} onNavigateTab={setTab} />}
+        {tab === 'payments' && <PaymentsTab tenant={tenant} onNavigateTab={setTab} />}
         {tab === 'security' && <SecurityTab />}
         {tab === 'plans'    && <PlansTab tenant={tenant} onReload={load} />}
         {tab === 'modules'  && <ModulesTab />}

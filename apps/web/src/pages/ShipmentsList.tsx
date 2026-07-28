@@ -747,7 +747,7 @@ export const ShipmentsList: React.FC = () => {
                   <tr><td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: 'var(--ink3)' }}>No stage history recorded</td></tr>
                 ) : bottlenecks.map(b => (
                   <tr key={b.stage} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={{ padding: '8px 8px', fontWeight: 600, color: 'var(--ink)' }}>{b.stage.replace(/_/g, ' ')}</td>
+                    <td style={{ padding: '8px 8px', fontWeight: 600, color: 'var(--ink)' }}>{b.stage_label ?? b.stage}</td>
                     <td style={{ padding: '8px 8px', textAlign: 'right' }}>{b.case_count}</td>
                     <td style={{ padding: '8px 8px', textAlign: 'right', fontFamily: 'var(--mono)', color: b.avg_hours > 24 ? 'var(--red)' : 'var(--ink)' }}>{b.avg_hours}h</td>
                     <td style={{ padding: '8px 8px', textAlign: 'right', fontFamily: 'var(--mono)', color: 'var(--ink3)' }}>{b.p90_hours}h</td>

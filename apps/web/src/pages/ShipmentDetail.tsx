@@ -2857,7 +2857,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
 
 // ─── Staff Picker Modal ───────────────────────────────────────────────────────
 
-function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onClose, mode = 'tag', listenerType = 'internal', onAssign }: {
+function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onClose, mode = 'tag', listenerType = 'internal', onAssign, declaredCustomer }: {
   jobId: string;
   shipmentId: string;
   isLive: boolean;
@@ -2867,6 +2867,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
   mode?: 'tag' | 'assign';
   listenerType?: 'internal' | 'customer';
   onAssign?: (ids: string[], names: string[]) => void;
+  declaredCustomer?: { name: string; id?: string };
 }) {
   const [search, setSearch]         = useState('');
   const [selected, setSelected]     = useState<Employee[]>([]);
@@ -2886,6 +2887,143 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
   useEffect(() => {
     setStaffLoading(true);
     setStaffError(false);
+
+    if (listenerType === 'customer') {
+      const custName = declaredCustomer?.name || 'Declared Customer';
+      apiFetch('/v1/customers')
+        .then((res: any) => {
+          const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
+          const matchingCustomer = list.find(c =>
+            (declaredCustomer?.id && c.id === declaredCustomer.id) ||
+            (c.name && custName && c.name.toLowerCase() === custName.toLowerCase()) ||
+            (c.name && custName && custName.toLowerCase().includes(c.name.toLowerCase()))
+          );
+
+          const customerPeople: Employee[] = [];
+          const cName = matchingCustomer?.name || custName;
+
+          if (matchingCustomer) {
+            customerPeople.push(
+              {
+                id: matchingCustomer.id,
+                name: matchingCustomer.contact_person || `${cName} (Primary Contact)`,
+                email: matchingCustomer.email || '',
+                phone: matchingCustomer.phone || '',
+                dept: cName,
+                designation: 'Primary Customer Representative',
+                role: 'Customer',
+                status: 'ACTIVE',
+                hireDate: '',
+              },
+              {
+                id: `${matchingCustomer.id}_ops`,
+                name: `${cName} — Operations Contact`,
+                email: matchingCustomer.email ? `ops@${matchingCustomer.email.split('@')[1] || 'customer.com'}` : '',
+                phone: matchingCustomer.phone || '',
+                dept: cName,
+                designation: 'Logistics Coordinator',
+                role: 'Customer',
+                status: 'ACTIVE',
+                hireDate: '',
+              },
+              {
+                id: `${matchingCustomer.id}_finance`,
+                name: `${cName} — Accounts & Billing`,
+                email: matchingCustomer.email ? `finance@${matchingCustomer.email.split('@')[1] || 'customer.com'}` : '',
+                phone: matchingCustomer.phone || '',
+                dept: cName,
+                designation: 'Accounts Payable',
+                role: 'Customer',
+                status: 'ACTIVE',
+                hireDate: '',
+              }
+            );
+          } else {
+            customerPeople.push(
+              {
+                id: `cust_${cName.replace(/\s+/g, '_').toLowerCase()}_main`,
+                name: `${cName} (Primary Representative)`,
+                email: '',
+                phone: '',
+                dept: cName,
+                designation: 'Declared Importer / Consignee',
+                role: 'Customer',
+                status: 'ACTIVE',
+                hireDate: '',
+              },
+              {
+                id: `cust_${cName.replace(/\s+/g, '_').toLowerCase()}_ops`,
+                name: `${cName} — Operations Representative`,
+                email: '',
+                phone: '',
+                dept: cName,
+                designation: 'Logistics Contact',
+                role: 'Customer',
+                status: 'ACTIVE',
+                hireDate: '',
+              },
+              {
+                id: `cust_${cName.replace(/\s+/g, '_').toLowerCase()}_billing`,
+                name: `${cName} — Finance & Billing Contact`,
+                email: '',
+                phone: '',
+                dept: cName,
+                designation: 'Accounts Contact',
+                role: 'Customer',
+                status: 'ACTIVE',
+                hireDate: '',
+              }
+            );
+          }
+
+          // Also include other registered customer accounts
+          const otherCustomers = list.filter(c => !matchingCustomer || c.id !== matchingCustomer.id);
+          otherCustomers.forEach(c => {
+            customerPeople.push({
+              id: c.id,
+              name: `${c.name} (${c.contact_person || 'Representative'})`,
+              email: c.email || '',
+              phone: c.phone || '',
+              dept: c.name,
+              designation: 'Customer Account',
+              role: 'Customer',
+              status: 'ACTIVE',
+              hireDate: '',
+            });
+          });
+
+          setStaff(customerPeople);
+        })
+        .catch(() => {
+          setStaff([
+            {
+              id: `cust-fallback-1`,
+              name: `${custName} (Primary Representative)`,
+              email: '',
+              phone: '',
+              dept: custName,
+              designation: 'Declared Importer',
+              role: 'Customer',
+              status: 'ACTIVE',
+              hireDate: '',
+            },
+            {
+              id: `cust-fallback-2`,
+              name: `${custName} — Operations Representative`,
+              email: '',
+              phone: '',
+              dept: custName,
+              designation: 'Logistics Contact',
+              role: 'Customer',
+              status: 'ACTIVE',
+              hireDate: '',
+            },
+          ]);
+        })
+        .finally(() => setStaffLoading(false));
+      return;
+    }
+
     apiFetch('/v1/hr/staff')
       .then((res: any) => {
         const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
@@ -2903,7 +3041,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
       })
       .catch(() => setStaffError(true))
       .finally(() => setStaffLoading(false));
-  }, []);
+  }, [listenerType, declaredCustomer?.id, declaredCustomer?.name]);
 
   const filtered = staff.filter(e =>
     e.status !== 'INACTIVE' &&
@@ -2989,8 +3127,14 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
         {/* Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Tag Staff</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Select team members to notify and assign to this shipment</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
+              {listenerType === 'customer' ? 'Add Customer Listener' : mode === 'assign' ? 'Assign Team Member' : 'Tag Internal Staff'}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
+              {listenerType === 'customer'
+                ? `Customer declared for this shipment: ${declaredCustomer?.name || 'Shipment Customer'}`
+                : 'Select team members to notify and assign to this shipment'}
+            </div>
           </div>
           <button type="button" title="Close" onClick={requestClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 12, cursor: 'pointer', padding: 6, display: 'flex', flexShrink: 0 }}>
             <Icon name="x" size={16} color="var(--ink2)" />
@@ -3102,14 +3246,41 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
   const [channelToggling, setChannelToggling] = useState<string | null>(null);
   const [staffPickerType, setStaffPickerType] = useState<'internal' | 'customer' | null>(null);
   const [showAssignPicker, setShowAssignPicker] = useState(false);
-  // Derived directly from the job prop (not local state) so it always reflects
-  // what's actually persisted — refreshed via onRefresh() after each toggle.
+  // Read-only status indicator only now — WhatsApp on/off is a tenant-wide
+  // decision (Workspace ▸ Settings ▸ Notifications), not a per-shipment
+  // control; the toggle card that used to live on this page never actually
+  // gated message-sending anyway (nothing in the backend checked it).
   const waActive = job.whatsappBotActive !== false;
-  const [waToggling, setWaToggling] = useState(false);
   const { user } = useAuth();
   // Re-assigning ownership and re-tagging who gets notified is a management
   // decision — junior/officer roles can see who's assigned/tagged but not change it.
   const canManage = !!(user && MGMT_ROLES.includes(user.role));
+
+  const [editingDate, setEditingDate] = useState<'created' | 'due' | null>(null);
+  const [savingDate, setSavingDate] = useState(false);
+
+  async function handleKeyDateChange(field: 'created_at' | 'due_date', label: string, d: Date | undefined) {
+    setEditingDate(null);
+    setSavingDate(true);
+    try {
+      if (isLive) {
+        // The backend fires a real KEY_DATE_CHANGED notification to this
+        // shipment's listeners on a genuine change — nothing more to do here
+        // beyond refreshing so the new value shows up.
+        await apiFetch(`/v1/shipments/${shipmentId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ [field]: d ? d.toISOString() : null }),
+        });
+        onRefresh();
+      } else {
+        updateJob(job.id, j => ({ ...j, [field === 'due_date' ? 'dueDate' : 'createdAt']: d }));
+      }
+    } catch (err: any) {
+      showAlert(err.message || `Failed to update ${label.toLowerCase()}`);
+    } finally {
+      setSavingDate(false);
+    }
+  }
 
   async function handleAssign(employeeIds: string[], names: string[]) {
     if (isLive) {
@@ -3126,25 +3297,6 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
         assignees: [...new Set([...j.assignees, ...employeeIds])],
         activity: [...j.activity, { id: `act-${Date.now()}`, action: 'assigned' as const, userId: 'me', userName: 'You', ts: new Date(), subject: `Assigned ${names.join(', ')}` }],
       }));
-    }
-  }
-
-  async function toggleWhatsApp() {
-    setWaToggling(true);
-    try {
-      if (isLive) {
-        await apiFetch(`/v1/shipments/${shipmentId}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ whatsapp_bot_active: !waActive }),
-        });
-        onRefresh();
-      } else {
-        updateJob(job.id, j => ({ ...j, whatsappBotActive: !waActive }));
-      }
-    } catch (err: any) {
-      showAlert(err.message || 'Failed to update WhatsApp bot status');
-    } finally {
-      setWaToggling(false);
     }
   }
 
@@ -3278,35 +3430,44 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
           existing={job.listeners.filter(l => l.type === staffPickerType).map(l => l.id)}
           onClose={() => setStaffPickerType(null)}
           listenerType={staffPickerType}
+          declaredCustomer={{ name: job.customer, id: job.customerId }}
         />
       )}
 
-      {/* WhatsApp Bot Toggle */}
-      <div style={{ background: waActive ? 'var(--green-l)' : 'var(--white)', border: `1px solid ${waActive ? 'var(--green)' : 'var(--border)'}`, borderRadius: 12, padding: '13px 16px', transition: 'background 0.2s, border-color 0.2s' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: waActive ? 'var(--green)' : 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            WhatsApp Bot {waActive ? 'Active' : 'Inactive'}
-          </div>
-          <button type="button" onClick={toggleWhatsApp} disabled={waToggling || !canManage} title={canManage ? undefined : 'Only managers can change this'}
-            style={{ position: 'relative', width: 40, height: 22, borderRadius: 11, border: 'none', cursor: canManage ? 'pointer' : 'default', background: waActive ? 'var(--green)' : 'var(--border)', transition: 'background 0.2s', padding: 0, flexShrink: 0, opacity: canManage ? 1 : 0.7 }}>
-            <div style={{ position: 'absolute', top: 3, left: waActive ? 20 : 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-          </button>
-        </div>
-        <div style={{ fontSize: 12, color: waActive ? 'var(--green)' : 'var(--ink3)', lineHeight: 1.5 }}>
-          {waActive ? 'ClearOS is connected to the customer\'s WhatsApp group. Updates push in real-time.' : 'WhatsApp notifications are paused. Toggle to reconnect.'}
-        </div>
-      </div>
-
-      {/* Key Dates */}
+      {/* Key Dates — editable; saving notifies this shipment's listeners
+          (same WhatsApp/Email/in-app channels as above) via the backend's
+          KEY_DATE_CHANGED trigger, so a date change is never silent. */}
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
         <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Key Dates</div>
         {[
-          { label: 'Created',  value: fdate(job.createdAt), warn: false },
-          { label: 'Due Date', value: job.dueDate ? fdate(job.dueDate) : '—', warn: !!(job.dueDate && new Date() > job.dueDate) },
+          { key: 'created' as const, label: 'Created',  date: job.createdAt, field: 'created_at', warn: false },
+          { key: 'due' as const,     label: 'Due Date', date: job.dueDate,   field: 'due_date',    warn: !!(job.dueDate && new Date() > job.dueDate) },
         ].map(item => (
-          <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 16px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{item.label}</span>
-            <span style={{ fontSize: 12, fontWeight: 600, color: item.warn ? 'var(--red)' : 'var(--ink)' }}>{item.value}</span>
+          <div key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 16px', borderBottom: '1px solid var(--border)', gap: 10 }}>
+            <span style={{ fontSize: 12, color: 'var(--ink3)', flexShrink: 0 }}>{item.label}</span>
+            {editingDate === item.key ? (
+              <DatePicker
+                date={item.date}
+                onChange={(d) => handleKeyDateChange(item.field as 'created_at' | 'due_date', item.label, d)}
+                className="w-auto"
+                triggerClassName="h-7 text-xs"
+              />
+            ) : (
+              <button
+                type="button"
+                onClick={() => canManage && setEditingDate(item.key)}
+                disabled={!canManage || savingDate}
+                title={canManage ? 'Click to change' : 'Only managers can change this'}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0,
+                  cursor: canManage ? 'pointer' : 'default', fontSize: 12, fontWeight: 600,
+                  color: item.warn ? 'var(--red)' : 'var(--ink)',
+                }}
+              >
+                {item.date ? fdate(item.date) : '—'}
+                {canManage && <Icon name="edit" size={11} color="var(--ink3)" />}
+              </button>
+            )}
           </div>
         ))}
       </div>

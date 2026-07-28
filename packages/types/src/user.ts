@@ -196,6 +196,7 @@ export interface Customer {
 export interface LoginInput {
   email: string;
   password: string;
+  totp?: string; // 6-digit code, required only when the account has 2FA enabled (see user_totp)
 }
 
 export interface CustomerOTPInput {
@@ -222,4 +223,5 @@ export interface JWTPayload {
   name: string;
   iat: number;
   exp: number;
+  device_id?: string;   // hr_devices.id created at sign-in — lets a specific session be revoked (see hr_devices.revoked_at)
 }

@@ -28,27 +28,30 @@ export class EmailIntegration {
         }
       }
 
-      const protocol = emailConfig?.email_protocol || 'mail'; // 'smtp', 'sendmail', or 'mail' (system default)
+      // Field names here match what Workspace ▸ Settings ▸ Email (Settings.tsx
+      // EmailSection) actually saves — protocol/host/port/user/pass/enc/fromName/
+      // fromEmail — not a separate email_*/smtp_* convention nobody ever wrote.
+      const protocol = emailConfig?.protocol || 'mail'; // 'smtp', 'sendmail', or 'mail' (system default)
       let transporter: nodemailer.Transporter;
 
-      let fromName = emailConfig?.email_from_name || 'Hudumika';
-      let fromAddress = emailConfig?.email_from_address || env.SMTP_USER;
+      let fromName = emailConfig?.fromName || 'Hudumika';
+      let fromAddress = emailConfig?.fromEmail || env.SMTP_USER;
 
       // 2. Instantiate the correct transporter based on the protocol
-      if (protocol === 'smtp' && emailConfig?.smtp_host) {
+      if (protocol === 'smtp' && emailConfig?.host) {
         // --- SMTP Protocol ---
-        const port = Number(emailConfig.smtp_port) || (emailConfig.smtp_encryption === 'ssl' ? 465 : 587);
-        const secure = emailConfig.smtp_encryption === 'ssl';
-        const requireTLS = !secure && emailConfig.smtp_encryption === 'tls';
+        const port = Number(emailConfig.port) || (emailConfig.enc === 'ssl' ? 465 : 587);
+        const secure = emailConfig.enc === 'ssl';
+        const requireTLS = !secure && emailConfig.enc === 'tls';
 
         transporter = nodemailer.createTransport({
-          host: emailConfig.smtp_host,
+          host: emailConfig.host,
           port,
           secure,
           requireTLS,
           auth: {
-            user: emailConfig.smtp_user,
-            pass: emailConfig.smtp_pass,
+            user: emailConfig.user,
+            pass: emailConfig.pass,
           },
           tls: { rejectUnauthorized: false }
         } as any);

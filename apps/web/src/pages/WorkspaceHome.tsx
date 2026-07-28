@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { useBranding } from '../hooks/useBranding.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
-import { LauncherAppSvg as AppIcon } from '../components/LauncherApps.js';
+import { LauncherAppSvg as AppIcon, LAUNCHER_APPS } from '../components/LauncherApps.js';
 import { Icon } from '../components/Icon.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import './WorkspaceHome.css';
@@ -23,242 +23,36 @@ interface HudumikaApp {
   tags?: string[];
 }
 
-const apps: HudumikaApp[] = [
-  {
-    id: 'clearos',
-    name: 'ClearOS',
-    desc: 'Customs clearance platform & TANCIS integration',
-    category: 'Logistics',
-    path: '/clearos',
-    color: 'var(--teal)',
-    status: 'Live',
-    userCount: 12,
-    dataSize: '33 GB',
-    appServicesCount: 4,
-    tags: ['TANCIS', 'EAC CET', 'PVoC'],
-  },
-  {
-    id: 'finops',
-    name: 'FinOps',
-    desc: 'Financial accounts, TRA EFD integration & payroll ledger',
-    category: 'Finance',
-    path: '/finops',
-    color: 'var(--blue)',
-    status: 'Live',
-    userCount: 5,
-    dataSize: '45 GB',
-    appServicesCount: 3,
-    tags: ['Ledger', 'EFD', 'VAT'],
-  },
-  {
-    id: 'nexushr',
-    name: 'NexusHR',
-    desc: 'People operations, payroll & shift rosters',
-    category: 'HR',
-    path: '/onepi',
-    color: 'var(--gold)',
-    status: 'Live',
-    userCount: 15,
-    dataSize: '08 GB',
-    appServicesCount: 2,
-    tags: ['Payroll', 'NSSF', 'WCF'],
-  },
-  {
-    id: 'bliss',
-    name: 'Bliss',
-    desc: 'Omnichannel customer helpdesk & ticketing system',
-    category: 'Support',
-    path: '/bliss',
-    color: 'var(--purple)',
-    status: 'Live',
-    userCount: 8,
-    dataSize: '24 GB',
-    appServicesCount: 3,
-    tags: ['Helpdesk', 'Tickets', 'SLA'],
-  },
-  {
-    id: 'complyos',
-    name: 'ComplyOS',
-    desc: 'Compliance tracking, BRELA business search, permits & audit logs',
-    category: 'Compliance',
-    path: '/complyos',
-    color: 'var(--green)',
-    status: 'Live',
-    userCount: 3,
-    dataSize: '12 GB',
-    appServicesCount: 1,
-    tags: ['BRELA', 'Permits', 'Audit'],
-  },
-  {
-    id: 'seal',
-    name: 'SEAL',
-    desc: 'Bonded warehouse ledger — customs status, storage clocks & audit-chained movements',
-    category: 'Logistics',
-    path: '/seal',
-    color: 'var(--teal)',
-    status: 'Beta',
-    userCount: 1,
-    dataSize: '0 GB',
-    appServicesCount: 1,
-    tags: ['Bonded', 'Customs', 'Ledger'],
-  },
-  {
-    id: 'inventory',
-    name: 'Inventory Control',
-    desc: 'General multi-warehouse stock control — items, batches, units of measure & reorder alerts',
-    category: 'Logistics',
-    path: '/inventory',
-    color: 'var(--teal)',
-    status: 'Beta',
-    userCount: 0,
-    dataSize: '0 GB',
-    appServicesCount: 1,
-    tags: ['Stock', 'Warehousing', 'Inventory'],
-  },
-  {
-    id: 'crm',
-    name: 'CRM',
-    desc: 'Customer relationships, leads & sales pipeline',
-    category: 'Sales',
-    path: '/crm',
-    color: 'var(--red)',
-    status: 'Live',
-    userCount: 6,
-    dataSize: '18 GB',
-    appServicesCount: 2,
-    tags: ['Pipeline', 'Deals', 'KADABRA'],
-  },
-  {
-    id: 'store',
-    name: 'Hudumika Store',
-    desc: 'B2B Procurement & equipment marketplace',
-    category: 'Procurement',
-    path: '/store',
-    color: 'var(--teal)',
-    status: 'Live',
-    userCount: 4,
-    dataSize: '05 GB',
-    appServicesCount: 2,
-    tags: ['Procurement', 'B2B', 'Suppliers'],
-  },
-  {
-    id: 'cargotracker',
-    name: 'CargoTracker',
-    desc: 'GPS fleet tracking, telemetry & container monitoring',
-    category: 'Logistics',
-    path: '/tracking',
-    color: 'var(--blue)',
-    status: 'Live',
-    userCount: 9,
-    dataSize: '19 GB',
-    appServicesCount: 3,
-    tags: ['GPS', 'Tracking', 'Fleet'],
-  },
-  {
-    id: 'oneid',
-    name: 'OneID',
-    desc: 'SSO, identity verification & biometric access control',
-    category: 'Identity',
-    path: '/oneid',
-    color: 'var(--gold)',
-    status: 'Live',
-    userCount: 24,
-    dataSize: '02 GB',
-    appServicesCount: 5,
-    tags: ['SSO', 'KYC', 'Biometrics'],
-  },
-  {
-    id: 'cloud',
-    name: 'CloudOS',
-    desc: 'Enterprise document storage & cloud drive',
-    category: 'Storage',
-    path: '/cloud',
-    color: 'var(--purple)',
-    status: 'Live',
-    userCount: 18,
-    dataSize: '120 GB',
-    appServicesCount: 4,
-    tags: ['Drive', 'Storage', 'Encrypted'],
-  },
-  {
-    id: 'superadmin',
-    name: 'SuperAdmin',
-    desc: 'Platform governance, tenant management, logs & query builder',
-    category: 'Admin',
-    path: '/superadmin',
-    color: 'var(--red)',
-    status: 'Live',
-    userCount: 2,
-    dataSize: '50 GB',
-    appServicesCount: 6,
-    tags: ['Governance', 'Tenants', 'Queries'],
-  },
-  {
-    id: 'tradewizard',
-    name: 'Trade Wizard',
-    desc: 'Cross-border trade, tariffs, customs regulations & duty calculations',
-    category: 'Logistics',
-    path: '/clearos/trade-wizard',
-    color: 'var(--blue)',
-    status: 'Live',
-    userCount: 7,
-    dataSize: '15 GB',
-    appServicesCount: 3,
-    tags: ['Tariffs', 'Duty', 'Regulations'],
-  },
-  {
-    id: 'ai',
-    name: 'AI Automations',
-    desc: 'Automated intelligence, document OCR & predictive analytics',
-    category: 'AI',
-    path: '/ai',
-    color: 'var(--purple)',
-    status: 'Live',
-    userCount: 14,
-    dataSize: '28 GB',
-    appServicesCount: 4,
-    tags: ['AI', 'OCR', 'Copilot'],
-  },
-  {
-    id: 'accounting',
-    name: 'Accounting Sync',
-    desc: 'Integrate QuickBooks, Xero & TRA EFD tax systems',
-    category: 'Finance',
-    path: '/accounting-integrations',
-    color: 'var(--blue)',
-    status: 'Live',
-    userCount: 4,
-    dataSize: '09 GB',
-    appServicesCount: 2,
-    tags: ['QuickBooks', 'Xero', 'EFD'],
-  },
-  {
-    id: 'systemupdate',
-    name: 'Admin Updates',
-    desc: 'Release notes & platform changelog',
-    category: 'Admin',
-    path: '/system-update',
-    color: 'var(--ink3)',
-    status: 'Live',
-    userCount: 1,
-    dataSize: '02 GB',
-    appServicesCount: 1,
-    tags: ['Updates', 'Changelog', 'Builds'],
-  },
-  {
-    id: 'onesite',
-    name: 'CMS',
-    desc: 'Content management & company intranet portal',
-    category: 'Content',
-    path: '/cms',
-    color: 'var(--ink3)',
-    status: 'Live',
-    userCount: 2,
-    dataSize: '04 GB',
-    appServicesCount: 1,
-    tags: ['CMS', 'Portal', 'Wiki'],
-  },
-];
+// Card copy (description/category/tags/status) for each app in LAUNCHER_APPS —
+// id/name/color/path come from LAUNCHER_APPS itself (the same list the header
+// launcher renders) so this grid can't drift into showing a different set of
+// apps, a stale display name, or a wrong route than the launcher does.
+const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category' | 'status' | 'userCount' | 'dataSize' | 'appServicesCount' | 'tags'>> = {
+  clearos:      { desc: 'Customs clearance platform & TANCIS integration', category: 'Logistics', status: 'Live', userCount: 12, dataSize: '33 GB', appServicesCount: 4, tags: ['TANCIS', 'EAC CET', 'PVoC'] },
+  finops:       { desc: 'Financial accounts, TRA EFD integration & payroll ledger', category: 'Finance', status: 'Live', userCount: 5, dataSize: '45 GB', appServicesCount: 3, tags: ['Ledger', 'EFD', 'VAT'] },
+  onepi:        { desc: 'People operations, payroll & shift rosters', category: 'HR', status: 'Live', userCount: 15, dataSize: '08 GB', appServicesCount: 2, tags: ['Payroll', 'NSSF', 'WCF'] },
+  bliss:        { desc: 'Omnichannel customer helpdesk & ticketing system', category: 'Support', status: 'Live', userCount: 8, dataSize: '24 GB', appServicesCount: 3, tags: ['Helpdesk', 'Tickets', 'SLA'] },
+  complyos:     { desc: 'Compliance tracking, BRELA business search, permits & audit logs', category: 'Compliance', status: 'Live', userCount: 3, dataSize: '12 GB', appServicesCount: 1, tags: ['BRELA', 'Permits', 'Audit'] },
+  crm:          { desc: 'Customer relationships, leads & sales pipeline', category: 'Sales', status: 'Live', userCount: 6, dataSize: '18 GB', appServicesCount: 2, tags: ['Pipeline', 'Deals', 'KADABRA'] },
+  cloud:        { desc: 'Enterprise document storage & cloud drive', category: 'Storage', status: 'Live', userCount: 18, dataSize: '120 GB', appServicesCount: 4, tags: ['Drive', 'Storage', 'Encrypted'] },
+  email:        { desc: 'Team inbox and email workspace', category: 'Communication', status: 'Live', userCount: 10, dataSize: '06 GB', appServicesCount: 1, tags: ['Inbox', 'Mail'] },
+  contacts:     { desc: 'Shared customer, vendor and partner contact directory', category: 'Directory', status: 'Live', userCount: 13, dataSize: '03 GB', appServicesCount: 1, tags: ['Directory', 'CRM Sync'] },
+  ai:           { desc: 'Automated intelligence, document OCR & predictive analytics', category: 'AI', status: 'Live', userCount: 14, dataSize: '28 GB', appServicesCount: 4, tags: ['AI', 'OCR', 'Copilot'] },
+  store:        { desc: 'B2B Procurement & equipment marketplace', category: 'Procurement', status: 'Live', userCount: 4, dataSize: '05 GB', appServicesCount: 2, tags: ['Procurement', 'B2B', 'Suppliers'] },
+  oneid:        { desc: 'SSO, identity verification & biometric access control', category: 'Identity', status: 'Live', userCount: 24, dataSize: '02 GB', appServicesCount: 5, tags: ['SSO', 'KYC', 'Biometrics'] },
+  tracking:     { desc: 'Fleet, vehicle and driver tracking — GPS positions, geofence alerts & trip history', category: 'Logistics', status: 'Live', userCount: 9, dataSize: '19 GB', appServicesCount: 3, tags: ['GPS', 'Fleet', 'Geofencing'] },
+  workspace:    { desc: 'Organization settings and configuration', category: 'Admin', status: 'Live', userCount: 2, dataSize: '50 GB', appServicesCount: 6, tags: ['Settings', 'Security', 'Billing'] },
+  calendar:     { desc: 'Scheduling & team calendar', category: 'Productivity', status: 'Live', userCount: 20, dataSize: '01 GB', appServicesCount: 1, tags: ['Scheduling', 'Meetings'] },
+  tasks:        { desc: 'To-dos & team task tracking', category: 'Productivity', status: 'Live', userCount: 16, dataSize: '01 GB', appServicesCount: 1, tags: ['To-dos', 'Tracking'] },
+  cargotracker: { desc: 'AWB and Bill of Lading shipment tracking', category: 'Logistics', status: 'Live', userCount: 7, dataSize: '15 GB', appServicesCount: 3, tags: ['AWB', 'BL', 'Demurrage'] },
+  seal:         { desc: 'Bonded warehouse ledger — customs status, storage clocks & audit-chained movements', category: 'Logistics', status: 'Beta', userCount: 1, dataSize: '0 GB', appServicesCount: 1, tags: ['Bonded', 'Customs', 'Ledger'] },
+  inventory:    { desc: 'General multi-warehouse stock control — items, batches, units of measure & reorder alerts', category: 'Logistics', status: 'Beta', userCount: 0, dataSize: '0 GB', appServicesCount: 1, tags: ['Stock', 'Warehousing', 'Inventory'] },
+};
+
+const apps: HudumikaApp[] = LAUNCHER_APPS.map(app => ({
+  ...app,
+  ...(APP_META[app.id] ?? { desc: '', category: 'Other', status: 'Live' as const }),
+}));
 
 interface WorkspaceHomeProps {
   externalSearch?: string;
@@ -335,9 +129,9 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
   const [starredIds, setStarredIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('hudumika_starred_apps');
-      return saved ? JSON.parse(saved) : ['clearos', 'finops', 'nexushr', 'bliss'];
+      return saved ? JSON.parse(saved) : ['clearos', 'finops', 'onepi', 'bliss'];
     } catch {
-      return ['clearos', 'finops', 'nexushr', 'bliss'];
+      return ['clearos', 'finops', 'onepi', 'bliss'];
     }
   });
 
@@ -349,9 +143,9 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
   const [recentIds, setRecentIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('hudumika_recently_viewed');
-      return saved ? JSON.parse(saved) : ['clearos', 'finops', 'nexushr', 'bliss', 'complyos'];
+      return saved ? JSON.parse(saved) : ['clearos', 'finops', 'onepi', 'bliss', 'complyos'];
     } catch {
-      return ['clearos', 'finops', 'nexushr', 'bliss', 'complyos'];
+      return ['clearos', 'finops', 'onepi', 'bliss', 'complyos'];
     }
   });
 
@@ -544,17 +338,6 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                         </button>
                       </div>
 
-                      <div className="wh-grid-desc-clamp">
-                        {branding.getAppSlogan(app.id, app.desc)}
-                      </div>
-
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                        <span className="wh-badge-tag tag-live">Live</span>
-                        {app.tags?.slice(0, 2).map(tag => (
-                          <span key={tag} className="wh-tag-pill">{tag}</span>
-                        ))}
-                      </div>
-
                       <div className="wh-grid-card-footer">
                         <div className="wh-grid-stats">
                           <span className="wh-grid-stat"><Icon name="users" size={12} /> {String(app.userCount ?? 5).padStart(2, '0')}</span>
@@ -574,7 +357,6 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                       <th className="wh-th-center" style={{ width: 40 }}></th>
                       <th>WORKSPACE</th>
                       <th>LINE OF BUSINESS</th>
-                      <th>TAGS</th>
                       <th className="wh-th-center">USER COUNT</th>
                       <th className="wh-th-center">APP & SERVICES</th>
                       <th style={{ textAlign: 'right' }}>DATA & ASSETS</th>
@@ -598,26 +380,18 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                             </button>
                           </td>
                           <td>
-                            <Link to={app.path} className="wh-table-app-cell" onClick={() => handleAppClick(app)}>
-                              <div className="wh-table-icon-wrap" style={{ background: 'color-mix(in srgb, var(--card-color) 15%, transparent)' }}>
-                                <AppIcon id={app.id} color={appColor} logoUrl={branding.getAppLogo(app.id)} size={22} />
+                            <Link to={app.path} onClick={() => handleAppClick(app)} style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
+                              <div style={{ width: 36, height: 36, borderRadius: 9, background: 'color-mix(in srgb, var(--card-color) 15%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <AppIcon id={app.id} color={appColor} logoUrl={branding.getAppLogo(app.id)} size={20} />
                               </div>
-                              <div className="wh-table-app-meta">
-                                <span className="wh-table-app-name">{branding.getAppName(app.id, app.name)}</span>
-                                <span className="wh-table-app-desc">{branding.getAppSlogan(app.id, app.desc)}</span>
+                              <div style={{ minWidth: 0 }}>
+                                <div className="wh-td-workspace-name">{branding.getAppName(app.id, app.name)}</div>
+                                <div className="wh-td-workspace-sub">{branding.getAppSlogan(app.id, app.desc)}</div>
                               </div>
                             </Link>
                           </td>
                           <td>
                             <span className="wh-badge-lob">{app.category}</span>
-                          </td>
-                          <td>
-                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                              <span className="wh-badge-tag tag-live">Live</span>
-                              {app.tags?.map(tag => (
-                                <span key={tag} className="wh-tag-pill">{tag}</span>
-                              ))}
-                            </div>
                           </td>
                           <td className="wh-td-center">
                             <span className="wh-stat-cell">

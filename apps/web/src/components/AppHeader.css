@@ -64,21 +64,20 @@
   width: 36px;
   height: 36px;
   border-radius: 9px;
-  border: 1px solid var(--border);
-  background: var(--surface, rgba(0,0,0,0.04));
+  border: none;
+  background: transparent;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--ink2);
-  transition: background 0.12s, border-color 0.12s;
+  transition: background 0.12s;
   flex-shrink: 0;
   position: relative;
 }
 
 .app-header-icon-btn:hover {
   background: var(--bg);
-  border-color: var(--border2, var(--border));
 }
 
 .app-header-icon-btn--active {
@@ -88,6 +87,38 @@
 
 .app-header-icon-btn--open {
   background: var(--bg);
+}
+
+/* ── Notifications panel — fixed to the header's top-right corner, same
+   technique as AppLauncher.tsx's .app-lnch-panel/.app-lnch-backdrop, not
+   Radix's trigger-relative Popper positioning (the bell isn't the header's
+   rightmost icon, so aligning to the bell itself always left a gap to the
+   true right edge). */
+.app-header-notif-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 498;
+  background: transparent;
+}
+
+.app-header-notif-panel {
+  position: fixed;
+  top: 60px;
+  right: 14px;
+  z-index: 499;
+  transform-origin: top right;
+  transform: scale(0.94) translateY(-10px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.18s ease;
+  will-change: transform, opacity;
+}
+
+.app-header-notif-panel--open {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
 }
 
 /* ── Hamburger (mobile only) ── */
@@ -460,6 +491,17 @@
   background: var(--border);
 }
 
+.app-header-search-modal-results {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 6px;
+  border-top: 1px solid var(--border);
+}
+
+[data-theme="dark"] .app-header-search-modal-results {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
 /* ── Dark mode ── */
 [data-theme="dark"] .app-header {
   background: #111218;
@@ -487,13 +529,11 @@
 
 [data-theme="dark"] .app-header-icon-btn {
   color: rgba(255, 255, 255, 0.6);
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.1);
+  background: transparent;
 }
 
 [data-theme="dark"] .app-header-icon-btn:hover {
   background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.16);
   color: #fff;
 }
 

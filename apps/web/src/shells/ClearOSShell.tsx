@@ -32,6 +32,7 @@ import { WorkflowBuilder }   from '../pages/WorkflowBuilder.js';
 import { ClearOSDeclarations } from '../pages/ClearOSDeclarations.js';
 import { ClearOSDeclarationNew } from '../pages/ClearOSDeclarationNew.js';
 import { ClearOSDeclarationDetail } from '../pages/ClearOSDeclarationDetail.js';
+import { ProductsServices } from '../pages/ProductsServices.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -55,17 +56,13 @@ const NAV: SidebarSection[] = [
       { label: 'Carbon Portfolio', icon: 'globe',   path: '/clearos/carbon' },
     ],
   },
-  {
-    title: 'FREIGHT BOOKING',
-    items: [
-      { label: 'Bookings',   icon: 'ship',      path: '/clearos/freight-booking/bookings' },
-      { label: 'Rate Cards', icon: 'dollarSign', path: '/clearos/freight-booking/rate-cards' },
-      { label: 'Carriers',   icon: 'truck',     path: '/clearos/freight-booking/carriers' },
-    ],
-  },
+  // FREIGHT BOOKING (Bookings, Rate Cards, Carriers) hidden — feature-to-come,
+  // not ready for general use yet. Routes below stay mounted so in-progress
+  // work isn't lost; just no sidebar entry point until they're finished.
   {
     title: 'TOOLS',
     items: [
+      { label: 'Products & Services', icon: 'tag', path: '/clearos/products' },
       { label: 'Chat',      icon: 'chatBubble', path: '/clearos/chat' },
       { label: 'Reference', icon: 'layers',     path: '/clearos/reference' },
     ],
@@ -123,6 +120,7 @@ export function ClearOSShell() {
                 <Route path="workflows"                  element={<RequireRoles roles={OPS_ROLES}><WorkflowsPage /></RequireRoles>} />
                 <Route path="workflows/new"              element={<RequireRoles roles={OPS_ROLES}><WorkflowBuilder /></RequireRoles>} />
                 <Route path="workflows/:id/edit"         element={<RequireRoles roles={OPS_ROLES}><WorkflowBuilder /></RequireRoles>} />
+                <Route path="products"                   element={<RequireRoles roles={[...MGMT_ROLES, 'FINANCE', 'SALES']}><ProductsServices /></RequireRoles>} />
               </Route>
 
               <Route path="*" element={<Navigate to="/clearos" replace />} />

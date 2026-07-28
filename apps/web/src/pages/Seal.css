@@ -232,7 +232,7 @@
 .seal-mode-btn.active {
   background: var(--white);
   color: var(--teal);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Zone rack cards 3x3 grid */

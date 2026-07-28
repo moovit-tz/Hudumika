@@ -2,25 +2,11 @@
    NotificationCentre — popup panel (launcher-style)
 ══════════════════════════════════════════════ */
 
-/* The DropdownMenuContent wrapper around this panel (see AppHeader.tsx) —
-   unlayered, so it reliably wins over the component's own Tailwind
-   @layer utilities (p-1.5, min-w-[12rem], overflow-y-auto) regardless of
-   cascade order. Those defaults fight this panel's own fixed-size,
-   internally-scrolling layout: min-w/overflow-auto on an absolutely
-   positioned shrink-to-fit box collapses it to ~0 height (the box has no
-   definite size to shrink-to-fit against once overflow removes its
-   automatic minimum size). */
-.notif-dropdown-content {
-  padding: 0;
-  min-width: 0;
-  width: auto;
-  overflow: visible;
-}
-
-/* Panel — rendered inside a Radix DropdownMenuContent, which owns
-   positioning/portal/z-index; this only sets the panel's own box look. */
+/* Panel — rendered inside a plain fixed-position wrapper (see AppHeader.css's
+   .app-header-notif-panel, and AppHeader.tsx), which owns positioning/z-index;
+   this only sets the panel's own box look. */
 .notif-panel {
-  width: 292px;
+  width: 234px;
   max-width: calc(100vw - 20px);
   height: min(480px, calc(100vh - 100px));
   background: var(--white);
@@ -231,18 +217,9 @@
   background: #fde8e0;
 }
 
-/* Icon */
-.notif-panel-item-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--notif-icon-bg, var(--bg));
-}
-
+/* Icon — the tinted chip itself now comes from FeaturedIcon (see
+   NotificationListItem.tsx), which already reads the shared theme tokens for
+   both light and dark; only the avatar-image fallback needs sizing here. */
 .notif-panel-item-avatar {
   width: 36px;
   height: 36px;
@@ -363,10 +340,6 @@
   background: rgba(234, 88, 12, 0.1);
 }
 
-[data-theme="dark"] .notif-panel-caret {
-  background: #1e1e2d;
-}
-
 [data-theme="dark"] .notif-panel-footer {
   border-color: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.5);
@@ -378,25 +351,44 @@
   color: rgba(255, 255, 255, 0.85);
 }
 
-/* ── Mobile — bottom sheet ── */
+/* ── Mobile — bottom sheet ──
+   .app-header-notif-panel (the fixed wrapper, see AppHeader.css) carries its
+   own `transform` for the desktop scale/fade-in — but a transformed ancestor
+   becomes the containing block for any `position: fixed` descendant, which
+   would hijack .notif-panel's bottom-sheet positioning below. So at mobile
+   widths the wrapper steps aside entirely (position: static, no transform)
+   and .notif-panel takes over fixed positioning + the open/close transition
+   itself, driven by the wrapper's --open class as an ancestor selector. */
 @media (max-width: 600px) {
+  .app-header-notif-panel {
+    position: static;
+    transform: none;
+    opacity: 1;
+    pointer-events: none;
+  }
+
+  .app-header-notif-panel--open {
+    pointer-events: auto;
+  }
+
   .notif-panel {
+    position: fixed;
     width: 100%;
     max-height: 80vh;
     top: auto;
     bottom: 0;
+    left: 0;
     right: 0;
     border-radius: 16px 16px 0 0;
     border-bottom: none;
     transform-origin: bottom center;
     transform: translateY(100%);
-    opacity: 1;
+    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1);
     box-shadow: 0 -6px 32px rgba(0, 0, 0, 0.18);
   }
 
-  .notif-panel--open {
+  .app-header-notif-panel--open .notif-panel {
     transform: translateY(0);
-    opacity: 1;
   }
 
   .notif-panel-hdr {

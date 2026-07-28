@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { Icon } from '../components/Icon.js';
 import { getCompany, subscribeCompany } from '../data/companyStore.js';
@@ -11,6 +11,31 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import './Billing.css';
 import { showConfirm } from '../lib/confirm.js';
+
+/* ── In-progress invoice draft, preserved across a trip to the full
+   customer-onboarding page and back (see InvoiceEditor's createCustomer/
+   restoreDraft below) — sessionStorage, not localStorage, since it should
+   only survive this one tab's round trip, not linger indefinitely. */
+const INVOICE_DRAFT_KEY = 'hudumika_invoice_draft';
+
+interface InvoiceDraft {
+  client: string; addr: string; billDate: string; dueDate: string; agent: string;
+  blNo: string; origin: string; dest: string; mode: string; exRate: string; terms: string;
+  clearing: EditItem[]; shipping: EditItem[]; other: EditItem[];
+}
+
+function saveInvoiceDraft(draft: InvoiceDraft) {
+  try { sessionStorage.setItem(INVOICE_DRAFT_KEY, JSON.stringify(draft)); } catch {}
+}
+
+function takeInvoiceDraft(): InvoiceDraft | null {
+  try {
+    const raw = sessionStorage.getItem(INVOICE_DRAFT_KEY);
+    if (!raw) return null;
+    sessionStorage.removeItem(INVOICE_DRAFT_KEY);
+    return JSON.parse(raw);
+  } catch { return null; }
+}
 
 /* ── Types ── */
 export type Status = 'Draft' | 'Partial' | 'Paid' | 'Credited' | 'Unpaid' | 'Overdue';
@@ -592,7 +617,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange }:
 
   const productCacheRef = useRef<Map<string, any>>(new Map());
   async function searchProducts(q: string): Promise<PickerItem[]> {
-    const qs = q.trim() ? `?search=${encodeURIComponent(q.trim())}` : '';
+    const qs = `?status=active${q.trim() ? `&search=${encodeURIComponent(q.trim())}` : ''}`;
     const res: any = await apiFetch(`/v1/products${qs}`).catch(() => []);
     const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
     list.forEach((p) => productCacheRef.current.set(p.id, p));
@@ -708,18 +733,24 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   initial: Invoice | null; nextId: string;
   onSave: (inv: Invoice) => void; onCancel: () => void; isMobile?: boolean; presetCustomer?: PickerItem | null;
 }) {
+  const navigate = useNavigate();
   const today = new Date().toLocaleDateString('en-GB').split('/').join('-');
-  const [client, setClient]       = useState(initial?.client ?? presetCustomer?.label ?? '');
-  const [addr, setAddr]           = useState(initial?.clientAddress.join('\n') ?? '');
-  const [billDate, setBillDate]   = useState(initial?.billDate ?? today);
-  const [dueDate, setDueDate]     = useState(initial?.dueDate ?? '');
-  const [agent, setAgent]         = useState(initial?.saleAgent ?? '');
-  const [blNo, setBlNo]           = useState(initial?.blNumber ?? '');
-  const [origin, setOrigin]       = useState(initial?.origin ?? '');
-  const [dest, setDest]           = useState(initial?.destination ?? '');
-  const [mode, setMode]           = useState<Invoice['mode']>(initial?.mode ?? 'SEA');
-  const [exRate, setExRate]       = useState(String(initial?.exchangeRate ?? 2650));
-  const [terms, setTerms]         = useState(initial?.terms ?? 'Payment due within 14 days. All 3rd party charges are estimates and subject to actuals.');
+  // Only a fresh "create" editor (no `initial`) ever restores a draft — never
+  // let a leftover sessionStorage entry bleed into editing a real invoice.
+  // Consumed once (takeInvoiceDraft clears the key) so a plain page refresh
+  // afterwards doesn't keep re-applying a stale draft.
+  const [draft] = useState<InvoiceDraft | null>(() => (initial ? null : takeInvoiceDraft()));
+  const [client, setClient]       = useState(initial?.client ?? draft?.client ?? presetCustomer?.label ?? '');
+  const [addr, setAddr]           = useState(draft?.addr ?? initial?.clientAddress.join('\n') ?? '');
+  const [billDate, setBillDate]   = useState(draft?.billDate ?? initial?.billDate ?? today);
+  const [dueDate, setDueDate]     = useState(draft?.dueDate ?? initial?.dueDate ?? '');
+  const [agent, setAgent]         = useState(draft?.agent ?? initial?.saleAgent ?? '');
+  const [blNo, setBlNo]           = useState(draft?.blNo ?? initial?.blNumber ?? '');
+  const [origin, setOrigin]       = useState(draft?.origin ?? initial?.origin ?? '');
+  const [dest, setDest]           = useState(draft?.dest ?? initial?.destination ?? '');
+  const [mode, setMode]           = useState<Invoice['mode']>((draft?.mode as Invoice['mode']) ?? initial?.mode ?? 'SEA');
+  const [exRate, setExRate]       = useState(draft?.exRate ?? String(initial?.exchangeRate ?? 2650));
+  const [terms, setTerms]         = useState(draft?.terms ?? initial?.terms ?? 'Payment due within 14 days. All 3rd party charges are estimates and subject to actuals.');
 
   const [customer, setCustomer] = useState<PickerItem | null>(
     initial?.customerId ? { id: initial.customerId, label: initial.client } : presetCustomer,
@@ -745,10 +776,22 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
     return filtered.slice(0, 25).map((c) => ({ id: c.id, label: c.name, sublabel: c.email || c.phone || undefined }));
   }
 
-  async function createCustomer(name: string): Promise<PickerItem> {
-    const created = await apiFetch('/v1/customers', { method: 'POST', body: JSON.stringify({ name }) });
-    customerCacheRef.current.set(created.id, created);
-    return { id: created.id, label: created.name };
+  // A brand-new customer needs more than the bare `{ name }` this used to
+  // POST silently (no email/phone/tax id/address — every invoice customer
+  // created this way started with an empty CRM profile). Hands off to the
+  // full onboarding page instead, preserving everything already typed into
+  // this invoice so there's actually something to "come back to" — without
+  // this, "create new customer" mid-invoice would throw away the bill date,
+  // line items, etc. the moment you navigated away.
+  function createCustomer(name: string): Promise<PickerItem> {
+    saveInvoiceDraft({
+      client, addr, billDate, dueDate, agent, blNo, origin, dest, mode, exRate, terms,
+      clearing, shipping, other,
+    });
+    navigate(`/crm/customers/new?name=${encodeURIComponent(name)}&returnTo=${encodeURIComponent('/finance/invoices')}`);
+    // Never resolves — the page is navigating away, so EntityPicker's own
+    // "Creating…" state just stays until this component unmounts.
+    return new Promise<PickerItem>(() => {});
   }
 
   function handleCustomerChange(item: PickerItem | null) {
@@ -794,9 +837,9 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   const toEditItems = (g: ChargeGroup) =>
     (initial?.items.filter(i => i.group === g) ?? []).map((it, i) => ({ ...it, uid: `${g}-${i}` }));
 
-  const [clearing, setClearing] = useState<EditItem[]>(toEditItems('clearing'));
-  const [shipping, setShipping] = useState<EditItem[]>(toEditItems('shipping'));
-  const [other, setOther]       = useState<EditItem[]>(toEditItems('other'));
+  const [clearing, setClearing] = useState<EditItem[]>(draft?.clearing ?? toEditItems('clearing'));
+  const [shipping, setShipping] = useState<EditItem[]>(draft?.shipping ?? toEditItems('shipping'));
+  const [other, setOther]       = useState<EditItem[]>(draft?.other ?? toEditItems('other'));
 
   const [showTimesheets, setShowTimesheets] = useState(false);
 

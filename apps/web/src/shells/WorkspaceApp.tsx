@@ -6,7 +6,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { AppId } from '@hudumika/types';
 import { useBranding } from '../hooks/useBranding.js';
 import { RequireAppEnabled } from '../components/RequireAppEnabled.js';
-import { parseHex, darkenHex } from '../lib/color.js';
+import { parseHex, darkenHex, lightenHex } from '../lib/color.js';
 
 // The SuperAdmin platform panel is never gated by a tenant's enabled-apps config —
 // it's how a SuperAdmin fixes their own mistakes, so it can never lock itself out.
@@ -26,7 +26,7 @@ export const APP_LABELS: Record<AppId, string> = {
   onepi:     'NexusHR',
   onesite:   'oneSite',
   oneid:     'Ondi',
-  tracking:  'Tracking',
+  tracking:  'HuduFreight',
   cloud:     'Cloud',
   ai:        'AI',
   workspace: 'Admin',
@@ -73,6 +73,9 @@ export function WorkspaceApp({ appId, children }: WorkspaceAppProps) {
   const branding = useBranding();
   const [dsRev, setDsRev] = useState(0);
   const appColor = branding.getAppColor(appId, APP_COLORS[appId] ?? '#64748b');
+  const [isDark, setIsDark] = useState(
+    () => document.documentElement.getAttribute('data-theme') === 'dark'
+  );
 
   useEffect(() => {
     const handler = () => setDsRev(r => r + 1);
@@ -80,18 +83,31 @@ export function WorkspaceApp({ appId, children }: WorkspaceAppProps) {
     return () => window.removeEventListener('hudumika-ds-updated', handler);
   }, []);
 
+  // Per-app accent colors (APP_COLORS/BrandingView) are picked for light-mode
+  // contrast and can go nearly invisible as text/highlight on a dark sidebar —
+  // same reason applyDesignTokens() lightens the platform-wide brand.primary
+  // for [data-theme="dark"] instead of reusing the light-mode hex as-is.
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     const el = wrapperRef.current;
     if (!el) return;
 
-    const [r, g, b] = parseHex(appColor);
-    el.style.setProperty('--teal',   appColor);
+    const effectiveColor = isDark ? lightenHex(appColor, 0.45) : appColor;
+    const [r, g, b] = parseHex(effectiveColor);
+    el.style.setProperty('--teal',   effectiveColor);
     el.style.setProperty('--teal-l', `rgba(${r},${g},${b},0.1)`);
     el.style.setProperty('--teal-m', `rgba(${r},${g},${b},0.18)`);
-    el.style.setProperty('--teal-d', darkenHex(appColor));
+    el.style.setProperty('--teal-d', darkenHex(effectiveColor));
 
     // App-level DS tokens removed in favor of global M3 tokens
-  }, [appColor, appId, dsRev]);
+  }, [appColor, appId, dsRev, isDark]);
 
   const body = (
     <ActiveAppContext.Provider value={appId}>

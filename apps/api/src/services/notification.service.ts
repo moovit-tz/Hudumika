@@ -182,6 +182,14 @@ export class NotificationService {
     let deliveryStatus = 'PENDING';
 
     if (channel === 'WHATSAPP' && target.phone) {
+      // Tenant-wide kill switch (Workspace ▸ Settings ▸ Notifications ▸
+      // "WhatsApp Notifications") — this used to only exist as a per-shipment
+      // toggle on the Shipment Detail page that nothing here ever actually
+      // checked, so turning it off never stopped a single real message.
+      const settingsRow = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+      const tenantSettings = settingsRow ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings) : {};
+      if (tenantSettings?.notifications?.whatsapp === false) return;
+
       const result = await WhatsAppIntegration.sendMessage(target.phone, bodyContent);
       deliveryStatus = result.success ? 'SENT' : 'FAILED';
     } else if (channel === 'EMAIL' && target.email) {

@@ -17,7 +17,7 @@ interface Consignment {
 interface Compartment { id: string; code: string; name: string; }
 interface Customer { id: string; name: string; category?: string; }
 
-const STATUS_VARIANT: Record<string, 'brand' | 'success' | 'warning' | 'error' | 'info' | 'gray'> = {
+export const STATUS_VARIANT: Record<string, 'brand' | 'success' | 'warning' | 'error' | 'info' | 'gray'> = {
   EXPECTED: 'gray', ARRIVED_AT_GATE: 'info', GATE_IN_COMPLETE: 'info', IN_YARD: 'brand',
   AWAITING_CUSTOMS: 'warning', UNDER_EXAMINATION: 'warning', RELEASED_FOR_DEVANNING: 'brand',
   DEVANNING: 'brand', DEVANNED: 'success', EMPTY_RETURNED: 'success',

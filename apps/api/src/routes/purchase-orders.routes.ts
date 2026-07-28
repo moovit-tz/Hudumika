@@ -2,6 +2,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { getNextDocNumber } from '../lib/doc-numbering.js';
 
 export async function purchaseOrderRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -36,12 +37,13 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
         tax_amount += lineTax;
       }
       const total = subtotal + tax_amount;
+      const poNumber = body.po_number || await getNextDocNumber(trx, user.tenant_id, 'purchase_order');
 
       const po = await trx
         .insertInto('purchase_orders')
         .values({
           tenant_id: user.tenant_id,
-          po_number: body.po_number || `PO-${Date.now()}`,
+          po_number: poNumber,
           supplier_id: body.supplier_id || null,
           supplier_name: body.supplier_name || null,
           status: body.status || 'DRAFT',

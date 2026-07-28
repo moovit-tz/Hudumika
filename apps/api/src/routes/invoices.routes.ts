@@ -6,6 +6,7 @@ import { sql, type SqlBool } from 'kysely';
 import { GLService } from '../services/gl.service.js';
 import { AccountingIntegrationService } from '../services/accounting-integration.service.js';
 import { TRAService } from '../services/tra.service.js';
+import { getNextDocNumber } from '../lib/doc-numbering.js';
 
 export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -300,9 +301,10 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = request.body as any;
     return withTenant(user.tenant_id, async (trx) => {
+      const invoiceNumber = body.invoice_number || await getNextDocNumber(trx, user.tenant_id, 'invoice');
       const [inv] = await trx.insertInto('sales_invoices').values({
         tenant_id: user.tenant_id,
-        invoice_number: body.invoice_number || `INV-${Date.now()}`,
+        invoice_number: invoiceNumber,
         shipment_ref: body.shipment_ref || null,
         customer_id: body.customer_id || null,
         client_name: body.client_name || null,

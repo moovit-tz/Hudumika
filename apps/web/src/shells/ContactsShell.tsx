@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import '../pages/Contacts.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
@@ -6,9 +6,133 @@ import { AppSidebar } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
 import { PageLayout } from '../components/PageLayout.js';
 import { Contacts } from '../pages/Contacts.js';
+import { ContactsGoogleCallback } from '../pages/ContactsGoogleCallback.js';
 import { ContactsProvider, useContacts } from './contacts-context.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
+import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
+import { apiFetch } from '../lib/api.js';
+import { showAlert } from '../lib/alert.js';
+
+const GOOGLE_OAUTH_STATE_KEY = 'hudumika_google_contacts_oauth_state';
+
+interface GoogleStatus {
+  configured: boolean;
+  connected: boolean;
+  email: string | null;
+  last_synced_at: string | null;
+  last_sync_status: string | null;
+  last_sync_error: string | null;
+  contacts_synced_count: number;
+}
+
+/** Sidebar "Sync" control — real Google OAuth + People API connection, not a
+ * decorative toggle. See contacts-sync.routes.ts for the backend half. */
+function GoogleSyncItem({ collapsed, onSynced }: { collapsed: boolean; onSynced: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [status, setStatus] = useState<GoogleStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  function loadStatus() {
+    setLoading(true);
+    apiFetch('/v1/contacts/google/status').then(setStatus).catch(() => setStatus(null)).finally(() => setLoading(false));
+  }
+
+  useEffect(() => { if (open) loadStatus(); }, [open]);
+
+  async function handleConnect() {
+    setBusy(true);
+    try {
+      const res = await apiFetch('/v1/contacts/google/auth-url');
+      sessionStorage.setItem(GOOGLE_OAUTH_STATE_KEY, res.state);
+      window.location.href = res.url;
+    } catch (err: any) {
+      showAlert(err.message || 'Could not start Google sign-in.');
+      setBusy(false);
+    }
+  }
+
+  async function handleSync() {
+    setBusy(true);
+    try {
+      const res = await apiFetch('/v1/contacts/google/sync', { method: 'POST' });
+      showAlert(`Synced ${res.synced} contact${res.synced === 1 ? '' : 's'} from Google.`);
+      loadStatus();
+      onSynced();
+    } catch (err: any) {
+      showAlert(err.message || 'Sync failed.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDisconnect() {
+    setBusy(true);
+    try {
+      await apiFetch('/v1/contacts/google/connection', { method: 'DELETE' });
+      loadStatus();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to disconnect.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={`csb-sys-item${collapsed ? ' csb-sys-item--icon' : ''}`}
+          title={collapsed ? 'Sync' : undefined}
+        >
+          <span className="csb-nav-icon"><Icon name="refresh" size={15} /></span>
+          {!collapsed && <span>Sync</span>}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" side="right" className="w-72 p-3">
+        <div className="text-sm font-semibold text-foreground mb-2">Google Contacts</div>
+        {loading || !status ? (
+          <div className="text-xs text-muted-foreground">Loading…</div>
+        ) : !status.configured ? (
+          <div className="text-xs text-muted-foreground leading-relaxed">
+            Not set up yet — add a Google OAuth Client ID/Secret in
+            {' '}<a href="/workspace/settings?s=int-google" className="text-primary font-semibold">Settings ▸ Integrations ▸ Google</a>{' '}
+            first.
+          </div>
+        ) : !status.connected ? (
+          <>
+            <div className="text-xs text-muted-foreground mb-3">Import and keep your contacts in sync with your real Google account.</div>
+            <button type="button" className="btn btn-primary btn-sm w-full" disabled={busy} onClick={handleConnect}>
+              {busy ? 'Redirecting…' : 'Connect Google Account'}
+            </button>
+          </>
+        ) : (
+          <>
+            <div className="text-xs text-foreground font-medium">{status.email}</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              {status.last_synced_at
+                ? `Last synced ${new Date(status.last_synced_at).toLocaleString()} · ${status.contacts_synced_count} contacts`
+                : 'Not synced yet'}
+            </div>
+            {status.last_sync_status === 'failed' && status.last_sync_error && (
+              <div className="text-xs text-destructive mt-1">{status.last_sync_error}</div>
+            )}
+            <div className="flex gap-2 mt-3">
+              <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={handleSync}>
+                {busy ? 'Syncing…' : 'Sync Now'}
+              </button>
+              <button type="button" className="btn btn-secondary btn-sm" disabled={busy} onClick={handleDisconnect}>
+                Disconnect
+              </button>
+            </div>
+          </>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 // ── Sidebar content rendered inside AppSidebar via fillNav ─────────────────
 
@@ -51,7 +175,7 @@ function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
     currentView, setCurrentView,
     selectedLabelId, setSelectedLabelId,
     activeContact, setActiveContact,
-    handleDeleteLabel, handleImportCSV, handleExportCSV,
+    handleDeleteLabel, handleImportCSV, handleExportCSV, loadData,
     showNewLabelModal, setShowNewLabelModal,
     newLabelName, setNewLabelName, handleCreateLabel,
     openContactModalRef,
@@ -60,6 +184,20 @@ function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
   const navigate = useNavigate();
   useContactsUrlSync();
   const importRef = useRef<HTMLInputElement>(null);
+
+  // Landed back here from ContactsGoogleCallback after a successful connect —
+  // show what actually happened (real count from the sync, not a guess),
+  // then strip the params so a refresh doesn't repeat the message.
+  const location = useLocation();
+  useEffect(() => {
+    const p = new URLSearchParams(location.search);
+    if (p.get('googleConnected') === '1') {
+      showAlert(`Google account connected — imported ${p.get('synced') ?? 0} contacts.`);
+      navigate('/contacts', { replace: true });
+      loadData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search]);
 
   const activeCount = contacts.filter(c => c.status === 'ACTIVE').length;
   const favCount    = contacts.filter(c => c.is_favorite && c.status === 'ACTIVE').length;
@@ -182,11 +320,12 @@ function ContactsSidebarContent({ collapsed }: { collapsed: boolean }) {
           <input
             ref={importRef}
             type="file"
-            accept=".csv"
+            accept=".csv,.vcf"
             onChange={handleImportCSV}
             className="csb-file-input"
           />
         </label>
+        <GoogleSyncItem collapsed={collapsed} onSynced={loadData} />
         <button
           type="button"
           className={`csb-sys-item${collapsed ? ' csb-sys-item--icon' : ''}`}
@@ -278,6 +417,7 @@ export function ContactsShell() {
                   <Route path="trash"         element={<Contacts />} />
                   <Route path="label/:labelId" element={<Contacts />} />
                 </Route>
+                <Route path="google/callback" element={<ContactsGoogleCallback />} />
                 <Route path="*" element={<Navigate to="/contacts" replace />} />
               </Routes>
             </div>

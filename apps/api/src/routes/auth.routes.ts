@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import crypto from 'crypto';
 import { db, withTenant } from '../db/client.js';
 import { hashPassword, verifyPassword } from '../lib/password.js';
+import { verifyTotp } from '../lib/totp.js';
 import { EmailIntegration } from '../integrations/email.js';
 import { env } from '../config/env.js';
 import type { LoginInput, CustomerOTPInput, CustomerVerifyInput, SafeUser, JWTPayload } from '@hudumika/types';
@@ -17,7 +18,10 @@ function parseDevice(userAgent: string): { label: string; type: string } {
   return { label: `${browser} on ${os}`, type };
 }
 
-async function recordLogin(tenantId: string, userId: string, status: 'SUCCESS' | 'FAILED', ip: string, userAgent: string) {
+// Returns the hr_devices row id for this login, so callers can stamp it into
+// the JWT as `device_id` — that's what lets a single session later be
+// "signed out" for real (see hr_devices.revoked_at, checked in middleware/auth.ts).
+async function recordLogin(tenantId: string, userId: string, status: 'SUCCESS' | 'FAILED', ip: string, userAgent: string): Promise<string | null> {
   try {
     await db.insertInto('hr_login_history').values({ tenant_id: tenantId, user_id: userId, ip, user_agent: userAgent, status }).execute();
     if (status === 'SUCCESS' && userAgent) {
@@ -25,14 +29,19 @@ async function recordLogin(tenantId: string, userId: string, status: 'SUCCESS' |
       const existing = await db.selectFrom('hr_devices').select('id')
         .where('user_id', '=', userId).where('user_agent', '=', userAgent).executeTakeFirst();
       if (existing) {
-        await db.updateTable('hr_devices').set({ last_used_at: new Date() }).where('id', '=', existing.id).execute();
+        // A fresh login re-authenticates the device — clears any prior revocation
+        // rather than leaving a token that would 401 on its very next request.
+        await db.updateTable('hr_devices').set({ last_used_at: new Date(), revoked_at: null }).where('id', '=', existing.id).execute();
+        return existing.id;
       } else {
-        await db.insertInto('hr_devices').values({
+        const created = await db.insertInto('hr_devices').values({
           tenant_id: tenantId, user_id: userId, device_label: label, device_type: type, user_agent: userAgent, trusted: true,
-        }).execute();
+        }).returning('id').executeTakeFirst();
+        return created?.id ?? null;
       }
     }
   } catch { /* login/device tracking must never block auth */ }
+  return null;
 }
 
 export async function authRoutes(fastify: FastifyInstance) {
@@ -41,7 +50,7 @@ export async function authRoutes(fastify: FastifyInstance) {
    * Login for staff members (ADMIN, MANAGER, OFFICER, FINANCE)
    */
   fastify.post('/login', async (request, reply) => {
-    const { email, password } = request.body as LoginInput;
+    const { email, password, totp } = request.body as LoginInput;
 
     const user = await db
       .selectFrom('users')
@@ -64,7 +73,23 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(401).send({ error: 'Invalid email or password' });
     }
 
-    await recordLogin(user.tenant_id, user.id, 'SUCCESS', ip, userAgent);
+    // Second factor — only gates login once the user has actually completed
+    // setup+verification in Workspace ▸ Security (user_totp.enabled). Not
+    // sent back with a fake "verified" state: the client must submit a real
+    // TOTP code that verifyTotp() checks before a token is ever issued.
+    const totpRow = await db.selectFrom('user_totp').select(['secret', 'enabled'])
+      .where('user_id', '=', user.id).executeTakeFirst();
+    if (totpRow?.enabled) {
+      if (!totp) {
+        return reply.status(200).send({ requires_2fa: true });
+      }
+      if (!verifyTotp(totpRow.secret, totp)) {
+        await recordLogin(user.tenant_id, user.id, 'FAILED', ip, userAgent);
+        return reply.status(401).send({ error: 'Invalid authentication code' });
+      }
+    }
+
+    const deviceId = await recordLogin(user.tenant_id, user.id, 'SUCCESS', ip, userAgent);
 
     // Generate JWT
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
@@ -73,6 +98,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       role: user.role,
       email: user.email,
       name: user.name,
+      ...(deviceId ? { device_id: deviceId } : {}),
     };
 
     const accessToken = fastify.jwt.sign(payload as any);

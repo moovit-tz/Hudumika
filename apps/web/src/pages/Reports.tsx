@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -28,7 +28,6 @@ export const Reports: React.FC = () => {
   const [officers, setOfficers] = useState<any[]>([]);
   const [bottlenecks, setBottlenecks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<'week' | 'month' | 'quarter'>('month');
 
   useEffect(() => {
     setLoading(true);
@@ -41,9 +40,41 @@ export const Reports: React.FC = () => {
       setOfficers(o);
       setBottlenecks(b);
     }).finally(() => setLoading(false));
-  }, [period]);
+  }, []);
 
   const pct = (n: number, d: number) => d ? Math.round((n / d) * 100) : 0;
+
+  // Real snapshot data only — no fabricated trend %/sparkline history, and no
+  // Week/Month/Quarter selector, since /v1/analytics/kpi (etc.) return the
+  // tenant's CURRENT state, not a period-bucketed aggregate; a selector here
+  // would re-fetch the identical numbers regardless of which button was clicked.
+  function exportCsv() {
+    const rows: string[] = ['Metric,Value'];
+    rows.push(`Active Shipments,${kpis.active_cases ?? ''}`);
+    rows.push(`Cases This Month,${kpis.cases_this_month ?? ''}`);
+    rows.push(`Delivered Today,${kpis.delivered_today ?? ''}`);
+    rows.push(`Demurrage Risk,${kpis.demurrage_risk ?? ''}`);
+    rows.push(`SLA Breached,${kpis.sla_breached ?? ''}`);
+    rows.push(`On-Time Rate %,${kpis.on_time_rate_pct ?? ''}`);
+    rows.push(`Avg Clearance Days,${kpis.avg_clearance_days ?? ''}`);
+    rows.push(`Penalty Exposure TZS,${kpis.penalty_exposure_tzs ?? ''}`);
+    rows.push(`Total CO2 Emissions kg,${kpis.total_co2_emissions_kg ?? ''}`);
+    rows.push(`Carbon Credits Saved,${kpis.total_carbon_credits_saved ?? ''}`);
+    rows.push('');
+    rows.push('Stage,Avg Days,Case Count');
+    for (const b of bottlenecks) rows.push(`${b.stage_label ?? b.stage ?? ''},${((b.avg_hours ?? 0) / 24).toFixed(1)},${b.case_count ?? ''}`);
+    rows.push('');
+    rows.push('Officer,Active Cases,Completed Cases,Avg Days');
+    for (const o of officers) rows.push(`${o.name ?? ''},${o.active_cases ?? ''},${o.cases_closed ?? ''},${o.avg_days ?? ''}`);
+
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `hudumika-reports-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
@@ -54,14 +85,7 @@ export const Reports: React.FC = () => {
           <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Operational analytics and performance metrics</div>
         </div>
         <div style={{ flex: 1 }} />
-        <div style={{ display: 'flex', gap: 4 }}>
-          {(['week', 'month', 'quarter'] as const).map(p => (
-            <button type="button" key={p} className={`fc${period === p ? ' on' : ''}`} onClick={() => setPeriod(p)}>
-              {p.charAt(0).toUpperCase() + p.slice(1)}
-            </button>
-          ))}
-        </div>
-        <button type="button" className="btn btn-secondary btn-sm">Export CSV</button>
+        <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv} disabled={loading}>Export CSV</button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
@@ -70,27 +94,31 @@ export const Reports: React.FC = () => {
             {
               title: 'Active Shipments',
               value: String(kpis.active_cases ?? 0),
-              trend: 7.2,
+              // No stored historical baseline to diff against yet, so trend
+              // stays neutral (0) rather than a fabricated percentage — and
+              // `bars` is omitted rather than passed a fake sparkline, per
+              // MetricCard's own "honest gap over fake data" rule.
+              trend: 0,
               sub1Label: 'THIS MONTH', sub1Value: String(kpis.cases_this_month ?? 0),
               sub2Label: 'DELIVERED TODAY', sub2Value: String(kpis.delivered_today ?? 0),
-              bars: spark(90, 15, 'up'), barColor: 'var(--blue-l)', barHighlight: 'var(--blue)',
+              barColor: 'var(--blue-l)', barHighlight: 'var(--blue)',
             },
             {
               title: 'Demurrage Risk',
               value: String(kpis.demurrage_risk ?? 0),
-              trend: -(kpis.demurrage_risk ?? 0),
+              trend: 0,
               invertTrend: true,
               sub1Label: 'SLA BREACHED', sub1Value: String(kpis.sla_breached ?? 0),
               sub2Label: 'PENALTY EXPOSURE', sub2Value: kpis.penalty_exposure_tzs ? `TZS ${(kpis.penalty_exposure_tzs / 1_000_000).toFixed(1)}M` : '—',
-              bars: spark(91, 15, 'down'), barColor: 'var(--red-l)', barHighlight: 'var(--red)',
+              barColor: 'var(--red-l)', barHighlight: 'var(--red)',
             },
             {
               title: 'On-Time Rate',
               value: `${kpis.on_time_rate_pct ?? 0}%`,
-              trend: 2.4,
+              trend: 0,
               sub1Label: 'TARGET', sub1Value: '95%',
-              sub2Label: 'PERIOD', sub2Value: period,
-              bars: spark(92, 15, 'up'), barColor: 'var(--green-l)', barHighlight: 'var(--green)',
+              sub2Label: 'ACTIVE CASES', sub2Value: String(kpis.active_cases ?? 0),
+              barColor: 'var(--green-l)', barHighlight: 'var(--green)',
             },
           ]} />
         )}
@@ -116,15 +144,21 @@ export const Reports: React.FC = () => {
             <div className="card">
               <Section title="Stage Bottlenecks">
                 {bottlenecks.length === 0 && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No bottleneck data.</div>}
-                {bottlenecks.slice(0, 8).map((b: any, i: number) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{b.stage?.replace(/_/g, ' ')}</div>
-                    <div style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: b.avg_days > 5 ? 'var(--red)' : b.avg_days > 3 ? 'var(--gold)' : 'var(--teal)' }}>
-                      {b.avg_days?.toFixed(1)}d avg
+                {bottlenecks.slice(0, 8).map((b: any, i: number) => {
+                  // StageBottleneck returns avg_hours/case_count — this row
+                  // previously read b.avg_days/b.count, fields that don't
+                  // exist on the real response, so it always rendered blank.
+                  const avgDays = (b.avg_hours ?? 0) / 24;
+                  return (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 0', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ flex: 1, fontSize: 12, color: 'var(--ink2)' }}>{b.stage_label ?? b.stage}</div>
+                      <div style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 700, color: avgDays > 5 ? 'var(--red)' : avgDays > 3 ? 'var(--gold)' : 'var(--teal)' }}>
+                        {avgDays.toFixed(1)}d avg
+                      </div>
+                      <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink3)' }}>{b.case_count ?? 0} cases</div>
                     </div>
-                    <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink3)' }}>{b.count} cases</div>
-                  </div>
-                ))}
+                  );
+                })}
               </Section>
             </div>
 
@@ -152,15 +186,15 @@ export const Reports: React.FC = () => {
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink3)', marginBottom: 3 }}>
                         <span>Completed</span>
-                        <span style={{ fontFamily: 'var(--mono)', color: 'var(--green)', fontWeight: 600 }}>{o.completed_cases ?? '—'}</span>
+                        <span style={{ fontFamily: 'var(--mono)', color: 'var(--green)', fontWeight: 600 }}>{o.cases_closed ?? '—'}</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink3)' }}>
                         <span>Avg days</span>
                         <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink)', fontWeight: 600 }}>{o.avg_days?.toFixed(1) ?? '—'}d</span>
                       </div>
-                      {o.active_cases !== undefined && o.completed_cases !== undefined && (
+                      {o.active_cases !== undefined && o.cases_closed !== undefined && (
                         <div style={{ marginTop: 8, height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-                          <div style={{ height: '100%', background: 'var(--teal)', width: `${pct(o.completed_cases, o.active_cases + o.completed_cases)}%`, transition: 'width 0.3s' }} />
+                          <div style={{ height: '100%', background: 'var(--teal)', width: `${pct(o.cases_closed, o.active_cases + o.cases_closed)}%`, transition: 'width 0.3s' }} />
                         </div>
                       )}
                     </div>

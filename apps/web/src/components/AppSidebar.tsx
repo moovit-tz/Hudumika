@@ -8,6 +8,7 @@ import { APP_LABELS, APP_COLORS, MobileNavContext } from '../shells/WorkspaceApp
 import { useBranding } from '../hooks/useBranding.js';
 import { useTenantPlan } from '../hooks/useTenantPlan.js';
 import { useLocale } from '../hooks/useLocale.js';
+import { lightenHex } from '../lib/color.js';
 import type { AppId } from '@hudumika/types';
 import './AppSidebar.css';
 
@@ -123,6 +124,18 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav }: Pr
     () => document.documentElement.getAttribute('data-theme') === 'dark'
   );
 
+  // The actual theme toggle button lives in AppHeader, not here — watch the
+  // attribute directly rather than trust only this component's own
+  // toggleTheme() below, so --sb-color's dark-mode lightening (see effect
+  // further down) stays correct when the theme is flipped from the header.
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+
   const sidebarRef = useRef<HTMLElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const branding = useBranding();
@@ -143,8 +156,13 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav }: Pr
   }
 
   useEffect(() => {
-    sidebarRef.current?.style.setProperty('--sb-color', appColor);
-  }, [appColor, mobileOpen]);
+    // Same reason as WorkspaceApp.tsx's --teal scoping: a per-app accent hex
+    // picked for light-mode contrast (e.g. the Midnight Navy default) can go
+    // nearly invisible as the active nav item's text/tint on a dark sidebar —
+    // lighten it for dark mode instead of applying the light-mode hex as-is.
+    const effectiveColor = isDark ? lightenHex(appColor, 0.45) : appColor;
+    sidebarRef.current?.style.setProperty('--sb-color', effectiveColor);
+  }, [appColor, mobileOpen, isDark]);
 
   // Sidebar collapse can also be commanded externally (e.g. the header's
   // full-width toggle collapses the sidebar to free up space) — stay in

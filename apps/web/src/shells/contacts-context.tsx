@@ -204,46 +204,26 @@ export function ContactsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [loadData, selectedLabelId]);
 
+  // Uploads the raw file to the server — real CSV parsing (csv-parse,
+  // handles quoted fields with embedded commas the old client-side
+  // `line.split(',')` couldn't) or vCard (.vcf), not a re-implementation
+  // here. See contacts.routes.ts POST /import.
   const handleImportCSV = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-      const csvText = event.target?.result as string;
-      if (!csvText) return;
-      const lines = csvText.split('\n').map(l => l.trim()).filter(Boolean);
-      if (lines.length <= 1) return;
-      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      const importedContacts: any[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim());
-        const contact: any = {};
-        headers.forEach((header, idx) => {
-          if (header === 'first name' || header === 'firstname')          contact.first_name    = values[idx];
-          else if (header === 'last name' || header === 'lastname')       contact.last_name     = values[idx];
-          else if (header === 'email')                                    contact.email         = values[idx];
-          else if (header === 'phone')                                    contact.phone         = values[idx];
-          else if (header === 'company')                                  contact.company       = values[idx];
-          else if (header === 'job title' || header === 'jobtitle')       contact.job_title     = values[idx];
-          else if (header === 'notes')                                    contact.notes         = values[idx];
-          else if (header === 'location')                                 contact.location      = values[idx];
-          else if (header === 'website')                                  contact.website       = values[idx];
-          else if (header === 'industry')                                 contact.industry      = values[idx];
-          else if (header === 'company size' || header === 'companysize') contact.company_size  = values[idx];
-          else if (header === 'sales owner' || header === 'salesowner')   contact.sales_owner   = values[idx];
-        });
-        if (contact.first_name) importedContacts.push(contact);
-      }
-      if (importedContacts.length === 0) { showAlert('No valid contacts found in CSV.'); return; }
+    (async () => {
       try {
-        await apiFetch('/v1/contacts/import', { method: 'POST', body: JSON.stringify({ contacts: importedContacts }) });
+        const form = new FormData();
+        form.append('file', file);
+        const res = await apiFetch('/v1/contacts/import', { method: 'POST', body: form });
         await loadData();
-        showAlert(`Successfully imported ${importedContacts.length} contacts!`);
+        showAlert(`Imported ${res.imported} of ${res.total} contact${res.total === 1 ? '' : 's'} found in the file.`);
       } catch (err: any) {
-        showAlert(err.message || 'Failed to import CSV');
+        showAlert(err.message || 'Failed to import file');
+      } finally {
+        e.target.value = '';
       }
-    };
-    reader.readAsText(file);
+    })();
   }, [loadData]);
 
   const handleExportCSV = useCallback(() => {

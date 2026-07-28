@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../hooks/useAuth.js';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useCompany } from '../data/companyStore.js';
 import { Icon } from '../components/Icon.js';
 import { useBranding } from '../hooks/useBranding.js';
@@ -25,6 +25,7 @@ const LOGIN_BG_MAP: Record<string, string> = {
 export const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate  = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const rootRef   = useRef<HTMLDivElement>(null);
   const { t, language, LANGUAGES } = useLocale();
 
@@ -36,11 +37,21 @@ export const Login: React.FC = () => {
 
   useEffect(() => { localStorage.setItem('hudumika_login_theme', theme); }, [theme]);
 
+  // Drop the ?expired=1 marker from the URL once consumed so a page refresh doesn't re-show it.
+  useEffect(() => {
+    if (searchParams.get('expired')) {
+      setSearchParams(params => { params.delete('expired'); return params; }, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [view, setView]               = useState<'choose-account' | 'credentials'>('choose-account');
   const [email, setEmail]             = useState('');
   const [password, setPassword]       = useState('');
   const [showPass, setShowPass]       = useState(false);
-  const [error, setError]             = useState<string | null>(null);
+  const [error, setError]             = useState<string | null>(
+    searchParams.get('expired') ? 'Your session has expired. Please log in again.' : null
+  );
   const [fieldErr, setFieldErr]       = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading]         = useState(false);
   const [demoLoadingEmail, setDemoLoadingEmail] = useState<string | null>(null);
@@ -121,7 +132,7 @@ export const Login: React.FC = () => {
         <Icon name={isDark ? 'sun' : 'moon'} size={18} />
       </button>
 
-      <div className="login-card">
+      <div className={`login-card${view === 'choose-account' ? ' login-card--accounts' : ''}`}>
 
         {/* Brand Header */}
         <div className="login-brand-hdr">
@@ -253,7 +264,7 @@ export const Login: React.FC = () => {
 
       </div>
 
-      <div className="login-footer">
+      <div className={`login-footer${view === 'choose-account' ? ' login-footer--accounts' : ''}`}>
         <span>{LANGUAGES.find(l => l.code === language)?.nativeLabel ?? 'English'}</span>
         <div className="login-footer-links">
           <a href="#help" className="login-footer-link">{t('login.help')}</a>

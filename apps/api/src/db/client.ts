@@ -173,6 +173,10 @@ export interface ShipmentCasesTable {
   location_id: string | null;
   sla_deadline: Date | null;
   free_time_end: Date | null;
+  // Manually-set business due date (migration 141) — distinct from
+  // sla_deadline, which is auto-recalculated on every stage transition and
+  // so isn't safe to expose as a user-editable commitment date.
+  due_date: Date | null;
   // Tenant-configurable workflow (migration 105) — resolved once at creation,
   // NULL for shipments running on the legacy fixed-stage system.
   workflow_id: string | null;
@@ -1644,6 +1648,7 @@ export interface HrDevicesTable {
   trusted: Generated<boolean>;
   last_used_at: Generated<Date>;
   created_at: Generated<Date>;
+  revoked_at: Date | null;
 }
 
 export interface HrActivityLogTable {
@@ -2547,6 +2552,12 @@ export interface Database {
   accounting_marketplace_requests: AccountingMarketplaceRequestsTable;
   email_messages: EmailMessagesTable;
   accounting_sync_logs: AccountingSyncLogsTable;
+  user_totp: UserTotpTable;
+  payment_methods: PaymentMethodsTable;
+  subscription_invoices: SubscriptionInvoicesTable;
+  invoice_sequences: InvoiceSequencesTable;
+  platform_support_tickets: PlatformSupportTicketsTable;
+  platform_support_messages: PlatformSupportMessagesTable;
   // NexusHR Core
   hr_legal_entities: HrLegalEntitiesTable;
   hr_locations: HrLocationsTable;
@@ -2585,6 +2596,7 @@ export interface Database {
   contact_labels: ContactLabelsTable;
   contact_label_mappings: ContactLabelMappingsTable;
   contact_activity_log: ContactActivityLogTable;
+  contact_sync_connections: ContactSyncConnectionsTable;
   // ComplyOS
   comply_certificates:   ComplyCertificatesTable;
   comply_applications:   ComplyApplicationsTable;
@@ -3381,6 +3393,81 @@ export interface EmailMessagesTable {
   created_at: Generated<Date>;
 }
 
+export interface UserTotpTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  secret: string;
+  enabled: Generated<boolean>;
+  backup_codes: Generated<any>;
+  enabled_at: Date | null;
+  created_at: Generated<Date>;
+}
+
+export interface PaymentMethodsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  created_by: string;
+  type: Generated<'card' | 'mobile_money' | 'bank'>;
+  label: string;
+  brand: string | null;
+  last4: string | null;
+  exp_month: number | null;
+  exp_year: number | null;
+  is_default: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export interface SubscriptionInvoicesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  invoice_number: string;
+  plan_code: string;
+  seats: number;
+  currency: Generated<string>;
+  amount: number;
+  period_start: string;
+  period_end: string;
+  due_date: string;
+  status: Generated<'due' | 'paid' | 'overdue' | 'cancelled'>;
+  paid_at: Date | null;
+  payment_method_id: string | null;
+  tx_ref: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface InvoiceSequencesTable {
+  tenant_id: string;
+  doc_type: 'invoice' | 'quotation' | 'purchase_order';
+  prefix: Generated<string>;
+  pad_length: Generated<number>;
+  next_number: Generated<number>;
+}
+
+export interface PlatformSupportTicketsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  ref_number: string;
+  created_by: string;
+  subject: string;
+  category: Generated<string>;
+  priority: Generated<'LOW' | 'NORMAL' | 'HIGH' | 'URGENT'>;
+  status: Generated<'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface PlatformSupportMessagesTable {
+  id: Generated<string>;
+  ticket_id: string;
+  tenant_id: string;
+  author_id: string;
+  author_name: string;
+  is_platform_staff: Generated<boolean>;
+  content: string;
+  created_at: Generated<Date>;
+}
+
 export interface AccountingMarketplaceRequestsTable {
   id: Generated<string>;
   tenant_id: string;
@@ -3949,6 +4036,26 @@ export interface ContactsTable {
   company_size: string | null;
   sales_owner: string | null;
   last_contacted_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+  source: Generated<string>;
+  external_id: string | null;
+  synced_at: Date | null;
+}
+
+export interface ContactSyncConnectionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  provider: Generated<string>;
+  access_token: string;
+  refresh_token: string | null;
+  token_expires_at: Date | null;
+  external_account_email: string | null;
+  last_synced_at: Date | null;
+  last_sync_status: string | null;
+  last_sync_error: string | null;
+  contacts_synced_count: Generated<number>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

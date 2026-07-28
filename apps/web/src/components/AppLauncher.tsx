@@ -7,11 +7,6 @@ import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 import { LAUNCHER_APPS, LauncherAppSvg } from './LauncherApps.js';
 import './AppLauncher.css';
 
-// Self-contained app-switcher widget: trigger button + slide panel + backdrop.
-// Owns its own open/edit/order state, so it can be dropped into any shell
-// (AppHeader, BlissRail, ...) with no required props. Callers that need a
-// differently-styled trigger (e.g. a rail icon instead of a header icon
-// button) can supply `renderTrigger`.
 interface AppLauncherProps {
   renderTrigger?: (opts: { open: boolean; onClick: () => void }) => React.ReactNode;
 }
@@ -40,7 +35,7 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
     try {
       const ids: string[] = JSON.parse(localStorage.getItem('hudumika_recently_viewed') ?? '[]');
       setRecentApps(
-        ids.slice(0, 5)
+        ids.slice(0, 4)
           .map(id => LAUNCHER_APPS.find(a => a.id === id))
           .filter((a): a is (typeof LAUNCHER_APPS)[0] => Boolean(a))
           .filter(a => isAppEnabled(a.id, enabledApps))
@@ -112,8 +107,9 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
       )}
 
       <div className={`app-lnch-panel${launcherOpen ? ' app-lnch-panel--open' : ''}`}>
+        {/* Header matching Adobe Web Apps Launcher */}
         <div className="app-lnch-panel-hdr">
-          <span className="app-lnch-panel-title">{t('launcher.yourApps')}</span>
+          <span className="app-lnch-panel-title">Web Apps</span>
           <div className="app-lnch-panel-hdr-btns">
             <button
               type="button"
@@ -131,7 +127,7 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
               )}
             </button>
             <button type="button" className="app-lnch-panel-close" onClick={closeLauncher} title={t('launcher.close')}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
               </svg>
             </button>
@@ -144,7 +140,7 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
 
         <div className="app-lnch-panel-scroll">
           {/* Recently viewed */}
-          {recentApps.length > 0 && (
+          {recentApps.length > 0 && !editMode && (
             <>
               <p className="app-lnch-section-label">{t('launcher.recentlyViewed')}</p>
               <div className="app-lnch-recent-row">
@@ -155,7 +151,7 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
                     className="app-lnch-panel-item app-lnch-panel-item--recent"
                     onClick={() => closeLauncher()}
                   >
-                    <LauncherAppSvg id={app.id} color={branding.getAppColor(app.id, app.color)} logoUrl={branding.getAppLogo(app.id)} size={35} />
+                    <LauncherAppSvg id={app.id} color={branding.getAppColor(app.id, app.color)} logoUrl={branding.getAppLogo(app.id)} size={42} />
                     <span className="app-lnch-panel-name">{branding.getAppName(app.id, app.name)}</span>
                   </Link>
                 ))}
@@ -164,8 +160,7 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
             </>
           )}
 
-          {/* All apps */}
-          <p className="app-lnch-section-label">{t('launcher.yourApps')}</p>
+          {/* 3-Column Apps Grid */}
           <div className={`app-lnch-panel-grid${editMode ? ' app-lnch-panel-grid--edit' : ''}`}>
             {orderedApps.map(app => (
               <Link
@@ -179,23 +174,27 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
                 onDragEnd={editMode ? handleDragEnd : undefined}
                 onClick={e => { if (editMode) { e.preventDefault(); return; } closeLauncher(); }}
               >
-                <LauncherAppSvg id={app.id} color={branding.getAppColor(app.id, app.color)} logoUrl={branding.getAppLogo(app.id)} size={43} />
+                <LauncherAppSvg id={app.id} color={branding.getAppColor(app.id, app.color)} logoUrl={branding.getAppLogo(app.id)} size={46} />
                 <span className="app-lnch-panel-name">{branding.getAppName(app.id, app.name)}</span>
               </Link>
             ))}
           </div>
         </div>
 
-        <div className="app-lnch-panel-footer">
-          <Link
-            to="/"
-            className="app-lnch-panel-all-btn"
-            onClick={() => closeLauncher()}
-          >
-            {t('launcher.allApplications')}
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/>
-            </svg>
+        {/* Adobe-Style Bottom Card Footer */}
+        <div className="app-lnch-adobe-footer-card">
+          <Link to="/" className="app-lnch-adobe-footer-item" onClick={closeLauncher}>
+            <div className="app-lnch-adobe-brand-icon">
+              <img src={branding.favicon || branding.logoLight || '/favicon.png'} alt="" width={18} height={18} style={{ objectFit: 'contain' }} />
+            </div>
+            <span className="app-lnch-adobe-footer-label">hudumika.tz</span>
+          </Link>
+
+          <div className="app-lnch-adobe-footer-divider" />
+
+          <Link to="/" className="app-lnch-adobe-footer-item" onClick={closeLauncher}>
+            <Icon name="grid" size={17} style={{ color: '#475569' }} />
+            <span className="app-lnch-adobe-footer-label">All apps</span>
           </Link>
         </div>
       </div>

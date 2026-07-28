@@ -80,11 +80,16 @@ export interface CreateCustomerInput {
   name: string;
   contact_name?: string;
   email?: string;
+  phone?: string;
   phone_wa?: string;
   phone_wechat?: string;
   category?: 'enterprise' | 'sme' | 'individual';
   preferred_channel?: 'WHATSAPP' | 'EMAIL' | 'WECHAT';
   tax_id?: string;
+  address?: string;
+  city?: string;
+  country?: string;
+  website?: string;
   send_invite?: boolean;
 }
 
@@ -186,7 +191,8 @@ export interface CustomerAnalytics {
 // ── Bottleneck Analysis ──────────────────────────────────────
 
 export interface StageBottleneck {
-  stage: string; // ClearanceStage literal, or a workflow_steps.id for custom-workflow shipments
+  stage: string; // ClearanceStage literal, or a workflow_steps.id for custom-workflow shipments — stable key, never render this directly
+  stage_label: string; // human-readable — the ClearanceStage literal title-cased, or the workflow step's real name
   avg_hours: number;
   p90_hours: number;
   case_count: number;

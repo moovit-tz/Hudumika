@@ -281,7 +281,7 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
   --secondary-foreground: 214.3 31.8% 91.4%;
   --muted: 217.5 33.3% 4.7%;
   --muted-foreground: 215.0 20.2% 65.1%;
-  --accent: 217.5 33.3% 4.7%;
+  --accent: 217.5 20% 16%;
   --accent-foreground: 214.3 31.8% 91.4%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 210 40% 98%;
@@ -2786,8 +2786,11 @@ select.input-field { cursor: pointer; }
 .cc-view-toggle {
   display: flex;
   border: 1px solid var(--border);
-  border-radius: 7px;
+  border-radius: 8px;
   overflow: hidden;
+  background: var(--bg);
+  padding: 2px;
+  gap: 2px;
 }
 .cc-view-btn {
   display: flex;
@@ -2795,19 +2798,117 @@ select.input-field { cursor: pointer; }
   gap: 5px;
   padding: 5px 12px;
   border: none;
+  border-radius: 6px;
   cursor: pointer;
-  background: var(--white);
+  background: transparent;
   color: var(--ink3);
   font-size: 12px;
   font-weight: 600;
   font-family: var(--font);
-  transition: background 0.12s, color 0.12s;
+  transition: background 0.12s, color 0.12s, box-shadow 0.12s;
 }
 .cc-view-btn.active {
   background: var(--teal);
   color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
 }
-.cc-view-btn:not(.active):hover { background: var(--bg); color: var(--ink2); }
+.cc-view-btn:not(.active):hover { background: var(--white); color: var(--ink2); }
+[data-theme="dark"] .cc-view-btn:not(.active):hover { background: rgba(255,255,255,0.06); }
+
+/* ── KPI Strip — clickable summary metrics rendered from `kpiCells` in
+   CommandCenter.tsx; clicking a cell narrows the list/board below to that
+   metric via `selectedMetric`. Cells with no `metric` (informational-only:
+   penalty exposure, on-time rate, this month) render as a plain <div> with
+   no `--clickable` class, so they never pick up the pointer/hover/active
+   styling below. `cls` letters (t/r/g/a/n) reuse the same semantic-color
+   convention as `.nav-badge` elsewhere in this file. */
+.cc-kpi-row {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex-shrink: 0;
+}
+.cc-kpi-row::-webkit-scrollbar { display: none; }
+
+.cc-kpi-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1 1 0;
+  min-width: 132px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  text-align: left;
+  font-family: var(--font);
+  cursor: default;
+  white-space: nowrap;
+  transition: background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.cc-kpi-cell--clickable { cursor: pointer; }
+.cc-kpi-cell--clickable:hover { background: var(--white); border-color: var(--border2); }
+.cc-kpi-cell--clickable:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+
+.cc-kpi-cell-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink3);
+}
+.cc-kpi-cell-value {
+  font-size: 19px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.3px;
+  color: var(--ink);
+}
+
+/* cls → semantic value color (same letters/colors as .nav-badge) */
+.cc-kpi-cell.t .cc-kpi-cell-value { color: var(--teal); }
+.cc-kpi-cell.r .cc-kpi-cell-value { color: var(--red); }
+.cc-kpi-cell.g .cc-kpi-cell-value { color: var(--green); }
+.cc-kpi-cell.a .cc-kpi-cell-value { color: var(--gold); }
+.cc-kpi-cell.n .cc-kpi-cell-value { color: var(--ink); }
+
+/* Attention emphasis: `cell: 'alert'` (demurrage / SLA breach — needs action
+   now) gets a small pulsing dot next to the label; `cell: 'warn'` (penalty
+   exposure — worth noting, not urgent) gets a quieter left-border accent. */
+.cc-kpi-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px var(--red-l);
+  animation: cc-kpi-pulse 2s ease-in-out infinite;
+}
+@keyframes cc-kpi-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.45; }
+}
+.cc-kpi-cell--warn { border-left: 3px solid var(--gold); padding-left: 12px; }
+
+/* Active (currently applied) filter — border + ring tinted to the cell's own
+   semantic color, so it's visible at a glance which KPI is driving the list. */
+.cc-kpi-cell.t.cc-kpi-cell--active { background: var(--white); border-color: var(--teal);  box-shadow: 0 0 0 2px var(--teal-l); }
+.cc-kpi-cell.r.cc-kpi-cell--active { background: var(--white); border-color: var(--red);   box-shadow: 0 0 0 2px var(--red-l); }
+.cc-kpi-cell.g.cc-kpi-cell--active { background: var(--white); border-color: var(--green); box-shadow: 0 0 0 2px var(--green-l); }
+
+[data-theme="dark"] .cc-kpi-cell { background: rgba(255,255,255,0.03); }
+[data-theme="dark"] .cc-kpi-cell--clickable:hover { background: rgba(255,255,255,0.06); }
+
+@media (max-width: 767px) {
+  .cc-kpi-row { padding: 10px 14px; gap: 8px; }
+  .cc-kpi-cell { min-width: 118px; padding: 8px 12px; }
+  .cc-kpi-cell-value { font-size: 16px; }
+}
 
 /* ── Enterprise KPI Grid ── */
 .ent-kpi-grid {

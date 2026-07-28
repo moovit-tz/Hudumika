@@ -11,6 +11,7 @@ import { MGMT_ROLES, CRM_ROLES } from '../lib/permissions.js';
 import { CustomerOverview }   from '../pages/CustomerOverview.js';
 import { Customers }          from '../pages/Customers.js';
 import { CustomerBulkUpload } from '../pages/CustomerBulkUpload.js';
+import { CustomerOnboarding } from '../pages/CustomerOnboarding.js';
 import { Leads }              from '../pages/Leads.js';
 import { Sales }              from '../pages/Sales.js';
 import { CrmChainPartners }     from '../pages/CrmChainPartners.js';
@@ -48,6 +49,7 @@ export function CRMShell() {
               <Route path="customers"     element={<RequireRoles roles={CRM_ROLES}><Customers /></RequireRoles>} />
               <Route path="chain-partners" element={<RequireRoles roles={CRM_ROLES}><CrmChainPartners /></RequireRoles>} />
               <Route path="customers/bulk-upload" element={<RequireRoles roles={CRM_ROLES}><CustomerBulkUpload /></RequireRoles>} />
+              <Route path="customers/new" element={<RequireRoles roles={CRM_ROLES}><CustomerOnboarding /></RequireRoles>} />
               <Route path="leads"         element={<RequireRoles roles={[...MGMT_ROLES, 'SALES']}><Leads /></RequireRoles>} />
               <Route path="sales"         element={<RequireRoles roles={CRM_ROLES}><Sales /></RequireRoles>} />
             </Route>

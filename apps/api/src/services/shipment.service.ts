@@ -41,8 +41,18 @@ export class ShipmentService {
 
       const now = new Date();
       const etaDate = input.eta ? new Date(input.eta) : null;
-      const freeTimeDate = input.free_time_end ? new Date(input.free_time_end) : null;
+      let freeTimeDate = input.free_time_end ? new Date(input.free_time_end) : null;
       const consignmentType = input.consignment_type || 'import';
+
+      // No free_time_end given but we know the vessel ETA — default it from the
+      // tenant's configured demurrage free-time window (Settings ▸ ClearOS/Freight,
+      // "freight.free_time_days") rather than leaving demurrage risk scoring blind.
+      if (!freeTimeDate && etaDate) {
+        const settingsRow = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+        const tenantSettings = settingsRow ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings) : {};
+        const freeTimeDays = tenantSettings?.freight?.free_time_days ?? 7;
+        freeTimeDate = new Date(etaDate.getTime() + freeTimeDays * 24 * 60 * 60 * 1000);
+      }
 
       // 1b. Resolve which workflow governs this shipment (legacy fixed
       // stages by default; a tenant's custom workflow if its triggers
@@ -449,6 +459,23 @@ export class ShipmentService {
 
       if (!shipment) return;
 
+      // Real per-tenant thresholds from Workspace ▸ Settings ▸ Notifications /
+      // ClearOS-Freight (previously "notifications"/"freight" saved to
+      // tenant_settings and never read back by anything — this is that read).
+      const settingsRow = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+      const tenantSettings = settingsRow ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings) : {};
+      const demurrageAlertHours = (tenantSettings?.notifications?.demurrage_alert_days ?? 3) * 24;
+      const slaReminderHours = tenantSettings?.notifications?.sla_reminder_hours ?? 24;
+      const autoRiskFlagsEnabled = tenantSettings?.freight?.auto_risk_flags !== false;
+
+      if (!autoRiskFlagsEnabled) {
+        // Kill switch — resolve any pre-existing flags and stop; no new ones
+        // are raised while a tenant has turned off automatic risk detection.
+        await trx.updateTable('risk_flags').set({ resolved: true, resolved_at: new Date() })
+          .where('shipment_id', '=', shipmentId).where('resolved', '=', false).execute();
+        return;
+      }
+
       // Legacy shipments keep the exact old two-literal check. Custom-workflow
       // shipments check the resolved step's isTerminal flag instead — there's
       // no generic equivalent of the legacy-specific "DELIVERY" special case,
@@ -477,7 +504,7 @@ export class ShipmentService {
       const now = new Date();
       const activeFlags: { type: RiskFlagType; severity: 'HIGH' | 'MEDIUM' | 'LOW'; message: string; deadline?: Date }[] = [];
 
-      // 1. Demurrage risk: free_time_end is within 48h
+      // 1. Demurrage risk: free_time_end is within the tenant's configured alert lead time
       if (shipment.free_time_end) {
         const freeTime = new Date(shipment.free_time_end);
         const timeDiff = freeTime.getTime() - now.getTime();
@@ -489,7 +516,7 @@ export class ShipmentService {
             severity: 'HIGH',
             message: `Demurrage free time expired on ${freeTime.toLocaleDateString()}. Daily charges accruing.`,
           });
-        } else if (hoursLeft <= 48) {
+        } else if (hoursLeft <= demurrageAlertHours) {
           activeFlags.push({
             type: 'DEMURRAGE',
             severity: 'MEDIUM',
@@ -499,7 +526,8 @@ export class ShipmentService {
         }
       }
 
-      // 2. SLA breach: sla_deadline has passed
+      // 2. SLA breach: sla_deadline has passed, or is approaching within the
+      // tenant's configured reminder window (proactive, before it's actually breached)
       if (shipment.sla_deadline) {
         const deadline = new Date(shipment.sla_deadline);
         if (now > deadline) {
@@ -509,6 +537,16 @@ export class ShipmentService {
             severity: 'HIGH',
             message: `Clearance stage "${shipment.stage}" has exceeded its SLA deadline by ${Math.round(hoursOver)} hours.`,
           });
+        } else {
+          const hoursUntil = (deadline.getTime() - now.getTime()) / (1000 * 60 * 60);
+          if (hoursUntil <= slaReminderHours) {
+            activeFlags.push({
+              type: 'SLA_BREACH',
+              severity: 'MEDIUM',
+              message: `Clearance stage "${shipment.stage}" SLA deadline is in ${Math.round(hoursUntil)} hours.`,
+              deadline,
+            });
+          }
         }
       }
 

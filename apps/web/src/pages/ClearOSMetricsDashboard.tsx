@@ -11,6 +11,7 @@ import type { ColumnDef } from '../components/AnalyticsKit.js';
 import type { StageBottleneck, OfficerPerformance, KPIResponse } from '@hudumika/types';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { showAlert } from '../lib/alert.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
@@ -19,10 +20,10 @@ function fmtTZS(n: number) { return 'TZS ' + Math.round(n).toLocaleString('en');
 
 /* ── Collapsible section wrapper: stat tiles + clickable chart up top,
      full sortable/paginated table revealed on demand or via a bar click ── */
-function MetricSection({ title, icon, iconColor, onExport, statTiles, chart, table, expanded, onToggle }: {
+function MetricSection({ title, icon, variant, onExport, statTiles, chart, table, expanded, onToggle }: {
   title: string;
   icon: IconName;
-  iconColor: string;
+  variant: 'brand' | 'gray' | 'success' | 'warning' | 'error' | 'info';
   onExport: () => void;
   statTiles: React.ReactNode;
   chart: React.ReactNode;
@@ -33,10 +34,10 @@ function MetricSection({ title, icon, iconColor, onExport, statTiles, chart, tab
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <div style={{ width: 26, height: 26, borderRadius: 7, background: `${iconColor}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name={icon} size={14} color={iconColor} strokeWidth={1.75} />
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <FeaturedIcon variant={variant} size="sm" shape="square">
+            <Icon name={icon} size={15} strokeWidth={1.75} />
+          </FeaturedIcon>
           <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>{title}</h2>
         </div>
         <ExportButton onClick={onExport} />
@@ -132,10 +133,10 @@ function LedgerIntegritySection() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--gold-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="shield" size={14} color="var(--gold)" strokeWidth={1.75} />
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <FeaturedIcon variant="warning" size="sm" shape="square">
+            <Icon name="shield" size={15} strokeWidth={1.75} />
+          </FeaturedIcon>
           <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>Ledger Integrity</h2>
         </div>
         <Button size="sm" onClick={anchorNow} disabled={anchoring}>
@@ -150,30 +151,43 @@ function LedgerIntegritySection() {
       ) : anchors.length === 0 ? (
         <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No anchors yet — click "Anchor Now" to create the first one.</div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {anchors.map(a => (
-            <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, flexWrap: 'wrap' }}>
-              <Badge variant={a.status === 'confirmed' ? 'success' : a.status === 'failed' ? 'error' : 'warning'}>
-                {a.status === 'confirmed' ? 'Confirmed' : a.status === 'failed' ? 'Failed' : 'Pending'}
-              </Badge>
-              <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }} title={a.checkpointHash}>
-                {a.checkpointHash.slice(0, 16)}…
-              </span>
-              <span style={{ fontSize: 12, color: 'var(--ink2)' }}>{a.declarationCount} declaration{a.declarationCount !== 1 ? 's' : ''}</span>
-              <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{a.trigger === 'manual' ? 'Manual' : 'Scheduled'} · {new Date(a.createdAt).toLocaleString()}</span>
-              {a.status === 'confirmed' && a.bitcoinBlockHeight && (
-                <span style={{ fontSize: 11.5, color: 'var(--green)' }}>Block {a.bitcoinBlockHeight}</span>
-              )}
-              <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-                {a.status === 'pending' && (
-                  <Button size="sm" variant="outline" onClick={() => checkConfirmation(a.id)} disabled={checkingId === a.id}>
-                    {checkingId === a.id ? 'Checking…' : 'Check Confirmation'}
-                  </Button>
+            <div key={a.id} style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 16px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12 }}>
+              {/* Identity row: status + hash lead, block height (the actual proof of external verification) trails on the right */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  <Badge variant={a.status === 'confirmed' ? 'success' : a.status === 'failed' ? 'error' : 'warning'}>
+                    {a.status === 'confirmed' ? 'Confirmed' : a.status === 'failed' ? 'Failed' : 'Pending'}
+                  </Badge>
+                  <span style={{ fontFamily: 'var(--mono)', fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={a.checkpointHash}>
+                    {a.checkpointHash.slice(0, 20)}…
+                  </span>
+                </div>
+                {a.status === 'confirmed' && a.bitcoinBlockHeight && (
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--green)', whiteSpace: 'nowrap' }}>Bitcoin block {a.bitcoinBlockHeight.toLocaleString('en')}</span>
                 )}
-                <button type="button" onClick={() => downloadProof(a.id, a.checkpointHash)}
-                  style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, padding: '6px 4px' }}>
-                  <Icon name="download" size={13} /> Download Proof
-                </button>
+              </div>
+
+              {/* Meta + actions row: everything else (count, trigger, when, and the two round-trip actions) is secondary to the identity above */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--ink3)' }}>
+                  <span>{a.declarationCount} declaration{a.declarationCount !== 1 ? 's' : ''}</span>
+                  <span aria-hidden="true">·</span>
+                  <span>{a.trigger === 'manual' ? 'Manual' : 'Scheduled'}</span>
+                  <span aria-hidden="true">·</span>
+                  <span>{new Date(a.createdAt).toLocaleString()}</span>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {a.status === 'pending' && (
+                    <Button size="sm" variant="outline" onClick={() => checkConfirmation(a.id)} disabled={checkingId === a.id}>
+                      {checkingId === a.id ? 'Checking…' : 'Check Confirmation'}
+                    </Button>
+                  )}
+                  <Button size="sm" variant="ghost" onClick={() => downloadProof(a.id, a.checkpointHash)}>
+                    <Icon name="download" size={13} /> Download Proof
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
@@ -227,7 +241,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
   const exportBottlenecksCsv = () => exportCsv(
     'stage-cycle-times.csv',
     ['Stage', 'Cases', 'Avg Hours', 'P90 Hours', 'SLA Breaches'],
-    bottlenecks.map(b => [b.stage.replace(/_/g, ' '), b.case_count, b.avg_hours, b.p90_hours, b.sla_breaches]),
+    bottlenecks.map(b => [b.stage_label, b.case_count, b.avg_hours, b.p90_hours, b.sla_breaches]),
   );
   const exportOfficersCsv = () => exportCsv(
     'officer-output.csv',
@@ -257,7 +271,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
   const officersSortedForChart = [...officers].sort((a, b) => b.cases_closed - a.cases_closed);
 
   const bottleneckColumns: ColumnDef<StageBottleneck>[] = [
-    { key: 'stage', label: 'Clearance Stage', sortValue: b => b.stage, render: b => <strong>{b.stage.replace(/_/g, ' ')}</strong> },
+    { key: 'stage', label: 'Clearance Stage', sortValue: b => b.stage_label, render: b => <strong>{b.stage_label}</strong> },
     { key: 'cases', label: 'Cases', align: 'right', sortValue: b => b.case_count, render: b => `${b.case_count}` },
     {
       key: 'avg', label: 'Avg Duration', align: 'right', sortValue: b => b.avg_hours,
@@ -301,10 +315,10 @@ export const ClearOSMetricsDashboard: React.FC = () => {
           </div>
         </div>
         <div style={{ flex: 1 }} />
-        <button type="button" className="btn btn-secondary btn-sm" onClick={load} title="Refresh data" disabled={loading}>
-          <Icon name="refresh" size={13} style={{ marginRight: 5, verticalAlign: 'middle' }} />
+        <Button size="sm" variant="outline" onClick={load} title="Refresh data" disabled={loading}>
+          <Icon name="refresh" size={13} />
           Refresh
-        </button>
+        </Button>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
@@ -360,7 +374,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
             <MetricSection
               title="Clearance Stage Cycle Times"
               icon="clock"
-              iconColor="#dc2626"
+              variant="error"
               onExport={exportBottlenecksCsv}
               expanded={bottlenecksOpen}
               onToggle={() => setBottlenecksOpen(o => !o)}
@@ -368,11 +382,11 @@ export const ClearOSMetricsDashboard: React.FC = () => {
                 <StatTile label="Total Cases" value={String(totalCases)} />
                 <StatTile label="Avg Duration" value={totalCases > 0 ? `${weightedAvgHours.toFixed(1)}h` : '—'} />
                 <StatTile label="SLA Breaches" value={String(totalBreaches)} tone={totalBreaches > 0 ? 'red' : 'green'} />
-                <StatTile label="Slowest Stage" value={slowest ? slowest.stage.replace(/_/g, ' ') : '—'} />
+                <StatTile label="Slowest Stage" value={slowest ? slowest.stage_label : '—'} />
               </>}
               chart={bottlenecksSortedForChart.length > 0 ? (
                 <ClickableBarChart
-                  labels={bottlenecksSortedForChart.map(b => b.stage.replace(/_/g, ' '))}
+                  labels={bottlenecksSortedForChart.map(b => b.stage_label)}
                   values={bottlenecksSortedForChart.map(b => b.avg_hours)}
                   barColors={bottlenecksSortedForChart.map(b => b.avg_hours > 24 ? 'rgba(220,38,38,.75)' : 'rgba(20,184,166,.75)')}
                   yLabel="Avg hours"
@@ -395,7 +409,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
             <MetricSection
               title="Officer Output & Penalties"
               icon="checkCircle"
-              iconColor="#059669"
+              variant="success"
               onExport={exportOfficersCsv}
               expanded={officersOpen}
               onToggle={() => setOfficersOpen(o => !o)}

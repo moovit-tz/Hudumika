@@ -94,7 +94,8 @@ export class ContactsService {
           company_size: data.company_size || null,
           sales_owner: data.sales_owner || null,
           last_contacted_at: data.last_contacted_at ? new Date(data.last_contacted_at) : null,
-          status: 'ACTIVE'
+          status: 'ACTIVE',
+          source: data.source || 'manual',
         })
         .returningAll()
         .execute();
