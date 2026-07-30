@@ -293,6 +293,110 @@ export async function referenceRoutes(fastify: FastifyInstance) {
     return { data: row };
   });
 
+  // GET /v1/reference/tariff?authority=&category=&q=&limit=&offset= — TPA
+  // Sea Ports Tariff Book / TASAC CFA agency-fee guide reference lines. Used
+  // by CustomsReference's "Tariff" tab, LandedCostPage's additional-charges
+  // picker, and ProductsServices' "add from tariff" flow.
+  fastify.get('/tariff', async (req: FastifyRequest) => {
+    const { authority, category, q } = req.query as { authority?: string; category?: string; q?: string };
+    const limit = Math.min(Number((req.query as any).limit) || 100, 500);
+    const offset = Math.max(Number((req.query as any).offset) || 0, 0);
+
+    let base = db.selectFrom('port_tariff_items').where('status', '=', 'active');
+    if (authority) base = base.where('authority', '=', authority);
+    if (category) base = base.where('category', '=', category);
+    if (q) base = base.where(eb => eb.or([
+      eb('item_name', 'ilike', `%${q}%`),
+      eb('subcategory', 'ilike', `%${q}%`),
+      eb('category', 'ilike', `%${q}%`),
+      eb('clause_ref', 'ilike', `%${q}%`),
+    ]));
+
+    const [rows, total] = await Promise.all([
+      base.selectAll().orderBy('authority').orderBy('category').orderBy('clause_ref').limit(limit).offset(offset).execute(),
+      base.select(eb => eb.fn.countAll().as('c')).executeTakeFirst(),
+    ]);
+    return { data: rows, total: Number(total?.c ?? 0), limit, offset };
+  });
+
+  // GET /v1/reference/tariff/categories?authority=
+  fastify.get('/tariff/categories', async (req: FastifyRequest) => {
+    const { authority } = req.query as { authority?: string };
+    let query = db.selectFrom('port_tariff_items').select('category').distinct().where('status', '=', 'active');
+    if (authority) query = query.where('authority', '=', authority);
+    const rows = await query.orderBy('category').execute();
+    return { data: rows.map(r => r.category) };
+  });
+
+  // PATCH /v1/reference/tariff/:id
+  fastify.patch('/tariff/:id', { preHandler: REFERENCE_ADMIN }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const body = req.body as Record<string, any>;
+    const editable = [
+      'authority', 'clause_ref', 'category', 'subcategory', 'item_name', 'unit', 'cargo_type',
+      'container_size', 'rate_amount', 'rate_currency', 'rate_type', 'min_charge', 'free_period',
+      'source_document', 'source_page', 'notes', 'is_placeholder', 'status',
+    ];
+    const patch: Record<string, any> = {};
+    for (const k of editable) if (k in body) patch[k] = body[k] === '' ? null : body[k];
+    if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'No editable fields provided' });
+    if (patch.item_name === null) return reply.status(400).send({ error: 'Item name cannot be empty' });
+    patch.updated_by = (req as any).user?.id ?? null;
+    patch.updated_at = new Date();
+    const row = await db.updateTable('port_tariff_items').set(patch).where('id', '=', id).returningAll().executeTakeFirst();
+    if (!row) return reply.status(404).send({ error: 'Tariff item not found' });
+    return { data: row };
+  });
+
+  // POST /v1/reference/tariff — add a single new line item
+  fastify.post('/tariff', { preHandler: REFERENCE_ADMIN }, async (req, reply) => {
+    const b = req.body as Record<string, any>;
+    if (!b.authority || !b.category || !b.item_name || !b.source_document) {
+      return reply.status(400).send({ error: 'authority, category, item_name and source_document are required' });
+    }
+    const row = await db.insertInto('port_tariff_items').values({
+      authority: b.authority, clause_ref: b.clause_ref ?? null, category: b.category,
+      subcategory: b.subcategory ?? null, item_name: b.item_name, unit: b.unit ?? null,
+      cargo_type: b.cargo_type ?? null, container_size: b.container_size ?? null,
+      rate_amount: b.rate_amount ?? null, rate_currency: b.rate_currency ?? 'USD',
+      rate_type: b.rate_type ?? 'fixed', min_charge: b.min_charge ?? null,
+      free_period: b.free_period ?? null, source_document: b.source_document,
+      source_page: b.source_page ?? null, notes: b.notes ?? null,
+      is_placeholder: b.is_placeholder ?? false, updated_by: (req as any).user?.id ?? null,
+    } as any).returningAll().executeTakeFirst();
+    return reply.status(201).send({ data: row });
+  });
+
+  // POST /v1/reference/tariff/bulk — seed/refresh many rows at once (used by
+  // the one-off TPA/TASAC transcription seed script). Always inserts fresh
+  // rows; re-running with the same source_document + item_name will create
+  // duplicates by design — this is a one-off seeding tool, not a sync, so a
+  // re-run is expected to be preceded by a manual cleanup if needed.
+  fastify.post('/tariff/bulk', { preHandler: REFERENCE_ADMIN }, async (req, reply) => {
+    const items = req.body as Record<string, any>[];
+    if (!Array.isArray(items) || items.length === 0) return reply.status(400).send({ error: 'Body must be a non-empty array' });
+    const values = items.map(b => ({
+      authority: b.authority, clause_ref: b.clause_ref ?? null, category: b.category,
+      subcategory: b.subcategory ?? null, item_name: b.item_name, unit: b.unit ?? null,
+      cargo_type: b.cargo_type ?? null, container_size: b.container_size ?? null,
+      rate_amount: b.rate_amount ?? null, rate_currency: b.rate_currency ?? 'USD',
+      rate_type: b.rate_type ?? 'fixed', min_charge: b.min_charge ?? null,
+      free_period: b.free_period ?? null, source_document: b.source_document,
+      source_page: b.source_page ?? null, notes: b.notes ?? null,
+      is_placeholder: b.is_placeholder ?? false, updated_by: (req as any).user?.id ?? null,
+    }));
+    const rows = await db.insertInto('port_tariff_items').values(values as any).returningAll().execute();
+    return reply.status(201).send({ data: { inserted: rows.length } });
+  });
+
+  // DELETE /v1/reference/tariff/:id
+  fastify.delete('/tariff/:id', { preHandler: REFERENCE_ADMIN }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const row = await db.deleteFrom('port_tariff_items').where('id', '=', id).returningAll().executeTakeFirst();
+    if (!row) return reply.status(404).send({ error: 'Tariff item not found' });
+    return { data: row };
+  });
+
   // POST /v1/reference/excise/import — multipart CSV, merge/upsert by category + item_description
   fastify.post('/excise/import', { preHandler: REFERENCE_ADMIN }, async (req, reply) => {
     const file = await req.file();

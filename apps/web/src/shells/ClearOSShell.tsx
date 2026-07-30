@@ -33,6 +33,7 @@ import { ClearOSDeclarations } from '../pages/ClearOSDeclarations.js';
 import { ClearOSDeclarationNew } from '../pages/ClearOSDeclarationNew.js';
 import { ClearOSDeclarationDetail } from '../pages/ClearOSDeclarationDetail.js';
 import { ProductsServices } from '../pages/ProductsServices.js';
+import { RateCardPage } from '../pages/RateCardPage.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -65,6 +66,7 @@ const NAV: SidebarSection[] = [
       { label: 'Products & Services', icon: 'tag', path: '/clearos/products' },
       { label: 'Chat',      icon: 'chatBubble', path: '/clearos/chat' },
       { label: 'Reference', icon: 'layers',     path: '/clearos/reference' },
+      { label: 'Rate Card', icon: 'sliders',    path: '/clearos/rate-card' },
     ],
   },
   {
@@ -113,6 +115,7 @@ export function ClearOSShell() {
                 <Route path="contracts"       element={<Navigate to="/clearos/ops" replace />} />
                 <Route path="chat"            element={<Chat />} />
                 <Route path="reference"       element={<CustomsReference />} />
+                <Route path="rate-card"       element={<RequireRoles roles={OPS_ROLES}><RateCardPage /></RequireRoles>} />
                 <Route path="freight-booking/bookings"   element={<RequireRoles roles={OPS_ROLES}><FreightBookingsPage /></RequireRoles>} />
                 <Route path="freight-booking/new"        element={<RequireRoles roles={OPS_ROLES}><CreateFreightBookingPage /></RequireRoles>} />
                 <Route path="freight-booking/rate-cards" element={<RequireRoles roles={OPS_ROLES}><FreightRateCardsPage /></RequireRoles>} />

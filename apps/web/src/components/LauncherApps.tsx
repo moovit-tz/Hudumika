@@ -50,6 +50,11 @@ export const LAUNCHER_SVG_ICONS: Record<string, React.ReactElement> = {
   tasks:    (<g stroke="white" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M14 20l4 4 8-8" /><circle cx="20" cy="20" r="10" /></g>),
   demurrage: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L34 30H6Z"/><line x1="20" y1="15" x2="20" y2="23"/><circle cx="20" cy="27" r="0.6" fill="white"/></g>),
   cargotracker: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10" width="17" height="14"/><path d="M21 15h6l5 5v4h-11z"/><circle cx="11" cy="27" r="2.3" fill="white" stroke="none"/><circle cx="26" cy="27" r="2.3" fill="white" stroke="none"/></g>),
+  // Not part of LAUNCHER_APPS (that list is shared with the header/AppLauncher
+  // switcher, which every tenant user sees, unfiltered by role) — this icon is
+  // only referenced directly, by id, from WorkspaceHome's own SUPER_ADMIN-only
+  // "SuperAdmin" tile, so a regular tenant user never sees this entry anywhere.
+  superadmin: (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L31 11V20C31 27 26.5 31.5 20 34C13.5 31.5 9 27 9 20V11L20 6Z"/><path d="M15.5 19.5L18.5 22.5L25 15.5" strokeWidth="2.5"/></g>),
 };
 
 export function LauncherAppSvg({ id, color, logoUrl, size = 52 }: { id: string; color: string; logoUrl?: string; size?: number }) {

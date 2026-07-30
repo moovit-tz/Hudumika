@@ -57,6 +57,15 @@ interface PenaltyResult {
 }
 
 // ── Calculator logic ──────────────────────────────────────────────────────────
+//
+// NOTE: this is a rough client-side estimator, NOT the real landed-cost
+// calculation. It diverges from POST /v1/customs/landed-cost
+// (customs.service.ts) in ways a rate tweak can't close: a hardcoded FX rate,
+// duty guessed from the HS chapter instead of the tariff table, and no
+// excise / Port Infrastructure Development / Green Port / TBS / shipping-line
+// lines at all. Statutory rates below are kept in step with the backend so it
+// isn't additionally wrong, but anything quoted to a customer should come
+// from the ClearOS Landed Cost Calculator, which calls the API.
 
 function calcLanded(
   cifUsd: number, hs: string, qty: number,
@@ -65,11 +74,11 @@ function calcLanded(
   const cifTzs  = cifUsd * USD_TO_TZS;
   const dutyRate = chapterDutyRate(hs);
   const duty    = cifTzs * (dutyRate / 100);
-  const rdl     = cifTzs * 0.015;
-  const cpf     = Math.max(cifTzs * 0.006, 5000);
+  const rdl     = cifTzs * 0.02;
+  const cpf     = Math.max(cifTzs * 0.01, 5000);
   const vat     = (cifTzs + duty) * 0.18;
   const icd     = isAir ? 0 : container === '20ft' ? 450_000 : container === '40ft' ? 560_000 : 0;
-  const wharfage = isAir ? 0 : cifTzs * 0.005;
+  const wharfage = isAir ? 0 : cifTzs * 0.016;
   const total   = cifTzs + duty + vat + rdl + cpf + icd + wharfage;
   return { cifTzs, dutyRate, duty, vat, rdl, cpf, icd, wharfage, total, perUnit: qty > 1 ? total / qty : total };
 }
@@ -196,10 +205,10 @@ pre{white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:8px;font-
 <tr><td>CIF Value (USD)</td><td>${fmtUsd(parseFloat(cifUsd))} = TZS ${fmt(landed.cifTzs)}</td></tr>
 <tr><td>Import Duty (${landed.dutyRate}% EAC CET)</td><td>TZS ${fmt(landed.duty)}</td></tr>
 <tr><td>VAT 18% (on CIF + Duty)</td><td>TZS ${fmt(landed.vat)}</td></tr>
-<tr><td>Railway Development Levy (1.5%)</td><td>TZS ${fmt(landed.rdl)}</td></tr>
+<tr><td>Railway Development Levy (2%)</td><td>TZS ${fmt(landed.rdl)}</td></tr>
 <tr><td>Customs Processing Fee (0.6%)</td><td>TZS ${fmt(landed.cpf)}</td></tr>
 <tr><td>ICD Charges</td><td>TZS ${fmt(landed.icd)}</td></tr>
-<tr><td>Wharfage (TPA 0.5%)</td><td>TZS ${fmt(landed.wharfage)}</td></tr>
+<tr><td>Wharfage (TPA 1.6%)</td><td>TZS ${fmt(landed.wharfage)}</td></tr>
 <tr class="total"><td>Total Landed Cost</td><td>TZS ${fmt(landed.total)}</td></tr>
 ${parseInt(qty) > 1 ? `<tr class="total"><td>Per Unit (÷ ${qty})</td><td>TZS ${fmt(landed.perUnit)}</td></tr>` : ''}
 </table>`);
@@ -374,7 +383,7 @@ export const ShipmentTools: React.FC = () => {
         `LANDED COST (HS: ${lcHs}, CIF: ${fmtUsd(parseFloat(lcCif))}, origin rate: ${lcResult.dutyRate}%)\n` +
         `Import Duty: TZS ${fmt(lcResult.duty)}\n` +
         `VAT 18%: TZS ${fmt(lcResult.vat)}\n` +
-        `Railway Dev. Levy 1.5%: TZS ${fmt(lcResult.rdl)}\n` +
+        `Railway Dev. Levy 2%: TZS ${fmt(lcResult.rdl)}\n` +
         `Customs Processing Fee: TZS ${fmt(lcResult.cpf)}\n` +
         `ICD Charges: TZS ${fmt(lcResult.icd)}\n` +
         `Wharfage: TZS ${fmt(lcResult.wharfage)}\n` +
@@ -458,7 +467,7 @@ export const ShipmentTools: React.FC = () => {
         {/* ── Tool 1: Landed Cost ── */}
         <ToolCard
           title="Landed Cost Calculator"
-          desc="Compute duty, VAT 18%, RDL 1.5%, CPF 0.6%, ICD & wharfage"
+          desc="Compute duty, VAT 18%, RDL 2%, CPF 1%, ICD & wharfage"
           tags={['Import Duty', 'VAT 18%', 'ICD Charges', 'Wharfage']}
           color="var(--teal)" icon="package"
           onRun={runLanded}
@@ -495,10 +504,10 @@ export const ShipmentTools: React.FC = () => {
               <RRow label={`CIF in TZS (@${USD_TO_TZS.toLocaleString()})`} value={`TZS ${fmt(lcResult.cifTzs)}`} />
               <RRow label={`Import Duty (${lcResult.dutyRate}% EAC CET)`} value={`TZS ${fmt(lcResult.duty)}`} />
               <RRow label="VAT 18% (on CIF + Duty)" value={`TZS ${fmt(lcResult.vat)}`} />
-              <RRow label="Railway Dev. Levy 1.5%" value={`TZS ${fmt(lcResult.rdl)}`} />
+              <RRow label="Railway Dev. Levy 2%" value={`TZS ${fmt(lcResult.rdl)}`} />
               <RRow label="Customs Processing Fee 0.6%" value={`TZS ${fmt(lcResult.cpf)}`} />
               {!lcAir && <RRow label={`ICD Charges (${lcContainer})`} value={`TZS ${fmt(lcResult.icd)}`} />}
-              {!lcAir && <RRow label="Wharfage (TPA 0.5%)" value={`TZS ${fmt(lcResult.wharfage)}`} />}
+              {!lcAir && <RRow label="Wharfage (TPA 1.6%)" value={`TZS ${fmt(lcResult.wharfage)}`} />}
               <RRow label="Total Landed Cost" value={`TZS ${fmt(lcResult.total)}`} hi />
               {parseInt(lcQty) > 1 && <RRow label={`Per Unit (÷ ${lcQty})`} value={`TZS ${fmt(lcResult.perUnit)}`} hi />}
             </ResultBox>

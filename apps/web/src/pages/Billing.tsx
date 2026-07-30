@@ -620,8 +620,16 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange }:
     const qs = `?status=active${q.trim() ? `&search=${encodeURIComponent(q.trim())}` : ''}`;
     const res: any = await apiFetch(`/v1/products${qs}`).catch(() => []);
     const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
-    list.forEach((p) => productCacheRef.current.set(p.id, p));
-    return list.slice(0, 25).map((p) => ({
+    // This section's rate/tax math sums raw numbers under one shared currency
+    // (see sub()/tax()/tot() above) — a catalog item priced in a different
+    // currency than the section would silently blend into that total as if
+    // its number were already in `currency`, badly under- or over-stating the
+    // charge (e.g. a $150 USD line read as 150 TZS). Only offer same-currency
+    // items here; the other currency's items are one click away in the
+    // section paying in that currency.
+    const sameCurrency = list.filter((p) => (p.currency || 'TZS') === currency);
+    sameCurrency.forEach((p) => productCacheRef.current.set(p.id, p));
+    return sameCurrency.slice(0, 25).map((p) => ({
       id: p.id, label: p.name,
       sublabel: [p.code, `${fmtAmt(Number(p.sale_price) || 0, (p.currency || 'TZS') as Currency)}/${p.unit}`].filter(Boolean).join(' · '),
     }));

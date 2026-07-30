@@ -3,9 +3,11 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { apiFetch } from '../lib/api.js';
 import { HUDUMIKA_FOOTER_HTML } from '../lib/watermark.js';
+import { getCompany } from '../data/companyStore.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -31,12 +33,17 @@ interface LandedCostResult {
   cif_tzs: number;
   duty_rate: number;
   duty: number;
+  excise_override_note: string | null;
   vat: number;
   rdl: number;
   cpf: number;
   excise: number;
   icd: number;
   wharfage: number;
+  pid: number;
+  green_port_initiative: number;
+  tbs_charge: number;
+  shipping_line_charge: number;
   total: number;
   per_unit: number;
   qty: number;
@@ -58,20 +65,91 @@ interface LandedCostResult {
   chargeable_weight_kg: number | null;
   warnings: string[];
   assumptions: string[];
+  /** Rate fields replaced via Advanced Settings — e.g. ['duty_rate'].
+   *  Optional because history rows saved before overrides existed won't
+   *  carry it. */
+  overridden_fields?: string[];
 }
 
 type ShipmentMode = 'sea_fcl' | 'sea_lcl' | 'air';
+
+/** Human-readable names for the `overridden_fields` keys the API returns. */
+const OVERRIDE_LABELS: Record<string, string> = {
+  duty_rate: 'Import Duty',
+  vat_rate: 'VAT',
+  rdl_rate: 'Railway Development Levy',
+  cpf_rate: 'Customs Processing Fee',
+  wharfage_rate: 'TPA Wharfage',
+  pid_rate: 'Port Infrastructure Development',
+  insurance_rate: 'Insurance',
+};
 
 interface MultiItemRow {
   id: string;
   description: string;
   hs_code: string;
   qty: string;
+  unit: string;
   unit_price_usd: string;
+  /** Per-row rate overrides. Blank means "use this HS code's tariff rate" —
+   *  they're kept as strings so an empty box stays empty rather than being
+   *  sent as a real 0%. */
+  ov_duty: string;
+  ov_vat: string;
+  ov_rdl: string;
+  ov_cpf: string;
 }
 
 function newMultiItemRow(): MultiItemRow {
-  return { id: Math.random().toString(36).slice(2), description: '', hs_code: '', qty: '1', unit_price_usd: '' };
+  return {
+    id: Math.random().toString(36).slice(2),
+    description: '', hs_code: '', qty: '1', unit: 'unit', unit_price_usd: '',
+    ov_duty: '', ov_vat: '', ov_rdl: '', ov_cpf: '',
+  };
+}
+
+/** Builds a row's rate_overrides payload, omitting blanks entirely. */
+function rowRateOverrides(r: MultiItemRow): Record<string, number> | undefined {
+  const entries: [string, string][] = [
+    ['duty_rate', r.ov_duty], ['vat_rate', r.ov_vat], ['rdl_rate', r.ov_rdl], ['cpf_rate', r.ov_cpf],
+  ];
+  const out: Record<string, number> = {};
+  for (const [k, raw] of entries) {
+    if (raw.trim() === '') continue;
+    const n = parseFloat(raw);
+    if (Number.isFinite(n) && n >= 0) out[k] = n;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** Spec caps the cargo table at 20 rows. */
+const MAX_CARGO_ROWS = 20;
+
+function rowHasOverride(r: MultiItemRow): boolean {
+  return rowRateOverrides(r) !== undefined;
+}
+
+/** Compact per-line rate box. Amber when set, so an overridden row reads
+ *  differently from one inheriting its tariff rate. */
+function RowRate({ label, value, onChange, placeholder }: {
+  label: string; value: string; onChange: (v: string) => void; placeholder?: string;
+}) {
+  const active = value.trim() !== '';
+  return (
+    <div>
+      <label style={{ fontSize: 9.5, fontWeight: 700, color: active ? 'var(--gold, #B8862F)' : 'var(--ink4)', textTransform: 'uppercase' }}>{label}</label>
+      <input
+        className="input-field"
+        type="number"
+        min="0"
+        step="any"
+        value={value}
+        placeholder={placeholder ?? 'auto'}
+        onChange={e => onChange(e.target.value)}
+        style={{ width: '100%', boxSizing: 'border-box', height: 34, fontSize: 12.5, borderColor: active ? 'var(--gold, #B8862F)' : undefined }}
+      />
+    </div>
+  );
 }
 
 interface MultiLineItemResult {
@@ -124,8 +202,8 @@ interface MultiItemResult {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const fmt    = (n: number) => Math.round(n).toLocaleString();
-const fmtUsd = (n: number) => `$${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+const fmt    = (n: number) => Math.round(n).toLocaleString('en-US');
+const fmtUsd = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
 function RRow({ label, value, hi, sub }: { label: string; value: string; hi?: boolean; sub?: boolean }) {
   return (
@@ -156,61 +234,1317 @@ function Seg({ active, onClick, label, icon, fullWidth, grow }: { active: boolea
   );
 }
 
-function printReport(result: LandedCostResult, qty: string, summary: string) {
-  const w = window.open('', '_blank');
-  if (!w) return;
-  const now = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
-  w.document.write(`<!DOCTYPE html><html><head><title>Landed Cost Report</title>
-<style>body{font-family:system-ui,sans-serif;padding:32px;color:#111;max-width:720px;margin:0 auto}h1{font-size:20px;font-weight:800;margin:0 0 4px}.meta{font-size:12px;color:#64748b;margin-bottom:24px}h2{font-size:12px;font-weight:700;color:#0b1e3a;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #0b1e3a40;padding-bottom:5px;margin:24px 0 10px}table{width:100%;border-collapse:collapse}td{padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:13px}td:last-child{text-align:right;font-weight:600}tr.hi td{background:#0b1e3a0d;font-weight:800;font-size:14px}pre{white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:8px;font-size:12.5px;line-height:1.7;border:1px solid #e2e8f0}ul.notes{margin:0;padding-left:18px;font-size:12px;color:#475569;line-height:1.7}.footer{margin-top:40px;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px}@media print{body{padding:16px}}</style></head><body>
-<h1>Landed Cost Report</h1><p class="meta">Generated ${now} · HS Code: ${result.hs_code} · FX Rate: 1 USD = TZS ${result.fx_rate.toLocaleString()}</p>
-<h2>Cargo: ${result.description}</h2>
-<h2>Cost Breakdown</h2>
-<table>
-${result.breakdown.map(b => `<tr><td>${b.label}</td><td>TZS ${fmt(b.amount)}</td></tr>`).join('')}
-<tr class="hi"><td>Total excl. VAT (VAT recoverable)</td><td>TZS ${fmt(result.total_ex_vat)}</td></tr>
-</table>
-${(result.warnings.length > 0 || result.assumptions.length > 0) ? `<h2>Assumptions &amp; Warnings</h2><ul class="notes">${[...result.warnings, ...result.assumptions].map(w => `<li>${w}</li>`).join('')}</ul>` : ''}
-${summary ? `<h2>AI Summary</h2><pre>${summary}</pre>` : ''}
-${HUDUMIKA_FOOTER_HTML}
-</body></html>`);
-  w.document.close();
-  w.focus();
-  setTimeout(() => w.print(), 500);
+function Image1TotalStrip({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{
+      marginTop: 14, padding: '12px 18px', borderRadius: 10,
+      background: 'rgba(234, 88, 12, 0.07)', border: '1px solid rgba(234, 88, 12, 0.2)',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+    }}>
+      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{label}</span>
+      <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--orange, #ea580c)' }}>{value}</span>
+    </div>
+  );
 }
 
-function printMultiReport(result: MultiItemResult) {
+// Description / Unit / Rate / Sub-total / VAT / Total — same six columns and
+// VAT math as the Export PDF's card tables (printReport), so what's shown on
+// screen and what gets printed never drift apart again.
+const BREAKDOWN_GRID_COLS = '1.9fr 0.85fr 0.95fr 1fr 0.85fr 1fr';
+interface BreakdownRowData { label: string; unit: string; rate: string; netTzs: number; vat: boolean }
+function breakdownRow(label: string, unit: string, rate: string, netTzs: number, vat: boolean): BreakdownRowData {
+  return { label, unit, rate, netTzs, vat };
+}
+function breakdownRowsTotal(rows: BreakdownRowData[], vatRatePct: number): number {
+  return rows.reduce((s, r) => s + r.netTzs + (r.vat ? r.netTzs * vatRatePct / 100 : 0), 0);
+}
+
+function BreakdownHeaderRow() {
+  const cell: React.CSSProperties = { fontSize: 9.5, fontWeight: 700, color: 'var(--ink4)', textTransform: 'uppercase', letterSpacing: '.05em' };
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: BREAKDOWN_GRID_COLS, gap: 10, padding: '0 0 7px', borderBottom: '1px solid var(--border)' }}>
+      <span style={cell}>Description</span>
+      <span style={{ ...cell, textAlign: 'right' }}>Unit</span>
+      <span style={{ ...cell, textAlign: 'right' }}>Rate</span>
+      <span style={{ ...cell, textAlign: 'right' }}>Sub-total</span>
+      <span style={{ ...cell, textAlign: 'right' }}>VAT</span>
+      <span style={{ ...cell, textAlign: 'right' }}>Total</span>
+    </div>
+  );
+}
+
+function BreakdownRow({ r, vatRatePct }: { r: BreakdownRowData; vatRatePct: number }) {
+  const vatTzs = r.vat ? r.netTzs * vatRatePct / 100 : 0;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: BREAKDOWN_GRID_COLS, alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
+      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{r.label}</span>
+      <span style={{ fontSize: 11, color: 'var(--ink3)', textAlign: 'right' }}>{r.unit}</span>
+      <span style={{ fontSize: 11, color: 'var(--ink3)', fontStyle: 'italic', textAlign: 'right' }}>{r.rate}</span>
+      <span style={{ fontSize: 12, color: 'var(--ink)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>TZS {fmt(r.netTzs)}</span>
+      <span style={{ fontSize: 12, color: 'var(--ink3)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{r.vat ? `TZS ${fmt(vatTzs)}` : '—'}</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>TZS {fmt(r.netTzs + vatTzs)}</span>
+    </div>
+  );
+}
+function BreakdownTable({ rows, vatRatePct }: { rows: BreakdownRowData[]; vatRatePct: number }) {
+  if (rows.length === 0) return null;
+  return (
+    <div>
+      <BreakdownHeaderRow />
+      {rows.map((r, i) => <BreakdownRow key={i} r={r} vatRatePct={vatRatePct} />)}
+    </div>
+  );
+}
+
+interface ExtraCharge { key: string; item: any; qty: number }
+
+function extraChargeTzs(e: ExtraCharge, fx: number): number {
+  const rate = Number(e.item.rate_amount) || 0;
+  const tzs = e.item.rate_currency === 'USD' ? rate * fx : rate;
+  return tzs * e.qty;
+}
+
+function FormattedLandedCostBreakdown({
+  result,
+  fobUsd,
+  freightUsd,
+  insuranceUsd,
+  mode,
+  container,
+  icdOperatorId,
+  qty,
+  extraItems,
+  extraPicker,
+  onExtraPickerChange,
+  onRemoveExtra,
+  onSetExtraQty,
+  searchTariff,
+}: {
+  result: LandedCostResult;
+  fobUsd: number;
+  freightUsd: number;
+  insuranceUsd: number;
+  mode: ShipmentMode;
+  container: '20ft' | '40ft' | 'lcl';
+  icdOperatorId: string | null;
+  qty: number;
+  extraItems: ExtraCharge[];
+  extraPicker: PickerItem | null;
+  onExtraPickerChange: (item: PickerItem | null) => void;
+  onRemoveExtra: (key: string) => void;
+  onSetExtraQty: (key: string, qty: number) => void;
+  searchTariff: (q: string) => Promise<PickerItem[]>;
+}) {
+  const fx = result.fx_rate;
+
+  // ICD Charges and Clearance/Agency Charges are tenant-editable commercial
+  // rates, not a TRA/TPA-published tariff — sourced from the tenant's own
+  // Rate Card tool (Tools → Rate Card) for whichever card matches this
+  // shipment (and ICD operator, if one's selected), same as the Export PDF
+  // report. Empty/zero until the tenant populates that tool; never a
+  // guessed fallback.
+  const [rateCard, setRateCard] = useState<Record<string, number>>({});
+  useEffect(() => {
+    let cancelled = false;
+    fetchRateCardDefaults(rateCardKeyFor(mode, container), icdOperatorId).then(rc => { if (!cancelled) setRateCard(rc); });
+    return () => { cancelled = true; };
+  }, [mode, container, icdOperatorId]);
+  const cfrUsd = fobUsd + freightUsd;
+  const fobTzs = (fobUsd || (result.cif_usd - freightUsd - insuranceUsd)) * fx;
+  const freightTzs = freightUsd * fx;
+  const insuranceTzs = insuranceUsd * fx;
+  const insurancePct = cfrUsd > 0 ? (insuranceUsd / cfrUsd) * 100 : 0;
+  const modeLabel = mode === 'sea_fcl' ? 'Sea · FCL' : mode === 'sea_lcl' ? 'Sea · LCL' : 'Air';
+
+  // VAT (18%) applies on top of TPA/ICD/Clearance/Shipping service charges,
+  // same as the Export PDF and the old interactive sheet — derived from what
+  // was actually assessed (never a guessed flat 18%). CIF, Duties & Taxes
+  // and TBS rows don't carry a VAT column (VAT is itself one of the Duties
+  // rows; TBS is VAT-exempt here).
+  const vatBaseCard = result.cif_tzs + result.duty;
+  const vatRatePct = vatBaseCard > 0 ? (result.vat / vatBaseCard) * 100 : 18;
+
+  // Everything below is read straight off `result` — nothing here is a
+  // frontend-invented number. `result.breakdown` (customs.service.ts
+  // calculateLandedCost) is the single source of truth for every duty/tax/
+  // port line item and its current rate; hand-rolling a parallel copy here
+  // previously meant this view silently drifted from the real calculation
+  // (e.g. still showing a stale "0.6% of FOB" CPF label after the Finance
+  // Act 2026 change to 1%) and, worse, displayed a whole card of made-up
+  // port/agency/trucking fees (TPA port handling, DO fee, ICD handling,
+  // agency fee, trucking, drop-off...) that the backend never computes at
+  // all — a real user could have quoted a client off fabricated numbers.
+  const STATUTORY_PREFIXES = ['Import Duty', 'Excise Duty', 'VAT', 'Railway Development Levy', 'Customs Processing Fee'];
+  const isStatutory = (label: string) => STATUTORY_PREFIXES.some(p => label.startsWith(p));
+  const lineItems = result.breakdown.filter(b => b.label !== 'CIF Value (TZS)' && b.label !== 'Total Landed Cost (TZS)' && !b.label.startsWith('Per Unit'));
+  const statutoryItems = lineItems.filter(b => isStatutory(b.label));
+  const portClearanceItems = lineItems.filter(b => !isStatutory(b.label));
+
+  // ── Additional Port/TPA/TASAC charges — user-selected, not auto-computed.
+  // The backend only knows the statutory duty/tax/VAT stack and a generic
+  // ICD/wharfage estimate; real per-shipment extras (demurrage, equipment
+  // hire, agency fees, transshipment stevedoring, ...) depend on facts the
+  // calculator has no way to know (does this shipment sit past free storage?
+  // is a forklift needed?), so they're picked in explicitly here rather than
+  // guessed at — same anti-fabrication rule that drove the Card 3 rewrite.
+  // State lives in the parent (LandedCostPage) so the Export PDF report can
+  // include whatever's been added here.
+  const extraLineTzs = (e: ExtraCharge) => extraChargeTzs(e, fx);
+  const extraTotalTzs = extraItems.reduce((sum, e) => sum + extraLineTzs(e), 0);
+
+  // ── Sub-section split within "PORT, ICD & CLEARANCE" — same buckets the
+  // Export PDF report uses, so what's on screen and what's printed always
+  // agree. TPA Charges / ICD Charges are backend-computed; Clearance / TBS /
+  // Shipping Line combine whatever the backend computed (TBS/Shipping Line
+  // only) with anything picked from the additional-charges picker below,
+  // categorized by the reference item's authority field.
+  const icdItems = portClearanceItems.filter(b => b.label === result.destination_charge_label);
+  const tbsBackendItems = portClearanceItems.filter(b => b.label.startsWith('TBS Charges'));
+  const shippingBackendItems = portClearanceItems.filter(b => b.label.startsWith('Shipping Line Charges'));
+  const tpaItems = portClearanceItems.filter(b => b.label !== result.destination_charge_label && !b.label.startsWith('TBS Charges') && !b.label.startsWith('Shipping Line Charges'));
+
+  const tpaExtra = extraItems.filter(e => e.item.authority === 'TPA');
+  const clearanceExtra = extraItems.filter(e => e.item.authority === 'TASAC_CFA');
+  const tbsExtra = extraItems.filter(e => e.item.authority === 'TBS');
+  const shippingExtra = extraItems.filter(e => e.item.authority === 'SHIPPING_LINE');
+
+  const icdBackendSubtotal = icdItems.reduce((s, b) => s + b.amount, 0);
+  const clearanceSubtotal = clearanceExtra.reduce((s, e) => s + extraLineTzs(e), 0);
+
+  // ICD Charges — the 5 "compulsory" items confirmed against real ICD
+  // operator invoices (Shore/Port Handling, ICD Movement, Container
+  // Transfer, Customs Verification, Corridor Levy) — from the tenant's Rate
+  // Card (USD, converted at the live FX rate), not the single generic
+  // backend estimate above (kept only as a reconciliation note, same
+  // pattern as the Export PDF).
+  const icdVerifDef = rateCard['ICD_VERIFICATION'] ?? 0;
+  const icdCorrDef = rateCard['ICD_CORRIDOR'] ?? 0;
+  const icdHandDef = rateCard['ICD_HANDLING'] ?? 0;
+  const icdMoveDef = rateCard['ICD_MOVEMENT'] ?? 0;
+  const icdXferDef = rateCard['ICD_TRANSFER'] ?? 0;
+  const icdRateCardItems = [
+    { label: 'Shore / Port Handling', usd: icdHandDef },
+    { label: 'ICD Movement Charges', usd: icdMoveDef },
+    { label: 'Container Transfer', usd: icdXferDef },
+    { label: 'Customs Verification', usd: icdVerifDef },
+    { label: 'Corridor Levy', usd: icdCorrDef },
+  ].filter(r => r.usd > 0);
+
+  // Clearance Charges — Documentation + Verification from the Rate Card,
+  // Agency Fee from whatever's been picked below (real, situation-specific)
+  // or the Rate Card's own default if nothing's been picked yet.
+  const cfVerifDef = rateCard['CF_VERIFICATION'] ?? 0;
+  const cfDocnDef = rateCard['CF_DOCUMENTATION'] ?? 0;
+  const cfAgencyRateCardDef = rateCard['CF_AGENCY_FEE'] ?? 0;
+
+  // ── Row/table data for the six Description|Unit|Rate|Sub-total|VAT|Total
+  // cards below — identical shape and VAT rules to the Export PDF's
+  // printReport() cards, so the two never disagree again.
+  const cifRows: BreakdownRowData[] = [
+    breakdownRow('FOB Value', 'lot', `USD ${fmt(fobUsd)}`, fobTzs, false),
+    breakdownRow('Freight', modeLabel, `USD ${fmt(freightUsd)}`, freightTzs, false),
+    breakdownRow('Insurance', '% of CFR', `${insurancePct.toFixed(insurancePct % 1 === 0 ? 0 : 2)}%`, insuranceTzs, false),
+  ];
+
+  const dutiesRows: BreakdownRowData[] = statutoryItems.map(b => breakdownRow(b.label, b.label.startsWith('VAT') ? 'CIF + Duty' : 'CIF', b.rate || '—', b.amount, false));
+
+  const tpaUnit = (label: string) => label.startsWith('Port Infrastructure') ? 'Import Duty' : label.startsWith('Green Port') ? 'Flat' : 'CIF';
+  const tpaRows: BreakdownRowData[] = [
+    ...tpaItems.map(b => breakdownRow(b.label, tpaUnit(b.label), b.rate || '—', b.amount, true)),
+    ...tpaExtra.map(e => breakdownRow(e.item.item_name, '—', '—', extraLineTzs(e), false)),
+  ];
+  const tpaSubtotal = breakdownRowsTotal(tpaRows, vatRatePct);
+
+  const icdRows: BreakdownRowData[] = icdRateCardItems.map(r => breakdownRow(r.label, 'per consignment', `USD ${r.usd.toFixed(2)}`, r.usd * fx, true));
+  const icdSubtotal = breakdownRowsTotal(icdRows, vatRatePct);
+
+  const clearanceRows: BreakdownRowData[] = [
+    ...(cfDocnDef > 0 ? [breakdownRow('Documentation', 'per BL', `USD ${cfDocnDef.toFixed(2)}`, cfDocnDef * fx, true)] : []),
+    ...(cfVerifDef > 0 ? [breakdownRow('Verification', 'per BL', `USD ${cfVerifDef.toFixed(2)}`, cfVerifDef * fx, true)] : []),
+    ...(clearanceExtra.length > 0 ? clearanceExtra.map(e => breakdownRow(e.item.item_name, '—', '—', extraLineTzs(e), false))
+      : cfAgencyRateCardDef > 0 ? [breakdownRow('Agency Fees', 'per container', `USD ${cfAgencyRateCardDef.toFixed(2)}`, cfAgencyRateCardDef * fx, true)] : []),
+  ];
+  const clearanceCardTotal = breakdownRowsTotal(clearanceRows, vatRatePct);
+
+  const tbsRows: BreakdownRowData[] = [
+    ...tbsBackendItems.map(b => breakdownRow(b.label, 'per BL', b.rate || '—', b.amount, false)),
+    ...tbsExtra.map(e => breakdownRow(e.item.item_name, '—', '—', extraLineTzs(e), false)),
+  ];
+  const tbsSubtotal = breakdownRowsTotal(tbsRows, vatRatePct);
+
+  // Delivery Order carries VAT; Handling/TASAC does not — matches the tenant's
+  // own workbook and the Export PDF.
+  const shipRowVat = (label: string) => !/Handling|TASAC/i.test(label);
+  const shipRows: BreakdownRowData[] = [
+    ...shippingBackendItems.map(b => breakdownRow(b.label, 'per BL', b.rate || '—', b.amount, shipRowVat(b.label))),
+    ...shippingExtra.map(e => breakdownRow(e.item.item_name, '—', '—', extraLineTzs(e), false)),
+  ];
+  const shippingSubtotal = breakdownRowsTotal(shipRows, vatRatePct);
+
+  // Grand total summed from the six cards actually rendered above — not
+  // `result.total`, which predates both the service-VAT column and the
+  // itemised Rate Card ICD/Clearance rows (it still carries the backend's
+  // single generic ICD estimate instead). Same arithmetic as the Export
+  // PDF's summary panel, so screen and print agree line for line.
+  // Extras whose authority matches no card above (so they appear in none of
+  // the six tables) — still real charges the user picked, so they're carried
+  // into the grand total and called out separately rather than dropped.
+  const otherExtraTzs = extraItems
+    .filter(e => !['TPA', 'TASAC_CFA', 'TBS', 'SHIPPING_LINE'].includes(e.item.authority))
+    .reduce((s, e) => s + extraLineTzs(e), 0);
+  const portIcdClearanceTotal = tpaSubtotal + icdSubtotal + clearanceCardTotal + tbsSubtotal + shippingSubtotal;
+  const grandTotalTzs = result.cif_tzs + result.statutory_total + portIcdClearanceTotal + otherExtraTzs;
+  const grandPerUnitTzs = qty > 0 ? grandTotalTzs / qty : grandTotalTzs;
+  // VAT recoverable = the statutory VAT line plus every service-VAT amount
+  // shown in the cards above.
+  const serviceVatTzs = [tpaRows, icdRows, clearanceRows, tbsRows, shipRows]
+    .flat()
+    .reduce((s, r) => s + (r.vat ? r.netTzs * vatRatePct / 100 : 0), 0);
+  const grandTotalExVatTzs = grandTotalTzs - result.vat - serviceVatTzs;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* ── Card 1: CIF VALUE ── */}
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
+          CIF VALUE
+        </div>
+        <BreakdownTable rows={cifRows} vatRatePct={vatRatePct} />
+        <Image1TotalStrip label="Total CIF" value={`TZS ${fmt(result.cif_tzs)}`} />
+      </div>
+
+      {/* ── Card 2: DUTIES & TAXES ── */}
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
+          DUTIES &amp; TAXES
+        </div>
+        <BreakdownTable rows={dutiesRows} vatRatePct={vatRatePct} />
+        <Image1TotalStrip label="Total Duties & Taxes" value={`TZS ${fmt(result.statutory_total)}`} />
+      </div>
+
+      {/* ── Cards 3a-3e: TPA / ICD / Clearance / TBS / Shipping Line — each its
+           own card with its own subtotal, matching the same buckets the
+           Export PDF report uses so what's on screen and what's printed
+           always agree. ── */}
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
+          TPA CHARGES
+        </div>
+        <BreakdownTable rows={tpaRows} vatRatePct={vatRatePct} />
+        {tpaRows.length === 0 && <div style={{ fontSize: 12, color: 'var(--ink4)', fontStyle: 'italic', padding: '6px 0' }}>No TPA charges (air mode, or nothing added).</div>}
+        <Image1TotalStrip label="Total TPA Charges" value={`TZS ${fmt(tpaSubtotal)}`} />
+        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 10, lineHeight: 1.5 }}>
+          Wharfage, Port Infrastructure Development and Green Port Initiatives are published TPA rates.
+        </div>
+      </div>
+
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
+          ICD CHARGES
+        </div>
+        <BreakdownTable rows={icdRows} vatRatePct={vatRatePct} />
+        {icdRows.length === 0 && <div style={{ fontSize: 12, color: 'var(--ink4)', fontStyle: 'italic', padding: '6px 0' }}>Nothing entered yet — populate Shore/Port Handling, ICD Movement, Container Transfer, Customs Verification and Corridor Levy in Tools → Rate Card.</div>}
+        <Image1TotalStrip label="Total ICD Charges" value={`TZS ${fmt(icdSubtotal)}`} />
+        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 10, lineHeight: 1.5 }}>
+          Sourced from your Rate Card (Tools → Rate Card) — a commercial estimate, not a TRA assessment.
+          {icdBackendSubtotal > 0 && ` ClearOS separately computed a single ICD/destination charge of TZS ${fmt(icdBackendSubtotal)} (${result.destination_charge_label}) for reference — reconcile it against the itemised figures above rather than adding both.`}
+        </div>
+      </div>
+
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
+          CLEARANCE CHARGES <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>(documentation, verification &amp; TASAC agency fee)</span>
+        </div>
+        <BreakdownTable rows={clearanceRows} vatRatePct={vatRatePct} />
+        {clearanceRows.length === 0 && cfDocnDef === 0 && cfVerifDef === 0 && cfAgencyRateCardDef === 0 && <div style={{ fontSize: 12, color: 'var(--ink4)', fontStyle: 'italic', padding: '6px 0' }}>No agency fee yet — set one in Tools → Rate Card, or pick one from the additional-charges search below (GN. 83-2026 minimum agency fees).</div>}
+        <Image1TotalStrip label="Total Clearance Charges" value={`TZS ${fmt(clearanceCardTotal)}`} />
+        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 10, lineHeight: 1.5 }}>
+          Documentation and Verification are sourced from your Rate Card; Agency Fee comes from what you've picked below if anything, otherwise your Rate Card's own default. Trucking and other clearing-service fees aren't included — add them from the Products &amp; Services catalog when writing the invoice.
+        </div>
+      </div>
+
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
+          TBS CHARGES
+        </div>
+        <BreakdownTable rows={tbsRows} vatRatePct={vatRatePct} />
+        {tbsRows.length === 0 && <div style={{ fontSize: 12, color: 'var(--ink4)', fontStyle: 'italic', padding: '6px 0' }}>No TBS charge on this quote.</div>}
+        <Image1TotalStrip label="Total TBS Charges" value={`TZS ${fmt(tbsSubtotal)}`} />
+        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 10, lineHeight: 1.5 }}>
+          Physical Verification Fee (TZS 150,000) + Service Fee (TZS 30,000) are flat reference rates from the clearing agent's own rate sheet — verify against your actual TBS invoice.
+        </div>
+      </div>
+
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
+          SHIPPING LINE CHARGES
+        </div>
+        <BreakdownTable rows={shipRows} vatRatePct={vatRatePct} />
+        {shipRows.length === 0 && <div style={{ fontSize: 12, color: 'var(--ink4)', fontStyle: 'italic', padding: '6px 0' }}>Not applicable for air cargo.</div>}
+        <Image1TotalStrip label="Total Shipping Line Charges" value={`TZS ${fmt(shippingSubtotal)}`} />
+        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 10, lineHeight: 1.5 }}>
+          Delivery Order Fee (TZS 56,286) and Handling/TASAC Fee (TZS 389,311.50, FCL only) are flat reference rates from the clearing agent's own rate sheet — verify against your actual shipping line invoice.
+        </div>
+      </div>
+
+      {/* ── ADDITIONAL PORT / TPA / TASAC CHARGES (optional, user-selected) ── */}
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>
+          ADDITIONAL PORT / TPA / TASAC CHARGES <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14, lineHeight: 1.5 }}>
+          Search the TPA Sea Ports Tariff Book and TASAC agency-fee guide (Tools → Reference → Tariff) for real, situation-specific extras — demurrage, equipment hire, agency fees, transshipment stevedoring — and add only what applies to this shipment. Anything added here also appears under its matching sub-section (TPA / Clearance / TBS / Shipping Line) above — this list is where you adjust quantity or remove one.
+        </div>
+        <EntityPicker
+          value={extraPicker}
+          onChange={onExtraPickerChange}
+          search={searchTariff}
+          placeholder="Search TPA / TASAC tariff items to add…"
+        />
+        {extraItems.length > 0 && (
+          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {extraItems.map(e => (
+              <div key={e.key} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 9, background: 'var(--bg)', border: '1px solid var(--border)' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{e.item.item_name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{[e.item.clause_ref, e.item.category].filter(Boolean).join(' · ')} — {e.item.rate_currency} {Number(e.item.rate_amount).toLocaleString('en-US')}{e.item.unit ? ` / ${e.item.unit}` : ''}</div>
+                </div>
+                <input type="number" min={1} value={e.qty} onChange={ev => onSetExtraQty(e.key, parseInt(ev.target.value, 10) || 1)}
+                  style={{ width: 56, height: 30, textAlign: 'center', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5 }} />
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', minWidth: 90, textAlign: 'right' }}>TZS {fmt(extraLineTzs(e))}</div>
+                <button type="button" onClick={() => onRemoveExtra(e.key)} title="Remove"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="x" size={14} /></button>
+              </div>
+            ))}
+            <Image1TotalStrip label="Total Additional Charges" value={`TZS ${fmt(extraTotalTzs)}`} />
+          </div>
+        )}
+      </div>
+
+      {/* ── GRAND TOTAL — LANDED COST ── */}
+      <div style={{
+        background: 'rgba(234, 88, 12, 0.06)',
+        border: '1.5px solid rgba(234, 88, 12, 0.25)',
+        borderRadius: 16,
+        padding: '24px 28px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 20
+      }}>
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>
+            GRAND TOTAL — LANDED COST
+          </div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink4)', textTransform: 'uppercase' }}>
+            TOTAL LANDED COST
+          </div>
+          <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--orange, #ea580c)', letterSpacing: '-0.02em', marginTop: 2 }}>
+            TZS {fmt(grandTotalTzs)}
+          </div>
+        </div>
+
+        {/* 2x2 Grid Summary Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+          <div style={{ padding: '12px 16px', borderRadius: 12, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase' }}>PER UNIT</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', marginTop: 3 }}>TZS {fmt(grandPerUnitTzs)}</div>
+          </div>
+          <div style={{ padding: '12px 16px', borderRadius: 12, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase' }}>CIF (USD)</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', marginTop: 3 }}>USD {fmtUsd(result.cif_usd)}</div>
+          </div>
+          <div style={{ padding: '12px 16px', borderRadius: 12, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase' }}>DUTIES &amp; TAXES</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', marginTop: 3 }}>TZS {fmt(result.statutory_total)}</div>
+          </div>
+          <div style={{ padding: '12px 16px', borderRadius: 12, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase' }}>PORT + ICD + CLEARANCE</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', marginTop: 3 }}>TZS {fmt(portIcdClearanceTotal)}</div>
+          </div>
+        </div>
+
+        {/* Recoverable VAT footnote — statutory VAT plus every service-VAT
+            amount shown in the cards above. */}
+        <div style={{ paddingTop: 10, borderTop: '1px solid rgba(234, 88, 12, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+          <span style={{ color: 'var(--ink3)' }}>Total excl. VAT (VAT recoverable)</span>
+          <strong style={{ color: 'var(--teal)' }}>TZS {fmt(grandTotalExVatTzs)}</strong>
+        </div>
+        {/* Extras picked below are already folded into the TPA / Clearance /
+            TBS / Shipping cards above (and therefore into the total), so they
+            are not added again here — only ones with no matching card are. */}
+        {otherExtraTzs > 0 && (
+          <div style={{ paddingTop: 10, borderTop: '1px solid rgba(234, 88, 12, 0.15)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+            <span style={{ color: 'var(--ink3)' }}>+ Additional charges with no matching card above</span>
+            <strong style={{ color: 'var(--ink)' }}>TZS {fmt(otherExtraTzs)}</strong>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** The four shipment modes the wizard offers as one dropdown. Internally the
+ *  page still carries `isAir` + `container` (the shapes the API and the rate
+ *  card already speak), so this is just the single user-facing control the
+ *  two of them project onto. */
+type ShipmentModeKey = '20ft' | '40ft' | 'lcl' | 'air';
+
+const SHIPMENT_MODE_OPTIONS: { key: ShipmentModeKey; label: string }[] = [
+  { key: '20ft', label: '20ft FCL' },
+  { key: '40ft', label: '40ft FCL' },
+  { key: 'lcl',  label: 'LCL' },
+  { key: 'air',  label: 'Airfreight' },
+];
+
+type RateCardKey = '20ft' | '40ft' | 'sea' | 'air' | 'road';
+
+function rateCardKeyFor(mode: ShipmentMode, container: '20ft' | '40ft' | 'lcl'): RateCardKey {
+  if (mode === 'sea_fcl') return container === '40ft' ? '40ft' : '20ft';
+  if (mode === 'air') return 'air';
+  return 'sea';
+}
+
+/** { CODE: amount } defaults from the tenant's own Rate Card tool
+ *  (/clearos/rate-card) — empty object (all zero/editable) if the tenant
+ *  hasn't populated it or the request fails, never a guessed fallback.
+ *  icdOperatorId picks a specific ICD's own rates; omitted/null uses the
+ *  card's generic default. */
+async function fetchRateCardDefaults(cardKey: RateCardKey, icdOperatorId?: string | null): Promise<Record<string, number>> {
+  try {
+    const res = await apiFetch(`/v1/rate-card/${cardKey}/defaults${icdOperatorId ? `?icd_operator_id=${icdOperatorId}` : ''}`);
+    return res.data ?? {};
+  } catch {
+    return {};
+  }
+}
+
+/** Who the estimate is addressed to and where the cargo is cleared to.
+ *  Descriptive only — none of it feeds the arithmetic, it just labels the
+ *  document (and names the downloaded file). */
+interface ReportMeta {
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  destination?: string;
+  /** QR PNG (data URI) and the public URL it encodes. Rendered server-side by
+   *  POST /v1/landed-cost-shares — the print popup has no bundler, so it can
+   *  only embed a ready-made image. Both absent when share creation failed;
+   *  the document then simply prints without the QR block. */
+  qrDataUri?: string;
+  shareUrl?: string;
+}
+
+interface ShareResult {
+  qrDataUri?: string;
+  shareUrl?: string;
+  /** Set when the share exists but no QR could be printed — most often
+   *  because the public domain isn't configured yet. Surfaced to the user so
+   *  a missing QR is explained rather than silently absent. */
+  qrUnavailableReason?: string;
+}
+
+/** Registers this estimate as a publicly-scannable report and returns the QR
+ *  to print on it. Never throws: a failed share must not block the export, it
+ *  just means the printed copy carries no QR code. */
+async function createShareForReport(result: LandedCostResult, meta: ReportMeta, payload: Record<string, any>): Promise<ShareResult> {
+  try {
+    const r: any = await apiFetch('/v1/landed-cost-shares', {
+      method: 'POST',
+      body: JSON.stringify({
+        hs_code: result.hs_code,
+        description: result.description,
+        customer_name: meta.customerName || null,
+        payload,
+      }),
+    });
+    return { qrDataUri: r?.qr_data_uri ?? undefined, shareUrl: r?.url ?? undefined, qrUnavailableReason: r?.qr_unavailable_reason ?? undefined };
+  } catch {
+    return { qrUnavailableReason: 'The report link could not be created, so this copy has no QR code.' };
+  }
+}
+
+function printReport(result: LandedCostResult, qty: string, summary: string, extraItems: ExtraCharge[] = [], container: '20ft' | '40ft' | 'lcl' = '20ft', rateCard: Record<string, number> = {}, meta: ReportMeta = {}) {
   const w = window.open('', '_blank');
   if (!w) return;
   const now = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
-  const rows = result.items.map(it => `<tr><td>${it.line_no}</td><td>${it.description}</td><td>${it.hs_code}</td><td style="text-align:right">${it.qty}</td><td style="text-align:right">TZS ${fmt(it.cif_tzs)}</td><td style="text-align:right">TZS ${fmt(it.duty)}</td><td style="text-align:right">TZS ${fmt(it.vat)}</td><td style="text-align:right;font-weight:700">TZS ${fmt(it.landed_total)}</td></tr>`).join('');
-  w.document.write(`<!DOCTYPE html><html><head><title>Landed Cost Report — Multi-Item</title>
-<style>body{font-family:system-ui,sans-serif;padding:32px;color:#111;max-width:960px;margin:0 auto}h1{font-size:20px;font-weight:800;margin:0 0 4px}.meta{font-size:12px;color:#64748b;margin-bottom:24px}h2{font-size:12px;font-weight:700;color:#0b1e3a;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #0b1e3a40;padding-bottom:5px;margin:24px 0 10px}table{width:100%;border-collapse:collapse}th,td{padding:8px 10px;border-bottom:1px solid #e5e7eb;font-size:12.5px;text-align:left}th{font-size:10.5px;text-transform:uppercase;color:#64748b}tr.hi td{background:#0b1e3a0d;font-weight:800;font-size:14px}ul.notes{margin:0;padding-left:18px;font-size:12px;color:#475569;line-height:1.7}.footer{margin-top:40px;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px}@media print{body{padding:16px}}</style></head><body>
-<h1>Landed Cost Report — Multi-Item</h1><p class="meta">Generated ${now} · ${result.items.length} line items · FX Rate: 1 USD = TZS ${result.fx_rate.toLocaleString()}</p>
-<h2>Per-Item Breakdown</h2>
-<table><thead><tr><th>#</th><th>Description</th><th>HS Code</th><th style="text-align:right">Qty</th><th style="text-align:right">CIF</th><th style="text-align:right">Duty</th><th style="text-align:right">VAT</th><th style="text-align:right">Landed Total</th></tr></thead>
-<tbody>${rows}</tbody></table>
-<h2>Totals</h2>
-<table>
-<tr><td>Total incl. VAT</td><td style="text-align:right;font-weight:600">TZS ${fmt(result.totals.total)}</td></tr>
-<tr class="hi"><td>Total excl. VAT (VAT recoverable)</td><td style="text-align:right">TZS ${fmt(result.totals.total_ex_vat)}</td></tr>
-</table>
-${(result.warnings.length > 0 || result.assumptions.length > 0) ? `<h2>Assumptions &amp; Warnings</h2><ul class="notes">${[...result.warnings, ...result.assumptions].map(w => `<li>${w}</li>`).join('')}</ul>` : ''}
-${HUDUMIKA_FOOTER_HTML}
+  const fx = result.fx_rate;
+  const company = getCompany();
+
+  // Same statutory/port split used on-screen (FormattedLandedCostBreakdown)
+  // — used here only to total up what the picker's extras contribute to
+  // each named slot in the fixed-format sheet below (Shipping/TBS/Green/
+  // Clearance), never to invent a new number.
+  const STATUTORY_PREFIXES = ['Import Duty', 'Excise Duty', 'VAT', 'Railway Development Levy', 'Customs Processing Fee'];
+  const isStatutory = (label: string) => STATUTORY_PREFIXES.some(p => label.startsWith(p));
+  const lineItems = result.breakdown.filter(b => b.label !== 'CIF Value (TZS)' && b.label !== 'Total Landed Cost (TZS)' && !b.label.startsWith('Per Unit'));
+  const icdBackendRow = lineItems.find(b => !isStatutory(b.label) && b.label === result.destination_charge_label);
+
+  const asExtraRow = (e: ExtraCharge) => ({ label: `${e.item.item_name}${e.qty > 1 ? ` × ${e.qty}` : ''}`, amountTzs: extraChargeTzs(e, fx) });
+  const clearanceExtra = extraItems.filter(e => e.item.authority === 'TASAC_CFA').map(asExtraRow);
+  const tbsExtra = extraItems.filter(e => e.item.authority === 'TBS').map(asExtraRow);
+  const shippingExtra = extraItems.filter(e => e.item.authority === 'SHIPPING_LINE').map(asExtraRow);
+  const tpaExtra = extraItems.filter(e => e.item.authority === 'TPA').map(asExtraRow);
+  const otherExtra = extraItems.filter(e => !['TASAC_CFA', 'TBS', 'SHIPPING_LINE', 'TPA'].includes(e.item.authority)).map(asExtraRow);
+
+  const clearanceTotalUsd = clearanceExtra.reduce((s, r) => s + r.amountTzs, 0) / fx;
+  // result.tbs_charge / result.shipping_line_charge are already the full,
+  // correctly-summed backend totals (customs.service.ts) — reading them
+  // straight off `result` rather than re-deriving from `result.breakdown`
+  // avoids under-counting now that the backend emits TBS and Shipping Line
+  // as two separate breakdown rows each (Physical Verification Fee/Service
+  // Fee; Delivery Order/Handling), not one combined row.
+  // Real flat fees (clearing agent's own rate sheet): Physical Verification
+  // Fee TZS 150,000 + Service Fee TZS 30,000 when TBS applies (Destination
+  // Inspection required and PVoC not also required — see customs.service.ts)
+  const tbsVerifDefaultUsd = result.tbs_charge > 0 ? 150000 / fx : 0;
+  const tbsServiceDefaultUsd = (result.tbs_charge > 0 ? 30000 / fx : 0) + tbsExtra.reduce((s, r) => s + r.amountTzs, 0) / fx;
+  // Real flat fees (clearing agent's own rate sheet, same source the
+  // backend uses): Delivery Order TZS 56,286 for any sea shipment,
+  // Handling/TASAC Fee TZS 389,311.50 for FCL only — shown as two separate
+  // rows below rather than lumped into one, so the split matches what's
+  // actually being charged.
+  const shipDoDefaultUsd = result.mode !== 'air' ? 56286 / fx : 0;
+  const shipHandleDefaultUsd = (result.mode === 'sea_fcl' ? 389311.50 / fx : 0) + shippingExtra.reduce((s, r) => s + r.amountTzs, 0) / fx;
+
+  const cargoUsd = result.fob_usd ?? result.cif_usd;
+  const freightUsd = result.freight_usd ?? 0;
+  const insuranceUsdCard = result.insurance_usd ?? (result.cif_usd * 0.01);
+  const insurancePctCard = (cargoUsd + freightUsd) > 0 ? (insuranceUsdCard / (cargoUsd + freightUsd)) * 100 : 0;
+
+  const companyAddrLine = [company.address, company.city, company.country].filter(Boolean).join(', ');
+  const modeLabel = result.mode === 'sea_fcl' ? 'Sea · FCL' : result.mode === 'sea_lcl' ? 'Sea · LCL' : 'Air';
+  const destinationLabel = (meta.destination || '').trim() || 'Dar es Salaam, Tanzania';
+  /** "Dar es Salaam, Tanzania" → "Dar es Salaam" for the summary/DDP labels,
+   *  which read as a place name rather than a full address. */
+  const destinationShort = destinationLabel.split(',')[0].trim() || destinationLabel;
+  const customerLine = [meta.customerName, meta.customerEmail, meta.customerPhone].map(s => (s || '').trim()).filter(Boolean).join(' · ');
+  const overriddenLabels = (result.overridden_fields ?? []).map(f => OVERRIDE_LABELS[f] ?? f).join(', ');
+
+  // VAT (18%) applies on top of TPA/ICD/Clearance/Shipping service charges,
+  // same as the statutory VAT line itself — derived from what was actually
+  // assessed (never a guessed flat 18%) so it stays correct if the rate
+  // ever changes. TBS and CIF/Duties rows don't carry a separate VAT
+  // column (TBS is VAT-exempt here; VAT is itself one of the Duties rows).
+  const vatBaseCard = result.cif_tzs + result.duty;
+  const vatRatePct = vatBaseCard > 0 ? (result.vat / vatBaseCard) * 100 : 18;
+
+  // Per-consignment defaults for the 5 ICD charges and 3 C&F (agency)
+  // charges — pulled from the tenant's own Rate Card tool
+  // (/clearos/rate-card), keyed to whichever card matches this shipment's
+  // container/mode. Empty/zero until the tenant populates that tool; never
+  // a guessed fallback.
+  const icdHandDef = rateCard['ICD_HANDLING'] ?? 0;
+  const icdCorrDef = rateCard['ICD_CORRIDOR'] ?? 0;
+  const icdVerifDef = rateCard['ICD_VERIFICATION'] ?? 0;
+  const icdMoveDef = rateCard['ICD_MOVEMENT'] ?? 0;
+  const icdXferDef = rateCard['ICD_TRANSFER'] ?? 0;
+  const cfVerifDef = rateCard['CF_VERIFICATION'] ?? 0;
+  const cfDocnDef = rateCard['CF_DOCUMENTATION'] ?? 0;
+  const cfAgencyDef = clearanceTotalUsd > 0 ? clearanceTotalUsd : (rateCard['CF_AGENCY_FEE'] ?? 0);
+  const hasRateCardDefaults = icdHandDef > 0 || icdCorrDef > 0 || icdVerifDef > 0 || icdMoveDef > 0 || icdXferDef > 0 || cfVerifDef > 0 || cfDocnDef > 0 || (rateCard['CF_AGENCY_FEE'] ?? 0) > 0;
+
+  // ── Card body — mirrors the on-screen FormattedLandedCostBreakdown design
+  // (same cards, same data), each rendered as a static, read-only table
+  // (Description / Unit / Rate / Sub-total / VAT / Total) rather than an
+  // interactive spreadsheet: this is a final estimate to hand to a client,
+  // not a working sheet, so nothing here needs to be editable. VAT (18%)
+  // applies on top of TPA/ICD/Clearance/Shipping service charges, same as
+  // the old interactive sheet did — TBS and CIF/Duties rows don't carry a
+  // separate VAT column (TBS is VAT-exempt here; VAT is itself one of the
+  // Duties rows, so showing it twice would double-count it).
+  const moneyN = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  interface Row { label: string; unit: string; rate: string; netTzs: number; vat: boolean }
+  const row = (label: string, unit: string, rate: string, netTzs: number, vat: boolean): Row => ({ label, unit, rate, netTzs, vat });
+  const tblRow = (r: Row) => {
+    const vatTzs = r.vat ? r.netTzs * vatRatePct / 100 : 0;
+    return `<tr><td class="td-desc">${r.label}</td><td class="td-unit">${r.unit}</td><td class="td-rate">${r.rate}</td><td class="td-num">TZS ${moneyN(r.netTzs)}</td><td class="td-num">${r.vat ? 'TZS ' + moneyN(vatTzs) : '&mdash;'}</td><td class="td-num td-total">TZS ${moneyN(r.netTzs + vatTzs)}</td></tr>`;
+  };
+  // th-unit / th-rate mirror the td-unit / td-rate body classes so the narrow
+  // -screen rule can hide a column's header and its cells together. Hiding
+  // only the cells leaves 6 headers over 4 cells and shifts every value one
+  // column left, which put Total under the VAT heading.
+  const cardTable = (rows: Row[]) => rows.length === 0 ? '' : `<table class="ctbl"><thead><tr><th>Description</th><th class="th-unit">Unit</th><th class="r th-rate">Rate</th><th class="r">Sub-total</th><th class="r">VAT</th><th class="r">Total</th></tr></thead><tbody>${rows.map(tblRow).join('')}</tbody></table>`;
+  const rowsTotal = (rows: Row[]) => rows.reduce((s, r) => s + r.netTzs + (r.vat ? r.netTzs * vatRatePct / 100 : 0), 0);
+  const cardTotal = (label: string, valueTzs: number) => `<div class="card-total"><span>${label}</span><span>TZS ${moneyN(valueTzs)}</span></div>`;
+  const cardEmpty = (text: string) => `<div class="card-empty">${text}</div>`;
+  const cardNote = (text: string) => `<div class="card-note">${text}</div>`;
+
+  const statutoryItems = lineItems.filter(b => isStatutory(b.label));
+  const tpaItems = lineItems.filter(b => !isStatutory(b.label) && b.label !== result.destination_charge_label && !b.label.startsWith('TBS Charges') && !b.label.startsWith('Shipping Line Charges'));
+
+  const cifRows = [
+    row('FOB Value', 'lot', `USD ${moneyN(cargoUsd)}`, cargoUsd * fx, false),
+    row('Freight', modeLabel, `USD ${moneyN(freightUsd)}`, freightUsd * fx, false),
+    row('Insurance', '% of CFR', `${insurancePctCard.toFixed(insurancePctCard % 1 === 0 ? 0 : 2)}%`, insuranceUsdCard * fx, false),
+  ];
+  const cifCardHtml = `<div class="card"><div class="card-h">CIF VALUE</div>${cardTable(cifRows)}${cardTotal('Total CIF', result.cif_tzs)}</div>`;
+
+  const dutiesRows = statutoryItems.map(b => row(b.label, b.label.startsWith('VAT') ? 'CIF + Duty' : 'CIF', b.rate || '&mdash;', b.amount, false));
+  const dutiesCardHtml = `<div class="card"><div class="card-h">DUTIES &amp; TAXES</div>${cardTable(dutiesRows)}${cardTotal('Total Duties &amp; Taxes', result.statutory_total)}</div>`;
+
+  const tpaUnit = (label: string) => label.startsWith('Port Infrastructure') ? 'Import Duty' : label.startsWith('Green Port') ? 'Flat' : 'CIF';
+  const tpaRows = [
+    ...tpaItems.map(b => row(b.label, tpaUnit(b.label), b.rate || '&mdash;', b.amount, true)),
+    ...tpaExtra.map(r => row(r.label, '&mdash;', '&mdash;', r.amountTzs, false)),
+  ];
+  const tpaSubtotalTzs = rowsTotal(tpaRows);
+  const tpaCardHtml = `<div class="card"><div class="card-h">TPA CHARGES</div>${cardTable(tpaRows) || cardEmpty('No TPA charges (air mode, or nothing added).')}${cardTotal('Total TPA Charges', tpaSubtotalTzs)}${cardNote('Wharfage, Port Infrastructure Development and Green Port Initiatives are published TPA rates.')}</div>`;
+
+  const icdRateAll: [string, number][] = [
+    ['Customs Verification', icdVerifDef], ['Corridor Levy', icdCorrDef], ['Handling Charges', icdHandDef],
+    ['ICD Movement Charges', icdMoveDef], ['Container Transfer', icdXferDef],
+  ];
+  const icdRows = icdRateAll.filter(([, v]) => v > 0).map(([label, usd]) => row(label, 'per consignment', `USD ${moneyN(usd)}`, usd * fx, true));
+  const icdSubtotalTzs = rowsTotal(icdRows);
+  // `brk` starts page 2 here — page 1 ends after Total TPA Charges.
+  const icdCardHtml = `<div class="card"><div class="card-h">ICD CHARGES</div>${cardTable(icdRows) || cardEmpty('Nothing entered yet — populate your Rate Card (Tools → Rate Card).')}${cardTotal('Total ICD Charges', icdSubtotalTzs)}${cardNote(`Sourced from your Rate Card — a commercial estimate, not a TRA assessment.${icdBackendRow ? ` ClearOS separately computed a single ICD/destination charge of TZS ${moneyN(icdBackendRow.amount)} (${icdBackendRow.label}) for reference — reconcile it against the itemised figures above rather than adding both.` : ''}`)}</div>`;
+
+  const clearanceRows = [
+    ...(cfDocnDef > 0 ? [row('Documentation', 'per BL', `USD ${moneyN(cfDocnDef)}`, cfDocnDef * fx, true)] : []),
+    ...(cfVerifDef > 0 ? [row('Verification', 'per BL', `USD ${moneyN(cfVerifDef)}`, cfVerifDef * fx, true)] : []),
+    ...(clearanceExtra.length > 0 ? clearanceExtra.map(e => row(e.label, '&mdash;', '&mdash;', e.amountTzs, false))
+      : cfAgencyDef > 0 ? [row('Agency Fees', 'per container', `USD ${moneyN(cfAgencyDef)}`, cfAgencyDef * fx, true)] : []),
+  ];
+  const clearanceTotalTzs = rowsTotal(clearanceRows);
+  const clearanceCardHtml = `<div class="card"><div class="card-h">CLEARANCE CHARGES <span class="card-h-sub">(documentation, verification &amp; TASAC agency fee)</span></div>${cardTable(clearanceRows) || cardEmpty('No agency fee yet — set one in Tools → Rate Card, or pick one from the additional-charges search below.')}${cardTotal('Total Clearance Charges', clearanceTotalTzs)}${cardNote(`Documentation and Verification are sourced from your Rate Card; Agency Fee comes from what you've picked below if anything, otherwise your Rate Card's default.`)}</div>`;
+
+  const tbsRows = [
+    ...(tbsVerifDefaultUsd > 0 ? [row('Physical Verification Fee (DI)', 'per BL', `USD ${moneyN(tbsVerifDefaultUsd)}`, tbsVerifDefaultUsd * fx, false)] : []),
+    ...(tbsServiceDefaultUsd > 0 ? [row('Service Fee', 'per BL', `USD ${moneyN(tbsServiceDefaultUsd)}`, tbsServiceDefaultUsd * fx, false)] : []),
+  ];
+  const tbsTotalTzs = rowsTotal(tbsRows);
+  const tbsCardHtml = `<div class="card"><div class="card-h">TBS CHARGES</div>${cardTable(tbsRows) || cardEmpty("No TBS charge on this quote.")}${cardTotal('Total TBS Charges', tbsTotalTzs)}${cardNote('Physical Verification Fee (TZS 150,000) + Service Fee (TZS 30,000) are flat reference rates from the clearing agent’s own rate sheet.')}</div>`;
+
+  // Delivery Order carries VAT; Handling/TASAC does not — per the tenant's own
+  // Landed Cost Model workbook, which shows a blank VAT column and a total
+  // equal to the sub-total on that line.
+  const shipRows = [
+    ...(shipDoDefaultUsd > 0 ? [row('Delivery Order Fee', 'per BL', `USD ${moneyN(shipDoDefaultUsd)}`, shipDoDefaultUsd * fx, true)] : []),
+    ...(shipHandleDefaultUsd > 0 ? [row('Handling / TASAC Fee', 'per BL', `USD ${moneyN(shipHandleDefaultUsd)}`, shipHandleDefaultUsd * fx, false)] : []),
+  ];
+  const shipTotalTzs = rowsTotal(shipRows);
+  const shipCardHtml = `<div class="card"><div class="card-h">SHIPPING LINE CHARGES</div>${cardTable(shipRows) || cardEmpty('Not applicable for air cargo.')}${cardTotal('Total Shipping Line Charges', shipTotalTzs)}${cardNote('Delivery Order (TZS 56,286) and Handling/TASAC Fee (TZS 389,311.50, FCL only) are flat reference rates from the clearing agent’s own rate sheet.')}</div>`;
+
+  const freightinsTzs = freightUsd * fx + insuranceUsdCard * fx;
+  const tzpayTzs = shipTotalTzs + result.statutory_total + tbsTotalTzs + tpaSubtotalTzs + icdSubtotalTzs + clearanceTotalTzs;
+  const prepTzs = freightinsTzs + tzpayTzs;
+  const prepUsd = prepTzs / fx;
+  const ddpTzs = cargoUsd * fx + prepTzs;
+  const ddpUsd = cargoUsd + prepUsd;
+
+  const notesExtra: string[] = [];
+  if (otherExtra.length > 0) {
+    notesExtra.push(`Added via the on-screen picker but with no matching card above — add manually: ${otherExtra.map(e => `${e.label} (TZS ${e.amountTzs.toLocaleString('en-US')})`).join('; ')}.`);
+  }
+  if (hasRateCardDefaults) notesExtra.push(`ICD and C&F charges are sourced from ${company.name}'s own Rate Card tool (Tools → Rate Card) for the "${rateCardKeyFor(result.mode, container)}" card — not a government tariff. Any line still at zero hasn't been entered there yet.`);
+  const allNotes = [...result.warnings, ...result.assumptions, ...notesExtra];
+
+  w.document.write(`<!DOCTYPE html><html><head><title>Landed Cost Calculator &middot; ${result.hs_code} &middot; ClearOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--acc:#FF5E1A;--acc-600:#E8480A;--acc-050:#FFF4EC;--acc-100:#FFE0CE;--ink:#14181B;--ink-700:#2A3035;--slate:#5B646D;--slate-400:#8A939C;--line:#E5E9EC;--line-soft:#EEF2F4;--paper:#FFFFFF;--backdrop:#E7EBEE;--panel:#161A1E;--tint:#F7F9FA;--gold:#B8862F;}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--backdrop);color:var(--ink);font-family:"Inter",system-ui,-apple-system,sans-serif;font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+.toolbar{position:fixed;top:18px;right:18px;z-index:50;display:flex;gap:8px}
+.toolbar button{font-family:inherit;font-size:12.5px;font-weight:600;letter-spacing:.02em;border:1px solid var(--line);background:#fff;color:var(--ink-700);padding:9px 15px;border-radius:9px;cursor:pointer;box-shadow:0 2px 8px rgba(20,25,30,.10);transition:.15s}
+.toolbar button:hover{border-color:var(--acc);color:var(--acc-600)}
+.toolbar .primary{background:var(--acc);color:#fff;border-color:var(--acc)}
+.toolbar .primary:hover{background:var(--acc-600);color:#fff}
+.sheet{width:210mm;min-height:297mm;margin:34px auto;background:var(--paper);box-shadow:0 12px 40px rgba(20,25,30,.14);padding:16mm 15mm 13mm;position:relative}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding-bottom:16px;border-bottom:2px solid var(--ink);position:relative}
+.head::after{content:"";position:absolute;left:0;bottom:-2px;width:88px;height:2px;background:var(--acc)}
+.brand{display:flex;gap:12px;align-items:flex-start}
+.mark{width:44px;height:44px;border-radius:13px;background:var(--acc);flex:none;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(255,94,26,.28)}
+.mark svg{width:27px;height:27px}
+.brand .name{font-family:"Space Grotesk",sans-serif;font-size:21px;font-weight:700;line-height:1;color:var(--ink)}
+.brand .name span{color:var(--acc)}
+.brand .role{font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--slate);font-weight:600;margin-top:5px}
+.brand .addr{font-size:10.5px;color:var(--slate);margin-top:7px;line-height:1.55}
+.brand .addr b{color:var(--ink-700);font-weight:600}
+.doc{text-align:right;flex:none}
+.doc .kick{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--acc-600);font-weight:700}
+.doc h1{font-family:"Space Grotesk",sans-serif;font-size:23px;font-weight:700;line-height:1.05;margin-top:3px;color:var(--ink)}
+.doc .pi{margin-top:10px;font-size:11.5px;color:var(--slate);line-height:1.7}
+.doc .pi b{color:var(--ink-700);font-weight:600}
+.doc .pi .mono{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--ink)}
+.client{display:flex;align-items:baseline;gap:10px;margin-top:14px;padding:9px 14px;border:1px solid var(--line);border-radius:9px;background:var(--tint)}
+.client .lab{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--acc-600);font-weight:700;flex:none}
+.client .val{font-size:11.5px;color:var(--ink-700);font-weight:600}
+.override{margin-top:10px;padding:9px 14px;border:1px solid #E4C06A;border-radius:9px;background:#FDF6E3;font-size:10.5px;color:#6B5518;line-height:1.5}
+.override b{color:#8A6D14}
+.parties{display:grid;grid-template-columns:1fr 1fr;margin-top:16px;border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.parties .p{padding:13px 16px}
+.parties .p:first-child{border-right:1px solid var(--line);background:var(--tint)}
+.parties .lab{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--acc-600);font-weight:700}
+.parties .big{font-family:"Space Grotesk",sans-serif;font-size:15px;font-weight:600;margin-top:5px;color:var(--ink)}
+.parties .kv{display:flex;justify-content:space-between;gap:12px;font-size:11.5px;margin-top:6px}
+.parties .kv .k{color:var(--slate)}
+.parties .kv .v{color:var(--ink-700);font-weight:600;text-align:right}
+.cards{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+.card{border:1px solid var(--line);border-radius:12px;padding:12px 16px;background:#fff}
+.card-h{font-size:10px;font-weight:800;color:var(--slate);text-transform:uppercase;letter-spacing:.08em;margin-bottom:7px}
+.card-h-sub{font-weight:500;text-transform:none;letter-spacing:0;color:var(--slate-400)}
+table.ctbl{width:100%;border-collapse:collapse;font-size:10px}
+table.ctbl thead th{background:var(--tint);color:var(--slate);font-weight:700;font-size:8.5px;letter-spacing:.04em;text-transform:uppercase;padding:5px 6px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+table.ctbl thead th.r{text-align:right}
+table.ctbl td{padding:4.5px 6px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+table.ctbl .td-desc{color:var(--ink-700);font-weight:600;overflow-wrap:break-word}
+table.ctbl .td-unit{width:1%;color:var(--slate);font-size:9px;white-space:nowrap}
+table.ctbl .td-rate{width:1%;text-align:right;color:var(--slate);font-style:italic;white-space:nowrap}
+table.ctbl .td-num{width:1%;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap}
+table.ctbl .td-total{font-weight:700}
+.card-total{margin-top:8px;padding:7px 12px;border-radius:8px;background:var(--acc-050);border:1px solid var(--acc-100);display:flex;justify-content:space-between;align-items:center}
+.card-total span:first-child{font-size:11px;font-weight:700;color:var(--ink)}
+.card-total span:last-child{font-size:12.5px;font-weight:800;color:var(--acc-600)}
+.card-empty{font-size:10.5px;color:var(--slate-400);font-style:italic;padding:4px 0}
+.card-note{margin-top:6px;font-size:9.5px;color:var(--slate);line-height:1.45}
+.summary{margin-top:22px;display:grid;grid-template-columns:1.12fr 0.88fr;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.sum-l{padding:18px 18px;background:var(--tint)}
+.sum-l h3{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc-600);font-weight:700;margin-bottom:13px;display:flex;align-items:center}
+.sum-l h3 .n{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:var(--acc);color:#fff;border-radius:5px;font-family:'Space Grotesk';font-size:10.5px;margin-right:8px}
+.sum-l .row{display:flex;flex-wrap:nowrap;align-items:baseline;justify-content:space-between;gap:10px;font-size:11px;padding:5.5px 0;border-bottom:1px solid var(--line-soft)}
+.sum-l .row.head{color:var(--slate);font-weight:600;border-bottom:none;padding-bottom:2px;padding-top:9px;font-size:10.5px;letter-spacing:.03em;text-transform:uppercase}
+.sum-l .row.sub{padding-left:14px}
+.sum-l .row .k{color:var(--ink-700);min-width:0;overflow-wrap:break-word}
+.sum-l .row.sub .k{color:var(--slate)}
+.sum-l .row .v{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;flex:none}
+.sum-l .row.cifrow{border-bottom:1.5px solid var(--ink);padding-bottom:9px;margin-bottom:3px}
+.sum-l .row.cifrow .k{font-weight:700}
+.sum-l .row.cifrow .v{font-family:"Space Grotesk",sans-serif;font-size:12px}
+.sum-r{background:var(--panel);color:#fff;padding:18px 18px;display:flex;flex-direction:column;justify-content:center}
+.sum-r .prep-lab{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--acc-100);font-weight:700}
+.sum-r .prep-tzs{font-family:"Space Grotesk",sans-serif;font-size:22px;font-weight:700;line-height:1.05;margin-top:8px;font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap}
+.sum-r .prep-usd{margin-top:6px;font-size:12px;color:#9fb2ac;font-variant-numeric:tabular-nums}
+.sum-r .fx{margin-top:4px;font-size:10.5px;color:#75897f}
+.sum-r .ddp{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12)}
+.sum-r .ddp .l{font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:#8fa39d;font-weight:600;white-space:nowrap}
+.sum-r .ddp .v{font-family:"Space Grotesk",sans-serif;font-size:19px;font-weight:700;margin-top:5px;color:#FF8A4C;font-variant-numeric:tabular-nums;white-space:nowrap}
+.sum-r .ddp .n{font-size:10px;color:#75897f;margin-top:3px}
+.foot{margin-top:20px}
+.terms{width:100%}
+.terms h4{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);font-weight:700;margin-bottom:8px}
+.terms ul{list-style:none;font-size:10.5px;color:var(--slate);line-height:1.6;columns:2;column-gap:26px}
+.terms ul li{padding-left:13px;position:relative;margin-bottom:3px;break-inside:avoid}
+.terms ul li::before{content:"";position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:var(--acc)}
+.qr{margin-top:14px;display:flex;gap:14px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--tint)}
+.qr img{width:74px;height:74px;flex:none;display:block;border-radius:6px;background:#fff}
+.qr-h{font-size:10.5px;font-weight:800;color:var(--ink);text-transform:uppercase;letter-spacing:.07em}
+.qr-b{font-size:9.5px;color:var(--slate);line-height:1.5;margin-top:4px}
+.qr-u{font-family:"IBM Plex Mono",monospace;font-size:8.5px;color:var(--acc-600);margin-top:5px;word-break:break-all}
+/* Each .page is one printed sheet. Wrapping content this way (rather than
+   forcing breaks on arbitrary elements) gives the watermark a box to centre
+   itself in, and makes the pagination explicit instead of inferred. */
+.page{position:relative}
+.page > *{position:relative;z-index:1}
+/* Watermark: pages 1 and 2 carry one, the final page does not. Sits in front
+   of the content at 70% transparency (0.3 opacity). z-index beats the
+   .page > * rule above; pointer-events:none keeps it from swallowing clicks
+   or text selection in the on-screen preview. */
+.wm{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:118mm;max-width:70%;z-index:5;pointer-events:none;line-height:0}
+.wm svg{width:100%;height:auto;display:block;fill:var(--acc);opacity:.3}
+.page-last .wm{display:none}
+.sign-row{margin-top:16px;border-top:1px solid var(--line);padding-top:11px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px}
+.sign .w{font-size:12px;font-weight:600;color:var(--ink-700)}
+.sign .r{font-size:10.5px;color:var(--slate);margin-top:2px}
+.sign-row .stamp{padding-top:7px;border-top:1px dashed var(--slate-400);font-size:10px;color:var(--slate-400);min-width:220px;text-align:right}
+.legal{margin-top:14px;font-size:9.5px;color:var(--slate-400);line-height:1.55;background:var(--tint);border-radius:9px;padding:10px 13px}
+.credit{margin-top:14px;padding-top:11px;border-top:2px solid var(--ink);position:relative;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--slate)}
+.credit::after{content:"";position:absolute;left:0;top:-2px;width:88px;height:2px;background:var(--acc)}
+.credit b{color:var(--ink-700)}
+@media print{
+  /* Real A4 pages with normal margins. Each .page container is exactly one
+     printed sheet: page 1 ends after Total TPA Charges, page 2 runs ICD →
+     Shipping Line, page 3 is the Landed Cost Summary, notes and footer. */
+  @page{size:A4;margin:14mm}
+  html,body{background:#fff}
+  .toolbar{display:none}
+  .sheet{width:auto;min-height:auto;margin:0;padding:0;box-shadow:none}
+  /* break-after on every page but the last — a trailing break would emit a
+     blank fourth sheet. min-height fills the printable area (297mm less the
+     two 14mm margins) so the watermark centres on the paper rather than on
+     however tall that page's content happens to be. */
+  .page{min-height:269mm;break-after:page;page-break-after:always}
+  .page-last{min-height:0;break-after:auto;page-break-after:auto}
+  /* Flex containers fragment unreliably across print engines, so the card
+     stack becomes plain block flow for printing — forced breaks on block
+     children are dependable. The gap property doesn't apply in block layout,
+     hence the explicit margin. */
+  .cards{display:block}
+  .cards > .card{margin-bottom:10px}
+  .card{page-break-inside:avoid}
+  .summary,.parties,.head,.terms,.client,.override,.qr{page-break-inside:avoid}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+/* SCREEN ONLY. Must never apply to print: an A4 page is 210mm, about 794 CSS
+   px, so an unscoped max-width:900px rule matches while printing and wrecks
+   the exported document — stacking the header, the Cargo/Shipment pair and
+   the summary, and dropping table columns. */
+@media screen and (max-width:900px){
+  .sheet{width:100%;margin:0;padding:20px 12px}
+  .parties,.summary{grid-template-columns:1fr}
+  .terms ul{columns:1}
+  .sign-row{flex-direction:column;align-items:flex-start}
+  .sign-row .stamp{text-align:left;min-width:0}
+  table.ctbl{font-size:10px}
+  table.ctbl .td-unit,table.ctbl .td-rate,table.ctbl .th-unit,table.ctbl .th-rate{display:none}
+  .toolbar{position:static;justify-content:flex-end;padding:10px}
+  .head{flex-direction:column}.doc{text-align:left}
+}
+</style></head><body>
+
+<div class="toolbar">
+  <button class="primary" onclick="window.print()">Download / Print PDF</button>
+</div>
+
+<div class="sheet">
+ <section class="page">
+  <div class="wm" aria-hidden="true"><svg viewBox="7 20 111 110"><path d="M61.765,38.617l-27.572,20.592l1.549,4.902l26.023,-19.436l26.023,19.436l1.549,-4.902l-27.572,-20.592Zm-0,-8.491l35.426,26.459l-5.891,18.64l-29.535,-22.059l-29.535,22.059l-5.891,-18.64l35.426,-26.459Z"/><path d="M61.765,73.383l-17.704,13.223l6.762,21.395l7.847,0l3.095,-21.333l3.095,21.333l7.847,0l6.762,-21.395l-17.704,-13.223Zm0,-10.147l27.091,20.235l-10.348,32.74l-33.487,0l-10.348,-32.74l27.091,-20.235Z"/></svg></div>
+  <header class="head">
+    <div class="brand">
+      <div class="mark"><svg viewBox="7 20 111 110" fill="none"><path d="M61.765,38.617l-27.572,20.592l1.549,4.902l26.023,-19.436l26.023,19.436l1.549,-4.902l-27.572,-20.592Zm-0,-8.491l35.426,26.459l-5.891,18.64l-29.535,-22.059l-29.535,22.059l-5.891,-18.64l35.426,-26.459Z" fill="#fff"/><path d="M61.765,73.383l-17.704,13.223l6.762,21.395l7.847,0l3.095,-21.333l3.095,21.333l7.847,0l6.762,-21.395l-17.704,-13.223Zm0,-10.147l27.091,20.235l-10.348,32.74l-33.487,0l-10.348,-32.74l27.091,-20.235Z" fill="#fff"/></svg></div>
+      <div>
+        <div class="name">Clear<span>OS</span></div>
+        <div class="role">Customs &amp; Landed Cost Intelligence</div>
+        <div class="addr">Clearing agent: <b>${company.name}</b>${company.businessType ? ` &middot; ${company.businessType}` : ''}<br>${companyAddrLine}${companyAddrLine ? ' &middot; ' : ''}${company.email || ''}</div>
+      </div>
+    </div>
+    <div class="doc">
+      <div class="kick">Estimate</div><h1>Landed Cost</h1>
+      <div class="pi">Ref <span class="mono">${result.hs_code}-${now.replace(/\s/g, '')}</span><br>Generated <b>${now}</b></div>
+    </div>
+  </header>
+
+  ${customerLine ? `<section class="client"><span class="lab">Prepared for</span><span class="val">${customerLine}</span></section>` : ''}
+  ${overriddenLabels ? `<section class="override"><b>Manual rate override:</b> ${overriddenLabels} — entered by the preparer, not sourced from the EAC CET tariff database or a published TPA/TRA rate.</section>` : ''}
+
+  <section class="parties">
+    <div class="p"><div class="lab">Cargo</div><div class="big">${result.description}</div>
+      <div class="kv"><span class="k">HS Code</span><span class="v">${result.hs_code}</span></div>
+      <div class="kv"><span class="k">Quantity</span><span class="v">${qty || '1'} unit(s)</span></div></div>
+    <div class="p"><div class="lab">Shipment</div>
+      <div class="kv"><span class="k">Mode</span><span class="v">${modeLabel}</span></div>
+      <div class="kv"><span class="k">Destination basis</span><span class="v">${result.destination_charge_label}</span></div>
+      <div class="kv"><span class="k">Destination</span><span class="v">${destinationLabel}</span></div></div>
+  </section>
+
+  <div class="cards">
+    ${cifCardHtml}
+    ${dutiesCardHtml}
+    ${tpaCardHtml}
+  </div>
+ </section>
+
+ <section class="page">
+  <div class="wm" aria-hidden="true"><svg viewBox="7 20 111 110"><path d="M61.765,38.617l-27.572,20.592l1.549,4.902l26.023,-19.436l26.023,19.436l1.549,-4.902l-27.572,-20.592Zm-0,-8.491l35.426,26.459l-5.891,18.64l-29.535,-22.059l-29.535,22.059l-5.891,-18.64l35.426,-26.459Z"/><path d="M61.765,73.383l-17.704,13.223l6.762,21.395l7.847,0l3.095,-21.333l3.095,21.333l7.847,0l6.762,-21.395l-17.704,-13.223Zm0,-10.147l27.091,20.235l-10.348,32.74l-33.487,0l-10.348,-32.74l27.091,-20.235Z"/></svg></div>
+  <div class="cards">
+    ${icdCardHtml}
+    ${clearanceCardHtml}
+    ${tbsCardHtml}
+    ${shipCardHtml}
+  </div>
+ </section>
+
+ <section class="page page-last">
+  <section class="summary">
+    <div class="sum-l">
+      <h3><span class="n">10</span>Landed Cost Summary</h3>
+      <div class="row cifrow"><span class="k">CIF ${destinationShort} <span style="color:var(--slate);font-weight:400;font-size:8.5px">cargo, freight, insurance</span></span><span class="v">TZS ${moneyN(result.cif_tzs)}</span></div>
+      <div class="row"><span class="k">1&nbsp; Freight &amp; insurance — export country</span><span class="v">TZS ${moneyN(freightinsTzs)}</span></div>
+      <div class="row head"><span class="k">2&nbsp; Amount to pay in Tanzania</span><span></span></div>
+      <div class="row sub"><span class="k">Local shipping line charges</span><span class="v">TZS ${moneyN(shipTotalTzs)}</span></div>
+      <div class="row sub"><span class="k">Duties &amp; taxes — TRA (incl. VAT)</span><span class="v">TZS ${moneyN(result.statutory_total)}</span></div>
+      <div class="row sub"><span class="k">TBS charges</span><span class="v">TZS ${moneyN(tbsTotalTzs)}</span></div>
+      <div class="row sub"><span class="k">Port &amp; handling — TPA</span><span class="v">TZS ${moneyN(tpaSubtotalTzs)}</span></div>
+      <div class="row sub"><span class="k">ICD charges</span><span class="v">TZS ${moneyN(icdSubtotalTzs)}</span></div>
+      <div class="row sub"><span class="k">C&amp;F charges</span><span class="v">TZS ${moneyN(clearanceTotalTzs)}</span></div>
+    </div>
+    <div class="sum-r">
+      <div class="prep-lab">Total Amount to Prepare</div>
+      <div class="prep-tzs">TZS ${moneyN(prepTzs)}</div>
+      <div class="prep-usd">USD ${moneyN(prepUsd)}</div>
+      <div class="fx">@ USD &rarr; TZS ${fx.toLocaleString('en-US')}</div>
+      <div class="ddp">
+        <div class="l">Total Landed Cost — DDP ${destinationShort} <span style="text-transform:none;letter-spacing:0">(incl. VAT)</span></div>
+        <div class="v">TZS ${moneyN(ddpTzs)}</div>
+        <div class="n">USD ${moneyN(ddpUsd)} = Cargo ${`$${moneyN(cargoUsd)}`} + costs to prepare ${`$${moneyN(prepUsd)}`}</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <div class="terms">
+      <h4>Notes &amp; Assumptions</h4>
+      <ul>${allNotes.map(w => `<li>${w}</li>`).join('') || '<li>No warnings — statutory rates matched this HS code exactly.</li>'}</ul>
+    </div>
+    ${meta.qrDataUri ? `<div class="qr">
+      <img src="${meta.qrDataUri}" alt="Scan to open this estimate">
+      <div class="qr-t">
+        <div class="qr-h">Scan for the full report</div>
+        <div class="qr-b">Opens this estimate on ${company.name}'s ClearOS workspace, where you can download it as a PDF. You'll be asked for an email address so we can send you the follow-up.</div>
+        ${meta.shareUrl ? `<div class="qr-u">${meta.shareUrl}</div>` : ''}
+      </div>
+    </div>` : ''}
+    <div class="sign-row">
+      <div class="sign"><div class="w">For ${company.name}</div>
+        <div class="r">${company.businessType || 'Customs Clearing & Forwarding Agent'}</div></div>
+      <div class="stamp">Authorised signature &amp; company stamp</div>
+    </div>
+    ${summary ? `<h4 style="margin-top:14px;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);font-weight:700">AI Summary</h4><div style="white-space:pre-wrap;background:var(--tint);padding:14px;border-radius:8px;font-size:11.5px;line-height:1.7;border:1px solid var(--line);margin-top:8px">${summary}</div>` : ''}
+    <div class="legal">This is a decision-support estimate, not a customs assessment or tax invoice. Final duties, taxes and charges are those determined by the Tanzania Revenue Authority on the lodged declaration. TBS, Port, ICD and C&amp;F figures are estimates pending your final third-party invoices — see Notes &amp; Assumptions above for sourcing.</div>
+    <div class="credit"><span>Prepared on <b>ClearOS</b> &middot; Hudumika Platform</span><span>${result.hs_code} &middot; Confidential</span></div>
+  </div>
+ </section>
+</div>
+
+<script>
+/** Pagination is now plain A4 with two forced breaks (see the .brk rule), so
+ *  there's no dynamic page sizing to do — but the print still has to wait for
+ *  the web fonts. Printing against fallback-font metrics reflows the layout
+ *  once the real fonts land, which is what previously made the preview and
+ *  the saved file disagree and pushed rows onto phantom pages. */
+var didPrint = false;
+function goPrint(){
+  if(didPrint) return;
+  didPrint = true;
+  requestAnimationFrame(function(){ requestAnimationFrame(function(){ window.print(); }); });
+}
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(goPrint);
+  setTimeout(goPrint, 2000); // fallback if the fonts API stalls or a font 404s
+} else {
+  setTimeout(goPrint, 700);
+}
+</script>
 </body></html>`);
   w.document.close();
   w.focus();
-  setTimeout(() => w.print(), 500);
+}
+
+/** Re-renders a shared estimate from a stored share payload, using the exact
+ *  same document generator as the original export so a downloaded copy is
+ *  identical to the printed one. The QR is deliberately dropped — the reader
+ *  is already on the share page, and re-printing it would encode a link back
+ *  to the page they came from. */
+export function printSharedReport(payload: {
+  result?: LandedCostResult;
+  multiResult?: MultiItemResult;
+  qty?: string;
+  summary?: string;
+  extraItems?: ExtraCharge[];
+  container?: '20ft' | '40ft' | 'lcl';
+  rateCard?: Record<string, number>;
+  meta?: ReportMeta;
+}) {
+  if (!payload) return;
+  const { qrDataUri, shareUrl, ...meta } = payload.meta ?? {};
+  if (payload.multiResult) { printMultiReport(payload.multiResult, meta); return; }
+  if (!payload.result) return;
+  printReport(
+    payload.result,
+    payload.qty ?? '1',
+    payload.summary ?? '',
+    payload.extraItems ?? [],
+    payload.container ?? '20ft',
+    payload.rateCard ?? {},
+    meta,
+  );
+}
+
+/** Multi-item equivalent of createShareForReport. Same never-throws contract:
+ *  a failed share just means the printed copy carries no QR code. */
+async function createShareForMulti(result: MultiItemResult, meta: ReportMeta): Promise<ShareResult> {
+  try {
+    const primary = result.items?.[0];
+    const r: any = await apiFetch('/v1/landed-cost-shares', {
+      method: 'POST',
+      body: JSON.stringify({
+        hs_code: primary?.hs_code ?? null,
+        description: result.items?.length > 1 ? `${result.items.length} line items` : (primary?.description ?? null),
+        customer_name: meta.customerName || null,
+        payload: { multiResult: result, meta },
+      }),
+    });
+    return { qrDataUri: r?.qr_data_uri ?? undefined, shareUrl: r?.url ?? undefined, qrUnavailableReason: r?.qr_unavailable_reason ?? undefined };
+  } catch {
+    return { qrUnavailableReason: 'The report link could not be created, so this copy has no QR code.' };
+  }
+}
+
+function printMultiReport(result: MultiItemResult, meta: ReportMeta = {}) {
+  const w = window.open('', '_blank');
+  if (!w) return;
+  const now = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+  const company = getCompany();
+  const companyAddrLine = [company.address, company.city, company.country].filter(Boolean).join(', ');
+  const modeLabel = result.mode === 'sea_fcl' ? 'Sea · FCL' : result.mode === 'sea_lcl' ? 'Sea · LCL' : 'Air';
+  const allNotes = [...result.warnings, ...result.assumptions];
+  const destinationLabel = (meta.destination || '').trim() || 'Dar es Salaam, Tanzania';
+  const destinationShort = destinationLabel.split(',')[0].trim() || destinationLabel;
+  const customerLine = [meta.customerName, meta.customerEmail, meta.customerPhone].map(s => (s || '').trim()).filter(Boolean).join(' · ');
+
+  const cifTotalTzs = result.totals.fob_tzs + result.totals.freight_tzs + result.totals.insurance_tzs;
+  const freightInsTzs = result.totals.freight_tzs + result.totals.insurance_tzs;
+  /** What the importer actually has to fund: everything except the cargo's
+   *  own FOB value. `totals.total` is the full landed cost and includes the
+   *  cargo, so using it here would overstate the figure by the whole FOB. */
+  const amountToPrepareTzs = result.totals.total - result.totals.fob_tzs;
+
+  const itemRows = result.items.map(it => `
+    <tr>
+      <td>${it.line_no}</td>
+      <td class="desc">${it.description}</td>
+      <td class="code">${it.hs_code}</td>
+      <td class="r unit">${it.qty}</td>
+      <td class="r">TZS ${fmt(it.cif_tzs)}</td>
+      <td class="r">TZS ${fmt(it.duty)}</td>
+      <td class="r">TZS ${fmt(it.vat)}</td>
+      <td class="r tot">TZS ${fmt(it.landed_total)}</td>
+    </tr>
+  `).join('');
+
+  w.document.write(`<!DOCTYPE html><html><head><title>Landed Cost Report (Multi-Item) &middot; ClearOS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{--acc:#FF5E1A;--acc-600:#E8480A;--acc-050:#FFF4EC;--acc-100:#FFE0CE;--ink:#14181B;--ink-700:#2A3035;--slate:#5B646D;--slate-400:#8A939C;--line:#E5E9EC;--line-soft:#EEF2F4;--paper:#FFFFFF;--backdrop:#E7EBEE;--panel:#161A1E;--tint:#F7F9FA;--gold:#B8862F;}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--backdrop);color:var(--ink);font-family:"Inter",system-ui,-apple-system,sans-serif;font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+.toolbar{position:fixed;top:18px;right:18px;z-index:50;display:flex;gap:8px}
+.toolbar button{font-family:inherit;font-size:12.5px;font-weight:600;letter-spacing:.02em;border:1px solid var(--line);background:#fff;color:var(--ink-700);padding:9px 15px;border-radius:9px;cursor:pointer;box-shadow:0 2px 8px rgba(20,25,30,.10);transition:.15s}
+.toolbar button:hover{border-color:var(--acc);color:var(--acc-600)}
+.toolbar .primary{background:var(--acc);color:#fff;border-color:var(--acc)}
+.toolbar .primary:hover{background:var(--acc-600);color:#fff}
+.sheet{width:210mm;min-height:297mm;margin:34px auto;background:var(--paper);box-shadow:0 12px 40px rgba(20,25,30,.14);padding:16mm 15mm 13mm;position:relative}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:24px;padding-bottom:16px;border-bottom:2px solid var(--ink);position:relative}
+.head::after{content:"";position:absolute;left:0;bottom:-2px;width:88px;height:2px;background:var(--acc)}
+.brand{display:flex;gap:12px;align-items:flex-start}
+.mark{width:44px;height:44px;border-radius:13px;background:var(--acc);flex:none;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(255,94,26,.28)}
+.mark svg{width:27px;height:27px}
+.brand .name{font-family:"Space Grotesk",sans-serif;font-size:21px;font-weight:700;line-height:1;color:var(--ink)}
+.brand .name span{color:var(--acc)}
+.brand .role{font-size:10px;letter-spacing:.11em;text-transform:uppercase;color:var(--slate);font-weight:600;margin-top:5px}
+.brand .addr{font-size:10.5px;color:var(--slate);margin-top:7px;line-height:1.55}
+.brand .addr b{color:var(--ink-700);font-weight:600}
+.doc{text-align:right;flex:none}
+.doc .kick{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--acc-600);font-weight:700}
+.doc h1{font-family:"Space Grotesk",sans-serif;font-size:23px;font-weight:700;line-height:1.05;margin-top:3px;color:var(--ink)}
+.doc .pi{margin-top:10px;font-size:11.5px;color:var(--slate);line-height:1.7}
+.doc .pi b{color:var(--ink-700);font-weight:600}
+.doc .pi .mono{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--ink)}
+.parties{display:grid;grid-template-columns:1fr 1fr;margin-top:16px;border:1px solid var(--line);border-radius:11px;overflow:hidden}
+.parties .p{padding:13px 16px}
+.parties .p:first-child{border-right:1px solid var(--line);background:var(--tint)}
+.parties .lab{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--acc-600);font-weight:700}
+.parties .big{font-family:"Space Grotesk",sans-serif;font-size:15px;font-weight:600;margin-top:5px;color:var(--ink)}
+.parties .kv{display:flex;justify-content:space-between;gap:12px;font-size:11.5px;margin-top:6px}
+.parties .kv .k{color:var(--slate)}
+.parties .kv .v{color:var(--ink-700);font-weight:600;text-align:right}
+.tbl-wrap{margin-top:18px}
+table.cost{width:100%;border-collapse:collapse;font-size:11px}
+table.cost thead th{background:var(--ink);color:#fff;font-weight:600;font-size:9px;letter-spacing:.04em;text-transform:uppercase;padding:8px 9px;text-align:left;white-space:nowrap}
+table.cost thead th.r{text-align:right}
+table.cost td{padding:7px 9px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+table.cost td.r{text-align:right;font-variant-numeric:tabular-nums}
+.desc{color:var(--ink-700);font-weight:600}
+.code{font-family:"IBM Plex Mono",monospace;font-size:9.5px;font-weight:600;color:var(--acc-600)}
+.unit{font-size:10px;color:var(--slate)}
+td.tot{font-weight:700;color:var(--ink)}
+tr.subt td{background:#FBFCFC;border-top:1.5px solid var(--ink-700);border-bottom:1px solid var(--line);padding:8px 9px;font-weight:700;color:var(--ink-700)}
+tr.subt td.tot{color:var(--acc-600)}
+.summary{margin-top:22px;display:grid;grid-template-columns:1.12fr 0.88fr;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.sum-l{padding:18px 18px;background:var(--tint)}
+.sum-l h3{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc-600);font-weight:700;margin-bottom:13px;display:flex;align-items:center}
+.sum-l .row{display:flex;flex-wrap:nowrap;align-items:baseline;justify-content:space-between;gap:10px;font-size:11px;padding:5.5px 0;border-bottom:1px solid var(--line-soft)}
+.sum-l .row .k{color:var(--ink-700);min-width:0;overflow-wrap:break-word}
+.sum-l .row .v{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;flex:none}
+.sum-l h3 .n{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:var(--acc);color:#fff;border-radius:5px;font-family:'Space Grotesk';font-size:10.5px;margin-right:8px}
+.sum-l .row.head{color:var(--slate);font-weight:600;border-bottom:none;padding-bottom:2px;padding-top:9px;font-size:10.5px;letter-spacing:.03em;text-transform:uppercase}
+.sum-l .row.sub{padding-left:14px}
+.sum-l .row.sub .k{color:var(--slate)}
+.sum-l .row.cifrow{border-bottom:1.5px solid var(--ink);padding-bottom:9px;margin-bottom:3px}
+.sum-l .row.cifrow .k{font-weight:700}
+.sum-l .row.cifrow .v{font-family:"Space Grotesk",sans-serif;font-size:12px}
+.sum-r .ddp .n{font-size:10px;color:#75897f;margin-top:3px}
+.client{display:flex;align-items:baseline;gap:10px;margin-top:14px;padding:9px 14px;border:1px solid var(--line);border-radius:9px;background:var(--tint)}
+.client .lab{font-size:9.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--acc-600);font-weight:700;flex:none}
+.client .val{font-size:11.5px;color:var(--ink-700);font-weight:600}
+.sum-r{background:var(--panel);color:#fff;padding:18px 18px;display:flex;flex-direction:column;justify-content:center}
+.sum-r .prep-lab{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--acc-100);font-weight:700}
+.sum-r .prep-tzs{font-family:"Space Grotesk",sans-serif;font-size:22px;font-weight:700;line-height:1.05;margin-top:8px;font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap}
+.sum-r .prep-usd{margin-top:6px;font-size:12px;color:#9fb2ac;font-variant-numeric:tabular-nums}
+.sum-r .fx{margin-top:4px;font-size:10.5px;color:#75897f}
+.sum-r .ddp{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12)}
+.sum-r .ddp .l{font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:#8fa39d;font-weight:600;white-space:nowrap}
+.sum-r .ddp .v{font-family:"Space Grotesk",sans-serif;font-size:19px;font-weight:700;margin-top:5px;color:#FF8A4C;font-variant-numeric:tabular-nums;white-space:nowrap}
+.foot{margin-top:20px}
+.terms{width:100%}
+.terms h4{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);font-weight:700;margin-bottom:8px}
+.terms ul{list-style:none;font-size:10.5px;color:var(--slate);line-height:1.6;columns:2;column-gap:26px}
+.terms ul li{padding-left:13px;position:relative;margin-bottom:3px;break-inside:avoid}
+.terms ul li::before{content:"";position:absolute;left:0;top:7px;width:4px;height:4px;border-radius:50%;background:var(--acc)}
+.qr{margin-top:14px;display:flex;gap:14px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--tint)}
+.qr img{width:74px;height:74px;flex:none;display:block;border-radius:6px;background:#fff}
+.qr-h{font-size:10.5px;font-weight:800;color:var(--ink);text-transform:uppercase;letter-spacing:.07em}
+.qr-b{font-size:9.5px;color:var(--slate);line-height:1.5;margin-top:4px}
+.qr-u{font-family:"IBM Plex Mono",monospace;font-size:8.5px;color:var(--acc-600);margin-top:5px;word-break:break-all}
+.sign-row{margin-top:16px;border-top:1px solid var(--line);padding-top:11px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px}
+.sign .w{font-size:12px;font-weight:600;color:var(--ink-700)}
+.sign .r{font-size:10.5px;color:var(--slate);margin-top:2px}
+.sign-row .stamp{padding-top:7px;border-top:1px dashed var(--slate-400);font-size:10px;color:var(--slate-400);min-width:220px;text-align:right}
+.legal{margin-top:14px;font-size:9.5px;color:var(--slate-400);line-height:1.55;background:var(--tint);border-radius:9px;padding:10px 13px}
+.credit{margin-top:14px;padding-top:11px;border-top:2px solid var(--ink);position:relative;display:flex;justify-content:space-between;align-items:center;font-size:10px;color:var(--slate)}
+.credit::after{content:"";position:absolute;left:0;top:-2px;width:88px;height:2px;background:var(--acc)}
+.credit b{color:var(--ink-700)}
+@media print{
+  /* Page height is set dynamically by fitPageToContent() below so the export
+     is one continuous page with real 14mm margins, matching the single-item
+     report. This fallback only applies if that JS hasn't run yet. */
+  @page{size:210mm 400mm;margin:14mm}
+  html,body{background:#fff}
+  .toolbar{display:none}
+  .sheet{width:auto;min-height:auto;margin:0;padding:0;box-shadow:none}
+  .summary,.parties,.head,.terms,.client,.override{page-break-inside:avoid}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+</style></head><body>
+
+<div class="toolbar">
+  <button class="primary" onclick="window.print()">Download / Print PDF</button>
+</div>
+
+<div class="sheet">
+  <header class="head">
+    <div class="brand">
+      <div class="mark"><svg viewBox="7 20 111 110" fill="none"><path d="M61.765,38.617l-27.572,20.592l1.549,4.902l26.023,-19.436l26.023,19.436l1.549,-4.902l-27.572,-20.592Zm-0,-8.491l35.426,26.459l-5.891,18.64l-29.535,-22.059l-29.535,22.059l-5.891,-18.64l35.426,-26.459Z" fill="#fff"/><path d="M61.765,73.383l-17.704,13.223l6.762,21.395l7.847,0l3.095,-21.333l3.095,21.333l7.847,0l6.762,-21.395l-17.704,-13.223Zm0,-10.147l27.091,20.235l-10.348,32.74l-33.487,0l-10.348,-32.74l27.091,-20.235Z" fill="#fff"/></svg></div>
+      <div>
+        <div class="name">Clear<span>OS</span></div>
+        <div class="role">Customs &amp; Landed Cost Intelligence</div>
+        <div class="addr">Clearing agent: <b>${company.name}</b>${company.businessType ? ` &middot; ${company.businessType}` : ''}<br>${companyAddrLine}${companyAddrLine ? ' &middot; ' : ''}${company.email || ''}</div>
+      </div>
+    </div>
+    <div class="doc">
+      <div class="kick">Multi-Item Estimate</div><h1>Landed Cost</h1>
+      <div class="pi">Ref <span class="mono">MULTI-${result.items.length}ITEMS-${now.replace(/\s/g, '')}</span><br>Generated <b>${now}</b></div>
+    </div>
+  </header>
+
+  ${customerLine ? `<section class="client"><span class="lab">Prepared for</span><span class="val">${customerLine}</span></section>` : ''}
+
+  <section class="parties">
+    <div class="p"><div class="lab">Cargo</div><div class="big">${result.items.length} Line Items</div>
+      <div class="kv"><span class="k">FX Rate</span><span class="v">1 USD = TZS ${result.fx_rate.toLocaleString()}</span></div></div>
+    <div class="p"><div class="lab">Shipment</div>
+      <div class="kv"><span class="k">Mode</span><span class="v">${modeLabel}</span></div>
+      <div class="kv"><span class="k">Destination basis</span><span class="v">${result.destination_charge_label}</span></div>
+      <div class="kv"><span class="k">Destination</span><span class="v">${destinationLabel}</span></div></div>
+  </section>
+
+  <div class="tbl-wrap">
+  <table class="cost">
+    <thead><tr><th>#</th><th>Description</th><th>HS Code</th><th class="r">Qty</th><th class="r">CIF (TZS)</th><th class="r">Duty</th><th class="r">VAT</th><th class="r">Landed Total</th></tr></thead>
+    <tbody>${itemRows}
+    <tr class="subt">
+      <td colSpan="3" class="desc">Totals (${result.items.length} items)</td>
+      <td class="r unit">${result.items.reduce((s, x) => s + x.qty, 0)}</td>
+      <td class="r">TZS ${fmt(result.totals.cif_tzs)}</td>
+      <td class="r">TZS ${fmt(result.totals.duty)}</td>
+      <td class="r">TZS ${fmt(result.totals.vat)}</td>
+      <td class="r tot">TZS ${fmt(result.totals.total)}</td>
+    </tr>
+    </tbody>
+  </table>
+  </div>
+
+  <section class="summary">
+    <div class="sum-l">
+      <h3><span class="n">10</span>Landed Cost Summary</h3>
+      <div class="row cifrow"><span class="k">CIF ${destinationShort} <span style="color:var(--slate);font-weight:400;font-size:8.5px">cargo, freight, insurance</span></span><span class="v">TZS ${fmt(cifTotalTzs)}</span></div>
+      <div class="row"><span class="k">1&nbsp; Freight &amp; insurance — export country</span><span class="v">TZS ${fmt(freightInsTzs)}</span></div>
+      <div class="row head"><span class="k">2&nbsp; Amount to pay in Tanzania</span><span></span></div>
+      <div class="row sub"><span class="k">Duties &amp; taxes — TRA (incl. VAT)</span><span class="v">TZS ${fmt(result.totals.statutory_total)}</span></div>
+      <div class="row sub"><span class="k">Port &amp; handling — TPA wharfage</span><span class="v">TZS ${fmt(result.totals.wharfage)}</span></div>
+      <div class="row sub"><span class="k">ICD / destination charges</span><span class="v">TZS ${fmt(result.totals.destination)}</span></div>
+    </div>
+    <div class="sum-r">
+      <div class="prep-lab">Total Amount to Prepare</div>
+      <div class="prep-tzs">TZS ${fmt(amountToPrepareTzs)}</div>
+      <div class="prep-usd">USD ${(amountToPrepareTzs / result.fx_rate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+      <div class="fx">@ USD &rarr; TZS ${result.fx_rate.toLocaleString('en-US')}</div>
+      <div class="ddp">
+        <div class="l">Total Landed Cost — DDP ${destinationShort} <span style="text-transform:none;letter-spacing:0">(incl. VAT)</span></div>
+        <div class="v">TZS ${fmt(result.totals.total)}</div>
+        <div class="n">USD ${(result.totals.total / result.fx_rate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} = Cargo TZS ${fmt(result.totals.fob_tzs)} + costs to prepare TZS ${fmt(amountToPrepareTzs)}</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <div class="terms">
+      <h4>Notes &amp; Assumptions</h4>
+      <ul>${allNotes.map(w => `<li>${w}</li>`).join('') || '<li>All items computed according to TRA EAC CET 2026 tariff schedule.</li>'}</ul>
+    </div>
+    ${meta.qrDataUri ? `<div class="qr">
+      <img src="${meta.qrDataUri}" alt="Scan to open this estimate">
+      <div class="qr-t">
+        <div class="qr-h">Scan for the full report</div>
+        <div class="qr-b">Opens this estimate on ${company.name}'s ClearOS workspace, where you can download it as a PDF. You'll be asked for an email address so we can send you the follow-up.</div>
+        ${meta.shareUrl ? `<div class="qr-u">${meta.shareUrl}</div>` : ''}
+      </div>
+    </div>` : ''}
+    <div class="sign-row">
+      <div class="sign"><div class="w">For ${company.name}</div>
+        <div class="r">${company.businessType || 'Customs Clearing & Forwarding Agent'}</div></div>
+      <div class="stamp">Authorised signature &amp; company stamp</div>
+    </div>
+    <div class="legal">This is a decision-support estimate, not a customs assessment or tax invoice. Final duties, taxes and charges are those determined by the Tanzania Revenue Authority on the lodged declaration.</div>
+    <div class="credit"><span>Prepared on <b>ClearOS</b> &middot; Hudumika Platform</span><span>Multi-Item &middot; Confidential</span></div>
+  </div>
+</div>
+
+<script>
+/** Same single-continuous-page sizing and font-ready print gate as the
+ *  single-item report — without these the export paginates on a default A4
+ *  and is measured against fallback-font metrics, so what's previewed and
+ *  what's saved don't match. */
+function fitPageToContent(){
+  const sheet = document.querySelector('.sheet');
+  if(!sheet) return;
+  const mm = sheet.getBoundingClientRect().height * 25.4 / 96;
+  let style = document.getElementById('dyn-page-size');
+  if(!style){ style = document.createElement('style'); style.id = 'dyn-page-size'; document.head.appendChild(style); }
+  style.textContent = '@page{size:210mm ' + (Math.ceil(mm) + 30) + 'mm;margin:14mm}';
+}
+window.addEventListener('beforeprint', fitPageToContent);
+fitPageToContent();
+var didPrint = false;
+function goPrint(){ if(didPrint) return; didPrint = true; fitPageToContent(); requestAnimationFrame(function(){ requestAnimationFrame(function(){ window.print(); }); }); }
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(goPrint);
+  setTimeout(goPrint, 2000);
+} else {
+  setTimeout(goPrint, 700);
+}
+</script>
+</body></html>`);
+  w.document.close();
+  w.focus();
 }
 
 // ── Step Indicator (vertical on desktop, horizontal on mobile) ─────────────────
 
+type WizardStep = 1 | 2 | 3 | 4;
+
 const STEP_ITEMS = [
-  { step: 1, label: 'Cargo Details', shortLabel: 'Cargo', desc: 'CIF Value, HS Code, Quantity', icon: 'box' },
-  { step: 2, label: 'Transport & Logistics', shortLabel: 'Transport', desc: 'Shipping Mode, Container Type', icon: 'truck' },
-  { step: 3, label: 'Results & Analysis', shortLabel: 'Results', desc: 'Duties, Taxes & Compliance', icon: 'calculator' },
+  { step: 1, label: 'Your Details', shortLabel: 'Details', desc: 'Customer, contact & destination', icon: 'user' },
+  { step: 2, label: 'Shipment Mode', shortLabel: 'Shipment', desc: 'Mode, containers, CBM & weight', icon: 'truck' },
+  { step: 3, label: 'Cargo Items', shortLabel: 'Cargo', desc: 'HS codes, quantities & FOB values', icon: 'box' },
+  { step: 4, label: 'Review & Results', shortLabel: 'Results', desc: 'Duties, taxes & landed cost', icon: 'calculator' },
 ];
 
-function VerticalStepBar({ current, setStep }: { current: number; setStep: (s: 1 | 2 | 3) => void }) {
+function VerticalStepBar({ current, setStep }: { current: number; setStep: (s: WizardStep) => void }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       {STEP_ITEMS.map((item, i) => {
@@ -250,7 +1584,7 @@ function VerticalStepBar({ current, setStep }: { current: number; setStep: (s: 1
 }
 
 /** Compact horizontal progress bar for narrow screens — same step state, laid out for a small viewport. */
-function HorizontalStepBar({ current, setStep }: { current: number; setStep: (s: 1 | 2 | 3) => void }) {
+function HorizontalStepBar({ current, setStep }: { current: number; setStep: (s: WizardStep) => void }) {
   return (
     <div className="lcp-card lcp-step-mobile">
       <div style={{ display: 'flex', alignItems: 'center' }}>
@@ -289,6 +1623,73 @@ function HorizontalStepBar({ current, setStep }: { current: number; setStep: (s:
 
 /** "Step X of 3 — Label" caption shown at the top of every step's card, so the current
  *  position in the flow is always unambiguous regardless of viewport or stepper style. */
+/** Labelled form field wrapper — matches the uppercase-label + optional
+ *  helper-line convention the rest of this page's inputs already use. */
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 6 }}>
+        {label}
+      </label>
+      {hint && <div style={{ fontSize: 11, color: 'var(--ink4)', marginBottom: 6 }}>{hint}</div>}
+      {children}
+    </div>
+  );
+}
+
+function TextInput({ value, onChange, placeholder, type = 'text' }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
+}) {
+  return (
+    <input
+      className="input-field"
+      type={type}
+      value={value}
+      placeholder={placeholder}
+      onChange={e => onChange(e.target.value)}
+      style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14 }}
+    />
+  );
+}
+
+/** One Advanced Settings row. Renders amber when filled in, so an overridden
+ *  rate is visually distinct from an inherited one at a glance. */
+function OverrideField({ label, suffix, value, onChange, placeholder, hint }: {
+  label: string; suffix: string; value: string; onChange: (v: string) => void; placeholder?: string; hint?: string;
+}) {
+  const active = value.trim() !== '';
+  return (
+    <div>
+      <label style={{ fontSize: 11, fontWeight: 700, color: active ? 'var(--gold, #B8862F)' : 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.4px', display: 'block', marginBottom: 5 }}>
+        {label}{active && ' · override'}
+      </label>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <input
+          className="input-field"
+          type="number"
+          min="0"
+          step="any"
+          value={value}
+          placeholder={placeholder}
+          onChange={e => onChange(e.target.value)}
+          style={{
+            flex: 1, minWidth: 0, boxSizing: 'border-box', height: 40, fontSize: 13.5,
+            borderColor: active ? 'var(--gold, #B8862F)' : undefined,
+          }}
+        />
+        <span style={{ fontSize: 11.5, color: 'var(--ink3)', flexShrink: 0 }}>{suffix}</span>
+        {active && (
+          <button type="button" onClick={() => onChange('')} title="Clear override"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2, flexShrink: 0 }}>
+            <Icon name="x" size={13} />
+          </button>
+        )}
+      </div>
+      {hint && <div style={{ fontSize: 10.5, color: 'var(--ink4)', marginTop: 4 }}>{hint}</div>}
+    </div>
+  );
+}
+
 function StepCaption({ index }: { index: number }) {
   const item = STEP_ITEMS[index];
   return (
@@ -301,6 +1702,14 @@ function StepCaption({ index }: { index: number }) {
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export const LandedCostPage: React.FC = () => {
+  // ── Step 1: who this estimate is for. Purely descriptive — these never
+  // feed the calculation, they only label the on-screen result and the
+  // exported PDF (and give the PDF its filename).
+  const [customerName,  setCustomerName]  = useState('');
+  const [customerEmail, setCustomerEmail] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [destination,   setDestination]   = useState('Dar es Salaam, Tanzania');
+
   const [cif,        setCif]       = useState('');
   const [cifMode,    setCifMode]   = useState<'direct' | 'breakdown'>('direct');
   const [fob,        setFob]       = useState('');
@@ -310,8 +1719,26 @@ export const LandedCostPage: React.FC = () => {
   const [qty,        setQty]       = useState('1');
   const [container,  setContainer] = useState<'20ft' | '40ft' | 'lcl'>('20ft');
   const [isAir,      setIsAir]     = useState(false);
+  const [numContainers, setNumContainers] = useState('1');
+
+  // ── Advanced Settings: optional replacements for rates that otherwise come
+  // from the tariff table (duty/VAT/RDL/CPF) or statute (wharfage, PID), plus
+  // a pinned FX rate. Blank means "use the sourced value" — these are stored
+  // as strings so an empty box stays empty rather than becoming 0.
+  const [shareNotice, setShareNotice] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [ovDuty,     setOvDuty]     = useState('');
+  const [ovVat,      setOvVat]      = useState('');
+  const [ovRdl,      setOvRdl]      = useState('');
+  const [ovCpf,      setOvCpf]      = useState('');
+  const [ovWharfage, setOvWharfage] = useState('');
+  const [ovPid,      setOvPid]      = useState('');
+  const [ovFx,       setOvFx]       = useState('');
   const [cbm,        setCbm]       = useState('');
   const [weightKg,   setWeightKg]  = useState('');
+  const [isUsedVehicle, setIsUsedVehicle] = useState(false);
+  const [vehicleAge,    setVehicleAge]    = useState('');
+  const [isClogs,       setIsClogs]       = useState(false);
   const [itemMode,   setItemMode]  = useState<'single' | 'multi'>('single');
   const [multiItems, setMultiItems] = useState<MultiItemRow[]>([newMultiItemRow()]);
   const [multiFreight, setMultiFreight] = useState('');
@@ -323,13 +1750,43 @@ export const LandedCostPage: React.FC = () => {
   const [aiPending,  setAiPending] = useState(false);
   const [aiError,    setAiError]   = useState('');
   const [error,      setError]     = useState('');
-  const [step,       setStep]      = useState<1 | 2 | 3>(1);
+  const [step,       setStep]      = useState<WizardStep>(1);
   const [fxRate,     setFxRate]    = useState<number | null>(null);
   const [hsSelected, setHsSelected] = useState<HsResult | null>(null);
   const [calcLoading, setCalcLoading] = useState(false);
   const [history,    setHistory]   = useState<LandedCostResult[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const hsCacheRef = useRef<Map<string, HsResult>>(new Map());
+
+  // ── Additional Port/TPA/TASAC charges (Export PDF needs these too, so the
+  // state lives here rather than inside FormattedLandedCostBreakdown) ──
+  const [extraItems, setExtraItems] = useState<ExtraCharge[]>([]);
+  const [extraPicker, setExtraPicker] = useState<PickerItem | null>(null);
+  const extraCache = useRef<Map<string, any>>(new Map());
+
+  const searchTariff = useCallback(async (q: string): Promise<PickerItem[]> => {
+    const res = await apiFetch(`/v1/reference/tariff?q=${encodeURIComponent(q)}&limit=25`);
+    const rows: any[] = res.data ?? [];
+    return rows.filter(r => r.rate_amount != null).map(r => {
+      extraCache.current.set(r.id, r);
+      const rate = Number(r.rate_amount);
+      return {
+        id: r.id,
+        label: r.item_name,
+        sublabel: `${[r.clause_ref, r.category, r.subcategory].filter(Boolean).join(' · ')} — ${r.rate_currency} ${rate.toLocaleString('en-US')}${r.unit ? ` / ${r.unit}` : ''}`,
+      };
+    });
+  }, []);
+
+  function addExtraItem(picked: PickerItem | null) {
+    if (!picked) return;
+    const full = extraCache.current.get(picked.id);
+    if (!full) return;
+    setExtraItems(prev => prev.some(e => e.item.id === full.id) ? prev : [...prev, { key: full.id, item: full, qty: 1 }]);
+    setExtraPicker(null);
+  }
+  function removeExtraItem(key: string) { setExtraItems(prev => prev.filter(e => e.key !== key)); }
+  function setExtraQty(key: string, qty: number) { setExtraItems(prev => prev.map(e => e.key === key ? { ...e, qty: Math.max(1, qty) } : e)); }
 
   // Load live FX rate and history on mount
   useEffect(() => {
@@ -351,11 +1808,6 @@ export const LandedCostPage: React.FC = () => {
     if (!item) { setHs(''); setHsSelected(null); return; }
     setHs(item.id);
     setHsSelected(hsCacheRef.current.get(item.id) ?? null);
-  }
-
-  async function createHsFreeText(name: string): Promise<PickerItem> {
-    const code = name.trim();
-    return { id: code, label: code };
   }
 
   // In breakdown mode, insurance defaults to a % of CFR (FOB + Freight) rather
@@ -381,6 +1833,43 @@ export const LandedCostPage: React.FC = () => {
   const weightKgVal = parseFloat(weightKg) || 0;
   const volumetricKgVal = cbmVal * 166.67;
   const chargeableKgPreview = Math.max(weightKgVal, volumetricKgVal);
+  /** At least 1 — a blank or 0 container count would zero out every
+   *  per-container charge rather than meaning "none". */
+  const numContainersVal = Math.max(1, parseInt(numContainers, 10) || 1);
+
+  /** Only non-empty, valid, non-negative entries are sent. A blank box means
+   *  "keep the tariff/statutory rate" — it must never be transmitted as 0,
+   *  which the API would read as a real 0% and wipe out that tax line. */
+  function buildRateOverrides(): Record<string, number> | undefined {
+    const entries: [string, string][] = [
+      ['duty_rate', ovDuty], ['vat_rate', ovVat], ['rdl_rate', ovRdl],
+      ['cpf_rate', ovCpf], ['wharfage_rate', ovWharfage], ['pid_rate', ovPid],
+    ];
+    const out: Record<string, number> = {};
+    for (const [key, raw] of entries) {
+      if (raw.trim() === '') continue;
+      const n = parseFloat(raw);
+      if (Number.isFinite(n) && n >= 0) out[key] = n;
+    }
+    return Object.keys(out).length > 0 ? out : undefined;
+  }
+  const fxOverrideVal = ovFx.trim() === '' ? undefined : (parseFloat(ovFx) > 0 ? parseFloat(ovFx) : undefined);
+  const overrideCount = Object.keys(buildRateOverrides() ?? {}).length + (fxOverrideVal ? 1 : 0);
+  const multiTotalFobUsd = multiItems.reduce((s, r) => s + (parseFloat(r.qty) || 0) * (parseFloat(r.unit_price_usd) || 0), 0);
+
+  // Real ICD operators charge different rates for the same service (see
+  // /clearos/rate-card) — picking one here scopes the calculator's ICD/C&F
+  // defaults to that operator's own rate card instead of the card's generic
+  // default. Only operators the tenant has actually priced show up, since
+  // picking an un-priced one would just be a no-op.
+  const [icdOperatorId, setIcdOperatorId] = useState<string | null>(null);
+  const [icdOperatorOptions, setIcdOperatorOptions] = useState<{ id: string; name: string }[]>([]);
+  useEffect(() => {
+    setIcdOperatorId(null);
+    apiFetch(`/v1/rate-card/${rateCardKeyFor(mode, container)}/icd-operators`)
+      .then(res => setIcdOperatorOptions(res.data ?? []))
+      .catch(() => setIcdOperatorOptions([]));
+  }, [mode, container]);
 
   async function calculate() {
     const cifVal = effectiveCif();
@@ -402,15 +1891,21 @@ export const LandedCostPage: React.FC = () => {
           shipment_ref: undefined,
           mode,
           container: mode === 'sea_fcl' ? container : undefined,
-          num_containers: 1,
+          num_containers: numContainersVal,
+          rate_overrides: buildRateOverrides(),
+          fx_rate_override: fxOverrideVal,
           cbm: mode !== 'sea_fcl' ? cbmVal : undefined,
           weight_kg: mode === 'air' ? weightKgVal : undefined,
           ...(cifMode === 'breakdown' ? { fob_usd: fobVal, freight_usd: freightVal, insurance_usd: insuranceVal } : {}),
+          ...(isUsedVehicle ? { vehicle_condition: 'used', vehicle_age_years: parseFloat(vehicleAge) || undefined } : {}),
+          ...(isClogs ? { is_plastic_rubber_clogs: true } : {}),
         }),
       });
       setResult(r);
       setSummary('');
       setAiError('');
+      setExtraItems([]);
+      setExtraPicker(null);
     } catch (e: any) {
       setError(e.message ?? 'Calculation failed');
     }
@@ -419,7 +1914,13 @@ export const LandedCostPage: React.FC = () => {
 
   async function calculateMulti() {
     const rows = multiItems
-      .map(r => ({ description: r.description, hs_code: r.hs_code.trim(), qty: parseFloat(r.qty) || 0, unit_price_usd: parseFloat(r.unit_price_usd) || 0 }))
+      .map(r => ({
+        description: r.description,
+        hs_code: r.hs_code.trim(),
+        qty: parseFloat(r.qty) || 0,
+        unit_price_usd: parseFloat(r.unit_price_usd) || 0,
+        rate_overrides: rowRateOverrides(r),
+      }))
       .filter(r => r.hs_code && r.qty > 0 && r.unit_price_usd >= 0);
     if (rows.length === 0) { setMultiError('Add at least one line item with an HS code, quantity and unit price.'); return; }
     setMultiError('');
@@ -433,7 +1934,9 @@ export const LandedCostPage: React.FC = () => {
           insurance_usd: multiInsurance.trim() ? parseFloat(multiInsurance) : undefined,
           mode,
           container: mode === 'sea_fcl' ? container : undefined,
-          num_containers: 1,
+          num_containers: numContainersVal,
+          rate_overrides: buildRateOverrides(),
+          fx_rate_override: fxOverrideVal,
           cbm: mode !== 'sea_fcl' ? cbmVal : undefined,
           weight_kg: mode === 'air' ? weightKgVal : undefined,
         }),
@@ -479,7 +1982,9 @@ export const LandedCostPage: React.FC = () => {
   }, [result]);
 
   useEffect(() => {
-    if (step !== 3) return;
+    // Results is step 4 in the four-step wizard — calculating on step 3
+    // (Cargo Items) would fire before the cargo rows are even filled in.
+    if (step !== 4) return;
     if (itemMode === 'single' && !result) calculate();
     if (itemMode === 'multi' && !multiResult) calculateMulti();
   }, [step]);
@@ -488,7 +1993,7 @@ export const LandedCostPage: React.FC = () => {
   function updateRow(id: string, patch: Partial<MultiItemRow>) {
     setMultiItems(rows => rows.map(r => r.id === id ? { ...r, ...patch } : r));
   }
-  function addRow() { setMultiItems(rows => [...rows, newMultiItemRow()]); }
+  function addRow() { setMultiItems(rows => rows.length >= MAX_CARGO_ROWS ? rows : [...rows, newMultiItemRow()]); }
   function removeRow(id: string) { setMultiItems(rows => rows.length > 1 ? rows.filter(r => r.id !== id) : rows); }
 
   function handleRowHsChange(row: MultiItemRow, item: PickerItem | null) {
@@ -544,13 +2049,13 @@ export const LandedCostPage: React.FC = () => {
       const rows: MultiItemRow[] = lines.slice(1).map(line => {
         const cells = parseCsvLine(line);
         return {
-          id: Math.random().toString(36).slice(2),
+          ...newMultiItemRow(),
           description: idxProduct >= 0 ? (cells[idxProduct] || '') : '',
           hs_code: cells[idxHs] || '',
           qty: cells[idxQty] || '1',
           unit_price_usd: cells[idxPrice] || '0',
         };
-      }).filter(r => r.hs_code);
+      }).filter(r => r.hs_code).slice(0, MAX_CARGO_ROWS);
       if (rows.length === 0) { setMultiError('No valid rows found in the CSV.'); return; }
       setMultiItems(rows);
       setMultiError('');
@@ -562,7 +2067,7 @@ export const LandedCostPage: React.FC = () => {
     setItemMode('single');
     setResult(h);
     setShowHistory(false);
-    setStep(3);
+    setStep(4);
     setHs(h.hs_code);
     setCif(String(h.cif_usd));
     setSummary('');
@@ -588,26 +2093,83 @@ export const LandedCostPage: React.FC = () => {
     setHsSelected(null);
     setSummary('');
     setAiError('');
+    // Anything that changes the arithmetic has to be cleared, or a rate
+    // typed for the previous shipment silently reapplies to a different HS
+    // code. Customer name/contact/destination deliberately persist — they're
+    // descriptive only, and an agent usually quotes the same client twice.
+    setNumContainers('1');
+    setOvDuty(''); setOvVat(''); setOvRdl(''); setOvCpf('');
+    setOvWharfage(''); setOvPid(''); setOvFx('');
   }
 
+  /** Blocks Continue until the current step has what the next one needs.
+   *  Returns null when the step is satisfied, otherwise the message to show
+   *  inline. Step 1 is contact detail only, so nothing is mandatory there. */
+  // Which dimension fields the selected mode actually bills on. Declared here
+  // rather than further down because validateStep() below reads them during
+  // render — a later `const` would be in the temporal dead zone and throw the
+  // moment the wizard reached step 2.
+  const isFcl = !isAir && (container === '20ft' || container === '40ft');
+  const needsCbm = isAir || container === 'lcl';
+
+  function validateStep(s: WizardStep): string | null {
+    if (s === 2) {
+      if (isFcl && numContainersVal < 1) return 'Enter at least one container.';
+      if (container === 'lcl' && cbmVal <= 0) return 'LCL is charged per CBM — enter the total volume.';
+      if (isAir && cbmVal <= 0 && weightKgVal <= 0) return 'Airfreight bills on chargeable weight — enter a volume or a gross weight.';
+      return null;
+    }
+    if (s === 3) {
+      if (itemMode === 'single') {
+        if (!hs.trim()) return 'Select an HS code for the cargo.';
+        if (effectiveCif() <= 0) return 'Enter a CIF value (or FOB + freight) greater than zero.';
+        return null;
+      }
+      const usable = multiItems.filter(r => r.hs_code.trim() && (parseFloat(r.qty) || 0) > 0 && (parseFloat(r.unit_price_usd) || 0) > 0);
+      if (usable.length === 0) return 'Add at least one line with an HS code, quantity and unit price.';
+      return null;
+    }
+    return null;
+  }
+  const stepError = validateStep(step);
+
   const navRow = (
-    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
-      {step > 1
-        ? <button type="button" onClick={() => setStep(s => (s - 1) as any)}
-            style={{ padding: '9px 22px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="arrowLeft" size={14} /> Back
-          </button>
-        : <div />
-      }
-      {step < 3
-        ? <button type="button" onClick={() => setStep(s => (s + 1) as any)}
-            style={{ padding: '10px 28px', borderRadius: 8, border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: '0 4px 16px color-mix(in srgb, var(--teal) 30%, transparent)' }}>
-            Continue <Icon name="arrowRight" size={14} color="#fff" />
-          </button>
-        : null
-      }
+    <div style={{ marginTop: 28, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
+      {stepError && (
+        <div style={{ marginBottom: 14, padding: '10px 14px', borderRadius: 9, background: 'color-mix(in srgb, var(--red) 9%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', color: 'var(--red)', fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Icon name="alertCircle" size={15} color="var(--red)" /> {stepError}
+        </div>
+      )}
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        {step > 1
+          ? <button type="button" onClick={() => setStep(s => (s - 1) as any)}
+              style={{ padding: '9px 22px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <Icon name="arrowLeft" size={14} /> Back
+            </button>
+          : <div />
+        }
+        {step < 4
+          ? <button type="button" disabled={!!stepError} onClick={() => { if (!validateStep(step)) setStep(s => (s + 1) as any); }}
+              style={{ padding: '10px 28px', borderRadius: 8, border: 'none', background: stepError ? 'var(--border)' : 'var(--teal)', color: stepError ? 'var(--ink4)' : '#fff', fontWeight: 700, fontSize: 13.5, cursor: stepError ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: stepError ? 'none' : '0 4px 16px color-mix(in srgb, var(--teal) 30%, transparent)' }}>
+              Continue <Icon name="arrowRight" size={14} color={stepError ? 'var(--ink4)' : '#fff'} />
+            </button>
+          : null
+        }
+      </div>
     </div>
   );
+
+  const reportMeta: ReportMeta = { customerName, customerEmail, customerPhone, destination };
+
+  // The Step 2 dropdown projected onto the page's existing isAir/container
+  // state. Selecting Airfreight leaves `container` alone so switching back to
+  // sea restores whatever FCL/LCL choice was made before.
+  const shipmentModeKey: ShipmentModeKey = isAir ? 'air' : container;
+  const setShipmentModeKey = (k: ShipmentModeKey) => {
+    if (k === 'air') { setIsAir(true); return; }
+    setIsAir(false);
+    setContainer(k);
+  };
 
   return (
     <div className="lcp-page" style={{ flex: 1, overflowY: 'auto' }}>
@@ -656,7 +2218,7 @@ export const LandedCostPage: React.FC = () => {
             </button>
             {result && (
               <button type="button" className="btn btn-secondary"
-                onClick={() => printReport(result, qty, summary)}
+                onClick={async () => { const rc = await fetchRateCardDefaults(rateCardKeyFor(result.mode, container), icdOperatorId); const share = await createShareForReport(result, reportMeta, { result, qty, summary, extraItems, container, rateCard: rc, meta: reportMeta }); setShareNotice(share.qrUnavailableReason ?? ''); printReport(result, qty, summary, extraItems, container, rc, { ...reportMeta, ...share }); }}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, border: '1.5px solid var(--teal)', color: 'var(--teal)', background: 'var(--card-bg, var(--white))' }}>
                 <Icon name="download" size={14} color="var(--teal)" /> Export PDF
               </button>
@@ -709,7 +2271,38 @@ export const LandedCostPage: React.FC = () => {
             <div className="lcp-card">
               <StepCaption index={0} />
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="package" size={18} color="var(--teal)" /> Cargo Details
+                <Icon name="user" size={18} color="var(--teal)" /> Your Details
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 22 }}>
+                Who this estimate is for. These appear on the exported PDF and don't affect any figure.
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <Field label="Company / Customer Name">
+                  <TextInput value={customerName} onChange={setCustomerName} placeholder="e.g. Harmony New Energy Tanzania Auto Services Ltd" />
+                </Field>
+                <div className="lcp-btn-row">
+                  <Field label="Contact Email">
+                    <TextInput value={customerEmail} onChange={setCustomerEmail} placeholder="name@company.co.tz" type="email" />
+                  </Field>
+                  <Field label="Contact Phone">
+                    <TextInput value={customerPhone} onChange={setCustomerPhone} placeholder="+255 …" type="tel" />
+                  </Field>
+                </div>
+                <Field label="Destination" hint="Where the cargo is being cleared to — shown on the estimate and used for the DDP label.">
+                  <TextInput value={destination} onChange={setDestination} placeholder="Dar es Salaam, Tanzania" />
+                </Field>
+              </div>
+
+              {navRow}
+            </div>
+          )}
+
+          {step === 3 && (
+            <div className="lcp-card">
+              <StepCaption index={2} />
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Icon name="package" size={18} color="var(--teal)" /> Cargo Items
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 18 }}>Enter the shipment value and HS classification.</div>
 
@@ -721,7 +2314,7 @@ export const LandedCostPage: React.FC = () => {
               <div style={{ padding: '12px 16px', borderRadius: 10, background: 'color-mix(in srgb, var(--teal) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--teal) 22%, transparent)', marginBottom: 24, fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Icon name="info" size={16} color="var(--teal)" style={{ flexShrink: 0 }} />
                 <div>
-                  Rates: <strong>EAC CET 2022</strong> · VAT 18% · RDL 1.5% · CPF 1% (Finance Act 2026) · TPA Wharfage 0.5% ·{' '}
+                  Rates: <strong>EAC CET 2022</strong> · VAT 18% · RDL 2% · CPF 1% (Finance Act 2026) · TPA Wharfage 1.6% ·{' '}
                   {fxRate ? <><strong>Live rate: 1 USD = TZS {fxRate.toLocaleString()}</strong></> : 'Loading live FX rate…'}
                 </div>
               </div>
@@ -790,8 +2383,6 @@ export const LandedCostPage: React.FC = () => {
                     value={hs ? { id: hs, label: hs } : null}
                     onChange={handleHsChange}
                     search={searchHs}
-                    onCreate={createHsFreeText}
-                    createLabel={(q) => `Use HS code "${q}" (not matched)`}
                     placeholder="e.g. 8471 or laptop computers"
                   />
 
@@ -822,6 +2413,31 @@ export const LandedCostPage: React.FC = () => {
                 <div>
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 6 }}>Quantity (units)</label>
                   <input className="input-field" type="number" min="1" placeholder="e.g. 10" value={qty} onChange={e => setQty(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14 }} />
+                </div>
+
+                {/* Field 4: Finance Act 2026 (July update) special excise flags */}
+                <div style={{ padding: 14, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)', borderRadius: 10 }}>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 10 }}>
+                    Special Excise — Finance Act 2026 (July update)
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)', cursor: 'pointer', marginBottom: isUsedVehicle ? 10 : 0 }}>
+                    <input type="checkbox" checked={isUsedVehicle} onChange={e => setIsUsedVehicle(e.target.checked)} />
+                    This is a used motor vehicle
+                  </label>
+                  {isUsedVehicle && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, paddingLeft: 24 }}>
+                      <span style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Vehicle age (years)</span>
+                      <input className="input-field" type="number" min="0" step="1" placeholder="e.g. 12" value={vehicleAge} onChange={e => setVehicleAge(e.target.value)}
+                        style={{ width: 80, boxSizing: 'border-box', height: 32, fontSize: 13 }} />
+                    </div>
+                  )}
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={isClogs} onChange={e => setIsClogs(e.target.checked)} />
+                    This is plastic or rubber clogs footwear
+                  </label>
+                  <div style={{ fontSize: 11, color: 'var(--ink4)', marginTop: 8, lineHeight: 1.5 }}>
+                    Used-vehicle excise bands (18%/35%/40% by age) and the 20% clogs excise aren't derivable from HS classification alone — flag them explicitly here rather than guessing from the HS code.
+                  </div>
                 </div>
 
               </div>
@@ -865,15 +2481,17 @@ export const LandedCostPage: React.FC = () => {
                             value={row.hs_code ? { id: row.hs_code, label: row.hs_code } : null}
                             onChange={item => handleRowHsChange(row, item)}
                             search={searchHs}
-                            onCreate={createHsFreeText}
-                            createLabel={(q) => `Use HS code "${q}"`}
                             placeholder="HS code"
                           />
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.8fr 1fr 1fr', gap: 8 }}>
                           <div>
                             <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink4)', textTransform: 'uppercase' }}>Qty</label>
                             <input className="input-field" type="number" min="0" value={row.qty} onChange={e => updateRow(row.id, { qty: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', height: 36, fontSize: 13 }} />
+                          </div>
+                          <div>
+                            <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink4)', textTransform: 'uppercase' }}>Unit</label>
+                            <input className="input-field" placeholder="unit" value={row.unit} onChange={e => updateRow(row.id, { unit: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', height: 36, fontSize: 13 }} />
                           </div>
                           <div>
                             <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink4)', textTransform: 'uppercase' }}>Unit Price (USD)</label>
@@ -886,13 +2504,33 @@ export const LandedCostPage: React.FC = () => {
                             </div>
                           </div>
                         </div>
+
+                        {/* Per-line rate overrides — blank uses this HS code's
+                            own tariff rate. Anything typed here is flagged as a
+                            manual override on the result and the PDF. */}
+                        <details style={{ marginTop: 10 }}>
+                          <summary style={{ cursor: 'pointer', fontSize: 11, fontWeight: 700, color: rowHasOverride(row) ? 'var(--gold, #B8862F)' : 'var(--ink4)', textTransform: 'uppercase', letterSpacing: '.4px' }}>
+                            Rates {rowHasOverride(row) ? '· overridden' : '· from tariff database'}
+                          </summary>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
+                            <RowRate label="Duty %"  value={row.ov_duty} onChange={v => updateRow(row.id, { ov_duty: v })} />
+                            <RowRate label="VAT %"   value={row.ov_vat}  onChange={v => updateRow(row.id, { ov_vat: v })}  placeholder="18" />
+                            <RowRate label="RDL %"   value={row.ov_rdl}  onChange={v => updateRow(row.id, { ov_rdl: v })}  placeholder="2" />
+                            <RowRate label="CPF %"   value={row.ov_cpf}  onChange={v => updateRow(row.id, { ov_cpf: v })}  placeholder="1" />
+                          </div>
+                        </details>
                       </div>
                     ))}
                   </div>
 
-                  <button type="button" onClick={addRow} className="btn btn-secondary" style={{ marginTop: 10, fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button type="button" onClick={addRow} disabled={multiItems.length >= MAX_CARGO_ROWS} className="btn btn-secondary"
+                    style={{ marginTop: 10, fontSize: 12.5, display: 'flex', alignItems: 'center', gap: 6, opacity: multiItems.length >= MAX_CARGO_ROWS ? 0.45 : 1, cursor: multiItems.length >= MAX_CARGO_ROWS ? 'not-allowed' : 'pointer' }}>
                     <Icon name="plus" size={13} /> Add line item
                   </button>
+                  <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--ink3)', display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                    <span>{multiItems.length} of {MAX_CARGO_ROWS} lines</span>
+                    <span>Total FOB Value: <strong style={{ color: 'var(--ink)' }}>{fmtUsd(multiTotalFobUsd)}</strong></span>
+                  </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
                     <div>
@@ -917,76 +2555,136 @@ export const LandedCostPage: React.FC = () => {
             <div className="lcp-card">
               <StepCaption index={1} />
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="truck" size={18} color="var(--teal)" /> Transport & Logistics
+                <Icon name="truck" size={18} color="var(--teal)" /> Shipment Mode &amp; Dimensions
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 24 }}>Select the shipping mode and container type.</div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 24 }}>How the cargo travels. This drives which rate card is used and how port/handling charges are computed.</div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                <div>
-                  <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 10 }}>Shipping Mode</label>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                    <Seg active={!isAir} onClick={() => setIsAir(false)} label="Sea / Road / Rail" icon="ship" grow />
-                    <Seg active={isAir}  onClick={() => setIsAir(true)}  label="Air Freight" icon="plane" grow />
-                  </div>
+                <Field label="Shipment Mode">
+                  <Select value={shipmentModeKey} onValueChange={v => setShipmentModeKey(v as ShipmentModeKey)}>
+                    <SelectTrigger style={{ height: 44 }}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {SHIPMENT_MODE_OPTIONS.map(o => <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </Field>
+
+                {/* Containers / CBM / weight — only the ones the selected mode
+                    actually bills on are enabled, so an irrelevant figure can't
+                    quietly end up in the calculation. */}
+                <div className="lcp-btn-row">
+                  <Field label="Number of Containers" hint={isFcl ? 'Charged per container.' : 'Not applicable for this mode.'}>
+                    <input className="input-field" type="number" min="1" step="1" value={numContainers}
+                      disabled={!isFcl}
+                      onChange={e => setNumContainers(e.target.value)}
+                      style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14, opacity: isFcl ? 1 : 0.45, cursor: isFcl ? 'auto' : 'not-allowed' }} />
+                  </Field>
+                  <Field label="Total Volume (CBM)" hint={needsCbm ? (isAir ? 'Used for volumetric weight.' : 'LCL is charged per CBM.') : 'Not applicable for FCL.'}>
+                    <input className="input-field" type="number" min="0" step="0.01" placeholder="e.g. 15.0" value={cbm}
+                      disabled={!needsCbm}
+                      onChange={e => setCbm(e.target.value)}
+                      style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14, opacity: needsCbm ? 1 : 0.45, cursor: needsCbm ? 'auto' : 'not-allowed' }} />
+                  </Field>
                 </div>
-                {!isAir && (
-                  <div>
-                    <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 10 }}>Container Type</label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                      {(['20ft','40ft','lcl'] as const).map(c => (
-                        <Seg key={c} active={container === c} onClick={() => setContainer(c)} label={c === 'lcl' ? 'LCL' : `${c} FCL`} icon="box" grow />
-                      ))}
-                    </div>
+
+                <Field label="Total Gross Weight (kg)" hint={isAir ? 'Air bills on chargeable weight — the greater of gross and volumetric.' : 'Only applicable to airfreight.'}>
+                  <input className="input-field" type="number" min="0" placeholder="e.g. 3000" value={weightKg}
+                    disabled={!isAir}
+                    onChange={e => setWeightKg(e.target.value)}
+                    style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14, opacity: isAir ? 1 : 0.45, cursor: isAir ? 'auto' : 'not-allowed' }} />
+                </Field>
+
+                {isAir && (cbmVal > 0 || weightKgVal > 0) && (
+                  <div style={{ marginTop: -8, fontSize: 11.5, color: 'var(--ink3)' }}>
+                    Volumetric: {volumetricKgVal.toFixed(0)} kg ({cbmVal} CBM × 166.67) vs. gross {weightKgVal.toFixed(0)} kg → chargeable weight <strong style={{ color: 'var(--teal)' }}>{chargeableKgPreview.toFixed(0)} kg</strong>
                   </div>
                 )}
 
-                {/* Sea LCL is charged by CBM, not per-container; Air is charged by
-                    chargeable weight — the greater of gross weight and volumetric
-                    weight (CBM × 166.67, the IATA divisor) — so both need these
-                    cargo-measurement fields instead of a container selection. */}
-                {(isAir || container === 'lcl') && (
+                {icdOperatorOptions.length > 0 && (
                   <div>
                     <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 10 }}>
-                      Cargo Measurements <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--ink4)' }}>— {isAir ? 'CBM + weight, for chargeable-weight billing' : 'CBM, for LCL handling charges'}</span>
+                      ICD Operator <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--ink4)' }}>— optional, uses your Rate Card's generic default otherwise</span>
                     </label>
-                    <div style={{ display: 'grid', gridTemplateColumns: isAir ? '1fr 1fr' : '1fr', gap: 10 }}>
-                      <div>
-                        <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Volume (CBM)</label>
-                        <input className="input-field" type="number" min="0" step="0.01" placeholder="e.g. 2.5" value={cbm} onChange={e => setCbm(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', height: 40, fontSize: 13.5 }} />
-                      </div>
-                      {isAir && (
-                        <div>
-                          <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Gross Weight (KG)</label>
-                          <input className="input-field" type="number" min="0" placeholder="e.g. 180" value={weightKg} onChange={e => setWeightKg(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', height: 40, fontSize: 13.5 }} />
-                        </div>
-                      )}
-                    </div>
-                    {isAir && (cbmVal > 0 || weightKgVal > 0) && (
-                      <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--ink3)' }}>
-                        Volumetric: {volumetricKgVal.toFixed(0)} kg ({cbmVal} CBM × 166.67) vs. gross {weightKgVal.toFixed(0)} kg → chargeable weight <strong style={{ color: 'var(--teal)' }}>{chargeableKgPreview.toFixed(0)} kg</strong>
-                      </div>
-                    )}
+                    <Select value={icdOperatorId ?? '__generic__'} onValueChange={v => setIcdOperatorId(v === '__generic__' ? null : v)}>
+                      <SelectTrigger style={{ height: 44 }}><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__generic__">Generic default</SelectItem>
+                        {icdOperatorOptions.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
+
               </div>
 
               {/* Destination-charge basis info */}
               <div style={{ marginTop: 24, padding: '12px 16px', background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)', borderRadius: 10, fontSize: 12, color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="info" size={15} color="var(--teal)" style={{ flexShrink: 0 }} />
                 {isAir
-                  ? <span>Air handling: TZS 55,000 documentation + TZS 242/kg chargeable weight · TPA Wharfage: 0.5% of CIF</span>
+                  ? <span>Air handling: TZS 55,000 documentation + TZS 242/kg chargeable weight · TPA Wharfage: 1.6% of CIF</span>
                   : container === 'lcl'
-                    ? <span>LCL handling: TZS 130,000/CBM · TPA Wharfage: 0.5% of CIF</span>
-                    : <span>ICD charges: TZS 450,000 (20ft) · TZS 560,000 (40ft) · TPA Wharfage: 0.5% of CIF</span>}
+                    ? <span>LCL handling: TZS 130,000/CBM · TPA Wharfage: 1.6% of CIF</span>
+                    : <span>ICD charges: TZS 450,000 (20ft) · TZS 560,000 (40ft) · TPA Wharfage: 1.6% of CIF</span>}
+              </div>
+
+              {/* ── Advanced Settings ──────────────────────────────────────
+                  Everything here replaces a rate that would otherwise come
+                  from the EAC CET tariff table or a published TPA/TRA figure.
+                  Blank = use the sourced value. Anything actually changed is
+                  labelled as a manual override on the result and the PDF, so
+                  a typed rate is never presented with the authority of a
+                  looked-up one. */}
+              <div style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+                <button type="button" onClick={() => setShowAdvanced(v => !v)}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '12px 16px', background: 'var(--surface, rgba(255,255,255,0.03))', border: 'none', cursor: 'pointer', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 700 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Icon name="settings" size={15} color="var(--ink3)" />
+                    Advanced Settings
+                    {overrideCount > 0 && (
+                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: 'var(--gold-l, rgba(184,134,47,.15))', color: 'var(--gold, #B8862F)' }}>
+                        {overrideCount} override{overrideCount > 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </span>
+                  <Icon name={showAdvanced ? 'chevronUp' : 'chevronDown'} size={15} color="var(--ink3)" />
+                </button>
+                {showAdvanced && (
+                  <div style={{ padding: '16px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.6 }}>
+                      Leave blank to use the rate from the EAC CET tariff database or the published TPA/TRA figure.
+                      Anything you enter here is flagged as a manual override on the estimate and the exported PDF.
+                    </div>
+                    <div className="lcp-btn-row">
+                      <OverrideField label="Import Duty" suffix="%" value={ovDuty} onChange={setOvDuty} placeholder="from tariff DB" />
+                      <OverrideField label="VAT" suffix="%" value={ovVat} onChange={setOvVat} placeholder="18" />
+                    </div>
+                    <div className="lcp-btn-row">
+                      <OverrideField label="Railway Dev. Levy" suffix="% of CIF" value={ovRdl} onChange={setOvRdl} placeholder="2" />
+                      <OverrideField label="Customs Processing Fee" suffix="% of CIF" value={ovCpf} onChange={setOvCpf} placeholder="1" />
+                    </div>
+                    <div className="lcp-btn-row">
+                      <OverrideField label="TPA Wharfage" suffix="% of CIF" value={ovWharfage} onChange={setOvWharfage} placeholder="1.6" />
+                      <OverrideField label="Port Infra. Development" suffix="% of duty" value={ovPid} onChange={setOvPid} placeholder="4.5" />
+                    </div>
+                    <OverrideField
+                      label="Exchange rate (USD → TZS)"
+                      suffix="TZS"
+                      value={ovFx}
+                      onChange={setOvFx}
+                      placeholder={fxRate ? `live: ${fxRate.toLocaleString()}` : 'live rate'}
+                      hint="Pin a rate when quoting against a fixed contract rate. Blank uses the live feed."
+                    />
+                  </div>
+                )}
               </div>
 
               {navRow}
             </div>
           )}
 
-          {step === 3 && (
+          {step === 4 && (
             <div className="lcp-card">
-              <StepCaption index={2} />
+              <StepCaption index={3} />
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Icon name="calculator" size={18} color="var(--teal)" /> Results Breakdown
               </div>
@@ -1008,6 +2706,31 @@ export const LandedCostPage: React.FC = () => {
                 <div style={{ color: 'var(--red)', fontSize: 13, marginBottom: 18, padding: '12px 16px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
                   <Icon name="alertCircle" size={16} color="var(--red)" />
                   {itemMode === 'single' ? error : multiError}
+                </div>
+              )}
+
+              {/* A missing QR should be explained, not silently absent — the
+                  usual cause is the public domain not being configured yet. */}
+              {shareNotice && (
+                <div style={{ marginBottom: 18, padding: '11px 15px', borderRadius: 10, background: 'var(--gold-l, rgba(184,134,47,.10))', border: '1px solid var(--gold-m, rgba(184,134,47,.30))', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <Icon name="info" size={15} color="var(--gold, #B8862F)" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <div style={{ fontSize: 12, color: 'var(--ink2)', lineHeight: 1.6 }}>
+                    <strong>Exported without a QR code.</strong> {shareNotice} The report link itself was still saved, so it will work once that's set.
+                  </div>
+                </div>
+              )}
+
+              {/* Manual-override banner — the figures below aren't purely
+                  tariff-sourced, and that has to be visible on the result
+                  itself, not only in the fine print. */}
+              {result && (result.overridden_fields?.length ?? 0) > 0 && (
+                <div style={{ marginBottom: 18, padding: '12px 16px', borderRadius: 10, background: 'var(--gold-l, rgba(184,134,47,.12))', border: '1px solid var(--gold-m, rgba(184,134,47,.35))', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <Icon name="alertTriangle" size={16} color="var(--gold, #B8862F)" style={{ flexShrink: 0, marginTop: 1 }} />
+                  <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>
+                    <strong style={{ color: 'var(--gold, #B8862F)' }}>Manual rate override in effect.</strong>{' '}
+                    {result.overridden_fields!.map(f => OVERRIDE_LABELS[f] ?? f).join(', ')}
+                    {' '}— entered in Advanced Settings, not sourced from the EAC CET tariff database or a published TPA/TRA rate. Verify before sending this to a customer.
+                  </div>
                 </div>
               )}
 
@@ -1056,42 +2779,22 @@ export const LandedCostPage: React.FC = () => {
                       </div>
                     )}
 
-                    <div style={{ border: '1px solid var(--teal)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 4px 20px color-mix(in srgb, var(--teal) 8%, transparent)' }}>
-                      <div style={{ padding: '16px 22px', background: 'color-mix(in srgb, var(--teal) 10%, transparent)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                        <Icon name="package" size={18} color="var(--teal)" />
-                        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Landed Cost Breakdown</span>
-                        <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--ink3)' }}>HS {result.hs_code} · {fmtUsd(result.cif_usd)} CIF</span>
-                      </div>
-                      <div style={{ padding: '20px 26px', background: 'var(--card-bg, var(--white))' }}>
-                        <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>
-                          <em>{result.description}</em> · Live FX: 1 USD = TZS {result.fx_rate.toLocaleString()}
-                        </div>
-                        {result.breakdown?.map((b, i) => (
-                          <RRow key={i}
-                            label={b.label}
-                            value={`TZS ${fmt(b.amount)}`}
-                            hi={b.label.includes('Total') || b.label.includes('Per Unit')}
-                          />
-                        ))}
-
-                        {/* VAT is usually a recoverable input credit for VAT-registered
-                            importers — showing only the inclusive total overstates true
-                            unit cost for them, so both figures are always shown together. */}
-                        <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--teal) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--teal) 20%, transparent)' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5 }}>
-                            <span style={{ color: 'var(--ink2)' }}>Total incl. VAT</span>
-                            <strong style={{ color: 'var(--ink)' }}>TZS {fmt(result.total)}</strong>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, marginTop: 6 }}>
-                            <span style={{ color: 'var(--ink2)' }}>Total excl. VAT <span style={{ color: 'var(--ink4)' }}>(VAT recoverable)</span></span>
-                            <strong style={{ color: 'var(--teal)' }}>TZS {fmt(result.total_ex_vat)}</strong>
-                          </div>
-                          <div style={{ fontSize: 10.5, color: 'var(--ink4)', marginTop: 8, lineHeight: 1.5 }}>
-                            For VAT-registered importers, the TZS {fmt(result.vat_recoverable)} import VAT is usually a recoverable input credit — real cash at the border, but not part of true unit cost.
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    <FormattedLandedCostBreakdown
+                      result={result}
+                      fobUsd={fobVal || (result.cif_usd - freightVal - (insuranceVal || result.cif_usd * 0.01))}
+                      freightUsd={freightVal}
+                      insuranceUsd={insuranceVal || (result.cif_usd * 0.01)}
+                      mode={mode}
+                      container={container}
+                      icdOperatorId={icdOperatorId}
+                      qty={parseFloat(qty) || 0}
+                      extraItems={extraItems}
+                      extraPicker={extraPicker}
+                      onExtraPickerChange={addExtraItem}
+                      onRemoveExtra={removeExtraItem}
+                      onSetExtraQty={setExtraQty}
+                      searchTariff={searchTariff}
+                    />
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1177,7 +2880,7 @@ export const LandedCostPage: React.FC = () => {
                     )}
 
                     <div className="lcp-btn-row">
-                      <button type="button" onClick={() => result && printReport(result, qty, summary)}
+                      <button type="button" onClick={async () => { if (!result) return; const rc = await fetchRateCardDefaults(rateCardKeyFor(result.mode, container), icdOperatorId); const share = await createShareForReport(result, reportMeta, { result, qty, summary, extraItems, container, rateCard: rc, meta: reportMeta }); setShareNotice(share.qrUnavailableReason ?? ''); printReport(result, qty, summary, extraItems, container, rc, { ...reportMeta, ...share }); }}
                         style={{ padding: '11px 0', borderRadius: 8, border: '1.5px solid var(--teal)', background: 'var(--card-bg, var(--white))', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                         <Icon name="download" size={15} color="var(--teal)" />
                         Export PDF
@@ -1296,7 +2999,7 @@ export const LandedCostPage: React.FC = () => {
                   )}
 
                   <div className="lcp-btn-row">
-                    <button type="button" onClick={() => multiResult && printMultiReport(multiResult)}
+                    <button type="button" onClick={async () => { if (!multiResult) return; const share = await createShareForMulti(multiResult, reportMeta); setShareNotice(share.qrUnavailableReason ?? ''); printMultiReport(multiResult, { ...reportMeta, ...share }); }}
                       style={{ padding: '11px 0', borderRadius: 8, border: '1.5px solid var(--teal)', background: 'var(--card-bg, var(--white))', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                       <Icon name="download" size={15} color="var(--teal)" />
                       Export PDF

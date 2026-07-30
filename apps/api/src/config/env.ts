@@ -35,8 +35,15 @@ const envSchema = z.object({
   APP_PORT: z.coerce.number().default(3001),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('debug'),
   CORS_ORIGINS: z.string().default('http://localhost:5173'),
-  
-  
+
+  /** Public origin of the web app, used to build links that leave the system
+   *  — currently the QR code printed on landed-cost estimates. Deliberately
+   *  NOT derived from a request Host header: a spoofed header would mint QR
+   *  codes pointing elsewhere, and these are printed on paper, so a wrong
+   *  link can't be recalled. Leave unset and it falls back to the first
+   *  CORS origin, which is already the frontend URL in every deployment. */
+  PUBLIC_APP_URL: z.string().url().optional(),
+
   OPS_BOARD_URL: z.string().url().default('http://localhost:5173'),
   
   AIS_API_KEY: z.string().optional(),

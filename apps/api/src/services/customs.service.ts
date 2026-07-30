@@ -136,21 +136,47 @@ export async function getHsCode(code: string) {
     .orderBy('level', 'desc')
     .executeTakeFirst();
 
-  if (entry) return entry;
-
   // Fall back to the closest ancestor: longest code prefix wins
   // (8471.30 not found → try 8471.* line, then 84.71 heading, then 84).
-  if (/^\d+$/.test(digits) && digits.length >= 2) {
-    const parent = await db.selectFrom('hs_codes')
+  let resolved = entry ?? null;
+  if (!resolved && /^\d+$/.test(digits) && digits.length >= 2) {
+    resolved = await db.selectFrom('hs_codes')
       .selectAll()
       .where(sql<boolean>`${digits} LIKE replace(code, '.', '') || '%'`)
       .orderBy('level', 'desc')
-      .executeTakeFirst();
-    return parent ?? null;
+      .executeTakeFirst() ?? null;
+  }
+  if (!resolved) return null;
+
+  // A specific product-level code's own pvoc_required/di_required can be
+  // false while a broader chapter/heading requires it for the whole
+  // category (e.g. chapter 33 "Cosmetics" flagged for DI, but its 8-digit
+  // lines seeded individually as false) — an exact-match lookup above would
+  // otherwise silently drop that chapter-wide requirement. Inherit from any
+  // matching ancestor rather than only trusting the most specific row.
+  if (!resolved.pvoc_required || !resolved.di_required) {
+    const resolvedDigits = resolved.code.replace(/\./g, '');
+    const ancestors = await db.selectFrom('hs_codes')
+      .select(['pvoc_required', 'di_required'])
+      .where(sql<boolean>`${resolvedDigits} LIKE replace(code, '.', '') || '%'`)
+      .where('level', '<', resolved.level)
+      .execute();
+    for (const a of ancestors) {
+      if (a.pvoc_required) resolved.pvoc_required = true;
+      if (a.di_required) resolved.di_required = true;
+    }
   }
 
-  return null;
+  return resolved;
 }
+
+/** TPA wharfage on imports — 1.6% of CIF (TPA Tariff Book, Sea Ports:
+ *  "Wharfage (Imports) 1.6% of CIF"; exports are charged 1%). The charge is
+ *  itself VAT-able like the other TPA service lines, but that 18% is applied
+ *  where the breakdown is rendered, not here — this constant yields the net
+ *  amount only. Shared by the single-item and multi-item calculators so the
+ *  two can't drift apart. */
+const WHARFAGE_IMPORT_RATE = 0.016;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Destination charge — shared between the single-item and multi-item
@@ -230,6 +256,32 @@ export function computeDestinationCharge(input: DestinationChargeInput): Destina
 // Landed Cost Calculator
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Percentages (1.6 === 1.6%), never fractions. A key left undefined keeps
+ *  whatever the tariff table / statute says. */
+export interface RateOverrides {
+  duty_rate?: number;
+  vat_rate?: number;
+  rdl_rate?: number;
+  cpf_rate?: number;
+  wharfage_rate?: number;   // % of CIF
+  pid_rate?: number;        // % of Customs Duty
+  insurance_rate?: number;  // % of CFR
+}
+
+/** Applies an override only when it's a usable non-negative number, and
+ *  records the field name so callers can label it as user-entered. */
+function pickRate(
+  base: number,
+  override: number | undefined,
+  field: string,
+  overridden: string[],
+): number {
+  if (override == null || !Number.isFinite(override) || override < 0) return base;
+  if (override === base) return base;
+  overridden.push(field);
+  return override;
+}
+
 export interface LandedCostInput {
   hs_code: string;
   cif_usd: number;
@@ -237,6 +289,14 @@ export interface LandedCostInput {
   icd_per_container?: number;    // TZS — legacy flat override, see DestinationChargeInput.override_tzs
   num_containers?: number;       // default 1
   fx_rate_override?: number;     // override live rate
+  /** Caller-supplied replacements for rates that are otherwise sourced from
+   *  the tariff table (duty/VAT/RDL/CPF) or from statute (wharfage, PID,
+   *  insurance). Every key actually applied is echoed back in
+   *  `overridden_fields` so the UI and the exported estimate can mark it as
+   *  a user-entered figure rather than a TRA/TPA-sourced one — a typed rate
+   *  must never be presented with the same authority as a looked-up one.
+   *  All are percentages (e.g. 1.6 means 1.6%), not fractions. */
+  rate_overrides?: RateOverrides;
   shipment_ref?: string;
   description?: string;
   /** Optional breakdown of how cif_usd was derived — informational only,
@@ -249,6 +309,18 @@ export interface LandedCostInput {
   container?: '20ft' | '40ft';
   cbm?: number;
   weight_kg?: number;
+  /** Finance Act 2026 (July TRA circular) used-vehicle excise bands — only
+   *  applied when condition is 'used' and an age is given, and only for HS
+   *  chapter 87 (motor vehicles). Explicit inputs rather than guessed from
+   *  the HS code, since HS classification doesn't carry age/condition. */
+  vehicle_condition?: 'new' | 'used';
+  vehicle_age_years?: number;
+  /** Finance Act 2026 (July TRA circular) — 20% excise on plastic/rubber
+   *  clogs. Explicit flag rather than an HS-code lookup: our HS 6402 rows
+   *  are coarse ("Other footwear") and don't isolate clogs from other
+   *  rubber/plastic sandals, so guessing from HS code would over-tax
+   *  unrelated footwear under the same code. */
+  is_plastic_rubber_clogs?: boolean;
 }
 
 export interface LandedCostResult {
@@ -259,12 +331,33 @@ export interface LandedCostResult {
   cif_tzs: number;
   duty_rate: number;
   duty: number;
+  /** Set when the used-vehicle age band or the plastic/rubber-clogs flag
+   *  overrode the HS code's own excise_rate for this calculation — null
+   *  when the plain HS-code rate was used unmodified. */
+  excise_override_note: string | null;
   vat: number;
   rdl: number;
   cpf: number;
   excise: number;
   icd: number;
   wharfage: number;
+  /** TPA Tariff Book (Sea Ports, Jan 2026) Clause 15.1(a) — Port Infrastructure
+   *  Development charge, 4.5% of Customs Duty (per the Finance Act 2026 July
+   *  update — was 9% at the TPA Tariff Book's January 2026 publication),
+   *  sea-port cargo only (0 for air). */
+  pid: number;
+  /** TPA Tariff Book Clause 15.1(b) — Green Port Initiatives charge, sea-port
+   *  cargo only: flat per-container (FCL) or per-MT (LCL, when weight_kg is
+   *  supplied); 0 for air or LCL without a weight input. */
+  green_port_initiative: number;
+  /** Stand-in fixed fee reusing the TASAC CFA agency-fee schedule (GN.
+   *  83-2026) — not an independently verified TBS tariff. 0 unless the HS
+   *  code's di_required flag is set. */
+  tbs_charge: number;
+  /** Stand-in fixed fee reusing the same TASAC CFA schedule — not an
+   *  independently verified shipping-line tariff. 0 for air (no ocean
+   *  shipping line involved). */
+  shipping_line_charge: number;
   total: number;
   per_unit: number;
   qty: number;
@@ -294,6 +387,12 @@ export interface LandedCostResult {
   chargeable_weight_kg: number | null;
   warnings: string[];
   assumptions: string[];
+  /** Rate fields the caller replaced via `rate_overrides` (e.g.
+   *  ['duty_rate','wharfage_rate']). Empty when every rate came from the
+   *  tariff table / statute. The UI and the exported estimate use this to
+   *  mark user-entered figures so they're never mistaken for TRA-sourced
+   *  ones. */
+  overridden_fields: string[];
 }
 
 export async function calculateLandedCost(input: LandedCostInput): Promise<LandedCostResult> {
@@ -305,11 +404,15 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
   // 2026-07-01) — hs_codes.cpf_rate was bulk-updated to 1.0 accordingly; the
   // fallback below (used only when an HS code isn't found in our DB) mirrors
   // that same rate rather than the old, now-incorrect 0.6.
-  const dutyRate    = hsEntry ? Number(hsEntry.import_duty_rate) : 25;
-  const vatRate     = hsEntry ? Number(hsEntry.vat_rate) : 18;
+  const ov = input.rate_overrides ?? {};
+  /** Names of rates the caller replaced — surfaced on the result so the UI
+   *  and the PDF can mark them as user-entered rather than TRA/TPA-sourced. */
+  const overriddenFields: string[] = [];
+  const dutyRate    = pickRate(hsEntry ? Number(hsEntry.import_duty_rate) : 25, ov.duty_rate, 'duty_rate', overriddenFields);
+  const vatRate     = pickRate(hsEntry ? Number(hsEntry.vat_rate) : 18, ov.vat_rate, 'vat_rate', overriddenFields);
   const exciseRate  = hsEntry ? Number(hsEntry.excise_rate) : 0;
-  const rdlRate     = hsEntry ? Number(hsEntry.rdl_rate) : 1.5;
-  const cpfRate     = hsEntry ? Number(hsEntry.cpf_rate) : 1;
+  const rdlRate     = pickRate(hsEntry ? Number(hsEntry.rdl_rate) : 2, ov.rdl_rate, 'rdl_rate', overriddenFields);
+  const cpfRate     = pickRate(hsEntry ? Number(hsEntry.cpf_rate) : 1, ov.cpf_rate, 'cpf_rate', overriddenFields);
   const description = hsEntry?.description ?? 'General goods';
   const pvocReq     = hsEntry?.pvoc_required ?? false;
   const diReq       = hsEntry?.di_required ?? false;
@@ -321,15 +424,88 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
     cbm: input.cbm, weight_kg: input.weight_kg, override_tzs: input.icd_per_container,
   });
 
+  // Finance Act 2026 (July TRA circular) excise overrides — explicit inputs,
+  // not HS-code guesses (see LandedCostInput comments). The circular gives
+  // no rate for used vehicles under 8 years old, so that bracket falls
+  // through to the HS code's own excise_rate unchanged.
+  let effectiveExciseRate = exciseRate;
+  let exciseOverrideNote: string | null = null;
+  if (input.vehicle_condition === 'used' && input.vehicle_age_years != null && input.hs_code.trim().startsWith('87')) {
+    const age = input.vehicle_age_years;
+    if (age > 20) { effectiveExciseRate = 40; exciseOverrideNote = 'Used motor vehicle, over 20 years old — 40% excise (Finance Act 2026, July update)'; }
+    else if (age > 10) { effectiveExciseRate = 35; exciseOverrideNote = 'Used motor vehicle, over 10 up to 20 years old — 35% excise (Finance Act 2026, July update)'; }
+    else if (age >= 8) { effectiveExciseRate = 18; exciseOverrideNote = 'Used motor vehicle, 8 to 10 years old — 18% excise (Finance Act 2026, July update)'; }
+  }
+  if (input.is_plastic_rubber_clogs) {
+    effectiveExciseRate = 20;
+    exciseOverrideNote = 'Plastic or rubber clogs — 20% excise (Finance Act 2026, July update)';
+  }
+
   const cifTzs   = input.cif_usd * fxRate;
   const duty     = cifTzs * dutyRate / 100;
-  const excise   = cifTzs * exciseRate / 100;
+  const excise   = cifTzs * effectiveExciseRate / 100;
   const rdl      = cifTzs * rdlRate / 100;
   const cpf      = cifTzs * cpfRate / 100;
   const vat      = (cifTzs + duty + excise) * vatRate / 100;
   const icd      = destCharge.amount_tzs;
-  const wharfage = cifTzs * 0.005; // TPA wharfage 0.5%
-  const total    = cifTzs + duty + excise + vat + rdl + cpf + icd + wharfage;
+  const wharfageRate = pickRate(WHARFAGE_IMPORT_RATE * 100, ov.wharfage_rate, 'wharfage_rate', overriddenFields);
+  const wharfage = cifTzs * wharfageRate / 100;
+
+  // TPA Tariff Book Clause 15 — "Where cargo has been received at a sea
+  // port" (i.e. not air): Port Infrastructure Development (15.1(a), 9% of
+  // Customs Duty) and Green Port Initiatives (15.1(b), flat per-container
+  // for FCL, per-MT for LCL when a weight is supplied). Motor-vehicle cargo
+  // has a separate USD/CBM rate under 15.1(b)(iii) that isn't computed here
+  // — this calculator has no reliable "this shipment is a vehicle" signal,
+  // and guessing would repeat the exact fabrication bug already fixed once
+  // in this codebase, so it's left as an assumption note instead.
+  const isSeaPort = mode !== 'air';
+  const pidRate = pickRate(4.5, ov.pid_rate, 'pid_rate', overriddenFields);
+  const pid = isSeaPort ? duty * pidRate / 100 : 0;
+  let greenPortInitiative = 0;
+  let greenPortLabel = 'Green Port Initiatives';
+  if (isSeaPort) {
+    if (mode === 'sea_fcl') {
+      const container = input.container ?? '20ft';
+      const numContainers = input.num_containers ?? 1;
+      const perContainerUsd = container === '20ft' ? 50 : 100;
+      greenPortInitiative = perContainerUsd * numContainers * fxRate;
+      greenPortLabel = `Green Port Initiatives (${numContainers}× ${container} containerized)`;
+    } else if (mode === 'sea_lcl' && input.weight_kg) {
+      const mt = input.weight_kg / 1000;
+      greenPortInitiative = mt * 0.25 * fxRate;
+      greenPortLabel = `Green Port Initiatives (${mt.toFixed(2)} MT general cargo)`;
+    }
+  }
+
+  // TBS Charges (Tanzania Bureau of Standards) — a flat per-BL fee:
+  // Physical Verification Fee TZS 150,000 + Service Fee TZS 30,000 =
+  // TZS 180,000, from the clearing agent's own reference rate sheet.
+  //
+  // Applied to every import, not gated on the HS code's di_required flag.
+  // Two reasons: the tenant's own Landed Cost Model workbook charges it flat
+  // on every consignment it prices (including HS codes our tariff table has
+  // no DI flag for), and only 66 of ~6,100 rows in that table carry the flag
+  // at all — gating on it meant the charge almost never appeared, which
+  // under-quoted nearly every job. `di_required` is still reported separately
+  // as a compliance warning; it just no longer decides this fee.
+  const TBS_PHYSICAL_VERIFICATION_TZS = 150000;
+  const TBS_SERVICE_FEE_TZS = 30000;
+  const applyTbs = true;
+  const tbsCharge = applyTbs ? TBS_PHYSICAL_VERIFICATION_TZS + TBS_SERVICE_FEE_TZS : 0;
+
+  // Shipping Line Charges — real flat per-shipment fees (Delivery Order fee
+  // TZS 56,286 for any sea shipment; Shipping Line/TASAC/Drop-off fee TZS
+  // 389,311.50 per shipment for FCL only — the reference rate sheet shows
+  // TZS 0 for consolidated/LCL cargo), replacing the earlier TASAC-agency-fee
+  // stand-in. Air cargo has no ocean shipping line, so both are 0 for air.
+  const SHIPPING_DO_FEE_TZS = 56286;
+  const SHIPPING_HANDLING_FEE_TZS = 389311.50;
+  const shippingDoFee = mode !== 'air' ? SHIPPING_DO_FEE_TZS : 0;
+  const shippingHandlingFee = mode === 'sea_fcl' ? SHIPPING_HANDLING_FEE_TZS : 0;
+  const shippingLineCharge = shippingDoFee + shippingHandlingFee;
+
+  const total    = cifTzs + duty + excise + vat + rdl + cpf + icd + wharfage + pid + greenPortInitiative + tbsCharge + shippingLineCharge;
   const perUnit  = total / qty;
 
   // Statutory (TRA-assessed) vs commercial (port/agency-estimated) split —
@@ -342,13 +518,21 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
 
   const breakdown = [
     { label: 'CIF Value (TZS)', amount: cifTzs },
-    { label: `Import Duty (${dutyRate}% EAC CET)`, amount: duty, rate: `${dutyRate}%` },
-    ...(exciseRate > 0 ? [{ label: `Excise Duty (${exciseRate}%)`, amount: excise, rate: `${exciseRate}%` }] : []),
+    { label: `Import Duty (${dutyRate}%${overriddenFields.includes('duty_rate') ? ' — manual override' : ' EAC CET'})`, amount: duty, rate: `${dutyRate}%` },
+    ...(effectiveExciseRate > 0 ? [{ label: exciseOverrideNote ? `Excise Duty — ${exciseOverrideNote.split(' — ')[0]} (${effectiveExciseRate}%)` : `Excise Duty (${effectiveExciseRate}%)`, amount: excise, rate: `${effectiveExciseRate}%` }] : []),
     { label: `VAT ${vatRate}%  (CIF + Duty${exciseRate ? ' + Excise' : ''})`, amount: vat, rate: `${vatRate}%` },
     { label: `Railway Development Levy (${rdlRate}%)`, amount: rdl, rate: `${rdlRate}%` },
     { label: `Customs Processing Fee (${cpfRate}%)`, amount: cpf, rate: `${cpfRate}%` },
     { label: destCharge.label, amount: icd },
-    { label: 'TPA Wharfage (0.5%)', amount: wharfage, rate: '0.5%' },
+    { label: `TPA Wharfage (${wharfageRate}%)`, amount: wharfage, rate: `${wharfageRate}%` },
+    ...(pid > 0 ? [{ label: `Port Infrastructure Development (${pidRate}% of Customs Duty)`, amount: pid, rate: `${pidRate}% of duty` }] : []),
+    ...(greenPortInitiative > 0 ? [{ label: greenPortLabel, amount: greenPortInitiative }] : []),
+    ...(applyTbs ? [
+      { label: 'TBS Charges — Physical Verification Fee (DI)', amount: TBS_PHYSICAL_VERIFICATION_TZS },
+      { label: 'TBS Charges — Service Fee', amount: TBS_SERVICE_FEE_TZS },
+    ] : []),
+    ...(shippingDoFee > 0 ? [{ label: 'Shipping Line Charges — Delivery Order Fee', amount: shippingDoFee }] : []),
+    ...(shippingHandlingFee > 0 ? [{ label: 'Shipping Line Charges — Handling/TASAC Fee', amount: shippingHandlingFee }] : []),
     { label: 'Total Landed Cost (TZS)', amount: total },
     ...(qty > 1 ? [{ label: `Per Unit (÷ ${qty})`, amount: perUnit }] : []),
   ];
@@ -364,7 +548,19 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
     'Duty, excise, RDL, CPF and VAT rates are sourced from our EAC CET 2022 tariff database — verify current rates with TRA before final declaration.',
     destAssumption,
     'CPF is calculated at 1% per the Finance Act 2026 (effective 1 Jul 2026) — verify with TRA if your declaration predates this.',
+    ...(isSeaPort ? ['Green Port Initiatives is per the TPA Tariff Book, Sea Ports, January 2026, Clause 15.1(b) — it uses the motor-vehicle rate (USD 1.00/CBM) instead of the container/general-cargo rate shown here if this consignment is a vehicle; verify against your HS classification. Port Infrastructure Development is charged at 4.5% of Customs Duty per the Finance Act 2026 July update (the TPA Tariff Book itself, published January 2026, still shows the earlier 9% rate).'] : []),
+    ...(exciseOverrideNote ? [`${exciseOverrideNote}. This is based on TRA's summary "Key Changes" circular, not the full Finance Act 2026 text — verify the exact base and treatment with TRA before a real declaration.`] : []),
+    ...(applyTbs ? [`TBS Charges (TZS ${TBS_PHYSICAL_VERIFICATION_TZS.toLocaleString()} Physical Verification Fee + TZS ${TBS_SERVICE_FEE_TZS.toLocaleString()} Service Fee) are flat reference rates from the clearing agent's own rate sheet, applied to every consignment and not scaled by CIF value or quantity${diReq ? '' : ' — this HS code is not separately flagged for Destination Inspection in our tariff data, so remove this line if TBS does not in fact inspect this cargo'}. Verify against your actual TBS invoice.`] : []),
+    ...(shippingLineCharge > 0 ? [`Shipping Line Charges (Delivery Order TZS ${SHIPPING_DO_FEE_TZS.toLocaleString()}${shippingHandlingFee > 0 ? ` + Handling/TASAC Fee TZS ${SHIPPING_HANDLING_FEE_TZS.toLocaleString()}` : ''}) are flat reference rates from the clearing agent's own rate sheet, not an independently verified shipping-line tariff — verify against your actual shipping line invoice.`] : []),
+    ...(input.vehicle_condition === 'used' && input.vehicle_age_years != null && input.vehicle_age_years < 8 && input.hs_code.trim().startsWith('87')
+      ? ['This used vehicle is under 8 years old — the TRA circular we have only publishes age-band excise rates starting at 8 years, so the HS code\'s own excise rate was used unmodified.']
+      : []),
   ];
+  if (overriddenFields.length > 0) {
+    const names = overriddenFields.map(f => MULTI_RATE_LABELS[f] ?? f).join(', ');
+    const many = overriddenFields.length > 1;
+    warnings.push(`Manually overridden rate${many ? 's' : ''}: ${names}. ${many ? 'These are figures you entered' : 'This is a figure you entered'}, not sourced from our EAC CET tariff database or a published TPA/TRA rate — verify before relying on this estimate.`);
+  }
   if (pvocReq) warnings.push('Pre-Verification of Conformity (PVoC/CoC) certificate is required before shipment.');
   if (diReq) warnings.push('Destination Inspection (DI) is required on arrival.');
   for (const p of permits) warnings.push(`${p} permit/approval is required for this HS code.`);
@@ -382,12 +578,17 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
     cif_tzs: cifTzs,
     duty_rate: dutyRate,
     duty,
+    excise_override_note: exciseOverrideNote,
     vat,
     rdl,
     cpf,
     excise,
     icd,
     wharfage,
+    pid,
+    green_port_initiative: greenPortInitiative,
+    tbs_charge: tbsCharge,
+    shipping_line_charge: shippingLineCharge,
     total,
     per_unit: perUnit,
     qty,
@@ -409,6 +610,7 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
     insurance_usd: input.insurance_usd,
     warnings,
     assumptions,
+    overridden_fields: overriddenFields,
   };
 }
 
@@ -425,11 +627,23 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
 // rounding error the way naive per-line division does.
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Shared with the single-item warning text — same rate names, one source. */
+const MULTI_RATE_LABELS: Record<string, string> = {
+  duty_rate: 'Import Duty', vat_rate: 'VAT', rdl_rate: 'Railway Development Levy',
+  cpf_rate: 'Customs Processing Fee', wharfage_rate: 'TPA Wharfage',
+  pid_rate: 'Port Infrastructure Development', insurance_rate: 'Insurance',
+};
+
 export interface MultiLineItemInput {
   description: string;
   hs_code: string;
   qty: number;
   unit_price_usd: number;
+  /** Per-line replacements for this item's tariff-sourced duty/VAT/RDL/CPF.
+   *  Applied and reported exactly like the single-item case — each line's
+   *  result carries its own `overridden_fields` so the UI can mark that row
+   *  rather than the whole shipment. */
+  rate_overrides?: RateOverrides;
 }
 
 export interface MultiItemInput {
@@ -475,6 +689,9 @@ export interface MultiLineItemResult {
   di_required: boolean;
   permits: string[];
   hs_found: boolean;
+  /** Rate fields this line had replaced by the caller. Empty when every
+   *  rate on the row came from the tariff table. */
+  overridden_fields: string[];
 }
 
 export interface MultiItemResult {
@@ -558,11 +775,13 @@ export async function calculateMultiItemLandedCost(input: MultiItemInput): Promi
 
   items.forEach((it, i) => {
     const hsEntry = hsEntries[i];
-    const dutyRate = hsEntry ? Number(hsEntry.import_duty_rate) : 25;
-    const vatRate = hsEntry ? Number(hsEntry.vat_rate) : 18;
+    const lineOv = it.rate_overrides ?? {};
+    const lineOverridden: string[] = [];
+    const dutyRate = pickRate(hsEntry ? Number(hsEntry.import_duty_rate) : 25, lineOv.duty_rate, 'duty_rate', lineOverridden);
+    const vatRate = pickRate(hsEntry ? Number(hsEntry.vat_rate) : 18, lineOv.vat_rate, 'vat_rate', lineOverridden);
     const exciseRate = hsEntry ? Number(hsEntry.excise_rate) : 0;
-    const rdlRate = hsEntry ? Number(hsEntry.rdl_rate) : 1.5;
-    const cpfRate = hsEntry ? Number(hsEntry.cpf_rate) : 1;
+    const rdlRate = pickRate(hsEntry ? Number(hsEntry.rdl_rate) : 2, lineOv.rdl_rate, 'rdl_rate', lineOverridden);
+    const cpfRate = pickRate(hsEntry ? Number(hsEntry.cpf_rate) : 1, lineOv.cpf_rate, 'cpf_rate', lineOverridden);
     const pvocReq = hsEntry?.pvoc_required ?? false;
     const diReq = hsEntry?.di_required ?? false;
     const permits = hsEntry?.permits ? hsEntry.permits.split(',').map((p: string) => p.trim()) : [];
@@ -578,7 +797,7 @@ export async function calculateMultiItemLandedCost(input: MultiItemInput): Promi
     const cpf = cifTzs * cpfRate / 100;
     const vat = (cifTzs + duty + excise) * vatRate / 100;
     const destinationTzs = destinationAlloc[i];
-    const wharfage = cifTzs * 0.005;
+    const wharfage = cifTzs * WHARFAGE_IMPORT_RATE;
     const statutoryTotal = duty + excise + rdl + cpf + vat;
     const landedTotal = cifTzs + duty + excise + vat + rdl + cpf + destinationTzs + wharfage;
     const landedTotalExVat = landedTotal - vat;
@@ -604,7 +823,12 @@ export async function calculateMultiItemLandedCost(input: MultiItemInput): Promi
       duty, excise, rdl, cpf, vat, allocated_destination_tzs: destinationTzs, wharfage,
       statutory_total: statutoryTotal, landed_total: landedTotal, landed_total_ex_vat: landedTotalExVat,
       pvoc_required: pvocReq, di_required: diReq, permits, hs_found: !!hsEntry,
+      overridden_fields: lineOverridden,
     });
+    if (lineOverridden.length > 0) {
+      const names = lineOverridden.map(f => MULTI_RATE_LABELS[f] ?? f).join(', ');
+      warnings.push(`Line ${i + 1} (${label}): manually overridden rate${lineOverridden.length > 1 ? 's' : ''} — ${names}. Entered by the preparer, not sourced from the EAC CET tariff database.`);
+    }
   });
 
   const cifTzsTotal = totalFobTzs + totalFreightTzs + totalInsuranceTzs;

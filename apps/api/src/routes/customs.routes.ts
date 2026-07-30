@@ -21,8 +21,24 @@ import {
   getVesselPosition,
   getUsdToTzs,
   type ShipmentMode,
+  type RateOverrides,
 } from '../services/customs.service.js';
 import { db } from '../db/client.js';
+
+/** Whitelists and coerces the caller-supplied rate overrides. Anything not
+ *  a finite, non-negative number is dropped rather than defaulted, so a
+ *  malformed value falls back to the tariff-table rate instead of silently
+ *  becoming 0% (which would zero out a tax line). */
+function parseRateOverrides(raw: any): RateOverrides | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const KEYS: (keyof RateOverrides)[] = ['duty_rate', 'vat_rate', 'rdl_rate', 'cpf_rate', 'wharfage_rate', 'pid_rate', 'insurance_rate'];
+  const out: RateOverrides = {};
+  for (const k of KEYS) {
+    const n = parseFloat(raw[k]);
+    if (Number.isFinite(n) && n >= 0) out[k] = n;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
 
 export async function customsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -84,6 +100,10 @@ export async function customsRoutes(fastify: FastifyInstance) {
       container: body.container,
       cbm: body.cbm ? parseFloat(body.cbm) : undefined,
       weight_kg: body.weight_kg ? parseFloat(body.weight_kg) : undefined,
+      vehicle_condition: body.vehicle_condition,
+      vehicle_age_years: body.vehicle_age_years ? parseFloat(body.vehicle_age_years) : undefined,
+      is_plastic_rubber_clogs: !!body.is_plastic_rubber_clogs,
+      rate_overrides: parseRateOverrides(body.rate_overrides),
     });
 
     // Optionally save to history
@@ -146,6 +166,7 @@ export async function customsRoutes(fastify: FastifyInstance) {
           hs_code: it.hs_code ?? '',
           qty: parseFloat(it.qty) || 0,
           unit_price_usd: parseFloat(it.unit_price_usd) || 0,
+          rate_overrides: parseRateOverrides(it.rate_overrides),
         })),
         freight_usd: parseFloat(body.freight_usd) || 0,
         insurance_usd: body.insurance_usd !== undefined && body.insurance_usd !== '' ? parseFloat(body.insurance_usd) : undefined,

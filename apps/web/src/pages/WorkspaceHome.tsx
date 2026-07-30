@@ -49,10 +49,22 @@ const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category' | 'status' 
   inventory:    { desc: 'General multi-warehouse stock control — items, batches, units of measure & reorder alerts', category: 'Logistics', status: 'Beta', userCount: 0, dataSize: '0 GB', appServicesCount: 1, tags: ['Stock', 'Warehousing', 'Inventory'] },
 };
 
-const apps: HudumikaApp[] = LAUNCHER_APPS.map(app => ({
-  ...app,
-  ...(APP_META[app.id] ?? { desc: '', category: 'Other', status: 'Live' as const }),
-}));
+const apps: HudumikaApp[] = [
+  ...LAUNCHER_APPS.map(app => ({
+    ...app,
+    ...(APP_META[app.id] ?? { desc: '', category: 'Other', status: 'Live' as const }),
+  })),
+  // Deliberately not in LAUNCHER_APPS/APP_META above — that list also drives
+  // the header AppLauncher switcher, which has no role filtering, so a tile
+  // added there would show the platform console to every tenant user. This
+  // entry only exists here, and the superAdminOnly filter below (existing
+  // logic, not new) keeps it out of enabledAndAllowedApps for anyone else.
+  {
+    id: 'superadmin', name: 'SuperAdmin', path: '/admin', color: '#0f172a',
+    superAdminOnly: true, desc: 'Platform-wide tenant, billing, package & system administration',
+    category: 'Admin', status: 'Live' as const,
+  },
+];
 
 interface WorkspaceHomeProps {
   externalSearch?: string;

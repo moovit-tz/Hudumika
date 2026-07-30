@@ -18,6 +18,7 @@ import { CommandCenter }  from './pages/CommandCenter.js';
 import { ShipmentsList }  from './pages/ShipmentsList.js';
 import { ShipmentDetail } from './pages/ShipmentDetail.js';
 import { TrackingShared } from './pages/TrackingShared.js';
+import { SharedLandedCostReport } from './pages/SharedLandedCostReport.js';
 import { UserProfile }    from './pages/UserProfile.js';
 import { Support }        from './pages/Support.js';
 import { SupportOverview }from './pages/SupportOverview.js';
@@ -262,6 +263,7 @@ const AppContent: React.FC = () => {
       <Route path="/privacy"              element={<PrivacyPolicy />} />
       <Route path="/support-ticket"       element={<SupportTicket />} />
       <Route path="/track/shared/:token"  element={<TrackingShared />} />
+      <Route path="/r/:token"             element={<SharedLandedCostReport />} />
       <Route path="/why-complyos"         element={<ComplyOSSales />} />
       <Route path="/site/:tenantSlug"             element={<OneSitePublic />} />
       <Route path="/site/:tenantSlug/:pageSlug"   element={<OneSitePublic />} />
@@ -388,6 +390,7 @@ const AppContent: React.FC = () => {
           ))}
 
           <Route path="/track/shared/:token" element={<TrackingShared />} />
+          <Route path="/r/:token" element={<SharedLandedCostReport />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

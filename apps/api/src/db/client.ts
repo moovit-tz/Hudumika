@@ -2644,6 +2644,10 @@ export interface Database {
   icd_directory: IcdDirectoryTable;
   clearing_agents_registry: ClearingAgentsRegistryTable;
   eac_excise_schedules: EacExciseSchedulesTable;
+  port_tariff_items: PortTariffItemsTable;
+  clearos_rate_card_items: ClearosRateCardItemsTable;
+  landed_cost_shares: LandedCostSharesTable;
+  landed_cost_share_leads: LandedCostShareLeadsTable;
   customs_penalties: CustomsPenaltiesTable;
   landed_cost_records: LandedCostRecordsTable;
   vessel_positions: VesselPositionsTable;
@@ -2922,6 +2926,78 @@ export interface EacExciseSchedulesTable {
   scraped_at: Date | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+}
+
+export interface PortTariffItemsTable {
+  id: Generated<string>;
+  authority: string;
+  clause_ref: string | null;
+  category: string;
+  subcategory: string | null;
+  item_name: string;
+  unit: string | null;
+  cargo_type: string | null;
+  container_size: string | null;
+  rate_amount: string | null;
+  rate_currency: Generated<string>;
+  rate_type: Generated<string>;
+  min_charge: string | null;
+  free_period: string | null;
+  source_document: string;
+  source_page: string | null;
+  notes: string | null;
+  is_placeholder: Generated<boolean>;
+  status: Generated<string>;
+  updated_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface ClearosRateCardItemsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  card: string;
+  category: string;
+  code: string | null;
+  charge_name: string;
+  unit: string | null;
+  rate_amount: Generated<string>;
+  rate_currency: Generated<string>;
+  /** Floor for per-CBM/per-kg rates (LCL, Air). NULL = no minimum applies —
+   *  distinct from 0, which would be a real (zero) floor. */
+  min_charge: string | null;
+  notes: string | null;
+  sort_order: Generated<number>;
+  icd_operator_id: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+  updated_by: string | null;
+}
+
+export interface LandedCostSharesTable {
+  id: Generated<string>;
+  token: string;
+  tenant_id: string;
+  hs_code: string | null;
+  description: string | null;
+  customer_name: string | null;
+  payload: any;
+  view_count: Generated<number>;
+  unlock_count: Generated<number>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  expires_at: Date | null;
+}
+
+export interface LandedCostShareLeadsTable {
+  id: Generated<string>;
+  share_id: string;
+  tenant_id: string;
+  email: string;
+  full_name: string | null;
+  company: string | null;
+  lead_id: string | null;
+  created_at: Generated<Date>;
 }
 
 export interface CustomsPenaltiesTable {

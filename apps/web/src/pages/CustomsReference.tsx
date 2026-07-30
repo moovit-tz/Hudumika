@@ -4,14 +4,20 @@ import { Icon } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
 
-// ── Customs Reference — ICD directory, TASAC agents, EAC excise ──
+// ── Customs Reference — ICD directory, TASAC agents, EAC excise, port/agency tariff ──
 // Real gazette data imported from the public EAC customs suite
 // (see apps/api/src/scripts/import-moovit-reference-data.ts for the
 // original one-off seed; SUPER_ADMIN can now refresh/edit it from here).
+// The "Tariff" tab additionally covers the TPA Sea Ports Tariff Book
+// (Jan 2026, Clauses 19-25) and the TASAC CFA agency-fee guide
+// (GN. 83-2026), seeded via scripts/seed-port-tariff.mjs into
+// port_tariff_items (migration 144).
 
-type Tab = 'icd' | 'agents' | 'excise';
+type Tab = 'icd' | 'agents' | 'excise' | 'tariff';
+const TARIFF_NONE = '__all__';
 
 interface IcdOperator {
   id: string; operator_type: string; name: string; email: string | null;
@@ -28,6 +34,12 @@ interface ExciseItem {
   rw_rate: string | null; bi_rate: string | null;
 }
 interface ImportSummary { total: number; inserted: number; updated: number; skipped: number }
+interface TariffItem {
+  id: string; authority: string; clause_ref: string | null; category: string; subcategory: string | null;
+  item_name: string; unit: string | null; cargo_type: string | null; container_size: string | null;
+  rate_amount: string | null; rate_currency: string; rate_type: string; min_charge: string | null;
+  free_period: string | null; source_document: string; notes: string | null; is_placeholder: boolean;
+}
 
 const th: React.CSSProperties = { padding: '10px 14px', textAlign: 'left', fontWeight: 600, color: 'var(--ink2)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.4px', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' };
 const td: React.CSSProperties = { padding: '10px 14px', borderBottom: '1px solid var(--border)', verticalAlign: 'top' };
@@ -47,6 +59,12 @@ export const CustomsReference: React.FC = () => {
   const [agentsTotal, setAgentsTotal] = useState(0);
   const [agentsPage, setAgentsPage] = useState(0);
   const [excise, setExcise] = useState<ExciseItem[]>([]);
+  const [tariff, setTariff] = useState<TariffItem[]>([]);
+  const [tariffTotal, setTariffTotal] = useState(0);
+  const [tariffPage, setTariffPage] = useState(0);
+  const [tariffAuthority, setTariffAuthority] = useState(TARIFF_NONE);
+  const [tariffCategory, setTariffCategory] = useState(TARIFF_NONE);
+  const [tariffCategories, setTariffCategories] = useState<string[]>([]);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Inline row editing ──
@@ -77,6 +95,16 @@ export const CustomsReference: React.FC = () => {
         const res = await apiFetch(`/v1/reference/clearing-agents?${params}`);
         setAgents(res.data ?? []);
         setAgentsTotal(res.total ?? 0);
+      } else if (tab === 'tariff') {
+        const params = new URLSearchParams();
+        if (query) params.set('q', query);
+        if (tariffAuthority !== TARIFF_NONE) params.set('authority', tariffAuthority);
+        if (tariffCategory !== TARIFF_NONE) params.set('category', tariffCategory);
+        params.set('limit', String(PAGE));
+        params.set('offset', String(page * PAGE));
+        const res = await apiFetch(`/v1/reference/tariff?${params}`);
+        setTariff(res.data ?? []);
+        setTariffTotal(res.total ?? 0);
       } else {
         const res = await apiFetch(`/v1/reference/excise${query ? `?q=${encodeURIComponent(query)}` : ''}`);
         setExcise(res.data ?? []);
@@ -89,18 +117,42 @@ export const CustomsReference: React.FC = () => {
   };
 
   // Initial + tab change
-  useEffect(() => { setQ(''); setAgentsPage(0); setEditingId(null); setImportResult(null); load(''); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setQ(''); setAgentsPage(0); setTariffPage(0); setEditingId(null); setImportResult(null); load(''); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Tariff authority/category filter change
+  useEffect(() => {
+    if (tab !== 'tariff') return;
+    setTariffPage(0);
+    load(q, 0);
+  }, [tariffAuthority, tariffCategory]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Tariff category options refresh when authority filter changes
+  useEffect(() => {
+    if (tab !== 'tariff') return;
+    (async () => {
+      try {
+        const params = new URLSearchParams();
+        if (tariffAuthority !== TARIFF_NONE) params.set('authority', tariffAuthority);
+        const res = await apiFetch(`/v1/reference/tariff/categories?${params}`);
+        setTariffCategories(res.data ?? []);
+      } catch (err) { console.error('Tariff categories lookup failed:', err); }
+    })();
+  }, [tab, tariffAuthority]);
 
   // Debounced live search
   const onSearch = (val: string) => {
     setQ(val);
     setAgentsPage(0);
+    setTariffPage(0);
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => load(val, 0), 300);
   };
 
-  const gotoPage = (p: number) => { setAgentsPage(p); load(q, p); };
-  const totalPages = Math.max(1, Math.ceil(agentsTotal / PAGE));
+  const gotoPage = (p: number) => {
+    if (tab === 'tariff') { setTariffPage(p); load(q, p); }
+    else { setAgentsPage(p); load(q, p); }
+  };
+  const totalPages = Math.max(1, Math.ceil((tab === 'tariff' ? tariffTotal : agentsTotal) / PAGE));
 
   const fmtDate = (d: string | null) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 
@@ -115,6 +167,7 @@ export const CustomsReference: React.FC = () => {
     try {
       const path = tab === 'icd' ? `/v1/reference/icd-operators/${editingId}`
         : tab === 'agents' ? `/v1/reference/clearing-agents/${editingId}`
+        : tab === 'tariff' ? `/v1/reference/tariff/${editingId}`
         : `/v1/reference/excise/${editingId}`;
       const payload: Record<string, any> = { ...draft };
       if (tab === 'icd') {
@@ -124,6 +177,7 @@ export const CustomsReference: React.FC = () => {
       const res = await apiFetch(path, { method: 'PATCH', body: JSON.stringify(payload) });
       if (tab === 'icd') setIcd(prev => prev.map(r => r.id === editingId ? res.data : r));
       else if (tab === 'agents') setAgents(prev => prev.map(r => r.id === editingId ? res.data : r));
+      else if (tab === 'tariff') setTariff(prev => prev.map(r => r.id === editingId ? res.data : r));
       else setExcise(prev => prev.map(r => r.id === editingId ? res.data : r));
       cancelEdit();
     } catch (err: any) {
@@ -166,7 +220,14 @@ export const CustomsReference: React.FC = () => {
     { key: 'icd',    label: 'ICD / Dry Ports' },
     { key: 'agents', label: 'Clearing Agents' },
     { key: 'excise', label: 'EAC Excise Rates' },
+    { key: 'tariff', label: 'TPA / TASAC Tariff' },
   ];
+  const AUTHORITY_LABEL: Record<string, string> = { TPA: 'TPA (Sea Ports)', TASAC_CFA: 'TASAC (Agency Fees)', TRA: 'TRA (Other Levies)' };
+  const fmtRate = (t: TariffItem) => {
+    if (t.rate_amount == null) return t.is_placeholder ? 'Rate pending' : '—';
+    const n = Number(t.rate_amount);
+    return `${t.rate_currency} ${n.toLocaleString('en-US', { minimumFractionDigits: n % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 })}`;
+  };
 
   return (
     <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex: 1, overflowY: 'auto' }}>
@@ -180,10 +241,10 @@ export const CustomsReference: React.FC = () => {
             Customs Reference
           </h1>
           <p style={{ color: 'var(--ink2)', fontSize: '14px', margin: 0 }}>
-            Licensed ICD operators, TASAC clearing-agent registry (GN 83/2026) and EAC excise duty schedules.
+            Licensed ICD operators, TASAC clearing-agent registry (GN 83/2026), EAC excise duty schedules, and the TPA/TASAC port & agency tariff book.
           </p>
         </div>
-        {canEdit && (
+        {canEdit && tab !== 'tariff' && (
           <button type="button" onClick={() => handleUploadClick(tab)} disabled={importBusy !== null}
             style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: importBusy ? 'wait' : 'pointer', opacity: importBusy ? 0.7 : 1, flexShrink: 0 }}>
             <Icon name="upload" size={15} /> {importBusy === tab ? 'Uploading…' : `Upload fresh ${TABS.find(t => t.key === tab)?.label} list`}
@@ -237,10 +298,30 @@ export const CustomsReference: React.FC = () => {
           <input
             value={q}
             onChange={e => onSearch(e.target.value)}
-            placeholder={tab === 'icd' ? 'Search operator, licence, address…' : tab === 'agents' ? 'Search agent name, licence, email…' : 'Search product…'}
+            placeholder={tab === 'icd' ? 'Search operator, licence, address…' : tab === 'agents' ? 'Search agent name, licence, email…' : tab === 'tariff' ? 'Search clause, item, category…' : 'Search product…'}
             style={{ width: '100%', height: 32, boxSizing: 'border-box', padding: '0 12px 0 30px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13 }}
           />
         </div>
+        {tab === 'tariff' && (
+          <>
+            <Select value={tariffAuthority} onValueChange={setTariffAuthority}>
+              <SelectTrigger className="h-8 text-xs" style={{ width: 170 }}><SelectValue placeholder="Authority" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TARIFF_NONE}>All authorities</SelectItem>
+                <SelectItem value="TPA">TPA (Sea Ports)</SelectItem>
+                <SelectItem value="TASAC_CFA">TASAC (Agency Fees)</SelectItem>
+                <SelectItem value="TRA">TRA (Other Levies)</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={tariffCategory} onValueChange={setTariffCategory}>
+              <SelectTrigger className="h-8 text-xs" style={{ width: 220 }}><SelectValue placeholder="Category" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={TARIFF_NONE}>All categories</SelectItem>
+                {tariffCategories.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </>
+        )}
         {loading && <div style={{ width: 16, height: 16, border: '2px solid var(--border)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />}
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
@@ -387,23 +468,84 @@ export const CustomsReference: React.FC = () => {
               </tbody>
             </table>
           )}
+
+          {tab === 'tariff' && (
+            <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 13, width: '100%' }}>
+              <thead><tr style={{ background: 'var(--bg)' }}>
+                <th style={th}>Authority</th><th style={th}>Clause</th><th style={th}>Item</th>
+                <th style={th}>Unit</th><th style={th}>Size/Type</th><th style={th}>Rate</th>
+                {canEdit && <th style={th}></th>}
+              </tr></thead>
+              <tbody>
+                {tariff.map(t => {
+                  const isEditing = editingId === t.id;
+                  return (
+                    <tr key={t.id}>
+                      {isEditing ? (
+                        <>
+                          <td style={td}><input style={{ ...editInput, width: 90 }} value={draft.authority ?? ''} onChange={e => setField('authority', e.target.value)} placeholder="Authority" /></td>
+                          <td style={td}><input style={{ ...editInput, width: 90 }} value={draft.clause_ref ?? ''} onChange={e => setField('clause_ref', e.target.value)} placeholder="Clause" /></td>
+                          <td style={td}>
+                            <input style={editInput} value={draft.item_name ?? ''} onChange={e => setField('item_name', e.target.value)} placeholder="Item name" />
+                            <input style={{ ...editInput, marginTop: 4 }} value={draft.category ?? ''} onChange={e => setField('category', e.target.value)} placeholder="Category" />
+                            <input style={{ ...editInput, marginTop: 4 }} value={draft.subcategory ?? ''} onChange={e => setField('subcategory', e.target.value)} placeholder="Subcategory" />
+                          </td>
+                          <td style={td}><input style={{ ...editInput, width: 100 }} value={draft.unit ?? ''} onChange={e => setField('unit', e.target.value)} placeholder="Unit" /></td>
+                          <td style={td}><input style={{ ...editInput, width: 80 }} value={draft.container_size ?? ''} onChange={e => setField('container_size', e.target.value)} placeholder="Size" /></td>
+                          <td style={td}>
+                            <input style={{ ...editInput, width: 90, fontFamily: 'var(--mono)' }} value={draft.rate_amount ?? ''} onChange={e => setField('rate_amount', e.target.value)} placeholder="Rate" />
+                            <input style={{ ...editInput, marginTop: 4, width: 90 }} value={draft.rate_currency ?? ''} onChange={e => setField('rate_currency', e.target.value)} placeholder="Currency" />
+                          </td>
+                          <td style={{ ...td, whiteSpace: 'nowrap' }}>
+                            <button type="button" onClick={saveEdit} disabled={saving} title="Save" style={{ background: 'none', border: 'none', cursor: saving ? 'wait' : 'pointer', color: 'var(--green)', padding: 4 }}><Icon name="check" size={15} /></button>
+                            <button type="button" onClick={cancelEdit} disabled={saving} title="Cancel" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="x" size={15} /></button>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td style={td}><span style={{ padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 700, background: 'rgba(8,145,178,0.1)', color: 'var(--teal)' }}>{AUTHORITY_LABEL[t.authority] ?? t.authority}</span></td>
+                          <td style={{ ...td, fontFamily: 'var(--mono)', fontSize: 11.5, whiteSpace: 'nowrap' }}>{t.clause_ref ?? '—'}</td>
+                          <td style={{ ...td, fontWeight: 600 }}>
+                            {t.item_name}
+                            <div style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 400 }}>{[t.category, t.subcategory].filter(Boolean).join(' · ')}</div>
+                          </td>
+                          <td style={{ ...td, fontSize: 12 }}>{t.unit ?? '—'}</td>
+                          <td style={{ ...td, fontSize: 12 }}>{[t.container_size, t.cargo_type].filter(Boolean).join(' / ') || '—'}</td>
+                          <td style={{ ...td, fontFamily: 'var(--mono)', fontSize: 12.5, fontWeight: 700, color: t.is_placeholder ? 'var(--gold)' : 'var(--ink)' }}>
+                            {fmtRate(t)}
+                            {t.min_charge != null && <div style={{ fontSize: 10.5, color: 'var(--ink3)', fontWeight: 400 }}>min {t.rate_currency} {Number(t.min_charge).toLocaleString('en-US')}</div>}
+                          </td>
+                          {canEdit && <td style={td}><button type="button" onClick={() => startEdit(t)} title="Edit" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}><Icon name="edit" size={14} /></button></td>}
+                        </>
+                      )}
+                    </tr>
+                  );
+                })}
+                {tariff.length === 0 && !loading && <tr><td colSpan={canEdit ? 7 : 6} style={{ ...td, textAlign: 'center', color: 'var(--ink3)', padding: 40 }}>No tariff items match.</td></tr>}
+              </tbody>
+            </table>
+          )}
         </div>
 
-        {/* Agents pagination */}
-        {tab === 'agents' && agentsTotal > PAGE && (
+        {/* Agents / Tariff pagination */}
+        {((tab === 'agents' && agentsTotal > PAGE) || (tab === 'tariff' && tariffTotal > PAGE)) && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', gap: 8 }}>
             <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
-              {agentsPage * PAGE + 1}–{Math.min((agentsPage + 1) * PAGE, agentsTotal)} of {agentsTotal.toLocaleString()} licensed agents
+              {(() => { const p = tab === 'tariff' ? tariffPage : agentsPage; const total = tab === 'tariff' ? tariffTotal : agentsTotal; return `${p * PAGE + 1}–${Math.min((p + 1) * PAGE, total)} of ${total.toLocaleString()} ${tab === 'tariff' ? 'tariff items' : 'licensed agents'}`; })()}
             </span>
             <div style={{ display: 'flex', gap: 6 }}>
-              <button type="button" disabled={agentsPage === 0} onClick={() => gotoPage(agentsPage - 1)}
-                style={{ height: 30, padding: '0 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--white)', color: agentsPage === 0 ? 'var(--ink3)' : 'var(--ink)', fontSize: 12, fontWeight: 600, cursor: agentsPage === 0 ? 'default' : 'pointer' }}>
-                ‹ Prev
-              </button>
-              <button type="button" disabled={agentsPage >= totalPages - 1} onClick={() => gotoPage(agentsPage + 1)}
-                style={{ height: 30, padding: '0 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--white)', color: agentsPage >= totalPages - 1 ? 'var(--ink3)' : 'var(--ink)', fontSize: 12, fontWeight: 600, cursor: agentsPage >= totalPages - 1 ? 'default' : 'pointer' }}>
-                Next ›
-              </button>
+              {(() => { const p = tab === 'tariff' ? tariffPage : agentsPage; return (
+                <>
+                  <button type="button" disabled={p === 0} onClick={() => gotoPage(p - 1)}
+                    style={{ height: 30, padding: '0 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--white)', color: p === 0 ? 'var(--ink3)' : 'var(--ink)', fontSize: 12, fontWeight: 600, cursor: p === 0 ? 'default' : 'pointer' }}>
+                    ‹ Prev
+                  </button>
+                  <button type="button" disabled={p >= totalPages - 1} onClick={() => gotoPage(p + 1)}
+                    style={{ height: 30, padding: '0 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--white)', color: p >= totalPages - 1 ? 'var(--ink3)' : 'var(--ink)', fontSize: 12, fontWeight: 600, cursor: p >= totalPages - 1 ? 'default' : 'pointer' }}>
+                    Next ›
+                  </button>
+                </>
+              ); })()}
             </div>
           </div>
         )}
