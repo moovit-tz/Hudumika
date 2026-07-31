@@ -22,8 +22,10 @@ import {
   getUsdToTzs,
   type ShipmentMode,
   type RateOverrides,
+  type ContainerLot,
 } from '../services/customs.service.js';
 import { db } from '../db/client.js';
+import { sql } from 'kysely';
 
 /** Whitelists and coerces the caller-supplied rate overrides. Anything not
  *  a finite, non-negative number is dropped rather than defaulted, so a
@@ -38,6 +40,22 @@ function parseRateOverrides(raw: any): RateOverrides | undefined {
     if (Number.isFinite(n) && n >= 0) out[k] = n;
   }
   return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** Whitelists a mixed-container payload. Unknown sizes and non-positive
+ *  counts are dropped rather than defaulted — a malformed lot must not
+ *  silently become a container the customer gets billed for. */
+function parseContainerLots(raw: any): ContainerLot[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const out: ContainerLot[] = [];
+  for (const lot of raw) {
+    const size = lot?.size;
+    const count = Math.floor(Number(lot?.count));
+    if ((size === '20ft' || size === '40ft') && Number.isFinite(count) && count > 0) {
+      out.push({ size, count });
+    }
+  }
+  return out.length > 0 ? out : undefined;
 }
 
 export async function customsRoutes(fastify: FastifyInstance) {
@@ -59,6 +77,24 @@ export async function customsRoutes(fastify: FastifyInstance) {
     const entry = await getHsCode(code);
     if (!entry) return reply.status(404).send({ error: `HS code ${code} not found` });
     return entry;
+  });
+
+  // ── GET /v1/customs/countries?q= ─────────────────────────────────────────
+  // Async country search for the origin picker. Prefix matches rank above
+  // substring ones so typing "tan" offers Tanzania before Mauritania.
+  fastify.get('/countries', async (request) => {
+    const q = String((request.query as any).q ?? '').trim().toLowerCase();
+    let query = db.selectFrom('reference_countries').select(['code', 'code3', 'name', 'is_eac']);
+    if (q) query = query.where(sql<boolean>`lower(name) LIKE ${'%' + q + '%'} OR lower(code) = ${q} OR lower(code3) = ${q}`);
+    const rows = await query.orderBy('name').limit(50).execute();
+    if (!q) return { data: rows };
+    return {
+      data: rows.sort((a, b) => {
+        const ap = a.name.toLowerCase().startsWith(q) ? 0 : 1;
+        const bp = b.name.toLowerCase().startsWith(q) ? 0 : 1;
+        return ap - bp || a.name.localeCompare(b.name);
+      }),
+    };
   });
 
   // ── GET /v1/customs/fx-rate ───────────────────────────────────────────────────
@@ -98,6 +134,7 @@ export async function customsRoutes(fastify: FastifyInstance) {
       insurance_usd: body.insurance_usd ? parseFloat(body.insurance_usd) : undefined,
       mode: body.mode as ShipmentMode | undefined,
       container: body.container,
+      containers: parseContainerLots(body.containers),
       cbm: body.cbm ? parseFloat(body.cbm) : undefined,
       weight_kg: body.weight_kg ? parseFloat(body.weight_kg) : undefined,
       vehicle_condition: body.vehicle_condition,
@@ -128,6 +165,13 @@ export async function customsRoutes(fastify: FastifyInstance) {
         per_unit_tzs: result.per_unit,
         source: 'calculator',
         created_by: user.sub ?? null,
+        // Corridor/source-market data. Stored as given; a blank stays NULL so
+        // reporting can tell "not recorded" from a real value.
+        origin_country: body.origin_country?.trim() || null,
+        loading_point: body.loading_point?.trim() || null,
+        loading_point_type: ['SEA_PORT', 'AIRPORT', 'BORDER_POST'].includes(body.loading_point_type) ? body.loading_point_type : null,
+        shipment_mode: result.mode,
+        price_basis: ['EXW', 'FOB', 'CFR', 'CIF'].includes(body.price_basis) ? body.price_basis : null,
       }).execute().catch(() => {}); // Non-blocking
     }
 
@@ -173,6 +217,7 @@ export async function customsRoutes(fastify: FastifyInstance) {
         fx_rate_override: body.fx_rate_override ? parseFloat(body.fx_rate_override) : undefined,
         mode: (body.mode as ShipmentMode) ?? 'sea_fcl',
         container: body.container,
+        containers: parseContainerLots(body.containers),
         num_containers: body.num_containers ? parseInt(body.num_containers) : undefined,
         cbm: body.cbm ? parseFloat(body.cbm) : undefined,
         weight_kg: body.weight_kg ? parseFloat(body.weight_kg) : undefined,

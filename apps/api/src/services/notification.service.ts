@@ -88,6 +88,7 @@ export class NotificationService {
       const customer = await trx
         .selectFrom('customers')
         .selectAll()
+        .where('tenant_id', '=', tenantId)
         .where('id', '=', shipment.customer_id)
         .executeTakeFirst();
 

@@ -62,6 +62,11 @@ interface LandedCostResult {
   insurance_usd?: number;
   mode: ShipmentMode;
   destination_charge_label: string;
+  /** Containers this quote covers; per-container charge lines multiply by it. */
+  num_containers?: number;
+  /** The size mix behind that total. Each size is priced from its own rate
+   *  card, so per-container lines are computed per lot and summed. */
+  containers?: { size: '20ft' | '40ft'; count: number }[];
   chargeable_weight_kg: number | null;
   warnings: string[];
   assumptions: string[];
@@ -344,11 +349,20 @@ function FormattedLandedCostBreakdown({
   // report. Empty/zero until the tenant populates that tool; never a
   // guessed fallback.
   const [rateCard, setRateCard] = useState<Record<string, number>>({});
+  /** Per-size rate cards, keyed '20ft'/'40ft'. A mixed consignment needs both,
+   *  because a 40ft is not simply twice a 20ft. */
+  const [sizeCards, setSizeCards] = useState<Record<string, Record<string, number>>>({});
+  const lotsKey = JSON.stringify(result.containers ?? []);
   useEffect(() => {
     let cancelled = false;
     fetchRateCardDefaults(rateCardKeyFor(mode, container), icdOperatorId).then(rc => { if (!cancelled) setRateCard(rc); });
+    const sizes = (result.containers ?? []).map(l => l.size);
+    if (sizes.length > 0) {
+      Promise.all(sizes.map(sz => fetchRateCardDefaults(sz as RateCardKey, icdOperatorId).then(rc => [sz, rc] as const)))
+        .then(pairs => { if (!cancelled) setSizeCards(Object.fromEntries(pairs)); });
+    }
     return () => { cancelled = true; };
-  }, [mode, container, icdOperatorId]);
+  }, [mode, container, icdOperatorId, lotsKey]);
   const cfrUsd = fobUsd + freightUsd;
   const fobTzs = (fobUsd || (result.cif_usd - freightUsd - insuranceUsd)) * fx;
   const freightTzs = freightUsd * fx;
@@ -361,8 +375,15 @@ function FormattedLandedCostBreakdown({
   // was actually assessed (never a guessed flat 18%). CIF, Duties & Taxes
   // and TBS rows don't carry a VAT column (VAT is itself one of the Duties
   // rows; TBS is VAT-exempt here).
-  const vatBaseCard = result.cif_tzs + result.duty;
-  const vatRatePct = vatBaseCard > 0 ? (result.vat / vatBaseCard) * 100 : 18;
+  // Read the VAT rate off the assessed line rather than reverse-deriving it
+  // from vat / (CIF + duty): the VAT base is CIF plus every duty and levy, so
+  // that division no longer yields the rate and would inflate the service-VAT
+  // column on TPA/ICD/clearance charges.
+  const vatRatePct = (() => {
+    const row = result.breakdown.find(b => b.label.startsWith('VAT'));
+    const parsed = row?.rate ? parseFloat(row.rate) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 18;
+  })();
 
   // Everything below is read straight off `result` — nothing here is a
   // frontend-invented number. `result.breakdown` (customs.service.ts
@@ -446,23 +467,66 @@ function FormattedLandedCostBreakdown({
     breakdownRow('Insurance', '% of CFR', `${insurancePct.toFixed(insurancePct % 1 === 0 ? 0 : 2)}%`, insuranceTzs, false),
   ];
 
-  const dutiesRows: BreakdownRowData[] = statutoryItems.map(b => breakdownRow(b.label, b.label.startsWith('VAT') ? 'CIF + Duty' : 'CIF', b.rate || '—', b.amount, false));
+  const dutiesRows: BreakdownRowData[] = statutoryItems.map(b => breakdownRow(b.label, statutoryUnit(b.label), b.rate || '—', b.amount, false));
 
-  const tpaUnit = (label: string) => label.startsWith('Port Infrastructure') ? 'Import Duty' : label.startsWith('Green Port') ? 'Flat' : 'CIF';
   const tpaRows: BreakdownRowData[] = [
-    ...tpaItems.map(b => breakdownRow(b.label, tpaUnit(b.label), b.rate || '—', b.amount, true)),
+    ...tpaItems.map(b => breakdownRow(b.label, tpaUnitFor(b.label), b.rate || '—', b.amount, true)),
     ...tpaExtra.map(e => breakdownRow(e.item.item_name, '—', '—', extraLineTzs(e), false)),
   ];
   const tpaSubtotal = breakdownRowsTotal(tpaRows, vatRatePct);
 
-  const icdRows: BreakdownRowData[] = icdRateCardItems.map(r => breakdownRow(r.label, 'per consignment', `USD ${r.usd.toFixed(2)}`, r.usd * fx, true));
+  const containerCount = Math.max(1, result.num_containers ?? 1);
+  /** The container mix, falling back to the selected single size for legacy
+   *  results that predate the mixed-consignment field. */
+  const lots: { size: '20ft' | '40ft'; count: number }[] =
+    (result.containers && result.containers.length > 0)
+      ? result.containers
+      : (container === '20ft' || container === '40ft') ? [{ size: container, count: containerCount }] : [];
+
+  // ICD lines bill per container, and each size has its own rates — a 40ft is
+  // not twice a 20ft — so every lot is priced from its own rate card and the
+  // rows are emitted per size. Falls back to the single fetched card when the
+  // per-size cards haven't loaded (or the shipment isn't containerised).
+  const ICD_CODES: [string, string][] = [
+    ['ICD_HANDLING', 'Shore / Port Handling'],
+    ['ICD_MOVEMENT', 'ICD Movement Charges'],
+    ['ICD_TRANSFER', 'Container Transfer'],
+    ['ICD_VERIFICATION', 'Customs Verification'],
+    ['ICD_CORRIDOR', 'Corridor Levy'],
+  ];
+  const multiSize = lots.length > 1;
+  const icdRows: BreakdownRowData[] = lots.length > 0
+    ? lots.flatMap(lot => {
+        const card = sizeCards[lot.size] ?? rateCard;
+        return ICD_CODES
+          .map(([code, label]) => ({ label, usd: card[code] ?? 0, code }))
+          .filter(r => r.usd > 0)
+          .map(r => breakdownRow(
+            multiSize ? `${r.label} (${lot.size})` : r.label,
+            lot.count > 1 ? `per container × ${lot.count}` : 'per container',
+            `USD ${r.usd.toFixed(2)}`,
+            r.usd * fx * lot.count,
+            true,
+          ));
+      })
+    : icdRateCardItems.map(r => breakdownRow(r.label, 'per consignment', `USD ${r.usd.toFixed(2)}`, r.usd * fx, true));
   const icdSubtotal = breakdownRowsTotal(icdRows, vatRatePct);
 
   const clearanceRows: BreakdownRowData[] = [
     ...(cfDocnDef > 0 ? [breakdownRow('Documentation', 'per BL', `USD ${cfDocnDef.toFixed(2)}`, cfDocnDef * fx, true)] : []),
     ...(cfVerifDef > 0 ? [breakdownRow('Verification', 'per BL', `USD ${cfVerifDef.toFixed(2)}`, cfVerifDef * fx, true)] : []),
     ...(clearanceExtra.length > 0 ? clearanceExtra.map(e => breakdownRow(e.item.item_name, '—', '—', extraLineTzs(e), false))
-      : cfAgencyRateCardDef > 0 ? [breakdownRow('Agency Fees', 'per container', `USD ${cfAgencyRateCardDef.toFixed(2)}`, cfAgencyRateCardDef * fx, true)] : []),
+      : lots.length > 0
+        ? lots.flatMap(lot => {
+            const usd = (sizeCards[lot.size] ?? rateCard)['CF_AGENCY_FEE'] ?? 0;
+            return usd > 0 ? [breakdownRow(
+              multiSize ? `Agency Fees (${lot.size})` : 'Agency Fees',
+              lot.count > 1 ? `per container × ${lot.count}` : 'per container',
+              `USD ${usd.toFixed(2)}`, usd * fx * lot.count, true,
+            )] : [];
+          })
+        : cfAgencyRateCardDef > 0
+          ? [breakdownRow('Agency Fees', 'per BL', `USD ${cfAgencyRateCardDef.toFixed(2)}`, cfAgencyRateCardDef * fx, true)] : []),
   ];
   const clearanceCardTotal = breakdownRowsTotal(clearanceRows, vatRatePct);
 
@@ -687,13 +751,59 @@ function FormattedLandedCostBreakdown({
  *  page still carries `isAir` + `container` (the shapes the API and the rate
  *  card already speak), so this is just the single user-facing control the
  *  two of them project onto. */
-type ShipmentModeKey = '20ft' | '40ft' | 'lcl' | 'air';
+/** What each statutory line is actually assessed on. Kept in one place
+ *  because the unit column is shown to customers as an explanation of the
+ *  arithmetic — if it says "CIF" while the figure was computed on FOB, the
+ *  document is lying about its own working. */
+function statutoryUnit(label: string): string {
+  if (label.startsWith('VAT')) return 'CIF + duties';
+  if (label.startsWith('Customs Processing')) return 'FOB';
+  return 'CIF';
+}
 
-const SHIPMENT_MODE_OPTIONS: { key: ShipmentModeKey; label: string }[] = [
-  { key: '20ft', label: '20ft FCL' },
-  { key: '40ft', label: '40ft FCL' },
-  { key: 'lcl',  label: 'LCL' },
-  { key: 'air',  label: 'Airfreight' },
+/** TPA lines. PID is charged on the total duties and taxes, not import duty. */
+function tpaUnitFor(label: string): string {
+  if (label.startsWith('Port Infrastructure')) return 'Duties & taxes';
+  if (label.startsWith('Green Port')) return 'Flat';
+  return 'CIF';
+}
+
+type ShipmentModeKey = 'fcl' | 'lcl' | 'air';
+
+/** One size within a consignment. A shipment can mix sizes, and each size has
+ *  its own per-container rates (a 40ft is not simply twice a 20ft), so lots
+ *  are priced separately and summed. */
+interface ContainerLot { size: '20ft' | '40ft'; count: string }
+
+/** Collapses lots to the {size,count} shape the API takes, dropping blanks
+ *  and merging duplicate sizes. */
+function containerLotsPayload(lots: ContainerLot[]): { size: '20ft' | '40ft'; count: number }[] {
+  const merged = new Map<'20ft' | '40ft', number>();
+  for (const l of lots) {
+    const n = Math.floor(parseFloat(l.count) || 0);
+    if (n > 0) merged.set(l.size, (merged.get(l.size) ?? 0) + n);
+  }
+  return (['20ft', '40ft'] as const).filter(s => merged.has(s)).map(s => ({ size: s, count: merged.get(s)! }));
+}
+
+/** Suggestions only — the field stays free text, but offering the common
+ *  ones keeps "Jebel Ali" from also arriving as "jebel ali"/"JEBEL ALI"/
+ *  "Dubai JA", which would make the corridor data useless to aggregate. */
+const SEAPORT_SUGGESTIONS = [
+  'Ningbo', 'Shanghai', 'Shenzhen', 'Guangzhou', 'Qingdao', 'Tianjin',
+  'Jebel Ali', 'Mundra', 'Nhava Sheva', 'Chennai', 'Port Klang', 'Singapore',
+  'Istanbul', 'Jeddah', 'Durban', 'Mombasa', 'Rotterdam', 'Antwerp', 'Hamburg',
+];
+const AIRPORT_SUGGESTIONS = [
+  'Guangzhou (CAN)', 'Shanghai (PVG)', 'Hong Kong (HKG)', 'Dubai (DXB)',
+  'Doha (DOH)', 'Istanbul (IST)', 'Mumbai (BOM)', 'Nairobi (NBO)',
+  'Addis Ababa (ADD)', 'Amsterdam (AMS)', 'London (LHR)',
+];
+
+const SHIPMENT_MODE_OPTIONS: { key: ShipmentModeKey; label: string; icon: string }[] = [
+  { key: 'fcl', label: 'Sea · FCL',  icon: 'box' },
+  { key: 'lcl', label: 'Sea · LCL',  icon: 'layers' },
+  { key: 'air', label: 'Airfreight', icon: 'plane' },
 ];
 
 type RateCardKey = '20ft' | '40ft' | 'sea' | 'air' | 'road';
@@ -746,6 +856,16 @@ interface ShareResult {
 /** Registers this estimate as a publicly-scannable report and returns the QR
  *  to print on it. Never throws: a failed share must not block the export, it
  *  just means the printed copy carries no QR code. */
+/** Rate card per container size present in the result. A mixed consignment
+ *  needs both cards because the sizes price differently; falls back to an
+ *  empty map, and printReport then uses the single selected card. */
+async function fetchSizeCards(result: LandedCostResult, icdOperatorId: string | null): Promise<Record<string, Record<string, number>>> {
+  const sizes = Array.from(new Set((result.containers ?? []).map(l => l.size)));
+  if (sizes.length === 0) return {};
+  const pairs = await Promise.all(sizes.map(async sz => [sz, await fetchRateCardDefaults(sz as RateCardKey, icdOperatorId)] as const));
+  return Object.fromEntries(pairs);
+}
+
 async function createShareForReport(result: LandedCostResult, meta: ReportMeta, payload: Record<string, any>): Promise<ShareResult> {
   try {
     const r: any = await apiFetch('/v1/landed-cost-shares', {
@@ -763,7 +883,7 @@ async function createShareForReport(result: LandedCostResult, meta: ReportMeta, 
   }
 }
 
-function printReport(result: LandedCostResult, qty: string, summary: string, extraItems: ExtraCharge[] = [], container: '20ft' | '40ft' | 'lcl' = '20ft', rateCard: Record<string, number> = {}, meta: ReportMeta = {}) {
+function printReport(result: LandedCostResult, qty: string, summary: string, extraItems: ExtraCharge[] = [], container: '20ft' | '40ft' | 'lcl' = '20ft', rateCard: Record<string, number> = {}, meta: ReportMeta = {}, sizeCards: Record<string, Record<string, number>> = {}) {
   const w = window.open('', '_blank');
   if (!w) return;
   const now = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -803,8 +923,13 @@ function printReport(result: LandedCostResult, qty: string, summary: string, ext
   // Handling/TASAC Fee TZS 389,311.50 for FCL only — shown as two separate
   // rows below rather than lumped into one, so the split matches what's
   // actually being charged.
-  const shipDoDefaultUsd = result.mode !== 'air' ? 56286 / fx : 0;
-  const shipHandleDefaultUsd = (result.mode === 'sea_fcl' ? 389311.50 / fx : 0) + shippingExtra.reduce((s, r) => s + r.amountTzs, 0) / fx;
+  // Taken from the backend's own breakdown rows rather than re-derived from
+  // hardcoded shilling amounts here — duplicating them is what let the PDF
+  // drift from the assessed figures when the rates changed.
+  const shipDoRow = result.breakdown.find(b => b.label.includes('Delivery Order'));
+  const shipHandleRow = result.breakdown.find(b => b.label.includes('Handling/TASAC'));
+  const shipDoDefaultUsd = (shipDoRow?.amount ?? 0) / fx;
+  const shipHandleDefaultUsd = ((shipHandleRow?.amount ?? 0) + shippingExtra.reduce((s, r) => s + r.amountTzs, 0)) / fx;
 
   const cargoUsd = result.fob_usd ?? result.cif_usd;
   const freightUsd = result.freight_usd ?? 0;
@@ -825,8 +950,15 @@ function printReport(result: LandedCostResult, qty: string, summary: string, ext
   // assessed (never a guessed flat 18%) so it stays correct if the rate
   // ever changes. TBS and CIF/Duties rows don't carry a separate VAT
   // column (TBS is VAT-exempt here; VAT is itself one of the Duties rows).
-  const vatBaseCard = result.cif_tzs + result.duty;
-  const vatRatePct = vatBaseCard > 0 ? (result.vat / vatBaseCard) * 100 : 18;
+  // Read the VAT rate off the assessed line rather than reverse-deriving it
+  // from vat / (CIF + duty): the VAT base is CIF plus every duty and levy, so
+  // that division no longer yields the rate and would inflate the service-VAT
+  // column on TPA/ICD/clearance charges.
+  const vatRatePct = (() => {
+    const row = result.breakdown.find(b => b.label.startsWith('VAT'));
+    const parsed = row?.rate ? parseFloat(row.rate) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 18;
+  })();
 
   // Per-consignment defaults for the 5 ICD charges and 3 C&F (agency)
   // charges — pulled from the tenant's own Rate Card tool
@@ -879,12 +1011,11 @@ function printReport(result: LandedCostResult, qty: string, summary: string, ext
   ];
   const cifCardHtml = `<div class="card"><div class="card-h">CIF VALUE</div>${cardTable(cifRows)}${cardTotal('Total CIF', result.cif_tzs)}</div>`;
 
-  const dutiesRows = statutoryItems.map(b => row(b.label, b.label.startsWith('VAT') ? 'CIF + Duty' : 'CIF', b.rate || '&mdash;', b.amount, false));
+  const dutiesRows = statutoryItems.map(b => row(b.label, statutoryUnit(b.label), b.rate || '&mdash;', b.amount, false));
   const dutiesCardHtml = `<div class="card"><div class="card-h">DUTIES &amp; TAXES</div>${cardTable(dutiesRows)}${cardTotal('Total Duties &amp; Taxes', result.statutory_total)}</div>`;
 
-  const tpaUnit = (label: string) => label.startsWith('Port Infrastructure') ? 'Import Duty' : label.startsWith('Green Port') ? 'Flat' : 'CIF';
   const tpaRows = [
-    ...tpaItems.map(b => row(b.label, tpaUnit(b.label), b.rate || '&mdash;', b.amount, true)),
+    ...tpaItems.map(b => row(b.label, tpaUnitFor(b.label), b.rate || '&mdash;', b.amount, true)),
     ...tpaExtra.map(r => row(r.label, '&mdash;', '&mdash;', r.amountTzs, false)),
   ];
   const tpaSubtotalTzs = rowsTotal(tpaRows);
@@ -894,7 +1025,40 @@ function printReport(result: LandedCostResult, qty: string, summary: string, ext
     ['Customs Verification', icdVerifDef], ['Corridor Levy', icdCorrDef], ['Handling Charges', icdHandDef],
     ['ICD Movement Charges', icdMoveDef], ['Container Transfer', icdXferDef],
   ];
-  const icdRows = icdRateAll.filter(([, v]) => v > 0).map(([label, usd]) => row(label, 'per consignment', `USD ${moneyN(usd)}`, usd * fx, true));
+  const containerCount = Math.max(1, result.num_containers ?? 1);
+  /** Container mix, falling back to the selected single size for results that
+   *  predate the mixed-consignment field. */
+  const lots: { size: '20ft' | '40ft'; count: number }[] =
+    (result.containers && result.containers.length > 0)
+      ? result.containers
+      : (container === '20ft' || container === '40ft') ? [{ size: container, count: containerCount }] : [];
+  const multiSize = lots.length > 1;
+  /** ICD codes in the same order the rate card lists them, so the printed
+   *  rows match the Rate Card tool. */
+  const ICD_CODES: [string, string][] = [
+    ['ICD_VERIFICATION', 'Customs Verification'],
+    ['ICD_CORRIDOR', 'Corridor Levy'],
+    ['ICD_HANDLING', 'Handling Charges'],
+    ['ICD_MOVEMENT', 'ICD Movement Charges'],
+    ['ICD_TRANSFER', 'Container Transfer'],
+  ];
+  // Each size is priced from its own card — a 40ft is not twice a 20ft — and
+  // multiplied by that lot's count.
+  const icdRows = lots.length > 0
+    ? lots.flatMap(lot => {
+        const card = sizeCards[lot.size] ?? rateCard;
+        return ICD_CODES
+          .map(([code, label]) => ({ label, usd: card[code] ?? 0 }))
+          .filter(r => r.usd > 0)
+          .map(r => row(
+            multiSize ? `${r.label} (${lot.size})` : r.label,
+            lot.count > 1 ? `per container &times; ${lot.count}` : 'per container',
+            `USD ${moneyN(r.usd)}`,
+            r.usd * fx * lot.count,
+            true,
+          ));
+      })
+    : icdRateAll.filter(([, v]) => v > 0).map(([label, usd]) => row(label, 'per consignment', `USD ${moneyN(usd)}`, usd * fx, true));
   const icdSubtotalTzs = rowsTotal(icdRows);
   // `brk` starts page 2 here — page 1 ends after Total TPA Charges.
   const icdCardHtml = `<div class="card"><div class="card-h">ICD CHARGES</div>${cardTable(icdRows) || cardEmpty('Nothing entered yet — populate your Rate Card (Tools → Rate Card).')}${cardTotal('Total ICD Charges', icdSubtotalTzs)}${cardNote(`Sourced from your Rate Card — a commercial estimate, not a TRA assessment.${icdBackendRow ? ` ClearOS separately computed a single ICD/destination charge of TZS ${moneyN(icdBackendRow.amount)} (${icdBackendRow.label}) for reference — reconcile it against the itemised figures above rather than adding both.` : ''}`)}</div>`;
@@ -903,7 +1067,17 @@ function printReport(result: LandedCostResult, qty: string, summary: string, ext
     ...(cfDocnDef > 0 ? [row('Documentation', 'per BL', `USD ${moneyN(cfDocnDef)}`, cfDocnDef * fx, true)] : []),
     ...(cfVerifDef > 0 ? [row('Verification', 'per BL', `USD ${moneyN(cfVerifDef)}`, cfVerifDef * fx, true)] : []),
     ...(clearanceExtra.length > 0 ? clearanceExtra.map(e => row(e.label, '&mdash;', '&mdash;', e.amountTzs, false))
-      : cfAgencyDef > 0 ? [row('Agency Fees', 'per container', `USD ${moneyN(cfAgencyDef)}`, cfAgencyDef * fx, true)] : []),
+      : lots.length > 0
+        ? lots.flatMap(lot => {
+            const usd = (sizeCards[lot.size] ?? rateCard)['CF_AGENCY_FEE'] ?? 0;
+            return usd > 0 ? [row(
+              multiSize ? `Agency Fees (${lot.size})` : 'Agency Fees',
+              lot.count > 1 ? `per container &times; ${lot.count}` : 'per container',
+              `USD ${moneyN(usd)}`, usd * fx * lot.count, true,
+            )] : [];
+          })
+        : cfAgencyDef > 0
+          ? [row('Agency Fees', 'per BL', `USD ${moneyN(cfAgencyDef)}`, cfAgencyDef * fx, true)] : []),
   ];
   const clearanceTotalTzs = rowsTotal(clearanceRows);
   const clearanceCardHtml = `<div class="card"><div class="card-h">CLEARANCE CHARGES <span class="card-h-sub">(documentation, verification &amp; TASAC agency fee)</span></div>${cardTable(clearanceRows) || cardEmpty('No agency fee yet — set one in Tools → Rate Card, or pick one from the additional-charges search below.')}${cardTotal('Total Clearance Charges', clearanceTotalTzs)}${cardNote(`Documentation and Verification are sourced from your Rate Card; Agency Fee comes from what you've picked below if anything, otherwise your Rate Card's default.`)}</div>`;
@@ -920,7 +1094,7 @@ function printReport(result: LandedCostResult, qty: string, summary: string, ext
   // equal to the sub-total on that line.
   const shipRows = [
     ...(shipDoDefaultUsd > 0 ? [row('Delivery Order Fee', 'per BL', `USD ${moneyN(shipDoDefaultUsd)}`, shipDoDefaultUsd * fx, true)] : []),
-    ...(shipHandleDefaultUsd > 0 ? [row('Handling / TASAC Fee', 'per BL', `USD ${moneyN(shipHandleDefaultUsd)}`, shipHandleDefaultUsd * fx, false)] : []),
+    ...(shipHandleDefaultUsd > 0 ? [row('Handling / TASAC Fee', 'per container', `USD ${moneyN(shipHandleDefaultUsd)}`, shipHandleDefaultUsd * fx, false)] : []),
   ];
   const shipTotalTzs = rowsTotal(shipRows);
   const shipCardHtml = `<div class="card"><div class="card-h">SHIPPING LINE CHARGES</div>${cardTable(shipRows) || cardEmpty('Not applicable for air cargo.')}${cardTotal('Total Shipping Line Charges', shipTotalTzs)}${cardNote('Delivery Order (TZS 56,286) and Handling/TASAC Fee (TZS 389,311.50, FCL only) are flat reference rates from the clearing agent’s own rate sheet.')}</div>`;
@@ -1043,7 +1217,7 @@ table.ctbl .td-total{font-weight:700}
    .page > * rule above; pointer-events:none keeps it from swallowing clicks
    or text selection in the on-screen preview. */
 .wm{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:118mm;max-width:70%;z-index:5;pointer-events:none;line-height:0}
-.wm svg{width:100%;height:auto;display:block;fill:var(--acc);opacity:.3}
+.wm svg{width:100%;height:auto;display:block;fill:var(--acc);opacity:.075}
 .page-last .wm{display:none}
 .sign-row{margin-top:16px;border-top:1px solid var(--line);padding-top:11px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px}
 .sign .w{font-size:12px;font-weight:600;color:var(--ink-700)}
@@ -1062,11 +1236,17 @@ table.ctbl .td-total{font-weight:700}
   .toolbar{display:none}
   .sheet{width:auto;min-height:auto;margin:0;padding:0;box-shadow:none}
   /* break-after on every page but the last — a trailing break would emit a
-     blank fourth sheet. min-height fills the printable area (297mm less the
-     two 14mm margins) so the watermark centres on the paper rather than on
-     however tall that page's content happens to be. */
-  .page{min-height:269mm;break-after:page;page-break-after:always}
-  .page-last{min-height:0;break-after:auto;page-break-after:auto}
+     blank extra sheet.
+
+     Deliberately NO min-height. Pinning it to the 269mm printable height
+     (297mm less two 14mm margins) meant any sub-pixel rounding overflowed a
+     hairline onto the following sheet, and the forced break then pushed the
+     next page one further — producing a blank sheet before the summary. The
+     watermark now centres on its page's content box rather than on the paper,
+     which on these content-heavy pages is nearly the same place and cannot
+     manufacture a blank page. */
+  .page{break-after:page;page-break-after:always}
+  .page-last{break-after:auto;page-break-after:auto}
   /* Flex containers fragment unreliably across print engines, so the card
      stack becomes plain block flow for printing — forced breaks on block
      children are dependable. The gap property doesn't apply in block layout,
@@ -1235,6 +1415,7 @@ export function printSharedReport(payload: {
   extraItems?: ExtraCharge[];
   container?: '20ft' | '40ft' | 'lcl';
   rateCard?: Record<string, number>;
+  sizeCards?: Record<string, Record<string, number>>;
   meta?: ReportMeta;
 }) {
   if (!payload) return;
@@ -1249,6 +1430,7 @@ export function printSharedReport(payload: {
     payload.container ?? '20ft',
     payload.rateCard ?? {},
     meta,
+    payload.sizeCards ?? {},
   );
 }
 
@@ -1711,7 +1893,15 @@ export const LandedCostPage: React.FC = () => {
   const [destination,   setDestination]   = useState('Dar es Salaam, Tanzania');
 
   const [cif,        setCif]       = useState('');
-  const [cifMode,    setCifMode]   = useState<'direct' | 'breakdown'>('direct');
+  // Plain-language replacement for asking the customer an Incoterm. The two
+  // answers derive it: No/No = FOB, Yes/No = CFR, Yes/Yes = CIF.
+  const [priceInclFreight,   setPriceInclFreight]   = useState(false);
+  const [priceInclInsurance, setPriceInclInsurance] = useState(false);
+  // Corridor / source-market capture — persisted per calculation so the
+  // platform accumulates real data on which ports and borders trade flows
+  // through. Optional: blank stays NULL rather than becoming a fake value.
+  const [originCountry, setOriginCountry] = useState('');
+  const [loadingPoint,  setLoadingPoint]  = useState('');
   const [fob,        setFob]       = useState('');
   const [freight,    setFreight]   = useState('');
   const [insurancePct, setInsurancePct] = useState('1');
@@ -1719,13 +1909,14 @@ export const LandedCostPage: React.FC = () => {
   const [qty,        setQty]       = useState('1');
   const [container,  setContainer] = useState<'20ft' | '40ft' | 'lcl'>('20ft');
   const [isAir,      setIsAir]     = useState(false);
-  const [numContainers, setNumContainers] = useState('1');
+  const [containerLots, setContainerLots] = useState<ContainerLot[]>([{ size: '20ft', count: '1' }]);
 
   // ── Advanced Settings: optional replacements for rates that otherwise come
   // from the tariff table (duty/VAT/RDL/CPF) or statute (wharfage, PID), plus
   // a pinned FX rate. Blank means "use the sourced value" — these are stored
   // as strings so an empty box stays empty rather than becoming 0.
   const [shareNotice, setShareNotice] = useState('');
+  const [importNote, setImportNote] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [ovDuty,     setOvDuty]     = useState('');
   const [ovVat,      setOvVat]      = useState('');
@@ -1820,8 +2011,24 @@ export const LandedCostPage: React.FC = () => {
   const insuranceVal = cfrVal * (insurancePctVal / 100);
   const breakdownCif = cfrVal + insuranceVal;
 
+  /** What kind of place the goods were loaded at, from the transport mode —
+   *  so the corridor data is classified without asking another question. */
+  const loadingPointType: 'SEA_PORT' | 'AIRPORT' | 'BORDER_POST' = isAir ? 'AIRPORT' : 'SEA_PORT';
+  const loadingPointLabel = isAir ? 'Airport of Loading' : 'Port of Loading';
+
+  /** Incoterm implied by the two plain answers — never typed by the user. */
+  const priceBasis: 'FOB' | 'CFR' | 'CIF' =
+    priceInclFreight ? (priceInclInsurance ? 'CIF' : 'CFR') : 'FOB';
+
+  /** Customs value. The invoice figure plus whatever it doesn't already
+   *  cover — so a CIF invoice is used as-is, and an FOB one has shipping and
+   *  insurance added on top. */
   function effectiveCif(): number {
-    return cifMode === 'breakdown' ? breakdownCif : parseFloat(cif) || 0;
+    const invoice = parseFloat(fob) || 0;
+    const shipping = priceInclFreight ? 0 : (parseFloat(freight) || 0);
+    const base = invoice + shipping;
+    const ins = priceInclInsurance ? 0 : base * ((parseFloat(insurancePct) || 0) / 100);
+    return base + ins;
   }
 
   // Sea FCL charges per container; Sea LCL and Air don't fill a whole
@@ -1833,9 +2040,18 @@ export const LandedCostPage: React.FC = () => {
   const weightKgVal = parseFloat(weightKg) || 0;
   const volumetricKgVal = cbmVal * 166.67;
   const chargeableKgPreview = Math.max(weightKgVal, volumetricKgVal);
-  /** At least 1 — a blank or 0 container count would zero out every
-   *  per-container charge rather than meaning "none". */
-  const numContainersVal = Math.max(1, parseInt(numContainers, 10) || 1);
+  const containerPayload = containerLotsPayload(containerLots);
+  /** Keep `container` tracking the first container row while on FCL. It still
+   *  selects which single rate card is fetched (for the per-BL clearance
+   *  lines), so leaving it stale after a size change would price those off
+   *  the wrong card. */
+  const primaryLotSize = containerLots[0]?.size ?? '20ft';
+  useEffect(() => {
+    if (!isAir && container !== 'lcl' && container !== primaryLotSize) setContainer(primaryLotSize);
+  }, [isAir, container, primaryLotSize]);
+  /** At least 1 — a blank or 0 count would zero out every per-container
+   *  charge rather than meaning "none". */
+  const numContainersVal = Math.max(1, containerPayload.reduce((n, l) => n + l.count, 0));
 
   /** Only non-empty, valid, non-negative entries are sent. A blank box means
    *  "keep the tariff/statutory rate" — it must never be transmitted as 0,
@@ -1874,7 +2090,7 @@ export const LandedCostPage: React.FC = () => {
   async function calculate() {
     const cifVal = effectiveCif();
     if (!cifVal || cifVal <= 0) {
-      setError(cifMode === 'breakdown' ? 'Enter a valid FOB value in USD.' : 'Enter a valid CIF value in USD.');
+      setError('Enter the invoice value in USD.');
       return;
     }
     if (!hs.trim()) { setError('Enter an HS code or description.'); return; }
@@ -1892,11 +2108,19 @@ export const LandedCostPage: React.FC = () => {
           mode,
           container: mode === 'sea_fcl' ? container : undefined,
           num_containers: numContainersVal,
+          containers: mode === 'sea_fcl' ? containerPayload : undefined,
           rate_overrides: buildRateOverrides(),
           fx_rate_override: fxOverrideVal,
           cbm: mode !== 'sea_fcl' ? cbmVal : undefined,
           weight_kg: mode === 'air' ? weightKgVal : undefined,
-          ...(cifMode === 'breakdown' ? { fob_usd: fobVal, freight_usd: freightVal, insurance_usd: insuranceVal } : {}),
+          // Always send the working, so the report can show how CIF was built.
+          fob_usd: fobVal,
+          freight_usd: priceInclFreight ? 0 : freightVal,
+          insurance_usd: priceInclInsurance ? 0 : insuranceVal,
+          price_basis: priceBasis,
+          origin_country: originCountry.trim() || undefined,
+          loading_point: loadingPoint.trim() || undefined,
+          loading_point_type: loadingPointType,
           ...(isUsedVehicle ? { vehicle_condition: 'used', vehicle_age_years: parseFloat(vehicleAge) || undefined } : {}),
           ...(isClogs ? { is_plastic_rubber_clogs: true } : {}),
         }),
@@ -1935,6 +2159,7 @@ export const LandedCostPage: React.FC = () => {
           mode,
           container: mode === 'sea_fcl' ? container : undefined,
           num_containers: numContainersVal,
+          containers: mode === 'sea_fcl' ? containerPayload : undefined,
           rate_overrides: buildRateOverrides(),
           fx_rate_override: fxOverrideVal,
           cbm: mode !== 'sea_fcl' ? cbmVal : undefined,
@@ -2002,12 +2227,39 @@ export const LandedCostPage: React.FC = () => {
     updateRow(row.id, { hs_code: item.id, description: row.description || cached?.description || '' });
   }
 
+  /** Async country lookup against reference_countries (249 ISO entries), so
+   *  origin data lands on a canonical name instead of free-typed spellings. */
+  const searchCountries = useCallback(async (q: string): Promise<PickerItem[]> => {
+    try {
+      const r: any = await apiFetch(`/v1/customs/countries?q=${encodeURIComponent(q)}`);
+      return (r?.data ?? []).map((c: any) => ({
+        id: c.name,
+        label: c.is_eac ? `${c.name} · EAC` : c.name,
+        code: c.code,
+      }));
+    } catch { return []; }
+  }, []);
+
   function downloadCsvTemplate() {
-    const csv = 'Product,HS Code,Qty,Unit Price\nRice (husk),1006.10.00,100,30\nLaptop computers,8471,5,800\n';
+    // Only what a real commercial invoice actually carries. HS Code is left
+    // blank on purpose — the customer doesn't know it, the clearing agent
+    // assigns it afterwards. Freight and insurance are NOT per line: they're
+    // shipment-level and get apportioned across lines by value, so they're
+    // entered once on the form rather than asked for per row.
+    const csv = [
+      'Description,Qty,Unit Price,Amount,HS Code',
+      'Ceramic floor tiles 60x60,400,12.50,5000,',
+      'Tile adhesive 25kg bags,120,8,960,',
+      'Grouting compound 5kg,50,,300,',
+      '',
+      '# Description and either (Qty + Unit Price) or Amount are all that is required.',
+      '# Leave HS Code blank if you do not know it - your clearing agent fills it in.',
+      '# Do not add freight/insurance/shipping rows here - enter those once on the form.',
+    ].join('\n') + '\n';
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = 'landed-cost-items-template.csv';
+    a.href = url; a.download = 'commercial-invoice-template.csv';
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -2031,33 +2283,93 @@ export const LandedCostPage: React.FC = () => {
     return cells.map(c => c.trim());
   }
 
+  /** Money off a real invoice: "USD 1,234.56", "$1,234.56", "1 234,56 ".
+   *  Returns NaN when there's no number, so callers can tell blank from zero. */
+  function parseMoneyCell(raw: string): number {
+    if (!raw) return NaN;
+    let t = raw.replace(/[^\d.,\-]/g, '').trim();      // drop currency codes/symbols
+    if (!t) return NaN;
+    const lastComma = t.lastIndexOf(','), lastDot = t.lastIndexOf('.');
+    if (lastComma > lastDot) {
+      // Comma last: decimal separator only if 1-2 digits follow (1.234,56).
+      // Exactly three digits means a thousands separator (5,000) — reading
+      // that as a decimal turned 5,000 into 5, understating the line 1000x.
+      const digitsAfter = t.length - lastComma - 1;
+      if (digitsAfter === 3) t = t.replace(/,/g, '');
+      else t = t.replace(/\./g, '').replace(',', '.');
+    } else {
+      t = t.replace(/,/g, '');                                            // 1,234.56
+    }
+    const n = parseFloat(t);
+    return Number.isFinite(n) ? n : NaN;
+  }
+
+  /** Rows that are invoice furniture rather than goods. Real invoices carry
+   *  subtotals, freight lines and bank details that must never become cargo. */
+  function isNonCargoRow(desc: string): boolean {
+    return /^(sub[\s-]?total|total|grand\s*total|amount\s*due|balance|freight|shipping|insurance|discount|vat|tax|packing|handling|bank|swift|iban|terms|remarks?|notes?)/i
+      .test(desc.trim());
+  }
+
   function handleCsvUpload(file: File) {
     const reader = new FileReader();
     reader.onload = () => {
       const text = String(reader.result || '');
-      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
-      if (lines.length < 2) { setMultiError('CSV file has no data rows.'); return; }
-      const header = parseCsvLine(lines[0]).map(h => h.toLowerCase());
-      const idxProduct = header.findIndex(h => h.includes('product') || h.includes('description'));
-      const idxHs = header.findIndex(h => h.includes('hs'));
-      const idxQty = header.findIndex(h => h.includes('qty') || h.includes('quantity'));
-      const idxPrice = header.findIndex(h => h.includes('price'));
-      if (idxHs === -1 || idxQty === -1 || idxPrice === -1) {
-        setMultiError('CSV must have columns for HS Code, Qty and Unit Price (download the template for the exact format).');
+      // Ignore blank lines and the '#' guidance rows the template ships with.
+      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0 && !l.trim().startsWith('#'));
+      if (lines.length < 2) { setMultiError('That file has no data rows.'); return; }
+
+      const header = parseCsvLine(lines[0]).map(h => h.toLowerCase().trim());
+      const find = (...pats: string[]) => header.findIndex(h => pats.some(pt => h.includes(pt)));
+      const idxDesc  = find('description', 'product', 'item', 'goods', 'particular');
+      const idxQty   = find('qty', 'quantity', 'pcs', 'units');
+      const idxPrice = find('unit price', 'unit cost', 'unit value', 'rate', 'price');
+      const idxAmt   = find('amount', 'line total', 'total value', 'value', 'extended');
+      const idxHs    = find('hs', 'tariff');
+
+      // Description plus SOME value is the real minimum. HS code is not
+      // required — a commercial invoice never carries one, and demanding it
+      // used to make every genuine invoice import as zero rows.
+      if (idxDesc === -1 || (idxPrice === -1 && idxAmt === -1)) {
+        setMultiError('Could not find the columns. The file needs a description column and either a unit price or an amount column — download the template to see the layout.');
         return;
       }
-      const rows: MultiItemRow[] = lines.slice(1).map(line => {
+
+      let skippedNonCargo = 0, skippedNoValue = 0, missingHs = 0;
+      const rows: MultiItemRow[] = [];
+      for (const line of lines.slice(1)) {
         const cells = parseCsvLine(line);
-        return {
-          ...newMultiItemRow(),
-          description: idxProduct >= 0 ? (cells[idxProduct] || '') : '',
-          hs_code: cells[idxHs] || '',
-          qty: cells[idxQty] || '1',
-          unit_price_usd: cells[idxPrice] || '0',
-        };
-      }).filter(r => r.hs_code).slice(0, MAX_CARGO_ROWS);
-      if (rows.length === 0) { setMultiError('No valid rows found in the CSV.'); return; }
+        const description = (cells[idxDesc] ?? '').trim();
+        if (!description) continue;
+        if (isNonCargoRow(description)) { skippedNonCargo++; continue; }
+
+        const qty = idxQty >= 0 ? parseMoneyCell(cells[idxQty] ?? '') : NaN;
+        const unit = idxPrice >= 0 ? parseMoneyCell(cells[idxPrice] ?? '') : NaN;
+        const amount = idxAmt >= 0 ? parseMoneyCell(cells[idxAmt] ?? '') : NaN;
+
+        const qtyVal = Number.isFinite(qty) && qty > 0 ? qty : 1;
+        // Prefer an explicit unit price; otherwise derive it from the line
+        // amount, which is what most invoices actually print.
+        let unitVal = Number.isFinite(unit) && unit > 0 ? unit
+          : (Number.isFinite(amount) && amount > 0 ? amount / qtyVal : NaN);
+        if (!Number.isFinite(unitVal) || unitVal <= 0) { skippedNoValue++; continue; }
+
+        const hs = idxHs >= 0 ? (cells[idxHs] ?? '').trim() : '';
+        if (!hs) missingHs++;
+        rows.push({ ...newMultiItemRow(), description, hs_code: hs, qty: String(qtyVal), unit_price_usd: String(Number(unitVal.toFixed(4))) });
+        if (rows.length >= MAX_CARGO_ROWS) break;
+      }
+
+      if (rows.length === 0) { setMultiError('No cargo lines found — every row was blank, a subtotal, or had no value.'); return; }
       setMultiItems(rows);
+      // Say plainly what happened, including what still needs a human.
+      const notes = [
+        `Imported ${rows.length} line${rows.length === 1 ? '' : 's'}.`,
+        missingHs > 0 ? `${missingHs} still need an HS code — add them below before calculating.` : null,
+        skippedNonCargo > 0 ? `Skipped ${skippedNonCargo} non-cargo row${skippedNonCargo === 1 ? '' : 's'} (totals, freight, notes).` : null,
+        skippedNoValue > 0 ? `Skipped ${skippedNoValue} row${skippedNoValue === 1 ? '' : 's'} with no usable value.` : null,
+      ].filter(Boolean).join(' ');
+      setImportNote(notes);
       setMultiError('');
     };
     reader.readAsText(file);
@@ -2084,7 +2396,10 @@ export const LandedCostPage: React.FC = () => {
     setStep(1);
     setHs('');
     setCif('');
-    setCifMode('direct');
+    setPriceInclFreight(false);
+    setPriceInclInsurance(false);
+    setOriginCountry('');
+    setLoadingPoint('');
     setFob('');
     setFreight('');
     setInsurancePct('1');
@@ -2097,7 +2412,8 @@ export const LandedCostPage: React.FC = () => {
     // typed for the previous shipment silently reapplies to a different HS
     // code. Customer name/contact/destination deliberately persist — they're
     // descriptive only, and an agent usually quotes the same client twice.
-    setNumContainers('1');
+    setContainerLots([{ size: '20ft', count: '1' }]);
+    setImportNote('');
     setOvDuty(''); setOvVat(''); setOvRdl(''); setOvCpf('');
     setOvWharfage(''); setOvPid(''); setOvFx('');
   }
@@ -2164,11 +2480,13 @@ export const LandedCostPage: React.FC = () => {
   // The Step 2 dropdown projected onto the page's existing isAir/container
   // state. Selecting Airfreight leaves `container` alone so switching back to
   // sea restores whatever FCL/LCL choice was made before.
-  const shipmentModeKey: ShipmentModeKey = isAir ? 'air' : container;
+  const shipmentModeKey: ShipmentModeKey = isAir ? 'air' : container === 'lcl' ? 'lcl' : 'fcl';
   const setShipmentModeKey = (k: ShipmentModeKey) => {
     if (k === 'air') { setIsAir(true); return; }
     setIsAir(false);
-    setContainer(k);
+    // FCL keeps whichever size the container rows are on — that's now the
+    // single source of truth for size, so the mode only picks the transport.
+    setContainer(k === 'lcl' ? 'lcl' : (containerLots[0]?.size ?? '20ft'));
   };
 
   return (
@@ -2218,7 +2536,7 @@ export const LandedCostPage: React.FC = () => {
             </button>
             {result && (
               <button type="button" className="btn btn-secondary"
-                onClick={async () => { const rc = await fetchRateCardDefaults(rateCardKeyFor(result.mode, container), icdOperatorId); const share = await createShareForReport(result, reportMeta, { result, qty, summary, extraItems, container, rateCard: rc, meta: reportMeta }); setShareNotice(share.qrUnavailableReason ?? ''); printReport(result, qty, summary, extraItems, container, rc, { ...reportMeta, ...share }); }}
+                onClick={async () => { const rc = await fetchRateCardDefaults(rateCardKeyFor(result.mode, container), icdOperatorId); const sc = await fetchSizeCards(result, icdOperatorId); const share = await createShareForReport(result, reportMeta, { result, qty, summary, extraItems, container, rateCard: rc, sizeCards: sc, meta: reportMeta }); setShareNotice(share.qrUnavailableReason ?? ''); printReport(result, qty, summary, extraItems, container, rc, { ...reportMeta, ...share }, sc); }}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, border: '1.5px solid var(--teal)', color: 'var(--teal)', background: 'var(--card-bg, var(--white))' }}>
                 <Icon name="download" size={14} color="var(--teal)" /> Export PDF
               </button>
@@ -2324,53 +2642,59 @@ export const LandedCostPage: React.FC = () => {
               {/* Form Fields Stacked Vertically */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
 
-                {/* Field 1: CIF Value */}
+                {/* What the invoice price covers — asked in plain language.
+                    Customers don't know EXW/FOB/CFR/CIF, so the two yes/no
+                    answers derive the Incoterm instead of demanding it. */}
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 6 }}>
-                    <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px' }}>
-                      {cifMode === 'direct' ? 'CIF Value (USD)' : 'FOB + Freight + Insurance (USD)'}
-                    </label>
-                    <button type="button" onClick={() => setCifMode(m => m === 'direct' ? 'breakdown' : 'direct')}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--teal)', fontSize: 11.5, fontWeight: 700, padding: 0, display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Icon name="refresh" size={12} color="var(--teal)" />
-                      {cifMode === 'direct' ? 'I only have FOB + Freight' : 'I already know my CIF'}
-                    </button>
+                  <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 6 }}>
+                    Invoice Value (USD)
+                  </label>
+                  <div style={{ fontSize: 11, color: 'var(--ink4)', marginBottom: 6 }}>
+                    The total on your supplier's invoice, before any Tanzanian duties.
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <input className="input-field" type="number" min="0" placeholder="e.g. 15,000" value={fob} onChange={e => setFob(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 38, height: 44, fontSize: 14 }} />
+                    <Icon name="dollarSign" size={15} color="var(--ink3)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
                   </div>
 
-                  {cifMode === 'direct' ? (
-                    <>
-                      <div style={{ fontSize: 11, color: 'var(--ink4)', marginBottom: 6 }}>Cost + Insurance + Freight, all combined</div>
-                      <div style={{ position: 'relative' }}>
-                        <input className="input-field" type="number" min="0" placeholder="e.g. 15,000" value={cif} onChange={e => setCif(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 38, height: 44, fontSize: 14 }} />
-                        <Icon name="dollarSign" size={15} color="var(--ink3)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: 14, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)', borderRadius: 10 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                        <div>
-                          <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>FOB (USD)</label>
-                          <input className="input-field" type="number" min="0" placeholder="e.g. 14,000" value={fob} onChange={e => setFob(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', height: 40, fontSize: 13.5 }} />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Freight (USD)</label>
-                          <input className="input-field" type="number" min="0" placeholder="e.g. 800" value={freight} onChange={e => setFreight(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', height: 40, fontSize: 13.5 }} />
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                        <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Insurance</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <input className="input-field" type="number" min="0" step="0.1" value={insurancePct} onChange={e => setInsurancePct(e.target.value)} style={{ width: 64, boxSizing: 'border-box', height: 34, fontSize: 13, textAlign: 'right' }} />
-                          <span style={{ fontSize: 12.5, color: 'var(--ink3)' }}>% of CFR (editable default)</span>
-                        </div>
-                        <span style={{ fontSize: 12, color: 'var(--ink3)', marginLeft: 'auto' }}>= {fmtUsd(insuranceVal)}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 10, borderTop: '1px dashed var(--border)', fontSize: 12.5 }}>
-                        <span style={{ color: 'var(--ink3)' }}>Computed CIF</span>
-                        <strong style={{ color: 'var(--teal)' }}>{fmtUsd(breakdownCif)}</strong>
+                  <div style={{ marginTop: 14, padding: 14, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)', borderRadius: 10, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    <div>
+                      <div style={{ fontSize: 12.5, color: 'var(--ink2)', marginBottom: 8 }}>Does that price already include shipping to Tanzania?</div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <Seg active={priceInclFreight} onClick={() => setPriceInclFreight(true)} label="Yes" grow />
+                        <Seg active={!priceInclFreight} onClick={() => setPriceInclFreight(false)} label="No" grow />
                       </div>
                     </div>
-                  )}
+
+                    {!priceInclFreight && (
+                      <div>
+                        <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Shipping cost you paid (USD)</label>
+                        <input className="input-field" type="number" min="0" placeholder="e.g. 3,500" value={freight} onChange={e => setFreight(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', height: 40, fontSize: 13.5 }} />
+                      </div>
+                    )}
+
+                    <div>
+                      <div style={{ fontSize: 12.5, color: 'var(--ink2)', marginBottom: 8 }}>Does it already include insurance?</div>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <Seg active={priceInclInsurance} onClick={() => setPriceInclInsurance(true)} label="Yes" grow />
+                        <Seg active={!priceInclInsurance} onClick={() => setPriceInclInsurance(false)} label="No" grow />
+                      </div>
+                      {!priceInclInsurance && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                          <input className="input-field" type="number" min="0" step="0.1" value={insurancePct} onChange={e => setInsurancePct(e.target.value)} style={{ width: 64, boxSizing: 'border-box', height: 34, fontSize: 13, textAlign: 'right' }} />
+                          <span style={{ fontSize: 12, color: 'var(--ink3)' }}>% of goods + shipping — the usual rate if you don't have a figure</span>
+                          <span style={{ fontSize: 12, color: 'var(--ink3)', marginLeft: 'auto' }}>= {fmtUsd(insuranceVal)}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px dashed var(--border)', fontSize: 12.5, gap: 10 }}>
+                      <span style={{ color: 'var(--ink3)' }}>
+                        Customs value (CIF) <span style={{ color: 'var(--ink4)' }}>· quoted {priceBasis}</span>
+                      </span>
+                      <strong style={{ color: 'var(--teal)' }}>{fmtUsd(effectiveCif())}</strong>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Field 2: HS Code or Description Search */}
@@ -2458,6 +2782,13 @@ export const LandedCostPage: React.FC = () => {
                       </label>
                     </div>
                   </div>
+
+                  {importNote && (
+                    <div style={{ marginBottom: 14, padding: '11px 14px', borderRadius: 9, background: 'color-mix(in srgb, var(--teal) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--teal) 25%, transparent)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                      <Icon name="info" size={15} color="var(--teal)" style={{ flexShrink: 0, marginTop: 1 }} />
+                      <div>{importNote}</div>
+                    </div>
+                  )}
 
                   {multiError && (
                     <div style={{ marginBottom: 14, padding: '10px 14px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', borderRadius: 9, fontSize: 12.5, color: 'var(--red)' }}>
@@ -2560,45 +2891,106 @@ export const LandedCostPage: React.FC = () => {
               <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 24 }}>How the cargo travels. This drives which rate card is used and how port/handling charges are computed.</div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                <Field label="Shipment Mode">
-                  <Select value={shipmentModeKey} onValueChange={v => setShipmentModeKey(v as ShipmentModeKey)}>
-                    <SelectTrigger style={{ height: 44 }}><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {SHIPMENT_MODE_OPTIONS.map(o => <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Field>
-
-                {/* Containers / CBM / weight — only the ones the selected mode
-                    actually bills on are enabled, so an irrelevant figure can't
-                    quietly end up in the calculation. */}
-                <div className="lcp-btn-row">
-                  <Field label="Number of Containers" hint={isFcl ? 'Charged per container.' : 'Not applicable for this mode.'}>
-                    <input className="input-field" type="number" min="1" step="1" value={numContainers}
-                      disabled={!isFcl}
-                      onChange={e => setNumContainers(e.target.value)}
-                      style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14, opacity: isFcl ? 1 : 0.45, cursor: isFcl ? 'auto' : 'not-allowed' }} />
-                  </Field>
-                  <Field label="Total Volume (CBM)" hint={needsCbm ? (isAir ? 'Used for volumetric weight.' : 'LCL is charged per CBM.') : 'Not applicable for FCL.'}>
-                    <input className="input-field" type="number" min="0" step="0.01" placeholder="e.g. 15.0" value={cbm}
-                      disabled={!needsCbm}
-                      onChange={e => setCbm(e.target.value)}
-                      style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14, opacity: needsCbm ? 1 : 0.45, cursor: needsCbm ? 'auto' : 'not-allowed' }} />
-                  </Field>
+                {/* Mode as selectable tiles, and only the fields that mode
+                    actually bills on. Container sizes live in Container
+                    Details below, so the mode itself is just the transport
+                    method — having "20ft FCL" here as well duplicated it. */}
+                <div>
+                  <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 10 }}>Shipment Mode</label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+                    {SHIPMENT_MODE_OPTIONS.map(o => (
+                      <Seg key={o.key} active={shipmentModeKey === o.key} onClick={() => setShipmentModeKey(o.key)} label={o.label} icon={o.icon} grow />
+                    ))}
+                  </div>
                 </div>
 
-                <Field label="Total Gross Weight (kg)" hint={isAir ? 'Air bills on chargeable weight — the greater of gross and volumetric.' : 'Only applicable to airfreight.'}>
-                  <input className="input-field" type="number" min="0" placeholder="e.g. 3000" value={weightKg}
-                    disabled={!isAir}
-                    onChange={e => setWeightKg(e.target.value)}
-                    style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14, opacity: isAir ? 1 : 0.45, cursor: isAir ? 'auto' : 'not-allowed' }} />
-                </Field>
+                {isFcl && (
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 4 }}>
+                      <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px' }}>Container Details</label>
+                      <button type="button"
+                        onClick={() => setContainerLots(l => l.length >= 2 ? l : [...l, { size: l.some(x => x.size === '20ft') ? '40ft' : '20ft', count: '1' }])}
+                        disabled={containerLots.length >= 2}
+                        style={{ fontSize: 12, fontWeight: 700, color: containerLots.length >= 2 ? 'var(--ink4)' : 'var(--teal)', background: 'none', border: `1px solid ${containerLots.length >= 2 ? 'var(--border)' : 'var(--teal)'}`, borderRadius: 8, padding: '5px 12px', cursor: containerLots.length >= 2 ? 'not-allowed' : 'pointer' }}>
+                        + Add size
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--ink4)', marginBottom: 8 }}>
+                      ICD, agency and shipping-line handling are billed per container. Each size is priced from its own rate card.
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {containerLots.map((lot, i) => (
+                        <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr auto', gap: 8, alignItems: 'center' }}>
+                          <Select value={lot.size} onValueChange={v => setContainerLots(l => l.map((x, j) => j === i ? { ...x, size: v as '20ft' | '40ft' } : x))}>
+                            <SelectTrigger style={{ height: 42 }}><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="20ft">20ft (TEU)</SelectItem>
+                              <SelectItem value="40ft">40ft (FEU)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <input className="input-field" type="number" min="1" step="1" placeholder="Qty" value={lot.count}
+                            onChange={e => setContainerLots(l => l.map((x, j) => j === i ? { ...x, count: e.target.value } : x))}
+                            style={{ width: '100%', boxSizing: 'border-box', height: 42, fontSize: 13.5 }} />
+                          <button type="button" title="Remove"
+                            onClick={() => setContainerLots(l => l.length > 1 ? l.filter((_, j) => j !== i) : l)}
+                            disabled={containerLots.length === 1}
+                            style={{ background: 'none', border: 'none', cursor: containerLots.length === 1 ? 'default' : 'pointer', opacity: containerLots.length === 1 ? 0.3 : 1, color: 'var(--red)', padding: 6 }}>
+                            <Icon name="trash" size={14} color="var(--red)" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div style={{ marginTop: 7, fontSize: 11.5, color: 'var(--ink3)' }}>
+                      {containerLots.length === 2 && containerLots[0].size === containerLots[1].size
+                        ? `Both rows are ${containerLots[0].size} — they'll be added together (${numContainersVal} total).`
+                        : `${numContainersVal} container${numContainersVal === 1 ? '' : 's'} total.`}
+                    </div>
+                  </div>
+                )}
+
+                {needsCbm && (
+                  <Field label="Total Volume (CBM)" hint={isAir ? 'Used to work out volumetric weight.' : 'LCL handling is charged per CBM.'}>
+                    <input className="input-field" type="number" min="0" step="0.01" placeholder="e.g. 15.0" value={cbm}
+                      onChange={e => setCbm(e.target.value)}
+                      style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14 }} />
+                  </Field>
+                )}
+
+                {isAir && (
+                  <Field label="Total Gross Weight (kg)" hint="Air bills on chargeable weight — the greater of gross and volumetric.">
+                    <input className="input-field" type="number" min="0" placeholder="e.g. 3000" value={weightKg}
+                      onChange={e => setWeightKg(e.target.value)}
+                      style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14 }} />
+                  </Field>
+                )}
 
                 {isAir && (cbmVal > 0 || weightKgVal > 0) && (
                   <div style={{ marginTop: -8, fontSize: 11.5, color: 'var(--ink3)' }}>
                     Volumetric: {volumetricKgVal.toFixed(0)} kg ({cbmVal} CBM × 166.67) vs. gross {weightKgVal.toFixed(0)} kg → chargeable weight <strong style={{ color: 'var(--teal)' }}>{chargeableKgPreview.toFixed(0)} kg</strong>
                   </div>
                 )}
+
+                {/* Origin capture. Free text, but with real suggestions so the
+                    same port doesn't accumulate as five spellings — the value
+                    of this data depends entirely on it aggregating. */}
+                <div className="lcp-btn-row">
+                  <Field label={loadingPointLabel} hint="Where the cargo was loaded. Helps us track the corridors you actually trade through.">
+                    <input className="input-field" list="lcp-loading-points" placeholder={isAir ? 'e.g. Guangzhou (CAN)' : 'e.g. Ningbo'}
+                      value={loadingPoint} onChange={e => setLoadingPoint(e.target.value)}
+                      style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14 }} />
+                    <datalist id="lcp-loading-points">
+                      {(isAir ? AIRPORT_SUGGESTIONS : SEAPORT_SUGGESTIONS).map(o => <option key={o} value={o} />)}
+                    </datalist>
+                  </Field>
+                  <Field label="Country of Origin" hint="Where the goods were made or shipped from. EAC origin affects duty treatment.">
+                    <EntityPicker
+                      value={originCountry ? { id: originCountry, label: originCountry } : null}
+                      onChange={item => setOriginCountry(item ? String(item.id) : '')}
+                      search={searchCountries}
+                      placeholder="Search countries…"
+                    />
+                  </Field>
+                </div>
 
                 {icdOperatorOptions.length > 0 && (
                   <div>
@@ -2880,7 +3272,7 @@ export const LandedCostPage: React.FC = () => {
                     )}
 
                     <div className="lcp-btn-row">
-                      <button type="button" onClick={async () => { if (!result) return; const rc = await fetchRateCardDefaults(rateCardKeyFor(result.mode, container), icdOperatorId); const share = await createShareForReport(result, reportMeta, { result, qty, summary, extraItems, container, rateCard: rc, meta: reportMeta }); setShareNotice(share.qrUnavailableReason ?? ''); printReport(result, qty, summary, extraItems, container, rc, { ...reportMeta, ...share }); }}
+                      <button type="button" onClick={async () => { if (!result) return; const rc = await fetchRateCardDefaults(rateCardKeyFor(result.mode, container), icdOperatorId); const sc = await fetchSizeCards(result, icdOperatorId); const share = await createShareForReport(result, reportMeta, { result, qty, summary, extraItems, container, rateCard: rc, sizeCards: sc, meta: reportMeta }); setShareNotice(share.qrUnavailableReason ?? ''); printReport(result, qty, summary, extraItems, container, rc, { ...reportMeta, ...share }, sc); }}
                         style={{ padding: '11px 0', borderRadius: 8, border: '1.5px solid var(--teal)', background: 'var(--card-bg, var(--white))', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                         <Icon name="download" size={15} color="var(--teal)" />
                         Export PDF

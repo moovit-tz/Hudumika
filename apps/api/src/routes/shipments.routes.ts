@@ -72,6 +72,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         ? await trx
             .selectFrom('customers')
             .select(['id', 'name'])
+            .where('tenant_id', '=', user.tenant_id)
             .where('id', 'in', customerIds)
             .execute()
         : [];
@@ -283,10 +284,16 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       for (let i = 0; i < rows.length; i++) {
         const row = rows[i];
 
-        // 1. Look up customer by name (case-insensitive LIKE)
+        // 1. Look up customer by name (case-insensitive LIKE), scoped to this
+        // tenant. The explicit filter is load-bearing, not belt-and-braces:
+        // withTenant() only sets app.tenant_id for the RLS policies, and RLS
+        // is not actually enforced for this connection (see CLAUDE.md). Without
+        // it, a fuzzy name match reaches every tenant's customer list and an
+        // import could bind a shipment to someone else's customer.
         const customer = await trx
           .selectFrom('customers')
           .select(['id', 'name'])
+          .where('tenant_id', '=', user.tenant_id)
           .where('name', 'ilike', `%${row.client_name}%`)
           .executeTakeFirst();
 
@@ -1110,7 +1117,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
-      const entries = await trx.selectFrom('expenses').selectAll().where('shipment_id', '=', id).orderBy('created_at', 'asc').execute();
+      const entries = await trx.selectFrom('expenses').selectAll().where('tenant_id', '=', user.tenant_id).where('shipment_id', '=', id).orderBy('created_at', 'asc').execute();
       return { data: entries };
     });
   });
@@ -1193,6 +1200,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       const customer = await trx
         .selectFrom('customers')
         .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
         .where('id', '=', shipment.customer_id)
         .executeTakeFirst();
 

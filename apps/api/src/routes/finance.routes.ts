@@ -71,6 +71,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
       const billedLines = await trx
         .selectFrom('expenses')
         .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
         .where('shipment_id', '=', id)
         .where('is_revenue', '=', true)
         .orderBy('created_at', 'asc')
@@ -138,6 +139,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
       const revenueLines = await trx
         .selectFrom('expenses')
         .select(['label', 'amount_tzs'])
+        .where('tenant_id', '=', user.tenant_id)
         .where('shipment_id', '=', id)
         .where('is_revenue', '=', true)
         .execute();
@@ -153,7 +155,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
 
       let invoiceId: string;
       if (!existingInvoice) {
-        const customer = await trx.selectFrom('customers').select(['name']).where('id', '=', shipment.customer_id).executeTakeFirst();
+        const customer = await trx.selectFrom('customers').select(['name']).where('tenant_id', '=', user.tenant_id).where('id', '=', shipment.customer_id).executeTakeFirst();
         const inv = await trx.insertInto('sales_invoices').values({
           tenant_id: user.tenant_id,
           invoice_number: `${shipment.ref_number} INV`,

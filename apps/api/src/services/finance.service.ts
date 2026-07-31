@@ -11,6 +11,7 @@ export class FinanceService {
       const lines = await trx
         .selectFrom('expenses')
         .selectAll()
+        .where('tenant_id', '=', tenantId)
         .where('shipment_id', '=', shipmentId)
         .execute();
 

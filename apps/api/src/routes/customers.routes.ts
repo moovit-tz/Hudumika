@@ -447,6 +447,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
         const expenses = await trx
           .selectFrom('expenses')
           .selectAll()
+          .where('tenant_id', '=', user.tenant_id)
           .where('shipment_id', 'in', shipmentIds)
           .execute();
 

@@ -190,8 +190,10 @@ export type ShipmentMode = 'sea_fcl' | 'sea_lcl' | 'air';
 
 export interface DestinationChargeInput {
   mode: ShipmentMode;
-  container?: '20ft' | '40ft';   // sea_fcl
-  num_containers?: number;       // sea_fcl, default 1
+  container?: '20ft' | '40ft';   // sea_fcl — legacy single-size
+  num_containers?: number;       // sea_fcl, default 1 — legacy single-size
+  /** Mixed-size consignment; supersedes container + num_containers when set. */
+  containers?: ContainerLot[];
   cbm?: number;                  // sea_lcl, air
   weight_kg?: number;            // air
   /** Escape hatch for a caller-supplied flat charge (e.g. an agreed FCL rate
@@ -204,6 +206,42 @@ export interface DestinationChargeResult {
   amount_tzs: number;
   label: string;
   chargeable_weight_kg: number | null;
+}
+
+/** One size within a consignment. A shipment can mix sizes (3× 40ft plus a
+ *  20ft), and each size carries its own per-container rates — a 40ft is not
+ *  simply twice a 20ft (Verification is $90 TEU / $140 FEU, Handling is $90
+ *  with 20ft at half), so they have to be priced separately and summed. */
+export interface ContainerLot {
+  size: '20ft' | '40ft';
+  count: number;
+}
+
+/** Collapses the legacy single `container` + `num_containers` pair and the
+ *  newer `containers[]` into one canonical list. Duplicate sizes are merged,
+ *  non-positive counts dropped. Returns [] for non-FCL modes, which aren't
+ *  containerised and must never have per-container charges multiplied. */
+export function normalizeContainerLots(input: {
+  mode?: ShipmentMode;
+  containers?: ContainerLot[];
+  container?: '20ft' | '40ft';
+  num_containers?: number;
+}): ContainerLot[] {
+  if ((input.mode ?? 'sea_fcl') !== 'sea_fcl') return [];
+  const merged = new Map<'20ft' | '40ft', number>();
+  const push = (size: '20ft' | '40ft', count: number) => {
+    const n = Math.floor(Number(count));
+    if (!Number.isFinite(n) || n <= 0) return;
+    merged.set(size, (merged.get(size) ?? 0) + n);
+  };
+  if (Array.isArray(input.containers) && input.containers.length > 0) {
+    for (const lot of input.containers) {
+      if (lot && (lot.size === '20ft' || lot.size === '40ft')) push(lot.size, lot.count);
+    }
+  }
+  if (merged.size === 0) push(input.container ?? '20ft', input.num_containers ?? 1);
+  // Stable order so labels and totals read the same way every time.
+  return (['20ft', '40ft'] as const).filter(s => merged.has(s)).map(s => ({ size: s, count: merged.get(s)! }));
 }
 
 // IATA volumetric-weight divisor: 1 CBM ≈ 166.67 kg for air chargeable-weight
@@ -241,13 +279,14 @@ export function computeDestinationCharge(input: DestinationChargeInput): Destina
     };
   }
 
-  // sea_fcl
-  const container = input.container ?? '20ft';
-  const numContainers = input.num_containers ?? 1;
-  const perContainer = SEA_FCL_ICD_TZS[container];
+  // sea_fcl — priced per size and summed, so a mixed consignment (say 2× 20ft
+  // and 3× 40ft) is charged each size's own rate rather than one size's rate
+  // applied to the whole count.
+  const lots = normalizeContainerLots(input);
+  const amount = lots.reduce((sum, lot) => sum + SEA_FCL_ICD_TZS[lot.size] * lot.count, 0);
   return {
-    amount_tzs: perContainer * numContainers,
-    label: `ICD / Port Charges (${numContainers}× ${container})`,
+    amount_tzs: amount,
+    label: `ICD / Port Charges (${lots.map(l => `${l.count}× ${l.size}`).join(' + ')})`,
     chargeable_weight_kg: null,
   };
 }
@@ -307,6 +346,9 @@ export interface LandedCostInput {
   insurance_usd?: number;
   mode?: ShipmentMode;           // default 'sea_fcl'
   container?: '20ft' | '40ft';
+  /** Mixed-size consignment, e.g. [{size:'20ft',count:2},{size:'40ft',count:3}].
+   *  Supersedes container + num_containers when present. */
+  containers?: ContainerLot[];
   cbm?: number;
   weight_kg?: number;
   /** Finance Act 2026 (July TRA circular) used-vehicle excise bands — only
@@ -384,6 +426,15 @@ export interface LandedCostResult {
   insurance_usd?: number;
   mode: ShipmentMode;
   destination_charge_label: string;
+  /** Total containers this quote covers. Several charge lines bill per
+   *  container (ICD handling/verification/transfer, clearing agency fee,
+   *  shipping-line handling/TASAC) and the renderers multiply by it — reading
+   *  it from the result keeps the PDF and the on-screen breakdown in step. */
+  num_containers: number;
+  /** The mix behind that total, e.g. [{size:'20ft',count:2},{size:'40ft',count:3}].
+   *  Empty for LCL and air. Rates differ by size (a 40ft is not simply twice a
+   *  20ft), so per-container lines must be priced per lot and summed. */
+  containers: ContainerLot[];
   chargeable_weight_kg: number | null;
   warnings: string[];
   assumptions: string[];
@@ -419,8 +470,15 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
   const permits     = hsEntry?.permits ? hsEntry.permits.split(',').map((p: string) => p.trim()) : [];
 
   const mode = input.mode ?? 'sea_fcl';
+  /** Canonical container mix for this consignment — empty for LCL/air. Every
+   *  per-container charge below is derived from this one list so they can't
+   *  disagree about how many boxes are being priced. */
+  const containerLots = normalizeContainerLots({
+    mode, containers: input.containers, container: input.container, num_containers: input.num_containers,
+  });
+  const totalContainers = containerLots.reduce((n, l) => n + l.count, 0);
   const destCharge = computeDestinationCharge({
-    mode, container: input.container, num_containers: input.num_containers,
+    mode, containers: containerLots, container: input.container, num_containers: input.num_containers,
     cbm: input.cbm, weight_kg: input.weight_kg, override_tzs: input.icd_per_container,
   });
 
@@ -442,11 +500,19 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
   }
 
   const cifTzs   = input.cif_usd * fxRate;
+  /** CPF is assessed on the FOB value, not CIF. Falls back to CIF only when
+   *  the caller didn't break the value down — that overstates CPF slightly,
+   *  so the calculator should send fob_usd whenever it has it. */
+  const cpfBaseTzs = (input.fob_usd ?? input.cif_usd) * fxRate;
   const duty     = cifTzs * dutyRate / 100;
   const excise   = cifTzs * effectiveExciseRate / 100;
   const rdl      = cifTzs * rdlRate / 100;
-  const cpf      = cifTzs * cpfRate / 100;
-  const vat      = (cifTzs + duty + excise) * vatRate / 100;
+  const cpf      = cpfBaseTzs * cpfRate / 100;
+  // VAT is assessed on the duty-inclusive value: CIF plus every duty and levy
+  // charged on it. Excise is included on the same footing as import duty —
+  // omitting it would under-assess VAT on excisable goods (vehicles, alcohol,
+  // sugar), where it is 0 for everything else and so makes no difference.
+  const vat      = (cifTzs + duty + excise + rdl + cpf) * vatRate / 100;
   const icd      = destCharge.amount_tzs;
   const wharfageRate = pickRate(WHARFAGE_IMPORT_RATE * 100, ov.wharfage_rate, 'wharfage_rate', overriddenFields);
   const wharfage = cifTzs * wharfageRate / 100;
@@ -461,16 +527,22 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
   // in this codebase, so it's left as an assumption note instead.
   const isSeaPort = mode !== 'air';
   const pidRate = pickRate(4.5, ov.pid_rate, 'pid_rate', overriddenFields);
-  const pid = isSeaPort ? duty * pidRate / 100 : 0;
+  /** PID is 4.5% of the total customs duties — Import Duty, VAT, RDL and CPF
+   *  together, not import duty alone. Computed after VAT because VAT is one
+   *  of its inputs. Excise is included with the other duties for the same
+   *  reason it's in the VAT base. */
+  const customsDutiesTotal = duty + excise + vat + rdl + cpf;
+  const pid = isSeaPort ? customsDutiesTotal * pidRate / 100 : 0;
   let greenPortInitiative = 0;
   let greenPortLabel = 'Green Port Initiatives';
   if (isSeaPort) {
     if (mode === 'sea_fcl') {
-      const container = input.container ?? '20ft';
-      const numContainers = input.num_containers ?? 1;
-      const perContainerUsd = container === '20ft' ? 50 : 100;
-      greenPortInitiative = perContainerUsd * numContainers * fxRate;
-      greenPortLabel = `Green Port Initiatives (${numContainers}× ${container} containerized)`;
+      // TPA Tariff Book 15.1(b): USD 50 per 20ft, USD 100 per 40ft. Summed
+      // per size so a mixed consignment isn't charged one size's rate across
+      // the whole count.
+      const GREEN_PORT_USD = { '20ft': 50, '40ft': 100 } as const;
+      greenPortInitiative = containerLots.reduce((s, l) => s + GREEN_PORT_USD[l.size] * l.count, 0) * fxRate;
+      greenPortLabel = `Green Port Initiatives (${containerLots.map(l => `${l.count}× ${l.size}`).join(' + ')} containerized)`;
     } else if (mode === 'sea_lcl' && input.weight_kg) {
       const mt = input.weight_kg / 1000;
       greenPortInitiative = mt * 0.25 * fxRate;
@@ -494,15 +566,21 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
   const applyTbs = true;
   const tbsCharge = applyTbs ? TBS_PHYSICAL_VERIFICATION_TZS + TBS_SERVICE_FEE_TZS : 0;
 
-  // Shipping Line Charges — real flat per-shipment fees (Delivery Order fee
-  // TZS 56,286 for any sea shipment; Shipping Line/TASAC/Drop-off fee TZS
-  // 389,311.50 per shipment for FCL only — the reference rate sheet shows
-  // TZS 0 for consolidated/LCL cargo), replacing the earlier TASAC-agency-fee
-  // stand-in. Air cargo has no ocean shipping line, so both are 0 for air.
-  const SHIPPING_DO_FEE_TZS = 56286;
-  const SHIPPING_HANDLING_FEE_TZS = 389311.50;
-  const shippingDoFee = mode !== 'air' ? SHIPPING_DO_FEE_TZS : 0;
-  const shippingHandlingFee = mode === 'sea_fcl' ? SHIPPING_HANDLING_FEE_TZS : 0;
+  // Shipping Line Charges. The two lines bill on different bases:
+  //   Delivery Order — per Bill of Lading, so one per shipment regardless of
+  //     how many containers are on it.
+  //   Handling / TASAC / Drop-off — per container, so it multiplies by the
+  //     container count (FCL only; the reference rate sheet shows TZS 0 for
+  //     consolidated/LCL cargo).
+  // Air cargo has no ocean shipping line, so both are 0 for air.
+  // Both quoted in USD and converted at the live rate, rather than as fixed
+  // shilling amounts that silently go stale as the exchange rate moves.
+  const SHIPPING_DO_FEE_USD = 38.14;                                  // per BL
+  const SHIPPING_TASAC_USD = { '20ft': 50, '40ft': 100 } as const;    // per container
+  const shippingDoFee = mode !== 'air' ? SHIPPING_DO_FEE_USD * fxRate : 0;
+  const shippingHandlingFee = mode === 'sea_fcl'
+    ? containerLots.reduce((sum, lot) => sum + SHIPPING_TASAC_USD[lot.size] * lot.count, 0) * fxRate
+    : 0;
   const shippingLineCharge = shippingDoFee + shippingHandlingFee;
 
   const total    = cifTzs + duty + excise + vat + rdl + cpf + icd + wharfage + pid + greenPortInitiative + tbsCharge + shippingLineCharge;
@@ -518,14 +596,14 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
 
   const breakdown = [
     { label: 'CIF Value (TZS)', amount: cifTzs },
-    { label: `Import Duty (${dutyRate}%${overriddenFields.includes('duty_rate') ? ' — manual override' : ' EAC CET'})`, amount: duty, rate: `${dutyRate}%` },
+    { label: `Import Duty${overriddenFields.includes('duty_rate') ? ' (manual override)' : ' (EAC CET)'}`, amount: duty, rate: `${dutyRate}%` },
     ...(effectiveExciseRate > 0 ? [{ label: exciseOverrideNote ? `Excise Duty — ${exciseOverrideNote.split(' — ')[0]} (${effectiveExciseRate}%)` : `Excise Duty (${effectiveExciseRate}%)`, amount: excise, rate: `${effectiveExciseRate}%` }] : []),
-    { label: `VAT ${vatRate}%  (CIF + Duty${exciseRate ? ' + Excise' : ''})`, amount: vat, rate: `${vatRate}%` },
-    { label: `Railway Development Levy (${rdlRate}%)`, amount: rdl, rate: `${rdlRate}%` },
-    { label: `Customs Processing Fee (${cpfRate}%)`, amount: cpf, rate: `${cpfRate}%` },
+    { label: 'VAT', amount: vat, rate: `${vatRate}%` },
+    { label: 'Railway Development Levy', amount: rdl, rate: `${rdlRate}%` },
+    { label: 'Customs Processing Fee', amount: cpf, rate: `${cpfRate}%` },
     { label: destCharge.label, amount: icd },
-    { label: `TPA Wharfage (${wharfageRate}%)`, amount: wharfage, rate: `${wharfageRate}%` },
-    ...(pid > 0 ? [{ label: `Port Infrastructure Development (${pidRate}% of Customs Duty)`, amount: pid, rate: `${pidRate}% of duty` }] : []),
+    { label: 'TPA Wharfage', amount: wharfage, rate: `${wharfageRate}%` },
+    ...(pid > 0 ? [{ label: 'Port Infrastructure Development', amount: pid, rate: `${pidRate}%` }] : []),
     ...(greenPortInitiative > 0 ? [{ label: greenPortLabel, amount: greenPortInitiative }] : []),
     ...(applyTbs ? [
       { label: 'TBS Charges — Physical Verification Fee (DI)', amount: TBS_PHYSICAL_VERIFICATION_TZS },
@@ -551,7 +629,7 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
     ...(isSeaPort ? ['Green Port Initiatives is per the TPA Tariff Book, Sea Ports, January 2026, Clause 15.1(b) — it uses the motor-vehicle rate (USD 1.00/CBM) instead of the container/general-cargo rate shown here if this consignment is a vehicle; verify against your HS classification. Port Infrastructure Development is charged at 4.5% of Customs Duty per the Finance Act 2026 July update (the TPA Tariff Book itself, published January 2026, still shows the earlier 9% rate).'] : []),
     ...(exciseOverrideNote ? [`${exciseOverrideNote}. This is based on TRA's summary "Key Changes" circular, not the full Finance Act 2026 text — verify the exact base and treatment with TRA before a real declaration.`] : []),
     ...(applyTbs ? [`TBS Charges (TZS ${TBS_PHYSICAL_VERIFICATION_TZS.toLocaleString()} Physical Verification Fee + TZS ${TBS_SERVICE_FEE_TZS.toLocaleString()} Service Fee) are flat reference rates from the clearing agent's own rate sheet, applied to every consignment and not scaled by CIF value or quantity${diReq ? '' : ' — this HS code is not separately flagged for Destination Inspection in our tariff data, so remove this line if TBS does not in fact inspect this cargo'}. Verify against your actual TBS invoice.`] : []),
-    ...(shippingLineCharge > 0 ? [`Shipping Line Charges (Delivery Order TZS ${SHIPPING_DO_FEE_TZS.toLocaleString()}${shippingHandlingFee > 0 ? ` + Handling/TASAC Fee TZS ${SHIPPING_HANDLING_FEE_TZS.toLocaleString()}` : ''}) are flat reference rates from the clearing agent's own rate sheet, not an independently verified shipping-line tariff — verify against your actual shipping line invoice.`] : []),
+    ...(shippingLineCharge > 0 ? [`Shipping Line Charges: Delivery Order USD ${SHIPPING_DO_FEE_USD.toFixed(2)} per Bill of Lading${shippingHandlingFee > 0 ? `, Handling/TASAC USD ${SHIPPING_TASAC_USD['20ft']} per 20ft and USD ${SHIPPING_TASAC_USD['40ft']} per 40ft` : ''}. Reference rates from the clearing agent's own rate sheet, not an independently verified shipping-line tariff — verify against your actual invoice.`] : []),
     ...(input.vehicle_condition === 'used' && input.vehicle_age_years != null && input.vehicle_age_years < 8 && input.hs_code.trim().startsWith('87')
       ? ['This used vehicle is under 8 years old — the TRA circular we have only publishes age-band excise rates starting at 8 years, so the HS code\'s own excise rate was used unmodified.']
       : []),
@@ -602,6 +680,10 @@ export async function calculateLandedCost(input: LandedCostInput): Promise<Lande
     vat_recoverable: vat,
     mode,
     destination_charge_label: destCharge.label,
+    // FCL only — LCL and air aren't containerised, so per-container lines
+    // must not be multiplied for them.
+    num_containers: Math.max(1, totalContainers),
+    containers: containerLots,
     chargeable_weight_kg: destCharge.chargeable_weight_kg,
     effective_statutory_rate_pct: effectiveStatutoryRatePct,
     landed_multiplier: landedMultiplier,
@@ -648,6 +730,8 @@ export interface MultiLineItemInput {
 
 export interface MultiItemInput {
   items: MultiLineItemInput[];
+  /** Mixed-size consignment; supersedes container + num_containers when set. */
+  containers?: ContainerLot[];
   freight_usd: number;
   /** Defaults to 1% of CFR (FOB + freight) if omitted. */
   insurance_usd?: number;
@@ -741,8 +825,8 @@ export async function calculateMultiItemLandedCost(input: MultiItemInput): Promi
   const insuranceUsd = input.insurance_usd ?? (totalFobUsd + freightUsd) * 0.01;
 
   const destCharge = computeDestinationCharge({
-    mode: input.mode, container: input.container, num_containers: input.num_containers,
-    cbm: input.cbm, weight_kg: input.weight_kg,
+    mode: input.mode, containers: input.containers, container: input.container,
+    num_containers: input.num_containers, cbm: input.cbm, weight_kg: input.weight_kg,
   });
 
   const totalFobTzs = totalFobUsd * fxRate;

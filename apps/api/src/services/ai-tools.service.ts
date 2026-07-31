@@ -101,11 +101,12 @@ export async function runAiTool(tenantId: string, toolName: string, input: Recor
       const name = String(input.name ?? '').trim();
       if (!name) return { error: 'name is required' };
       return withTenant(tenantId, async (trx) => {
-        const customer = await trx.selectFrom('customers').select(['id', 'name', 'category']).where('name', 'ilike', `%${name}%`).executeTakeFirst();
+        const customer = await trx.selectFrom('customers').select(['id', 'name', 'category']).where('tenant_id', '=', tenantId).where('name', 'ilike', `%${name}%`).executeTakeFirst();
         if (!customer) return { error: `No customer found matching "${name}"` };
 
         const shipmentCount = await trx.selectFrom('shipment_cases')
           .select(trx.fn.count('id').as('cnt'))
+          .where('tenant_id', '=', tenantId)
           .where('customer_id', '=', customer.id)
           .executeTakeFirst();
 

@@ -27,6 +27,7 @@ registerSubscriber('declaration.released', async (tenantId, event) => {
 
     const already = await trx.selectFrom('expenses')
       .select('id')
+      .where('tenant_id', '=', tenantId)
       .where('shipment_id', '=', shipmentId)
       .where('category', '=', 'DUTY')
       .executeTakeFirst();

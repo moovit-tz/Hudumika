@@ -2647,6 +2647,7 @@ export interface Database {
   port_tariff_items: PortTariffItemsTable;
   clearos_rate_card_items: ClearosRateCardItemsTable;
   landed_cost_shares: LandedCostSharesTable;
+  reference_countries: ReferenceCountriesTable;
   landed_cost_share_leads: LandedCostShareLeadsTable;
   customs_penalties: CustomsPenaltiesTable;
   landed_cost_records: LandedCostRecordsTable;
@@ -3043,6 +3044,21 @@ export interface LandedCostRecordsTable {
   source: Generated<string>;
   created_by: string | null;
   created_at: Generated<Date>;
+  /** Where the consignment came from. NULL means not recorded — corridor
+   *  reporting must exclude those rather than bucket them as unknown. */
+  origin_country: string | null;
+  loading_point: string | null;
+  loading_point_type: 'SEA_PORT' | 'AIRPORT' | 'BORDER_POST' | null;
+  shipment_mode: string | null;
+  /** Incoterm derived from the plain-language questions, never typed. */
+  price_basis: 'EXW' | 'FOB' | 'CFR' | 'CIF' | null;
+}
+
+export interface ReferenceCountriesTable {
+  code: string;
+  code3: string;
+  name: string;
+  is_eac: Generated<boolean>;
 }
 
 export interface VesselPositionsTable {
