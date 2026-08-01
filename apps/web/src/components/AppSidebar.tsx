@@ -9,6 +9,7 @@ import { useBranding } from '../hooks/useBranding.js';
 import { useTenantPlan } from '../hooks/useTenantPlan.js';
 import { useLocale } from '../hooks/useLocale.js';
 import { lightenHex } from '../lib/color.js';
+import { toggleThemeWithAnimation } from '../lib/theme.js';
 import type { AppId } from '@hudumika/types';
 import './AppSidebar.css';
 
@@ -145,15 +146,8 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav }: Pr
   const { planLabel, monthlyPrice } = useTenantPlan();
   const appColor   = branding.getAppColor(appId, APP_COLORS[appId] ?? 'var(--ink3)');
 
-  function toggleTheme(dark: boolean) {
-    setIsDark(dark);
-    if (dark) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('theme', 'light');
-    }
+  function toggleTheme(dark: boolean, e?: React.MouseEvent) {
+    toggleThemeWithAnimation(e, dark);
   }
 
   useEffect(() => {

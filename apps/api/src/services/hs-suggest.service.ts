@@ -47,6 +47,22 @@ export interface HsSuggestion {
   matchedWords: string[];
   /** Total words searched on, so "2 of 4" is readable. */
   totalWords: number;
+  /**
+   * How strongly this entry matches, 0-100.
+   *
+   * This is the ranking score itself, expressed as a percentage of the best
+   * possible score for this description — i.e. exactly the number used to put
+   * the suggestions in order, not a second opinion invented for display. It
+   * measures how much of the goods description this tariff entry's wording
+   * accounts for, weighted so a rare, identifying word ("bolts") counts for
+   * far more than a common one ("head").
+   *
+   * It is emphatically not a probability that the classification is correct.
+   * A description whose every word appears in one tariff entry scores 100 and
+   * can still be the wrong heading, which is why the UI never applies a code
+   * without a person accepting it.
+   */
+  matchPct: number;
 }
 
 export interface SuggestInput { id: string; text: string }
@@ -141,10 +157,21 @@ export async function suggestHsCodes(items: SuggestInput[], perItem = 3): Promis
       )
       .slice(0, perItem);
 
+    // The best score attainable for this description — every one of its words
+    // found in a single entry. Scoring each suggestion against that makes the
+    // percentage comparable between lines: a 3-word description and an 8-word
+    // one are both measured against their own ceiling.
+    const maxScore = tokens.reduce((s, t) => s + weightOf(t), 0);
+
     return {
       id: item.id,
       tokens,
-      suggestions: scored.map(({ r, matchedWords }) => ({
+      suggestions: scored.map(({ r, matchedWords, score, coverage }) => ({
+        matchPct: maxScore > 0
+          // Coverage nudges the figure the same way it nudges the ranking, so
+          // the percentages agree with the order the list is shown in.
+          ? Math.max(1, Math.min(100, Math.round((score / maxScore) * 100 * (0.75 + 0.25 * Math.min(1, coverage * 4)))))
+          : 0,
         code: r.code,
         description: r.description ?? '',
         duty_rate: r.import_duty_rate != null ? Number(r.import_duty_rate) : null,

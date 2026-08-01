@@ -5,6 +5,7 @@ import { useCompany } from '../data/companyStore.js';
 import { Icon } from '../components/Icon.js';
 import { useBranding } from '../hooks/useBranding.js';
 import { useLocale } from '../hooks/useLocale.js';
+import { toggleThemeWithAnimation } from '../lib/theme.js';
 import './Login.css';
 
 const DEMO_ACCOUNTS = [
@@ -125,7 +126,11 @@ export const Login: React.FC = () => {
 
       <button
         type="button"
-        onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+        onClick={e => {
+          const next = theme === 'light' ? 'dark' : 'light';
+          setTheme(next);
+          toggleThemeWithAnimation(e, next === 'dark');
+        }}
         className="login-toggle"
         title={t('login.toggleTheme')}
       >

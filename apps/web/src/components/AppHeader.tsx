@@ -17,6 +17,7 @@ import {
   DropdownMenuSeparator,
 } from './ui/dropdown-menu.js';
 import { Popover, PopoverAnchor, PopoverContent } from './ui/popover.js';
+import { toggleThemeWithAnimation } from '../lib/theme.js';
 import './AppHeader.css';
 
 // ── Helpers ───────────────────────────────────────────────────
@@ -71,16 +72,17 @@ export function AppHeader({
   const [isDark, setIsDark] = useState(
     () => document.documentElement.getAttribute('data-theme') === 'dark'
   );
-  function toggleTheme() {
-    const next = !isDark;
-    setIsDark(next);
-    if (next) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.removeAttribute('data-theme');
-      localStorage.setItem('theme', 'light');
-    }
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
+    });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => observer.disconnect();
+  }, []);
+
+  function toggleTheme(e?: React.MouseEvent) {
+    toggleThemeWithAnimation(e);
   }
 
   // ── Layout toggle (boxed ↔ full-width) ──

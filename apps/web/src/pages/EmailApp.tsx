@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/api.js';
 import { MobileNavContext } from '../shells/WorkspaceApp.js';
 import { showAlert } from '../lib/alert.js';
 import { useEvents, addEvent, deleteEvent, useTodos, addTodo, updateTodo, deleteTodo, inboxListId } from '../data/calendarStore.js';
+import { EmailRightToolMenu } from '../components/EmailRightToolMenu.js';
 import './EmailApp.css';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -883,49 +884,13 @@ export const EmailApp: React.FC = () => {
 
       </div>{/* /em-body */}
 
-      {/* Area 5: Companion bar + expandable panel */}
+      {/* Area 5: Katalyst-style Right Tool Menu Rail & Expandable Drawers */}
       {!isMobile && (
-        <div className="em-companion">
-          {activeCompanion && (
-            <div className="em-companion-panel">
-              <div className="em-companion-panel-hdr">
-                <span className="em-companion-panel-title">
-                  {activeCompanion === 'calendar' ? 'Calendar' : activeCompanion === 'tasks' ? 'Tasks' : activeCompanion === 'notes' ? 'Notes' : 'Contacts'}
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <button type="button" className="em-icon-btn em-icon-btn--ghost" title="Search"><Icon name="search" size={14} /></button>
-                  <button type="button" className="em-icon-btn em-icon-btn--ghost" title="Open in new tab"><Icon name="externalLink" size={14} /></button>
-                  <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setActiveCompanion(null)} title="Close"><Icon name="x" size={14} /></button>
-                </div>
-              </div>
-              <div className="em-companion-panel-body">
-                {activeCompanion === 'calendar'  && renderCalendar()}
-                {activeCompanion === 'tasks'     && renderTasks()}
-                {activeCompanion === 'notes'     && renderNotes()}
-                {activeCompanion === 'contacts'  && renderContacts()}
-              </div>
-            </div>
-          )}
-
-          <div className="em-companion-bar">
-            <button type="button" className={`em-companion-btn${activeCompanion === 'calendar' ? ' em-companion-btn--active' : ''}`} onClick={() => setActiveCompanion(c => c === 'calendar' ? null : 'calendar')} title="Calendar">
-              <Icon name="calendar" size={20} color={activeCompanion === 'calendar' ? '#0b57d0' : '#4285f4'} />
-            </button>
-            <button type="button" className={`em-companion-btn${activeCompanion === 'notes' ? ' em-companion-btn--active' : ''}`} onClick={() => setActiveCompanion(c => c === 'notes' ? null : 'notes')} title="Notes">
-              <Icon name="zap" size={20} color={activeCompanion === 'notes' ? '#0b57d0' : '#fbbc05'} />
-            </button>
-            <button type="button" className={`em-companion-btn${activeCompanion === 'tasks' ? ' em-companion-btn--active' : ''}`} onClick={() => setActiveCompanion(c => c === 'tasks' ? null : 'tasks')} title="Tasks">
-              <Icon name="checkCircle" size={20} color={activeCompanion === 'tasks' ? '#0b57d0' : '#34a853'} />
-            </button>
-            <button type="button" className={`em-companion-btn${activeCompanion === 'contacts' ? ' em-companion-btn--active' : ''}`} onClick={() => setActiveCompanion(c => c === 'contacts' ? null : 'contacts')} title="Contacts">
-              <Icon name="contact" size={20} color={activeCompanion === 'contacts' ? '#0b57d0' : '#1a73e8'} />
-            </button>
-            <div className="em-companion-bar-sep" />
-            <button type="button" className="em-companion-btn" title="Get Add-ons"><Icon name="plus" size={20} color="var(--ink3)" /></button>
-            <div className="em-companion-spacer" />
-            <button type="button" className="em-companion-btn" title="Info"><Icon name="info" size={18} color="var(--ink3)" /></button>
-          </div>
-        </div>
+        <EmailRightToolMenu
+          selectedEmail={selectedEmail}
+          onOpenEmail={id => setSelectedId(id)}
+          emails={emails}
+        />
       )}
 
       {/* Compose modal */}

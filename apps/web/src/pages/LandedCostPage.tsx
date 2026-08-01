@@ -100,6 +100,11 @@ interface HsSuggestion {
   matched: number;
   matchedWords: string[];
   totalWords: number;
+  /** The ranking score as a percentage — how much of the description this
+   *  entry's wording accounts for, weighted by how rare each word is. It is
+   *  not a probability that the classification is correct, which is why a
+   *  person still accepts every code. See hs-suggest.service.ts. */
+  matchPct: number;
 }
 
 interface MultiItemRow {
@@ -122,6 +127,18 @@ interface MultiItemRow {
   excluded?: boolean;
   /** Why the importer flagged this row, shown beside it. */
   flag?: string;
+  /**
+   * The line total the invoice itself printed, when it had one.
+   *
+   * Kept alongside the unit price because the two do not always agree: a line
+   * billed at USD 2.23 for 200 pieces prints a unit price of 0.01, and 200 x
+   * 0.01 is 2.00. The unit price on screen is rounded to 3 decimals for
+   * legibility, so recomputing the line from it would lose the invoice's own
+   * figure a second time. This is what the assessment actually uses. It is
+   * cleared the moment the user edits the quantity or the price, because
+   * their edit is then the more recent statement of what the line is worth.
+   */
+  amount_usd?: string;
 }
 
 function newMultiItemRow(): MultiItemRow {
@@ -174,7 +191,7 @@ function RowRate({ label, value, onChange, placeholder }: {
         value={value}
         placeholder={placeholder ?? 'auto'}
         onChange={e => onChange(e.target.value)}
-        style={{ width: '100%', boxSizing: 'border-box', height: 34, fontSize: 12.5, borderColor: active ? 'var(--gold, #B8862F)' : undefined }}
+        style={{ width: '100%', boxSizing: 'border-box', fontSize: 12.5, borderColor: active ? 'var(--gold, #B8862F)' : undefined }}
       />
     </div>
   );
@@ -221,6 +238,9 @@ interface MultiItemResult {
   totals: {
     fob_usd: number; fob_tzs: number; freight_tzs: number; insurance_tzs: number; cif_tzs: number;
     duty: number; excise: number; rdl: number; cpf: number; vat: number; destination: number; wharfage: number;
+    // Consignment-level charges, matching the single-item report's cards.
+    pid: number; green_port_initiative: number; green_port_label: string;
+    tbs_charge: number; shipping_do_fee: number; shipping_handling_fee: number; shipping_line_charge: number;
     statutory_total: number; total: number; total_ex_vat: number;
     effective_statutory_rate_pct: number; landed_multiplier: number;
   };
@@ -231,6 +251,9 @@ interface MultiItemResult {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const fmt    = (n: number) => Math.round(n).toLocaleString('en-US');
+/** Money to 3 decimals — enough to carry a unit price like 0.011 without
+ *  implying a precision the invoice never stated. */
+const fmtUsd3 = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 3 })}`;
 const fmtUsd = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
 
 function RRow({ label, value, hi, sub }: { label: string; value: string; hi?: boolean; sub?: boolean }) {
@@ -1523,6 +1546,7 @@ function printMultiReport(result: MultiItemResult, meta: ReportMeta = {}) {
   const customerLine = [meta.customerName, meta.customerEmail, meta.customerPhone].map(s => (s || '').trim()).filter(Boolean).join(' · ');
 
   const cifTotalTzs = result.totals.fob_tzs + result.totals.freight_tzs + result.totals.insurance_tzs;
+  const tpaTotalTzs = result.totals.wharfage + result.totals.pid + result.totals.green_port_initiative;
   const freightInsTzs = result.totals.freight_tzs + result.totals.insurance_tzs;
   /** What the importer actually has to fund: everything except the cargo's
    *  own FOB value. `totals.total` is the full landed cost and includes the
@@ -1530,6 +1554,28 @@ function printMultiReport(result: MultiItemResult, meta: ReportMeta = {}) {
   const amountToPrepareTzs = result.totals.total - result.totals.fob_tzs;
 
   const totalUnits = result.items.reduce((s, x) => s + x.qty, 0);
+
+  /**
+   * The single-item report's charge-table shape, reused so a reader moving
+   * between the two reports sees the same document rather than two dialects.
+   * A zero-value line is dropped: a charge that was not incurred and a charge
+   * that was not computed look identical as "TZS 0", and only one of those is
+   * safe to quote from.
+   */
+  type ChargeLine = [label: string, unit: string, rate: string, amount: number];
+  const chargeTable = (lines: ChargeLine[], totalLabel: string) => {
+    const shown = lines.filter(([, , , amt]) => amt > 0);
+    if (shown.length === 0) return `<div class="none">No charge on this consignment.</div>`;
+    const total = shown.reduce((s, [, , , amt]) => s + amt, 0);
+    return `<table class="chg">
+      <colgroup><col class="c-d"><col class="c-u"><col class="c-r"><col class="c-t"></colgroup>
+      <thead><tr><th>Description</th><th>Unit</th><th class="r">Rate</th><th class="r">Total</th></tr></thead>
+      <tbody>${shown.map(([label, unit, rate, amt]) => `
+        <tr><td>${label}</td><td class="u">${unit}</td><td class="r u">${rate}</td><td class="r v">TZS ${fmt(amt)}</td></tr>`).join('')}
+      </tbody>
+      <tfoot><tr><td colSpan="3">${totalLabel}</td><td class="r">TZS ${fmt(total)}</td></tr></tfoot>
+    </table>`;
+  };
 
   /**
    * Only the taxes that actually apply. Excise, RDL and CPF are zero on most
@@ -1698,18 +1744,18 @@ tr.subt td.tot{color:var(--acc-600)}
 }
 /* Cost build-up cards. Same visual language as the summary block below them
    so the document reads as one costing rather than a table plus a footnote. */
-.card{margin-top:16px;border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:var(--paper);page-break-inside:avoid}
-.card h3{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc-600);font-weight:700;margin-bottom:11px;display:flex;align-items:center}
+.card{margin-top:10px;border:1px solid var(--line);border-radius:12px;padding:11px 14px;background:var(--paper);break-inside:avoid;page-break-inside:avoid}
+.card h3{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc-600);font-weight:700;margin-bottom:7px;display:flex;align-items:center}
 .card h3 .n{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:var(--acc);color:#fff;border-radius:5px;font-family:'Space Grotesk';font-size:10.5px;margin-right:8px}
 .card .lead{font-size:10.5px;color:var(--slate);margin:-4px 0 9px;line-height:1.55}
-.card .row{display:flex;flex-wrap:nowrap;align-items:baseline;justify-content:space-between;gap:10px;font-size:11.5px;padding:6px 0;border-bottom:1px solid var(--line-soft)}
+.card .row{display:flex;flex-wrap:nowrap;align-items:baseline;justify-content:space-between;gap:10px;font-size:11px;padding:4.5px 0;border-bottom:1px solid var(--line-soft)}
 .card .row .k{color:var(--ink-700);min-width:0;overflow-wrap:break-word}
 .card .row .k .hint{color:var(--slate-400);font-size:9.5px}
 .card .row .v{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;flex:none}
 .card .row.tot{border-bottom:none;border-top:1.5px solid var(--ink);margin-top:4px;padding-top:9px}
 .card .row.tot .k{font-weight:700}
 .card .row.tot .v{font-weight:800;color:var(--acc-600);font-size:13px}
-.card .note{margin-top:10px;font-size:9.5px;line-height:1.6;color:var(--slate);background:var(--tint);border-radius:8px;padding:8px 10px}
+.card .note{margin-top:7px;font-size:9px;line-height:1.5;color:var(--slate);background:var(--tint);border-radius:7px;padding:6px 9px}
 /* Reference pages: the working behind the summary, started on a fresh sheet. */
 .ref{margin-top:26px;page-break-before:always;break-before:page}
 .ref-head h3{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc-600);font-weight:700;margin-bottom:5px}
@@ -1731,6 +1777,47 @@ table.ref-t col.c-unit{width:9%}
 table.ref-t col.c-tot{width:11.4%}
 .ref-foot{margin-top:10px;font-size:10px;line-height:1.6;color:var(--ink-700);background:var(--tint);border-left:3px solid var(--acc);border-radius:0 8px 8px 0;padding:9px 12px}
 .ref-foot.bad{background:#FEF2F2;border-left-color:#DC2626;color:#7F1D1D;font-weight:600}
+/* ── A4 pagination ───────────────────────────────────────────────────────
+   A consignment report is a multi-sheet document: cover and costing, then
+   sign-off, then notes, then the per-line reference. Each starts on its own
+   sheet. A break-before is only applied to a section that actually has
+   content, so an absent QR block or an empty notes list cannot leave a blank
+   sheet behind. */
+@page{size:A4;margin:14mm}
+.chg{width:100%;table-layout:fixed;border-collapse:collapse;font-size:10.5px;margin-top:2px}
+.chg col.c-d{width:46%}
+.chg col.c-u{width:17%}
+.chg col.c-r{width:12%}
+.chg col.c-t{width:25%}
+.chg thead th{font-size:8px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);font-weight:700;text-align:left;padding:5px 7px;border-bottom:1px solid var(--line)}
+.chg thead th.r{text-align:right}
+.chg td{padding:4.5px 7px;border-bottom:1px solid var(--line-soft);vertical-align:top;overflow-wrap:anywhere}
+.chg td.r{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.chg td.u{color:var(--slate);font-style:italic}
+.chg td.v{font-weight:600}
+.chg tfoot td{padding:8px 7px;border-top:1.5px solid var(--ink);border-bottom:none;font-weight:700;background:var(--acc-050)}
+.chg tfoot td.r{text-align:right;color:var(--acc-600);font-size:12px;white-space:nowrap}
+.card .none{font-size:10.5px;color:var(--slate);font-style:italic;padding:4px 0}
+.summary{break-before:page;page-break-before:always}
+.notes-page{break-before:page;page-break-before:always}
+.ref{break-before:page;page-break-before:always;margin-top:0}
+.foot{break-before:auto;page-break-before:auto}
+.notes-page .terms{break-inside:auto;page-break-inside:auto}
+/* Repeat the reference header on every sheet the table spills onto, and never
+   split a line's own row across two of them. */
+table.ref-t thead{display:table-header-group}
+table.ref-t tfoot{display:table-footer-group}
+table.ref-t tr{break-inside:avoid;page-break-inside:avoid}
+.ref-head{break-after:avoid;page-break-after:avoid}
+@media print{
+  html,body{background:#fff}
+  .toolbar{display:none}
+  .sheet{box-shadow:none;margin:0;padding:0;width:auto;max-width:none;border-radius:0}
+  /* A trailing margin on the last block is enough to push an otherwise-empty
+     sheet into existence, which is exactly the blank page to avoid. */
+  .sheet > *:last-child{margin-bottom:0}
+  .ref-foot{break-inside:avoid;page-break-inside:avoid}
+}
 </style></head><body>
 
 <div class="toolbar">
@@ -1791,15 +1878,46 @@ table.ref-t col.c-tot{width:11.4%}
   </section>
 
   <section class="card">
-    <h3><span class="n">4</span>Port, Agency &amp; Destination</h3>
-    <div class="row"><span class="k">TPA wharfage</span><span class="v">TZS ${fmt(result.totals.wharfage)}</span></div>
-    <div class="row"><span class="k">${result.destination_charge_label}</span><span class="v">TZS ${fmt(result.totals.destination)}</span></div>
-    <div class="row tot"><span class="k">Total port &amp; destination</span><span class="v">TZS ${fmt(result.totals.wharfage + result.totals.destination)}</span></div>
-    <!-- Stated rather than shown as a zero line. A zero against "TBS" reads as
-         "no TBS charge applies", which is a different claim from "this basis
-         does not compute one" — and it is the clearing agent who would be held
-         to the first one. -->
-    <div class="note">Agency charges assessed per consignment rather than per line &mdash; TBS, GCLA, TMDA, CAMARTEC, shipping-line and clearing-agent fees &mdash; are <b>not included above</b>. Add them from your rate card before quoting a client. ${allNotes.some(n => /pvoc|inspection/i.test(n)) ? 'Several lines also require PVoC or Destination Inspection (see notes).' : ''}</div>
+    <h3><span class="n">4</span>TPA Charges</h3>
+    ${chargeTable([
+      ['TPA Wharfage', 'CIF', '1.6%', result.totals.wharfage],
+      ['Port Infrastructure Development', 'Duties &amp; taxes', '4.5%', result.totals.pid],
+      [result.totals.green_port_label, 'Flat', '&mdash;', result.totals.green_port_initiative],
+    ], 'Total TPA Charges')}
+    <div class="note">Wharfage, Port Infrastructure Development and Green Port Initiatives are published TPA rates.</div>
+  </section>
+
+  <section class="card">
+    <h3><span class="n">5</span>ICD / Destination Charges</h3>
+    ${chargeTable([[result.destination_charge_label, 'per consignment', '&mdash;', result.totals.destination]], 'Total ICD Charges')}
+    <div class="note">A default per-container estimate, not a TRA assessment &mdash; reconcile against your actual container handling agreement.</div>
+  </section>
+
+  <section class="card">
+    <h3><span class="n">6</span>TBS Charges</h3>
+    ${chargeTable([
+      ['Physical Verification Fee (DI)', 'per BL', '&mdash;', 150000],
+      ['Service Fee', 'per BL', '&mdash;', 30000],
+    ], 'Total TBS Charges')}
+    <div class="note">Flat reference rates from the clearing agent's own rate sheet, applied per consignment and not scaled by CIF value or quantity. Verify against your actual TBS invoice.</div>
+  </section>
+
+  <section class="card">
+    <h3><span class="n">7</span>Shipping Line Charges</h3>
+    ${chargeTable([
+      ['Delivery Order Fee', 'per BL', '&mdash;', result.totals.shipping_do_fee],
+      ...(result.totals.shipping_handling_fee > 0 ? [['Handling / TASAC Fee', 'per container', '&mdash;', result.totals.shipping_handling_fee] as ChargeLine] : []),
+    ], 'Total Shipping Line Charges')}
+    <div class="note">Reference rates from the clearing agent's own rate sheet, not an independently verified shipping-line tariff &mdash; verify against your actual invoice.</div>
+  </section>
+
+  <section class="card">
+    <h3><span class="n">8</span>Clearance &amp; Other Agency Charges</h3>
+    <!-- Left empty rather than filled with zeros. A zero against "GCLA" reads
+         as "no GCLA charge applies", which is a different claim from "none was
+         entered" — and it is the clearing agent who would be held to the
+         first. The rate card is where these actually live. -->
+    <div class="note">Documentation, verification and the TASAC agency fee, plus any GCLA, TMDA or CAMARTEC charge, are <b>not computed here</b> &mdash; they are commercial rates specific to the job. Add them from Tools &rarr; Rate Card before quoting a client. ${allNotes.some(n => /pvoc|inspection/i.test(n)) ? 'Several lines on this consignment also require PVoC or Destination Inspection &mdash; see the notes.' : ''}</div>
   </section>
 
   <section class="summary">
@@ -1809,8 +1927,10 @@ table.ref-t col.c-tot{width:11.4%}
       <div class="row"><span class="k">1&nbsp; Freight &amp; insurance — export country</span><span class="v">TZS ${fmt(freightInsTzs)}</span></div>
       <div class="row head"><span class="k">2&nbsp; Amount to pay in Tanzania</span><span></span></div>
       <div class="row sub"><span class="k">Duties &amp; taxes — TRA (incl. VAT)</span><span class="v">TZS ${fmt(result.totals.statutory_total)}</span></div>
-      <div class="row sub"><span class="k">Port &amp; handling — TPA wharfage</span><span class="v">TZS ${fmt(result.totals.wharfage)}</span></div>
+      <div class="row sub"><span class="k">Port &amp; handling — TPA</span><span class="v">TZS ${fmt(tpaTotalTzs)}</span></div>
       <div class="row sub"><span class="k">ICD / destination charges</span><span class="v">TZS ${fmt(result.totals.destination)}</span></div>
+      <div class="row sub"><span class="k">TBS charges</span><span class="v">TZS ${fmt(result.totals.tbs_charge)}</span></div>
+      <div class="row sub"><span class="k">Local shipping line charges</span><span class="v">TZS ${fmt(result.totals.shipping_line_charge)}</span></div>
     </div>
     <div class="sum-r">
       <div class="prep-lab">Total Amount to Prepare</div>
@@ -1825,11 +1945,9 @@ table.ref-t col.c-tot{width:11.4%}
     </div>
   </section>
 
+  <!-- Sign-off travels with the summary: the signature and the disclaimer
+       belong on the same sheet as the figure being signed off. -->
   <div class="foot">
-    <div class="terms">
-      <h4>Notes &amp; Assumptions</h4>
-      <ul>${allNotes.map(w => `<li>${w}</li>`).join('') || '<li>All items computed according to TRA EAC CET 2026 tariff schedule.</li>'}</ul>
-    </div>
     ${meta.qrDataUri ? `<div class="qr">
       <img src="${meta.qrDataUri}" alt="Scan to open this estimate">
       <div class="qr-t">
@@ -1846,6 +1964,13 @@ table.ref-t col.c-tot{width:11.4%}
     <div class="legal">This is a decision-support estimate, not a customs assessment or tax invoice. Final duties, taxes and charges are those determined by the Tanzania Revenue Authority on the lodged declaration.</div>
     <div class="credit"><span>Prepared on <b>ClearOS</b> &middot; Hudumika Platform</span><span>Multi-Item &middot; Confidential</span></div>
   </div>
+
+  <section class="notes-page">
+    <div class="terms">
+      <h4>Notes &amp; Assumptions</h4>
+      <ul>${allNotes.map(w => `<li>${w}</li>`).join('') || '<li>All items computed according to TRA EAC CET 2026 tariff schedule.</li>'}</ul>
+    </div>
+  </section>
 
   <!-- Reference pages. Deliberately after the summary and the notes: this is
        the working, not the answer. -->
@@ -1887,22 +2012,14 @@ table.ref-t col.c-tot{width:11.4%}
 </div>
 
 <script>
-/** Same single-continuous-page sizing and font-ready print gate as the
- *  single-item report — without these the export paginates on a default A4
- *  and is measured against fallback-font metrics, so what's previewed and
- *  what's saved don't match. */
-function fitPageToContent(){
-  const sheet = document.querySelector('.sheet');
-  if(!sheet) return;
-  const mm = sheet.getBoundingClientRect().height * 25.4 / 96;
-  let style = document.getElementById('dyn-page-size');
-  if(!style){ style = document.createElement('style'); style.id = 'dyn-page-size'; document.head.appendChild(style); }
-  style.textContent = '@page{size:210mm ' + (Math.ceil(mm) + 30) + 'mm;margin:14mm}';
-}
-window.addEventListener('beforeprint', fitPageToContent);
-fitPageToContent();
+/** This report prints on real A4, not the single continuous sheet the
+ *  single-item report uses. A 206-line consignment produces a metres-long
+ *  page that no printer or PDF reader paginates sensibly, and the reference
+ *  table has to break across sheets with its header repeated. Page breaks are
+ *  declared in CSS; the only thing left to do here is wait for fonts, since
+ *  measuring against fallback metrics puts the breaks in the wrong places. */
 var didPrint = false;
-function goPrint(){ if(didPrint) return; didPrint = true; fitPageToContent(); requestAnimationFrame(function(){ requestAnimationFrame(function(){ window.print(); }); }); }
+function goPrint(){ if(didPrint) return; didPrint = true; requestAnimationFrame(function(){ requestAnimationFrame(function(){ window.print(); }); }); }
 if (document.fonts && document.fonts.ready) {
   document.fonts.ready.then(goPrint);
   setTimeout(goPrint, 2000);
@@ -2292,10 +2409,17 @@ export const LandedCostPage: React.FC = () => {
   }
   const fxOverrideVal = ovFx.trim() === '' ? undefined : (parseFloat(ovFx) > 0 ? parseFloat(ovFx) : undefined);
   const overrideCount = Object.keys(buildRateOverrides() ?? {}).length + (fxOverrideVal ? 1 : 0);
+  /** A line's FOB value: the invoice's own line total when it had one. */
+  function lineFobUsd(r: MultiItemRow): number {
+    const amt = parseFloat(r.amount_usd ?? '');
+    if (Number.isFinite(amt) && amt > 0) return amt;
+    return (parseFloat(r.qty) || 0) * (parseFloat(r.unit_price_usd) || 0);
+  }
+
   // Switched-off rows are left out of the calculation, so they must be left
   // out of the total shown next to it too — otherwise the figure on screen is
   // not the figure being assessed.
-  const multiTotalFobUsd = multiItems.reduce((s, r) => r.excluded ? s : s + (parseFloat(r.qty) || 0) * (parseFloat(r.unit_price_usd) || 0), 0);
+  const multiTotalFobUsd = multiItems.reduce((s, r) => r.excluded ? s : s + lineFobUsd(r), 0);
 
   // Real ICD operators charge different rates for the same service (see
   // /clearos/rate-card) — picking one here scopes the calculator's ICD/C&F
@@ -2369,7 +2493,10 @@ export const LandedCostPage: React.FC = () => {
         description: r.description,
         hs_code: r.hs_code.trim(),
         qty: parseFloat(r.qty) || 0,
-        unit_price_usd: parseFloat(r.unit_price_usd) || 0,
+        // Derived at full precision from the line's value, so the assessed FOB
+        // is the invoice's own figure rather than the rounded unit price shown
+        // on screen.
+        unit_price_usd: (parseFloat(r.qty) || 0) > 0 ? lineFobUsd(r) / (parseFloat(r.qty) || 1) : 0,
         rate_overrides: rowRateOverrides(r),
       }))
       .filter(r => r.hs_code && r.qty > 0 && r.unit_price_usd >= 0);
@@ -2443,7 +2570,11 @@ export const LandedCostPage: React.FC = () => {
 
   // ── Multi-item row management ────────────────────────────────────────────
   function updateRow(id: string, patch: Partial<MultiItemRow>) {
-    setMultiItems(rows => rows.map(r => r.id === id ? { ...r, ...patch } : r));
+    // Typing a quantity or a price is a decision about what this line is
+    // worth, so it supersedes the amount carried over from the invoice.
+    const supersedes = ('qty' in patch || 'unit_price_usd' in patch) && !('amount_usd' in patch);
+    setMultiItems(rows => rows.map(r =>
+      r.id === id ? { ...r, ...patch, ...(supersedes ? { amount_usd: undefined } : {}) } : r));
   }
   function addRow() { setMultiItems(rows => rows.length >= MAX_CARGO_ROWS ? rows : [...rows, newMultiItemRow()]); }
   function removeRow(id: string) { setMultiItems(rows => rows.length > 1 ? rows.filter(r => r.id !== id) : rows); }
@@ -2857,7 +2988,9 @@ export const LandedCostPage: React.FC = () => {
         hs_code: hs,
         qty: String(qtyVal),
         unit: uom || 'unit',
-        unit_price_usd: String(Number(priceUsd.toFixed(6))),
+        // Shown to 3 decimals; the exact value rides on amount_usd.
+        unit_price_usd: String(Number(priceUsd.toFixed(3))),
+        amount_usd: hasAmount ? String(toUsd(amount)) : undefined,
         excluded, flag,
       });
     }
@@ -3223,7 +3356,7 @@ export const LandedCostPage: React.FC = () => {
                           "ignore" travels as a sentinel and is translated back
                           at the boundary (CLAUDE.md). */}
                       <Select value={roles[c] || '__ignore__'} onValueChange={v => setRole(c, v === '__ignore__' ? '' : v)}>
-                        <SelectTrigger style={{ height: 32, fontSize: 11.5 }}><SelectValue /></SelectTrigger>
+                        <SelectTrigger style={{ fontSize: 11.5 }}><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__ignore__">— ignore —</SelectItem>
                           <SelectItem value="desc">Description *</SelectItem>
@@ -3496,6 +3629,35 @@ export const LandedCostPage: React.FC = () => {
         /* A 200-line invoice made the page itself thousands of pixels tall, so
            the step's own Continue button was unreachable without a long scroll.
            The list scrolls inside its own box instead. */
+        /* One control size for the whole page.
+           Fields and buttons were previously sized inline at 32, 34, 36 and
+           38px, so a row read as several different components sitting next to
+           each other. Height comes from one token here and radius from the
+           design system's --r-sm, which .input-field and .btn already use — so
+           this only has to fix the height they were overriding. */
+        .lcp-card { --ctl-h: 44px; }
+        .lcp-card .input-field,
+        .lcp-card .btn,
+        .lcp-card label.btn,
+        .lcp-card button[role="combobox"],
+        .lcp-card [data-slot="select-trigger"] {
+          height: var(--ctl-h);
+          border-radius: var(--r-sm);
+          padding-top: 0;
+          padding-bottom: 0;
+        }
+        .lcp-card .btn { line-height: 1; }
+        /* Touch targets stay comfortable on a phone without changing desktop. */
+        @media (max-width: 700px) { .lcp-card { --ctl-h: 46px; padding: 18px; } }
+
+        /* Cargo line rows. Four number fields side by side are unusable at
+           phone width — the qty box ends up about two characters wide — so
+           they go to two columns, then the description and HS code stack. */
+        .lcp-row-desc { display: grid; grid-template-columns: 2fr 1.4fr; gap: 8px; margin-bottom: 8px; }
+        .lcp-row-nums { display: grid; grid-template-columns: 1fr 0.8fr 1fr 1fr; gap: 8px; }
+        @media (max-width: 760px) { .lcp-row-nums { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 560px) { .lcp-row-desc { grid-template-columns: 1fr; } }
+
         .lcp-lines { max-height: 62vh; overflow-y: auto; overscroll-behavior: contain; padding-right: 8px; }
         .lcp-lines::-webkit-scrollbar { width: 6px; }
         .lcp-lines::-webkit-scrollbar-track { background: transparent; }
@@ -3683,7 +3845,7 @@ export const LandedCostPage: React.FC = () => {
                     The total on your supplier's invoice, before any Tanzanian duties.
                   </div>
                   <div style={{ position: 'relative' }}>
-                    <input className="input-field" type="number" min="0" placeholder="e.g. 15,000" value={fob} onChange={e => setFob(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 38, height: 44, fontSize: 14 }} />
+                    <input className="input-field" type="number" min="0" placeholder="e.g. 15,000" value={fob} onChange={e => setFob(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', paddingLeft: 38, fontSize: 14 }} />
                     <Icon name="dollarSign" size={15} color="var(--ink3)" style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }} />
                   </div>
 
@@ -3699,7 +3861,7 @@ export const LandedCostPage: React.FC = () => {
                     {!priceInclFreight && (
                       <div>
                         <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', display: 'block', marginBottom: 4 }}>Shipping cost you paid (USD)</label>
-                        <input className="input-field" type="number" min="0" placeholder="e.g. 3,500" value={freight} onChange={e => setFreight(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', height: 40, fontSize: 13.5 }} />
+                        <input className="input-field" type="number" min="0" placeholder="e.g. 3,500" value={freight} onChange={e => setFreight(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', fontSize: 13.5 }} />
                       </div>
                     )}
 
@@ -3711,7 +3873,7 @@ export const LandedCostPage: React.FC = () => {
                       </div>
                       {!priceInclInsurance && (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                          <input className="input-field" type="number" min="0" step="0.1" value={insurancePct} onChange={e => setInsurancePct(e.target.value)} style={{ width: 64, boxSizing: 'border-box', height: 34, fontSize: 13, textAlign: 'right' }} />
+                          <input className="input-field" type="number" min="0" step="0.1" value={insurancePct} onChange={e => setInsurancePct(e.target.value)} style={{ width: 64, boxSizing: 'border-box', fontSize: 13, textAlign: 'right' }} />
                           <span style={{ fontSize: 12, color: 'var(--ink3)' }}>% of goods + shipping — the usual rate if you don't have a figure</span>
                           <span style={{ fontSize: 12, color: 'var(--ink3)', marginLeft: 'auto' }}>= {fmtUsd(insuranceVal)}</span>
                         </div>
@@ -3766,7 +3928,7 @@ export const LandedCostPage: React.FC = () => {
                 {/* Field 3: Quantity */}
                 <div>
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 6 }}>Quantity (units)</label>
-                  <input className="input-field" type="number" min="1" placeholder="e.g. 10" value={qty} onChange={e => setQty(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14 }} />
+                  <input className="input-field" type="number" min="1" placeholder="e.g. 10" value={qty} onChange={e => setQty(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', fontSize: 14 }} />
                 </div>
 
                 {/* Field 4: Finance Act 2026 (July update) special excise flags */}
@@ -3782,7 +3944,7 @@ export const LandedCostPage: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, paddingLeft: 24 }}>
                       <span style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Vehicle age (years)</span>
                       <input className="input-field" type="number" min="0" step="1" placeholder="e.g. 12" value={vehicleAge} onChange={e => setVehicleAge(e.target.value)}
-                        style={{ width: 80, boxSizing: 'border-box', height: 32, fontSize: 13 }} />
+                        style={{ width: 80, boxSizing: 'border-box', fontSize: 13 }} />
                     </div>
                   )}
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)', cursor: 'pointer' }}>
@@ -3843,8 +4005,8 @@ export const LandedCostPage: React.FC = () => {
                             <span>{row.flag}</span>
                           </div>
                         )}
-                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.4fr', gap: 8, marginBottom: 8 }}>
-                          <input className="input-field" placeholder="Product / description" value={row.description} onChange={e => updateRow(row.id, { description: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', height: 38, fontSize: 13 }} />
+                        <div className="lcp-row-desc">
+                          <input className="input-field" placeholder="Product / description" value={row.description} onChange={e => updateRow(row.id, { description: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', fontSize: 13 }} />
                           <EntityPicker
                             value={row.hs_code ? { id: row.hs_code, label: row.hs_code } : null}
                             onChange={item => handleRowHsChange(row, item)}
@@ -3869,10 +4031,22 @@ export const LandedCostPage: React.FC = () => {
                                     {s.code}
                                   </button>
                                   <span style={{ fontSize: 12, color: 'var(--ink2)', flex: '1 1 160px', minWidth: 0, lineHeight: 1.4 }}>{s.description}</span>
-                                  {/* The honest score: how many of the description's
-                                      words this tariff entry actually contains. Not a
-                                      confidence percentage — a word overlap is not a
-                                      probability of being the right classification. */}
+                                  {/* The match strength is the ranking score itself, not a
+                                      separate estimate — how much of the description this
+                                      entry's wording accounts for, weighted by how rare
+                                      each word is. It measures wording, not correctness:
+                                      100% means every searchable word was found, which a
+                                      wrong heading can also achieve. */}
+                                  <span
+                                    title={`${s.matched} of ${s.totalWords} words matched (${s.matchedWords.join(', ')}). Measures wording overlap with the tariff text, not whether the classification is correct.`}
+                                    style={{
+                                      fontSize: 10.5, fontWeight: 700, whiteSpace: 'nowrap',
+                                      padding: '1px 7px', borderRadius: 'var(--badge-radius)',
+                                      background: s.matchPct >= 70 ? 'var(--green-l)' : s.matchPct >= 40 ? 'var(--gold-l)' : 'var(--surface-2, rgba(0,0,0,.05))',
+                                      color: s.matchPct >= 70 ? 'var(--green)' : s.matchPct >= 40 ? 'var(--gold)' : 'var(--ink3)',
+                                    }}>
+                                    {s.matchPct}% match
+                                  </span>
                                   <span style={{ fontSize: 10.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
                                     {s.matched}/{s.totalWords} words{s.duty_rate != null ? ` · ${s.duty_rate}% duty` : ''}
                                   </span>
@@ -3884,23 +4058,23 @@ export const LandedCostPage: React.FC = () => {
                             </div>
                           </div>
                         )}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.8fr 1fr 1fr', gap: 8 }}>
+                        <div className="lcp-row-nums">
                           <div>
                             <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Qty</label>
-                            <input className="input-field" type="number" min="0" value={row.qty} onChange={e => updateRow(row.id, { qty: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', height: 36, fontSize: 13 }} />
+                            <input className="input-field" type="number" min="0" value={row.qty} onChange={e => updateRow(row.id, { qty: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', fontSize: 13 }} />
                           </div>
                           <div>
                             <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Unit</label>
-                            <input className="input-field" placeholder="unit" value={row.unit} onChange={e => updateRow(row.id, { unit: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', height: 36, fontSize: 13 }} />
+                            <input className="input-field" placeholder="unit" value={row.unit} onChange={e => updateRow(row.id, { unit: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', fontSize: 13 }} />
                           </div>
                           <div>
                             <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Unit Price (USD)</label>
-                            <input className="input-field" type="number" min="0" value={row.unit_price_usd} onChange={e => updateRow(row.id, { unit_price_usd: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', height: 36, fontSize: 13 }} />
+                            <input className="input-field" type="number" min="0" value={row.unit_price_usd} onChange={e => updateRow(row.id, { unit_price_usd: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', fontSize: 13 }} />
                           </div>
                           <div>
                             <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Amount (USD)</label>
                             <div style={{ height: 36, display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-                              {fmtUsd((parseFloat(row.qty) || 0) * (parseFloat(row.unit_price_usd) || 0))}
+                              {fmtUsd3(lineFobUsd(row))}
                             </div>
                           </div>
                         </div>
@@ -3936,13 +4110,13 @@ export const LandedCostPage: React.FC = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
                     <div>
                       <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 6 }}>Freight (USD)</label>
-                      <input className="input-field" type="number" min="0" placeholder="e.g. 800" value={multiFreight} onChange={e => setMultiFreight(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', height: 40, fontSize: 13.5 }} />
+                      <input className="input-field" type="number" min="0" placeholder="e.g. 800" value={multiFreight} onChange={e => setMultiFreight(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', fontSize: 13.5 }} />
                     </div>
                     <div>
                       <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 6 }}>
                         Insurance (USD) <span style={{ fontWeight: 400, textTransform: 'none', color: 'var(--ink3)' }}>— blank = 1% of CFR</span>
                       </label>
-                      <input className="input-field" type="number" min="0" placeholder="auto" value={multiInsurance} onChange={e => setMultiInsurance(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', height: 40, fontSize: 13.5 }} />
+                      <input className="input-field" type="number" min="0" placeholder="auto" value={multiInsurance} onChange={e => setMultiInsurance(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', fontSize: 13.5 }} />
                     </div>
                   </div>
                 </div>
