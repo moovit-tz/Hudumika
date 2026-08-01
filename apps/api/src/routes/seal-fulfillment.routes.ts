@@ -1,4 +1,5 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { SealService } from '../services/seal.service.js';
@@ -230,10 +231,18 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
             qtyDelta: 0, reference: o.reference, reasonCode: 'fulfillment_dispatch',
           });
         }
-        return trx.updateTable('seal_fulfillment_orders').set({
+        const dispatched = await trx.updateTable('seal_fulfillment_orders').set({
           status: 'dispatched', dispatched_at: new Date(),
           vehicle_id: b.vehicleId ?? null, carrier_note: b.carrierNote ?? null,
         }).where('id', '=', o.id).returningAll().executeTakeFirstOrThrow();
+
+        // Gate-out: goods have physically left the warehouse.
+        emitDomainEvent(trx, request.user.tenant_id, {
+          type: 'seal.order_dispatched', sourceApp: 'seal', entityType: 'seal_fulfillment_order', entityId: dispatched.id,
+          payload: { reference: o.reference ?? null, vehicleId: b.vehicleId ?? null, carrierNote: b.carrierNote ?? null },
+        }).catch(err => console.error('[SEAL] order_dispatched emit failed:', err.message));
+
+        return dispatched;
       });
       return mapOrder(order);
     } catch (err: any) {

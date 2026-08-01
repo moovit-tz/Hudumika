@@ -1,4 +1,5 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
@@ -346,8 +347,8 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
       cargo_type?: string; cargo_weight_kg?: number; cargo_temp_c?: number; load_capacity_pct?: number;
       shipment_id?: string;
     };
-    return withTenant(user.tenant_id, async (trx) =>
-      trx.insertInto('trips').values({
+    return withTenant(user.tenant_id, async (trx) => {
+      const trip = await trx.insertInto('trips').values({
         tenant_id: user.tenant_id,
         vehicle_id: body.vehicle_id,
         driver_id: body.driver_id ?? null,
@@ -365,8 +366,21 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
         shipment_id: body.shipment_id ?? null,
         job_type: body.shipment_id ? 'CLEARANCE_LINKED' : 'TRANSPORT_ONLY',
         created_by: user.sub,
-      } as any).returningAll().executeTakeFirstOrThrow()
-    );
+      } as any).returningAll().executeTakeFirstOrThrow();
+
+      // The haulage leg of a consignment's journey has been booked.
+      emitDomainEvent(trx, user.tenant_id, {
+        type: 'trip.created', sourceApp: 'tracking', entityType: 'trip', entityId: trip.id,
+        payload: {
+          shipmentId: body.shipment_id ?? null,
+          origin: body.origin ?? null,
+          destination: body.destination ?? null,
+          jobType: body.shipment_id ? 'CLEARANCE_LINKED' : 'TRANSPORT_ONLY',
+        },
+      }).catch(err => console.error('[Fleet] trip.created emit failed:', err.message));
+
+      return trip;
+    });
   });
 
   fastify.patch('/trips/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {

@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { apiFetch } from '../lib/api.js';
 import { HUDUMIKA_FOOTER_HTML } from '../lib/watermark.js';
+import { readXlsxSheets } from '../lib/xlsx-read.js';
 import { getCompany } from '../data/companyStore.js';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -790,14 +791,41 @@ function containerLotsPayload(lots: ContainerLot[]): { size: '20ft' | '40ft'; co
  *  ones keeps "Jebel Ali" from also arriving as "jebel ali"/"JEBEL ALI"/
  *  "Dubai JA", which would make the corridor data useless to aggregate. */
 const SEAPORT_SUGGESTIONS = [
-  'Ningbo', 'Shanghai', 'Shenzhen', 'Guangzhou', 'Qingdao', 'Tianjin',
-  'Jebel Ali', 'Mundra', 'Nhava Sheva', 'Chennai', 'Port Klang', 'Singapore',
-  'Istanbul', 'Jeddah', 'Durban', 'Mombasa', 'Rotterdam', 'Antwerp', 'Hamburg',
+  // Full name + UN/LOCODE, the code customs paperwork and carriers actually use.
+  'Ningbo-Zhoushan, China (CNNGB)',
+  'Shanghai, China (CNSHA)',
+  'Yantian, Shenzhen, China (CNYTN)',
+  'Qingdao, China (CNTAO)',
+  'Tianjin Xingang, China (CNTSN)',
+  'Jebel Ali, United Arab Emirates (AEJEA)',
+  'Nhava Sheva (JNPT), India (INNSA)',
+  'Mundra, India (INMUN)',
+  'Chennai, India (INMAA)',
+  'Port Klang, Malaysia (MYPKG)',
+  'Singapore (SGSIN)',
+  'Jeddah Islamic Port, Saudi Arabia (SAJED)',
+  'Salalah, Oman (OMSLL)',
+  'Mombasa, Kenya (KEMBA)',
+  'Durban, South Africa (ZADUR)',
+  'Dar es Salaam, Tanzania (TZDAR)',
+  'Rotterdam, Netherlands (NLRTM)',
+  'Antwerp, Belgium (BEANR)',
+  'Hamburg, Germany (DEHAM)',
 ];
 const AIRPORT_SUGGESTIONS = [
-  'Guangzhou (CAN)', 'Shanghai (PVG)', 'Hong Kong (HKG)', 'Dubai (DXB)',
-  'Doha (DOH)', 'Istanbul (IST)', 'Mumbai (BOM)', 'Nairobi (NBO)',
-  'Addis Ababa (ADD)', 'Amsterdam (AMS)', 'London (LHR)',
+  // Full airport name + IATA code.
+  'Guangzhou Baiyun International Airport (CAN)',
+  'Shanghai Pudong International Airport (PVG)',
+  'Hong Kong International Airport (HKG)',
+  'Dubai International Airport (DXB)',
+  'Hamad International Airport, Doha (DOH)',
+  'Istanbul Airport (IST)',
+  'Chhatrapati Shivaji Maharaj International Airport, Mumbai (BOM)',
+  'Jomo Kenyatta International Airport, Nairobi (NBO)',
+  'Bole International Airport, Addis Ababa (ADD)',
+  'Amsterdam Airport Schiphol (AMS)',
+  'London Heathrow Airport (LHR)',
+  'Julius Nyerere International Airport, Dar es Salaam (DAR)',
 ];
 
 const SHIPMENT_MODE_OPTIONS: { key: ShipmentModeKey; label: string; icon: string }[] = [
@@ -1917,6 +1945,7 @@ export const LandedCostPage: React.FC = () => {
   // as strings so an empty box stays empty rather than becoming 0.
   const [shareNotice, setShareNotice] = useState('');
   const [importNote, setImportNote] = useState('');
+  const [importing, setImporting] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [ovDuty,     setOvDuty]     = useState('');
   const [ovVat,      setOvVat]      = useState('');
@@ -2227,6 +2256,21 @@ export const LandedCostPage: React.FC = () => {
     updateRow(row.id, { hs_code: item.id, description: row.description || cached?.description || '' });
   }
 
+  /** Port/airport lookup. Backed by the curated suggestion list for now, not
+   *  a table — deliberately an async search with the same shape the country
+   *  picker uses, so pointing it at a real UN/LOCODE endpoint later is a
+   *  one-line change with no UI churn. Free text is preserved via onCreate:
+   *  the list is suggestions, not an exhaustive set of ports. */
+  const searchPorts = useCallback(async (q: string): Promise<PickerItem[]> => {
+    const list = isAir ? AIRPORT_SUGGESTIONS : SEAPORT_SUGGESTIONS;
+    const needle = q.trim().toLowerCase();
+    const hits = needle ? list.filter(p => p.toLowerCase().includes(needle)) : list;
+    return hits
+      .sort((x, y) => (x.toLowerCase().startsWith(needle) ? 0 : 1) - (y.toLowerCase().startsWith(needle) ? 0 : 1))
+      .slice(0, 25)
+      .map(p => ({ id: p, label: p }));
+  }, [isAir]);
+
   /** Async country lookup against reference_countries (249 ISO entries), so
    *  origin data lands on a canonical name instead of free-typed spellings. */
   const searchCountries = useCallback(async (q: string): Promise<PickerItem[]> => {
@@ -2307,72 +2351,146 @@ export const LandedCostPage: React.FC = () => {
   /** Rows that are invoice furniture rather than goods. Real invoices carry
    *  subtotals, freight lines and bank details that must never become cargo. */
   function isNonCargoRow(desc: string): boolean {
-    return /^(sub[\s-]?total|total|grand\s*total|amount\s*due|balance|freight|shipping|insurance|discount|vat|tax|packing|handling|bank|swift|iban|terms|remarks?|notes?)/i
+    return /^(sub[\s-]?total|total|grand\s*total|amount\s*due|balance|freight|shipping|insurance|discount|vat|tax|packing|handling|bank|swift|iban|terms|remarks?|notes?)/i
       .test(desc.trim());
   }
 
-  function handleCsvUpload(file: File) {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const text = String(reader.result || '');
-      // Ignore blank lines and the '#' guidance rows the template ships with.
-      const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0 && !l.trim().startsWith('#'));
-      if (lines.length < 2) { setMultiError('That file has no data rows.'); return; }
+  interface InvoiceColumns { desc: number; qty: number; price: number; amt: number; hs: number }
 
-      const header = parseCsvLine(lines[0]).map(h => h.toLowerCase().trim());
-      const find = (...pats: string[]) => header.findIndex(h => pats.some(pt => h.includes(pt)));
-      const idxDesc  = find('description', 'product', 'item', 'goods', 'particular');
-      const idxQty   = find('qty', 'quantity', 'pcs', 'units');
-      const idxPrice = find('unit price', 'unit cost', 'unit value', 'rate', 'price');
-      const idxAmt   = find('amount', 'line total', 'total value', 'value', 'extended');
-      const idxHs    = find('hs', 'tariff');
-
-      // Description plus SOME value is the real minimum. HS code is not
-      // required — a commercial invoice never carries one, and demanding it
-      // used to make every genuine invoice import as zero rows.
-      if (idxDesc === -1 || (idxPrice === -1 && idxAmt === -1)) {
-        setMultiError('Could not find the columns. The file needs a description column and either a unit price or an amount column — download the template to see the layout.');
-        return;
-      }
-
-      let skippedNonCargo = 0, skippedNoValue = 0, missingHs = 0;
-      const rows: MultiItemRow[] = [];
-      for (const line of lines.slice(1)) {
-        const cells = parseCsvLine(line);
-        const description = (cells[idxDesc] ?? '').trim();
-        if (!description) continue;
-        if (isNonCargoRow(description)) { skippedNonCargo++; continue; }
-
-        const qty = idxQty >= 0 ? parseMoneyCell(cells[idxQty] ?? '') : NaN;
-        const unit = idxPrice >= 0 ? parseMoneyCell(cells[idxPrice] ?? '') : NaN;
-        const amount = idxAmt >= 0 ? parseMoneyCell(cells[idxAmt] ?? '') : NaN;
-
-        const qtyVal = Number.isFinite(qty) && qty > 0 ? qty : 1;
-        // Prefer an explicit unit price; otherwise derive it from the line
-        // amount, which is what most invoices actually print.
-        let unitVal = Number.isFinite(unit) && unit > 0 ? unit
-          : (Number.isFinite(amount) && amount > 0 ? amount / qtyVal : NaN);
-        if (!Number.isFinite(unitVal) || unitVal <= 0) { skippedNoValue++; continue; }
-
-        const hs = idxHs >= 0 ? (cells[idxHs] ?? '').trim() : '';
-        if (!hs) missingHs++;
-        rows.push({ ...newMultiItemRow(), description, hs_code: hs, qty: String(qtyVal), unit_price_usd: String(Number(unitVal.toFixed(4))) });
-        if (rows.length >= MAX_CARGO_ROWS) break;
-      }
-
-      if (rows.length === 0) { setMultiError('No cargo lines found — every row was blank, a subtotal, or had no value.'); return; }
-      setMultiItems(rows);
-      // Say plainly what happened, including what still needs a human.
-      const notes = [
-        `Imported ${rows.length} line${rows.length === 1 ? '' : 's'}.`,
-        missingHs > 0 ? `${missingHs} still need an HS code — add them below before calculating.` : null,
-        skippedNonCargo > 0 ? `Skipped ${skippedNonCargo} non-cargo row${skippedNonCargo === 1 ? '' : 's'} (totals, freight, notes).` : null,
-        skippedNoValue > 0 ? `Skipped ${skippedNoValue} row${skippedNoValue === 1 ? '' : 's'} with no usable value.` : null,
-      ].filter(Boolean).join(' ');
-      setImportNote(notes);
-      setMultiError('');
+  function locateColumns(cells: string[]): InvoiceColumns {
+    const header = cells.map(h => h.toLowerCase().trim());
+    const find = (...pats: string[]) => header.findIndex(h => h.length > 0 && pats.some(p => h.includes(p)));
+    return {
+      desc:  find('description', 'product', 'item', 'goods', 'particular', 'commodity', 'article'),
+      qty:   find('qty', 'quantity', 'pcs', 'units', 'pieces'),
+      price: find('unit price', 'unit cost', 'unit value', 'u/price', 'rate', 'price'),
+      amt:   find('amount', 'line total', 'total value', 'extended', 'value', 'total'),
+      // Substring 'hs' alone false-matches ordinary words, so an exact 'hs'
+      // header is allowed but anything longer has to spell the column out.
+      hs:    header.findIndex(h => h === 'hs' || ['hs code', 'hscode', 'hs-code', 'hs no', 'h.s', 'tariff'].some(p => h.includes(p))),
     };
-    reader.readAsText(file);
+  }
+
+  /** A real invoice puts a letterhead, invoice number and addresses above the
+   *  line-item table, so the header is rarely the first row. Scan the top of the
+   *  sheet for the row that names a description column plus a value column. */
+  function findHeaderRow(grid: string[][]): number {
+    let best = -1, bestScore = 0;
+    for (let i = 0; i < Math.min(grid.length, 40); i++) {
+      const c = locateColumns(grid[i] ?? []);
+      if (c.desc < 0 || (c.price < 0 && c.amt < 0)) continue;
+      const score = [c.desc, c.qty, c.price, c.amt, c.hs].filter(v => v >= 0).length;
+      if (score > bestScore) { best = i; bestScore = score; }
+    }
+    return best;
+  }
+
+  /** Counts the rows a grid would actually yield — used to pick the right tab in
+   *  a workbook that also holds a packing list, price list or cover sheet. */
+  function countCargoRows(grid: string[][], headerIdx: number): number {
+    const col = locateColumns(grid[headerIdx] ?? []);
+    return grid.slice(headerIdx + 1).filter(r => {
+      const d = (r[col.desc] ?? '').trim();
+      return d.length > 0 && !isNonCargoRow(d);
+    }).length;
+  }
+
+  /** Shared by the CSV and Excel paths: one normaliser, so both formats are held
+   *  to the same rules and neither can drift away from the other. */
+  function importInvoiceGrid(grid: string[][], sourceLabel: string) {
+    const headerIdx = findHeaderRow(grid);
+    if (headerIdx < 0) {
+      setMultiError(`Could not find the line-item table in ${sourceLabel}. It needs a header row with a description column and either a unit price or an amount column — download the template to see the layout.`);
+      return;
+    }
+    const col = locateColumns(grid[headerIdx]);
+
+    let skippedNonCargo = 0, skippedNoValue = 0, missingHs = 0, shortHs = 0, truncated = false;
+    let runningTotal = 0;
+    const rows: MultiItemRow[] = [];
+    for (const cells of grid.slice(headerIdx + 1)) {
+      const description = (cells[col.desc] ?? '').trim();
+      if (!description) continue;
+      if (isNonCargoRow(description)) { skippedNonCargo++; continue; }
+
+      const qty = col.qty >= 0 ? parseMoneyCell(cells[col.qty] ?? '') : NaN;
+      const unit = col.price >= 0 ? parseMoneyCell(cells[col.price] ?? '') : NaN;
+      const amount = col.amt >= 0 ? parseMoneyCell(cells[col.amt] ?? '') : NaN;
+
+      const qtyVal = Number.isFinite(qty) && qty > 0 ? qty : 1;
+      // Prefer an explicit unit price; otherwise derive it from the line
+      // amount, which is what most invoices actually print.
+      const unitVal = Number.isFinite(unit) && unit > 0 ? unit
+        : (Number.isFinite(amount) && amount > 0 ? amount / qtyVal : NaN);
+      if (!Number.isFinite(unitVal) || unitVal <= 0) { skippedNoValue++; continue; }
+
+      // The word list above is English-only, so a total labelled "Gesamt",
+      // "Montant total" or "总计" slips through and lands as cargo worth the
+      // whole invoice. Structurally a total carries no quantity and its value
+      // is the sum of the lines above it — that holds in any language.
+      const lineTotal = qtyVal * unitVal;
+      const hasQty = Number.isFinite(qty) && qty > 0;
+      if (!hasQty && rows.length >= 2 && runningTotal > 0 && Math.abs(lineTotal - runningTotal) <= runningTotal * 0.005) {
+        skippedNonCargo++; continue;
+      }
+      runningTotal += lineTotal;
+
+      if (rows.length >= MAX_CARGO_ROWS) { truncated = true; break; }
+
+      const hs = col.hs >= 0 ? (cells[col.hs] ?? '').replace(/\s/g, '') : '';
+      if (!hs) missingHs++;
+      else if (hs.replace(/\D/g, '').length < 8) shortHs++;
+      rows.push({ ...newMultiItemRow(), description, hs_code: hs, qty: String(qtyVal), unit_price_usd: String(Number(unitVal.toFixed(4))) });
+    }
+
+    if (rows.length === 0) { setMultiError(`No cargo lines found in ${sourceLabel} — every row below the header was blank, a subtotal, or had no value.`); return; }
+    setMultiItems(rows);
+    // Say plainly what happened, including what still needs a human.
+    const notes = [
+      `Imported ${rows.length} line${rows.length === 1 ? '' : 's'} from ${sourceLabel}.`,
+      truncated ? `Only the first ${MAX_CARGO_ROWS} were taken — this calculator caps a consignment at ${MAX_CARGO_ROWS} lines.` : null,
+      missingHs > 0 ? `${missingHs} still need an HS code — add them below before calculating.` : null,
+      // Excel stores a code typed as a number, so 6907.21.00 comes back as
+      // 6907.21 and would be classified against the wrong subheading.
+      shortHs > 0 ? `${shortHs} HS code${shortHs === 1 ? ' is' : 's are'} shorter than 8 digits — Excel drops trailing zeros from codes entered as numbers. Check them before calculating.` : null,
+      skippedNonCargo > 0 ? `Skipped ${skippedNonCargo} non-cargo row${skippedNonCargo === 1 ? '' : 's'} (totals, freight, notes).` : null,
+      skippedNoValue > 0 ? `Skipped ${skippedNoValue} row${skippedNoValue === 1 ? '' : 's'} with no usable value.` : null,
+    ].filter(Boolean).join(' ');
+    setImportNote(notes);
+    setMultiError('');
+  }
+
+  async function handleInvoiceUpload(file: File) {
+    setImporting(true);
+    setImportNote('');
+    setMultiError('');
+    try {
+      if (/\.(xlsx|xlsm)$/i.test(file.name)) {
+        const sheets = await readXlsxSheets(file);
+        const candidates = sheets
+          .map(s => ({ sheet: s, headerIdx: findHeaderRow(s.rows) }))
+          .map(c => ({ ...c, lines: c.headerIdx >= 0 ? countCargoRows(c.sheet.rows, c.headerIdx) : 0 }))
+          .filter(c => c.lines > 0)
+          .sort((a, b) => b.lines - a.lines);
+        if (candidates.length === 0) {
+          setMultiError(sheets.length === 1
+            ? 'Could not find a line-item table in that workbook. It needs a header row with a description column and either a unit price or an amount column.'
+            : `Could not find a line-item table in any sheet (${sheets.map(s => s.name).join(', ')}). One of them needs a header row with a description column and either a unit price or an amount column.`);
+          return;
+        }
+        importInvoiceGrid(candidates[0].sheet.rows, sheets.length > 1 ? `sheet "${candidates[0].sheet.name}"` : 'that workbook');
+      } else {
+        const text = await file.text();
+        // Drop the '#' guidance rows the template ships with; blank lines are
+        // kept so row positions still line up with what the user sees.
+        const grid = text.split(/\r?\n/).filter(l => !l.trim().startsWith('#')).map(parseCsvLine);
+        importInvoiceGrid(grid, 'that CSV');
+      }
+    } catch (e) {
+      setMultiError(e instanceof Error ? e.message : 'That file could not be read.');
+    } finally {
+      setImporting(false);
+    }
   }
 
   function recallHistory(h: LandedCostResult) {
@@ -2473,6 +2591,41 @@ export const LandedCostPage: React.FC = () => {
         }
       </div>
     </div>
+  );
+
+  // Upload lives on step 1 (so a long invoice is loaded before the wizard asks
+  // about containers) but stays reachable on step 3 for a re-import. One
+  // fragment rather than two copies that can drift apart.
+  const invoiceImportBar = (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+      <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Upload the supplier invoice as Excel or CSV, or add each line by hand.</div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button type="button" onClick={downloadCsvTemplate} className="btn btn-secondary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Icon name="download" size={13} /> Template
+        </button>
+        <label className="btn btn-secondary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: importing ? 'progress' : 'pointer', opacity: importing ? 0.55 : 1 }}>
+          <Icon name="upload" size={13} /> {importing ? 'Reading…' : 'Upload Invoice'}
+          <input type="file" accept=".csv,.xlsx,.xlsm" disabled={importing} style={{ display: 'none' }}
+            onChange={e => { const f = e.target.files?.[0]; if (f) void handleInvoiceUpload(f); e.target.value = ''; }} />
+        </label>
+      </div>
+    </div>
+  );
+
+  const importFeedback = (
+    <>
+      {importNote && (
+        <div style={{ marginTop: 14, padding: '11px 14px', borderRadius: 9, background: 'color-mix(in srgb, var(--teal) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--teal) 25%, transparent)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+          <Icon name="info" size={15} color="var(--teal)" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div>{importNote}</div>
+        </div>
+      )}
+      {multiError && (
+        <div style={{ marginTop: 14, padding: '10px 14px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', borderRadius: 9, fontSize: 12.5, color: 'var(--red)' }}>
+          {multiError}
+        </div>
+      )}
+    </>
   );
 
   const reportMeta: ReportMeta = { customerName, customerEmail, customerPhone, destination };
@@ -2612,6 +2765,24 @@ export const LandedCostPage: React.FC = () => {
                 </Field>
               </div>
 
+              <div style={{ marginTop: 26, paddingTop: 22, borderTop: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>What are you costing?</div>
+                <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 14 }}>
+                  Each line is assessed against its own HS code — duty, excise, VAT, RDL and CPF are all per item.
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <Seg active={itemMode === 'single'} onClick={() => setItemMode('single')} label="Single item" icon="box" grow />
+                  <Seg active={itemMode === 'multi'} onClick={() => setItemMode('multi')} label="Full invoice" icon="layers" grow />
+                </div>
+
+                {itemMode === 'multi' && (
+                  <div style={{ marginTop: 16 }}>
+                    {invoiceImportBar}
+                    {importFeedback}
+                  </div>
+                )}
+              </div>
+
               {navRow}
             </div>
           )}
@@ -2620,13 +2791,14 @@ export const LandedCostPage: React.FC = () => {
             <div className="lcp-card">
               <StepCaption index={2} />
               <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon name="package" size={18} color="var(--teal)" /> Cargo Items
+                <Icon name="package" size={18} color="var(--teal)" /> {itemMode === 'multi' ? 'Confirm Cargo Lines' : 'Cargo Items'}
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 18 }}>Enter the shipment value and HS classification.</div>
-
-              <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
-                <Seg active={itemMode === 'single'} onClick={() => setItemMode('single')} label="Single item" icon="box" grow />
-                <Seg active={itemMode === 'multi'} onClick={() => setItemMode('multi')} label="Multiple items" icon="layers" grow />
+              <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginBottom: 18 }}>
+                {itemMode === 'multi'
+                  // An uploaded invoice carries no HS codes, or carries ones Excel
+                  // has truncated. Nothing is assessed until an agent confirms them.
+                  ? 'Every line needs a confirmed HS code before it can be assessed. A commercial invoice never carries one, so this is yours to set.'
+                  : 'Enter the shipment value and HS classification.'}
               </div>
 
               <div style={{ padding: '12px 16px', borderRadius: 10, background: 'color-mix(in srgb, var(--teal) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--teal) 22%, transparent)', marginBottom: 24, fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -2770,33 +2942,10 @@ export const LandedCostPage: React.FC = () => {
 
               {itemMode === 'multi' && (
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-                    <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Add each invoice line, or upload a CSV.</div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      <button type="button" onClick={downloadCsvTemplate} className="btn btn-secondary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Icon name="download" size={13} /> CSV Template
-                      </button>
-                      <label className="btn btn-secondary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
-                        <Icon name="upload" size={13} /> Upload CSV
-                        <input type="file" accept=".csv" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) handleCsvUpload(f); e.target.value = ''; }} />
-                      </label>
-                    </div>
-                  </div>
+                  {invoiceImportBar}
+                  {importFeedback}
 
-                  {importNote && (
-                    <div style={{ marginBottom: 14, padding: '11px 14px', borderRadius: 9, background: 'color-mix(in srgb, var(--teal) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--teal) 25%, transparent)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6, display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-                      <Icon name="info" size={15} color="var(--teal)" style={{ flexShrink: 0, marginTop: 1 }} />
-                      <div>{importNote}</div>
-                    </div>
-                  )}
-
-                  {multiError && (
-                    <div style={{ marginBottom: 14, padding: '10px 14px', background: 'color-mix(in srgb, var(--red) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--red) 25%, transparent)', borderRadius: 9, fontSize: 12.5, color: 'var(--red)' }}>
-                      {multiError}
-                    </div>
-                  )}
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
                     {multiItems.map((row, idx) => (
                       <div key={row.id} style={{ padding: 12, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface, rgba(255,255,255,0.03))' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -2922,7 +3071,7 @@ export const LandedCostPage: React.FC = () => {
                       {containerLots.map((lot, i) => (
                         <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr auto', gap: 8, alignItems: 'center' }}>
                           <Select value={lot.size} onValueChange={v => setContainerLots(l => l.map((x, j) => j === i ? { ...x, size: v as '20ft' | '40ft' } : x))}>
-                            <SelectTrigger style={{ height: 42 }}><SelectValue /></SelectTrigger>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="20ft">20ft (TEU)</SelectItem>
                               <SelectItem value="40ft">40ft (FEU)</SelectItem>
@@ -2930,7 +3079,7 @@ export const LandedCostPage: React.FC = () => {
                           </Select>
                           <input className="input-field" type="number" min="1" step="1" placeholder="Qty" value={lot.count}
                             onChange={e => setContainerLots(l => l.map((x, j) => j === i ? { ...x, count: e.target.value } : x))}
-                            style={{ width: '100%', boxSizing: 'border-box', height: 42, fontSize: 13.5 }} />
+                            style={{ width: '100%', boxSizing: 'border-box' }} />
                           <button type="button" title="Remove"
                             onClick={() => setContainerLots(l => l.length > 1 ? l.filter((_, j) => j !== i) : l)}
                             disabled={containerLots.length === 1}
@@ -2952,7 +3101,7 @@ export const LandedCostPage: React.FC = () => {
                   <Field label="Total Volume (CBM)" hint={isAir ? 'Used to work out volumetric weight.' : 'LCL handling is charged per CBM.'}>
                     <input className="input-field" type="number" min="0" step="0.01" placeholder="e.g. 15.0" value={cbm}
                       onChange={e => setCbm(e.target.value)}
-                      style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14 }} />
+                      style={{ width: '100%', boxSizing: 'border-box' }} />
                   </Field>
                 )}
 
@@ -2960,7 +3109,7 @@ export const LandedCostPage: React.FC = () => {
                   <Field label="Total Gross Weight (kg)" hint="Air bills on chargeable weight — the greater of gross and volumetric.">
                     <input className="input-field" type="number" min="0" placeholder="e.g. 3000" value={weightKg}
                       onChange={e => setWeightKg(e.target.value)}
-                      style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14 }} />
+                      style={{ width: '100%', boxSizing: 'border-box' }} />
                   </Field>
                 )}
 
@@ -2975,12 +3124,12 @@ export const LandedCostPage: React.FC = () => {
                     of this data depends entirely on it aggregating. */}
                 <div className="lcp-btn-row">
                   <Field label={loadingPointLabel} hint="Where the cargo was loaded. Helps us track the corridors you actually trade through.">
-                    <input className="input-field" list="lcp-loading-points" placeholder={isAir ? 'e.g. Guangzhou (CAN)' : 'e.g. Ningbo'}
-                      value={loadingPoint} onChange={e => setLoadingPoint(e.target.value)}
-                      style={{ width: '100%', boxSizing: 'border-box', height: 44, fontSize: 14 }} />
-                    <datalist id="lcp-loading-points">
-                      {(isAir ? AIRPORT_SUGGESTIONS : SEAPORT_SUGGESTIONS).map(o => <option key={o} value={o} />)}
-                    </datalist>
+                    <EntityPicker
+                      value={loadingPoint ? { id: loadingPoint, label: loadingPoint } : null}
+                      onChange={item => setLoadingPoint(item ? String(item.id) : '')}
+                      search={searchPorts}
+                      placeholder={isAir ? 'Search airports…' : 'Search ports…'}
+                    />
                   </Field>
                   <Field label="Country of Origin" hint="Where the goods were made or shipped from. EAC origin affects duty treatment.">
                     <EntityPicker

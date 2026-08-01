@@ -1,4 +1,5 @@
-import { db, withTenant } from '../db/client.js';
+import { db, withTenant } from '../db/client.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
 import { NotificationService } from '../services/notification.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { EmailIntegration } from '../integrations/email.js';
@@ -170,6 +171,13 @@ export async function runComplyRenewalJob(): Promise<void> {
 
         renewalId = row.id;
         created++;
+
+        // A licence renewal cycle has opened — the start of the
+        // comply → renewal → payment → storage journey.
+        emitDomainEvent(trx, cert.tenant_id, {
+          type: 'comply.renewal_started', sourceApp: 'complyos', entityType: 'comply_certificate', entityId: cert.id,
+          payload: { renewalId: row.id, expiryDate: cert.expiry_date ? String(cert.expiry_date) : null },
+        }).catch(err => console.error('[Comply] renewal_started emit failed:', err.message));
       });
 
       if (renewalId) {

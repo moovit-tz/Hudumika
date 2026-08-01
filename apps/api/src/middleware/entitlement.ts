@@ -76,6 +76,40 @@ async function checkEntitlement(
   return null;
 }
 
+/**
+ * Tenant-level entitlement check for work that has no request behind it —
+ * an event-driven Studio run, a scheduled job. Same precedence as
+ * checkEntitlement (maintenance kill switch, per-tenant override, then plan)
+ * minus the two request-only concerns: there is no API key to scope against,
+ * and no acting user to be a SUPER_ADMIN. A background run must not inherit an
+ * administrator's bypass — it acts for the tenant, not for a person.
+ */
+export async function tenantHasEntitlement(tenantId: string, featureKey: string): Promise<boolean> {
+  const appStatus = await db.selectFrom('app_status')
+    .select('status').where('app_id', '=', featureKey).executeTakeFirst();
+  if (appStatus?.status === 'maintenance') return false;
+
+  const settingsRow = await db.selectFrom('tenant_settings')
+    .select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+  const settings = settingsRow
+    ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings)
+    : {};
+  const enabledApps = settings['enabled-apps'] as Record<string, boolean> | undefined;
+  if (enabledApps && enabledApps[featureKey] === false) return false;
+  if (enabledApps && enabledApps[featureKey] === true) return true;
+
+  const tenant = await db.selectFrom('tenants')
+    .select('plan').where('id', '=', tenantId).executeTakeFirst();
+  if (!tenant) return false;
+
+  const grant = await db.selectFrom('package_features')
+    .select('feature_key')
+    .where('package_code', '=', tenant.plan)
+    .where('feature_key', '=', featureKey)
+    .executeTakeFirst();
+  return !!grant;
+}
+
 export function requireEntitlement(featureKey: string) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.user) {

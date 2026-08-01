@@ -1,6 +1,7 @@
 import { WORKFLOW_CONFIGS } from '../config/workflow.config.js';
 import { CLEARANCE_STAGES } from '@hudumika/types';
 import type { FieldCondition, AutoComm, ShipmentType } from '@hudumika/types';
+import { applyOperator } from '../studio/conditions.js';
 
 export interface ResolvedStep {
   id: string;
@@ -201,30 +202,9 @@ export function evaluateEntryConditions(
       continue;
     }
 
-    const raw = shipment[cond.field];
-    let ok: boolean;
-    switch (cond.operator) {
-      case 'required':
-      case 'not_empty':
-        ok = raw !== null && raw !== undefined && String(raw).trim() !== '';
-        break;
-      case 'equals':
-        ok = String(raw ?? '') === String(cond.value ?? '');
-        break;
-      case 'contains':
-        ok = String(raw ?? '').toLowerCase().includes(String(cond.value ?? '').toLowerCase());
-        break;
-      case 'greater_than':
-        ok = Number(raw) > Number(cond.value);
-        break;
-      case 'less_than':
-        ok = Number(raw) < Number(cond.value);
-        break;
-      default:
-        // Unknown field/operator combination — fail safe rather than pass silently.
-        ok = raw !== undefined;
-        break;
-    }
+    // Operator semantics live in studio/conditions.ts so this engine and Studio
+    // share one vocabulary rather than two copies that drift.
+    const { ok } = applyOperator(shipment[cond.field], cond.operator, cond.value);
     if (!ok) failures.push(cond.label || `"${cond.field}" ${cond.operator} ${cond.value ?? ''}`.trim());
   }
 

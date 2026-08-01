@@ -1,4 +1,5 @@
 import { registerSubscriber } from '../services/domain-events.service.js';
+import { isSupersededByStudio } from '../studio/supersession.js';
 import { withTenant } from '../db/client.js';
 import { SealService } from '../services/seal.service.js';
 
@@ -13,6 +14,9 @@ import { SealService } from '../services/seal.service.js';
 registerSubscriber('declaration.released', async (tenantId, event) => {
   const shipmentId = event.payload.shipmentId as string | undefined;
   if (!shipmentId) return;
+  // Stood down when this tenant has activated the Studio workflow that
+  // replaces this handler (migration 165) — otherwise both would run.
+  if (await isSupersededByStudio(tenantId, 'seal.declaration_released')) return;
 
   await withTenant(tenantId, async (trx) => {
     const lots = await trx.selectFrom('seal_lots')

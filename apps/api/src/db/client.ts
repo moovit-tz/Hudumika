@@ -2563,6 +2563,8 @@ export interface Database {
   email_messages: EmailMessagesTable;
   accounting_sync_logs: AccountingSyncLogsTable;
   user_totp: UserTotpTable;
+  workflow_studio_apps: WorkflowStudioAppsTable;
+  workflow_studio_runs: WorkflowStudioRunsTable;
   payment_methods: PaymentMethodsTable;
   subscription_invoices: SubscriptionInvoicesTable;
   invoice_sequences: InvoiceSequencesTable;
@@ -4523,6 +4525,45 @@ export interface CloudStorageConnectionsTable {
   last_synced_at: Date | null;
   created_at:     Generated<Date>;
   updated_at:     Generated<Date>;
+}
+
+export interface WorkflowStudioAppsTable {
+  id:             Generated<string>;
+  tenant_id:      string;
+  name:           string;
+  description:    string | null;
+  icon:           Generated<string>;
+  color:          Generated<string>;
+  status:         Generated<string>; // 'ACTIVE' | 'PAUSED' | 'DRAFT'
+  trigger_event:  string;
+  trigger_config: Generated<string>;
+  nodes:          Generated<string>;
+  edges:          Generated<string>;
+  last_run_at:    Date | null;
+  run_count:      Generated<number>;
+  created_by:     string | null;
+  /** Key of the code subscriber this workflow replaces once ACTIVE — see
+   *  migration 165 and studio/supersession.ts. NULL for tenant-authored ones. */
+  supersedes_subscriber: string | null;
+  created_at:     Generated<Date>;
+  updated_at:     Generated<Date>;
+}
+
+export interface WorkflowStudioRunsTable {
+  id:             Generated<string>;
+  tenant_id:      string;
+  workflow_id:    string;
+  trigger_source: Generated<string>;
+  status:         string; // 'SUCCESS' | 'RUNNING' | 'FAILED' | 'PARTIAL' | 'SIMULATED'
+  payload:        Generated<string>;
+  step_results:   Generated<string>;
+  error_message:  string | null;
+  duration_ms:    Generated<number>;
+  /** The domain_events row that caused this run; NULL for manual/dry runs.
+   *  BIGINT (domain_events.id is BIGSERIAL), surfaced as a string by node-pg.
+   *  Unique per (workflow_id, domain_event_id) — see migrations 158/159. */
+  domain_event_id: string | null;
+  created_at:     Generated<Date>;
 }
 
 const pool = new pg.Pool({

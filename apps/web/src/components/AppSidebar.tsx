@@ -63,6 +63,7 @@ const APP_ICONS: Record<AppId, IconName> = {
   tasks:     'tasks',
   seal:      'package',
   inventory: 'package',
+  studio:    'gitBranch',
 };
 
 const APP_SUBTITLES: Partial<Record<AppId, string>> = {
@@ -185,12 +186,50 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav }: Pr
     window.dispatchEvent(new CustomEvent('sidebar-toggled', { detail: { collapsed: next } }));
   }
 
+  /**
+   * Query-string keys that act as scope discriminators, per pathname.
+   *
+   * Several nav entries can point at the same page and differ only by query —
+   * Studio's "BY APP" list is seven links to /studio/workflows?app=… . The old
+   * check split the query off and compared pathnames alone, so every one of
+   * them highlighted at once. Where a pathname has scoped variants the query
+   * becomes part of its identity; everywhere else it stays ignored, so a page
+   * that merely adds its own filter params keeps its nav item highlighted.
+   */
+  const scopeKeysByPath = React.useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    const walk = (items: SidebarNavItem[]) => {
+      for (const i of items) {
+        const [p, q] = i.path.split('?');
+        if (q) {
+          const keys = map.get(p) ?? new Set<string>();
+          for (const k of new URLSearchParams(q).keys()) keys.add(k);
+          map.set(p, keys);
+        }
+        if (i.children) walk(i.children);
+      }
+    };
+    for (const s of sections) walk(s.items);
+    return map;
+  }, [sections]);
+
   function isActive(path: string, exact?: boolean): boolean {
-    const [p] = path.split('?');
-    if (location.pathname === p) return true;
-    if (exact) return false;
-    if (location.pathname.startsWith(p + '/')) return true;
-    return false;
+    const [p, q] = path.split('?');
+    const pathMatches = location.pathname === p || (!exact && location.pathname.startsWith(p + '/'));
+    if (!pathMatches) return false;
+
+    const scopeKeys = scopeKeysByPath.get(p);
+    if (!scopeKeys) return true;
+
+    const current = new URLSearchParams(location.search);
+    if (!q) {
+      // The unscoped entry ("Workflows") is active only when no scope is applied.
+      return [...scopeKeys].every(k => !current.has(k));
+    }
+    for (const [k, v] of new URLSearchParams(q)) {
+      if (current.get(k) !== v) return false;
+    }
+    return true;
   }
 
   function hasActiveDescendant(item: SidebarNavItem): boolean {

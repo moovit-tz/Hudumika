@@ -110,6 +110,7 @@ import { tasksRoutes } from './routes/tasks.routes.js';
 import securityRoutes from './routes/security.routes.js';
 import billingRoutes from './routes/billing.routes.js';
 import platformSupportRoutes from './routes/platform-support.routes.js';
+import { workflowStudioRoutes } from './routes/workflow-studio.routes.js';
 import { isMeteredPath, incrementUsage } from './lib/usage.js';
 
 const server = fastify({
@@ -312,6 +313,7 @@ async function main() {
     await server.register(securityRoutes, { prefix: '/v1/security' });
     await server.register(billingRoutes, { prefix: '/v1/billing' });
     await server.register(platformSupportRoutes, { prefix: '/v1/platform-support' });
+    await server.register(workflowStudioRoutes, { prefix: '/v1/workflow-studio' });
 
     // Health check
     server.get('/health', async () => {

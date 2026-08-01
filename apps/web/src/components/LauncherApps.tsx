@@ -25,11 +25,13 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
   { id: 'cargotracker',  name: 'CargoTracker', color: '#4f46e5', path: '/cargotracker' },
   { id: 'seal',      name: 'SEAL',     color: '#0f766e', path: '/seal'      },
   { id: 'inventory', name: 'Inventory', color: '#0f766e', path: '/inventory' },
+  { id: 'studio',    name: 'Studio',   color: '#4361ee', path: '/studio'    },
 ];
 
 // ── App SVG icons for launcher ─────────────────────────────────
 
 export const LAUNCHER_SVG_ICONS: Record<string, React.ReactElement> = {
+  studio:   (<g fill="white"><path d="M11 8H29V12H11Z" /><path d="M11 15H29V19H11Z" opacity="0.8" /><path d="M11 22H29V26H11Z" opacity="0.6" /><circle cx="7" cy="10" r="2.5" /><circle cx="7" cy="17" r="2.5" /><circle cx="7" cy="24" r="2.5" /></g>),
   clearos:  (<g stroke="white" strokeWidth="2.3" fill="none" strokeLinecap="round" strokeLinejoin="round"><circle cx="20" cy="12" r="3"/><path d="M16 10.5L24 10.5"/><line x1="20" y1="15" x2="20" y2="30"/><line x1="12" y1="21" x2="28" y2="21"/><path d="M20 30 C14.5 30 11 27.5 11 24"/><path d="M20 30 C25.5 30 29 27.5 29 24"/></g>),
   finops:   (<g fill="white"><rect x="8" y="25" width="6.5" height="8" rx="2"/><rect x="17" y="18.5" width="6.5" height="14.5" rx="2" opacity="0.8"/><rect x="26" y="11" width="6.5" height="22" rx="2" opacity="0.65"/></g>),
   complyos: (<g><path d="M8 6H21L28 13V32C28 33.1 27.1 34 26 34H8C6.9 34 6 33.1 6 32V8C6 6.9 6.9 6 8 6Z" fill="none" stroke="#22c55e" strokeWidth="2.8" strokeLinejoin="round" /><path d="M21 6V13H28" fill="#facc15" stroke="#22c55e" strokeWidth="2.8" strokeLinejoin="round" /><path d="M21 17C25.5 17 29 19 29 23C29 28 24.5 31.5 21 33C17.5 31.5 13 28 13 23C13 19 16.5 17 21 17Z" fill="#facc15" stroke="#22c55e" strokeWidth="2.8" strokeLinejoin="round" /><path d="M17 23L19.8 25.8L25 20" stroke="#22c55e" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" /></g>),

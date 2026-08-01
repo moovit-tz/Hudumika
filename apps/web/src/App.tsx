@@ -68,6 +68,7 @@ import { CargoTrackerShell } from './shells/CargoTrackerShell.js';
 import { CalendarShell } from './shells/CalendarShell.js';
 import { TasksShell }    from './shells/TasksShell.js';
 import { CMSShell }      from './shells/CMSShell.js';
+import { StudioShell } from './shells/StudioShell.js';
 import { AppHeader }    from './components/AppHeader.js';
 import { WorkspaceHome } from './pages/WorkspaceHome.js';
 
@@ -317,6 +318,7 @@ const AppContent: React.FC = () => {
           <Route path="/tracking/*"  element={<TrackingShell />} />
           <Route path="/cargotracker/*" element={<CargoTrackerShell />} />
           <Route path="/cms/*"       element={<CMSShell />} />
+          <Route path="/studio/*"    element={<StudioShell />} />
 
           {/* Legacy redirects for old routes */}
           <Route path="/billing"         element={<Navigate to="/finance/invoices"        replace />} />

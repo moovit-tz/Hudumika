@@ -8,6 +8,9 @@ import './finance.subscribers.js';
 import './tracking.subscribers.js';
 import './cargotracker.subscribers.js';
 import './hrm.subscribers.js';
+// Registers one handler per DOMAIN_EVENT trigger, so tenant-defined Studio
+// workflows react to the same events the hardcoded subscribers above do.
+import './studio.subscribers.js';
 
 export function bootstrapSubscribers(): void {
   // Imports above already ran registerSubscriber() as a module side effect;

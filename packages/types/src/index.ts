@@ -12,3 +12,5 @@ export * from './entitlements.js';
 export * from './cms.js';
 export * from './workflow.js';
 export * from './seal.js';
+export * from './workflow-studio.js';
+

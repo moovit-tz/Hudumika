@@ -1,0 +1,120 @@
+/* Tabs — all three variants, driven by design-system tokens.
+   Sizing comes from --tab-height / --tab-radius / --tab-size, written by
+   useDesignSystem.ts. The variant is `data-tabs` on <html> (platform default)
+   or `data-variant` on the list/trigger (per-instance override). */
+
+.ds-tabs-list {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: var(--tab-height, 38px);
+  position: relative;
+  /* Long tab rows scroll rather than wrapping into a ragged second line,
+     which on a phone otherwise pushes the panel below the fold. */
+  overflow-x: auto;
+  /* Hide the scrollbar where supported; where it isn't, a visible one is a
+     harmless fallback. -webkit-overflow-scrolling is obsolete on every browser
+     this app targets, so it is deliberately absent. */
+  scrollbar-width: none;
+}
+.ds-tabs-list::-webkit-scrollbar { display: none; }
+
+.ds-tabs-trigger {
+  appearance: none;
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: var(--tab-size, 13px);
+  font-weight: 600;
+  color: var(--ink3);
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: var(--tab-height, 38px);
+  padding: 0 14px;
+  border-radius: var(--tab-radius, 8px);
+  transition: color .14s ease, background .14s ease, border-color .14s ease, box-shadow .14s ease;
+}
+.ds-tabs-trigger:hover:not([data-state="active"]):not(:disabled) { color: var(--ink); }
+.ds-tabs-trigger:disabled { opacity: .5; cursor: not-allowed; }
+.ds-tabs-trigger:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: -2px;
+}
+.ds-tabs-trigger[data-state="active"] { color: var(--teal); }
+
+.ds-tabs-content { margin-top: 14px; }
+.ds-tabs-content:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+
+/* ── underline (default) ─────────────────────────────────────────────
+   A rule under the whole row, with the active tab sitting on top of it. */
+:root[data-tabs="underline"] .ds-tabs-list,
+.ds-tabs-list[data-variant="underline"] {
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+:root[data-tabs="underline"] .ds-tabs-trigger,
+.ds-tabs-trigger[data-variant="underline"] {
+  border-radius: 0;
+  padding: 0 12px;
+  box-shadow: inset 0 -2px 0 0 transparent;
+}
+:root[data-tabs="underline"] .ds-tabs-trigger[data-state="active"],
+.ds-tabs-trigger[data-variant="underline"][data-state="active"] {
+  box-shadow: inset 0 -2px 0 0 var(--teal);
+}
+
+/* ── pill ────────────────────────────────────────────────────────────
+   Tinted track, filled active tab. */
+:root[data-tabs="pill"] .ds-tabs-list,
+.ds-tabs-list[data-variant="pill"] {
+  background: var(--teal-l);
+  border-radius: calc(var(--tab-radius, 8px) + 3px);
+  padding: 3px;
+  gap: 3px;
+  display: inline-flex;
+}
+:root[data-tabs="pill"] .ds-tabs-trigger,
+.ds-tabs-trigger[data-variant="pill"] {
+  height: calc(var(--tab-height, 38px) - 6px);
+}
+:root[data-tabs="pill"] .ds-tabs-trigger[data-state="active"],
+.ds-tabs-trigger[data-variant="pill"][data-state="active"] {
+  background: var(--teal);
+  color: var(--white);
+}
+
+/* ── segmented ───────────────────────────────────────────────────────
+   Bordered track, raised active tab — an iOS-style control. */
+:root[data-tabs="segmented"] .ds-tabs-list,
+.ds-tabs-list[data-variant="segmented"] {
+  /* --border, not --bg: index.css redefines --bg to --white inside
+     .page-layout in light mode, which left the track and its active tab both
+     white and the control looking flat. --border is a real neutral in both
+     themes and needs no hand-mixed tint. */
+  background: var(--border);
+  border-radius: calc(var(--tab-radius, 8px) + 3px);
+  padding: 3px;
+  gap: 3px;
+  display: inline-flex;
+}
+:root[data-tabs="segmented"] .ds-tabs-trigger,
+.ds-tabs-trigger[data-variant="segmented"] {
+  height: calc(var(--tab-height, 38px) - 6px);
+}
+:root[data-tabs="segmented"] .ds-tabs-trigger[data-state="active"],
+.ds-tabs-trigger[data-variant="segmented"][data-state="active"] {
+  background: var(--card-bg, var(--white));
+  color: var(--ink);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .07), 0 1px 3px rgba(16, 24, 40, .06);
+}
+
+@media (max-width: 560px) {
+  .ds-tabs-trigger { padding: 0 11px; }
+}

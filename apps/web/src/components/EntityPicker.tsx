@@ -120,10 +120,14 @@ export function EntityPicker({
               onFocus={handleFocus}
               onChange={(e) => handleInput(e.target.value)}
               placeholder={placeholder || 'Search or type to create…'}
+              className="input-field"
+              /* Sizing, radius and type scale come from .input-field's design
+                 tokens rather than being hardcoded here — otherwise this sits
+                 at a different height to every other input on the same form.
+                 Only the right padding is local, to clear the × button. */
               style={{
-                width: '100%', padding: '8px 32px 8px 10px', borderRadius: 7,
-                border: '1px solid var(--border)', background: disabled ? 'var(--bg)' : 'var(--white)',
-                color: 'var(--ink)', fontSize: 13, fontFamily: 'var(--font)', outline: 'none',
+                paddingRight: 32,
+                background: disabled ? 'var(--bg)' : undefined,
                 boxSizing: 'border-box' as const,
               }}
             />

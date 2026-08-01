@@ -875,11 +875,14 @@ export async function calculateMultiItemLandedCost(input: MultiItemInput): Promi
     const insuranceTzs = insuranceAlloc[i];
     const cifTzs = fobTzs + freightTzs + insuranceTzs;
 
+    // Same bases as the single-item calculator: CPF on FOB, VAT on the
+    // duty-inclusive value. These were duplicated here and drifted once
+    // already — any change to one must be mirrored in the other.
     const duty = cifTzs * dutyRate / 100;
     const excise = cifTzs * exciseRate / 100;
     const rdl = cifTzs * rdlRate / 100;
-    const cpf = cifTzs * cpfRate / 100;
-    const vat = (cifTzs + duty + excise) * vatRate / 100;
+    const cpf = fobTzs * cpfRate / 100;
+    const vat = (cifTzs + duty + excise + rdl + cpf) * vatRate / 100;
     const destinationTzs = destinationAlloc[i];
     const wharfage = cifTzs * WHARFAGE_IMPORT_RATE;
     const statutoryTotal = duty + excise + rdl + cpf + vat;

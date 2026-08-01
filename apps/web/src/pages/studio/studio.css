@@ -1,0 +1,381 @@
+/* Workflow Studio — canvas, palette and inspector.
+   Colours are read from the platform's design tokens so the whole surface
+   follows the brand colour a SuperAdmin sets at /admin/design-system. */
+
+.studio-shell {
+  display: grid;
+  grid-template-columns: 264px 1fr 336px;
+  height: calc(100vh - 56px);
+  min-height: 0;
+  background: var(--bg);
+}
+.studio-col {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg, var(--white));
+}
+.studio-col-left  { border-right: 1px solid var(--border); }
+.studio-col-right { border-left: 1px solid var(--border); }
+.studio-col-mid   { background: var(--bg); position: relative; }
+
+.studio-panel-head {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.studio-panel-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+.studio-scroll { overflow-y: auto; flex: 1; min-height: 0; padding: 12px; }
+
+/* ── Palette ─────────────────────────────────────────────────────── */
+.studio-group-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin: 14px 4px 8px;
+}
+.studio-group-label:first-child { margin-top: 2px; }
+
+.studio-item {
+  width: 100%;
+  text-align: left;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg, var(--white));
+  cursor: pointer;
+  margin-bottom: 6px;
+  transition: border-color .12s, background .12s;
+}
+.studio-item:hover:not(:disabled) { border-color: var(--teal); background: var(--teal-l); }
+.studio-item:disabled { opacity: .5; cursor: not-allowed; }
+.studio-item-name { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink); line-height: 1.35; }
+.studio-item-desc { display: block; font-size: 11px; color: var(--ink3); line-height: 1.45; margin-top: 2px; }
+.studio-item-app  { display: block; font-size: 10px; font-weight: 700; letter-spacing: .3px; text-transform: uppercase; margin-bottom: 1px; }
+
+/* ── Canvas nodes ────────────────────────────────────────────────── */
+.studio-node {
+  width: 268px;
+  background: var(--card-bg, var(--white));
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  padding: 11px 13px 12px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 6px 16px -6px rgba(16, 24, 40, .10);
+  transition: box-shadow .12s, border-color .12s;
+}
+.studio-node-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.studio-node-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2.5px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+.studio-node-title { font-size: 13px; font-weight: 650; color: var(--ink); line-height: 1.35; }
+.studio-node-sub   { font-size: 11.5px; color: var(--ink3); margin-top: 3px; line-height: 1.4; }
+.studio-node-detail {
+  font-size: 11px;
+  color: var(--ink2);
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+  line-height: 1.45;
+  word-break: break-word;
+}
+.studio-node-warn {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--red);
+  line-height: 1.4;
+}
+.studio-node-warn code { font-size: 10.5px; background: var(--red-l); padding: 0 4px; border-radius: 4px; }
+.studio-handle { width: 8px; height: 8px; background: var(--card-bg, var(--white)); border: 1.5px solid var(--border); }
+
+/* ── Canvas chrome ───────────────────────────────────────────────── */
+.studio-canvas-bar {
+  position: absolute;
+  top: 12px; left: 12px;
+  z-index: 5;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  background: var(--card-bg, var(--white));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(16,24,40,.06);
+}
+.studio-icon-btn {
+  height: 28px; min-width: 28px;
+  padding: 0 8px;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.studio-icon-btn:hover:not(:disabled) { background: var(--teal-l); color: var(--teal); }
+.studio-icon-btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.studio-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--ink3);
+  font-size: 13px;
+  pointer-events: none;
+  text-align: center;
+  padding: 0 24px;
+}
+
+/* ── Inspector ───────────────────────────────────────────────────── */
+.studio-field { margin-bottom: 14px; }
+.studio-field-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin-bottom: 5px;
+}
+.studio-field-hint { font-size: 11px; color: var(--ink3); margin-top: 4px; line-height: 1.45; }
+.studio-req { color: var(--red); }
+
+.studio-section {
+  border-top: 1px solid var(--border);
+  padding-top: 14px;
+  margin-top: 4px;
+}
+.studio-section-title { font-size: 12.5px; font-weight: 700; color: var(--ink); margin-bottom: 10px; }
+
+/* ── Run log ─────────────────────────────────────────────────────── */
+.studio-runlog {
+  border-top: 1px solid var(--border);
+  background: var(--card-bg, var(--white));
+  max-height: 44%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.studio-run-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.studio-run-row:hover { background: var(--teal-l); }
+.studio-run-row.is-active { border-color: var(--teal); background: var(--teal-l); }
+.studio-run-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--ink3); }
+
+.studio-step {
+  display: grid;
+  grid-template-columns: 84px 1fr auto;
+  gap: 10px;
+  align-items: start;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+}
+.studio-step:last-child { border-bottom: none; }
+
+/* ── Mobile pane switcher ────────────────────────────────────────────
+   Hidden on desktop, where all three columns are visible at once. */
+.studio-panes { display: none; }
+
+@media (max-width: 1280px) {
+  .studio-shell { grid-template-columns: 218px 1fr 292px; }
+}
+
+/* Below this the three columns cannot coexist. Stacking them would bury the
+   canvas under a long palette and force endless scrolling on a phone, so one
+   pane is shown at a time and the switcher decides which. */
+@media (max-width: 1024px) {
+  .studio-shell {
+    grid-template-columns: 1fr;
+    height: calc(100dvh - 168px);   /* dvh, so iOS' collapsing URL bar doesn't clip it */
+  }
+  .studio-col-left, .studio-col-right { border: none; }
+
+  .studio-shell > .studio-col { display: none; }
+  .studio-shell[data-pane="steps"]   > .studio-col-left,
+  .studio-shell[data-pane="canvas"]  > .studio-col-mid,
+  .studio-shell[data-pane="details"] > .studio-col-right { display: flex; }
+
+  .studio-panes {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 4px;
+    padding: 6px;
+    margin: 0;
+    background: var(--card-bg, var(--white));
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 6;
+  }
+  .studio-pane-btn {
+    appearance: none;
+    border: 1px solid transparent;
+    background: transparent;
+    border-radius: 9px;
+    padding: 9px 6px;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink2);
+    cursor: pointer;
+    min-height: 40px;              /* comfortable touch target */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .studio-pane-btn[aria-selected="true"] {
+    background: var(--teal-l);
+    border-color: var(--teal-m, var(--teal-l));
+    color: var(--teal);
+  }
+
+  /* The run log competes with the canvas for the same small screen — give it
+     its own scroll rather than squeezing both. */
+  .studio-runlog { max-height: 50%; }
+  .studio-node { width: 240px; }
+  .studio-item { padding: 11px 12px; }        /* larger tap targets */
+  .studio-run-row { padding: 11px 10px; }
+}
+
+@media (max-width: 560px) {
+  .studio-scroll { padding: 10px; }
+  .studio-step { grid-template-columns: 1fr; gap: 4px; }
+  .studio-step > :last-child { justify-self: start; }
+  .studio-node { width: 216px; }
+  .studio-panel-head { padding: 11px 12px; }
+}
+
+/* Dashboard's two-column body collapses before the sidebar does. */
+@media (max-width: 900px) {
+  .studio-dash-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ── Editor top bar ──────────────────────────────────────────────────
+   The action group has four controls; below ~760px they cannot share a row
+   with the title, and letting them overflow silently clipped Save off-screen. */
+.studio-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--card-bg, var(--white));
+  flex-wrap: wrap;
+}
+.studio-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+.studio-title-input {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  min-width: 180px;
+  flex: 1 1 240px;
+  outline: none;
+}
+.studio-title-input:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (max-width: 760px) {
+  .studio-topbar { padding: 10px 12px; gap: 9px; }
+  .studio-title-input { flex: 1 1 100%; font-size: 16px; }  /* 16px stops iOS zooming on focus */
+  .studio-topbar-actions {
+    margin-left: 0;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .studio-topbar-actions > * { width: 100%; }
+  /* The Active switch is a label+control pair, not a button — give it the row. */
+  .studio-topbar-actions > div:has(> button[role="switch"]) {
+    grid-column: 1 / -1;
+    justify-content: space-between;
+    min-height: 40px;
+  }
+}
+
+@media (max-width: 760px) {
+  /* Save is the primary action and lands alone on the last row — give it the
+     full width rather than leaving a half-empty cell beside it. */
+  .studio-topbar-actions > *:last-child { grid-column: 1 / -1; }
+}
+
+/* ── Metric tiles ────────────────────────────────────────────────────
+   auto-fit rather than a fixed flex basis: on a 390px phone a 190px basis
+   left only one tile per row, so four counters filled the screen before any
+   content. */
+.studio-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.studio-tile {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 15px 16px;
+  background: var(--card-bg, var(--white));
+  min-width: 0;
+}
+.studio-tile-row { display: flex; gap: 12px; align-items: center; }
+
+@media (max-width: 560px) {
+  .studio-tiles { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .studio-tile { padding: 12px; }
+  .studio-tile-row { flex-direction: column; align-items: flex-start; gap: 8px; }
+}

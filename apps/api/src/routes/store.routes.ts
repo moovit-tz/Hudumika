@@ -2,8 +2,17 @@ import { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
 import { sql } from 'kysely';
 import { db } from '../db/client.js';
+import { requireRole } from '../middleware/rbac.js';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export const storeRoutes: FastifyPluginAsync = async (app) => {
+  // This plugin previously registered no auth hook at all: the admin listing and
+  // the approve/reject endpoint answered 200 to unauthenticated callers, so
+  // anyone could approve an app into the marketplace — and an approved app with
+  // a webhook_url receives domain events (see domain-events.service.ts).
+  app.addHook('preHandler', app.authenticate);
+
   // GET /v1/store/apps (Public/Authenticated) -> returns approved apps
   app.get('/apps', async (request, reply) => {
     const result = await sql<any>`
@@ -19,8 +28,10 @@ export const storeRoutes: FastifyPluginAsync = async (app) => {
     return result.rows;
   });
 
-  // GET /v1/store/admin/apps (Admin) -> returns all apps including pending
-  app.get('/admin/apps', async (request, reply) => {
+  // GET /v1/store/admin/apps (Admin) -> returns all apps including pending.
+  // Marketplace approval is a platform-level decision, not a tenant one, so
+  // these two are SUPER_ADMIN and not the wider OPS role set.
+  app.get('/admin/apps', { preHandler: requireRole('SUPER_ADMIN') }, async (request, reply) => {
     const result = await sql<any>`
       SELECT 
         id, name, developer_id, developer_name, category, 
@@ -48,7 +59,14 @@ export const storeRoutes: FastifyPluginAsync = async (app) => {
     });
 
     const body = schema.parse(request.body);
-    const userId = (request.user as any)?.id || '00000000-0000-0000-0000-000000000000';
+    // request.user carries `sub`, never `id` — the old `?.id` read was always
+    // undefined, so every submission fell back to the all-zeros UUID and died
+    // on the developer_id FK. API-key callers have a non-UUID sub
+    // ("apikey:<id>"), which cannot own a marketplace listing.
+    const userId = request.user?.sub;
+    if (!userId || !UUID_RE.test(userId)) {
+      return reply.status(400).send({ error: 'A marketplace app must be submitted by a signed-in user account.' });
+    }
 
     const result = await sql<any>`
       INSERT INTO marketplace_apps 
@@ -62,7 +80,7 @@ export const storeRoutes: FastifyPluginAsync = async (app) => {
   });
 
   // PATCH /v1/store/admin/apps/:id/status (Approve/Reject app)
-  app.patch('/admin/apps/:id/status', async (request, reply) => {
+  app.patch('/admin/apps/:id/status', { preHandler: requireRole('SUPER_ADMIN') }, async (request, reply) => {
     const paramsSchema = z.object({ id: z.string() });
     const bodySchema = z.object({ status: z.enum(['approved', 'rejected']) });
 

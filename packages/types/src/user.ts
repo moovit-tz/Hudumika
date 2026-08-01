@@ -24,13 +24,14 @@ export type AppId =
   | 'demurrage'    // Container demurrage tariffs & tracking (split out of ClearOS)
   | 'cargotracker' // AWB/BL shipment tracking (split out of ClearOS)
   | 'seal'         // Bonded / customs-controlled warehouse
-  | 'inventory';   // General multi-warehouse stock control (separate from SEAL's bonded-warehouse domain)
+  | 'inventory'    // General multi-warehouse stock control (separate from SEAL's bonded-warehouse domain)
+  | 'studio';      // Workflow Studio — the platform's automation control plane
 
 export const ALL_APP_IDS: AppId[] = [
   'clearos', 'finops', 'complyos', 'bliss',
   'onepi', 'onesite', 'oneid', 'tracking', 'cloud', 'ai', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
   'calendar', 'tasks',
-  'demurrage', 'cargotracker', 'seal', 'inventory',
+  'demurrage', 'cargotracker', 'seal', 'inventory', 'studio',
 ];
 
 // ── Roles ────────────────────────────────────────────────────

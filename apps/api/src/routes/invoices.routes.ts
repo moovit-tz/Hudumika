@@ -1,4 +1,5 @@
-import { requireAnyEntitlement } from '../middleware/entitlement.js';
+import { requireAnyEntitlement } from '../middleware/entitlement.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
@@ -492,6 +493,13 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         note: note || null,
         created_by: user.sub,
       }).execute();
+      // Money received against an invoice — the closing leg of a consignment's
+      // journey, and the trigger downstream apps care about.
+      emitDomainEvent(trx, user.tenant_id, {
+        type: 'invoice.payment_recorded', sourceApp: 'finops', entityType: 'invoice', entityId: id,
+        payload: { amount: Number(amount), method: method || null, customerId: (inv as any).customer_id ?? null },
+      }).catch(err => console.error('[Finance] payment_recorded emit failed:', err.message));
+
       const payments = await trx.selectFrom('invoice_payments').select('amount').where('invoice_id', '=', id).execute();
       const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
       // Get lines to compute grand total

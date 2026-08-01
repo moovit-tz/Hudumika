@@ -19,6 +19,7 @@ interface WorkspaceAppProps {
 
 // Map app id → brand label shown next to the Hudumika logo
 export const APP_LABELS: Record<AppId, string> = {
+  studio:    'Studio',
   clearos:   'ClearOS',
   finops:    'FinOps',
   complyos:  'ComplyOS',
@@ -50,6 +51,7 @@ export const APP_LABELS: Record<AppId, string> = {
 // avatar accent by default.
 const DEFAULT_APP_COLOR = '#0b1e3a';
 export const APP_COLORS: Record<AppId, string> = {
+  studio:    '#4361ee',
   clearos: DEFAULT_APP_COLOR, finops: DEFAULT_APP_COLOR, complyos: DEFAULT_APP_COLOR,
   bliss: DEFAULT_APP_COLOR, onepi: DEFAULT_APP_COLOR, onesite: DEFAULT_APP_COLOR,
   oneid: DEFAULT_APP_COLOR, tracking: DEFAULT_APP_COLOR, cloud: DEFAULT_APP_COLOR,

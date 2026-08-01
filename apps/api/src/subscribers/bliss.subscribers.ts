@@ -1,4 +1,5 @@
 import { registerSubscriber } from '../services/domain-events.service.js';
+import { isSupersededByStudio } from '../studio/supersession.js';
 import { withTenant } from '../db/client.js';
 
 const SLA_HOURS: Record<string, number> = { URGENT: 4, HIGH: 8, NORMAL: 24, LOW: 48 }; // mirrors support.routes.ts / seal-automation.routes.ts
@@ -10,6 +11,9 @@ const SLA_HOURS: Record<string, number> = { URGENT: 4, HIGH: 8, NORMAL: 24, LOW:
 registerSubscriber('shipment.sla_breach', async (tenantId, event) => {
   const shipmentId = event.entityId;
   if (!shipmentId) return;
+  // Stood down when this tenant has activated the Studio workflow that
+  // replaces this handler (migration 165) — otherwise both would run.
+  if (await isSupersededByStudio(tenantId, 'bliss.sla_breach')) return;
 
   await withTenant(tenantId, async (trx) => {
     const shipment = await trx.selectFrom('shipment_cases')

@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { emitDomainEvent } from './domain-events.service.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 import {
@@ -317,6 +318,13 @@ export class SealService {
       entryReference: input.entryReference ?? null,
       reasonCode: 'INITIAL_RECEIPT',
     });
+
+    // Cargo has physically landed in the warehouse — the point every
+    // downstream journey (billing, storage, dispatch) actually starts from.
+    emitDomainEvent(trx, tenantId, {
+      type: 'seal.lot_received', sourceApp: 'seal', entityType: 'seal_lot', entityId: lot.id,
+      payload: { description: input.description, customsStatus: input.customsStatus, entryReference: input.entryReference ?? null },
+    }).catch(err => console.error('[SEAL] lot_received emit failed:', err.message));
 
     return trx.selectFrom('seal_lots').selectAll().where('id', '=', lot.id).executeTakeFirstOrThrow();
   }

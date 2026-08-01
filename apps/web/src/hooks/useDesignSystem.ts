@@ -43,12 +43,25 @@ export interface ShapeTokens {
   breadcrumbSize: number;
 }
 
+/** How every Tabs component on the platform looks. Was three hardcoded
+ *  Tailwind class strings inside ui/tabs.tsx, unreachable from the design
+ *  system — so a tenant could restyle buttons, cards and badges but not tabs. */
+export interface TabsTokens {
+  /** underline = rule beneath the active tab; pill = filled active tab on a
+   *  tinted track; segmented = bordered track with a raised active tab. */
+  variant: 'underline' | 'pill' | 'segmented';
+  radius: number;
+  height: number;
+  size: number;
+}
+
 export interface DesignTokens {
   brand: { primary: string };
   neutral: { light: NeutralSet; dark: NeutralSet };
   semantic: { light: SemanticSet; dark: SemanticSet };
   typography: { font: FontId; scale: TypeScale };
   shape: ShapeTokens;
+  tabs: TabsTokens;
   elevation: ShadowId;
   density: DensityId;
   motion: { durFast: number; dur: number; durSlow: number; ease: string };
@@ -183,6 +196,7 @@ export const DESIGN_TOKENS_DEFAULTS: DesignTokens = {
   elevation: 'default',
   density: 'default',
   motion: { durFast: 80, dur: 150, durSlow: 300, ease: 'cubic-bezier(0.4, 0, 0.2, 1)' },
+  tabs: { variant: 'underline', radius: 8, height: 38, size: 13 },
   responsive: { breakpoint: 768 },
 };
 
@@ -368,6 +382,7 @@ export function readDesignTokens(): DesignTokens {
         semantic: { ...DESIGN_TOKENS_DEFAULTS.semantic, ...parsed.semantic },
         typography: { ...DESIGN_TOKENS_DEFAULTS.typography, ...parsed.typography },
         shape: { ...DESIGN_TOKENS_DEFAULTS.shape, ...parsed.shape },
+        tabs:  { ...DESIGN_TOKENS_DEFAULTS.tabs,  ...parsed.tabs },
         motion: { ...DESIGN_TOKENS_DEFAULTS.motion, ...parsed.motion },
         responsive: { ...DESIGN_TOKENS_DEFAULTS.responsive, ...parsed.responsive },
       };
@@ -518,6 +533,9 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--text-md': `${scale.md}px`, '--text-lg': `${scale.lg}px`, '--text-xl': `${scale.xl}px`,
     '--text-2xl': `${scale.xxl}px`, '--text-3xl': `${scale.xxxl}px`,
 
+    '--tab-radius': `${tokens.tabs.radius}px`,
+    '--tab-height': `${tokens.tabs.height}px`,
+    '--tab-size': `${tokens.tabs.size}px`,
     '--r-sm': `${shape.rSm}px`, '--r': `${shape.r}px`, '--r-lg': `${shape.rLg}px`, '--badge-radius': `${shape.badgeRadius}px`,
     '--border-width': `${shape.borderWidth}px`,
     '--icon-stroke-width': `${shape.iconStrokeWidth}`,
@@ -572,6 +590,8 @@ export function applyDesignTokens(tokens: DesignTokens): void {
 
   tag.textContent = `:root {\n${block(lightVars)}\n}\n[data-theme="dark"] {\n${block(darkVars)}\n}`;
 
+  document.documentElement.setAttribute('data-tabs', tokens.tabs.variant);
+
   // Font stylesheet (CDN fonts only — local fonts are already @font-face'd)
   const fontUrl = FONT_URLS[tokens.typography.font];
   if (fontUrl) {
@@ -617,6 +637,7 @@ export function useDesignSystem() {
         semantic: { ...DESIGN_TOKENS_DEFAULTS.semantic, ...data.semantic },
         typography: { ...DESIGN_TOKENS_DEFAULTS.typography, ...data.typography },
         shape: { ...DESIGN_TOKENS_DEFAULTS.shape, ...data.shape },
+        tabs:  { ...DESIGN_TOKENS_DEFAULTS.tabs,  ...data.tabs },
         motion: { ...DESIGN_TOKENS_DEFAULTS.motion, ...data.motion },
         responsive: { ...DESIGN_TOKENS_DEFAULTS.responsive, ...data.responsive },
       };
@@ -639,6 +660,7 @@ export function useDesignSystem() {
       semantic: { ...tokens.semantic, ...partial.semantic },
       typography: { ...tokens.typography, ...partial.typography },
       shape: { ...tokens.shape, ...partial.shape },
+      tabs:  { ...tokens.tabs,  ...partial.tabs },
       motion: { ...tokens.motion, ...partial.motion },
       responsive: { ...tokens.responsive, ...partial.responsive },
     };

@@ -8,6 +8,7 @@ import { useBranding, pushBranding } from '../hooks/useBranding.js';
 import { ALL_APP_IDS } from '@hudumika/types';
 import './DesignSystemView.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -18,6 +19,7 @@ const SECTIONS: { id: string; group: 'theming' | 'layout'; label: string; icon: 
   { id: 'semantic',   group: 'theming', label: 'Semantic',         icon: 'tag' },
   { id: 'typography', group: 'theming', label: 'Typography',       icon: 'fileText' },
   { id: 'shape',      group: 'theming', label: 'Shape',            icon: 'shapes' },
+  { id: 'tabs',       group: 'theming', label: 'Tabs',             icon: 'layoutDashboard' },
   { id: 'elevation',  group: 'theming', label: 'Elevation',        icon: 'layers' },
   { id: 'density',    group: 'theming', label: 'Density',          icon: 'grid3' },
   { id: 'motion',     group: 'theming', label: 'Motion',           icon: 'zap' },
@@ -378,6 +380,47 @@ export function DesignSystemView() {
             </div>
             {saveErrors.typography && <p className="ds-error">{saveErrors.typography}</p>}
             {savedFlash === 'typography' && <p className="ds-saved">Saved</p>}
+          </section>
+          )}
+
+          {/* Tabs */}
+          {activeSection === 'tabs' && (
+          <section className="card ds-section">
+            <h2 className="ds-section-title">Tabs</h2>
+            <p className="ds-section-hint">
+              Applies to every tab strip on the platform. The variant changes layout, so it is set here rather than
+              per page — an individual screen can still override it when it genuinely needs to.
+            </p>
+            <div className="ds-preset-row">
+              {(['underline', 'pill', 'segmented'] as const).map(v => (
+                <button key={v} type="button"
+                  className={`ds-preset-btn ${tokens.tabs.variant === v ? 'ds-preset-btn--active' : ''}`}
+                  onClick={() => save('tabs', { tabs: { ...tokens.tabs, variant: v } })}>
+                  {v[0].toUpperCase() + v.slice(1)}
+                </button>
+              ))}
+            </div>
+            <div className="ds-scale-grid" style={{ marginTop: 16 }}>
+              <NumberField label="Corner radius" suffix="px" min={0} value={tokens.tabs.radius}
+                onChange={v => save('tabs', { tabs: { ...tokens.tabs, radius: v } })} />
+              <NumberField label="Height" suffix="px" min={24} value={tokens.tabs.height}
+                onChange={v => save('tabs', { tabs: { ...tokens.tabs, height: v } })} />
+              <NumberField label="Label size" suffix="px" step={0.5} min={9} value={tokens.tabs.size}
+                onChange={v => save('tabs', { tabs: { ...tokens.tabs, size: v } })} />
+            </div>
+            <div style={{ marginTop: 18 }}>
+              <div className="ds-preview-label">Live preview</div>
+              <Tabs defaultValue="one">
+                <TabsList>
+                  <TabsTrigger value="one">Overview</TabsTrigger>
+                  <TabsTrigger value="two">Activity</TabsTrigger>
+                  <TabsTrigger value="three">Settings</TabsTrigger>
+                </TabsList>
+                <TabsContent value="one">This panel is the active tab's content.</TabsContent>
+                <TabsContent value="two">Second panel.</TabsContent>
+                <TabsContent value="three">Third panel.</TabsContent>
+              </Tabs>
+            </div>
           </section>
           )}
 

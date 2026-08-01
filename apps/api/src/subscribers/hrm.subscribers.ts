@@ -1,4 +1,5 @@
 import { registerSubscriber } from '../services/domain-events.service.js';
+import { isSupersededByStudio } from '../studio/supersession.js';
 import { withTenant } from '../db/client.js';
 
 // Logs a new case assignment against the assigned officer's own HR activity
@@ -9,6 +10,9 @@ import { withTenant } from '../db/client.js';
 registerSubscriber('shipment.case_opened', async (tenantId, event) => {
   const assignedTo = event.payload.assignedTo as string | null | undefined;
   if (!assignedTo) return;
+  // Stood down when this tenant has activated the Studio workflow that
+  // replaces this handler (migration 165) — otherwise both would run.
+  if (await isSupersededByStudio(tenantId, 'hrm.case_opened')) return;
 
   await withTenant(tenantId, async (trx) => {
     await trx.insertInto('hr_activity_log').values({
