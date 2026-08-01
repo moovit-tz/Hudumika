@@ -1930,6 +1930,9 @@ export const LandedCostPage: React.FC = () => {
   // through. Optional: blank stays NULL rather than becoming a fake value.
   const [originCountry, setOriginCountry] = useState('');
   const [loadingPoint,  setLoadingPoint]  = useState('');
+  // True while Country of Origin holds a value derived from the port rather
+  // than one the user chose — surfaced in the UI, since origin drives duty.
+  const [originFromPort, setOriginFromPort] = useState(false);
   const [fob,        setFob]       = useState('');
   const [freight,    setFreight]   = useState('');
   const [insurancePct, setInsurancePct] = useState('1');
@@ -1946,6 +1949,9 @@ export const LandedCostPage: React.FC = () => {
   const [shareNotice, setShareNotice] = useState('');
   const [importNote, setImportNote] = useState('');
   const [importing, setImporting] = useState(false);
+  // Set when a file parsed but its layout was not recognised — the user maps it
+  // by hand rather than being told the upload failed.
+  const [mapper, setMapper] = useState<{ rows: string[][]; label: string; headerIdx: number | null; roles?: string[] } | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [ovDuty,     setOvDuty]     = useState('');
   const [ovVat,      setOvVat]      = useState('');
@@ -2271,6 +2277,43 @@ export const LandedCostPage: React.FC = () => {
       .map(p => ({ id: p, label: p }));
   }, [isAir]);
 
+  /**
+   * The country a sea port sits in, taken from the suggestion's own label —
+   * `City, Country (UNLOCODE)`, so the trailing segment before the code.
+   * `Singapore (SGSIN)` has no comma and yields "Singapore", which is right.
+   *
+   * Airports are deliberately excluded: their labels carry no country at all
+   * ("Guangzhou Baiyun International Airport (CAN)"), and the ones that do have
+   * a comma end in a city — "Hamad International Airport, Doha (DOH)" would
+   * give "Doha". Guessing here would be worse than leaving it blank, because
+   * origin drives EAC duty treatment.
+   */
+  function countryFromSeaPort(portLabel: string): string | null {
+    if (isAir) return null;
+    const base = portLabel.replace(/\s*\([A-Z]{4,5}\)\s*$/, '').trim();
+    if (!base) return null;
+    const tail = base.includes(',') ? base.slice(base.lastIndexOf(',') + 1).trim() : base;
+    return tail || null;
+  }
+
+  /**
+   * Fills Country of Origin from the port, but only as a starting point:
+   * never over an existing value, and only once the name is confirmed against
+   * reference_countries so the stored value stays canonical rather than a
+   * string scraped off a label.
+   */
+  async function autofillOriginFromPort(portLabel: string) {
+    const guess = countryFromSeaPort(portLabel);
+    if (!guess || originCountry.trim()) return;
+    try {
+      const matches = await searchCountries(guess);
+      const exact = matches.find(m => String(m.id).toLowerCase() === guess.toLowerCase());
+      if (!exact) return;                       // unrecognised — leave it to the user
+      setOriginCountry(String(exact.id));
+      setOriginFromPort(true);
+    } catch { /* the field simply stays empty */ }
+  }
+
   /** Async country lookup against reference_countries (249 ISO entries), so
    *  origin data lands on a canonical name instead of free-typed spellings. */
   const searchCountries = useCallback(async (q: string): Promise<PickerItem[]> => {
@@ -2396,14 +2439,24 @@ export const LandedCostPage: React.FC = () => {
   }
 
   /** Shared by the CSV and Excel paths: one normaliser, so both formats are held
-   *  to the same rules and neither can drift away from the other. */
-  function importInvoiceGrid(grid: string[][], sourceLabel: string) {
-    const headerIdx = findHeaderRow(grid);
+   *  to the same rules and neither can drift away from the other.
+   *
+   *  `override` comes from the manual mapper. Auto-detection recognises the
+   *  common header wordings, but real supplier invoices are endlessly varied —
+   *  another language, a merged title row, "Art.-Nr." instead of "Description".
+   *  Rather than failing those outright, the caller falls back to showing the
+   *  sheet and letting a human point at the header row. */
+  function importInvoiceGrid(
+    grid: string[][],
+    sourceLabel: string,
+    override?: { headerIdx: number; col: InvoiceColumns },
+  ) {
+    const headerIdx = override ? override.headerIdx : findHeaderRow(grid);
     if (headerIdx < 0) {
       setMultiError(`Could not find the line-item table in ${sourceLabel}. It needs a header row with a description column and either a unit price or an amount column — download the template to see the layout.`);
       return;
     }
-    const col = locateColumns(grid[headerIdx]);
+    const col = override ? override.col : locateColumns(grid[headerIdx]);
 
     let skippedNonCargo = 0, skippedNoValue = 0, missingHs = 0, shortHs = 0, truncated = false;
     let runningTotal = 0;
@@ -2472,10 +2525,26 @@ export const LandedCostPage: React.FC = () => {
           .map(c => ({ ...c, lines: c.headerIdx >= 0 ? countCargoRows(c.sheet.rows, c.headerIdx) : 0 }))
           .filter(c => c.lines > 0)
           .sort((a, b) => b.lines - a.lines);
+
         if (candidates.length === 0) {
-          setMultiError(sheets.length === 1
-            ? 'Could not find a line-item table in that workbook. It needs a header row with a description column and either a unit price or an amount column.'
-            : `Could not find a line-item table in any sheet (${sheets.map(s => s.name).join(', ')}). One of them needs a header row with a description column and either a unit price or an amount column.`);
+          // Auto-detection failed. If the file actually contains data, hand it
+          // to the mapper instead of refusing — the layout is unfamiliar, not
+          // unusable. Only a genuinely empty parse is a dead end.
+          const richest = sheets
+            .map(s => ({ s, filled: s.rows.filter(r => r.some(c => c.trim())).length }))
+            .sort((a, b) => b.filled - a.filled)[0];
+          if (richest && richest.filled > 0) {
+            setMapper({
+              rows: richest.s.rows,
+              label: sheets.length > 1 ? `sheet "${richest.s.name}"` : 'that workbook',
+              headerIdx: null,
+            });
+            return;
+          }
+          setMultiError(
+            `That workbook has no data this reader could see (${sheets.map(s => `${s.name}: ${s.rows.length} rows`).join(', ')}). ` +
+            `If it was exported from Google Sheets or Numbers, re-save it as Excel (.xlsx) or CSV.`,
+          );
           return;
         }
         importInvoiceGrid(candidates[0].sheet.rows, sheets.length > 1 ? `sheet "${candidates[0].sheet.name}"` : 'that workbook');
@@ -2484,6 +2553,10 @@ export const LandedCostPage: React.FC = () => {
         // Drop the '#' guidance rows the template ships with; blank lines are
         // kept so row positions still line up with what the user sees.
         const grid = text.split(/\r?\n/).filter(l => !l.trim().startsWith('#')).map(parseCsvLine);
+        if (findHeaderRow(grid) < 0 && grid.some(r => r.some(c => c.trim()))) {
+          setMapper({ rows: grid, label: 'that CSV', headerIdx: null });
+          return;
+        }
         importInvoiceGrid(grid, 'that CSV');
       }
     } catch (e) {
@@ -2627,6 +2700,130 @@ export const LandedCostPage: React.FC = () => {
       )}
     </>
   );
+
+  /**
+   * Manual column mapping, shown only when auto-detection could not read a
+   * file that clearly contains data. Two steps: point at the header row, then
+   * confirm which column is which. Supplier invoices come in every layout and
+   * language there is; refusing the unfamiliar ones outright made the upload
+   * feature useless exactly when it was needed most.
+   */
+  const invoiceMapper = (() => {
+    if (!mapper) return null;
+    const PREVIEW_ROWS = 14;
+    const width = Math.max(...mapper.rows.slice(0, 40).map(r => r.length), 1);
+    const auto = mapper.headerIdx != null ? locateColumns(mapper.rows[mapper.headerIdx] ?? []) : null;
+    const roleFor = (c: number): string => {
+      if (!auto) return '';
+      if (c === auto.desc) return 'desc';
+      if (c === auto.qty) return 'qty';
+      if (c === auto.price) return 'price';
+      if (c === auto.amt) return 'amt';
+      if (c === auto.hs) return 'hs';
+      return '';
+    };
+    // Seeded from whatever auto-detection did manage to recognise, so a
+    // partially-understood header still saves the user most of the work.
+    const roles = mapper.headerIdx == null
+      ? []
+      : mapper.roles ?? Array.from({ length: width }, (_, c) => roleFor(c));
+    const setRole = (c: number, v: string) => {
+      const next = [...roles];
+      // A role belongs to exactly one column — clear it from wherever it was.
+      if (v) next.forEach((r, i) => { if (r === v && i !== c) next[i] = ''; });
+      next[c] = v;
+      setMapper(m => (m ? { ...m, roles: next } : m));
+    };
+    const colOf = (role: string) => roles.findIndex(r => r === role);
+    const ready = mapper.headerIdx != null && colOf('desc') >= 0 && (colOf('price') >= 0 || colOf('amt') >= 0);
+
+    return (
+      <div style={{ marginTop: 14, border: '1px solid var(--gold-l)', borderRadius: 11, overflow: 'hidden' }}>
+        <div style={{ padding: '11px 14px', background: 'var(--gold-l)', display: 'flex', gap: 9, alignItems: 'flex-start' }}>
+          <Icon name="alertCircle" size={15} color="var(--gold)" style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>
+            <strong>This layout isn't one I recognise.</strong> Nothing is lost — {mapper.label} is shown below.{' '}
+            {mapper.headerIdx == null
+              ? 'Click the row that holds the column titles.'
+              : 'Now say which column is which. Only a description and a price or amount are required.'}
+          </div>
+        </div>
+
+        <div style={{ overflowX: 'auto', maxHeight: 330 }}>
+          <table style={{ borderCollapse: 'collapse', fontSize: 11.5, width: '100%' }}>
+            {mapper.headerIdx != null && (
+              <thead>
+                <tr>
+                  <th style={{ width: 34 }} />
+                  {Array.from({ length: width }, (_, c) => (
+                    <th key={c} style={{ padding: 5, borderBottom: '1px solid var(--border)', minWidth: 132 }}>
+                      {/* Radix SelectItem cannot carry an empty-string value, so
+                          "ignore" travels as a sentinel and is translated back
+                          at the boundary (CLAUDE.md). */}
+                      <Select value={roles[c] || '__ignore__'} onValueChange={v => setRole(c, v === '__ignore__' ? '' : v)}>
+                        <SelectTrigger style={{ height: 32, fontSize: 11.5 }}><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__ignore__">— ignore —</SelectItem>
+                          <SelectItem value="desc">Description *</SelectItem>
+                          <SelectItem value="qty">Quantity</SelectItem>
+                          <SelectItem value="price">Unit price</SelectItem>
+                          <SelectItem value="amt">Line amount</SelectItem>
+                          <SelectItem value="hs">HS code</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+            )}
+            <tbody>
+              {mapper.rows.slice(0, PREVIEW_ROWS).map((row, r) => {
+                const isHeader = mapper.headerIdx === r;
+                return (
+                  <tr key={r}
+                    onClick={() => mapper.headerIdx == null && setMapper(m => (m ? { ...m, headerIdx: r } : m))}
+                    style={{
+                      cursor: mapper.headerIdx == null ? 'pointer' : 'default',
+                      background: isHeader ? 'var(--teal-l)' : undefined,
+                    }}>
+                    <td style={{ padding: '5px 6px', color: 'var(--ink3)', textAlign: 'right', borderBottom: '1px solid var(--border)' }}>{r + 1}</td>
+                    {Array.from({ length: width }, (_, c) => (
+                      <td key={c} style={{
+                        padding: '5px 8px', borderBottom: '1px solid var(--border)',
+                        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 190,
+                        fontWeight: isHeader ? 700 : 400, color: isHeader ? 'var(--teal)' : 'var(--ink2)',
+                      }}>{row[c] ?? ''}</td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        <div style={{ padding: '10px 14px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          {mapper.headerIdx != null && (
+            <button type="button" className="btn btn-secondary" style={{ fontSize: 12 }}
+              onClick={() => setMapper(m => (m ? { ...m, headerIdx: null, roles: undefined } : m))}>
+              Pick a different row
+            </button>
+          )}
+          <button type="button" className="btn btn-primary" style={{ fontSize: 12.5 }} disabled={!ready}
+            onClick={() => {
+              importInvoiceGrid(mapper.rows, mapper.label, {
+                headerIdx: mapper.headerIdx!,
+                col: { desc: colOf('desc'), qty: colOf('qty'), price: colOf('price'), amt: colOf('amt'), hs: colOf('hs') },
+              });
+              setMapper(null);
+            }}>
+            Import these lines
+          </button>
+          <button type="button" className="btn btn-secondary" style={{ fontSize: 12, marginLeft: 'auto' }}
+            onClick={() => setMapper(null)}>Cancel</button>
+        </div>
+      </div>
+    );
+  })();
 
   const reportMeta: ReportMeta = { customerName, customerEmail, customerPhone, destination };
 
@@ -2779,6 +2976,7 @@ export const LandedCostPage: React.FC = () => {
                   <div style={{ marginTop: 16 }}>
                     {invoiceImportBar}
                     {importFeedback}
+                    {invoiceMapper}
                   </div>
                 )}
               </div>
@@ -2944,6 +3142,7 @@ export const LandedCostPage: React.FC = () => {
                 <div>
                   {invoiceImportBar}
                   {importFeedback}
+                  {invoiceMapper}
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
                     {multiItems.map((row, idx) => (
@@ -3126,7 +3325,14 @@ export const LandedCostPage: React.FC = () => {
                   <Field label={loadingPointLabel} hint="Where the cargo was loaded. Helps us track the corridors you actually trade through.">
                     <EntityPicker
                       value={loadingPoint ? { id: loadingPoint, label: loadingPoint } : null}
-                      onChange={item => setLoadingPoint(item ? String(item.id) : '')}
+                      onChange={item => {
+                        const label = item ? String(item.id) : '';
+                        setLoadingPoint(label);
+                        if (label) void autofillOriginFromPort(label);
+                        // Clearing the port clears an origin that came from it,
+                        // but never one the user picked themselves.
+                        else if (originFromPort) { setOriginCountry(''); setOriginFromPort(false); }
+                      }}
                       search={searchPorts}
                       placeholder={isAir ? 'Search airports…' : 'Search ports…'}
                     />
@@ -3134,10 +3340,16 @@ export const LandedCostPage: React.FC = () => {
                   <Field label="Country of Origin" hint="Where the goods were made or shipped from. EAC origin affects duty treatment.">
                     <EntityPicker
                       value={originCountry ? { id: originCountry, label: originCountry } : null}
-                      onChange={item => setOriginCountry(item ? String(item.id) : '')}
+                      onChange={item => { setOriginCountry(item ? String(item.id) : ''); setOriginFromPort(false); }}
                       search={searchCountries}
                       placeholder="Search countries…"
                     />
+                    {originFromPort && (
+                      <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--gold)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                        <Icon name="info" size={13} color="var(--gold)" style={{ flexShrink: 0, marginTop: 1 }} />
+                        <span>Taken from the loading port. Change it if the goods were made somewhere else — transhipped cargo often is.</span>
+                      </div>
+                    )}
                   </Field>
                 </div>
 
