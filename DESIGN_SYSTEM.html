@@ -83,6 +83,7 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--brand);outline-offs
   font-weight:700;text-wrap:balance;max-width:16ch}
 .mast h1 em{font-family:var(--serif);font-style:italic;font-weight:400;color:var(--brand)}
 .mast .sub{margin:22px 0 0;max-width:60ch;font-size:17px;color:var(--ink2);text-wrap:pretty}
+.mast .sub-sm{font-size:15px}
 .mast .meta{margin-top:26px;display:flex;flex-wrap:wrap;gap:8px}
 .tag{font-family:var(--mono);font-size:11px;padding:4px 11px;border-radius:var(--badge);
   background:var(--surface);border:1px solid var(--line);color:var(--ink2)}
@@ -194,11 +195,13 @@ footer{grid-column:1/-1;margin-top:80px;padding-top:24px;border-top:1px solid va
   <p class="sub">Written for the engineer or agent adapting an earlier build, a parallel app, or a
   freshly generated page so that it matches the platform already in production. It describes what
   <em>is</em>, not what could be. Nothing here is a suggestion to improve on.</p>
+  <p class="sub sub-sm">Brand marks, the 20 app logos and all 168 icons are in the companion sheet: <a href="DESIGN_SYSTEM_ASSETS.html">DESIGN_SYSTEM_ASSETS.html</a>.</p>
   <div class="meta">
     <span class="tag">React 19 + Vite</span>
     <span class="tag">Radix UI</span>
     <span class="tag">Tailwind v4</span>
     <span class="tag">apps/web/src/components/ui/</span>
+    <span class="tag">168 icons &middot; 20 app logos</span>
   </div>
 </header>
 
@@ -215,8 +218,10 @@ footer{grid-column:1/-1;margin-top:80px;padding-top:24px;border-top:1px solid va
     <li><a href="#surfaces">Surfaces &amp; overlays</a></li>
     <li><a href="#tints">Soft tints</a></li>
     <li><a href="#themes">Both themes</a></li>
+    <li><a href="#motion">Motion</a></li>
     <li><a href="#traps">Known traps</a></li>
     <li class="grp" role="presentation">Beyond the screen</li>
+    <li><a href="DESIGN_SYSTEM_ASSETS.html">Logos &amp; icons &#8599;</a></li>
     <li><a href="#print">Printed reports</a></li>
     <li><a href="#honesty">Truthful interfaces</a></li>
     <li class="grp" role="presentation">Doing the work</li>
@@ -533,6 +538,118 @@ border: 1px solid var(--teal-m);</code></pre>
       <li>Borders in dark are translucent (<code>rgba(255,255,255,.07)</code>), so they sit
         correctly on any surface beneath them.</li>
     </ul>
+  </div>
+</section>
+
+<section id="motion">
+  <h2>Motion</h2>
+  <p class="lede">One flagship transition, a small set of named keyframes, and three duration tokens. Nothing else.</p>
+
+  <h3>The theme change</h3>
+  <p>Switching light and dark is the platform's signature motion: a circular wave that expands from
+  the point you clicked. It is built on the View Transitions API in
+  <code>apps/web/src/lib/theme.ts</code> and it is the only place the app animates a full-page
+  state change.</p>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Property</th><th class="mono">Value</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Shape</td><td class="mono">circle(0px) &rarr; circle(endRadius)</td><td>Clip-path on <code>::view-transition-new(root)</code></td></tr>
+        <tr><td>Origin</td><td class="mono">event.clientX / clientY</td><td>The wave starts under the user's finger, not at a fixed corner</td></tr>
+        <tr><td>Radius</td><td class="mono">hypot(max(x, w&minus;x), max(y, h&minus;y))</td><td>Distance to the furthest corner, so the wave always finishes covering the viewport</td></tr>
+        <tr><td>Duration</td><td class="mono">480ms</td><td>Long enough to read as one gesture across a full screen</td></tr>
+        <tr><td>Easing</td><td class="mono">cubic-bezier(.4, 0, .2, 1)</td><td>The same curve as <code>--ease</code></td></tr>
+        <tr><td>Layering</td><td class="mono">old z-index 1, new z-index 9999</td><td>The incoming theme wipes over the outgoing one</td></tr>
+        <tr><td>Persisted</td><td class="mono">localStorage['theme']</td><td>Survives reload</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="block rule">
+    <p class="eyebrow">Rule</p>
+    <p>Call <code>toggleThemeWithAnimation(event)</code> — never set <code>data-theme</code>
+    directly. The helper already handles the three cases you would otherwise miss: browsers without
+    View Transitions, a user with <code>prefers-reduced-motion: reduce</code>, and a toggle fired
+    with no pointer event (it falls back to the trigger's own centre, then the top-right).
+    All three apply the theme instantly rather than degrading to a half-animation.</p>
+<pre><code>import { toggleThemeWithAnimation } from '@/lib/theme';
+
+&lt;button onClick={e =&gt; toggleThemeWithAnimation(e)} aria-label="Toggle theme"&gt;
+
+// Setting a specific theme, still animated:
+toggleThemeWithAnimation(e, /* explicitDark */ true);</code></pre>
+  </div>
+
+  <div class="block trap">
+    <p class="eyebrow">Trap</p>
+    <p>Dark mode is the <em>presence</em> of the attribute, not a value: light removes
+    <code>data-theme</code> entirely rather than setting <code>"light"</code>. Read state with
+    <code>getAttribute('data-theme') === 'dark'</code>, and observe changes with a
+    <code>MutationObserver</code> on <code>documentElement</code> filtered to
+    <code>data-theme</code> — a component that samples it once will not follow a toggle.</p>
+  </div>
+
+  <h3>Durations</h3>
+  <p>Three tokens cover everything. If a value feels like it needs to sit between them, it does not
+  — pick the nearer one.</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th class="mono">Token</th><th class="mono">Value</th><th>Use</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">--dur-fast</td><td class="mono">80ms</td><td>Hover, press, colour change — feedback that must feel instant</td></tr>
+        <tr><td class="mono">--dur</td><td class="mono">150ms</td><td>The default. Popovers, disclosure, most transitions</td></tr>
+        <tr><td class="mono">--dur-slow</td><td class="mono">300ms</td><td>Drawers, sheets, anything crossing a large distance</td></tr>
+        <tr><td class="mono">--ease</td><td class="mono">cubic-bezier(.4, 0, .2, 1)</td><td>Every curve. There is no second easing.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>All four are tenant-configurable through <code>DesignTokens.motion</code>, so a hardcoded
+  <code>150ms</code> becomes the one element that ignores a tenant's motion settings.</p>
+
+  <h3>Overlay enter and exit</h3>
+  <p>Radix surfaces animate through the shared utility set rather than bespoke keyframes. Every
+  popper-based component uses the same combination, which is why they feel like one system:</p>
+<pre><code>data-[state=open]:animate-in   data-[state=closed]:animate-out
+data-[state=open]:fade-in-0    data-[state=closed]:fade-out-0
+data-[state=open]:zoom-in-95   data-[state=closed]:zoom-out-95
+data-[side=bottom]:slide-in-from-top-2
+data-[side=top]:slide-in-from-bottom-2
+data-[side=left]:slide-in-from-right-2
+data-[side=right]:slide-in-from-left-2</code></pre>
+  <p>The directional slide is what makes a menu appear to come <em>from</em> its trigger. Keep it
+  when you add a primitive; a popover that only fades reads as unanchored.</p>
+
+  <h3>Named keyframes</h3>
+  <p>The complete set in <code>index.css</code>. Reuse one before writing another.</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th class="mono">Keyframe</th><th>Motion</th><th>Used for</th></tr></thead>
+      <tbody>
+        <tr><td class="mono">accordion-down / -up</td><td>Height 0 &harr; content height</td><td>Accordion, Collapsible</td></tr>
+        <tr><td class="mono">fadeIn</td><td>Opacity 0&rarr;1, translateY 4px&rarr;0</td><td>Content appearing in place</td></tr>
+        <tr><td class="mono">subpanel-in</td><td>Opacity 0&rarr;1, translateX &minus;10px&rarr;0</td><td>Sidebar sub-panels sliding in</td></tr>
+        <tr><td class="mono">spin / auth-spin</td><td>360&deg; rotation</td><td>Loading spinners</td></tr>
+        <tr><td class="mono">ai-pulse</td><td>Opacity .3&harr;1, scale .8&harr;1.2</td><td>AI activity indicator</td></tr>
+        <tr><td class="mono">typingDot</td><td>Staggered 3px lift, opacity .3&harr;1</td><td>Chat typing indicator</td></tr>
+        <tr><td class="mono">cc-kpi-pulse</td><td>Opacity 1&harr;.45</td><td>A KPI still loading</td></tr>
+        <tr><td class="mono">hub-border-draw</td><td>Angle 0&rarr;360&deg;</td><td>Conic border sweep on hub cards</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="block rule">
+    <p class="eyebrow">Rule &middot; reduced motion</p>
+    <p>Honour <code>prefers-reduced-motion: reduce</code>. The theme helper already checks it. For
+    anything you add, the reduced path must reach the same end state immediately — not a shortened
+    animation, and never a missing one that leaves the interface mid-transition.</p>
+  </div>
+
+  <div class="block note">
+    <p class="eyebrow">Reference</p>
+    <p>Motion here is functional: it shows where something came from, or that work is in progress.
+    There is no decorative, scroll-triggered or ambient animation anywhere in the product, and
+    adding some would make the page that has it look like a different application.</p>
   </div>
 </section>
 
