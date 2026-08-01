@@ -5,6 +5,7 @@ import type { IconName } from '../components/Icon.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
+import { Combobox } from '../components/ui/combobox.js';
 import { apiFetch } from '../lib/api.js';
 import { HUDUMIKA_FOOTER_HTML } from '../lib/watermark.js';
 import { readXlsxSheets } from '../lib/xlsx-read.js';
@@ -90,6 +91,17 @@ const OVERRIDE_LABELS: Record<string, string> = {
   insurance_rate: 'Insurance',
 };
 
+interface HsSuggestion {
+  code: string;
+  description: string;
+  duty_rate: number | null;
+  vat_rate: number | null;
+  /** How many words of the goods description this tariff entry contains. */
+  matched: number;
+  matchedWords: string[];
+  totalWords: number;
+}
+
 interface MultiItemRow {
   id: string;
   description: string;
@@ -104,6 +116,12 @@ interface MultiItemRow {
   ov_vat: string;
   ov_rdl: string;
   ov_cpf: string;
+  /** Left out of the calculation. Set by the importer for rows that look like
+   *  invoice furniture — always visible, always one click to reverse. Nothing
+   *  the importer reads is ever discarded without the user seeing it. */
+  excluded?: boolean;
+  /** Why the importer flagged this row, shown beside it. */
+  flag?: string;
 }
 
 function newMultiItemRow(): MultiItemRow {
@@ -129,7 +147,11 @@ function rowRateOverrides(r: MultiItemRow): Record<string, number> | undefined {
 }
 
 /** Spec caps the cargo table at 20 rows. */
-const MAX_CARGO_ROWS = 20;
+// A real commercial invoice runs to hundreds of lines — 20 silently discarded
+// most of a 260-line upload. The backend deduplicates HS lookups per distinct
+// code rather than per line, so length costs little; this is a guard against a
+// runaway paste, not a product limit.
+const MAX_CARGO_ROWS = 400;
 
 function rowHasOverride(r: MultiItemRow): boolean {
   return rowRateOverrides(r) !== undefined;
@@ -143,7 +165,7 @@ function RowRate({ label, value, onChange, placeholder }: {
   const active = value.trim() !== '';
   return (
     <div>
-      <label style={{ fontSize: 9.5, fontWeight: 700, color: active ? 'var(--gold, #B8862F)' : 'var(--ink4)', textTransform: 'uppercase' }}>{label}</label>
+      <label style={{ fontSize: 9.5, fontWeight: 700, color: active ? 'var(--gold, #B8862F)' : 'var(--ink3)', textTransform: 'uppercase' }}>{label}</label>
       <input
         className="input-field"
         type="number"
@@ -214,7 +236,7 @@ const fmtUsd = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDig
 function RRow({ label, value, hi, sub }: { label: string; value: string; hi?: boolean; sub?: boolean }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid var(--border)', gap: 10 }}>
-      <span style={{ fontSize: sub ? 12 : hi ? 13 : 12.5, color: sub ? 'var(--ink4)' : 'var(--ink2)', fontWeight: hi ? 700 : 400, fontStyle: sub ? 'italic' : 'normal' }}>{label}</span>
+      <span style={{ fontSize: sub ? 12 : hi ? 13 : 12.5, color: sub ? 'var(--ink3)' : 'var(--ink2)', fontWeight: hi ? 700 : 400, fontStyle: sub ? 'italic' : 'normal' }}>{label}</span>
       <span style={{ fontSize: hi ? 15 : 13, fontWeight: 700, color: hi ? 'var(--teal)' : 'var(--ink)', flexShrink: 0, textAlign: 'right' }}>{value}</span>
     </div>
   );
@@ -266,7 +288,7 @@ function breakdownRowsTotal(rows: BreakdownRowData[], vatRatePct: number): numbe
 }
 
 function BreakdownHeaderRow() {
-  const cell: React.CSSProperties = { fontSize: 9.5, fontWeight: 700, color: 'var(--ink4)', textTransform: 'uppercase', letterSpacing: '.05em' };
+  const cell: React.CSSProperties = { fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.05em' };
   return (
     <div style={{ display: 'grid', gridTemplateColumns: BREAKDOWN_GRID_COLS, gap: 10, padding: '0 0 7px', borderBottom: '1px solid var(--border)' }}>
       <span style={cell}>Description</span>
@@ -596,7 +618,7 @@ function FormattedLandedCostBreakdown({
           TPA CHARGES
         </div>
         <BreakdownTable rows={tpaRows} vatRatePct={vatRatePct} />
-        {tpaRows.length === 0 && <div style={{ fontSize: 12, color: 'var(--ink4)', fontStyle: 'italic', padding: '6px 0' }}>No TPA charges (air mode, or nothing added).</div>}
+        {tpaRows.length === 0 && <div style={{ fontSize: 12, color: 'var(--ink3)', fontStyle: 'italic', padding: '6px 0' }}>No TPA charges (air mode, or nothing added).</div>}
         <Image1TotalStrip label="Total TPA Charges" value={`TZS ${fmt(tpaSubtotal)}`} />
         <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 10, lineHeight: 1.5 }}>
           Wharfage, Port Infrastructure Development and Green Port Initiatives are published TPA rates.
@@ -608,7 +630,7 @@ function FormattedLandedCostBreakdown({
           ICD CHARGES
         </div>
         <BreakdownTable rows={icdRows} vatRatePct={vatRatePct} />
-        {icdRows.length === 0 && <div style={{ fontSize: 12, color: 'var(--ink4)', fontStyle: 'italic', padding: '6px 0' }}>Nothing entered yet — populate Shore/Port Handling, ICD Movement, Container Transfer, Customs Verification and Corridor Levy in Tools → Rate Card.</div>}
+        {icdRows.length === 0 && <div style={{ fontSize: 12, color: 'var(--ink3)', fontStyle: 'italic', padding: '6px 0' }}>Nothing entered yet — populate Shore/Port Handling, ICD Movement, Container Transfer, Customs Verification and Corridor Levy in Tools → Rate Card.</div>}
         <Image1TotalStrip label="Total ICD Charges" value={`TZS ${fmt(icdSubtotal)}`} />
         <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 10, lineHeight: 1.5 }}>
           Sourced from your Rate Card (Tools → Rate Card) — a commercial estimate, not a TRA assessment.
@@ -621,7 +643,7 @@ function FormattedLandedCostBreakdown({
           CLEARANCE CHARGES <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>(documentation, verification &amp; TASAC agency fee)</span>
         </div>
         <BreakdownTable rows={clearanceRows} vatRatePct={vatRatePct} />
-        {clearanceRows.length === 0 && cfDocnDef === 0 && cfVerifDef === 0 && cfAgencyRateCardDef === 0 && <div style={{ fontSize: 12, color: 'var(--ink4)', fontStyle: 'italic', padding: '6px 0' }}>No agency fee yet — set one in Tools → Rate Card, or pick one from the additional-charges search below (GN. 83-2026 minimum agency fees).</div>}
+        {clearanceRows.length === 0 && cfDocnDef === 0 && cfVerifDef === 0 && cfAgencyRateCardDef === 0 && <div style={{ fontSize: 12, color: 'var(--ink3)', fontStyle: 'italic', padding: '6px 0' }}>No agency fee yet — set one in Tools → Rate Card, or pick one from the additional-charges search below (GN. 83-2026 minimum agency fees).</div>}
         <Image1TotalStrip label="Total Clearance Charges" value={`TZS ${fmt(clearanceCardTotal)}`} />
         <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 10, lineHeight: 1.5 }}>
           Documentation and Verification are sourced from your Rate Card; Agency Fee comes from what you've picked below if anything, otherwise your Rate Card's own default. Trucking and other clearing-service fees aren't included — add them from the Products &amp; Services catalog when writing the invoice.
@@ -633,7 +655,7 @@ function FormattedLandedCostBreakdown({
           TBS CHARGES
         </div>
         <BreakdownTable rows={tbsRows} vatRatePct={vatRatePct} />
-        {tbsRows.length === 0 && <div style={{ fontSize: 12, color: 'var(--ink4)', fontStyle: 'italic', padding: '6px 0' }}>No TBS charge on this quote.</div>}
+        {tbsRows.length === 0 && <div style={{ fontSize: 12, color: 'var(--ink3)', fontStyle: 'italic', padding: '6px 0' }}>No TBS charge on this quote.</div>}
         <Image1TotalStrip label="Total TBS Charges" value={`TZS ${fmt(tbsSubtotal)}`} />
         <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 10, lineHeight: 1.5 }}>
           Physical Verification Fee (TZS 150,000) + Service Fee (TZS 30,000) are flat reference rates from the clearing agent's own rate sheet — verify against your actual TBS invoice.
@@ -645,7 +667,7 @@ function FormattedLandedCostBreakdown({
           SHIPPING LINE CHARGES
         </div>
         <BreakdownTable rows={shipRows} vatRatePct={vatRatePct} />
-        {shipRows.length === 0 && <div style={{ fontSize: 12, color: 'var(--ink4)', fontStyle: 'italic', padding: '6px 0' }}>Not applicable for air cargo.</div>}
+        {shipRows.length === 0 && <div style={{ fontSize: 12, color: 'var(--ink3)', fontStyle: 'italic', padding: '6px 0' }}>Not applicable for air cargo.</div>}
         <Image1TotalStrip label="Total Shipping Line Charges" value={`TZS ${fmt(shippingSubtotal)}`} />
         <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 10, lineHeight: 1.5 }}>
           Delivery Order Fee (TZS 56,286) and Handling/TASAC Fee (TZS 389,311.50, FCL only) are flat reference rates from the clearing agent's own rate sheet — verify against your actual shipping line invoice.
@@ -700,7 +722,7 @@ function FormattedLandedCostBreakdown({
           <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>
             GRAND TOTAL — LANDED COST
           </div>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink4)', textTransform: 'uppercase' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>
             TOTAL LANDED COST
           </div>
           <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--orange, #ea580c)', letterSpacing: '-0.02em', marginTop: 2 }}>
@@ -812,20 +834,26 @@ const SEAPORT_SUGGESTIONS = [
   'Antwerp, Belgium (BEANR)',
   'Hamburg, Germany (DEHAM)',
 ];
+// Full airport name + country + IATA code. The country is part of the label on
+// purpose: it makes the entry self-describing (two "International Airport"s are
+// otherwise hard to tell apart) and lets Country of Origin autofill from an
+// airport exactly as it does from a sea port. The country is always the last
+// comma-separated segment before the code — same shape as SEAPORT_SUGGESTIONS.
 const AIRPORT_SUGGESTIONS = [
-  // Full airport name + IATA code.
-  'Guangzhou Baiyun International Airport (CAN)',
-  'Shanghai Pudong International Airport (PVG)',
-  'Hong Kong International Airport (HKG)',
-  'Dubai International Airport (DXB)',
-  'Hamad International Airport, Doha (DOH)',
-  'Istanbul Airport (IST)',
-  'Chhatrapati Shivaji Maharaj International Airport, Mumbai (BOM)',
-  'Jomo Kenyatta International Airport, Nairobi (NBO)',
-  'Bole International Airport, Addis Ababa (ADD)',
-  'Amsterdam Airport Schiphol (AMS)',
-  'London Heathrow Airport (LHR)',
-  'Julius Nyerere International Airport, Dar es Salaam (DAR)',
+  'Guangzhou Baiyun International Airport, China (CAN)',
+  'Shanghai Pudong International Airport, China (PVG)',
+  'Hong Kong International Airport, Hong Kong (HKG)',
+  'Dubai International Airport, United Arab Emirates (DXB)',
+  'Hamad International Airport, Doha, Qatar (DOH)',
+  // "Türkiye", not "Turkey" — that is the ISO 3166 name reference_countries
+  // stores, and the autofill only accepts an exact match against it.
+  'Istanbul Airport, Türkiye (IST)',
+  'Chhatrapati Shivaji Maharaj International Airport, Mumbai, India (BOM)',
+  'Jomo Kenyatta International Airport, Nairobi, Kenya (NBO)',
+  'Bole International Airport, Addis Ababa, Ethiopia (ADD)',
+  'Amsterdam Airport Schiphol, Netherlands (AMS)',
+  'London Heathrow Airport, United Kingdom (LHR)',
+  'Julius Nyerere International Airport, Dar es Salaam, Tanzania (DAR)',
 ];
 
 const SHIPMENT_MODE_OPTIONS: { key: ShipmentModeKey; label: string; icon: string }[] = [
@@ -1501,18 +1529,53 @@ function printMultiReport(result: MultiItemResult, meta: ReportMeta = {}) {
    *  cargo, so using it here would overstate the figure by the whole FOB. */
   const amountToPrepareTzs = result.totals.total - result.totals.fob_tzs;
 
+  const totalUnits = result.items.reduce((s, x) => s + x.qty, 0);
+
+  /**
+   * Only the taxes that actually apply. Excise, RDL and CPF are zero on most
+   * consignments, and a row of zeros invites the reader to treat a real charge
+   * as noise — while omitting one that *was* charged would understate the bill.
+   * So a component is shown when it is non-zero, and VAT and duty always are,
+   * since they are the two the reader is looking for.
+   */
+  const taxComponents: { label: string; amount: number }[] = [
+    { label: 'Import duty', amount: result.totals.duty },
+    { label: 'Excise duty', amount: result.totals.excise },
+    { label: 'Railways Development Levy (RDL)', amount: result.totals.rdl },
+    { label: 'Customs Processing Fee (CPF)', amount: result.totals.cpf },
+    { label: 'VAT on imports', amount: result.totals.vat },
+  ];
+  const taxRows = taxComponents
+    .filter(t => t.amount > 0 || /duty|vat/i.test(t.label))
+    .map(t => `<div class="row"><span class="k">${t.label}</span><span class="v">TZS ${fmt(t.amount)}</span></div>`)
+    .join('');
+
+  /**
+   * The reference pages. Every line's own assessment, so the single figure on
+   * page 1 can be checked back to the goods it came from — and a landed cost
+   * per unit, which is the number anyone pricing the goods actually needs.
+   */
   const itemRows = result.items.map(it => `
     <tr>
       <td>${it.line_no}</td>
       <td class="desc">${it.description}</td>
       <td class="code">${it.hs_code}</td>
       <td class="r unit">${it.qty}</td>
-      <td class="r">TZS ${fmt(it.cif_tzs)}</td>
-      <td class="r">TZS ${fmt(it.duty)}</td>
-      <td class="r">TZS ${fmt(it.vat)}</td>
-      <td class="r tot">TZS ${fmt(it.landed_total)}</td>
+      <td class="r">${fmt(it.cif_tzs)}</td>
+      <td class="r">${fmt(it.duty)}</td>
+      <td class="r">${fmt(it.excise)}</td>
+      <td class="r">${fmt(it.rdl)}</td>
+      <td class="r">${fmt(it.cpf)}</td>
+      <td class="r">${fmt(it.vat)}</td>
+      <td class="r">${it.qty > 0 ? fmt(it.landed_total / it.qty) : '—'}</td>
+      <td class="r tot">${fmt(it.landed_total)}</td>
     </tr>
   `).join('');
+
+  // Proof that the reference pages reconcile to the summary. Computed from the
+  // rendered lines, not restated from the totals, so a mismatch would show.
+  const lineSum = result.items.reduce((s, x) => s + x.landed_total, 0);
+  const lineSumGap = lineSum - result.totals.total;
 
   w.document.write(`<!DOCTYPE html><html><head><title>Landed Cost Report (Multi-Item) &middot; ClearOS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1553,12 +1616,26 @@ html,body{background:var(--backdrop);color:var(--ink);font-family:"Inter",system
 .parties .kv .k{color:var(--slate)}
 .parties .kv .v{color:var(--ink-700);font-weight:600;text-align:right}
 .tbl-wrap{margin-top:18px}
-table.cost{width:100%;border-collapse:collapse;font-size:11px}
+/* table-layout:fixed with explicit widths is what stops a long product
+   description stretching the table and squeezing the money columns until
+   their digits collide. Without it, a 90-character line item pushed the
+   figures into each other and they read as one continuous number. */
+table.cost{width:100%;table-layout:fixed;border-collapse:collapse;font-size:11px}
+table.cost col.c-no{width:4%}
+table.cost col.c-desc{width:32%}
+table.cost col.c-hs{width:11%}
+table.cost col.c-qty{width:7%}
+table.cost col.c-cif{width:13%}
+table.cost col.c-duty{width:11%}
+table.cost col.c-vat{width:11%}
+table.cost col.c-tot{width:14%}
 table.cost thead th{background:var(--ink);color:#fff;font-weight:600;font-size:9px;letter-spacing:.04em;text-transform:uppercase;padding:8px 9px;text-align:left;white-space:nowrap}
 table.cost thead th.r{text-align:right}
-table.cost td{padding:7px 9px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
-table.cost td.r{text-align:right;font-variant-numeric:tabular-nums}
-.desc{color:var(--ink-700);font-weight:600}
+table.cost td{padding:7px 9px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+/* Numbers never break mid-figure; text wraps instead of overflowing. */
+table.cost td.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.desc{color:var(--ink-700);font-weight:600;overflow-wrap:anywhere;word-break:break-word;hyphens:auto}
+table.cost td .code{overflow-wrap:anywhere}
 .code{font-family:"IBM Plex Mono",monospace;font-size:9.5px;font-weight:600;color:var(--acc-600)}
 .unit{font-size:10px;color:var(--slate)}
 td.tot{font-weight:700;color:var(--ink)}
@@ -1619,6 +1696,41 @@ tr.subt td.tot{color:var(--acc-600)}
   .summary,.parties,.head,.terms,.client,.override{page-break-inside:avoid}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+/* Cost build-up cards. Same visual language as the summary block below them
+   so the document reads as one costing rather than a table plus a footnote. */
+.card{margin-top:16px;border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:var(--paper);page-break-inside:avoid}
+.card h3{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc-600);font-weight:700;margin-bottom:11px;display:flex;align-items:center}
+.card h3 .n{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;background:var(--acc);color:#fff;border-radius:5px;font-family:'Space Grotesk';font-size:10.5px;margin-right:8px}
+.card .lead{font-size:10.5px;color:var(--slate);margin:-4px 0 9px;line-height:1.55}
+.card .row{display:flex;flex-wrap:nowrap;align-items:baseline;justify-content:space-between;gap:10px;font-size:11.5px;padding:6px 0;border-bottom:1px solid var(--line-soft)}
+.card .row .k{color:var(--ink-700);min-width:0;overflow-wrap:break-word}
+.card .row .k .hint{color:var(--slate-400);font-size:9.5px}
+.card .row .v{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;flex:none}
+.card .row.tot{border-bottom:none;border-top:1.5px solid var(--ink);margin-top:4px;padding-top:9px}
+.card .row.tot .k{font-weight:700}
+.card .row.tot .v{font-weight:800;color:var(--acc-600);font-size:13px}
+.card .note{margin-top:10px;font-size:9.5px;line-height:1.6;color:var(--slate);background:var(--tint);border-radius:8px;padding:8px 10px}
+/* Reference pages: the working behind the summary, started on a fresh sheet. */
+.ref{margin-top:26px;page-break-before:always;break-before:page}
+.ref-head h3{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc-600);font-weight:700;margin-bottom:5px}
+.ref-head p{font-size:10.5px;color:var(--slate);line-height:1.6;margin-bottom:12px;max-width:150mm}
+table.ref-t{font-size:9px}
+table.ref-t thead th{font-size:8px;padding:7px 5px}
+table.ref-t td{padding:5px}
+table.ref-t col.c-no{width:3.2%}
+table.ref-t col.c-desc{width:20%}
+table.ref-t col.c-hs{width:8.6%}
+table.ref-t col.c-qty{width:5.2%}
+table.ref-t col.c-cif{width:8.4%}
+table.ref-t col.c-duty{width:7.6%}
+table.ref-t col.c-ex{width:6.6%}
+table.ref-t col.c-rdl{width:6.2%}
+table.ref-t col.c-cpf{width:6.2%}
+table.ref-t col.c-vat{width:7.6%}
+table.ref-t col.c-unit{width:9%}
+table.ref-t col.c-tot{width:11.4%}
+.ref-foot{margin-top:10px;font-size:10px;line-height:1.6;color:var(--ink-700);background:var(--tint);border-left:3px solid var(--acc);border-radius:0 8px 8px 0;padding:9px 12px}
+.ref-foot.bad{background:#FEF2F2;border-left-color:#DC2626;color:#7F1D1D;font-weight:600}
 </style></head><body>
 
 <div class="toolbar">
@@ -1652,25 +1764,47 @@ tr.subt td.tot{color:var(--acc-600)}
       <div class="kv"><span class="k">Destination</span><span class="v">${destinationLabel}</span></div></div>
   </section>
 
-  <div class="tbl-wrap">
-  <table class="cost">
-    <thead><tr><th>#</th><th>Description</th><th>HS Code</th><th class="r">Qty</th><th class="r">CIF (TZS)</th><th class="r">Duty</th><th class="r">VAT</th><th class="r">Landed Total</th></tr></thead>
-    <tbody>${itemRows}
-    <tr class="subt">
-      <td colSpan="3" class="desc">Totals (${result.items.length} items)</td>
-      <td class="r unit">${result.items.reduce((s, x) => s + x.qty, 0)}</td>
-      <td class="r">TZS ${fmt(result.totals.cif_tzs)}</td>
-      <td class="r">TZS ${fmt(result.totals.duty)}</td>
-      <td class="r">TZS ${fmt(result.totals.vat)}</td>
-      <td class="r tot">TZS ${fmt(result.totals.total)}</td>
-    </tr>
-    </tbody>
-  </table>
-  </div>
+  <!-- The consignment is presented as one costing, exactly like the
+       single-item report: cargo value, then what is added to it, in the order
+       the money is actually incurred. The per-line arithmetic that produced
+       these figures is not deleted — it moves to the reference pages after the
+       summary, where it belongs for checking rather than for reading. -->
+  <section class="card">
+    <h3><span class="n">1</span>Cargo Value &mdash; FOB</h3>
+    <div class="row"><span class="k">Goods value, ${result.items.length} line item${result.items.length === 1 ? '' : 's'} <span class="hint">${totalUnits.toLocaleString('en-US')} units</span></span><span class="v">TZS ${fmt(result.totals.fob_tzs)}</span></div>
+    <div class="row tot"><span class="k">Total FOB</span><span class="v">USD ${result.totals.fob_usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+  </section>
+
+  <section class="card">
+    <h3><span class="n">2</span>Freight &amp; Insurance &mdash; to ${destinationShort}</h3>
+    <div class="row"><span class="k">Freight</span><span class="v">TZS ${fmt(result.totals.freight_tzs)}</span></div>
+    <div class="row"><span class="k">Insurance</span><span class="v">TZS ${fmt(result.totals.insurance_tzs)}</span></div>
+    <div class="row tot"><span class="k">CIF ${destinationShort} &mdash; the customs value</span><span class="v">TZS ${fmt(cifTotalTzs)}</span></div>
+  </section>
+
+  <section class="card">
+    <h3><span class="n">3</span>Duties &amp; Taxes &mdash; TRA</h3>
+    <p class="lead">Assessed per line against each item's own HS code and rates, then totalled here. The line-by-line assessment is on the reference pages.</p>
+    ${taxRows}
+    <div class="row tot"><span class="k">Total duties &amp; taxes payable to TRA</span><span class="v">TZS ${fmt(result.totals.statutory_total)}</span></div>
+    <div class="note">Effective rate across the consignment: <b>${result.totals.effective_statutory_rate_pct.toFixed(2)}%</b> of CIF. Individual lines differ &mdash; a line's own rate is on the reference pages.</div>
+  </section>
+
+  <section class="card">
+    <h3><span class="n">4</span>Port, Agency &amp; Destination</h3>
+    <div class="row"><span class="k">TPA wharfage</span><span class="v">TZS ${fmt(result.totals.wharfage)}</span></div>
+    <div class="row"><span class="k">${result.destination_charge_label}</span><span class="v">TZS ${fmt(result.totals.destination)}</span></div>
+    <div class="row tot"><span class="k">Total port &amp; destination</span><span class="v">TZS ${fmt(result.totals.wharfage + result.totals.destination)}</span></div>
+    <!-- Stated rather than shown as a zero line. A zero against "TBS" reads as
+         "no TBS charge applies", which is a different claim from "this basis
+         does not compute one" — and it is the clearing agent who would be held
+         to the first one. -->
+    <div class="note">Agency charges assessed per consignment rather than per line &mdash; TBS, GCLA, TMDA, CAMARTEC, shipping-line and clearing-agent fees &mdash; are <b>not included above</b>. Add them from your rate card before quoting a client. ${allNotes.some(n => /pvoc|inspection/i.test(n)) ? 'Several lines also require PVoC or Destination Inspection (see notes).' : ''}</div>
+  </section>
 
   <section class="summary">
     <div class="sum-l">
-      <h3><span class="n">10</span>Landed Cost Summary</h3>
+      <h3><span class="n">5</span>Landed Cost Summary</h3>
       <div class="row cifrow"><span class="k">CIF ${destinationShort} <span style="color:var(--slate);font-weight:400;font-size:8.5px">cargo, freight, insurance</span></span><span class="v">TZS ${fmt(cifTotalTzs)}</span></div>
       <div class="row"><span class="k">1&nbsp; Freight &amp; insurance — export country</span><span class="v">TZS ${fmt(freightInsTzs)}</span></div>
       <div class="row head"><span class="k">2&nbsp; Amount to pay in Tanzania</span><span></span></div>
@@ -1712,6 +1846,44 @@ tr.subt td.tot{color:var(--acc-600)}
     <div class="legal">This is a decision-support estimate, not a customs assessment or tax invoice. Final duties, taxes and charges are those determined by the Tanzania Revenue Authority on the lodged declaration.</div>
     <div class="credit"><span>Prepared on <b>ClearOS</b> &middot; Hudumika Platform</span><span>Multi-Item &middot; Confidential</span></div>
   </div>
+
+  <!-- Reference pages. Deliberately after the summary and the notes: this is
+       the working, not the answer. -->
+  <section class="ref">
+    <div class="ref-head">
+      <h3>Reference &mdash; Per-Line Assessment</h3>
+      <p>Every line of the consignment, assessed against its own HS code. All figures in TZS. The Line Landed Total column sums to the total landed cost on the summary above.</p>
+    </div>
+    <div class="tbl-wrap">
+    <table class="cost ref-t">
+      <colgroup><col class="c-no"><col class="c-desc"><col class="c-hs"><col class="c-qty"><col class="c-cif"><col class="c-duty"><col class="c-ex"><col class="c-rdl"><col class="c-cpf"><col class="c-vat"><col class="c-unit"><col class="c-tot"></colgroup>
+      <thead><tr>
+        <th>#</th><th>Description</th><th>HS Code</th><th class="r">Qty</th><th class="r">CIF</th>
+        <th class="r">Import</th><th class="r">Excise</th><th class="r">RDL</th><th class="r">CPF</th><th class="r">VAT</th>
+        <th class="r">Landed / unit</th><th class="r">Line Landed Total</th>
+      </tr></thead>
+      <tbody>${itemRows}
+      <tr class="subt">
+        <td colSpan="3" class="desc">Totals (${result.items.length} line${result.items.length === 1 ? '' : 's'})</td>
+        <td class="r unit">${totalUnits.toLocaleString('en-US')}</td>
+        <td class="r">${fmt(result.totals.cif_tzs)}</td>
+        <td class="r">${fmt(result.totals.duty)}</td>
+        <td class="r">${fmt(result.totals.excise)}</td>
+        <td class="r">${fmt(result.totals.rdl)}</td>
+        <td class="r">${fmt(result.totals.cpf)}</td>
+        <td class="r">${fmt(result.totals.vat)}</td>
+        <td class="r">&mdash;</td>
+        <td class="r tot">${fmt(lineSum)}</td>
+      </tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="ref-foot ${Math.abs(lineSumGap) > 1 ? 'bad' : ''}">
+      ${Math.abs(lineSumGap) > 1
+        ? `These lines sum to TZS ${fmt(lineSum)} against a summary total of TZS ${fmt(result.totals.total)} — a difference of TZS ${fmt(Math.abs(lineSumGap))}. Do not lodge on these figures; re-run the calculation.`
+        : `Reconciled: the ${result.items.length} lines above sum to TZS ${fmt(lineSum)}, matching the total landed cost on the summary.`}
+    </div>
+  </section>
 </div>
 
 <script>
@@ -1841,7 +2013,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
       <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 6 }}>
         {label}
       </label>
-      {hint && <div style={{ fontSize: 11, color: 'var(--ink4)', marginBottom: 6 }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 6 }}>{hint}</div>}
       {children}
     </div>
   );
@@ -1895,7 +2067,7 @@ function OverrideField({ label, suffix, value, onChange, placeholder, hint }: {
           </button>
         )}
       </div>
-      {hint && <div style={{ fontSize: 10.5, color: 'var(--ink4)', marginTop: 4 }}>{hint}</div>}
+      {hint && <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 4 }}>{hint}</div>}
     </div>
   );
 }
@@ -1949,9 +2121,20 @@ export const LandedCostPage: React.FC = () => {
   const [shareNotice, setShareNotice] = useState('');
   const [importNote, setImportNote] = useState('');
   const [importing, setImporting] = useState(false);
+  // Currency the uploaded invoice was priced in, and the rate used to bring it
+  // to USD. Null means USD (or nothing imported yet).
+  const [fxRates, setFxRates] = useState<Record<string, number>>({});
+  const [invoiceCurrency, setInvoiceCurrency] = useState<{ code: string; label: string; perUsd: number } | null>(null);
   // Set when a file parsed but its layout was not recognised — the user maps it
   // by hand rather than being told the upload failed.
   const [mapper, setMapper] = useState<{ rows: string[][]; label: string; headerIdx: number | null; roles?: string[] } | null>(null);
+  /** Suggested HS codes per row id. Suggestions only — nothing is written to a
+   *  line until the user accepts it, because a wrong HS code is a
+   *  misclassification, not a typo. */
+  const [hsSuggestions, setHsSuggestions] = useState<Record<string, HsSuggestion[]>>({});
+  const [suggesting, setSuggesting] = useState(false);
+  /** The goods total the invoice states for itself, used to check our own sum. */
+  const [declaredFob, setDeclaredFob] = useState<{ label: string; usd: number } | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [ovDuty,     setOvDuty]     = useState('');
   const [ovVat,      setOvVat]      = useState('');
@@ -2017,6 +2200,9 @@ export const LandedCostPage: React.FC = () => {
   // Load live FX rate and history on mount
   useEffect(() => {
     apiFetch('/v1/customs/fx-rate').then((r: any) => setFxRate(r.rate)).catch(() => setFxRate(2540));
+    // Needed to convert an invoice priced in something other than USD. Left
+    // empty on failure so the importer refuses rather than assuming USD.
+    apiFetch('/v1/customs/fx-rates').then((r: any) => setFxRates(r.rates ?? {})).catch(() => setFxRates({}));
     apiFetch('/v1/customs/landed-cost/history').then((r: any) => setHistory(Array.isArray(r) ? r.slice(0, 10) : [])).catch(() => {});
   }, []);
 
@@ -2106,7 +2292,10 @@ export const LandedCostPage: React.FC = () => {
   }
   const fxOverrideVal = ovFx.trim() === '' ? undefined : (parseFloat(ovFx) > 0 ? parseFloat(ovFx) : undefined);
   const overrideCount = Object.keys(buildRateOverrides() ?? {}).length + (fxOverrideVal ? 1 : 0);
-  const multiTotalFobUsd = multiItems.reduce((s, r) => s + (parseFloat(r.qty) || 0) * (parseFloat(r.unit_price_usd) || 0), 0);
+  // Switched-off rows are left out of the calculation, so they must be left
+  // out of the total shown next to it too — otherwise the figure on screen is
+  // not the figure being assessed.
+  const multiTotalFobUsd = multiItems.reduce((s, r) => r.excluded ? s : s + (parseFloat(r.qty) || 0) * (parseFloat(r.unit_price_usd) || 0), 0);
 
   // Real ICD operators charge different rates for the same service (see
   // /clearos/rate-card) — picking one here scopes the calculator's ICD/C&F
@@ -2173,6 +2362,9 @@ export const LandedCostPage: React.FC = () => {
 
   async function calculateMulti() {
     const rows = multiItems
+      // Rows the user switched off — nothing is dropped silently, but an
+      // excluded row must not reach the assessment.
+      .filter(r => !r.excluded)
       .map(r => ({
         description: r.description,
         hs_code: r.hs_code.trim(),
@@ -2262,56 +2454,44 @@ export const LandedCostPage: React.FC = () => {
     updateRow(row.id, { hs_code: item.id, description: row.description || cached?.description || '' });
   }
 
-  /** Port/airport lookup. Backed by the curated suggestion list for now, not
-   *  a table — deliberately an async search with the same shape the country
-   *  picker uses, so pointing it at a real UN/LOCODE endpoint later is a
-   *  one-line change with no UI churn. Free text is preserved via onCreate:
-   *  the list is suggestions, not an exhaustive set of ports. */
-  const searchPorts = useCallback(async (q: string): Promise<PickerItem[]> => {
-    const list = isAir ? AIRPORT_SUGGESTIONS : SEAPORT_SUGGESTIONS;
-    const needle = q.trim().toLowerCase();
-    const hits = needle ? list.filter(p => p.toLowerCase().includes(needle)) : list;
-    return hits
-      .sort((x, y) => (x.toLowerCase().startsWith(needle) ? 0 : 1) - (y.toLowerCase().startsWith(needle) ? 0 : 1))
-      .slice(0, 25)
-      .map(p => ({ id: p, label: p }));
-  }, [isAir]);
-
   /**
-   * The country a sea port sits in, taken from the suggestion's own label —
-   * `City, Country (UNLOCODE)`, so the trailing segment before the code.
+   * The country a loading point sits in, read off the suggestion's own label.
+   * Both lists share one shape — `… , Country (CODE)` — so the country is the
+   * last comma-separated segment before the trailing UN/LOCODE or IATA code.
    * `Singapore (SGSIN)` has no comma and yields "Singapore", which is right.
-   *
-   * Airports are deliberately excluded: their labels carry no country at all
-   * ("Guangzhou Baiyun International Airport (CAN)"), and the ones that do have
-   * a comma end in a city — "Hamad International Airport, Doha (DOH)" would
-   * give "Doha". Guessing here would be worse than leaving it blank, because
-   * origin drives EAC duty treatment.
    */
-  function countryFromSeaPort(portLabel: string): string | null {
-    if (isAir) return null;
-    const base = portLabel.replace(/\s*\([A-Z]{4,5}\)\s*$/, '').trim();
+  function countryFromLoadingPoint(label: string): string | null {
+    const base = label.replace(/\s*\([A-Z]{3,5}\)\s*$/, '').trim();
     if (!base) return null;
     const tail = base.includes(',') ? base.slice(base.lastIndexOf(',') + 1).trim() : base;
     return tail || null;
   }
 
   /**
-   * Fills Country of Origin from the port, but only as a starting point:
-   * never over an existing value, and only once the name is confirmed against
-   * reference_countries so the stored value stays canonical rather than a
-   * string scraped off a label.
+   * Keeps Country of Origin in step with the loading point.
+   *
+   * A country the user picked is never touched. A country this function filled
+   * earlier always follows the port — including being cleared when the new port
+   * resolves to nothing, since a stale "China" under a Rotterdam sailing is
+   * worse than an empty field the user has to complete.
+   *
+   * The name is confirmed against reference_countries before it is stored, so
+   * the value stays canonical rather than a string scraped off a label.
    */
   async function autofillOriginFromPort(portLabel: string) {
-    const guess = countryFromSeaPort(portLabel);
-    if (!guess || originCountry.trim()) return;
+    if (originCountry.trim() && !originFromPort) return;   // user's own choice
+
+    const guess = countryFromLoadingPoint(portLabel);
+    const clear = () => { if (originFromPort) { setOriginCountry(''); setOriginFromPort(false); } };
+    if (!guess) { clear(); return; }
+
     try {
       const matches = await searchCountries(guess);
       const exact = matches.find(m => String(m.id).toLowerCase() === guess.toLowerCase());
-      if (!exact) return;                       // unrecognised — leave it to the user
+      if (!exact) { clear(); return; }
       setOriginCountry(String(exact.id));
       setOriginFromPort(true);
-    } catch { /* the field simply stays empty */ }
+    } catch { clear(); }
   }
 
   /** Async country lookup against reference_countries (249 ISO entries), so
@@ -2351,23 +2531,38 @@ export const LandedCostPage: React.FC = () => {
     URL.revokeObjectURL(url);
   }
 
-  function parseCsvLine(line: string): string[] {
-    const cells: string[] = [];
-    let cur = '', inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const c = line[i];
+  /**
+   * Splits a whole CSV file into records.
+   *
+   * A newline inside a quoted field is part of the value, not a record break,
+   * so the file cannot be split into lines first. Doing that tore a real
+   * invoice row — `"2 steering cylinders, 2 boom cylinders,\n1 forearm
+   * cylinder"` — into two: the first half kept the description but lost its
+   * quantity and price columns, and the second half became a goods line that
+   * does not exist on the invoice. Suppliers wrap long cells and put their
+   * multi-line address in one cell, so this is normal, not malformed input.
+   */
+  function parseCsvGrid(text: string): string[][] {
+    const rows: string[][] = [];
+    let cells: string[] = [], cur = '', inQuotes = false;
+    // A wrapped cell keeps its newline as part of the value; collapse it to a
+    // space so "…boom cylinders, and\n1 forearm cylinder" reads as one phrase
+    // rather than running together as "and1 forearm cylinder".
+    const endCell = () => { cells.push(cur.replace(/\s*\n\s*/g, ' ').trim()); cur = ''; };
+    const endRow  = () => { endCell(); rows.push(cells); cells = []; };
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
       if (inQuotes) {
-        if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
-        else if (c === '"') { inQuotes = false; }
-        else cur += c;
-      } else {
-        if (c === '"') inQuotes = true;
-        else if (c === ',') { cells.push(cur); cur = ''; }
-        else cur += c;
-      }
+        if (c === '"' && text[i + 1] === '"') { cur += '"'; i++; }
+        else if (c === '"') inQuotes = false;
+        else cur += c;                                   // newlines land here
+      } else if (c === '"') inQuotes = true;
+      else if (c === ',') endCell();
+      else if (c === '\n') endRow();
+      else if (c !== '\r') cur += c;
     }
-    cells.push(cur);
-    return cells.map(c => c.trim());
+    if (cur || cells.length) endRow();
+    return rows;
   }
 
   /** Money off a real invoice: "USD 1,234.56", "$1,234.56", "1 234,56 ".
@@ -2391,6 +2586,48 @@ export const LandedCostPage: React.FC = () => {
     return Number.isFinite(n) ? n : NaN;
   }
 
+  /**
+   * The currency an invoice's money columns are written in.
+   *
+   * This exists because the calculator's inputs are USD. A South African
+   * invoice quoting "R 8,840.00" parsed to 8840 and was then treated as
+   * $8,840 — overstating the customs value, and therefore the duty, by the
+   * ZAR/USD rate (about 16x). Silence was the bug: the figures looked
+   * plausible enough to sign.
+   *
+   * Symbols first (they are unambiguous in context), then ISO codes. "$" is
+   * deliberately last among symbols so "R" wins on a Rand invoice.
+   */
+  const CURRENCY_MARKERS: { code: string; label: string; test: RegExp }[] = [
+    { code: 'ZAR', label: 'South African Rand', test: /(^|\s)R\s?[\d.,]/ },
+    { code: 'EUR', label: 'Euro',               test: /€/ },
+    { code: 'GBP', label: 'Pound Sterling',     test: /£/ },
+    { code: 'JPY', label: 'Japanese Yen',       test: /¥/ },
+    { code: 'INR', label: 'Indian Rupee',       test: /₹/ },
+    { code: 'USD', label: 'US Dollar',          test: /\$/ },
+    { code: 'ZAR', label: 'South African Rand', test: /\bZAR\b/i },
+    { code: 'EUR', label: 'Euro',               test: /\bEUR\b/i },
+    { code: 'GBP', label: 'Pound Sterling',     test: /\bGBP\b/i },
+    { code: 'KES', label: 'Kenyan Shilling',    test: /\b(KES|KSh)\b/i },
+    { code: 'TZS', label: 'Tanzanian Shilling', test: /\b(TZS|TSh)\b/i },
+    { code: 'AED', label: 'UAE Dirham',         test: /\bAED\b/i },
+    { code: 'CNY', label: 'Chinese Yuan',       test: /\b(CNY|RMB)\b/i },
+    { code: 'USD', label: 'US Dollar',          test: /\bUSD\b/i },
+  ];
+
+  /** Whichever currency marker appears most across the money cells. */
+  function detectCurrency(samples: string[]): { code: string; label: string } | null {
+    const tally = new Map<string, { label: string; n: number }>();
+    for (const raw of samples) {
+      const hit = CURRENCY_MARKERS.find(m => m.test.test(raw));
+      if (!hit) continue;
+      const prev = tally.get(hit.code);
+      tally.set(hit.code, { label: hit.label, n: (prev?.n ?? 0) + 1 });
+    }
+    const best = [...tally.entries()].sort((a, b) => b[1].n - a[1].n)[0];
+    return best ? { code: best[0], label: best[1].label } : null;
+  }
+
   /** Rows that are invoice furniture rather than goods. Real invoices carry
    *  subtotals, freight lines and bank details that must never become cargo. */
   function isNonCargoRow(desc: string): boolean {
@@ -2398,11 +2635,50 @@ export const LandedCostPage: React.FC = () => {
       .test(desc.trim());
   }
 
-  interface InvoiceColumns { desc: number; qty: number; price: number; amt: number; hs: number }
+  /**
+   * Trade terms that mark a summary line, but only trustworthy on a row that
+   * carries no quantity.
+   *
+   * The anchored list above only catches these at the start of the cell, so
+   * "SEA FREIGHT CHARGES" and "CIF DAR ES SALAAM" were imported as goods and
+   * added their own totals back into the cargo value. Matching anywhere is not
+   * safe by itself — a "Total station" is a real surveying instrument — so the
+   * row must also have no quantity, which no genuine goods line lacks.
+   */
+  function isSummaryTerm(desc: string): boolean {
+    return /\b(sub-?total|totals?|fob|cif|cfr|c\s*&\s*f|exw|ex\s*works|freight|insurance|charges?|balance|amount\s*due)\b/i
+      .test(desc.trim());
+  }
+
+  interface InvoiceColumns { desc: number; qty: number; price: number; amt: number; hs: number; model: number; unit: number }
 
   function locateColumns(cells: string[]): InvoiceColumns {
     const header = cells.map(h => h.toLowerCase().trim());
-    const find = (...pats: string[]) => header.findIndex(h => h.length > 0 && pats.some(p => h.includes(p)));
+
+    /**
+     * Scored rather than first-match. A real invoice had these two headers:
+     *
+     *   "Unit of measure(i.e pcs, rolls etc)"   ← col 2
+     *   "Quantity"                              ← col 5
+     *
+     * Plain `includes` matched "pcs" inside the first one and mapped Quantity
+     * to the dimensions column, so "2000x100x100V" became a quantity of
+     * 2,000,100,100. An exact header beats a prefix beats a mention, and a
+     * longer matching term beats a shorter one.
+     */
+    const find = (...pats: string[]) => {
+      let best = -1, bestScore = 0;
+      header.forEach((h, i) => {
+        if (!h) return;
+        let score = 0;
+        for (const p of pats) {
+          const s = h === p ? 1000 : h.startsWith(p) ? 500 : h.includes(p) ? 100 : 0;
+          if (s) score = Math.max(score, s + p.length);
+        }
+        if (score > bestScore) { bestScore = score; best = i; }
+      });
+      return best;
+    };
     return {
       desc:  find('description', 'product', 'item', 'goods', 'particular', 'commodity', 'article'),
       qty:   find('qty', 'quantity', 'pcs', 'units', 'pieces'),
@@ -2411,6 +2687,11 @@ export const LandedCostPage: React.FC = () => {
       // Substring 'hs' alone false-matches ordinary words, so an exact 'hs'
       // header is allowed but anything longer has to spell the column out.
       hs:    header.findIndex(h => h === 'hs' || ['hs code', 'hscode', 'hs-code', 'hs no', 'h.s', 'tariff'].some(p => h.includes(p))),
+      // Real invoices carry these two constantly — "MODEL: M6x70", "unit: SET".
+      // Model goes onto the description (customs needs the goods identified);
+      // unit fills the row's existing unit-of-measure field.
+      model: find('model', 'part no', 'part number', 'article no', 'spec'),
+      unit:  find('unit of measure', 'uom', 'unit type', 'pack'),
     };
   }
 
@@ -2458,34 +2739,81 @@ export const LandedCostPage: React.FC = () => {
     }
     const col = override ? override.col : locateColumns(grid[headerIdx]);
 
-    let skippedNonCargo = 0, skippedNoValue = 0, missingHs = 0, shortHs = 0, truncated = false;
+    // Read the money columns' currency before any value is trusted as USD.
+    const moneySamples: string[] = [];
+    for (const cells of grid.slice(headerIdx + 1)) {
+      if (col.price >= 0) moneySamples.push(cells[col.price] ?? '');
+      if (col.amt >= 0) moneySamples.push(cells[col.amt] ?? '');
+    }
+    const detected = detectCurrency(moneySamples);
+    const foreign = !!detected && detected.code !== 'USD';
+    const rate = foreign ? (fxRates[detected!.code] ?? null) : null;
+    // A foreign currency with no rate must not be quietly treated as USD —
+    // that is the 16x overstatement this whole block exists to prevent.
+    if (foreign && !rate) {
+      setMultiError(
+        `This invoice is priced in ${detected!.label} (${detected!.code}), but no live exchange rate is available, ` +
+        `so the values cannot be converted to USD. Try again shortly, or convert the invoice before uploading.`,
+      );
+      return;
+    }
+    const toUsd = (n: number) => (rate ? n / rate : n);
+    setInvoiceCurrency(foreign && rate ? { ...detected!, perUsd: rate } : null);
+
+    let excludedCount = 0, noValueCount = 0, missingHs = 0, shortHs = 0, truncated = false, conflictCount = 0;
+    const money2 = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    // Money sitting on rows the importer treats as invoice furniture. The
+    // supplier prints its own FOB/CIF totals there, and that is the one figure
+    // in the file we can check our own arithmetic against.
+    const declaredTotals: { label: string; usd: number }[] = [];
+    const noValueExamples: string[] = [];
     let runningTotal = 0;
     const rows: MultiItemRow[] = [];
     for (const cells of grid.slice(headerIdx + 1)) {
       const description = (cells[col.desc] ?? '').trim();
       if (!description) continue;
-      if (isNonCargoRow(description)) { skippedNonCargo++; continue; }
+      const looksNonCargo = isNonCargoRow(description);
 
       const qty = col.qty >= 0 ? parseMoneyCell(cells[col.qty] ?? '') : NaN;
       const unit = col.price >= 0 ? parseMoneyCell(cells[col.price] ?? '') : NaN;
       const amount = col.amt >= 0 ? parseMoneyCell(cells[col.amt] ?? '') : NaN;
 
       const qtyVal = Number.isFinite(qty) && qty > 0 ? qty : 1;
-      // Prefer an explicit unit price; otherwise derive it from the line
-      // amount, which is what most invoices actually print.
-      const unitVal = Number.isFinite(unit) && unit > 0 ? unit
-        : (Number.isFinite(amount) && amount > 0 ? amount / qtyVal : NaN);
-      if (!Number.isFinite(unitVal) || unitVal <= 0) { skippedNoValue++; continue; }
-
-      // The word list above is English-only, so a total labelled "Gesamt",
-      // "Montant total" or "总计" slips through and lands as cargo worth the
-      // whole invoice. Structurally a total carries no quantity and its value
-      // is the sum of the lines above it — that holds in any language.
-      const lineTotal = qtyVal * unitVal;
-      const hasQty = Number.isFinite(qty) && qty > 0;
-      if (!hasQty && rows.length >= 2 && runningTotal > 0 && Math.abs(lineTotal - runningTotal) <= runningTotal * 0.005) {
-        skippedNonCargo++; continue;
+      // The line amount wins over the printed unit price.
+      //
+      // The amount is what the supplier is charging and what customs values;
+      // the unit price is usually that amount divided down and rounded for
+      // display. Recomputing qty x unit price therefore cannot reproduce the
+      // invoice: a line billed at USD 2.23 for 200 pieces prints as 0.01 and
+      // multiplies back to 2.00, understating it by 10%. Deriving the unit
+      // price from the amount instead makes every line total match the
+      // document it came from.
+      const hasAmount = Number.isFinite(amount) && amount > 0;
+      const hasUnit = Number.isFinite(unit) && unit > 0;
+      const unitVal = hasAmount ? amount / qtyVal : (hasUnit ? unit : NaN);
+      // Both present and materially apart is worth surfacing rather than
+      // silently resolving — it can equally mean a mis-mapped column.
+      const priceConflict = hasAmount && hasUnit
+        && Math.abs(qtyVal * unit - amount) > Math.max(0.02, amount * 0.02);
+      // No price is not a reason to discard a line. Free-of-charge goods carry
+      // a real HS code and still have to be declared — "Chalk Markers, qty 1,
+      // R 0.00, 9609.00.00" is cargo. It comes in at zero and gets flagged.
+      const noValue = !Number.isFinite(unitVal) || unitVal <= 0;
+      if (noValue) {
+        noValueCount++;
+        if (noValueExamples.length < 4) noValueExamples.push(description.slice(0, 42));
       }
+      const priceUsd = noValue ? 0 : toUsd(unitVal);
+
+      // The word list is English-only, so a total labelled "Gesamt" or "总计"
+      // slips through. Structurally a total carries no quantity and its value
+      // is the sum of the lines above it — that holds in any language.
+      const lineTotal = noValue ? 0 : qtyVal * unitVal;
+      const hasQty = Number.isFinite(qty) && qty > 0;
+      const looksLikeTotal = !hasQty && !noValue && (
+        (rows.length >= 2 && runningTotal > 0 && Math.abs(lineTotal - runningTotal) <= runningTotal * 0.005)
+        || isSummaryTerm(description)
+      );
       runningTotal += lineTotal;
 
       if (rows.length >= MAX_CARGO_ROWS) { truncated = true; break; }
@@ -2493,32 +2821,156 @@ export const LandedCostPage: React.FC = () => {
       const hs = col.hs >= 0 ? (cells[col.hs] ?? '').replace(/\s/g, '') : '';
       if (!hs) missingHs++;
       else if (hs.replace(/\D/g, '').length < 8) shortHs++;
-      rows.push({ ...newMultiItemRow(), description, hs_code: hs, qty: String(qtyVal), unit_price_usd: String(Number(unitVal.toFixed(4))) });
+
+      // Only invoice furniture is excluded by default, and even then the row
+      // stays visible with a one-click way back in.
+      const excluded = looksNonCargo || looksLikeTotal;
+      if (excluded) {
+        excludedCount++;
+        const stated = Number.isFinite(amount) && amount > 0 ? amount
+          : (Number.isFinite(unit) && unit > 0 ? unit : NaN);
+        if (Number.isFinite(stated)) declaredTotals.push({ label: description.slice(0, 48), usd: toUsd(stated) });
+      }
+      const flag = looksNonCargo || looksLikeTotal
+        ? 'Looks like a total, freight or notes row rather than goods.'
+        : noValue
+          ? 'The invoice shows no price for this line. Set one, or leave it at zero if it is free of charge.'
+          : priceConflict
+            ? `The invoice's own line total (${money2(amount)}) does not match its quantity × unit price (${money2(qtyVal * unit)}). The line total was used — check the columns are mapped correctly.`
+            : undefined;
+      if (priceConflict) conflictCount++;
+
+      // A model or part number identifies the goods, which is exactly what a
+      // customs description is for — "Hex head bolts" alone does not
+      // distinguish M6x70 from M10x70. Appended rather than dropped, and only
+      // when it is not already part of the description.
+      const model = col.model >= 0 ? (cells[col.model] ?? '').trim() : '';
+      const fullDescription = model && !description.toLowerCase().includes(model.toLowerCase())
+        ? `${description} — ${model}`
+        : description;
+
+      const uom = col.unit >= 0 ? (cells[col.unit] ?? '').trim() : '';
+
+      rows.push({
+        ...newMultiItemRow(),
+        description: fullDescription,
+        hs_code: hs,
+        qty: String(qtyVal),
+        unit: uom || 'unit',
+        unit_price_usd: String(Number(priceUsd.toFixed(6))),
+        excluded, flag,
+      });
     }
 
-    if (rows.length === 0) { setMultiError(`No cargo lines found in ${sourceLabel} — every row below the header was blank, a subtotal, or had no value.`); return; }
+    if (rows.length === 0) { setMultiError(`No rows with a description were found in ${sourceLabel} below the header.`); return; }
     setMultiItems(rows);
+
+    // Reconcile against the invoice's own stated goods total.
+    //
+    // Every defect this importer has had — a row torn in half by a newline
+    // inside a quoted cell, a column mapped to the wrong header, a unit price
+    // multiplied back instead of the line amount being used — changes the sum
+    // of the lines. The supplier already printed that sum. Comparing the two
+    // catches the whole class at once, including failures not yet seen, so a
+    // wrong figure cannot reach a duty calculation silently.
+    // Held as the declared figure only; the comparison is recomputed live from
+    // the rows, so it keeps checking as the user corrects lines by hand.
+    setDeclaredFob(declaredTotals
+      .filter(t => /\b(fob|total|sub-?total|goods|amount)\b/i.test(t.label) && !/freight|insurance|cif|c&f|cfr/i.test(t.label))
+      .sort((a, b) => b.usd - a.usd)[0] ?? null);
     // Say plainly what happened, including what still needs a human.
     const notes = [
       `Imported ${rows.length} line${rows.length === 1 ? '' : 's'} from ${sourceLabel}.`,
+      foreign && rate
+        ? `Prices were in ${detected!.label} (${detected!.code}) — converted to USD at ${rate.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${detected!.code} = 1 USD.`
+        : null,
       truncated ? `Only the first ${MAX_CARGO_ROWS} were taken — this calculator caps a consignment at ${MAX_CARGO_ROWS} lines.` : null,
       missingHs > 0 ? `${missingHs} still need an HS code — add them below before calculating.` : null,
       // Excel stores a code typed as a number, so 6907.21.00 comes back as
       // 6907.21 and would be classified against the wrong subheading.
       shortHs > 0 ? `${shortHs} HS code${shortHs === 1 ? ' is' : 's are'} shorter than 8 digits — Excel drops trailing zeros from codes entered as numbers. Check them before calculating.` : null,
-      skippedNonCargo > 0 ? `Skipped ${skippedNonCargo} non-cargo row${skippedNonCargo === 1 ? '' : 's'} (totals, freight, notes).` : null,
-      skippedNoValue > 0 ? `Skipped ${skippedNoValue} row${skippedNoValue === 1 ? '' : 's'} with no usable value.` : null,
+      excludedCount > 0 ? `${excludedCount} row${excludedCount === 1 ? ' looks' : 's look'} like totals or freight and ${excludedCount === 1 ? 'is' : 'are'} switched off below — switch ${excludedCount === 1 ? 'it' : 'them'} back on if ${excludedCount === 1 ? 'it belongs' : 'they belong'} on the declaration.` : null,
+      conflictCount > 0 ? `On ${conflictCount} line${conflictCount === 1 ? '' : 's'} the quantity × unit price disagrees with the line total the invoice prints — the invoice's own total was used, since that is the amount being charged.` : null,
+      noValueCount > 0
+        ? `${noValueCount} line${noValueCount === 1 ? ' has' : 's have'} no price on the invoice and came in at zero` +
+          (noValueExamples.length ? ` — e.g. ${noValueExamples.map(e => `"${e}"`).join(', ')}. Free-of-charge goods still have to be declared, so they are kept.` : '.')
+        : null,
     ].filter(Boolean).join(' ');
     setImportNote(notes);
     setMultiError('');
+  }
+
+  /** base64 without the `data:…;base64,` prefix the API does not want. */
+  function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(String(r.result).split(',')[1] ?? '');
+      r.onerror = () => reject(new Error('Could not read that file.'));
+      r.readAsDataURL(file);
+    });
+  }
+
+  /**
+   * PDFs, photos and scans go through OCR rather than a parser.
+   *
+   * The extracted lines always land in the mapper for confirmation, never
+   * straight into the calculation: OCR misreads quantities and prices, and an
+   * HS code it invented would be a misclassification. `allow_simulated: false`
+   * makes the API refuse rather than hand back its demo document — fabricated
+   * cargo must never reach a duty figure.
+   */
+  async function extractWithOcr(file: File) {
+    const mediaType = file.type || (/\.pdf$/i.test(file.name) ? 'application/pdf' : 'image/jpeg');
+    const res: any = await apiFetch('/v1/ocr/scan', {
+      method: 'POST',
+      body: JSON.stringify({ image_base64: await fileToBase64(file), media_type: mediaType, allow_simulated: false }),
+    });
+
+    const lines: any[] = res?.result?.hs_lines ?? [];
+    const usable = lines.filter(l => (l.description ?? '').trim());
+    if (usable.length === 0) {
+      setMultiError(
+        `No line items could be read from that ${/pdf$/i.test(mediaType) ? 'PDF' : 'image'}. ` +
+        `If it is a scan, a sharper or straighter photo usually helps — or upload the supplier's Excel/CSV instead.`,
+      );
+      return;
+    }
+
+    // Presented as a grid so it goes through exactly the same confirmation and
+    // column-mapping path as a spreadsheet — one review step, not two.
+    const header = ['Description', 'Qty', 'Unit Price', 'Amount', 'HS Code'];
+    const rows: string[][] = [header, ...usable.map(l => {
+      const qty = String(l.quantity ?? '').trim();
+      const value = String(l.value_usd ?? '').trim();
+      const q = parseFloat(qty) || 0;
+      const v = parseFloat(value) || 0;
+      return [
+        String(l.description ?? '').trim(),
+        qty,
+        // OCR gives a line total, not a unit price — derive it rather than
+        // leaving the row valueless.
+        q > 0 && v > 0 ? String(Number((v / q).toFixed(4))) : '',
+        value,
+        String(l.hs_code ?? '').trim(),
+      ];
+    })];
+
+    setMapper({ rows, label: `that ${/pdf$/i.test(mediaType) ? 'PDF' : 'image'}`, headerIdx: 0 });
+    setImportNote(
+      `Read ${usable.length} line${usable.length === 1 ? '' : 's'} from the document. ` +
+      `Check every figure and HS code before importing — OCR misreads, and a wrong HS code is a misclassification.`,
+    );
   }
 
   async function handleInvoiceUpload(file: File) {
     setImporting(true);
     setImportNote('');
     setMultiError('');
+    setMapper(null);
     try {
-      if (/\.(xlsx|xlsm)$/i.test(file.name)) {
+      if (/\.(pdf|png|jpe?g|webp|gif)$/i.test(file.name)) {
+        await extractWithOcr(file);
+      } else if (/\.(xlsx|xlsm)$/i.test(file.name)) {
         const sheets = await readXlsxSheets(file);
         const candidates = sheets
           .map(s => ({ sheet: s, headerIdx: findHeaderRow(s.rows) }))
@@ -2552,7 +3004,7 @@ export const LandedCostPage: React.FC = () => {
         const text = await file.text();
         // Drop the '#' guidance rows the template ships with; blank lines are
         // kept so row positions still line up with what the user sees.
-        const grid = text.split(/\r?\n/).filter(l => !l.trim().startsWith('#')).map(parseCsvLine);
+        const grid = parseCsvGrid(text).filter(r => !(r[0] ?? '').trim().startsWith('#'));
         if (findHeaderRow(grid) < 0 && grid.some(r => r.some(c => c.trim()))) {
           setMapper({ rows: grid, label: 'that CSV', headerIdx: null });
           return;
@@ -2622,7 +3074,10 @@ export const LandedCostPage: React.FC = () => {
   function validateStep(s: WizardStep): string | null {
     if (s === 2) {
       if (isFcl && numContainersVal < 1) return 'Enter at least one container.';
-      if (container === 'lcl' && cbmVal <= 0) return 'LCL is charged per CBM — enter the total volume.';
+      // `container` deliberately keeps its FCL/LCL value while Airfreight is
+      // selected, so switching back to sea restores the earlier choice. That
+      // meant an air shipment was being told "LCL is charged per CBM".
+      if (!isAir && container === 'lcl' && cbmVal <= 0) return 'LCL is charged per CBM — enter the total volume.';
       if (isAir && cbmVal <= 0 && weightKgVal <= 0) return 'Airfreight bills on chargeable weight — enter a volume or a gross weight.';
       return null;
     }
@@ -2632,7 +3087,7 @@ export const LandedCostPage: React.FC = () => {
         if (effectiveCif() <= 0) return 'Enter a CIF value (or FOB + freight) greater than zero.';
         return null;
       }
-      const usable = multiItems.filter(r => r.hs_code.trim() && (parseFloat(r.qty) || 0) > 0 && (parseFloat(r.unit_price_usd) || 0) > 0);
+      const usable = multiItems.filter(r => !r.excluded && r.hs_code.trim() && (parseFloat(r.qty) || 0) > 0);
       if (usable.length === 0) return 'Add at least one line with an HS code, quantity and unit price.';
       return null;
     }
@@ -2657,8 +3112,8 @@ export const LandedCostPage: React.FC = () => {
         }
         {step < 4
           ? <button type="button" disabled={!!stepError} onClick={() => { if (!validateStep(step)) setStep(s => (s + 1) as any); }}
-              style={{ padding: '10px 28px', borderRadius: 8, border: 'none', background: stepError ? 'var(--border)' : 'var(--teal)', color: stepError ? 'var(--ink4)' : '#fff', fontWeight: 700, fontSize: 13.5, cursor: stepError ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: stepError ? 'none' : '0 4px 16px color-mix(in srgb, var(--teal) 30%, transparent)' }}>
-              Continue <Icon name="arrowRight" size={14} color={stepError ? 'var(--ink4)' : '#fff'} />
+              style={{ padding: '10px 28px', borderRadius: 8, border: 'none', background: stepError ? 'var(--border)' : 'var(--teal)', color: stepError ? 'var(--ink3)' : '#fff', fontWeight: 700, fontSize: 13.5, cursor: stepError ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: stepError ? 'none' : '0 4px 16px color-mix(in srgb, var(--teal) 30%, transparent)' }}>
+              Continue <Icon name="arrowRight" size={14} color={stepError ? 'var(--ink3)' : '#fff'} />
             </button>
           : null
         }
@@ -2671,14 +3126,14 @@ export const LandedCostPage: React.FC = () => {
   // fragment rather than two copies that can drift apart.
   const invoiceImportBar = (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-      <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Upload the supplier invoice as Excel or CSV, or add each line by hand.</div>
+      <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Upload the supplier invoice — Excel, CSV, PDF or a photo. Or add each line by hand.</div>
       <div style={{ display: 'flex', gap: 8 }}>
         <button type="button" onClick={downloadCsvTemplate} className="btn btn-secondary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
           <Icon name="download" size={13} /> Template
         </button>
         <label className="btn btn-secondary" style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, cursor: importing ? 'progress' : 'pointer', opacity: importing ? 0.55 : 1 }}>
           <Icon name="upload" size={13} /> {importing ? 'Reading…' : 'Upload Invoice'}
-          <input type="file" accept=".csv,.xlsx,.xlsm" disabled={importing} style={{ display: 'none' }}
+          <input type="file" accept=".csv,.xlsx,.xlsm,.pdf,.png,.jpg,.jpeg,.webp" disabled={importing} style={{ display: 'none' }}
             onChange={e => { const f = e.target.files?.[0]; if (f) void handleInvoiceUpload(f); e.target.value = ''; }} />
         </label>
       </div>
@@ -2710,7 +3165,9 @@ export const LandedCostPage: React.FC = () => {
    */
   const invoiceMapper = (() => {
     if (!mapper) return null;
-    const PREVIEW_ROWS = 14;
+    // The preview is a sample for choosing the header row, not the import —
+    // showing 14 of 260 with no indication of that read as "only 14 imported".
+    const PREVIEW_ROWS = 30;
     const width = Math.max(...mapper.rows.slice(0, 40).map(r => r.length), 1);
     const auto = mapper.headerIdx != null ? locateColumns(mapper.rows[mapper.headerIdx] ?? []) : null;
     const roleFor = (c: number): string => {
@@ -2720,6 +3177,8 @@ export const LandedCostPage: React.FC = () => {
       if (c === auto.price) return 'price';
       if (c === auto.amt) return 'amt';
       if (c === auto.hs) return 'hs';
+      if (c === auto.model) return 'model';
+      if (c === auto.unit) return 'unit';
       return '';
     };
     // Seeded from whatever auto-detection did manage to recognise, so a
@@ -2738,7 +3197,7 @@ export const LandedCostPage: React.FC = () => {
     const ready = mapper.headerIdx != null && colOf('desc') >= 0 && (colOf('price') >= 0 || colOf('amt') >= 0);
 
     return (
-      <div style={{ marginTop: 14, border: '1px solid var(--gold-l)', borderRadius: 11, overflow: 'hidden' }}>
+      <div style={{ marginTop: 14, border: '1px solid var(--gold-l)', borderRadius: 'var(--r)', overflow: 'hidden', minWidth: 0, maxWidth: '100%' }}>
         <div style={{ padding: '11px 14px', background: 'var(--gold-l)', display: 'flex', gap: 9, alignItems: 'flex-start' }}>
           <Icon name="alertCircle" size={15} color="var(--gold)" style={{ flexShrink: 0, marginTop: 1 }} />
           <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.6 }}>
@@ -2746,6 +3205,9 @@ export const LandedCostPage: React.FC = () => {
             {mapper.headerIdx == null
               ? 'Click the row that holds the column titles.'
               : 'Now say which column is which. Only a description and a price or amount are required.'}
+            {mapper.rows.length > PREVIEW_ROWS && (
+              <> <strong>Showing the first {PREVIEW_ROWS} of {mapper.rows.length} rows</strong> — every row is imported, not just these.</>
+            )}
           </div>
         </div>
 
@@ -2768,6 +3230,8 @@ export const LandedCostPage: React.FC = () => {
                           <SelectItem value="qty">Quantity</SelectItem>
                           <SelectItem value="price">Unit price</SelectItem>
                           <SelectItem value="amt">Line amount</SelectItem>
+                          <SelectItem value="model">Model / part no.</SelectItem>
+                          <SelectItem value="unit">Unit of measure</SelectItem>
                           <SelectItem value="hs">HS code</SelectItem>
                         </SelectContent>
                       </Select>
@@ -2812,7 +3276,7 @@ export const LandedCostPage: React.FC = () => {
             onClick={() => {
               importInvoiceGrid(mapper.rows, mapper.label, {
                 headerIdx: mapper.headerIdx!,
-                col: { desc: colOf('desc'), qty: colOf('qty'), price: colOf('price'), amt: colOf('amt'), hs: colOf('hs') },
+                col: { desc: colOf('desc'), qty: colOf('qty'), price: colOf('price'), amt: colOf('amt'), hs: colOf('hs'), model: colOf('model'), unit: colOf('unit') },
               });
               setMapper(null);
             }}>
@@ -2821,6 +3285,175 @@ export const LandedCostPage: React.FC = () => {
           <button type="button" className="btn btn-secondary" style={{ fontSize: 12, marginLeft: 'auto' }}
             onClick={() => setMapper(null)}>Cancel</button>
         </div>
+      </div>
+    );
+  })();
+
+  /**
+   * What still needs a human on a cargo line. Ordered by how badly it blocks a
+   * calculation: without an HS code the line cannot be assessed at all.
+   */
+  type CargoIssue = 'hs' | 'price' | 'excluded';
+  function rowIssue(r: MultiItemRow): CargoIssue | null {
+    if (r.excluded) return 'excluded';
+    if (!r.hs_code.trim()) return 'hs';
+    if (!(parseFloat(r.unit_price_usd) > 0)) return 'price';
+    return null;
+  }
+
+  const ISSUE_STYLE: Record<CargoIssue, { tint: string; edge: string; ink: string; label: string }> = {
+    hs:       { tint: 'var(--red-l)',  edge: 'var(--red)',  ink: 'var(--red)',  label: 'need an HS code' },
+    price:    { tint: 'var(--gold-l)', edge: 'var(--gold)', ink: 'var(--gold)', label: 'have no price' },
+    excluded: { tint: 'var(--bg)',     edge: 'var(--border)', ink: 'var(--ink3)', label: 'switched off' },
+  };
+
+  /** Scrolls a flagged line into view and flashes it, so a jump on a 200-line
+   *  list doesn't leave the user hunting for what just moved. */
+  function jumpToRow(id: string) {
+    const el = document.getElementById(`cargo-row-${id}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.animate(
+      [{ boxShadow: '0 0 0 0 var(--teal-m, rgba(0,0,0,.2))' }, { boxShadow: '0 0 0 5px var(--teal-m, rgba(0,0,0,.2))' }, { boxShadow: '0 0 0 0 transparent' }],
+      { duration: 1100, easing: 'ease-out' },
+    );
+  }
+
+  /**
+   * Asks the tariff database what these goods might be. Only rows without a
+   * code are sent, and the answer is held separately from the rows — accepting
+   * a suggestion is a separate, explicit act.
+   */
+  async function fetchHsSuggestions() {
+    const targets = multiItems.filter(r => !r.excluded && !r.hs_code.trim() && r.description.trim());
+    if (targets.length === 0) return;
+    setSuggesting(true);
+    setMultiError('');
+    try {
+      const res: any = await apiFetch('/v1/customs/hs-suggest', {
+        method: 'POST',
+        body: JSON.stringify({ items: targets.map(r => ({ id: r.id, text: r.description })), per_item: 3 }),
+      });
+      const next: Record<string, HsSuggestion[]> = {};
+      for (const r of res?.data ?? []) if (r.suggestions?.length) next[r.id] = r.suggestions;
+      setHsSuggestions(prev => ({ ...prev, ...next }));
+      const found = Object.keys(next).length;
+      setImportNote(
+        found === 0
+          ? `No tariff entry shares a word with any of those ${targets.length} descriptions. Search each code by hand.`
+          : `Suggested codes for ${found} of ${targets.length} line${targets.length === 1 ? '' : 's'}. These are word matches against the tariff text, not a classification — check each one before accepting.`,
+      );
+    } catch (e: any) {
+      setMultiError(e?.message ?? 'Could not fetch HS suggestions.');
+    }
+    setSuggesting(false);
+  }
+
+  function acceptSuggestion(rowId: string, code: string) {
+    updateRow(rowId, { hs_code: code });
+    setHsSuggestions(prev => { const next = { ...prev }; delete next[rowId]; return next; });
+  }
+
+  /** Accepts the top suggestion on every row that still has none. */
+  function acceptAllTopSuggestions() {
+    const ids = Object.keys(hsSuggestions);
+    setMultiItems(rows => rows.map(r => {
+      const s = hsSuggestions[r.id];
+      return s && !r.hs_code.trim() ? { ...r, hs_code: s[0].code } : r;
+    }));
+    setHsSuggestions({});
+    setImportNote(`Accepted the top suggestion on ${ids.length} line${ids.length === 1 ? '' : 's'}. Each one is now editable — correct any that are wrong before calculating.`);
+  }
+
+  const suggestedCount = Object.keys(hsSuggestions).length;
+  const needsHsCount = multiItems.filter(r => !r.excluded && !r.hs_code.trim() && r.description.trim()).length;
+
+  /**
+   * Checks our sum against the one the invoice states for itself.
+   *
+   * This is the backstop for the whole importer: a torn row, a mis-mapped
+   * column, a unit price multiplied back instead of the line amount — every
+   * one of them moves this number. Shown whether it agrees or not, because
+   * "we checked and it matches" is the useful half of the message.
+   */
+  const reconcileBar = (() => {
+    if (itemMode !== 'multi' || !declaredFob || multiTotalFobUsd <= 0) return null;
+    const diff = multiTotalFobUsd - declaredFob.usd;
+    // A cent or two is the supplier's own rounding across a few hundred lines.
+    const ok = Math.abs(diff) <= Math.max(0.5, declaredFob.usd * 0.001);
+    const money = (n: number) => `$${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return (
+      <div style={{
+        marginTop: 12, padding: '11px 14px', borderRadius: 'var(--r)',
+        border: `1px solid ${ok ? 'var(--green)' : 'var(--red)'}`,
+        background: ok ? 'var(--green-l)' : 'var(--red-l)',
+        display: 'flex', gap: 10, alignItems: 'flex-start',
+      }}>
+        <Icon name={ok ? 'checkCircle' : 'alertCircle'} size={15} color={ok ? 'var(--green)' : 'var(--red)'} style={{ flexShrink: 0, marginTop: 2 }} />
+        <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55 }}>
+          {ok ? (
+            <>Reconciled against the invoice. Its stated <strong>{declaredFob.label}</strong> is {money(declaredFob.usd)} and the imported lines sum to <strong>{money(multiTotalFobUsd)}</strong>.</>
+          ) : (
+            <>
+              <strong>These lines do not add up to the invoice.</strong> It states <strong>{declaredFob.label}</strong> as {money(declaredFob.usd)}, but the {multiItems.filter(r => !r.excluded).length} included lines sum to <strong>{money(multiTotalFobUsd)}</strong> — {diff > 0 ? 'over' : 'under'} by {money(Math.abs(diff))}.
+              <div style={{ marginTop: 4, color: 'var(--ink3)' }}>
+                Usually a row switched off that shouldn't be, a line with no price, or a column mapped to the wrong header. Duty is charged on this value, so resolve it before calculating.
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  })();
+
+  const hsSuggestBar = (() => {
+    if (itemMode !== 'multi' || (needsHsCount === 0 && suggestedCount === 0)) return null;
+    return (
+      <div style={{ marginTop: 12, padding: '11px 14px', border: '1px solid var(--teal-m, var(--teal-l))', background: 'var(--teal-l)', borderRadius: 'var(--r)', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <Icon name="sparkle" size={15} color="var(--teal)" style={{ flexShrink: 0 }} />
+        <span style={{ fontSize: 12.5, color: 'var(--ink2)', flex: '1 1 260px', lineHeight: 1.5 }}>
+          {suggestedCount > 0
+            ? <>Suggestions ready on <strong>{suggestedCount}</strong> line{suggestedCount === 1 ? '' : 's'}. They match words in the tariff text — they are not a classification, so check each before accepting.</>
+            : <>{needsHsCount} line{needsHsCount === 1 ? '' : 's'} still need an HS code. Match them against the tariff database from the description and model.</>}
+        </span>
+        <button type="button" className="btn btn-secondary" style={{ fontSize: 12.5 }} disabled={suggesting || needsHsCount === 0} onClick={fetchHsSuggestions}>
+          {suggesting ? 'Matching…' : suggestedCount > 0 ? 'Refresh suggestions' : 'Suggest HS codes'}
+        </button>
+        {suggestedCount > 0 && (
+          <button type="button" className="btn btn-primary" style={{ fontSize: 12.5 }} onClick={acceptAllTopSuggestions}>
+            Accept top match on all {suggestedCount}
+          </button>
+        )}
+      </div>
+    );
+  })();
+
+  const cargoIssueBar = (() => {
+    if (itemMode !== 'multi' || multiItems.length < 2) return null;
+    const groups = (['hs', 'price', 'excluded'] as CargoIssue[])
+      .map(kind => ({ kind, rows: multiItems.filter(r => rowIssue(r) === kind) }))
+      .filter(g => g.rows.length > 0);
+    if (groups.length === 0) return null;
+
+    return (
+      <div style={{ marginTop: 14, padding: '11px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--card-bg, var(--white))', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600 }}>Jump to:</span>
+        {groups.map(g => (
+          <button key={g.kind} type="button" onClick={() => jumpToRow(g.rows[0].id)}
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600,
+              padding: '5px 11px', borderRadius: 'var(--r-sm)', cursor: 'pointer',
+              background: ISSUE_STYLE[g.kind].tint,
+              border: `1px solid ${ISSUE_STYLE[g.kind].edge}`,
+              color: ISSUE_STYLE[g.kind].ink,
+            }}>
+            {g.rows.length} {ISSUE_STYLE[g.kind].label}
+            <Icon name="arrowRight" size={12} color={ISSUE_STYLE[g.kind].ink} />
+          </button>
+        ))}
+        <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--ink3)' }}>
+          {multiItems.filter(r => !rowIssue(r)).length} of {multiItems.length} ready
+        </span>
       </div>
     );
   })();
@@ -2849,16 +3482,42 @@ export const LandedCostPage: React.FC = () => {
         .spin { animation: spin 1.2s linear infinite; }
 
         .lcp-page { padding: 24px 32px; }
-        .lcp-layout { display: grid; grid-template-columns: 280px 1fr; gap: 24px; align-items: start; margin-top: 12px; }
+        /* minmax(0, 1fr), not 1fr: a grid track defaults to min-width:auto, so a wide
+           child — the invoice mapper's preview table — stretched the track and the
+           whole page sideways instead of scrolling inside its own box. */
+        .lcp-layout { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 24px; align-items: start; margin-top: 12px; }
         .lcp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .lcp-card { background: var(--card-bg, var(--white)); border: 1px solid var(--border); border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
+        .lcp-card { min-width: 0; background: var(--card-bg, var(--white)); border: 1px solid var(--border); border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
         .lcp-btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        /* Port + ICD operator + Advanced toggle. Drops to two columns before
+           one, so the pair that belong together stay side by side longest. */
+        .lcp-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; align-items: start; }
+
+        /* A 200-line invoice made the page itself thousands of pixels tall, so
+           the step's own Continue button was unreachable without a long scroll.
+           The list scrolls inside its own box instead. */
+        .lcp-lines { max-height: 62vh; overflow-y: auto; overscroll-behavior: contain; padding-right: 8px; }
+        .lcp-lines::-webkit-scrollbar { width: 6px; }
+        .lcp-lines::-webkit-scrollbar-track { background: transparent; }
+        .lcp-lines::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+        .lcp-lines::-webkit-scrollbar-thumb:hover { background: var(--ink3); }
+        .lcp-lines { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+        @media (max-width: 700px) { .lcp-lines { max-height: 70vh; } }
         .lcp-step-mobile { display: none; }
         .lcp-step-desktop { display: flex; flex-direction: column; gap: 20px; }
 
+        @media (max-width: 1120px) {
+          .lcp-row-3 { grid-template-columns: 1fr 1fr; }
+        }
+        /* Three fields at phone width would be ~130px each — unusable. */
+        @media (max-width: 700px) {
+          .lcp-row-3 { grid-template-columns: 1fr; }
+        }
         @media (max-width: 860px) {
           .lcp-page { padding: 14px; }
-          .lcp-layout { grid-template-columns: 1fr; gap: 14px; }
+          /* minmax(0, …) here too — a bare 1fr reintroduces min-width:auto and
+             the mapper table widens the column again on a phone. */
+          .lcp-layout { grid-template-columns: minmax(0, 1fr); gap: 14px; }
           .lcp-step-desktop { display: none; }
           .lcp-step-mobile { display: block; padding: 16px 14px; }
         }
@@ -2869,6 +3528,7 @@ export const LandedCostPage: React.FC = () => {
         }
         @media (max-width: 380px) {
           .lcp-btn-row { grid-template-columns: 1fr; }
+          .lcp-row-3 { grid-template-columns: 1fr; }
         }
       `}</style>
 
@@ -3019,7 +3679,7 @@ export const LandedCostPage: React.FC = () => {
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 6 }}>
                     Invoice Value (USD)
                   </label>
-                  <div style={{ fontSize: 11, color: 'var(--ink4)', marginBottom: 6 }}>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 6 }}>
                     The total on your supplier's invoice, before any Tanzanian duties.
                   </div>
                   <div style={{ position: 'relative' }}>
@@ -3060,7 +3720,7 @@ export const LandedCostPage: React.FC = () => {
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 10, borderTop: '1px dashed var(--border)', fontSize: 12.5, gap: 10 }}>
                       <span style={{ color: 'var(--ink3)' }}>
-                        Customs value (CIF) <span style={{ color: 'var(--ink4)' }}>· quoted {priceBasis}</span>
+                        Customs value (CIF) <span style={{ color: 'var(--ink3)' }}>· quoted {priceBasis}</span>
                       </span>
                       <strong style={{ color: 'var(--teal)' }}>{fmtUsd(effectiveCif())}</strong>
                     </div>
@@ -3071,7 +3731,7 @@ export const LandedCostPage: React.FC = () => {
                 <div style={{ position: 'relative' }}>
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 6 }}>
                     HS Code or Description
-                    <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: 8, color: 'var(--ink4)', fontSize: 11 }}>— Search our EAC CET database</span>
+                    <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, marginLeft: 8, color: 'var(--ink3)', fontSize: 11 }}>— Search our EAC CET database</span>
                   </label>
                   <EntityPicker
                     value={hs ? { id: hs, label: hs } : null}
@@ -3129,7 +3789,7 @@ export const LandedCostPage: React.FC = () => {
                     <input type="checkbox" checked={isClogs} onChange={e => setIsClogs(e.target.checked)} />
                     This is plastic or rubber clogs footwear
                   </label>
-                  <div style={{ fontSize: 11, color: 'var(--ink4)', marginTop: 8, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 8, lineHeight: 1.5 }}>
                     Used-vehicle excise bands (18%/35%/40% by age) and the 20% clogs excise aren't derivable from HS classification alone — flag them explicitly here rather than guessing from the HS code.
                   </div>
                 </div>
@@ -3143,17 +3803,46 @@ export const LandedCostPage: React.FC = () => {
                   {invoiceImportBar}
                   {importFeedback}
                   {invoiceMapper}
+                  {cargoIssueBar}
+                  {reconcileBar}
+                  {hsSuggestBar}
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
-                    {multiItems.map((row, idx) => (
-                      <div key={row.id} style={{ padding: 12, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface, rgba(255,255,255,0.03))' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div className="lcp-lines" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16 }}>
+                    {multiItems.map((row, idx) => {
+                      const issue = rowIssue(row);
+                      return (
+                      <div key={row.id} id={`cargo-row-${row.id}`} style={{
+                        padding: 12, borderRadius: 'var(--r)',
+                        // A light tint marks what still needs attention without
+                        // shouting: red for no HS code (which blocks assessment
+                        // entirely), amber for no price, grey for switched off.
+                        border: `1px solid ${issue ? ISSUE_STYLE[issue].edge : 'var(--border)'}`,
+                        background: issue ? ISSUE_STYLE[issue].tint : 'var(--surface, rgba(255,255,255,0.03))',
+                        opacity: row.excluded ? 0.62 : 1,
+                        scrollMarginTop: 12,
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 8, flexWrap: 'wrap' }}>
                           <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>LINE {idx + 1}</span>
-                          <button type="button" onClick={() => removeRow(row.id)} disabled={multiItems.length === 1}
-                            style={{ background: 'none', border: 'none', cursor: multiItems.length === 1 ? 'default' : 'pointer', opacity: multiItems.length === 1 ? 0.3 : 1, color: 'var(--red)', display: 'flex', alignItems: 'center' }}>
-                            <Icon name="trash" size={13} color="var(--red)" />
-                          </button>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
+                            {/* Excluding is a decision the user makes and can undo,
+                                not something the importer does behind their back. */}
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: row.excluded ? 'var(--ink3)' : 'var(--ink2)', cursor: 'pointer' }}>
+                              <input type="checkbox" checked={!row.excluded}
+                                onChange={e => updateRow(row.id, { excluded: !e.target.checked })} />
+                              {row.excluded ? 'Excluded' : 'Include'}
+                            </label>
+                            <button type="button" onClick={() => removeRow(row.id)} disabled={multiItems.length === 1}
+                              style={{ background: 'none', border: 'none', cursor: multiItems.length === 1 ? 'default' : 'pointer', opacity: multiItems.length === 1 ? 0.3 : 1, color: 'var(--red)', display: 'flex', alignItems: 'center' }}>
+                              <Icon name="trash" size={13} color="var(--red)" />
+                            </button>
+                          </div>
                         </div>
+                        {row.flag && (
+                          <div style={{ display: 'flex', gap: 6, alignItems: 'flex-start', marginBottom: 8, fontSize: 11.5, color: 'var(--gold)' }}>
+                            <Icon name="alertCircle" size={13} color="var(--gold)" style={{ flexShrink: 0, marginTop: 1 }} />
+                            <span>{row.flag}</span>
+                          </div>
+                        )}
                         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.4fr', gap: 8, marginBottom: 8 }}>
                           <input className="input-field" placeholder="Product / description" value={row.description} onChange={e => updateRow(row.id, { description: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', height: 38, fontSize: 13 }} />
                           <EntityPicker
@@ -3163,21 +3852,53 @@ export const LandedCostPage: React.FC = () => {
                             placeholder="HS code"
                           />
                         </div>
+                        {hsSuggestions[row.id] && !row.hs_code.trim() && (
+                          <div style={{ marginBottom: 8, padding: '8px 10px', border: '1px solid var(--teal-m, var(--teal-l))', background: 'var(--teal-l)', borderRadius: 'var(--r-sm)' }}>
+                            <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--ink3)', marginBottom: 6 }}>
+                              Possible codes — check before accepting
+                            </div>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                              {hsSuggestions[row.id].map(s => (
+                                <div key={s.code} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => acceptSuggestion(row.id, s.code)}
+                                    title={`Use ${s.code} for this line`}
+                                    style={{ flexShrink: 0, cursor: 'pointer', border: '1px solid var(--teal)', background: 'transparent', color: 'var(--teal)', borderRadius: 'var(--badge-radius)', padding: '2px 10px', fontSize: 11.5, fontWeight: 700, fontFamily: 'var(--mono, monospace)' }}
+                                  >
+                                    {s.code}
+                                  </button>
+                                  <span style={{ fontSize: 12, color: 'var(--ink2)', flex: '1 1 160px', minWidth: 0, lineHeight: 1.4 }}>{s.description}</span>
+                                  {/* The honest score: how many of the description's
+                                      words this tariff entry actually contains. Not a
+                                      confidence percentage — a word overlap is not a
+                                      probability of being the right classification. */}
+                                  <span style={{ fontSize: 10.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
+                                    {s.matched}/{s.totalWords} words{s.duty_rate != null ? ` · ${s.duty_rate}% duty` : ''}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                            <div style={{ marginTop: 6, fontSize: 10.5, color: 'var(--ink3)' }}>
+                              Matched on: {hsSuggestions[row.id][0].matchedWords.join(', ')} — or search the HS field above for the correct code.
+                            </div>
+                          </div>
+                        )}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.8fr 1fr 1fr', gap: 8 }}>
                           <div>
-                            <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink4)', textTransform: 'uppercase' }}>Qty</label>
+                            <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Qty</label>
                             <input className="input-field" type="number" min="0" value={row.qty} onChange={e => updateRow(row.id, { qty: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', height: 36, fontSize: 13 }} />
                           </div>
                           <div>
-                            <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink4)', textTransform: 'uppercase' }}>Unit</label>
+                            <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Unit</label>
                             <input className="input-field" placeholder="unit" value={row.unit} onChange={e => updateRow(row.id, { unit: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', height: 36, fontSize: 13 }} />
                           </div>
                           <div>
-                            <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink4)', textTransform: 'uppercase' }}>Unit Price (USD)</label>
+                            <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Unit Price (USD)</label>
                             <input className="input-field" type="number" min="0" value={row.unit_price_usd} onChange={e => updateRow(row.id, { unit_price_usd: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', height: 36, fontSize: 13 }} />
                           </div>
                           <div>
-                            <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink4)', textTransform: 'uppercase' }}>Amount (USD)</label>
+                            <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase' }}>Amount (USD)</label>
                             <div style={{ height: 36, display: 'flex', alignItems: 'center', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
                               {fmtUsd((parseFloat(row.qty) || 0) * (parseFloat(row.unit_price_usd) || 0))}
                             </div>
@@ -3188,7 +3909,7 @@ export const LandedCostPage: React.FC = () => {
                             own tariff rate. Anything typed here is flagged as a
                             manual override on the result and the PDF. */}
                         <details style={{ marginTop: 10 }}>
-                          <summary style={{ cursor: 'pointer', fontSize: 11, fontWeight: 700, color: rowHasOverride(row) ? 'var(--gold, #B8862F)' : 'var(--ink4)', textTransform: 'uppercase', letterSpacing: '.4px' }}>
+                          <summary style={{ cursor: 'pointer', fontSize: 11, fontWeight: 700, color: rowHasOverride(row) ? 'var(--gold, #B8862F)' : 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.4px' }}>
                             Rates {rowHasOverride(row) ? '· overridden' : '· from tariff database'}
                           </summary>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, marginTop: 8 }}>
@@ -3199,7 +3920,8 @@ export const LandedCostPage: React.FC = () => {
                           </div>
                         </details>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   <button type="button" onClick={addRow} disabled={multiItems.length >= MAX_CARGO_ROWS} className="btn btn-secondary"
@@ -3218,7 +3940,7 @@ export const LandedCostPage: React.FC = () => {
                     </div>
                     <div>
                       <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 6 }}>
-                        Insurance (USD) <span style={{ fontWeight: 400, textTransform: 'none', color: 'var(--ink4)' }}>— blank = 1% of CFR</span>
+                        Insurance (USD) <span style={{ fontWeight: 400, textTransform: 'none', color: 'var(--ink3)' }}>— blank = 1% of CFR</span>
                       </label>
                       <input className="input-field" type="number" min="0" placeholder="auto" value={multiInsurance} onChange={e => setMultiInsurance(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', height: 40, fontSize: 13.5 }} />
                     </div>
@@ -3254,37 +3976,48 @@ export const LandedCostPage: React.FC = () => {
 
                 {isFcl && (
                   <div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 4 }}>
-                      <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px' }}>Container Details</label>
-                      <button type="button"
-                        onClick={() => setContainerLots(l => l.length >= 2 ? l : [...l, { size: l.some(x => x.size === '20ft') ? '40ft' : '20ft', count: '1' }])}
-                        disabled={containerLots.length >= 2}
-                        style={{ fontSize: 12, fontWeight: 700, color: containerLots.length >= 2 ? 'var(--ink4)' : 'var(--teal)', background: 'none', border: `1px solid ${containerLots.length >= 2 ? 'var(--border)' : 'var(--teal)'}`, borderRadius: 8, padding: '5px 12px', cursor: containerLots.length >= 2 ? 'not-allowed' : 'pointer' }}>
-                        + Add size
-                      </button>
-                    </div>
-                    <div style={{ fontSize: 11, color: 'var(--ink4)', marginBottom: 8 }}>
+                    <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 4 }}>Container Details</label>
+                    <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 8 }}>
                       ICD, agency and shipping-line handling are billed per container. Each size is priced from its own rate card.
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {containerLots.map((lot, i) => (
-                        <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr auto', gap: 8, alignItems: 'center' }}>
+                        // Size, count, remove and "+ Add size" all sit on one
+                        // line. The add button only renders on the last row —
+                        // repeating it per row would imply it adds a size
+                        // relative to that row, which it does not.
+                        <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto auto', gap: 8, alignItems: 'center' }}>
                           <Select value={lot.size} onValueChange={v => setContainerLots(l => l.map((x, j) => j === i ? { ...x, size: v as '20ft' | '40ft' } : x))}>
-                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            {/* Matches .input-field's height so the size and
+                                count controls line up rather than one sitting
+                                shorter than the other. */}
+                            <SelectTrigger style={{ height: 44 }}><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="20ft">20ft (TEU)</SelectItem>
                               <SelectItem value="40ft">40ft (FEU)</SelectItem>
                             </SelectContent>
                           </Select>
+                          {/* .input-field computes to 49px while a SelectTrigger
+                              is 44 — pinned so the two controls in this row are
+                              the same height as well as the same width. */}
                           <input className="input-field" type="number" min="1" step="1" placeholder="Qty" value={lot.count}
                             onChange={e => setContainerLots(l => l.map((x, j) => j === i ? { ...x, count: e.target.value } : x))}
-                            style={{ width: '100%', boxSizing: 'border-box' }} />
+                            style={{ width: '100%', height: 44, boxSizing: 'border-box' }} />
                           <button type="button" title="Remove"
                             onClick={() => setContainerLots(l => l.length > 1 ? l.filter((_, j) => j !== i) : l)}
                             disabled={containerLots.length === 1}
-                            style={{ background: 'none', border: 'none', cursor: containerLots.length === 1 ? 'default' : 'pointer', opacity: containerLots.length === 1 ? 0.3 : 1, color: 'var(--red)', padding: 6 }}>
+                            style={{ background: 'none', border: 'none', cursor: containerLots.length === 1 ? 'default' : 'pointer', opacity: containerLots.length === 1 ? 0.3 : 1, color: 'var(--red)', padding: 6, height: 44 }}>
                             <Icon name="trash" size={14} color="var(--red)" />
                           </button>
+                          {i === containerLots.length - 1 ? (
+                            <button type="button"
+                              onClick={() => setContainerLots(l => l.length >= 2 ? l : [...l, { size: l.some(x => x.size === '20ft') ? '40ft' : '20ft', count: '1' }])}
+                              disabled={containerLots.length >= 2}
+                              title={containerLots.length >= 2 ? 'Both container sizes are already listed' : 'Add the other container size'}
+                              style={{ height: 44, whiteSpace: 'nowrap', fontSize: 12, fontWeight: 700, color: containerLots.length >= 2 ? 'var(--ink3)' : 'var(--teal)', background: 'none', border: `1px solid ${containerLots.length >= 2 ? 'var(--border)' : 'var(--teal)'}`, borderRadius: 'var(--r-sm)', padding: '0 12px', cursor: containerLots.length >= 2 ? 'not-allowed' : 'pointer' }}>
+                              + Add size
+                            </button>
+                          ) : <span />}
                         </div>
                       ))}
                     </div>
@@ -3296,20 +4029,27 @@ export const LandedCostPage: React.FC = () => {
                   </div>
                 )}
 
-                {needsCbm && (
-                  <Field label="Total Volume (CBM)" hint={isAir ? 'Used to work out volumetric weight.' : 'LCL handling is charged per CBM.'}>
-                    <input className="input-field" type="number" min="0" step="0.01" placeholder="e.g. 15.0" value={cbm}
-                      onChange={e => setCbm(e.target.value)}
-                      style={{ width: '100%', boxSizing: 'border-box' }} />
-                  </Field>
-                )}
-
-                {isAir && (
-                  <Field label="Total Gross Weight (kg)" hint="Air bills on chargeable weight — the greater of gross and volumetric.">
-                    <input className="input-field" type="number" min="0" placeholder="e.g. 3000" value={weightKg}
-                      onChange={e => setWeightKg(e.target.value)}
-                      style={{ width: '100%', boxSizing: 'border-box' }} />
-                  </Field>
+                {/* LCL and Airfreight get the same two-column treatment FCL's
+                    container row has, rather than a column of full-width boxes.
+                    LCL shows only volume, so it sits in the first column and
+                    lines up with the container select above it. */}
+                {(needsCbm || isAir) && (
+                  <div className="lcp-btn-row">
+                    {needsCbm && (
+                      <Field label="Total Volume (CBM)" hint={isAir ? 'Used to work out volumetric weight.' : 'LCL handling is charged per CBM.'}>
+                        <input className="input-field" type="number" min="0" step="0.01" placeholder="e.g. 15.0" value={cbm}
+                          onChange={e => setCbm(e.target.value)}
+                          style={{ width: '100%', height: 44, boxSizing: 'border-box' }} />
+                      </Field>
+                    )}
+                    {isAir && (
+                      <Field label="Total Gross Weight (kg)" hint="Air bills on chargeable weight — the greater of gross and volumetric.">
+                        <input className="input-field" type="number" min="0" placeholder="e.g. 3000" value={weightKg}
+                          onChange={e => setWeightKg(e.target.value)}
+                          style={{ width: '100%', height: 44, boxSizing: 'border-box' }} />
+                      </Field>
+                    )}
+                  </div>
                 )}
 
                 {isAir && (cbmVal > 0 || weightKgVal > 0) && (
@@ -3318,55 +4058,61 @@ export const LandedCostPage: React.FC = () => {
                   </div>
                 )}
 
-                {/* Origin capture. Free text, but with real suggestions so the
-                    same port doesn't accumulate as five spellings — the value
-                    of this data depends entirely on it aggregating. */}
-                <div className="lcp-btn-row">
-                  <Field label={loadingPointLabel} hint="Where the cargo was loaded. Helps us track the corridors you actually trade through.">
-                    <EntityPicker
-                      value={loadingPoint ? { id: loadingPoint, label: loadingPoint } : null}
-                      onChange={item => {
-                        const label = item ? String(item.id) : '';
-                        setLoadingPoint(label);
-                        if (label) void autofillOriginFromPort(label);
-                        // Clearing the port clears an origin that came from it,
-                        // but never one the user picked themselves.
+                {/* Port, ICD operator and the Advanced Settings toggle share one
+                    row — three short controls that were each taking a full row.
+                    The Advanced panel itself opens full-width below, since its
+                    contents are far too wide for a third of a row. */}
+                <div className="lcp-row-3">
+                  {/* Country of origin is no longer its own field — every
+                      loading point carries its country, so it is derived and
+                      shown below rather than asked for twice. */}
+                  <Field label={loadingPointLabel} hint="Where the cargo was loaded. The country of origin follows from it.">
+                    <Combobox
+                      options={(isAir ? AIRPORT_SUGGESTIONS : SEAPORT_SUGGESTIONS).map(p => ({ value: p, label: p }))}
+                      value={loadingPoint}
+                      onChange={v => {
+                        setLoadingPoint(v);
+                        if (v) void autofillOriginFromPort(v);
                         else if (originFromPort) { setOriginCountry(''); setOriginFromPort(false); }
                       }}
-                      search={searchPorts}
-                      placeholder={isAir ? 'Search airports…' : 'Search ports…'}
+                      placeholder={isAir ? 'Choose an airport…' : 'Choose a port…'}
+                      searchPlaceholder={isAir ? 'Search airports…' : 'Search ports…'}
+                      emptyText={isAir ? 'No airport matches.' : 'No port matches.'}
                     />
-                  </Field>
-                  <Field label="Country of Origin" hint="Where the goods were made or shipped from. EAC origin affects duty treatment.">
-                    <EntityPicker
-                      value={originCountry ? { id: originCountry, label: originCountry } : null}
-                      onChange={item => { setOriginCountry(item ? String(item.id) : ''); setOriginFromPort(false); }}
-                      search={searchCountries}
-                      placeholder="Search countries…"
-                    />
-                    {originFromPort && (
-                      <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--gold)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
-                        <Icon name="info" size={13} color="var(--gold)" style={{ flexShrink: 0, marginTop: 1 }} />
-                        <span>Taken from the loading port. Change it if the goods were made somewhere else — transhipped cargo often is.</span>
+                    {originCountry && (
+                      <div style={{ marginTop: 7, fontSize: 12, color: 'var(--ink2)', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Icon name="globe" size={13} color="var(--teal)" />
+                        <span>Country of origin: <strong>{originCountry}</strong></span>
+                        <span style={{ color: 'var(--ink3)' }}>— EAC origin affects duty treatment.</span>
                       </div>
                     )}
                   </Field>
-                </div>
 
-                {icdOperatorOptions.length > 0 && (
-                  <div>
-                    <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 10 }}>
-                      ICD Operator <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--ink4)' }}>— optional, uses your Rate Card's generic default otherwise</span>
-                    </label>
-                    <Select value={icdOperatorId ?? '__generic__'} onValueChange={v => setIcdOperatorId(v === '__generic__' ? null : v)}>
-                      <SelectTrigger style={{ height: 44 }}><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__generic__">Generic default</SelectItem>
-                        {icdOperatorOptions.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                  {icdOperatorOptions.length > 0 && (
+                    <Field label="ICD Operator" hint="Optional — uses your Rate Card's generic default otherwise.">
+                      <Select value={icdOperatorId ?? '__generic__'} onValueChange={v => setIcdOperatorId(v === '__generic__' ? null : v)}>
+                        <SelectTrigger style={{ height: 44 }}><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__generic__">Generic default</SelectItem>
+                          {icdOperatorOptions.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  )}
+
+                  <Field label="Advanced Settings" hint="Replace a sourced rate. Blank uses the tariff or TPA figure.">
+                    <button type="button" onClick={() => setShowAdvanced(v => !v)}
+                      style={{ width: '100%', height: 44, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 14px', background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', cursor: 'pointer', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 700 }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Icon name="settings" size={15} color="var(--ink3)" />
+                        {overrideCount > 0
+                          ? <span style={{ color: 'var(--gold)' }}>{overrideCount} override{overrideCount > 1 ? 's' : ''}</span>
+                          : 'None set'}
+                      </span>
+                      <Icon name={showAdvanced ? 'chevronUp' : 'chevronDown'} size={15} color="var(--ink3)" />
+                    </button>
+                  </Field>
+                </div>
 
               </div>
 
@@ -3387,22 +4133,12 @@ export const LandedCostPage: React.FC = () => {
                   labelled as a manual override on the result and the PDF, so
                   a typed rate is never presented with the authority of a
                   looked-up one. */}
-              <div style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-                <button type="button" onClick={() => setShowAdvanced(v => !v)}
-                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '12px 16px', background: 'var(--surface, rgba(255,255,255,0.03))', border: 'none', cursor: 'pointer', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 700 }}>
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Icon name="settings" size={15} color="var(--ink3)" />
-                    Advanced Settings
-                    {overrideCount > 0 && (
-                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: 'var(--gold-l, rgba(184,134,47,.15))', color: 'var(--gold, #B8862F)' }}>
-                        {overrideCount} override{overrideCount > 1 ? 's' : ''}
-                      </span>
-                    )}
-                  </span>
-                  <Icon name={showAdvanced ? 'chevronUp' : 'chevronDown'} size={15} color="var(--ink3)" />
-                </button>
-                {showAdvanced && (
-                  <div style={{ padding: '16px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {/* Opened by the toggle that now sits in the row above. Kept
+                  full-width because six override fields cannot live in a third
+                  of a row. */}
+              {showAdvanced && (
+                <div style={{ marginTop: 16, border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+                  <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                     <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.6 }}>
                       Leave blank to use the rate from the EAC CET tariff database or the published TPA/TRA figure.
                       Anything you enter here is flagged as a manual override on the estimate and the exported PDF.
@@ -3428,8 +4164,8 @@ export const LandedCostPage: React.FC = () => {
                       hint="Pin a rate when quoting against a fixed contract rate. Blank uses the live feed."
                     />
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {navRow}
             </div>
@@ -3502,12 +4238,12 @@ export const LandedCostPage: React.FC = () => {
                       <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)' }}>
                         <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Effective Statutory Rate</div>
                         <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>{result.effective_statutory_rate_pct.toFixed(1)}%</div>
-                        <div style={{ fontSize: 10.5, color: 'var(--ink4)', marginTop: 2 }}>of CIF (duty+excise+RDL+CPF+VAT)</div>
+                        <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2 }}>of CIF (duty+excise+RDL+CPF+VAT)</div>
                       </div>
                       <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)' }}>
                         <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.4px' }}>Landed Multiplier</div>
                         <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', marginTop: 4 }}>{result.landed_multiplier.toFixed(2)}×</div>
-                        <div style={{ fontSize: 10.5, color: 'var(--ink4)', marginTop: 2 }}>landed cost ÷ CIF value</div>
+                        <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2 }}>landed cost ÷ CIF value</div>
                       </div>
                       {result.fob_usd != null && (
                         <div style={{ padding: '12px 14px', borderRadius: 10, background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)' }}>
@@ -3515,7 +4251,7 @@ export const LandedCostPage: React.FC = () => {
                           <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginTop: 4 }}>
                             {fmtUsd(result.fob_usd)} + {fmtUsd(result.freight_usd ?? 0)} + {fmtUsd(result.insurance_usd ?? 0)}
                           </div>
-                          <div style={{ fontSize: 10.5, color: 'var(--ink4)', marginTop: 2 }}>= {fmtUsd(result.cif_usd)} CIF</div>
+                          <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2 }}>= {fmtUsd(result.cif_usd)} CIF</div>
                         </div>
                       )}
                     </div>
@@ -3725,7 +4461,7 @@ export const LandedCostPage: React.FC = () => {
                       <strong style={{ color: 'var(--ink)' }}>TZS {fmt(multiResult.totals.total)}</strong>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5, marginTop: 6 }}>
-                      <span style={{ color: 'var(--ink2)' }}>Total excl. VAT <span style={{ color: 'var(--ink4)' }}>(VAT recoverable)</span></span>
+                      <span style={{ color: 'var(--ink2)' }}>Total excl. VAT <span style={{ color: 'var(--ink3)' }}>(VAT recoverable)</span></span>
                       <strong style={{ color: 'var(--teal)' }}>TZS {fmt(multiResult.totals.total_ex_vat)}</strong>
                     </div>
                   </div>
@@ -3797,7 +4533,7 @@ export const LandedCostPage: React.FC = () => {
                     <div style={{ fontWeight: 700, color: 'var(--teal)' }}>{isMulti ? 'Multi-item' : `HS ${h.hs_code}`}</div>
                     <div style={{ color: 'var(--ink3)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{h.description}</div>
                     <div style={{ fontWeight: 700, color: 'var(--ink)', marginTop: 4 }}>TZS {fmt(h.total_tzs ?? h.total)}</div>
-                    {isMulti && <div style={{ color: 'var(--ink4)', fontSize: 11, marginTop: 2 }}>View-only — re-enter items to recalculate</div>}
+                    {isMulti && <div style={{ color: 'var(--ink3)', fontSize: 11, marginTop: 2 }}>View-only — re-enter items to recalculate</div>}
                   </div>
                 );
               })

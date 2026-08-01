@@ -123,19 +123,37 @@ export async function ocrRoutes(fastify: FastifyInstance) {
    * Returns structured OCR extraction from Gemini vision
    */
   fastify.post('/scan', async (request, reply) => {
-    const { image_base64, media_type = 'image/jpeg' } = request.body as {
+    const { image_base64, media_type = 'image/jpeg', allow_simulated = true } = request.body as {
       image_base64: string;
       media_type?: string;
+      /** Callers that would feed the result into a real calculation set this
+       *  false — a fabricated demo document must never become cargo lines. */
+      allow_simulated?: boolean;
     };
 
     if (!image_base64) {
       return reply.status(400).send({ error: 'image_base64 is required' });
     }
 
+    // Gemini reads PDFs directly through inlineData, so a scanned or
+    // born-digital invoice needs no client-side rasterising.
+    const SUPPORTED = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf'];
+    if (!SUPPORTED.includes(media_type)) {
+      return reply.status(415).send({
+        error: `Unsupported document type "${media_type}". Supported: ${SUPPORTED.join(', ')}.`,
+      });
+    }
+
     const apiKey = await getGeminiApiKey();
     if (!apiKey) {
-      // Return simulated OCR result for demo/dev environments without a key configured.
-      // A superadmin can set a real key under Platform Settings → OCR / Document Scanning.
+      if (!allow_simulated) {
+        return reply.status(503).send({
+          error: 'DOCUMENT_READING_UNAVAILABLE',
+          message: 'Reading documents needs an OCR key, which is not configured. A SuperAdmin sets it under Platform Settings → OCR / Document Scanning.',
+        });
+      }
+      // Demo/dev only, and clearly labelled: a superadmin can set a real key
+      // under Platform Settings → OCR / Document Scanning.
       return {
         success: true,
         simulated: true,

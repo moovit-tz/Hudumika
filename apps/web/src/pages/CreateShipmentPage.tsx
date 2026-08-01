@@ -88,7 +88,7 @@ function OfficerMentionInput({
         </div>
       </PopoverAnchor>
 
-      <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-1.5 max-h-[220px] overflow-y-auto" onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}>
+      <PopoverContent align="start" className="w-(--radix-popover-trigger-width) p-1.5 max-h-[220px] overflow-y-auto" onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}>
         {filtered.length === 0 ? (
           <div style={{ padding: '12px 14px', fontSize: 12, color: 'var(--ink3)' }}>No staff found</div>
         ) : filtered.slice(0, 8).map(o => (

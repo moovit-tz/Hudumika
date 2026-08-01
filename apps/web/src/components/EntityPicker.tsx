@@ -145,7 +145,11 @@ export function EntityPicker({
 
         <PopoverContent
           align="start"
-          className="w-[--radix-popover-trigger-width] p-1.5"
+          // Pinned to the input's own width. Radix's popper wrapper carries an
+          // inline `min-width: max-content`, so without an explicit width the
+          // panel grows to its longest row — long tariff descriptions pushed it
+          // well past the field and off the card.
+          className="max-h-80 w-(--radix-popover-trigger-width) overflow-y-auto p-1.5"
           onOpenAutoFocus={(e) => e.preventDefault()}
           onCloseAutoFocus={(e) => e.preventDefault()}
         >

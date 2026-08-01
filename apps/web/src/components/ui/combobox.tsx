@@ -13,6 +13,25 @@ export interface ComboboxOption {
 }
 
 /**
+ * Substring ranking, replacing cmdk's default subsequence fuzz.
+ *
+ * Returning 0 hides the item, so anything that does not genuinely contain the
+ * typed text disappears instead of being scattered through the results.
+ */
+function comboboxFilter(value: string, search: string): number {
+  const v = value.toLowerCase()
+  const q = search.trim().toLowerCase()
+  if (!q) return 1
+  if (v === q) return 1
+  if (v.startsWith(q)) return 0.9
+  // A match at a word boundary ("port klang" for "klang") beats one buried
+  // mid-word, which is usually incidental.
+  if (new RegExp(`\\b${q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`).test(v)) return 0.7
+  if (v.includes(q)) return 0.4
+  return 0
+}
+
+/**
  * Searchable single-select over a pre-loaded option list (vehicles, drivers,
  * staff, customers, ...). For an async/debounced "search as you type against
  * an API" picker with inline create, use EntityPicker instead — this assumes
@@ -51,8 +70,13 @@ export function Combobox({
           <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className={cn("w-[--radix-popover-trigger-width] p-0", className)}>
-        <Command>
+      <PopoverContent align="start" className={cn("w-(--radix-popover-trigger-width) p-0", className)}>
+        {/* cmdk's default filter is a subsequence match, so typing "durb" in a
+            port list returned "Jeddah Islamic Port, Saudi Arabia" alongside
+            "Durban" — the letters appear in order, scattered. Over long
+            labels that is noise, not help. This ranks real substring matches
+            only: whole label, then word start, then anywhere. */}
+        <Command filter={comboboxFilter}>
           <CommandInput placeholder={searchPlaceholder || "Search…"} />
           <CommandList>
             <CommandEmpty>{emptyText || "No results."}</CommandEmpty>

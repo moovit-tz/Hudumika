@@ -1320,7 +1320,7 @@ export function Contacts() {
                       )}
                     </div>
                   </PopoverAnchor>
-                  <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-1.5" onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}>
+                  <PopoverContent align="start" className="w-(--radix-popover-trigger-width) p-1.5" onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}>
                     {filteredCompanies.map(c => (
                       <button
                         key={c.id}

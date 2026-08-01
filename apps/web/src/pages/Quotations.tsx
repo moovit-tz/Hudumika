@@ -417,7 +417,7 @@ function ContactSelector({ customers, leads, value, onChange }: {
           <Icon name="chevronDown" size={14} style={{ marginLeft:'auto', color:'var(--ink3)' } as React.CSSProperties}/>
         </div>
       </PopoverAnchor>
-      <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0 flex flex-col max-h-[320px]"
+      <PopoverContent align="start" className="w-(--radix-popover-trigger-width) p-0 flex flex-col max-h-[320px]"
         onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}>
         <div style={{ padding:'10px 10px 8px' }}>
           <input type="text" title="Search contacts" placeholder="Search�" value={q} onChange={e=>setQ(e.target.value)} autoFocus

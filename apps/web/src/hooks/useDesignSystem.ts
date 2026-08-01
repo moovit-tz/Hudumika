@@ -533,6 +533,12 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--text-md': `${scale.md}px`, '--text-lg': `${scale.lg}px`, '--text-xl': `${scale.xl}px`,
     '--text-2xl': `${scale.xxl}px`, '--text-3xl': `${scale.xxxl}px`,
 
+    // Tailwind's radius scale is built on --radius (see index.css's
+    // --radius-lg/md/sm bridge), which was a static 0.5rem literal and so
+    // ignored the design system entirely: every ui/ Button, Input and Select
+    // rendered at 8px while .input-field and .btn used --r-sm. Emitting it
+    // from the same token puts both families on one radius.
+    '--radius': `${shape.rSm}px`,
     '--tab-radius': `${tokens.tabs.radius}px`,
     '--tab-height': `${tokens.tabs.height}px`,
     '--tab-size': `${tokens.tabs.size}px`,

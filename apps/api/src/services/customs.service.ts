@@ -17,6 +17,36 @@ import { db } from '../db/client.js';
 // ─────────────────────────────────────────────────────────────────────────────
 
 let _fxCache: { rate: number; fetchedAt: number } | null = null;
+let _ratesCache: { rates: Record<string, number>; fetchedAt: number } | null = null;
+
+/**
+ * Every rate against USD from the same upstream call getUsdToTzs already makes.
+ *
+ * Needed because supplier invoices are routinely priced in something other than
+ * USD — a South African invoice in Rand read as dollars overstates the customs
+ * value, and therefore the duty, by roughly 16x.
+ */
+export async function getUsdRates(): Promise<Record<string, number>> {
+  if (_ratesCache && Date.now() - _ratesCache.fetchedAt < 3_600_000) return _ratesCache.rates;
+  try {
+    const data = await new Promise<any>((resolve, reject) => {
+      const req = https.get('https://open.er-api.com/v6/latest/USD', (res) => {
+        let body = '';
+        res.on('data', (c) => { body += c; });
+        res.on('end', () => { try { resolve(JSON.parse(body)); } catch { reject(new Error('Bad JSON')); } });
+      });
+      req.on('error', reject);
+      req.setTimeout(6000, () => req.destroy(new Error('Timeout')));
+    });
+    const rates = data?.rates;
+    if (!rates || typeof rates.TZS !== 'number') throw new Error('No rates in response');
+    _ratesCache = { rates, fetchedAt: Date.now() };
+    return rates;
+  } catch {
+    // No invented table: callers must be able to tell a real rate from none.
+    return _ratesCache?.rates ?? {};
+  }
+}
 
 export async function getUsdToTzs(): Promise<number> {
   // Cache for 1 hour
@@ -814,8 +844,20 @@ export async function calculateMultiItemLandedCost(input: MultiItemInput): Promi
   }
 
   const fxRate = input.fx_rate_override ?? await getUsdToTzs();
-  const hsEntries = await Promise.all(items.map(it => getHsCode(it.hs_code)));
-  const wmaMatchesPerItem = await Promise.all(items.map(it => checkWmaCompliance(it.hs_code)));
+
+  // Look each HS code up once, not once per line. A real invoice repeats the
+  // same code across many lines — 260 lines against a handful of codes — and
+  // the naive version fired two queries per line simultaneously, so a long
+  // invoice queued hundreds of round trips behind a small connection pool.
+  const uniqueCodes = [...new Set(items.map(it => it.hs_code.trim()))];
+  const lookups = await Promise.all(uniqueCodes.map(async code => ({
+    code,
+    hs: await getHsCode(code),
+    wma: await checkWmaCompliance(code),
+  })));
+  const byCode = new Map(lookups.map(l => [l.code, l]));
+  const hsEntries = items.map(it => byCode.get(it.hs_code.trim())?.hs);
+  const wmaMatchesPerItem = items.map(it => byCode.get(it.hs_code.trim())?.wma ?? []);
 
   const fobUsdPerItem = items.map(it => it.qty * it.unit_price_usd);
   const totalFobUsd = fobUsdPerItem.reduce((a, b) => a + b, 0);

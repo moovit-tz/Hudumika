@@ -328,7 +328,7 @@ export function AppHeader({
             </PopoverAnchor>
             <PopoverContent
               align="start"
-              className="w-[--radix-popover-trigger-width] min-w-[320px] max-h-105 overflow-y-auto p-1.5"
+              className="w-(--radix-popover-trigger-width) min-w-[320px] max-h-105 overflow-y-auto p-1.5"
               onOpenAutoFocus={e => e.preventDefault()}
               onCloseAutoFocus={e => e.preventDefault()}
             >

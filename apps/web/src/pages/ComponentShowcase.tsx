@@ -117,7 +117,7 @@ export default function ComponentShowcase() {
                     <ChevronsUpDown className="h-4 w-4 opacity-50" />
                   </button>
                 </PopoverTrigger>
-                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <PopoverContent className="w-(--radix-popover-trigger-width) p-0" align="start">
                   <Command>
                     <CommandInput placeholder="Search…" />
                     <CommandList>

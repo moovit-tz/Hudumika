@@ -20,10 +20,12 @@ import {
   calculatePenalty,
   getVesselPosition,
   getUsdToTzs,
+  getUsdRates,
   type ShipmentMode,
   type RateOverrides,
   type ContainerLot,
 } from '../services/customs.service.js';
+import { suggestHsCodes } from '../services/hs-suggest.service.js';
 import { db } from '../db/client.js';
 import { sql } from 'kysely';
 
@@ -95,6 +97,38 @@ export async function customsRoutes(fastify: FastifyInstance) {
         return ap - bp || a.name.localeCompare(b.name);
       }),
     };
+  });
+
+  // ── POST /v1/customs/hs-suggest ───────────────────────────────────────────────
+  // Suggests HS codes for goods descriptions. Suggestions only — the response
+  // is never written to a line by the server, and the UI requires a human to
+  // accept each one, because a wrong HS code is a misclassification.
+  fastify.post('/hs-suggest', async (request, reply) => {
+    const body = request.body as any;
+    if (!Array.isArray(body?.items) || body.items.length === 0) {
+      return reply.status(400).send({ error: 'items[] is required' });
+    }
+    if (body.items.length > 500) {
+      return reply.status(413).send({ error: 'Too many lines in one request — send at most 500.' });
+    }
+    const items = body.items
+      .map((i: any) => ({ id: String(i?.id ?? ''), text: String(i?.text ?? '').trim() }))
+      .filter((i: { id: string; text: string }) => i.id && i.text);
+
+    return { data: await suggestHsCodes(items, Math.min(Number(body.per_item) || 3, 5)) };
+  });
+
+  // ── GET /v1/customs/fx-rates ──────────────────────────────────────────────────
+  // Every rate against USD, so an invoice priced in Rand, Euro or Yuan can be
+  // converted before it is treated as a customs value.
+  fastify.get('/fx-rates', async (_request, reply) => {
+    const rates = await getUsdRates();
+    if (Object.keys(rates).length === 0) {
+      // Never a made-up table — the caller must be able to tell "no rate" from
+      // a rate, or it would convert against a fiction.
+      return reply.status(503).send({ error: 'FX_UNAVAILABLE', message: 'Live exchange rates are unavailable right now.' });
+    }
+    return { base: 'USD', rates, source: 'open.er-api.com' };
   });
 
   // ── GET /v1/customs/fx-rate ───────────────────────────────────────────────────
