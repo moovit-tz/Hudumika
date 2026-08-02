@@ -58,6 +58,12 @@ export function Combobox({
       <PopoverTrigger asChild>
         <button
           type="button"
+          // Select's trigger carries data-slot="select-trigger", which is how
+          // pages resize the control to their own scale. This one carried
+          // nothing, so a page that sized its fields to 44px left every
+          // Combobox at the library default of 36 — a Port of Loading box
+          // visibly shorter than the Select next to it.
+          data-slot="combobox-trigger"
           disabled={disabled}
           className={cn(
             "flex h-9 w-full items-center justify-between whitespace-nowrap rounded-lg border border-input bg-transparent px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50",

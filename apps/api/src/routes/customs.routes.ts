@@ -26,7 +26,8 @@ import {
   type ContainerLot,
 } from '../services/customs.service.js';
 import { suggestHsCodes } from '../services/hs-suggest.service.js';
-import { db } from '../db/client.js';
+import { callAI } from './ai.routes.js';
+import { db, withTenant } from '../db/client.js';
 import { sql } from 'kysely';
 
 /** Whitelists and coerces the caller-supplied rate overrides. Anything not
@@ -118,6 +119,120 @@ export async function customsRoutes(fastify: FastifyInstance) {
     return { data: await suggestHsCodes(items, Math.min(Number(body.per_item) || 3, 5)) };
   });
 
+  // ── POST /v1/customs/hs-suggest/ai-pick ───────────────────────────────────
+  // Asks the tenant's configured AI which of the candidate headings fits a
+  // goods description best. Word-frequency scoring cannot separate three
+  // headings that all matched the single word "bolts"; a model that has read
+  // the headings can say why one of them is about fasteners and the others
+  // about firearms.
+  //
+  // It picks from the candidates the tariff search already returned — it never
+  // invents a code, and a code it names that isn't among them is discarded.
+  // Nothing is written to a line here either: the answer is a recommendation
+  // the user still accepts by hand.
+  fastify.post('/hs-suggest/ai-pick', async (request, reply) => {
+    const user = request.user;
+    const body = request.body as any;
+    if (!Array.isArray(body?.items) || body.items.length === 0) {
+      return reply.status(400).send({ error: 'items[] is required' });
+    }
+    if (body.items.length > 40) {
+      return reply.status(413).send({ error: 'Too many lines for one AI review — send at most 40.' });
+    }
+
+    const items = body.items
+      .map((i: any) => ({
+        id: String(i?.id ?? ''),
+        text: String(i?.text ?? '').trim(),
+        candidates: (Array.isArray(i?.candidates) ? i.candidates : [])
+          .slice(0, 5)
+          .map((c: any) => ({
+            code: String(c?.code ?? '').trim(),
+            description: String(c?.description ?? '').trim(),
+            duty_rate: c?.duty_rate == null ? null : Number(c.duty_rate),
+          }))
+          .filter((c: any) => c.code),
+      }))
+      .filter((i: any) => i.id && i.text && i.candidates.length > 1);
+
+    if (items.length === 0) {
+      return reply.status(400).send({ error: 'Nothing to review — each line needs a description and at least two candidate codes.' });
+    }
+
+    // Tenant-scoped read of the AI configuration, same as ai.routes.ts.
+    const settings = await withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('tenant_settings')
+        .select('settings')
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      return (row?.settings as any) ?? {};
+    });
+    const aiCfg = settings['int-ai'] ?? {};
+    if (!aiCfg.on || !aiCfg.apiKey) {
+      // Said plainly rather than quietly falling back to the word-count order
+      // and presenting it as an AI opinion.
+      return reply.status(400).send({ error: 'AI is not configured. Enable it in Settings → Integrations → AI Integration.' });
+    }
+
+    const prompt = `You are a Tanzanian customs classification assistant working from the EAC CET 2022 tariff.
+
+For each line below, choose which of the candidate headings the goods actually belong to. Judge it on what
+the goods are, not on word overlap. Watch for headings that share a word but describe something else
+entirely (a "bolt" in a firearms heading is not a fastener).
+
+Rules:
+- Choose only from the candidate codes given. Never output a code that is not listed.
+- If none of the candidates fits the goods, set "code" to null and say so in "reason".
+- "confidence" is one of "high", "medium", "low".
+- "reason" is one sentence, referring to the goods and the heading wording.
+
+Reply with JSON only, no prose, in exactly this shape:
+{"picks":[{"id":"<line id>","code":"<chosen code or null>","confidence":"high|medium|low","reason":"..."}]}
+
+Lines:
+${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.candidates
+      .map((c: any) => `    ${c.code} — ${c.description}${c.duty_rate != null ? ` (import duty ${c.duty_rate}%)` : ''}`)
+      .join('\n')}`).join('\n')}`;
+
+    try {
+      const raw = await callAI(
+        aiCfg.apiKey,
+        aiCfg.model || 'claude-sonnet-4-6',
+        aiCfg.provider || 'anthropic',
+        [{ role: 'user', content: prompt }],
+        2048,
+        0,
+      );
+      let parsed: any = {};
+      try {
+        parsed = JSON.parse(String(raw).replace(/```json?/gi, '').replace(/```/g, '').trim());
+      } catch {
+        return reply.status(502).send({ error: 'The AI reply could not be read as JSON. Nothing was changed.' });
+      }
+      const byId = new Map(items.map((i: any) => [i.id, i]));
+      const picks = (Array.isArray(parsed.picks) ? parsed.picks : [])
+        .map((p: any) => {
+          const line: any = byId.get(String(p?.id ?? ''));
+          if (!line) return null;
+          const code = p?.code == null ? null : String(p.code).trim();
+          // A model naming a code outside the candidate list is guessing at a
+          // tariff it was not shown — drop it rather than surface it.
+          const valid = code && line.candidates.some((c: any) => c.code === code);
+          return {
+            id: line.id,
+            code: valid ? code : null,
+            confidence: ['high', 'medium', 'low'].includes(p?.confidence) ? p.confidence : 'low',
+            reason: String(p?.reason ?? '').slice(0, 400)
+              || (valid ? '' : 'The AI did not choose any of the candidate headings for this line.'),
+          };
+        })
+        .filter(Boolean);
+      return { picks, model: aiCfg.model || 'claude-sonnet-4-6' };
+    } catch (e: any) {
+      return reply.status(502).send({ error: e?.message || 'The AI request failed.' });
+    }
+  });
+
   // ── GET /v1/customs/fx-rates ──────────────────────────────────────────────────
   // Every rate against USD, so an invoice priced in Rand, Euro or Yuan can be
   // converted before it is treated as a customs value.
@@ -143,6 +258,41 @@ export async function customsRoutes(fastify: FastifyInstance) {
       cached: true,
     };
   });
+
+  /**
+   * The part of a saved calculation that makes it reopenable.
+   *
+   * History used to keep totals only, so the panel could offer nothing but a
+   * number and the words "re-enter items to recalculate". `payload` holds the
+   * request that produced the result alongside the result itself: the inputs
+   * are what let a saved estimate be amended, and the result is what lets it
+   * be re-rendered without recomputing against a rate that has since moved.
+   *
+   * A very large consignment can run to megabytes, so it is capped. Dropping
+   * the payload leaves the summary row intact — better a history entry that
+   * says it cannot be reopened than a failed insert that loses it entirely.
+   */
+  const MAX_PAYLOAD_BYTES = 4_000_000;
+  function historyExtras(body: any, result: any, itemCount: number) {
+    const payload = { inputs: body, result };
+    let stored: any = payload;
+    try {
+      if (JSON.stringify(payload).length > MAX_PAYLOAD_BYTES) stored = null;
+    } catch { stored = null; }
+    const parentId = typeof body.parent_record_id === 'string' && body.parent_record_id ? body.parent_record_id : null;
+    return {
+      payload: stored ? JSON.stringify(stored) : null,
+      customer_name: String(body.customer_name ?? '').trim() || null,
+      customer_email: String(body.customer_email ?? '').trim() || null,
+      destination: String(body.destination ?? '').trim() || null,
+      title: String(body.title ?? '').trim().slice(0, 160) || null,
+      parent_id: parentId,
+      // An amendment is version N+1 of the original, not a new estimate — the
+      // figures a customer was already quoted stay on the record.
+      version: parentId ? Math.max(2, (parseInt(body.parent_version) || 1) + 1) : 1,
+      item_count: itemCount,
+    };
+  }
 
   // ── POST /v1/customs/landed-cost ──────────────────────────────────────────────
   // Full landed cost calculator with live HS rates and FX rate
@@ -206,22 +356,121 @@ export async function customsRoutes(fastify: FastifyInstance) {
         loading_point_type: ['SEA_PORT', 'AIRPORT', 'BORDER_POST'].includes(body.loading_point_type) ? body.loading_point_type : null,
         shipment_mode: result.mode,
         price_basis: ['EXW', 'FOB', 'CFR', 'CIF'].includes(body.price_basis) ? body.price_basis : null,
+        ...historyExtras(body, result, 1),
       }).execute().catch(() => {}); // Non-blocking
     }
 
     return result;
   });
 
-  // ── GET /v1/customs/landed-cost/history ───────────────────────────────────────
-  // Get previous landed cost calculations for this tenant
+  // ── GET /v1/customs/landed-cost/history ───────────────────────────────────
+  // The tenant's saved calculations. Search, sort and paging are done here
+  // rather than in the browser: a busy tenant accumulates thousands of these,
+  // and shipping them all so the page can filter locally would be both slow
+  // and a way to leak rows a narrower query would never have returned.
   fastify.get('/landed-cost/history', async (request) => {
     const user = request.user as any;
-    return db.selectFrom('landed_cost_records')
-      .selectAll()
+    const q = request.query as any;
+    const limit = Math.min(Math.max(parseInt(q.limit) || 50, 1), 200);
+    const offset = Math.max(parseInt(q.offset) || 0, 0);
+    const search = String(q.q ?? '').trim();
+
+    const base = () => {
+      let qb = db.selectFrom('landed_cost_records')
+        // Tenant isolation is explicit on every branch — RLS is not on its own
+        // a guarantee here, and history is the one table that would otherwise
+        // hand a competitor's cargo values over whole.
+        .where('tenant_id', '=', user.tenant_id);
+      if (search) {
+        const like = `%${search.replace(/[%_]/g, m => '\\' + m)}%`;
+        qb = qb.where(eb => eb.or([
+          eb('description', 'ilike', like),
+          eb('hs_code', 'ilike', like),
+          eb('customer_name', 'ilike', like),
+          eb('title', 'ilike', like),
+          eb('shipment_ref', 'ilike', like),
+          eb('destination', 'ilike', like),
+        ]));
+      }
+      if (q.mode) qb = qb.where('shipment_mode', '=', String(q.mode));
+      if (q.kind === 'multi') qb = qb.where('hs_code', '=', 'MULTI');
+      if (q.kind === 'single') qb = qb.where('hs_code', '!=', 'MULTI');
+      // Only calculations that can actually be reopened.
+      if (q.reopenable === 'true') qb = qb.where('payload', 'is not', null);
+      return qb;
+    };
+
+    // Allow-list, not a pass-through: an ORDER BY built from a query string is
+    // an injection surface, and a sort on an unindexed column is a table scan.
+    const SORTS: Record<string, 'created_at' | 'total_tzs' | 'customer_name' | 'description' | 'qty'> = {
+      created_at: 'created_at', total: 'total_tzs', customer: 'customer_name',
+      description: 'description', items: 'qty',
+    };
+    const sort = SORTS[String(q.sort ?? 'created_at')] ?? 'created_at';
+    const dir = String(q.dir ?? 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
+
+    const [rows, counted] = await Promise.all([
+      base()
+        // The payload can be megabytes on a 200-line consignment; the list
+        // only needs to know whether there is one.
+        .select([
+          'id', 'tenant_id', 'shipment_ref', 'hs_code', 'description', 'cif_usd', 'fx_rate',
+          'cif_tzs', 'duty_amount', 'vat_amount', 'total_tzs', 'qty', 'per_unit_tzs', 'source',
+          'created_by', 'created_at', 'origin_country', 'loading_point', 'shipment_mode',
+          'price_basis', 'customer_name', 'customer_email', 'destination', 'title',
+          'parent_id', 'version', 'item_count', 'share_token',
+        ])
+        .select(eb => eb.case().when('payload', 'is not', null).then(true).else(false).end().as('has_payload'))
+        .orderBy(sort, dir)
+        .orderBy('created_at', 'desc')
+        .limit(limit).offset(offset)
+        .execute(),
+      base().select(eb => eb.fn.countAll<string>().as('n')).executeTakeFirst(),
+    ]);
+
+    return { data: rows, total: Number(counted?.n ?? 0), limit, offset };
+  });
+
+  // ── GET /v1/customs/landed-cost/history/:id ───────────────────────────────
+  // One saved calculation in full, including the payload the report renders
+  // from. Scoped to the caller's tenant: an id is a guessable-looking handle,
+  // and this is the endpoint that would otherwise return another tenant's
+  // costings to anyone who had one.
+  fastify.get<{ Params: { id: string } }>('/landed-cost/history/:id', async (request, reply) => {
+    const user = request.user as any;
+    const row = await db.selectFrom('landed_cost_records').selectAll()
+      .where('id', '=', request.params.id)
       .where('tenant_id', '=', user.tenant_id)
-      .orderBy('created_at', 'desc')
-      .limit(50)
+      .executeTakeFirst();
+    if (!row) return reply.status(404).send({ error: 'Calculation not found.' });
+
+    // Every version derived from the same original, so the page can show the
+    // lineage instead of presenting an amendment as an unrelated estimate.
+    const rootId = row.parent_id ?? row.id;
+    const versions = await db.selectFrom('landed_cost_records')
+      .select(['id', 'version', 'title', 'total_tzs', 'created_at', 'parent_id'])
+      .where('tenant_id', '=', user.tenant_id)
+      .where(eb => eb.or([eb('id', '=', rootId), eb('parent_id', '=', rootId)]))
+      .orderBy('version', 'asc')
       .execute();
+
+    return { ...row, versions };
+  });
+
+  // ── PATCH /v1/customs/landed-cost/history/:id ─────────────────────────────
+  // Renaming a saved estimate. Only the label — the figures a customer was
+  // quoted are never editable in place; amending produces a new version.
+  fastify.patch<{ Params: { id: string }; Body: { title?: string } }>('/landed-cost/history/:id', async (request, reply) => {
+    const user = request.user as any;
+    const title = String(request.body?.title ?? '').trim().slice(0, 160);
+    const updated = await db.updateTable('landed_cost_records')
+      .set({ title: title || null })
+      .where('id', '=', request.params.id)
+      .where('tenant_id', '=', user.tenant_id)
+      .returning(['id', 'title'])
+      .executeTakeFirst();
+    if (!updated) return reply.status(404).send({ error: 'Calculation not found.' });
+    return updated;
   });
 
   // ── POST /v1/customs/landed-cost/multi-item ──────────────────────────────────
@@ -281,6 +530,8 @@ export async function customsRoutes(fastify: FastifyInstance) {
         per_unit_tzs: null,
         source: 'calculator-multi',
         created_by: user.sub ?? null,
+        shipment_mode: result.mode,
+        ...historyExtras(body, result, result.items.length),
       }).execute().catch(() => {});
     }
 

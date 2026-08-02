@@ -91,6 +91,26 @@ export class MinioIntegration {
   }
 
   /**
+   * Stores a file attached to a platform support ticket — a screenshot, the
+   * report PDF, the invoice that broke. Kept out of the customer/cloud trees
+   * so a bug report's evidence never appears in a customer's document list.
+   */
+  static async uploadSupportAttachment(
+    tenantId: string,
+    attachmentId: string,
+    filename: string,
+    fileBuffer: Buffer
+  ): Promise<{ storageKey: string; size: number }> {
+    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_') || 'attachment';
+    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'support', attachmentId);
+    fs.mkdirSync(localDir, { recursive: true });
+    const storageKey = `tenants/${tenantId}/support/${attachmentId}/${cleanFilename}`;
+    fs.writeFileSync(path.join(localDir, cleanFilename), fileBuffer);
+    console.log(`🗄️ Storage: Support attachment saved — ${storageKey}`);
+    return { storageKey, size: fileBuffer.length };
+  }
+
+  /**
    * Generates a signed URL for reading/downloading a document.
    */
   static async getSignedUrl(

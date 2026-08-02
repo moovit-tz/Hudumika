@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
@@ -106,6 +107,28 @@ interface HsSuggestion {
    *  person still accepts every code. See hs-suggest.service.ts. */
   matchPct: number;
 }
+
+/** Which suggestion the server put first and why — three codes at an identical
+ *  percentage say nothing about which to take, so the grounds are stated. */
+interface HsRecommendation {
+  code: string;
+  reason: string;
+  /** Wording alone could not separate the top candidates. */
+  tied: boolean;
+}
+
+/** One line's answer from the AI review. `code` is null when the AI declined
+ *  to choose any of the candidates — which is an answer, not a failure. */
+interface AiPick {
+  id: string;
+  code: string | null;
+  confidence: 'high' | 'medium' | 'low';
+  reason: string;
+}
+
+/** Lines per AI request. The route caps it at 40; batching keeps a 200-line
+ *  invoice from becoming one enormous prompt. */
+const AI_PICK_BATCH = 25;
 
 interface MultiItemRow {
   id: string;
@@ -272,7 +295,10 @@ function Seg({ active, onClick, label, icon, fullWidth, grow }: { active: boolea
         width: fullWidth ? '100%' : 'auto',
         flex: grow ? '1 1 150px' : undefined,
         justifyContent: grow ? 'center' : undefined,
-        padding: '11px 18px', borderRadius: 10,
+        // One radius token for every control on the page, not a hand-picked
+        // 10 next to the fields' 5 — the toggle and the field beside it are
+        // the same kind of thing and should not read as two components.
+        padding: '11px 18px', borderRadius: 'var(--r-sm)',
         border: `1.5px solid ${active ? 'var(--teal)' : 'var(--border)'}`,
         background: active ? 'color-mix(in srgb, var(--teal) 12%, transparent)' : 'var(--card-bg, var(--white))',
         color: active ? 'var(--teal)' : 'var(--ink2)',
@@ -885,9 +911,9 @@ const SHIPMENT_MODE_OPTIONS: { key: ShipmentModeKey; label: string; icon: string
   { key: 'air', label: 'Airfreight', icon: 'plane' },
 ];
 
-type RateCardKey = '20ft' | '40ft' | 'sea' | 'air' | 'road';
+export type RateCardKey = '20ft' | '40ft' | 'sea' | 'air' | 'road';
 
-function rateCardKeyFor(mode: ShipmentMode, container: '20ft' | '40ft' | 'lcl'): RateCardKey {
+export function rateCardKeyFor(mode: ShipmentMode, container: '20ft' | '40ft' | 'lcl'): RateCardKey {
   if (mode === 'sea_fcl') return container === '40ft' ? '40ft' : '20ft';
   if (mode === 'air') return 'air';
   return 'sea';
@@ -898,7 +924,7 @@ function rateCardKeyFor(mode: ShipmentMode, container: '20ft' | '40ft' | 'lcl'):
  *  hasn't populated it or the request fails, never a guessed fallback.
  *  icdOperatorId picks a specific ICD's own rates; omitted/null uses the
  *  card's generic default. */
-async function fetchRateCardDefaults(cardKey: RateCardKey, icdOperatorId?: string | null): Promise<Record<string, number>> {
+export async function fetchRateCardDefaults(cardKey: RateCardKey, icdOperatorId?: string | null): Promise<Record<string, number>> {
   try {
     const res = await apiFetch(`/v1/rate-card/${cardKey}/defaults${icdOperatorId ? `?icd_operator_id=${icdOperatorId}` : ''}`);
     return res.data ?? {};
@@ -1495,11 +1521,16 @@ export function printSharedReport(payload: {
   container?: '20ft' | '40ft' | 'lcl';
   rateCard?: Record<string, number>;
   sizeCards?: Record<string, Record<string, number>>;
+  /** Container mix, so a replayed multi-item link prices ICD per size. */
+  lots?: { size: '20ft' | '40ft'; count: number }[];
   meta?: ReportMeta;
 }) {
   if (!payload) return;
   const { qrDataUri, shareUrl, ...meta } = payload.meta ?? {};
-  if (payload.multiResult) { printMultiReport(payload.multiResult, meta); return; }
+  if (payload.multiResult) {
+    printMultiReport(payload.multiResult, meta, payload.rateCard ?? {}, payload.sizeCards ?? {}, payload.lots ?? []);
+    return;
+  }
   if (!payload.result) return;
   printReport(
     payload.result,
@@ -1515,7 +1546,19 @@ export function printSharedReport(payload: {
 
 /** Multi-item equivalent of createShareForReport. Same never-throws contract:
  *  a failed share just means the printed copy carries no QR code. */
-async function createShareForMulti(result: MultiItemResult, meta: ReportMeta): Promise<ShareResult> {
+/** Size-keyed rate cards for a container mix. Mirrors fetchSizeCards, which
+ *  reads the sizes off a single-item result this path does not have. */
+export async function fetchSizeCardsForLots(
+  lots: { size: '20ft' | '40ft'; count: number }[],
+  icdOperatorId: string | null,
+): Promise<Record<string, Record<string, number>>> {
+  const sizes = Array.from(new Set(lots.map(l => l.size)));
+  if (sizes.length === 0) return {};
+  const pairs = await Promise.all(sizes.map(async sz => [sz, await fetchRateCardDefaults(sz as RateCardKey, icdOperatorId)] as const));
+  return Object.fromEntries(pairs);
+}
+
+async function createShareForMulti(result: MultiItemResult, meta: ReportMeta, extra: Record<string, any> = {}): Promise<ShareResult> {
   try {
     const primary = result.items?.[0];
     const r: any = await apiFetch('/v1/landed-cost-shares', {
@@ -1524,7 +1567,10 @@ async function createShareForMulti(result: MultiItemResult, meta: ReportMeta): P
         hs_code: primary?.hs_code ?? null,
         description: result.items?.length > 1 ? `${result.items.length} line items` : (primary?.description ?? null),
         customer_name: meta.customerName || null,
-        payload: { multiResult: result, meta },
+        // The rate card travels with the link so a shared report prices ICD
+        // and the agency fee the same way the sender saw it, rather than
+        // silently falling back to the ClearOS default for the recipient.
+        payload: { multiResult: result, meta, ...extra },
       }),
     });
     return { qrDataUri: r?.qr_data_uri ?? undefined, shareUrl: r?.url ?? undefined, qrUnavailableReason: r?.qr_unavailable_reason ?? undefined };
@@ -1533,7 +1579,13 @@ async function createShareForMulti(result: MultiItemResult, meta: ReportMeta): P
   }
 }
 
-function printMultiReport(result: MultiItemResult, meta: ReportMeta = {}) {
+function printMultiReport(
+  result: MultiItemResult,
+  meta: ReportMeta = {},
+  rateCard: Record<string, number> = {},
+  sizeCards: Record<string, Record<string, number>> = {},
+  lots: { size: '20ft' | '40ft'; count: number }[] = [],
+) {
   const w = window.open('', '_blank');
   if (!w) return;
   const now = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
@@ -1548,12 +1600,21 @@ function printMultiReport(result: MultiItemResult, meta: ReportMeta = {}) {
   const cifTotalTzs = result.totals.fob_tzs + result.totals.freight_tzs + result.totals.insurance_tzs;
   const tpaTotalTzs = result.totals.wharfage + result.totals.pid + result.totals.green_port_initiative;
   const freightInsTzs = result.totals.freight_tzs + result.totals.insurance_tzs;
-  /** What the importer actually has to fund: everything except the cargo's
-   *  own FOB value. `totals.total` is the full landed cost and includes the
-   *  cargo, so using it here would overstate the figure by the whole FOB. */
-  const amountToPrepareTzs = result.totals.total - result.totals.fob_tzs;
-
   const totalUnits = result.items.reduce((s, x) => s + x.qty, 0);
+
+  /**
+   * A figure that may wrap, but only between thousands groups.
+   *
+   * The reference table's totals row carries the consignment sums, which are
+   * two or three digits longer than any individual line — "252,920,590" in a
+   * column sized for "3,806,286". With nowrap they ran straight into the
+   * neighbouring column and printed as "252,920,59066,840,195": two real
+   * numbers, unreadable as either. A zero-width space after each comma gives
+   * the browser somewhere legitimate to break, so an oversized total stacks as
+   * "252," / "920,590" with every digit group intact. It is a fallback — the
+   * column widths below are sized so it should not be needed.
+   */
+  const grp = (n: number) => fmt(n).replace(/,/g, ',​');
 
   /**
    * The single-item report's charge-table shape, reused so a reader moving
@@ -1562,20 +1623,122 @@ function printMultiReport(result: MultiItemResult, meta: ReportMeta = {}) {
    * that was not computed look identical as "TZS 0", and only one of those is
    * safe to quote from.
    */
-  type ChargeLine = [label: string, unit: string, rate: string, amount: number];
-  const chargeTable = (lines: ChargeLine[], totalLabel: string) => {
-    const shown = lines.filter(([, , , amt]) => amt > 0);
-    if (shown.length === 0) return `<div class="none">No charge on this consignment.</div>`;
-    const total = shown.reduce((s, [, , , amt]) => s + amt, 0);
+  // Service charges carry VAT; statutory duties and the TBS per-BL fee do not.
+  // Same split the single-item report uses, so the two agree line for line.
+  const VAT_PCT = 18;
+  type ChargeLine = [label: string, unit: string, rate: string, netTzs: number, vat?: boolean];
+  const lineGross = ([, , , net, vat]: ChargeLine) => net + (vat ? net * VAT_PCT / 100 : 0);
+  const linesTotal = (lines: ChargeLine[]) => lines.filter(l => l[3] > 0).reduce((s, l) => s + lineGross(l), 0);
+  const chargeTable = (lines: ChargeLine[], totalLabel: string, emptyText?: string) => {
+    const shown = lines.filter(([, , , net]) => net > 0);
+    if (shown.length === 0) return `<div class="none">${emptyText ?? 'No charge on this consignment.'}</div>`;
+    const anyVat = shown.some(l => l[4]);
+    // Two column sets, each summing to exactly 100%.
+    //
+    // There was one set of four (46/17/12/25) and, when the VAT columns were
+    // added, a fifth <col> cloned from the total's 25% — six columns rendered
+    // against five declarations totalling 125%. With table-layout:fixed the
+    // browser honoured that literally, so every charge card on the report ran
+    // a quarter of its width past the card border: the Total column sat
+    // outside the box and the header read "…SUB-TOTAL VAT TO".
     return `<table class="chg">
-      <colgroup><col class="c-d"><col class="c-u"><col class="c-r"><col class="c-t"></colgroup>
-      <thead><tr><th>Description</th><th>Unit</th><th class="r">Rate</th><th class="r">Total</th></tr></thead>
-      <tbody>${shown.map(([label, unit, rate, amt]) => `
-        <tr><td>${label}</td><td class="u">${unit}</td><td class="r u">${rate}</td><td class="r v">TZS ${fmt(amt)}</td></tr>`).join('')}
+      <colgroup>${anyVat
+        ? '<col class="c-d6"><col class="c-u6"><col class="c-r6"><col class="c-s6"><col class="c-v6"><col class="c-t6">'
+        : '<col class="c-d"><col class="c-u"><col class="c-r"><col class="c-t">'}</colgroup>
+      <thead><tr><th>Description</th><th>Unit</th><th class="r">Rate</th>${anyVat ? '<th class="r">Sub-total</th><th class="r">VAT</th>' : ''}<th class="r">Total</th></tr></thead>
+      <tbody>${shown.map(l => {
+        const [label, unit, rate, net, vat] = l;
+        const vatTzs = vat ? net * VAT_PCT / 100 : 0;
+        return `<tr><td>${label}</td><td class="u">${unit}</td><td class="r u">${rate}</td>${anyVat
+          ? `<td class="r">TZS ${fmt(net)}</td><td class="r u">${vat ? 'TZS ' + fmt(vatTzs) : '&mdash;'}</td>` : ''
+        }<td class="r v">TZS ${fmt(net + vatTzs)}</td></tr>`;
+      }).join('')}
       </tbody>
-      <tfoot><tr><td colSpan="3">${totalLabel}</td><td class="r">TZS ${fmt(total)}</td></tr></tfoot>
+      <tfoot><tr><td colSpan="${anyVat ? 5 : 3}">${totalLabel}</td><td class="r">TZS ${fmt(linesTotal(shown))}</td></tr></tfoot>
     </table>`;
   };
+
+  /**
+   * ICD and clearing-agent charges, from the tenant's own Rate Card.
+   *
+   * These were missing from the multi-item report entirely: it showed the
+   * single ClearOS per-container default for ICD and an empty agency card,
+   * while the single-item report itemised both. They are commercial rates, so
+   * they only ever come from the Rate Card — never a guessed fallback.
+   */
+  const usd = (n: number) => `USD ${n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const multiSize = lots.length > 1;
+  const perLot = (code: string, label: string, vat: boolean): ChargeLine[] =>
+    lots.flatMap(lot => {
+      const rate = (sizeCards[lot.size] ?? rateCard)[code] ?? 0;
+      if (rate <= 0) return [];
+      return [[
+        multiSize ? `${label} (${lot.size})` : label,
+        lot.count > 1 ? `per container &times; ${lot.count}` : 'per container',
+        usd(rate), rate * result.fx_rate * lot.count, vat,
+      ] as ChargeLine];
+    });
+
+  const ICD_CODES: [string, string][] = [
+    ['ICD_VERIFICATION', 'Customs Verification'],
+    ['ICD_CORRIDOR', 'Corridor Levy'],
+    ['ICD_HANDLING', 'Handling Charges'],
+    ['ICD_MOVEMENT', 'ICD Movement Charges'],
+    ['ICD_TRANSFER', 'Container Transfer'],
+  ];
+  const icdRows: ChargeLine[] = lots.length > 0
+    ? ICD_CODES.flatMap(([code, label]) => perLot(code, label, true))
+    : ICD_CODES.map(([code, label]) => [label, 'per consignment', usd(rateCard[code] ?? 0), (rateCard[code] ?? 0) * result.fx_rate, true] as ChargeLine);
+  const icdRateCardTzs = linesTotal(icdRows);
+
+  const clearanceRows: ChargeLine[] = [
+    ['Documentation', 'per BL', usd(rateCard['CF_DOCUMENTATION'] ?? 0), (rateCard['CF_DOCUMENTATION'] ?? 0) * result.fx_rate, true],
+    ['Verification', 'per BL', usd(rateCard['CF_VERIFICATION'] ?? 0), (rateCard['CF_VERIFICATION'] ?? 0) * result.fx_rate, true],
+    ...(lots.length > 0
+      ? perLot('CF_AGENCY_FEE', 'Agency Fees', true)
+      : [['Agency Fees', 'per BL', usd(rateCard['CF_AGENCY_FEE'] ?? 0), (rateCard['CF_AGENCY_FEE'] ?? 0) * result.fx_rate, true] as ChargeLine]),
+  ];
+  const clearanceTzs = linesTotal(clearanceRows);
+
+  // The itemised Rate Card figure replaces the single ClearOS default rather
+  // than adding to it — they price the same thing. The default is still named
+  // in the card note so the two can be reconciled.
+  const icdShownTzs = icdRateCardTzs > 0 ? icdRateCardTzs : result.totals.destination;
+
+  // VAT on the port and shipping service charges. The assessment engine
+  // returns these net, but they are vatable services and the single-item
+  // report has always shown them gross — leaving it out here would make the
+  // two reports disagree on the same shipment, and would understate the cash
+  // the importer has to find.
+  const serviceVatTzs = (tpaTotalTzs + result.totals.shipping_do_fee) * VAT_PCT / 100;
+  const tpaGrossTzs = tpaTotalTzs * (1 + VAT_PCT / 100);
+  const shippingGrossTzs = result.totals.shipping_line_charge + result.totals.shipping_do_fee * VAT_PCT / 100;
+
+  const commercialDeltaTzs = (icdShownTzs - result.totals.destination) + clearanceTzs + serviceVatTzs;
+  const grandTotalTzs = result.totals.total + commercialDeltaTzs;
+  /** What the importer actually has to fund: everything except the cargo's
+   *  own FOB value. The grand total is the full landed cost and includes the
+   *  cargo, so using it here would overstate the figure by the whole FOB. */
+  const amountToPrepareTzs = grandTotalTzs - result.totals.fob_tzs;
+
+  /** Largest-remainder apportionment by FOB share — the same basis the API
+   *  uses, so the per-line figures still sum exactly to the total. */
+  function apportion(totalTzs: number): number[] {
+    const weights = result.items.map(it => it.fob_usd);
+    const sum = weights.reduce((a, b) => a + b, 0);
+    const target = Math.round(totalTzs);
+    if (sum <= 0 || target === 0) return weights.map(() => 0);
+    const raw = weights.map(w => (w / sum) * target);
+    const floors = raw.map(Math.floor);
+    let rem = target - floors.reduce((a, b) => a + b, 0);
+    const order = raw.map((r, i) => ({ i, frac: r - floors[i] })).sort((a, b) => b.frac - a.frac);
+    const out = [...floors];
+    for (let k = 0; rem > 0 && order.length; k++, rem--) out[order[k % order.length].i] += 1;
+    for (let k = 0; rem < 0 && order.length; k++, rem++) out[order[k % order.length].i] -= 1;
+    return out;
+  }
+  const commercialAlloc = apportion(commercialDeltaTzs);
+  const lineLandedTzs = result.items.map((it, i) => it.landed_total + commercialAlloc[i]);
 
   /**
    * Only the taxes that actually apply. Excise, RDL and CPF are zero on most
@@ -1601,7 +1764,7 @@ function printMultiReport(result: MultiItemResult, meta: ReportMeta = {}) {
    * page 1 can be checked back to the goods it came from — and a landed cost
    * per unit, which is the number anyone pricing the goods actually needs.
    */
-  const itemRows = result.items.map(it => `
+  const itemRows = result.items.map((it, i) => `
     <tr>
       <td>${it.line_no}</td>
       <td class="desc">${it.description}</td>
@@ -1613,15 +1776,15 @@ function printMultiReport(result: MultiItemResult, meta: ReportMeta = {}) {
       <td class="r">${fmt(it.rdl)}</td>
       <td class="r">${fmt(it.cpf)}</td>
       <td class="r">${fmt(it.vat)}</td>
-      <td class="r">${it.qty > 0 ? fmt(it.landed_total / it.qty) : '—'}</td>
-      <td class="r tot">${fmt(it.landed_total)}</td>
+      <td class="r">${it.qty > 0 ? fmt(lineLandedTzs[i] / it.qty) : '—'}</td>
+      <td class="r tot">${fmt(lineLandedTzs[i])}</td>
     </tr>
   `).join('');
 
   // Proof that the reference pages reconcile to the summary. Computed from the
   // rendered lines, not restated from the totals, so a mismatch would show.
-  const lineSum = result.items.reduce((s, x) => s + x.landed_total, 0);
-  const lineSumGap = lineSum - result.totals.total;
+  const lineSum = lineLandedTzs.reduce((s, x) => s + x, 0);
+  const lineSumGap = lineSum - grandTotalTzs;
 
   w.document.write(`<!DOCTYPE html><html><head><title>Landed Cost Report (Multi-Item) &middot; ClearOS</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1760,21 +1923,34 @@ tr.subt td.tot{color:var(--acc-600)}
 .ref{margin-top:26px;page-break-before:always;break-before:page}
 .ref-head h3{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--acc-600);font-weight:700;margin-bottom:5px}
 .ref-head p{font-size:10.5px;color:var(--slate);line-height:1.6;margin-bottom:12px;max-width:150mm}
-table.ref-t{font-size:9px}
-table.ref-t thead th{font-size:8px;padding:7px 5px}
-table.ref-t td{padding:5px}
-table.ref-t col.c-no{width:3.2%}
-table.ref-t col.c-desc{width:20%}
-table.ref-t col.c-hs{width:8.6%}
-table.ref-t col.c-qty{width:5.2%}
-table.ref-t col.c-cif{width:8.4%}
-table.ref-t col.c-duty{width:7.6%}
-table.ref-t col.c-ex{width:6.6%}
-table.ref-t col.c-rdl{width:6.2%}
-table.ref-t col.c-cpf{width:6.2%}
-table.ref-t col.c-vat{width:7.6%}
-table.ref-t col.c-unit{width:9%}
-table.ref-t col.c-tot{width:11.4%}
+table.ref-t{font-size:8px}
+/* Twelve columns of headings do not fit a 155mm sheet on one line, and
+   nowrap made them run into each other and clip — "LANDED / UNIT" and
+   "LINE LANDED TOTAL" printed as "LANDED / UNITLINE LANDED TOT". They wrap
+   instead, at spaces only: word-break stays normal so no heading is ever
+   split mid-word, and hyphens are off so the browser cannot invent one. */
+table.ref-t thead th{font-size:8px;padding:7px 5px;white-space:normal;word-break:normal;overflow-wrap:normal;hyphens:none;line-height:1.25;vertical-align:bottom}
+table.ref-t td{padding:4px 3px}
+/* Widths are set by the totals row, not by a typical line: the consignment
+   sums are two or three digits longer than anything above them, and a column
+   sized for "3,806,286" printed "252,920,590" straight over its neighbour.
+   The money columns are sized to hold a nine-figure total at this font; the
+   description gives up the room, since it is the one column that can wrap. */
+table.ref-t col.c-no{width:3%}
+table.ref-t col.c-desc{width:15.5%}
+table.ref-t col.c-hs{width:8%}
+table.ref-t col.c-qty{width:4.5%}
+table.ref-t col.c-cif{width:9.5%}
+table.ref-t col.c-duty{width:8.5%}
+table.ref-t col.c-ex{width:6.5%}
+table.ref-t col.c-rdl{width:7%}
+table.ref-t col.c-cpf{width:7.5%}
+table.ref-t col.c-vat{width:9.5%}
+table.ref-t col.c-unit{width:9.5%}
+table.ref-t col.c-tot{width:11%}
+/* The totals row is the widest content in the table. It may wrap — the
+   figures carry a break opportunity after each comma — but never mid-group. */
+table.ref-t tr.subt td{white-space:normal;word-break:normal;overflow-wrap:normal;line-height:1.3}
 .ref-foot{margin-top:10px;font-size:10px;line-height:1.6;color:var(--ink-700);background:var(--tint);border-left:3px solid var(--acc);border-radius:0 8px 8px 0;padding:9px 12px}
 .ref-foot.bad{background:#FEF2F2;border-left-color:#DC2626;color:#7F1D1D;font-weight:600}
 /* ── A4 pagination ───────────────────────────────────────────────────────
@@ -1785,10 +1961,20 @@ table.ref-t col.c-tot{width:11.4%}
    sheet behind. */
 @page{size:A4;margin:14mm}
 .chg{width:100%;table-layout:fixed;border-collapse:collapse;font-size:10.5px;margin-top:2px}
+/* Four columns: description, unit, rate, total. Sums to 100%. */
 .chg col.c-d{width:46%}
 .chg col.c-u{width:17%}
 .chg col.c-r{width:12%}
 .chg col.c-t{width:25%}
+/* Six, when the charge carries VAT: + sub-total and VAT. Also 100% — the
+   figures are nowrap, so the money columns are sized to hold "TZS 1,059,435"
+   and the description is the one that wraps. */
+.chg col.c-d6{width:29%}
+.chg col.c-u6{width:13.5%}
+.chg col.c-r6{width:13%}
+.chg col.c-s6{width:15.5%}
+.chg col.c-v6{width:13%}
+.chg col.c-t6{width:16%}
 .chg thead th{font-size:8px;letter-spacing:.06em;text-transform:uppercase;color:var(--slate);font-weight:700;text-align:left;padding:5px 7px;border-bottom:1px solid var(--line)}
 .chg thead th.r{text-align:right}
 .chg td{padding:4.5px 7px;border-bottom:1px solid var(--line-soft);vertical-align:top;overflow-wrap:anywhere}
@@ -1880,17 +2066,21 @@ table.ref-t tr{break-inside:avoid;page-break-inside:avoid}
   <section class="card">
     <h3><span class="n">4</span>TPA Charges</h3>
     ${chargeTable([
-      ['TPA Wharfage', 'CIF', '1.6%', result.totals.wharfage],
-      ['Port Infrastructure Development', 'Duties &amp; taxes', '4.5%', result.totals.pid],
-      [result.totals.green_port_label, 'Flat', '&mdash;', result.totals.green_port_initiative],
+      ['TPA Wharfage', 'CIF', '1.6%', result.totals.wharfage, true],
+      ['Port Infrastructure Development', 'Duties &amp; taxes', '4.5%', result.totals.pid, true],
+      [result.totals.green_port_label, 'Flat', '&mdash;', result.totals.green_port_initiative, true],
     ], 'Total TPA Charges')}
     <div class="note">Wharfage, Port Infrastructure Development and Green Port Initiatives are published TPA rates.</div>
   </section>
 
   <section class="card">
     <h3><span class="n">5</span>ICD / Destination Charges</h3>
-    ${chargeTable([[result.destination_charge_label, 'per consignment', '&mdash;', result.totals.destination]], 'Total ICD Charges')}
-    <div class="note">A default per-container estimate, not a TRA assessment &mdash; reconcile against your actual container handling agreement.</div>
+    ${icdRateCardTzs > 0
+      ? chargeTable(icdRows, 'Total ICD Charges')
+      : chargeTable([[result.destination_charge_label, 'per consignment', '&mdash;', result.totals.destination]], 'Total ICD Charges')}
+    <div class="note">${icdRateCardTzs > 0
+      ? `Sourced from your Rate Card &mdash; a commercial estimate, not a TRA assessment. ClearOS separately computed a single ICD/destination charge of TZS ${fmt(result.totals.destination)} (${result.destination_charge_label}) for reference &mdash; the itemised figures above are what this report uses, not both.`
+      : `Nothing itemised in your Rate Card yet, so this is ClearOS's own per-container default. Populate Customs Verification, Corridor Levy, Handling Charges, ICD Movement and Container Transfer in Tools &rarr; Rate Card to price this properly.`}</div>
   </section>
 
   <section class="card">
@@ -1905,7 +2095,7 @@ table.ref-t tr{break-inside:avoid;page-break-inside:avoid}
   <section class="card">
     <h3><span class="n">7</span>Shipping Line Charges</h3>
     ${chargeTable([
-      ['Delivery Order Fee', 'per BL', '&mdash;', result.totals.shipping_do_fee],
+      ['Delivery Order Fee', 'per BL', '&mdash;', result.totals.shipping_do_fee, true],
       ...(result.totals.shipping_handling_fee > 0 ? [['Handling / TASAC Fee', 'per container', '&mdash;', result.totals.shipping_handling_fee] as ChargeLine] : []),
     ], 'Total Shipping Line Charges')}
     <div class="note">Reference rates from the clearing agent's own rate sheet, not an independently verified shipping-line tariff &mdash; verify against your actual invoice.</div>
@@ -1913,11 +2103,9 @@ table.ref-t tr{break-inside:avoid;page-break-inside:avoid}
 
   <section class="card">
     <h3><span class="n">8</span>Clearance &amp; Other Agency Charges</h3>
-    <!-- Left empty rather than filled with zeros. A zero against "GCLA" reads
-         as "no GCLA charge applies", which is a different claim from "none was
-         entered" — and it is the clearing agent who would be held to the
-         first. The rate card is where these actually live. -->
-    <div class="note">Documentation, verification and the TASAC agency fee, plus any GCLA, TMDA or CAMARTEC charge, are <b>not computed here</b> &mdash; they are commercial rates specific to the job. Add them from Tools &rarr; Rate Card before quoting a client. ${allNotes.some(n => /pvoc|inspection/i.test(n)) ? 'Several lines on this consignment also require PVoC or Destination Inspection &mdash; see the notes.' : ''}</div>
+    ${chargeTable(clearanceRows, 'Total Clearance Charges',
+      'No agency fee entered yet &mdash; set Documentation, Verification and the Agency Fee in Tools &rarr; Rate Card before quoting a client.')}
+    <div class="note">Documentation, Verification and the TASAC agency fee are sourced from your Rate Card &mdash; commercial rates specific to the job, not a government tariff. Any GCLA, TMDA or CAMARTEC charge is <b>not included</b>; add it from the Rate Card if it applies to this cargo. ${allNotes.some(n => /pvoc|inspection/i.test(n)) ? 'Several lines on this consignment require PVoC or Destination Inspection &mdash; see the notes.' : ''}</div>
   </section>
 
   <section class="summary">
@@ -1927,10 +2115,11 @@ table.ref-t tr{break-inside:avoid;page-break-inside:avoid}
       <div class="row"><span class="k">1&nbsp; Freight &amp; insurance — export country</span><span class="v">TZS ${fmt(freightInsTzs)}</span></div>
       <div class="row head"><span class="k">2&nbsp; Amount to pay in Tanzania</span><span></span></div>
       <div class="row sub"><span class="k">Duties &amp; taxes — TRA (incl. VAT)</span><span class="v">TZS ${fmt(result.totals.statutory_total)}</span></div>
-      <div class="row sub"><span class="k">Port &amp; handling — TPA</span><span class="v">TZS ${fmt(tpaTotalTzs)}</span></div>
-      <div class="row sub"><span class="k">ICD / destination charges</span><span class="v">TZS ${fmt(result.totals.destination)}</span></div>
+      <div class="row sub"><span class="k">Port &amp; handling — TPA</span><span class="v">TZS ${fmt(tpaGrossTzs)}</span></div>
+      <div class="row sub"><span class="k">ICD / destination charges</span><span class="v">TZS ${fmt(icdShownTzs)}</span></div>
+      ${clearanceTzs > 0 ? `<div class="row sub"><span class="k">Clearance &amp; agency charges</span><span class="v">TZS ${fmt(clearanceTzs)}</span></div>` : ''}
       <div class="row sub"><span class="k">TBS charges</span><span class="v">TZS ${fmt(result.totals.tbs_charge)}</span></div>
-      <div class="row sub"><span class="k">Local shipping line charges</span><span class="v">TZS ${fmt(result.totals.shipping_line_charge)}</span></div>
+      <div class="row sub"><span class="k">Local shipping line charges</span><span class="v">TZS ${fmt(shippingGrossTzs)}</span></div>
     </div>
     <div class="sum-r">
       <div class="prep-lab">Total Amount to Prepare</div>
@@ -1939,8 +2128,8 @@ table.ref-t tr{break-inside:avoid;page-break-inside:avoid}
       <div class="fx">@ USD &rarr; TZS ${result.fx_rate.toLocaleString('en-US')}</div>
       <div class="ddp">
         <div class="l">Total Landed Cost — DDP ${destinationShort} <span style="text-transform:none;letter-spacing:0">(incl. VAT)</span></div>
-        <div class="v">TZS ${fmt(result.totals.total)}</div>
-        <div class="n">USD ${(result.totals.total / result.fx_rate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} = Cargo TZS ${fmt(result.totals.fob_tzs)} + costs to prepare TZS ${fmt(amountToPrepareTzs)}</div>
+        <div class="v">TZS ${fmt(grandTotalTzs)}</div>
+        <div class="n">USD ${(grandTotalTzs / result.fx_rate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} = Cargo TZS ${fmt(result.totals.fob_tzs)} + costs to prepare TZS ${fmt(amountToPrepareTzs)}</div>
       </div>
     </div>
   </section>
@@ -1990,22 +2179,22 @@ table.ref-t tr{break-inside:avoid;page-break-inside:avoid}
       <tbody>${itemRows}
       <tr class="subt">
         <td colSpan="3" class="desc">Totals (${result.items.length} line${result.items.length === 1 ? '' : 's'})</td>
-        <td class="r unit">${totalUnits.toLocaleString('en-US')}</td>
-        <td class="r">${fmt(result.totals.cif_tzs)}</td>
-        <td class="r">${fmt(result.totals.duty)}</td>
-        <td class="r">${fmt(result.totals.excise)}</td>
-        <td class="r">${fmt(result.totals.rdl)}</td>
-        <td class="r">${fmt(result.totals.cpf)}</td>
-        <td class="r">${fmt(result.totals.vat)}</td>
+        <td class="r unit">${grp(totalUnits)}</td>
+        <td class="r">${grp(result.totals.cif_tzs)}</td>
+        <td class="r">${grp(result.totals.duty)}</td>
+        <td class="r">${grp(result.totals.excise)}</td>
+        <td class="r">${grp(result.totals.rdl)}</td>
+        <td class="r">${grp(result.totals.cpf)}</td>
+        <td class="r">${grp(result.totals.vat)}</td>
         <td class="r">&mdash;</td>
-        <td class="r tot">${fmt(lineSum)}</td>
+        <td class="r tot">${grp(lineSum)}</td>
       </tr>
       </tbody>
     </table>
     </div>
     <div class="ref-foot ${Math.abs(lineSumGap) > 1 ? 'bad' : ''}">
       ${Math.abs(lineSumGap) > 1
-        ? `These lines sum to TZS ${fmt(lineSum)} against a summary total of TZS ${fmt(result.totals.total)} — a difference of TZS ${fmt(Math.abs(lineSumGap))}. Do not lodge on these figures; re-run the calculation.`
+        ? `These lines sum to TZS ${fmt(lineSum)} against a summary total of TZS ${fmt(grandTotalTzs)} — a difference of TZS ${fmt(Math.abs(lineSumGap))}. Do not lodge on these figures; re-run the calculation.`
         : `Reconciled: the ${result.items.length} lines above sum to TZS ${fmt(lineSum)}, matching the total landed cost on the summary.`}
     </div>
   </section>
@@ -2198,91 +2387,165 @@ function StepCaption({ index }: { index: number }) {
   );
 }
 
+// ── Draft persistence ─────────────────────────────────────────────────────────
+
+/**
+ * The wizard held everything in component state alone, so a refresh — or a
+ * misclick on a browser Back button — threw away a 206-line invoice, its
+ * accepted HS codes and the result. Rebuilding that is twenty minutes of work,
+ * and nothing warned it was about to happen.
+ *
+ * The draft is keyed by user id: a shared workstation must not hand the next
+ * person the previous one's cargo. It is cleared by New Calculation, and the
+ * version suffix retires drafts written by an older shape of this page rather
+ * than restoring fields that no longer mean the same thing.
+ */
+const DRAFT_VERSION = 'v1';
+function draftKey(): string {
+  let uid = 'anon';
+  try { uid = JSON.parse(localStorage.getItem('hudumika_user') || '{}')?.id || 'anon'; } catch { /* unparseable = anon */ }
+  return `clearos.landedcost.${uid}.${DRAFT_VERSION}`;
+}
+function readDraft(): Record<string, any> | null {
+  try {
+    const raw = localStorage.getItem(draftKey());
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    return d && typeof d === 'object' ? d : null;
+  } catch { return null; }
+}
+function writeDraft(d: Record<string, any>) {
+  try {
+    localStorage.setItem(draftKey(), JSON.stringify(d));
+  } catch {
+    // Quota. A big consignment's stored *result* is far larger than its
+    // inputs, and the inputs are the part that cannot be recomputed — so drop
+    // the result and keep the work. If even that will not fit, leave whatever
+    // was last stored alone rather than clearing it.
+    try {
+      localStorage.setItem(draftKey(), JSON.stringify({ ...d, result: null, multiResult: null, calcSig: '' }));
+    } catch { /* keep the previous draft */ }
+  }
+}
+function clearDraft() {
+  try { localStorage.removeItem(draftKey()); } catch { /* nothing to clear */ }
+}
+/** The stored value if the draft carries one, otherwise the default. Typed by
+ *  the default, so restoring a field cannot quietly widen that state to `any`
+ *  and take its compile-time checks with it. */
+function fromDraft<T>(d: Record<string, any> | null, key: string, fallback: T): T {
+  const v = d?.[key];
+  return v === undefined || v === null ? fallback : (v as T);
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export const LandedCostPage: React.FC = () => {
+  // Read once, before any state initialiser below reads from it.
+  const navigate = useNavigate();
+  const [urlParams] = useSearchParams();
+  const draftRef = useRef<Record<string, any> | null | undefined>(undefined);
+  if (draftRef.current === undefined) draftRef.current = readDraft();
+  const d = draftRef.current;
   // ── Step 1: who this estimate is for. Purely descriptive — these never
   // feed the calculation, they only label the on-screen result and the
   // exported PDF (and give the PDF its filename).
-  const [customerName,  setCustomerName]  = useState('');
-  const [customerEmail, setCustomerEmail] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [destination,   setDestination]   = useState('Dar es Salaam, Tanzania');
+  const [customerName,  setCustomerName]  = useState(() => fromDraft(d, 'customerName', ''));
+  const [customerEmail, setCustomerEmail] = useState(() => fromDraft(d, 'customerEmail', ''));
+  const [customerPhone, setCustomerPhone] = useState(() => fromDraft(d, 'customerPhone', ''));
+  const [destination,   setDestination]   = useState(() => fromDraft(d, 'destination', 'Dar es Salaam, Tanzania'));
 
-  const [cif,        setCif]       = useState('');
+  const [cif,        setCif]       = useState(() => fromDraft(d, 'cif', ''));
   // Plain-language replacement for asking the customer an Incoterm. The two
   // answers derive it: No/No = FOB, Yes/No = CFR, Yes/Yes = CIF.
-  const [priceInclFreight,   setPriceInclFreight]   = useState(false);
-  const [priceInclInsurance, setPriceInclInsurance] = useState(false);
+  const [priceInclFreight,   setPriceInclFreight]   = useState(() => fromDraft(d, 'priceInclFreight', false));
+  const [priceInclInsurance, setPriceInclInsurance] = useState(() => fromDraft(d, 'priceInclInsurance', false));
   // Corridor / source-market capture — persisted per calculation so the
   // platform accumulates real data on which ports and borders trade flows
   // through. Optional: blank stays NULL rather than becoming a fake value.
-  const [originCountry, setOriginCountry] = useState('');
-  const [loadingPoint,  setLoadingPoint]  = useState('');
+  const [originCountry, setOriginCountry] = useState(() => fromDraft(d, 'originCountry', ''));
+  const [loadingPoint,  setLoadingPoint]  = useState(() => fromDraft(d, 'loadingPoint', ''));
   // True while Country of Origin holds a value derived from the port rather
   // than one the user chose — surfaced in the UI, since origin drives duty.
-  const [originFromPort, setOriginFromPort] = useState(false);
-  const [fob,        setFob]       = useState('');
-  const [freight,    setFreight]   = useState('');
-  const [insurancePct, setInsurancePct] = useState('1');
-  const [hs,         setHs]        = useState('');
-  const [qty,        setQty]       = useState('1');
-  const [container,  setContainer] = useState<'20ft' | '40ft' | 'lcl'>('20ft');
-  const [isAir,      setIsAir]     = useState(false);
-  const [containerLots, setContainerLots] = useState<ContainerLot[]>([{ size: '20ft', count: '1' }]);
+  const [originFromPort, setOriginFromPort] = useState(() => fromDraft(d, 'originFromPort', false));
+  const [fob,        setFob]       = useState(() => fromDraft(d, 'fob', ''));
+  const [freight,    setFreight]   = useState(() => fromDraft(d, 'freight', ''));
+  const [insurancePct, setInsurancePct] = useState(() => fromDraft(d, 'insurancePct', '1'));
+  const [hs,         setHs]        = useState(() => fromDraft(d, 'hs', ''));
+  const [qty,        setQty]       = useState(() => fromDraft(d, 'qty', '1'));
+  const [container,  setContainer] = useState<'20ft' | '40ft' | 'lcl'>(() => fromDraft(d, 'container', '20ft'));
+  const [isAir,      setIsAir]     = useState(() => fromDraft(d, 'isAir', false));
+  const [containerLots, setContainerLots] = useState<ContainerLot[]>(() => fromDraft(d, 'containerLots', [{ size: '20ft', count: '1' }]));
 
   // ── Advanced Settings: optional replacements for rates that otherwise come
   // from the tariff table (duty/VAT/RDL/CPF) or statute (wharfage, PID), plus
   // a pinned FX rate. Blank means "use the sourced value" — these are stored
   // as strings so an empty box stays empty rather than becoming 0.
   const [shareNotice, setShareNotice] = useState('');
-  const [importNote, setImportNote] = useState('');
+  const [importNote, setImportNote] = useState(() => fromDraft(d, 'importNote', ''));
   const [importing, setImporting] = useState(false);
   // Currency the uploaded invoice was priced in, and the rate used to bring it
   // to USD. Null means USD (or nothing imported yet).
   const [fxRates, setFxRates] = useState<Record<string, number>>({});
-  const [invoiceCurrency, setInvoiceCurrency] = useState<{ code: string; label: string; perUsd: number } | null>(null);
+  const [invoiceCurrency, setInvoiceCurrency] = useState<{ code: string; label: string; perUsd: number } | null>(() => fromDraft(d, 'invoiceCurrency', null));
   // Set when a file parsed but its layout was not recognised — the user maps it
   // by hand rather than being told the upload failed.
   const [mapper, setMapper] = useState<{ rows: string[][]; label: string; headerIdx: number | null; roles?: string[] } | null>(null);
   /** Suggested HS codes per row id. Suggestions only — nothing is written to a
    *  line until the user accepts it, because a wrong HS code is a
    *  misclassification, not a typo. */
-  const [hsSuggestions, setHsSuggestions] = useState<Record<string, HsSuggestion[]>>({});
+  const [hsSuggestions, setHsSuggestions] = useState<Record<string, HsSuggestion[]>>(() => fromDraft(d, 'hsSuggestions', {}));
+  /** Why the first suggestion on each row is first. */
+  const [hsWhy, setHsWhy] = useState<Record<string, HsRecommendation>>(() => fromDraft(d, 'hsWhy', {}));
+  /** The AI's opinion per row, when it was asked for one. */
+  const [aiPicks, setAiPicks] = useState<Record<string, AiPick>>(() => fromDraft(d, 'aiPicks', {}));
+  const [aiPicking, setAiPicking] = useState(false);
+  const [aiPickError, setAiPickError] = useState('');
   const [suggesting, setSuggesting] = useState(false);
   /** The goods total the invoice states for itself, used to check our own sum. */
-  const [declaredFob, setDeclaredFob] = useState<{ label: string; usd: number } | null>(null);
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [ovDuty,     setOvDuty]     = useState('');
-  const [ovVat,      setOvVat]      = useState('');
-  const [ovRdl,      setOvRdl]      = useState('');
-  const [ovCpf,      setOvCpf]      = useState('');
-  const [ovWharfage, setOvWharfage] = useState('');
-  const [ovPid,      setOvPid]      = useState('');
-  const [ovFx,       setOvFx]       = useState('');
-  const [cbm,        setCbm]       = useState('');
-  const [weightKg,   setWeightKg]  = useState('');
-  const [isUsedVehicle, setIsUsedVehicle] = useState(false);
-  const [vehicleAge,    setVehicleAge]    = useState('');
-  const [isClogs,       setIsClogs]       = useState(false);
-  const [itemMode,   setItemMode]  = useState<'single' | 'multi'>('single');
-  const [multiItems, setMultiItems] = useState<MultiItemRow[]>([newMultiItemRow()]);
-  const [multiFreight, setMultiFreight] = useState('');
-  const [multiInsurance, setMultiInsurance] = useState('');
-  const [multiResult, setMultiResult] = useState<MultiItemResult | null>(null);
+  const [declaredFob, setDeclaredFob] = useState<{ label: string; usd: number } | null>(() => fromDraft(d, 'declaredFob', null));
+  const [showAdvanced, setShowAdvanced] = useState(() => fromDraft(d, 'showAdvanced', false));
+  const [ovDuty,     setOvDuty]     = useState(() => fromDraft(d, 'ovDuty', ''));
+  const [ovVat,      setOvVat]      = useState(() => fromDraft(d, 'ovVat', ''));
+  const [ovRdl,      setOvRdl]      = useState(() => fromDraft(d, 'ovRdl', ''));
+  const [ovCpf,      setOvCpf]      = useState(() => fromDraft(d, 'ovCpf', ''));
+  const [ovWharfage, setOvWharfage] = useState(() => fromDraft(d, 'ovWharfage', ''));
+  const [ovPid,      setOvPid]      = useState(() => fromDraft(d, 'ovPid', ''));
+  const [ovFx,       setOvFx]       = useState(() => fromDraft(d, 'ovFx', ''));
+  const [cbm,        setCbm]       = useState(() => fromDraft(d, 'cbm', ''));
+  const [weightKg,   setWeightKg]  = useState(() => fromDraft(d, 'weightKg', ''));
+  const [isUsedVehicle, setIsUsedVehicle] = useState(() => fromDraft(d, 'isUsedVehicle', false));
+  const [vehicleAge,    setVehicleAge]    = useState(() => fromDraft(d, 'vehicleAge', ''));
+  const [isClogs,       setIsClogs]       = useState(() => fromDraft(d, 'isClogs', false));
+  const [itemMode,   setItemMode]  = useState<'single' | 'multi'>(() => fromDraft(d, 'itemMode', 'single'));
+  const [multiItems, setMultiItems] = useState<MultiItemRow[]>(() => fromDraft(d, 'multiItems', [newMultiItemRow()]));
+  const [multiFreight, setMultiFreight] = useState(() => fromDraft(d, 'multiFreight', ''));
+  const [multiInsurance, setMultiInsurance] = useState(() => fromDraft(d, 'multiInsurance', ''));
+  const [multiResult, setMultiResult] = useState<MultiItemResult | null>(() => fromDraft(d, 'multiResult', null));
   const [multiError,  setMultiError]  = useState('');
-  const [result,     setResult]    = useState<LandedCostResult | null>(null);
+  const [result,     setResult]    = useState<LandedCostResult | null>(() => fromDraft(d, 'result', null));
   const [summary,    setSummary]   = useState('');
   const [aiPending,  setAiPending] = useState(false);
   const [aiError,    setAiError]   = useState('');
   const [error,      setError]     = useState('');
-  const [step,       setStep]      = useState<WizardStep>(1);
+  const [step,       setStep]      = useState<WizardStep>(() => fromDraft(d, 'step', 1));
   const [fxRate,     setFxRate]    = useState<number | null>(null);
-  const [hsSelected, setHsSelected] = useState<HsResult | null>(null);
+  const [hsSelected, setHsSelected] = useState<HsResult | null>(() => fromDraft(d, 'hsSelected', null));
   const [calcLoading, setCalcLoading] = useState(false);
   const [history,    setHistory]   = useState<LandedCostResult[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const hsCacheRef = useRef<Map<string, HsResult>>(new Map());
+  /** Inputs the figures currently on screen were computed from, so an
+   *  amendment made after seeing the results can't go unnoticed. Restored
+   *  with the draft, so a reload shows the figures it was showing rather than
+   *  silently re-pricing against a moved FX rate. */
+  const calcSigRef = useRef<string>(d?.calcSig ?? '');
+  /** Cargo-row id per result line, in the order the API received them. */
+  const calcRowIdsRef = useRef<string[]>(d?.calcRowIds ?? []);
+  /** Set when step 4 is being shown something other than a live calculation. */
+  const skipNextCalcRef = useRef(false);
+  /** Row to scroll to once step 3 has rendered. */
+  const [pendingJump, setPendingJump] = useState<string | null>(null);
 
   // ── Additional Port/TPA/TASAC charges (Export PDF needs these too, so the
   // state lives here rather than inside FormattedLandedCostBreakdown) ──
@@ -2426,7 +2689,7 @@ export const LandedCostPage: React.FC = () => {
   // defaults to that operator's own rate card instead of the card's generic
   // default. Only operators the tenant has actually priced show up, since
   // picking an un-priced one would just be a no-op.
-  const [icdOperatorId, setIcdOperatorId] = useState<string | null>(null);
+  const [icdOperatorId, setIcdOperatorId] = useState<string | null>(() => fromDraft(d, 'icdOperatorId', null));
   const [icdOperatorOptions, setIcdOperatorOptions] = useState<{ id: string; name: string }[]>([]);
   useEffect(() => {
     setIcdOperatorId(null);
@@ -2466,6 +2729,14 @@ export const LandedCostPage: React.FC = () => {
           freight_usd: priceInclFreight ? 0 : freightVal,
           insurance_usd: priceInclInsurance ? 0 : insuranceVal,
           price_basis: priceBasis,
+          // Saved with the calculation so history is searchable by the
+          // people and places it was for, and so amending it produces the
+          // next version of the same estimate rather than a stray record.
+          customer_name: customerName.trim() || undefined,
+          customer_email: customerEmail.trim() || undefined,
+          destination: destination.trim() || undefined,
+          parent_record_id: amendingFrom?.id,
+          parent_version: amendingFrom?.version,
           origin_country: originCountry.trim() || undefined,
           loading_point: loadingPoint.trim() || undefined,
           loading_point_type: loadingPointType,
@@ -2474,6 +2745,7 @@ export const LandedCostPage: React.FC = () => {
         }),
       });
       setResult(r);
+      calcSigRef.current = calcSignature;
       setSummary('');
       setAiError('');
       setExtraItems([]);
@@ -2485,21 +2757,29 @@ export const LandedCostPage: React.FC = () => {
   }
 
   async function calculateMulti() {
-    const rows = multiItems
+    const sent = multiItems
       // Rows the user switched off — nothing is dropped silently, but an
       // excluded row must not reach the assessment.
       .filter(r => !r.excluded)
       .map(r => ({
-        description: r.description,
-        hs_code: r.hs_code.trim(),
-        qty: parseFloat(r.qty) || 0,
-        // Derived at full precision from the line's value, so the assessed FOB
-        // is the invoice's own figure rather than the rounded unit price shown
-        // on screen.
-        unit_price_usd: (parseFloat(r.qty) || 0) > 0 ? lineFobUsd(r) / (parseFloat(r.qty) || 1) : 0,
-        rate_overrides: rowRateOverrides(r),
+        row: r,
+        payload: {
+          description: r.description,
+          hs_code: r.hs_code.trim(),
+          qty: parseFloat(r.qty) || 0,
+          // Derived at full precision from the line's value, so the assessed FOB
+          // is the invoice's own figure rather than the rounded unit price shown
+          // on screen.
+          unit_price_usd: (parseFloat(r.qty) || 0) > 0 ? lineFobUsd(r) / (parseFloat(r.qty) || 1) : 0,
+          rate_overrides: rowRateOverrides(r),
+        },
       }))
-      .filter(r => r.hs_code && r.qty > 0 && r.unit_price_usd >= 0);
+      .filter(x => x.payload.hs_code && x.payload.qty > 0 && x.payload.unit_price_usd >= 0);
+    const rows = sent.map(x => x.payload);
+    // Result line N is whichever cargo row survived the filter in position N —
+    // the only way back from a figure on the results table to the row that
+    // produced it, since excluded and unpriced rows shift every index.
+    calcRowIdsRef.current = sent.map(x => x.row.id);
     if (rows.length === 0) { setMultiError('Add at least one line item with an HS code, quantity and unit price.'); return; }
     setMultiError('');
     setCalcLoading(true);
@@ -2518,14 +2798,46 @@ export const LandedCostPage: React.FC = () => {
           fx_rate_override: fxOverrideVal,
           cbm: mode !== 'sea_fcl' ? cbmVal : undefined,
           weight_kg: mode === 'air' ? weightKgVal : undefined,
+          // Saved with the calculation so history is searchable by the
+          // people and places it was for, and so amending it produces the
+          // next version of the same estimate rather than a stray record.
+          customer_name: customerName.trim() || undefined,
+          customer_email: customerEmail.trim() || undefined,
+          destination: destination.trim() || undefined,
+          parent_record_id: amendingFrom?.id,
+          parent_version: amendingFrom?.version,
         }),
       });
       setMultiResult(r);
+      calcSigRef.current = calcSignature;
     } catch (e: any) {
       setMultiError(e.message ?? 'Calculation failed');
     }
     setCalcLoading(false);
   }
+
+  /**
+   * Everything the calculation endpoints are actually sent, as one string.
+   *
+   * Results used to be computed once and then kept until New Calculation
+   * cleared them, so going back to fix a quantity or an HS code and returning
+   * to Results redisplayed the figures from *before* the edit — the old
+   * numbers, silently, with no indication they were stale. The only reliable
+   * way to see an amendment was to start the whole invoice again. Comparing
+   * this against the signature the displayed result was computed from is what
+   * makes stepping back a real amendment.
+   */
+  const calcSignature = JSON.stringify(
+    itemMode === 'single'
+      ? ['single', hs, effectiveCif(), qty, mode, container, numContainersVal, containerPayload,
+         buildRateOverrides(), fxOverrideVal, cbmVal, weightKgVal, fobVal, priceInclFreight,
+         priceInclInsurance, freightVal, insuranceVal, priceBasis, originCountry.trim(),
+         loadingPoint.trim(), loadingPointType, isUsedVehicle, vehicleAge, isClogs]
+      : ['multi', multiItems.filter(r => !r.excluded).map(r =>
+           [r.description, r.hs_code.trim(), r.qty, r.unit_price_usd, r.amount_usd ?? '', rowRateOverrides(r)]),
+         multiFreight, multiInsurance, mode, container, numContainersVal, containerPayload,
+         buildRateOverrides(), fxOverrideVal, cbmVal, weightKgVal],
+  );
 
   const runAi = useCallback(async () => {
     if (!result) return;
@@ -2564,9 +2876,132 @@ export const LandedCostPage: React.FC = () => {
     // Results is step 4 in the four-step wizard — calculating on step 3
     // (Cargo Items) would fire before the cargo rows are even filled in.
     if (step !== 4) return;
-    if (itemMode === 'single' && !result) calculate();
-    if (itemMode === 'multi' && !multiResult) calculateMulti();
+    if (skipNextCalcRef.current) { skipNextCalcRef.current = false; return; }
+    // Recalculate whenever the inputs no longer match what the figures on
+    // screen were computed from — that is what makes Back an amendment rather
+    // than a way to look at a stale answer.
+    const stale = calcSigRef.current !== calcSignature;
+    if (itemMode === 'single' && (!result || stale)) calculate();
+    if (itemMode === 'multi' && (!multiResult || stale)) calculateMulti();
   }, [step]);
+
+  /**
+   * Keep the draft current. Deliberately not debounced: a reload can happen at
+   * any keystroke, and writing a few hundred KB to localStorage is cheaper
+   * than re-keying an invoice. `calcSignature` is in the dependency list, so
+   * every input that can change a figure re-triggers this by construction —
+   * a new field added to the calculation cannot be forgotten here.
+   */
+  useEffect(() => {
+    writeDraft({
+      customerName, customerEmail, customerPhone, destination,
+      cif, priceInclFreight, priceInclInsurance, originCountry, loadingPoint, originFromPort,
+      fob, freight, insurancePct, hs, qty, container, isAir, containerLots,
+      importNote, invoiceCurrency, hsSuggestions, hsWhy, aiPicks, declaredFob, showAdvanced,
+      ovDuty, ovVat, ovRdl, ovCpf, ovWharfage, ovPid, ovFx,
+      cbm, weightKg, isUsedVehicle, vehicleAge, isClogs, icdOperatorId,
+      itemMode, multiItems, multiFreight, multiInsurance,
+      result, multiResult, hsSelected, step,
+      calcSig: calcSigRef.current, calcRowIds: calcRowIdsRef.current,
+    });
+  }, [
+    customerName, customerEmail, customerPhone, destination,
+    cif, priceInclFreight, priceInclInsurance, originCountry, loadingPoint, originFromPort,
+    fob, freight, insurancePct, hs, qty, container, isAir, containerLots,
+    importNote, invoiceCurrency, hsSuggestions, hsWhy, aiPicks, declaredFob, showAdvanced,
+    ovDuty, ovVat, ovRdl, ovCpf, ovWharfage, ovPid, ovFx,
+    cbm, weightKg, isUsedVehicle, vehicleAge, isClogs, icdOperatorId,
+    itemMode, multiItems, multiFreight, multiInsurance,
+    result, multiResult, hsSelected, step, calcSignature,
+  ]);
+
+  /**
+   * "Customise" from the history page: `?from=<record id>` loads that saved
+   * calculation's inputs back into the wizard.
+   *
+   * The result is deliberately not restored — the point of amending is to
+   * recalculate, and showing the old figures next to edited inputs is the
+   * stale-result trap this page already had once. `amendingFrom` is what makes
+   * the next calculation save as the next *version* of that estimate rather
+   * than overwriting the figures a customer was already quoted.
+   */
+  const [amendingFrom, setAmendingFrom] = useState<{ id: string; version: number; title: string } | null>(null);
+  useEffect(() => {
+    const from = urlParams.get('from');
+    if (!from || amendingFrom?.id === from) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const rec: any = await apiFetch(`/v1/customs/landed-cost/history/${from}`);
+        if (cancelled) return;
+        const inputs = rec?.payload?.inputs;
+        if (!inputs) {
+          setMultiError('That saved calculation has no stored inputs, so it cannot be amended. Its totals are still on record.');
+          return;
+        }
+        applySavedInputs(rec, inputs);
+        setAmendingFrom({ id: rec.id, version: rec.version ?? 1, title: rec.title || rec.description || 'saved estimate' });
+        setStep(3);
+      } catch (e: any) {
+        if (!cancelled) setMultiError(e?.message ?? 'That saved calculation could not be loaded.');
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [urlParams]);
+
+  /** Restores a saved calculation's inputs into the wizard's own state. */
+  function applySavedInputs(rec: any, inputs: any) {
+    setCustomerName(rec.customer_name ?? '');
+    setCustomerEmail(rec.customer_email ?? '');
+    setDestination(rec.destination ?? 'Dar es Salaam, Tanzania');
+    setOriginCountry(inputs.origin_country ?? '');
+    setLoadingPoint(inputs.loading_point ?? '');
+    if (inputs.mode) { setIsAir(inputs.mode === 'air'); }
+    if (inputs.container) setContainer(inputs.container);
+    if (Array.isArray(inputs.containers) && inputs.containers.length) {
+      setContainerLots(inputs.containers.map((l: any) => ({ size: l.size, count: String(l.count) })));
+    }
+    setCbm(inputs.cbm ? String(inputs.cbm) : '');
+    setWeightKg(inputs.weight_kg ? String(inputs.weight_kg) : '');
+    if (Array.isArray(inputs.items)) {
+      setItemMode('multi');
+      setMultiItems(inputs.items.map((it: any) => ({
+        ...newMultiItemRow(),
+        description: it.description ?? '',
+        hs_code: it.hs_code ?? '',
+        qty: String(it.qty ?? ''),
+        unit_price_usd: String(it.unit_price_usd ?? ''),
+      })));
+      setMultiFreight(inputs.freight_usd ? String(inputs.freight_usd) : '');
+      setMultiInsurance(inputs.insurance_usd != null ? String(inputs.insurance_usd) : '');
+      setMultiResult(null);
+    } else {
+      setItemMode('single');
+      setHs(inputs.hs_code ?? '');
+      setQty(String(inputs.qty ?? '1'));
+      setFob(inputs.fob_usd ? String(inputs.fob_usd) : '');
+      setFreight(inputs.freight_usd ? String(inputs.freight_usd) : '');
+      setCif(inputs.cif_usd ? String(inputs.cif_usd) : '');
+      setResult(null);
+    }
+    // Amending starts from unsaved figures by definition.
+    calcSigRef.current = '';
+  }
+
+  /** Jumping to a line has to wait for step 3 to actually render it. */
+  useEffect(() => {
+    if (step !== 3 || !pendingJump) return;
+    const id = pendingJump;
+    setPendingJump(null);
+    requestAnimationFrame(() => jumpToRow(id));
+  }, [step, pendingJump]);
+
+  /** Take the user back to the cargo line behind a figure on the results
+   *  table, rather than making them find it in a 200-row list. */
+  function amendLine(itemIndex: number) {
+    setPendingJump(calcRowIdsRef.current[itemIndex] ?? null);
+    setStep(3);
+  }
 
   // ── Multi-item row management ────────────────────────────────────────────
   function updateRow(id: string, patch: Partial<MultiItemRow>) {
@@ -3155,6 +3590,10 @@ export const LandedCostPage: React.FC = () => {
     setItemMode('single');
     setResult(h);
     setShowHistory(false);
+    // A recalled entry is the stored result, not a fresh assessment of the
+    // form's current contents — don't let the step-4 effect immediately
+    // recalculate over it just because the form no longer matches.
+    skipNextCalcRef.current = true;
     setStep(4);
     setHs(h.hs_code);
     setCif(String(h.cif_usd));
@@ -3165,6 +3604,15 @@ export const LandedCostPage: React.FC = () => {
   function newCalculation() {
     setResult(null);
     setMultiResult(null);
+    calcSigRef.current = '';
+    calcRowIdsRef.current = [];
+    // Suggestions are keyed by row id, and every row is about to be replaced.
+    setHsSuggestions({});
+    setHsWhy({});
+    setAiPicks({});
+    setAiPickError('');
+    // Starting over is the one place a saved draft should not come back.
+    clearDraft();
     setMultiItems([newMultiItemRow()]);
     setMultiFreight('');
     setMultiInsurance('');
@@ -3238,14 +3686,14 @@ export const LandedCostPage: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         {step > 1
           ? <button type="button" onClick={() => setStep(s => (s - 1) as any)}
-              style={{ padding: '9px 22px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              style={{ height: 'var(--ctl-h)', padding: '0 22px', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
               <Icon name="arrowLeft" size={14} /> Back
             </button>
           : <div />
         }
         {step < 4
           ? <button type="button" disabled={!!stepError} onClick={() => { if (!validateStep(step)) setStep(s => (s + 1) as any); }}
-              style={{ padding: '10px 28px', borderRadius: 8, border: 'none', background: stepError ? 'var(--border)' : 'var(--teal)', color: stepError ? 'var(--ink3)' : '#fff', fontWeight: 700, fontSize: 13.5, cursor: stepError ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: stepError ? 'none' : '0 4px 16px color-mix(in srgb, var(--teal) 30%, transparent)' }}>
+              style={{ height: 'var(--ctl-h)', padding: '0 28px', borderRadius: 'var(--r-sm)', border: 'none', background: stepError ? 'var(--border)' : 'var(--teal)', color: stepError ? 'var(--ink3)' : '#fff', fontWeight: 700, fontSize: 13.5, cursor: stepError ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, boxShadow: stepError ? 'none' : '0 4px 16px color-mix(in srgb, var(--teal) 30%, transparent)' }}>
               Continue <Icon name="arrowRight" size={14} color={stepError ? 'var(--ink3)' : '#fff'} />
             </button>
           : null
@@ -3468,8 +3916,16 @@ export const LandedCostPage: React.FC = () => {
         body: JSON.stringify({ items: targets.map(r => ({ id: r.id, text: r.description })), per_item: 3 }),
       });
       const next: Record<string, HsSuggestion[]> = {};
-      for (const r of res?.data ?? []) if (r.suggestions?.length) next[r.id] = r.suggestions;
+      const nextWhy: Record<string, HsRecommendation> = {};
+      for (const r of res?.data ?? []) {
+        if (!r.suggestions?.length) continue;
+        next[r.id] = r.suggestions;
+        if (r.recommendation) nextWhy[r.id] = r.recommendation;
+      }
       setHsSuggestions(prev => ({ ...prev, ...next }));
+      setHsWhy(prev => ({ ...prev, ...nextWhy }));
+      setAiPicks({});
+      setAiPickError('');
       const found = Object.keys(next).length;
       setImportNote(
         found === 0
@@ -3485,16 +3941,79 @@ export const LandedCostPage: React.FC = () => {
   function acceptSuggestion(rowId: string, code: string) {
     updateRow(rowId, { hs_code: code });
     setHsSuggestions(prev => { const next = { ...prev }; delete next[rowId]; return next; });
+    setHsWhy(prev => { const next = { ...prev }; delete next[rowId]; return next; });
+    setAiPicks(prev => { const next = { ...prev }; delete next[rowId]; return next; });
   }
 
-  /** Accepts the top suggestion on every row that still has none. */
+  /**
+   * Asks the tenant's own configured AI which candidate heading actually fits.
+   *
+   * Word-frequency scoring cannot separate three headings that all matched the
+   * single word "bolts" — they come back at an identical percentage, which is
+   * honest and useless. A model that has read the headings can say which one
+   * is about fasteners and which is a firearm mechanism.
+   *
+   * Only lines where the ranking genuinely tied are sent: an unambiguous match
+   * needs no second opinion and every line sent costs tokens. If AI is not
+   * configured the error says exactly that — it never falls back to the
+   * word-count order and presents it as an AI opinion.
+   */
+  async function askAiToPick() {
+    const rows = multiItems.filter(r =>
+      !r.excluded && !r.hs_code.trim()
+      && (hsSuggestions[r.id]?.length ?? 0) > 1
+      && hsWhy[r.id]?.tied);
+    if (rows.length === 0) { setAiPickError('Nothing to review — no line has two codes tied on wording.'); return; }
+    const batch = rows.slice(0, AI_PICK_BATCH);
+    setAiPicking(true);
+    setAiPickError('');
+    try {
+      const res: any = await apiFetch('/v1/customs/hs-suggest/ai-pick', {
+        method: 'POST',
+        body: JSON.stringify({
+          items: batch.map(r => ({
+            id: r.id,
+            text: r.description,
+            candidates: hsSuggestions[r.id].map(s => ({ code: s.code, description: s.description, duty_rate: s.duty_rate })),
+          })),
+        }),
+      });
+      const picks: Record<string, AiPick> = {};
+      for (const p of res?.picks ?? []) if (p?.id) picks[p.id] = p;
+      setAiPicks(prev => ({ ...prev, ...picks }));
+      const named = Object.values(picks).filter(p => p.code).length;
+      setImportNote(
+        named === 0
+          ? `The AI did not settle on any of the candidate headings for those ${batch.length} line${batch.length === 1 ? '' : 's'} — classify them by hand.`
+          : `The AI picked a heading on ${named} of ${batch.length} tied line${batch.length === 1 ? '' : 's'}`
+            + `${rows.length > batch.length ? ` (${rows.length - batch.length} more still tied — run it again)` : ''}`
+            + `. Its reasoning is shown against each; it is a second opinion, not a classification — you still accept each one.`,
+      );
+    } catch (e: any) {
+      setAiPickError(e?.message ?? 'The AI review failed.');
+    }
+    setAiPicking(false);
+  }
+
+  /** Lines where wording alone could not choose between the top candidates. */
+  const tiedCount = multiItems.filter(r =>
+    !r.excluded && !r.hs_code.trim()
+    && (hsSuggestions[r.id]?.length ?? 0) > 1
+    && hsWhy[r.id]?.tied).length;
+
+  /** Accepts the top suggestion on every row that still has none — the AI's
+   *  pick where one was given, otherwise the word-ranking leader. */
   function acceptAllTopSuggestions() {
     const ids = Object.keys(hsSuggestions);
     setMultiItems(rows => rows.map(r => {
       const s = hsSuggestions[r.id];
-      return s && !r.hs_code.trim() ? { ...r, hs_code: s[0].code } : r;
+      if (!s || r.hs_code.trim()) return r;
+      const ai = aiPicks[r.id]?.code;
+      return { ...r, hs_code: ai && s.some(x => x.code === ai) ? ai : s[0].code };
     }));
     setHsSuggestions({});
+    setHsWhy({});
+    setAiPicks({});
     setImportNote(`Accepted the top suggestion on ${ids.length} line${ids.length === 1 ? '' : 's'}. Each one is now editable — correct any that are wrong before calculating.`);
   }
 
@@ -3552,10 +4071,26 @@ export const LandedCostPage: React.FC = () => {
         <button type="button" className="btn btn-secondary" style={{ fontSize: 12.5 }} disabled={suggesting || needsHsCount === 0} onClick={fetchHsSuggestions}>
           {suggesting ? 'Matching…' : suggestedCount > 0 ? 'Refresh suggestions' : 'Suggest HS codes'}
         </button>
+        {/* Offered only when word matching genuinely tied, because that is the
+            only case it can improve on — and every line sent costs tokens. */}
+        {tiedCount > 0 && (
+          <button type="button" className="btn btn-secondary" style={{ fontSize: 12.5 }} disabled={aiPicking} onClick={askAiToPick}
+            title={`${tiedCount} line${tiedCount === 1 ? '' : 's'} where two or more codes matched the same words equally well`}>
+            {aiPicking ? 'Asking AI…' : `Ask AI to break ${tiedCount} tie${tiedCount === 1 ? '' : 's'}`}
+          </button>
+        )}
         {suggestedCount > 0 && (
           <button type="button" className="btn btn-primary" style={{ fontSize: 12.5 }} onClick={acceptAllTopSuggestions}>
             Accept top match on all {suggestedCount}
           </button>
+        )}
+        {aiPickError && (
+          <div style={{ flexBasis: '100%', fontSize: 12, color: 'var(--red)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+            <Icon name="alertCircle" size={13} color="var(--red)" style={{ flexShrink: 0, marginTop: 1 }} />
+            {/* The real reason, verbatim. Falling back to the word-count order
+                and calling it an AI opinion would be the worse failure. */}
+            <span>{aiPickError}</span>
+          </div>
         )}
       </div>
     );
@@ -3622,6 +4157,11 @@ export const LandedCostPage: React.FC = () => {
         .lcp-actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .lcp-card { min-width: 0; background: var(--card-bg, var(--white)); border: 1px solid var(--border); border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); }
         .lcp-btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        /* auto-fit, not a fixed count: the results row grew from two actions
+           to four, and a hardcoded repeat(3) would have wrapped the fourth
+           into a lone full-width button. */
+        .lcp-btn-row-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+        @media (max-width: 480px) { .lcp-btn-row-3 { grid-template-columns: 1fr; } }
         /* Port + ICD operator + Advanced toggle. Drops to two columns before
            one, so the pair that belong together stay side by side longest. */
         .lcp-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; align-items: start; }
@@ -3640,6 +4180,7 @@ export const LandedCostPage: React.FC = () => {
         .lcp-card .btn,
         .lcp-card label.btn,
         .lcp-card button[role="combobox"],
+        .lcp-card [data-slot="combobox-trigger"],
         .lcp-card [data-slot="select-trigger"] {
           height: var(--ctl-h);
           border-radius: var(--r-sm);
@@ -3659,12 +4200,61 @@ export const LandedCostPage: React.FC = () => {
         @media (max-width: 560px) { .lcp-row-desc { grid-template-columns: 1fr; } }
 
         .lcp-lines { max-height: 62vh; overflow-y: auto; overscroll-behavior: contain; padding-right: 8px; }
-        .lcp-lines::-webkit-scrollbar { width: 6px; }
-        .lcp-lines::-webkit-scrollbar-track { background: transparent; }
-        .lcp-lines::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
-        .lcp-lines::-webkit-scrollbar-thumb:hover { background: var(--ink3); }
-        .lcp-lines { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
         @media (max-width: 700px) { .lcp-lines { max-height: 70vh; } }
+
+        /* The per-item results table is the one thing on this page wider than
+           a laptop column, and with 200 lines it was also ~6,000px tall — so
+           its own horizontal scrollbar sat thousands of pixels below the fold
+           and the right-hand columns (Landed Total among them) were, in
+           practice, unreachable. It gets its own bounded box instead: scrolls
+           in both directions inside the card, with the header and the totals
+           row pinned so a figure is never read without its label. */
+        .lcp-tscroll { max-height: 58vh; overflow: auto; overscroll-behavior: contain; }
+        @media (max-width: 700px) { .lcp-tscroll { max-height: 62vh; } }
+        .lcp-tscroll thead th { position: sticky; top: 0; z-index: 2; background: var(--card-bg, var(--white)); }
+        /* --teal-l is a soft tint with alpha, so on its own the rows would
+           scroll visibly through the pinned totals. Layering it over the card
+           background keeps the app's tint and makes the row opaque. */
+        .lcp-tscroll tfoot td {
+          position: sticky; bottom: 0; z-index: 2;
+          background: linear-gradient(var(--teal-l), var(--teal-l)), var(--card-bg, var(--white));
+        }
+        .lcp-tscroll tbody tr { cursor: pointer; transition: background .12s ease; }
+        .lcp-tscroll tbody tr:hover,
+        .lcp-tscroll tbody tr:focus-visible { background: var(--teal-l); outline: none; }
+
+        /* Landed Total is the column the whole table exists to produce, and it
+           is the one that fell off the right edge — nine columns do not fit a
+           phone, or even the content column on a 1280px laptop. Pinning it
+           means the figure is readable at every width and the rest scrolls
+           under it. Opaque backgrounds throughout, since it sits over the
+           scrolling cells. */
+        .lcp-tscroll th:last-child,
+        .lcp-tscroll td:last-child {
+          position: sticky; right: 0; z-index: 1;
+          background: var(--card-bg, var(--white));
+          box-shadow: inset 1px 0 0 var(--border);
+        }
+        .lcp-tscroll thead th:last-child,
+        .lcp-tscroll tfoot td:last-child { z-index: 3; }
+        .lcp-tscroll tbody tr:hover td:last-child,
+        .lcp-tscroll tbody tr:focus-visible td:last-child,
+        .lcp-tscroll tfoot td:last-child {
+          background: linear-gradient(var(--teal-l), var(--teal-l)), var(--card-bg, var(--white));
+        }
+
+        /* One thin scrollbar style for both scrolling regions. Overlay-style
+           on the platforms that support it, always visible where they don't. */
+        .lcp-lines, .lcp-tscroll { scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+        .lcp-lines::-webkit-scrollbar,
+        .lcp-tscroll::-webkit-scrollbar { width: 6px; height: 6px; }
+        .lcp-lines::-webkit-scrollbar-track,
+        .lcp-tscroll::-webkit-scrollbar-track { background: transparent; }
+        .lcp-lines::-webkit-scrollbar-thumb,
+        .lcp-tscroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+        .lcp-lines::-webkit-scrollbar-thumb:hover,
+        .lcp-tscroll::-webkit-scrollbar-thumb:hover { background: var(--ink3); }
+        .lcp-tscroll::-webkit-scrollbar-corner { background: transparent; }
         .lcp-step-mobile { display: none; }
         .lcp-step-desktop { display: flex; flex-direction: column; gap: 20px; }
 
@@ -3701,8 +4291,11 @@ export const LandedCostPage: React.FC = () => {
         subtitle="Tanzania EAC CET — compute full landed cost from CIF to your door · Live FX rate from open.er-api.com"
         actions={
           <div className="lcp-actions">
+            {/* The slide-over listed fifty totals and could do nothing with
+                them. History is a page now: searchable, sortable, and every
+                entry reopens as the report it produced. */}
             <button type="button" className="btn btn-secondary"
-              onClick={() => setShowHistory(true)}
+              onClick={() => navigate('/clearos/customs-tools/history')}
               style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, border: '1.5px solid var(--border)', color: 'var(--ink2)', background: 'var(--card-bg, var(--white))' }}>
               <Icon name="clock" size={14} color="var(--teal)" /> History
             </button>
@@ -4020,16 +4613,27 @@ export const LandedCostPage: React.FC = () => {
                               Possible codes — check before accepting
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                              {hsSuggestions[row.id].map(s => (
+                              {hsSuggestions[row.id].map(s => {
+                                // Which code is put forward, and on whose say-so.
+                                // The AI's answer supersedes the word-count order
+                                // when there is one — that is the point of asking.
+                                const ai = aiPicks[row.id];
+                                const led = ai?.code ? ai.code === s.code : hsWhy[row.id]?.code === s.code;
+                                return (
                                 <div key={s.code} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                                   <button
                                     type="button"
                                     onClick={() => acceptSuggestion(row.id, s.code)}
                                     title={`Use ${s.code} for this line`}
-                                    style={{ flexShrink: 0, cursor: 'pointer', border: '1px solid var(--teal)', background: 'transparent', color: 'var(--teal)', borderRadius: 'var(--badge-radius)', padding: '2px 10px', fontSize: 11.5, fontWeight: 700, fontFamily: 'var(--mono, monospace)' }}
+                                    style={{ flexShrink: 0, cursor: 'pointer', border: '1px solid var(--teal)', background: led ? 'var(--teal)' : 'transparent', color: led ? '#fff' : 'var(--teal)', borderRadius: 'var(--badge-radius)', padding: '2px 10px', fontSize: 11.5, fontWeight: 700, fontFamily: 'var(--mono, monospace)' }}
                                   >
                                     {s.code}
                                   </button>
+                                  {led && (
+                                    <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.04em', textTransform: 'uppercase', color: ai?.code ? 'var(--green)' : 'var(--teal)', whiteSpace: 'nowrap' }}>
+                                      {ai?.code ? `AI pick · ${ai.confidence}` : 'Put first'}
+                                    </span>
+                                  )}
                                   <span style={{ fontSize: 12, color: 'var(--ink2)', flex: '1 1 160px', minWidth: 0, lineHeight: 1.4 }}>{s.description}</span>
                                   {/* The match strength is the ranking score itself, not a
                                       separate estimate — how much of the description this
@@ -4051,11 +4655,27 @@ export const LandedCostPage: React.FC = () => {
                                     {s.matched}/{s.totalWords} words{s.duty_rate != null ? ` · ${s.duty_rate}% duty` : ''}
                                   </span>
                                 </div>
-                              ))}
+                                );
+                              })}
                             </div>
-                            <div style={{ marginTop: 6, fontSize: 10.5, color: 'var(--ink3)' }}>
-                              Matched on: {hsSuggestions[row.id][0].matchedWords.join(', ')} — or search the HS field above for the correct code.
-                            </div>
+                            {/* Why one of them is put forward. Three codes at an
+                                identical percentage is an honest reading of the
+                                wording and no help at all in choosing — so the
+                                grounds are stated instead of implied. */}
+                            {aiPicks[row.id]?.reason ? (
+                              <div style={{ marginTop: 6, fontSize: 10.5, color: 'var(--ink2)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+                                <Icon name="sparkle" size={12} color="var(--green)" style={{ flexShrink: 0, marginTop: 1 }} />
+                                <span><strong style={{ color: 'var(--green)' }}>AI:</strong> {aiPicks[row.id].reason}</span>
+                              </div>
+                            ) : hsWhy[row.id]?.reason ? (
+                              <div style={{ marginTop: 6, fontSize: 10.5, color: 'var(--ink3)', lineHeight: 1.5 }}>
+                                {hsWhy[row.id].reason}
+                              </div>
+                            ) : (
+                              <div style={{ marginTop: 6, fontSize: 10.5, color: 'var(--ink3)' }}>
+                                Matched on: {hsSuggestions[row.id][0].matchedWords.join(', ')} — or search the HS field above for the correct code.
+                              </div>
+                            )}
                           </div>
                         )}
                         <div className="lcp-row-nums">
@@ -4493,7 +5113,7 @@ export const LandedCostPage: React.FC = () => {
                         )}
 
                         <button type="button" onClick={runAi} disabled={aiPending}
-                          style={{ width: '100%', padding: '10px 0', borderRadius: 8, border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 700, fontSize: 13.5, cursor: aiPending ? 'default' : 'pointer', opacity: aiPending ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px color-mix(in srgb, var(--teal) 25%, transparent)' }}>
+                          style={{ width: '100%', padding: '10px 0', borderRadius: 'var(--r-sm)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 700, fontSize: 13.5, cursor: aiPending ? 'default' : 'pointer', opacity: aiPending ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px color-mix(in srgb, var(--teal) 25%, transparent)' }}>
                           <Icon name="sparkle" size={14} color="#fff" />
                           {aiPending ? 'Analysing…' : aiError ? 'Retry AI Analysis' : 'Run AI Analysis'}
                         </button>
@@ -4542,15 +5162,28 @@ export const LandedCostPage: React.FC = () => {
                       </div>
                     )}
 
-                    <div className="lcp-btn-row">
+                    <div className="lcp-btn-row-3">
+                      <button type="button" onClick={() => setStep(3)}
+                        style={{ padding: '11px 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                        <Icon name="edit" size={15} color="var(--ink2)" />
+                        Amend details
+                      </button>
                       <button type="button" onClick={async () => { if (!result) return; const rc = await fetchRateCardDefaults(rateCardKeyFor(result.mode, container), icdOperatorId); const sc = await fetchSizeCards(result, icdOperatorId); const share = await createShareForReport(result, reportMeta, { result, qty, summary, extraItems, container, rateCard: rc, sizeCards: sc, meta: reportMeta }); setShareNotice(share.qrUnavailableReason ?? ''); printReport(result, qty, summary, extraItems, container, rc, { ...reportMeta, ...share }, sc); }}
-                        style={{ padding: '11px 0', borderRadius: 8, border: '1.5px solid var(--teal)', background: 'var(--card-bg, var(--white))', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                        style={{ padding: '11px 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--teal)', background: 'var(--card-bg, var(--white))', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                         <Icon name="download" size={15} color="var(--teal)" />
                         Export PDF
                       </button>
 
+                      {/* Filing a report is a page, not a modal: it carries an attachment
+                          upload and the calculation itself, and a half-written report
+                          should survive a mis-click. */}
+                      <button type="button" onClick={() => navigate('/clearos/report-issue')}
+                        style={{ padding: '11px 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                        <Icon name="alertCircle" size={15} color="var(--ink2)" />
+                        Report an issue
+                      </button>
                       <button type="button" onClick={newCalculation}
-                        style={{ padding: '11px 0', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                        style={{ padding: '11px 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                         New Calculation
                       </button>
                     </div>
@@ -4583,12 +5216,17 @@ export const LandedCostPage: React.FC = () => {
                   </div>
 
                   {/* Per-item table */}
-                  <div style={{ border: '1px solid var(--teal)', borderRadius: 14, overflow: 'auto', boxShadow: '0 4px 20px color-mix(in srgb, var(--teal) 8%, transparent)' }}>
-                    <div style={{ padding: '16px 22px', background: 'color-mix(in srgb, var(--teal) 10%, transparent)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ border: '1px solid var(--teal)', borderRadius: 14, overflow: 'hidden', boxShadow: '0 4px 20px color-mix(in srgb, var(--teal) 8%, transparent)' }}>
+                    <div style={{ padding: '16px 22px', background: 'color-mix(in srgb, var(--teal) 10%, transparent)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       <Icon name="package" size={18} color="var(--teal)" />
                       <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Per-Item Breakdown</span>
+                      <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>— select a line to amend it</span>
                       <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--ink3)' }}>{multiResult.destination_charge_label}</span>
                     </div>
+                    {/* Scrolls inside itself rather than lengthening the page:
+                        200 lines used to push the summary, the warnings and the
+                        Export button several thousand pixels below the fold. */}
+                    <div className="lcp-tscroll">
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, minWidth: 720 }}>
                       <thead>
                         <tr style={{ background: 'var(--surface, rgba(255,255,255,0.03))' }}>
@@ -4598,8 +5236,12 @@ export const LandedCostPage: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {multiResult.items.map(it => (
-                          <tr key={it.line_no}>
+                        {multiResult.items.map((it, i) => (
+                          <tr key={it.line_no}
+                            tabIndex={0}
+                            title={`Amend "${it.description}" — opens this line on Cargo Items`}
+                            onClick={() => amendLine(i)}
+                            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); amendLine(i); } }}>
                             <td style={{ padding: '9px 12px', borderBottom: '1px solid var(--border)', color: 'var(--ink3)' }}>{it.line_no}</td>
                             <td style={{ padding: '9px 12px', borderBottom: '1px solid var(--border)', color: 'var(--ink)', fontWeight: 600 }}>
                               {it.description}
@@ -4616,7 +5258,11 @@ export const LandedCostPage: React.FC = () => {
                         ))}
                       </tbody>
                       <tfoot>
-                        <tr style={{ background: 'color-mix(in srgb, var(--teal) 6%, transparent)' }}>
+                        {/* --teal-l, not a hand-mixed tint: the totals row is
+                            pinned over scrolling content, so it has to be
+                            opaque, and this is the same tint the rest of the
+                            app derives from the live brand colour. */}
+                        <tr>
                           <td colSpan={4} style={{ padding: '10px 12px', fontWeight: 800, color: 'var(--ink)' }}>Total</td>
                           <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{fmt(multiResult.totals.cif_tzs)}</td>
                           <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>{fmt(multiResult.totals.duty)}</td>
@@ -4626,6 +5272,7 @@ export const LandedCostPage: React.FC = () => {
                         </tr>
                       </tfoot>
                     </table>
+                    </div>
                   </div>
 
                   {/* VAT incl/excl */}
@@ -4645,7 +5292,14 @@ export const LandedCostPage: React.FC = () => {
                     <div style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px', background: 'var(--card-bg, var(--white))', fontSize: 12.5 }}>
                       <div style={{ fontWeight: 700, marginBottom: 10, fontSize: 13, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Icon name="alertCircle" size={15} color="var(--ink3)" /> Assumptions &amp; Warnings
+                        <span style={{ marginLeft: 'auto', fontSize: 11.5, fontWeight: 500, color: 'var(--ink3)' }}>
+                          {multiResult.warnings.length + multiResult.assumptions.length} note{multiResult.warnings.length + multiResult.assumptions.length === 1 ? '' : 's'}
+                        </span>
                       </div>
+                      {/* A 200-line consignment raises a PVoC or inspection note
+                          per line, which ran to several thousand pixels of page
+                          below the results. Scrolls in place like the table. */}
+                      <div className="lcp-tscroll" style={{ maxHeight: 260 }}>
                       {multiResult.warnings.map((w, i) => (
                         <div key={`w${i}`} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8, color: 'var(--gold)' }}>
                           <Icon name="alertTriangle" size={13} color="var(--gold)" style={{ marginTop: 2, flexShrink: 0 }} />
@@ -4658,17 +5312,45 @@ export const LandedCostPage: React.FC = () => {
                           <span>{a}</span>
                         </div>
                       ))}
+                      </div>
                     </div>
                   )}
 
-                  <div className="lcp-btn-row">
-                    <button type="button" onClick={async () => { if (!multiResult) return; const share = await createShareForMulti(multiResult, reportMeta); setShareNotice(share.qrUnavailableReason ?? ''); printMultiReport(multiResult, { ...reportMeta, ...share }); }}
-                      style={{ padding: '11px 0', borderRadius: 8, border: '1.5px solid var(--teal)', background: 'var(--card-bg, var(--white))', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <div className="lcp-btn-row-3">
+                    {/* Going back to fix one line should not mean re-entering
+                        the whole invoice. Step 3 keeps every row, and the
+                        figures recalculate on return. */}
+                    <button type="button" onClick={() => setStep(3)}
+                      style={{ padding: '11px 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      <Icon name="edit" size={15} color="var(--ink2)" />
+                      Amend items
+                    </button>
+                    <button type="button" onClick={async () => {
+                      if (!multiResult) return;
+                      // Same Rate Card lookup the single-item report does — without it
+                      // the ICD card fell back to one lump sum and the agency card was
+                      // empty, on a report meant to be handed to a client.
+                      const lots = containerLotsPayload(containerLots);
+                      const rc = await fetchRateCardDefaults(rateCardKeyFor(multiResult.mode, container), icdOperatorId);
+                      const sc = await fetchSizeCardsForLots(lots, icdOperatorId);
+                      const share = await createShareForMulti(multiResult, reportMeta, { rateCard: rc, sizeCards: sc, lots });
+                      setShareNotice(share.qrUnavailableReason ?? '');
+                      printMultiReport(multiResult, { ...reportMeta, ...share }, rc, sc, lots);
+                    }}
+                      style={{ padding: '11px 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--teal)', background: 'var(--card-bg, var(--white))', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                       <Icon name="download" size={15} color="var(--teal)" />
                       Export PDF
                     </button>
+                    {/* Filing a report is a page, not a modal: it carries an
+                        attachment upload and the calculation itself, and a
+                        half-written report should survive a mis-click. */}
+                    <button type="button" onClick={() => navigate('/clearos/report-issue')}
+                      style={{ padding: '11px 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      <Icon name="alertCircle" size={15} color="var(--ink2)" />
+                      Report an issue
+                    </button>
                     <button type="button" onClick={newCalculation}
-                      style={{ padding: '11px 0', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                      style={{ padding: '11px 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                       New Calculation
                     </button>
                   </div>

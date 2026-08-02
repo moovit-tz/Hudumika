@@ -66,7 +66,28 @@ export interface HsSuggestion {
 }
 
 export interface SuggestInput { id: string; text: string }
-export interface SuggestResult { id: string; tokens: string[]; suggestions: HsSuggestion[] }
+
+/**
+ * Which of the suggestions is put forward first, and on what grounds.
+ *
+ * Three codes at "30% match · 1/3 words" told the user nothing about which to
+ * take — the figure is honest but, on a tie, useless. This says out loud what
+ * separated them, so the choice can be judged instead of guessed.
+ */
+export interface HsRecommendation {
+  code: string;
+  /** Plain-language grounds, built from the figures actually used to rank. */
+  reason: string;
+  /** True when wording alone could not separate the top candidates. */
+  tied: boolean;
+}
+
+export interface SuggestResult {
+  id: string;
+  tokens: string[];
+  suggestions: HsSuggestion[];
+  recommendation: HsRecommendation | null;
+}
 
 /**
  * Bulk suggestion. Every distinct word across every line is fetched in one
@@ -76,7 +97,7 @@ export interface SuggestResult { id: string; tokens: string[]; suggestions: HsSu
 export async function suggestHsCodes(items: SuggestInput[], perItem = 3): Promise<SuggestResult[]> {
   const tokensById = new Map(items.map(i => [i.id, describeTokens(i.text)]));
   const allTokens = Array.from(new Set([...tokensById.values()].flat()));
-  if (allTokens.length === 0) return items.map(i => ({ id: i.id, tokens: [], suggestions: [] }));
+  if (allTokens.length === 0) return items.map(i => ({ id: i.id, tokens: [], suggestions: [], recommendation: null }));
 
   // Whole words only. A plain ILIKE '%hex%' matched "Cyclohexane" and '%head%'
   // matched "Safety headgear", so "Hex head bolts" suggested a hydrocarbon and
@@ -121,9 +142,14 @@ export async function suggestHsCodes(items: SuggestInput[], perItem = 3): Promis
   const N = prepared.length || 1;
   const weightOf = (t: string) => Math.log(1 + N / (1 + (docFreq.get(t) ?? 0)));
 
+  /** Missing is not zero: an entry with no rate on file must not win a
+   *  lowest-duty tie-break it was never measured for. */
+  const dutyOf = (r: { import_duty_rate: unknown }) =>
+    r.import_duty_rate != null ? Number(r.import_duty_rate) : Number.POSITIVE_INFINITY;
+
   return items.map(item => {
     const tokens = tokensById.get(item.id) ?? [];
-    if (tokens.length === 0) return { id: item.id, tokens, suggestions: [] };
+    if (tokens.length === 0) return { id: item.id, tokens, suggestions: [], recommendation: null };
 
     const scored = prepared
       .map(r => {
@@ -149,10 +175,20 @@ export async function suggestHsCodes(items: SuggestInput[], perItem = 3): Promis
       .sort((a, b) =>
         b.score - a.score ||
         b.coverage - a.coverage ||
+        // Wording exhausted: several entries matched the same words just as
+        // strongly, and the list showed three codes at an identical
+        // percentage with nothing to choose between them. The operator's
+        // stated rule for that case is the lower-duty heading — "Screws;
+        // bolts and nuts" at 10% over "Bolt action" (a firearm mechanism) at
+        // 25% on a query of "hex head bolts", which is also the right answer
+        // there. It is a presentation order, not a classification: picking
+        // the cheaper of two headings you cannot otherwise separate is an
+        // under-declaration risk, so the reason is shown on the suggestion
+        // and a person still accepts it.
+        dutyOf(a.r) - dutyOf(b.r) ||
         // Deterministic, and nothing more — a residual tie means the two
-        // entries matched equally informative words, which no further
-        // heuristic here can separate. That is exactly why every suggestion
-        // is reviewed by a person before it is used.
+        // entries matched equally informative words at the same duty rate,
+        // which no further heuristic here can separate.
         a.r.code.localeCompare(b.r.code),
       )
       .slice(0, perItem);
@@ -163,9 +199,37 @@ export async function suggestHsCodes(items: SuggestInput[], perItem = 3): Promis
     // one are both measured against their own ceiling.
     const maxScore = tokens.reduce((s, t) => s + weightOf(t), 0);
 
+    // Why the first suggestion is first — stated from the same figures the
+    // sort used, never invented.
+    let recommendation: HsRecommendation | null = null;
+    if (scored.length > 0) {
+      const top = scored[0];
+      const EPS = 1e-9;
+      const rivals = scored.filter(x =>
+        Math.abs(x.score - top.score) < EPS && Math.abs(x.coverage - top.coverage) < EPS);
+      const tied = rivals.length > 1;
+      const topDuty = dutyOf(top.r);
+      const beatenOnDuty = tied && rivals.slice(1).every(x => dutyOf(x.r) > topDuty) && Number.isFinite(topDuty);
+      const words = top.matchedWords.join(', ');
+      recommendation = {
+        code: top.r.code,
+        tied,
+        reason: !tied
+          ? `Matched ${words} — a stronger wording match than any other heading found.`
+          : beatenOnDuty
+            ? `Matched ${words}, the same as ${rivals.length - 1} other heading${rivals.length > 2 ? 's' : ''}. `
+              + `Put first because it carries the lowest import duty of them (${topDuty}% against `
+              + `${rivals.slice(1).map(x => (Number.isFinite(dutyOf(x.r)) ? `${dutyOf(x.r)}%` : 'no rate on file')).join(', ')}). `
+              + `Wording alone did not separate these — check the headings before accepting.`
+            : `Matched ${words}, the same as ${rivals.length - 1} other heading${rivals.length > 2 ? 's' : ''}, `
+              + `at the same duty rate. Nothing here separates them — read the headings before accepting.`,
+      };
+    }
+
     return {
       id: item.id,
       tokens,
+      recommendation,
       suggestions: scored.map(({ r, matchedWords, score, coverage }) => ({
         matchPct: maxScore > 0
           // Coverage nudges the figure the same way it nudges the ranking, so

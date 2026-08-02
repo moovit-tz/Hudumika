@@ -2569,6 +2569,7 @@ export interface Database {
   subscription_invoices: SubscriptionInvoicesTable;
   invoice_sequences: InvoiceSequencesTable;
   platform_support_tickets: PlatformSupportTicketsTable;
+  platform_support_attachments: PlatformSupportAttachmentsTable;
   platform_support_messages: PlatformSupportMessagesTable;
   // NexusHR Core
   hr_legal_entities: HrLegalEntitiesTable;
@@ -3054,6 +3055,18 @@ export interface LandedCostRecordsTable {
   shipment_mode: string | null;
   /** Incoterm derived from the plain-language questions, never typed. */
   price_basis: 'EXW' | 'FOB' | 'CFR' | 'CIF' | null;
+  /** The whole calculation — inputs and result — so a saved estimate can be
+   *  reopened and re-rendered rather than only summarised. See migration 166. */
+  payload: unknown | null;
+  customer_name: string | null;
+  customer_email: string | null;
+  destination: string | null;
+  title: string | null;
+  /** The calculation this one was amended from. */
+  parent_id: string | null;
+  version: Generated<number>;
+  item_count: number | null;
+  share_token: string | null;
 }
 
 export interface ReferenceCountriesTable {
@@ -3559,6 +3572,26 @@ export interface PlatformSupportTicketsTable {
   status: Generated<'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED'>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  /** Which app the report came from, so the bug queue can be triaged. */
+  app: string | null;
+  kind: Generated<string>;
+  /** What the reporter was looking at. Read by a human; never an input. */
+  context: unknown | null;
+  record_id: string | null;
+  resolution: string | null;
+  resolved_at: Date | null;
+}
+
+export interface PlatformSupportAttachmentsTable {
+  id: Generated<string>;
+  ticket_id: string;
+  tenant_id: string;
+  filename: string;
+  mime_type: string | null;
+  size_bytes: number;
+  storage_key: string;
+  uploaded_by: string | null;
+  created_at: Generated<Date>;
 }
 
 export interface PlatformSupportMessagesTable {

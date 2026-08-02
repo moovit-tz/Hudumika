@@ -14,6 +14,8 @@ import { ClearOSLanding }   from '../pages/ClearOSLanding.js';
 import { CreateShipmentPage } from '../pages/CreateShipmentPage.js';
 import { ShipmentDetail }   from '../pages/ShipmentDetail.js';
 import { LandedCostPage }   from '../pages/LandedCostPage.js';
+import { LandedCostHistoryPage } from '../pages/LandedCostHistoryPage.js';
+import { ReportIssuePage } from '../pages/ReportIssuePage.js';
 import { CompliancePage }   from '../pages/CompliancePage.js';
 import { ComplianceOverview } from '../pages/compliance/ComplianceOverview.js';
 import { QuickComplianceCheck } from '../pages/QuickComplianceCheck.js';
@@ -47,7 +49,10 @@ const NAV: SidebarSection[] = [
       { label: 'Ops Command',   icon: 'monitor',    path: '/clearos/ops' },
       { label: 'Declarations',  icon: 'fileText',   path: '/clearos/declarations' },
       { label: 'Workflows',     icon: 'gitBranch',  path: '/clearos/workflows' },
-      { label: 'Landed Cost',   icon: 'package',    path: '/clearos/customs-tools' },
+      { label: 'Landed Cost',   icon: 'package',    path: '/clearos/customs-tools', exact: true, children: [
+        { label: 'Calculator', icon: 'calculator', path: '/clearos/customs-tools', exact: true },
+        { label: 'History',    icon: 'clock',      path: '/clearos/customs-tools/history' },
+      ] },
       { label: 'Compliance',    icon: 'shield',     path: '/clearos/compliance', exact: true, children: [
         { label: 'Overview',       icon: 'grid',    path: '/clearos/compliance', exact: true },
         { label: 'Quick Check',    icon: 'shield',  path: '/clearos/compliance/quick' },
@@ -104,6 +109,8 @@ export function ClearOSShell() {
                 <Route path="declarations/:id" element={<RequireRoles roles={[...OPS_ROLES, 'FINANCE']}><ClearOSDeclarationDetail /></RequireRoles>} />
                 <Route path="consignments"    element={<Navigate to="/tracking/shipments" replace />} />
                 <Route path="customs-tools"   element={<RequireRoles roles={OPS_ROLES}><LandedCostPage /></RequireRoles>} />
+                <Route path="customs-tools/history" element={<RequireRoles roles={OPS_ROLES}><LandedCostHistoryPage /></RequireRoles>} />
+                <Route path="report-issue"    element={<ReportIssuePage />} />
                 <Route path="quick-compliance" element={<Navigate to="/clearos/compliance/quick" replace />} />
                 <Route path="compliance" element={<RequireRoles roles={OPS_ROLES}><CompliancePage /></RequireRoles>}>
                   <Route index          element={<ComplianceOverview />} />

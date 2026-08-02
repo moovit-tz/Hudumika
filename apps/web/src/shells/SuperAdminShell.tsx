@@ -29,6 +29,8 @@ import { SuperAdminQueryBuilder } from '../pages/SuperAdminQueryBuilder.js';
 import { SuperAdminTradeWizardAnalytics } from '../pages/SuperAdminTradeWizardAnalytics.js';
 import ComponentShowcase from '../pages/ComponentShowcase.js';
 import { AdminCMSPages } from '../pages/AdminCMSPages.js';
+import { SuperAdminIssues } from '../pages/SuperAdminIssues.js';
+import { SuperAdminCalculations } from '../pages/SuperAdminCalculations.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -49,6 +51,8 @@ const NAV: SidebarSection[] = [
   {
     title: 'PLATFORM',
     items: [
+      { label: 'Reported Issues',   icon: 'alertCircle', path: '/admin/issues'      },
+      { label: 'Landed Cost Activity', icon: 'package', path: '/admin/calculations' },
       { label: 'App Status',        icon: 'shield',   path: '/admin/app-status'     },
       { label: 'CMS Pages',         icon: 'fileText', path: '/admin/cms-pages'      },
       { label: 'Branding',          icon: 'image',    path: '/admin/branding'       },
@@ -82,6 +86,8 @@ function AdminContent() {
           <Route path="finance"       element={<FinanceView />} />
           <Route path="domains"       element={<DomainsView />} />
           <Route path="activity"      element={<ActivityView />} />
+          <Route path="issues"        element={<SuperAdminIssues />} />
+          <Route path="calculations" element={<SuperAdminCalculations />} />
           <Route path="app-status"    element={<AppStatusView />} />
           <Route path="cms-pages"     element={<AdminCMSPages />} />
           <Route path="branding"       element={<BrandingView />} />
