@@ -41,6 +41,11 @@ registerSubscriber('declaration.released', async (tenantId, event) => {
       tenant_id: tenantId,
       shipment_id: shipmentId,
       category: 'DUTY',
+      // The landed-cost card this actual belongs under. Without it the row is
+      // invisible to the estimate-vs-actual comparison, which is the one place
+      // an automatically-recorded duty figure is most worth having: it is the
+      // real TRA assessment against what the calculator predicted.
+      charge_head: 'DUTY_TAXES',
       label: `Customs duty — declaration ${event.payload.tancisRef ?? declarationId}${notice.bill_number ? ` (bill ${notice.bill_number})` : ''}`,
       amount_tzs: amount,
       is_revenue: false,

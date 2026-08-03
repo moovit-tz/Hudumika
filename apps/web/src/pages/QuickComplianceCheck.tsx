@@ -97,6 +97,12 @@ interface ComplianceCheck {
   color: 'green' | 'amber' | 'red';
 }
 
+const outcomeBtn: React.CSSProperties = {
+  fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 'var(--r-sm)',
+  border: '1px solid var(--border)', background: 'var(--card-bg, var(--white))',
+  color: 'var(--ink2)', cursor: 'pointer', whiteSpace: 'nowrap',
+};
+
 const ORIGIN_GROUPS: { label: string; options: { code: string; name: string }[] }[] = [
   {
     label: 'East African Community (EAC) — PVoC/DI waived',
@@ -141,6 +147,32 @@ export const QuickComplianceCheck: React.FC = () => {
   const [hsLoading, setHsLoading] = useState(false);
   const [origin, setOrigin] = useState(() => urlParams.get('origin') ?? 'TZ');
   const [checks, setChecks] = useState<ComplianceCheck[] | null>(null);
+  /** Checks the user has already reported back on, so the prompt disappears
+   *  rather than inviting a second, contradictory report. */
+  const [reported, setReported] = useState<Record<string, true>>({});
+
+  /**
+   * Records whether a predicted requirement actually applied.
+   *
+   * Fire-and-forget: the acknowledgement is optimistic because the value here
+   * is in people bothering to click at all, and a spinner on a courtesy
+   * report is a good way to ensure they stop.
+   */
+  function reportOutcome(c: ComplianceCheck, actual: 'applied' | 'not_applied' | 'unexpected') {
+    setReported(p => ({ ...p, [c.key]: true }));
+    void apiFetch('/v1/intel/compliance-outcomes', {
+      method: 'POST',
+      body: JSON.stringify({
+        outcomes: [{
+          requirement: c.key,
+          predicted: c.required,
+          actual,
+          hs_code: hsSelected?.code ?? hs,
+          origin_country: origin,
+        }],
+      }),
+    }).catch(() => { /* observation only */ });
+  }
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const hsDebounce = useRef<any>(null);
@@ -324,6 +356,31 @@ export const QuickComplianceCheck: React.FC = () => {
                           <a href={c.link} target="_blank" rel="noreferrer" style={{ color: 'var(--teal)', display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
                             Website <Icon name="externalLink" size={11} color="var(--teal)" />
                           </a>
+                        )}
+                      </div>
+                      {/* Whether the prediction held. This is the only way to
+                          tell a rule that protects the tenant from one that
+                          adds noise to every check — and "enforced anyway" is
+                          the report that matters most, since a missed
+                          requirement costs a delay rather than a wasted
+                          certificate. One click, recorded once per check. */}
+                      <div style={{ marginTop: 10, paddingTop: 9, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        {reported[c.key] ? (
+                          <span style={{ fontSize: 11.5, color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                            <Icon name="checkCircle" size={12} color="var(--green)" /> Thanks — recorded. It will sharpen this check for everyone.
+                          </span>
+                        ) : (
+                          <>
+                            <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Cleared this cargo? What actually happened:</span>
+                            <button type="button" onClick={() => reportOutcome(c, c.required ? 'applied' : 'unexpected')}
+                              style={outcomeBtn}>
+                              {c.required ? 'It was required' : 'It was enforced anyway'}
+                            </button>
+                            <button type="button" onClick={() => reportOutcome(c, c.required ? 'not_applied' : 'applied')}
+                              style={outcomeBtn}>
+                              {c.required ? 'Nothing was required' : 'Correct — not required'}
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>

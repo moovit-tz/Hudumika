@@ -295,12 +295,17 @@ export const ShipmentsList: React.FC = () => {
 
   const totalStage = stageDist.reduce((s, x) => s + x.count, 0);
 
-  // SLA trend (last 8 weeks � seeded from on_time_rate_pct)
-  const baseRate = kpis?.on_time_rate_pct ?? 82;
-  const slaWeeks = Array.from({ length: 8 }, (_, i) => ({
-    label: `W${i + 1}`,
-    value: Math.max(60, Math.min(100, baseRate + (Math.sin(i) * 5) + (i * 0.4))),
-  }));
+  /**
+   * The current on-time rate. There is no weekly history behind it.
+   *
+   * This used to render an eight-point "SLA Compliance — Last 8 Weeks" line
+   * chart whose values were `baseRate + sin(i)*5 + i*0.4`, with baseRate
+   * defaulting to a hardcoded 82 when the API had nothing — a sine wave drawn
+   * as if it were eight weeks of measured performance, complete with an
+   * upward drift. Nothing in the API returns per-week SLA history, so the
+   * panel below now shows the one figure that is real and says what it is.
+   */
+  const onTimeRate = kpis?.on_time_rate_pct ?? null;
 
   const headerActions = (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -378,7 +383,7 @@ export const ShipmentsList: React.FC = () => {
             <div className="ent-kpi-label">Active &amp; in progress</div>
             <div className="ent-kpi-footer">
               <span className="ent-kpi-pill ent-kpi-pill-green">? {loading ? '�' : (kpis?.delivered_today ?? 0)} delivered</span>
-              <span className="ent-kpi-pill ent-kpi-pill-neutral">{loading ? '�' : `${kpis?.on_time_rate_pct ?? 0}%`} SLA</span>
+              <span className="ent-kpi-pill ent-kpi-pill-neutral">{loading || kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`} SLA</span>
               <span className="ent-kpi-pill ent-kpi-pill-neutral">{loading ? '�' : (kpis?.cases_this_month ?? 0)} this month</span>
             </div>
           </Link>
@@ -569,39 +574,19 @@ export const ShipmentsList: React.FC = () => {
         {/* Row 3: SLA trend + Officer performance */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
 
-          <Panel title="SLA Compliance � Last 8 Weeks">
-            <div style={{ height: 200 }}>
-              <Line
-                data={{
-                  labels: slaWeeks.map(w => w.label),
-                  datasets: [{
-                    label: 'On-Time %',
-                    data: slaWeeks.map(w => w.value),
-                    borderColor: 'rgba(34,197,94,1)',
-                    backgroundColor: 'rgba(34,197,94,.12)',
-                    borderWidth: 2,
-                    pointRadius: 4,
-                    pointBackgroundColor: 'rgba(34,197,94,1)',
-                    fill: true,
-                    tension: 0.35,
-                  }],
-                }}
-                options={{
-                  ...lineOptions,
-                  scales: {
-                    ...lineOptions.scales,
-                    y: {
-                      ...lineOptions.scales.y,
-                      min: 50,
-                      max: 100,
-                      ticks: { ...lineOptions.scales.y.ticks, callback: (v: any) => `${v}%` },
-                    },
-                  },
-                }}
-              />
+          <Panel title="SLA Compliance">
+            <div style={{ height: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, textAlign: 'center', padding: '0 24px' }}>
+              <div style={{ fontSize: 42, fontWeight: 800, color: onTimeRate == null ? 'var(--ink3)' : 'var(--green)', lineHeight: 1 }}>
+                {onTimeRate == null ? '—' : `${onTimeRate}%`}
+              </div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink2)', fontWeight: 600 }}>On-time across all closed cases</div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.5, maxWidth: 320 }}>
+                {onTimeRate == null
+                  ? 'No case has closed yet, so there is nothing to measure against.'
+                  : 'Cumulative, not a trend — per-week SLA history is not recorded.'}
+              </div>
             </div>
           </Panel>
-
           <Panel title="Officer Performance">
             <div style={{ height: 200 }}>
               {officers.length > 0 ? (

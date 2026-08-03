@@ -178,6 +178,29 @@ export function StudioDashboard() {
               </div>
             </div>
           </div>
+
+          {/* Clearance workflows — the other kind of thing this app builds.
+              Kept in its own panel and named for what it is: these define the
+              stages a shipment moves through, not automations that fire on an
+              event, and conflating the two would be a costly misunderstanding
+              for whoever edits one thinking it is the other. */}
+          <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--card-bg, var(--white))' }}>
+            <div className="studio-panel-head"><span className="studio-panel-title">Clearance workflows</span></div>
+            <div style={{ padding: '10px 12px 6px', fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.55 }}>
+              The stages a shipment moves through, and the conditions for leaving each one.
+              Live consignments sit on these steps.
+            </div>
+            <div style={{ padding: 8 }}>
+              <div className="studio-run-row" onClick={() => navigate('/studio/clearance')}>
+                <Icon name="layers" size={14} color="var(--teal)" /><span>All clearance workflows</span>
+                <Icon name="arrowRight" size={12} color="var(--ink3)" style={{ marginLeft: 'auto' }} />
+              </div>
+              <div className="studio-run-row" onClick={() => navigate('/studio/clearance/new')}>
+                <Icon name="plus" size={14} color="var(--green)" /><span>Design a new one</span>
+                <Icon name="arrowRight" size={12} color="var(--ink3)" style={{ marginLeft: 'auto' }} />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -8,6 +8,10 @@ import './finance.subscribers.js';
 import './tracking.subscribers.js';
 import './cargotracker.subscribers.js';
 import './hrm.subscribers.js';
+// Scores the landed-cost estimate against what was actually spent — the one
+// handler that reacts to a comparison between two apps rather than to a
+// single app's own event.
+import './intelligence.subscribers.js';
 // Registers one handler per DOMAIN_EVENT trigger, so tenant-defined Studio
 // workflows react to the same events the hardcoded subscribers above do.
 import './studio.subscribers.js';

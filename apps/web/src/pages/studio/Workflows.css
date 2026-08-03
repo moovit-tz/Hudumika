@@ -259,3 +259,49 @@
 .wfb-tag-pill { padding:7px 15px; border-radius:100px; border:1.5px solid var(--border); font-size:13px; font-weight:600; cursor:pointer; transition:all 0.1s; background:var(--white); color:var(--ink2); user-select:none; }
 .wfb-tag-pill:hover { border-color:var(--teal); color:var(--teal); }
 .wfb-tag-pill.sel { background:var(--teal); border-color:var(--teal); color:white; }
+
+/* ── Test / History drawer (migration 168 capabilities) ─────────────
+   Right-anchored sheet on the desktop, full-height bottom sheet on a
+   phone — the builder canvas is already horizontally cramped there. */
+.wfb-insights-backdrop {
+  /* 1000 is this app's modal-backdrop layer (index.css). Anything lower sits
+     under the sidebar (200) and the app header, and under the z-50 portal
+     Radix popovers render into — which made the shipment picker inside this
+     drawer visible but unclickable. */
+  position:fixed; inset:0; z-index:1000;
+  background:rgba(15,23,42,0.34);
+  -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);
+  display:flex; justify-content:flex-end;
+}
+.wfb-insights {
+  width:min(480px, 100vw); height:100%;
+  background:var(--card-bg, var(--white));
+  border-left:1px solid var(--border);
+  box-shadow:-8px 0 32px rgba(15,23,42,0.14);
+  display:flex; flex-direction:column;
+  animation:wfb-insights-in 0.16s ease-out;
+}
+@keyframes wfb-insights-in { from { transform:translateX(14px); opacity:0.4; } to { transform:none; opacity:1; } }
+.wfb-insights-head {
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  padding:9px 11px; border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.wfb-insights-tab {
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 13px; border-radius:8px; border:1px solid transparent;
+  background:transparent; color:var(--ink3);
+  font-size:12.5px; font-weight:650; cursor:pointer; transition:all 0.12s;
+}
+.wfb-insights-tab:hover { color:var(--ink); background:var(--bg); }
+.wfb-insights-tab.sel { background:var(--teal-l); border-color:var(--teal-m); color:var(--teal); }
+.wfb-insights-body { flex:1; overflow-y:auto; overscroll-behavior:contain; }
+
+@media (max-width: 640px) {
+  .wfb-insights-backdrop { align-items:flex-end; justify-content:stretch; }
+  .wfb-insights {
+    width:100%; height:88vh; border-left:none;
+    border-top:1px solid var(--border); border-radius:16px 16px 0 0;
+    animation:wfb-insights-up 0.18s ease-out;
+  }
+  @keyframes wfb-insights-up { from { transform:translateY(18px); opacity:0.4; } to { transform:none; opacity:1; } }
+}

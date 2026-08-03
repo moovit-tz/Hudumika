@@ -379,3 +379,26 @@
   .studio-tile { padding: 12px; }
   .studio-tile-row { flex-direction: column; align-items: flex-start; gap: 8px; }
 }
+
+/* ── Targeting chips (migration 168) ─────────────────────────────────
+   Selectable category pills for "only for these shipments". Same soft
+   brand tint as the rest of the app, from the derived tokens rather
+   than a hand-rolled color-mix. */
+.studio-chip {
+  padding: 5px 12px;
+  border-radius: var(--badge-radius, 20px);
+  border: 1px solid var(--border);
+  background: var(--card-bg, var(--white));
+  color: var(--ink2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  user-select: none;
+}
+.studio-chip:hover { border-color: var(--teal); color: var(--teal); }
+.studio-chip.sel {
+  background: var(--teal-l);
+  border-color: var(--teal-m);
+  color: var(--teal);
+}

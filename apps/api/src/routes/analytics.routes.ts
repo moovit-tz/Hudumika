@@ -146,7 +146,11 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
         .where('stage', '=', 'CLOSED')
         .executeTakeFirst())?.cnt ?? 0);
 
-      let on_time_rate_pct = 100;
+      // Null, not 100, when nothing has closed. A rate over zero events is
+      // not 100% on time — it is no measurement, and it was being displayed
+      // beside a live SLA-breach count, which reads as a contradiction and
+      // quietly discredits the rest of the dashboard.
+      let on_time_rate_pct: number | null = null;
       if (closed_cases > 0) {
         const breachedResult = await trx
           .selectFrom('risk_flags')

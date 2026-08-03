@@ -108,6 +108,23 @@ interface HsSuggestion {
   matchPct: number;
 }
 
+/**
+ * What this workspace declared before for goods described like this.
+ *
+ * The strongest signal there is, and one the tariff text cannot supply:
+ * word-frequency ranking cannot separate "Screws; bolts and nuts" from "Bolt
+ * action", but a workspace that has classified fasteners fourteen times has
+ * already answered the question. Shown as evidence, never auto-applied — a
+ * code declared consistently can still be the wrong code.
+ */
+interface HsMemoryHit {
+  code: string;
+  times: number;
+  closestDescription: string;
+  similarity: number;
+  lastUsed: string;
+}
+
 /** Which suggestion the server put first and why — three codes at an identical
  *  percentage say nothing about which to take, so the grounds are stated. */
 interface HsRecommendation {
@@ -2438,6 +2455,42 @@ function fromDraft<T>(d: Record<string, any> | null, key: string, fallback: T): 
   return v === undefined || v === null ? fallback : (v as T);
 }
 
+/** The calculator's own cards, named for a reader. Shared with the ledger
+ *  and the variance panel so an estimate and an actual are comparable
+ *  without a mapping table. */
+const CHARGE_HEAD_LABEL: Record<string, string> = {
+  DUTY_TAXES: 'Duties & taxes (TRA)',
+  FREIGHT: 'Freight',
+  INSURANCE: 'Insurance',
+  TPA: 'Port & handling (TPA)',
+  ICD: 'ICD / destination',
+  TBS: 'TBS',
+  SHIPPING_LINE: 'Shipping line',
+  CLEARANCE_AGENCY: 'Clearance & agency',
+  TRANSPORT: 'Transport',
+  OTHER: 'Other',
+};
+
+/** This estimate's figure per charge head, so a learned median can be shown
+ *  against the number it is being compared with. Returns an empty map when
+ *  there is no result yet — the panel then shows the medians alone rather
+ *  than inventing something to compare them to. */
+function ESTIMATE_BY_HEAD(r: MultiItemResult | null): Record<string, number> {
+  const t = r?.totals;
+  if (!t) return {};
+  const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  const out: Record<string, number> = {
+    DUTY_TAXES: n(t.duty) + n(t.excise) + n(t.rdl) + n(t.cpf) + n(t.vat),
+    TPA: n(t.wharfage) + n(t.pid) + n(t.green_port_initiative),
+    ICD: n(t.destination),
+    TBS: n(t.tbs_charge),
+    SHIPPING_LINE: n(t.shipping_line_charge),
+    FREIGHT: n(t.freight_tzs),
+    INSURANCE: n(t.insurance_tzs),
+  };
+  for (const k of Object.keys(out)) if (!out[k]) delete out[k];
+  return out;
+}
 // ── Main Component ────────────────────────────────────────────────────────────
 
 export const LandedCostPage: React.FC = () => {
@@ -2497,6 +2550,8 @@ export const LandedCostPage: React.FC = () => {
   const [hsSuggestions, setHsSuggestions] = useState<Record<string, HsSuggestion[]>>(() => fromDraft(d, 'hsSuggestions', {}));
   /** Why the first suggestion on each row is first. */
   const [hsWhy, setHsWhy] = useState<Record<string, HsRecommendation>>(() => fromDraft(d, 'hsWhy', {}));
+  /** What this workspace declared before, per row. */
+  const [hsMem, setHsMem] = useState<Record<string, HsMemoryHit[]>>(() => fromDraft(d, 'hsMem', {}));
   /** The AI's opinion per row, when it was asked for one. */
   const [aiPicks, setAiPicks] = useState<Record<string, AiPick>>(() => fromDraft(d, 'aiPicks', {}));
   const [aiPicking, setAiPicking] = useState(false);
@@ -2690,6 +2745,25 @@ export const LandedCostPage: React.FC = () => {
   // default. Only operators the tenant has actually priced show up, since
   // picking an un-priced one would just be a no-op.
   const [icdOperatorId, setIcdOperatorId] = useState<string | null>(() => fromDraft(d, 'icdOperatorId', null));
+
+  /**
+   * What this workspace has actually paid, per commercial charge head.
+   *
+   * Shown beside the result so an estimate can be sanity-checked against the
+   * tenant's own outturn. Deliberately *not* applied to the figures: the
+   * estimate is built from the Rate Card and the tariff, and silently
+   * substituting a trailing median would make the report untraceable to any
+   * source. It is a second opinion with its sample size attached.
+   *
+   * Statutory heads never appear here — the API excludes them, because a
+   * "learned" duty rate is a fabricated duty rate.
+   */
+  const [priors, setPriors] = useState<{ head: string; medianTzs: number; sample: number; windowDays: number }[]>([]);
+  useEffect(() => {
+    apiFetch('/v1/intel/charge-priors')
+      .then((r: any) => setPriors(Array.isArray(r?.data) ? r.data : []))
+      .catch(() => setPriors([]));   // no history yet is the normal early state
+  }, []);
   const [icdOperatorOptions, setIcdOperatorOptions] = useState<{ id: string; name: string }[]>([]);
   useEffect(() => {
     setIcdOperatorId(null);
@@ -2897,7 +2971,7 @@ export const LandedCostPage: React.FC = () => {
       customerName, customerEmail, customerPhone, destination,
       cif, priceInclFreight, priceInclInsurance, originCountry, loadingPoint, originFromPort,
       fob, freight, insurancePct, hs, qty, container, isAir, containerLots,
-      importNote, invoiceCurrency, hsSuggestions, hsWhy, aiPicks, declaredFob, showAdvanced,
+      importNote, invoiceCurrency, hsSuggestions, hsWhy, hsMem, aiPicks, declaredFob, showAdvanced,
       ovDuty, ovVat, ovRdl, ovCpf, ovWharfage, ovPid, ovFx,
       cbm, weightKg, isUsedVehicle, vehicleAge, isClogs, icdOperatorId,
       itemMode, multiItems, multiFreight, multiInsurance,
@@ -2908,7 +2982,7 @@ export const LandedCostPage: React.FC = () => {
     customerName, customerEmail, customerPhone, destination,
     cif, priceInclFreight, priceInclInsurance, originCountry, loadingPoint, originFromPort,
     fob, freight, insurancePct, hs, qty, container, isAir, containerLots,
-    importNote, invoiceCurrency, hsSuggestions, hsWhy, aiPicks, declaredFob, showAdvanced,
+    importNote, invoiceCurrency, hsSuggestions, hsWhy, hsMem, aiPicks, declaredFob, showAdvanced,
     ovDuty, ovVat, ovRdl, ovCpf, ovWharfage, ovPid, ovFx,
     cbm, weightKg, isUsedVehicle, vehicleAge, isClogs, icdOperatorId,
     itemMode, multiItems, multiFreight, multiInsurance,
@@ -3016,6 +3090,9 @@ export const LandedCostPage: React.FC = () => {
 
   function handleRowHsChange(row: MultiItemRow, item: PickerItem | null) {
     if (!item) { updateRow(row.id, { hs_code: '' }); return; }
+    // Searched for and chosen by hand — the strongest correction signal
+    // there is, since the user rejected everything that was offered.
+    recordClassification([{ rowId: row.id, code: item.id, source: 'manual' }]);
     const cached = hsCacheRef.current.get(item.id);
     updateRow(row.id, { hs_code: item.id, description: row.description || cached?.description || '' });
   }
@@ -3609,6 +3686,7 @@ export const LandedCostPage: React.FC = () => {
     // Suggestions are keyed by row id, and every row is about to be replaced.
     setHsSuggestions({});
     setHsWhy({});
+    setHsMem({});
     setAiPicks({});
     setAiPickError('');
     // Starting over is the one place a saved draft should not come back.
@@ -3917,13 +3995,16 @@ export const LandedCostPage: React.FC = () => {
       });
       const next: Record<string, HsSuggestion[]> = {};
       const nextWhy: Record<string, HsRecommendation> = {};
+      const nextMem: Record<string, HsMemoryHit[]> = {};
       for (const r of res?.data ?? []) {
         if (!r.suggestions?.length) continue;
         next[r.id] = r.suggestions;
         if (r.recommendation) nextWhy[r.id] = r.recommendation;
+        if (r.memory?.length) nextMem[r.id] = r.memory;
       }
       setHsSuggestions(prev => ({ ...prev, ...next }));
       setHsWhy(prev => ({ ...prev, ...nextWhy }));
+      setHsMem(prev => ({ ...prev, ...nextMem }));
       setAiPicks({});
       setAiPickError('');
       const found = Object.keys(next).length;
@@ -3938,10 +4019,39 @@ export const LandedCostPage: React.FC = () => {
     setSuggesting(false);
   }
 
+  /**
+   * Records what was offered and what was actually declared.
+   *
+   * This is the corpus the suggester learns from — including the rejections,
+   * which are as informative as the hits. Fire-and-forget by design: an
+   * observation is worth having, but never at the cost of failing the
+   * classification the user was making.
+   */
+  function recordClassification(rows: { rowId: string; code: string | null; source: 'suggested' | 'ai' | 'manual' | 'none' }[]) {
+    const events = rows
+      .map(({ rowId, code, source }) => {
+        const row = multiItems.find(r => r.id === rowId);
+        if (!row?.description.trim()) return null;
+        return {
+          description: row.description,
+          suggested: (hsSuggestions[rowId] ?? []).map(s => ({ code: s.code, matchPct: s.matchPct, duty_rate: s.duty_rate })),
+          accepted_code: code,
+          source,
+        };
+      })
+      .filter(Boolean);
+    if (events.length === 0) return;
+    void apiFetch('/v1/intel/hs-classifications', { method: 'POST', body: JSON.stringify({ events }) })
+      .catch(() => { /* observation only — never surfaces to the user */ });
+  }
+
   function acceptSuggestion(rowId: string, code: string) {
+    const fromAi = aiPicks[rowId]?.code === code;
+    recordClassification([{ rowId, code, source: fromAi ? 'ai' : 'suggested' }]);
     updateRow(rowId, { hs_code: code });
     setHsSuggestions(prev => { const next = { ...prev }; delete next[rowId]; return next; });
     setHsWhy(prev => { const next = { ...prev }; delete next[rowId]; return next; });
+    setHsMem(prev => { const next = { ...prev }; delete next[rowId]; return next; });
     setAiPicks(prev => { const next = { ...prev }; delete next[rowId]; return next; });
   }
 
@@ -4005,6 +4115,14 @@ export const LandedCostPage: React.FC = () => {
    *  pick where one was given, otherwise the word-ranking leader. */
   function acceptAllTopSuggestions() {
     const ids = Object.keys(hsSuggestions);
+    // Record the bulk decision the same way a single acceptance is recorded —
+    // 200 lines accepted at once is 200 observations, not one.
+    recordClassification(ids.map(rowId => {
+      const s = hsSuggestions[rowId];
+      const ai = aiPicks[rowId]?.code;
+      const code = ai && s?.some(x => x.code === ai) ? ai : s?.[0]?.code ?? null;
+      return { rowId, code, source: (ai && code === ai ? 'ai' : 'suggested') as 'ai' | 'suggested' };
+    }));
     setMultiItems(rows => rows.map(r => {
       const s = hsSuggestions[r.id];
       if (!s || r.hs_code.trim()) return r;
@@ -4013,6 +4131,7 @@ export const LandedCostPage: React.FC = () => {
     }));
     setHsSuggestions({});
     setHsWhy({});
+    setHsMem({});
     setAiPicks({});
     setImportNote(`Accepted the top suggestion on ${ids.length} line${ids.length === 1 ? '' : 's'}. Each one is now editable — correct any that are wrong before calculating.`);
   }
@@ -4612,6 +4731,34 @@ export const LandedCostPage: React.FC = () => {
                             <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--ink3)', marginBottom: 6 }}>
                               Possible codes — check before accepting
                             </div>
+                            {/* What this workspace declared before for goods
+                                like these. Sits above the tariff-text ranking
+                                because it is the stronger evidence — but it is
+                                evidence, not an answer: a code used ten times
+                                can still be ten times wrong, so it is offered
+                                for acceptance the same way everything else is. */}
+                            {hsMem[row.id]?.length > 0 && (
+                              <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--teal-m, var(--border))' }}>
+                                <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.04em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: 5, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                  <Icon name="clock" size={11} color="var(--green)" /> You have classified this before
+                                </div>
+                                {hsMem[row.id].map(m => (
+                                  <div key={`mem-${m.code}`} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
+                                    <button type="button" onClick={() => acceptSuggestion(row.id, m.code)}
+                                      title={`Use ${m.code} — matches "${m.closestDescription}"`}
+                                      style={{ flexShrink: 0, cursor: 'pointer', border: '1px solid var(--green)', background: 'var(--green-l)', color: 'var(--green)', borderRadius: 'var(--badge-radius)', padding: '2px 10px', fontSize: 11.5, fontWeight: 700, fontFamily: 'var(--mono, monospace)' }}>
+                                      {m.code}
+                                    </button>
+                                    <span style={{ fontSize: 11.5, color: 'var(--ink2)', flex: '1 1 160px', minWidth: 0 }}>
+                                      used <strong>{m.times}×</strong>, closest was “{m.closestDescription}”
+                                    </span>
+                                    <span style={{ fontSize: 10.5, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
+                                      {Math.round(m.similarity * 100)}% wording match
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                               {hsSuggestions[row.id].map(s => {
                                 // Which code is put forward, and on whose say-so.
@@ -5274,6 +5421,41 @@ export const LandedCostPage: React.FC = () => {
                     </table>
                     </div>
                   </div>
+
+                  {/* What this workspace actually paid on comparable jobs.
+                      A cross-check, not an input — the figures above stay
+                      traceable to the Rate Card and the tariff. */}
+                  {priors.length > 0 && (
+                    <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 16px', background: 'var(--card-bg, var(--white))' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <Icon name="clock" size={15} color="var(--green)" />
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>What you actually paid before</span>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 10, lineHeight: 1.5 }}>
+                        Median of your own recorded costs. Nothing here has been applied to the estimate above — that stays sourced from your Rate Card and the tariff.
+                      </div>
+                      {priors.map(p => {
+                        const est = ESTIMATE_BY_HEAD(multiResult)[p.head];
+                        const gap = est != null && est > 0 ? Math.round(((p.medianTzs - est) / est) * 1000) / 10 : null;
+                        return (
+                          <div key={p.head} style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, padding: '5px 0', fontSize: 12.5, flexWrap: 'wrap' }}>
+                            <span style={{ color: 'var(--ink2)' }}>
+                              {CHARGE_HEAD_LABEL[p.head] ?? p.head}
+                              <span style={{ color: 'var(--ink3)', fontSize: 11 }}> · {p.sample} job{p.sample === 1 ? '' : 's'} in {p.windowDays} days</span>
+                            </span>
+                            <span style={{ whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>
+                              <strong style={{ color: 'var(--ink)' }}>TZS {fmt(p.medianTzs)}</strong>
+                              {gap != null && (
+                                <span style={{ marginLeft: 8, color: gap > 0 ? 'var(--red)' : 'var(--green)', fontWeight: 700 }}>
+                                  {gap > 0 ? '+' : ''}{gap}% vs this estimate
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {/* VAT incl/excl */}
                   <div style={{ padding: '12px 14px', borderRadius: 10, background: 'color-mix(in srgb, var(--teal) 6%, transparent)', border: '1px solid color-mix(in srgb, var(--teal) 20%, transparent)' }}>

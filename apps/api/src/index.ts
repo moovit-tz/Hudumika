@@ -92,6 +92,7 @@ import { superAdminRoutes } from './routes/superadmin.routes.js';
 import { superAdminReportsRoutes } from './routes/superadmin-reports.routes.js';
 import { superAdminTradeWizardRoutes } from './routes/superadmin-trade-wizard.routes.js';
 import { superAdminIssuesRoutes } from './routes/superadmin-issues.routes.js';
+import { intelligenceRoutes } from './routes/intelligence.routes.js';
 import { queryBuilderRoutes } from './routes/query-builder.routes.js';
 import { onboardingRoutes } from './routes/onboarding.routes.js';
 import { packagesRoutes } from './routes/packages.routes.js';
@@ -240,6 +241,7 @@ async function main() {
     await server.register(superAdminReportsRoutes, { prefix: '/v1/superadmin/reports' });
     await server.register(superAdminTradeWizardRoutes, { prefix: '/v1/superadmin/trade-wizard' });
     await server.register(superAdminIssuesRoutes, { prefix: '/v1/superadmin' });
+    await server.register(intelligenceRoutes, { prefix: '/v1/intel' });
     await server.register(queryBuilderRoutes, { prefix: '/v1/superadmin/query-builder' });
     await server.register(ocrRoutes, { prefix: '/v1/ocr' });
     await server.register(hrRoutes, { prefix: '/v1/hr' });

@@ -10,6 +10,14 @@ import { StudioDashboard } from '../pages/studio/StudioDashboard.js';
 import { WorkflowList }    from '../pages/studio/WorkflowList.js';
 import { WorkflowNew }     from '../pages/studio/WorkflowNew.js';
 import { WorkflowEditor }  from '../pages/studio/WorkflowEditor.js';
+// The clearance-workflow designer, moved here from ClearOS. It is a
+// genuinely different thing from the automations above — it defines the
+// stages a shipment moves through, and shipment_cases.workflow_step_id
+// points straight at its steps — so it keeps its own model and its own
+// editor rather than being folded into the trigger/action canvas. What it
+// gains from living in Studio is the shell, the nav and one place to build.
+import { ClearanceWorkflowList }    from '../pages/studio/ClearanceWorkflowList.js';
+import { ClearanceWorkflowBuilder } from '../pages/studio/ClearanceWorkflowBuilder.js';
 import { TemplateGallery } from '../pages/studio/TemplateGallery.js';
 import { CatalogPage }     from '../pages/studio/CatalogPage.js';
 import { RunsPage }        from '../pages/studio/RunsPage.js';
@@ -24,8 +32,9 @@ const NAV: SidebarSection[] = [
   {
     title: 'BUILD',
     items: [
-      { label: 'Workflows',  icon: 'gitBranch', path: '/studio/workflows' },
-      { label: 'New workflow', icon: 'plus',    path: '/studio/new' },
+      { label: 'Automations', icon: 'gitBranch', path: '/studio/workflows' },
+      { label: 'New automation', icon: 'plus',   path: '/studio/new' },
+      { label: 'Clearance workflows', icon: 'layers', path: '/studio/clearance' },
       { label: 'Templates',  icon: 'copy',      path: '/studio/templates' },
     ],
   },
@@ -63,9 +72,14 @@ export function StudioShell() {
               {/* The editor sits outside PageLayout: it manages its own
                   full-height three-column layout and its own scrolling. */}
               <Route path="w/:id" element={<WorkflowEditor />} />
+              {/* Outside PageLayout for the same reason as the editor above:
+                  the builder canvas manages its own full-height layout. */}
+              <Route path="clearance/new"     element={<ClearanceWorkflowBuilder />} />
+              <Route path="clearance/:id"     element={<ClearanceWorkflowBuilder />} />
               <Route element={<PageLayout />}>
                 <Route index element={<StudioDashboard />} />
                 <Route path="workflows" element={<WorkflowList />} />
+                <Route path="clearance" element={<ClearanceWorkflowList />} />
                 <Route path="new"       element={<WorkflowNew />} />
                 <Route path="templates" element={<TemplateGallery />} />
                 <Route path="runs"      element={<RunsPage />} />

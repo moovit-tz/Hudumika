@@ -1,14 +1,15 @@
 ﻿import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { apiFetch } from '../lib/api.js';
-import type { Workflow, WorkflowStep, FieldCondition, AutoComm } from './WorkflowsPage.js';
+import { apiFetch } from '../../lib/api.js';
+import type { Workflow, WorkflowStep, FieldCondition, AutoComm } from './ClearanceWorkflowList.js';
 import type { CreateWorkflowInput } from '@hudumika/types';
-import { Icon, type IconName } from '../components/Icon.js';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
-import { MultiSelectFilter } from '../components/ui/filter-dropdown.js';
-import { showAlert } from '../lib/alert.js';
+import { Icon, type IconName } from '../../components/Icon.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { MultiSelectFilter } from '../../components/ui/filter-dropdown.js';
+import { showAlert } from '../../lib/alert.js';
 import './Workflows.css';
-import { showConfirm } from '../lib/confirm.js';
+import { ClearanceWorkflowInsights } from './ClearanceWorkflowInsights.js';
+import { showConfirm } from '../../lib/confirm.js';
 
 function uid() { return `${Date.now()}-${Math.random().toString(36).slice(2,6)}`; }
 
@@ -465,7 +466,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
 
 /* ══ Main WorkflowBuilder Component ════════════════════════ */
 
-export function WorkflowBuilder() {
+export function ClearanceWorkflowBuilder() {
   const {id} = useParams<{id?:string}>();
   const navigate = useNavigate();
 
@@ -477,13 +478,19 @@ export function WorkflowBuilder() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved]   = useState(false);
   const [panel, setPanel]   = useState(true);   /* right panel visible */
+  const [insights, setInsights] = useState(false);
+  const [insightsTab, setInsightsTab] = useState<'test'|'history'>('test');
+  /* Serialized payload as last persisted. Test and History both read the SAVED
+     workflow, so the drawer has to be able to say when you are looking at
+     something other than what is on your canvas. */
+  const [savedSnapshot, setSavedSnapshot] = useState<string|null>(null);
   const [customers, setCustomers] = useState<{id:string; name:string}[]>([]);
 
   useEffect(() => {
     if (!id) return;
     setLoading(true);
     apiFetch(`/v1/workflows/${id}`)
-      .then((res: Workflow) => setWf(res))
+      .then((res: Workflow) => { setWf(res); setSavedSnapshot(JSON.stringify(buildSavePayload(res))); })
       .catch(err => setLoadError(err.message || 'Failed to load workflow'))
       .finally(() => setLoading(false));
   }, [id]);
@@ -493,6 +500,23 @@ export function WorkflowBuilder() {
       .then((res: any) => setCustomers(Array.isArray(res) ? res : res.data ?? res.customers ?? []))
       .catch(() => setCustomers([]));
   }, []);
+
+  /**
+   * How many live shipments are sitting on each step.
+   *
+   * The thing that made this builder dangerous was that its steps look like a
+   * diagram but are not one: shipment_cases.workflow_step_id points straight
+   * at them, so deleting or reordering a step moves or strands real
+   * consignments. Previously the only warning was a flat refusal at delete
+   * time. Now the count sits on the node while it is being edited.
+   */
+  const [usage, setUsage] = useState<{ totalShipments: number; byStep: Record<string, number> }>({ totalShipments: 0, byStep: {} });
+  useEffect(() => {
+    if (!id) return;
+    apiFetch(`/v1/workflows/${id}/usage`)
+      .then((r: any) => setUsage({ totalShipments: r?.totalShipments ?? 0, byStep: r?.byStep ?? {} }))
+      .catch(() => setUsage({ totalShipments: 0, byStep: {} }));  // a new workflow simply has none
+  }, [id]);
 
   /* ── Wf mutations ── */
   const updateWf = useCallback((p: Partial<Workflow>) =>
@@ -533,7 +557,16 @@ export function WorkflowBuilder() {
 
   const deleteStep = useCallback(async (sid: string) => {
     if (wf.steps.length <= 1) { showAlert('A workflow must have at least one step.'); return; }
-    if (!(await showConfirm('Delete this step?', { confirmLabel: 'Delete' }))) return;
+    // Named consequences before the fact. A step is not a diagram element —
+    // shipment_cases.workflow_step_id points at it — so deleting one with live
+    // shipments on it moves real consignments somewhere else. The old prompt
+    // said only "Delete this step?" and gave no way to know that.
+    const live = usage.byStep[sid] ?? 0;
+    const prompt = live > 0
+      ? `Delete this step? ${live} shipment${live === 1 ? '' : 's'} ${live === 1 ? 'is' : 'are'} currently sitting on it. `
+        + `Saving will be refused until ${live === 1 ? 'it is' : 'they are'} moved to another step.`
+      : 'Delete this step?';
+    if (!(await showConfirm(prompt, { confirmLabel: 'Delete' }))) return;
     setWf(prev => ({
       ...prev,
       updatedAt: new Date().toISOString(),
@@ -541,7 +574,7 @@ export function WorkflowBuilder() {
         .map((s,i)=>({...s, order:i+1, nextStepIds:s.nextStepIds.filter(n=>n!==sid)})),
     }));
     if (selectedId === sid) setSelectedId(null);
-  }, [wf.steps.length, selectedId]);
+  }, [wf.steps.length, selectedId, usage]);
 
   const handleSave = async () => {
     if (!wf.name.trim()) { showAlert('Please give the workflow a name.'); return; }
@@ -551,10 +584,12 @@ export function WorkflowBuilder() {
       if (wf.id) {
         const result: Workflow = await apiFetch(`/v1/workflows/${wf.id}`, { method: 'PATCH', body: JSON.stringify(payload) });
         setWf(result);
+        setSavedSnapshot(JSON.stringify(buildSavePayload(result)));
       } else {
         const result: Workflow = await apiFetch('/v1/workflows', { method: 'POST', body: JSON.stringify(payload) });
         setWf(result);
-        navigate(`/clearos/workflows/${result.id}/edit`, { replace: true });
+        setSavedSnapshot(JSON.stringify(buildSavePayload(result)));
+        navigate(`/studio/clearance/${result.id}`, { replace: true });
       }
       setSaved(true); setTimeout(()=>setSaved(false), 2200);
     } catch (err: any) {
@@ -577,6 +612,11 @@ export function WorkflowBuilder() {
 
   const terminalSteps = useMemo(() => wf.steps.filter(s=>s.nextStepIds.length===0), [wf.steps]);
 
+  const dirty = useMemo(
+    () => savedSnapshot !== null && JSON.stringify(buildSavePayload(wf)) !== savedSnapshot,
+    [wf, savedSnapshot],
+  );
+
   const zoomIn  = () => setZoom(z => Math.min(2,   +(z+0.1).toFixed(1)));
   const zoomOut = () => setZoom(z => Math.max(0.25, +(z-0.1).toFixed(1)));
 
@@ -587,7 +627,7 @@ export function WorkflowBuilder() {
     return (
       <div className="wfb-page" style={{alignItems:'center', justifyContent:'center', display:'flex', flexDirection:'column', gap:12}}>
         <div style={{color:'var(--red)'}}>{loadError}</div>
-        <button className="wfb-btn-ghost wfb-btn-sm" onClick={()=>navigate('/clearos/workflows')}><I n="arrowLeft" s={13}/> Back to Workflows</button>
+        <button className="wfb-btn-ghost wfb-btn-sm" onClick={()=>navigate('/studio/clearance')}><I n="arrowLeft" s={13}/> Back to clearance workflows</button>
       </div>
     );
   }
@@ -598,7 +638,7 @@ export function WorkflowBuilder() {
 
       {/* ── Top bar ── */}
       <div className="wfb-topbar">
-        <button className="wfb-btn-ghost wfb-btn-sm" onClick={()=>navigate('/clearos/workflows')}>
+        <button className="wfb-btn-ghost wfb-btn-sm" onClick={()=>navigate('/studio/clearance')}>
           <I n="arrowLeft" s={13}/> Workflows
         </button>
         <span className="wfb-topbar-sep">/</span>
@@ -614,6 +654,18 @@ export function WorkflowBuilder() {
           <Toggle on={wf.isActive} set={v=>updateWf({isActive:v})}/>
           <span style={{fontSize:12,color:'var(--ink3)',whiteSpace:'nowrap'}}>{wf.isActive?'Active':'Inactive'}</span>
         </div>
+        {/* Rehearse and review \u2014 only once the workflow exists server-side,
+            since both read the saved version by id. */}
+        {wf.id && (
+          <>
+            <button className="wfb-btn-ghost wfb-btn-sm" onClick={()=>{setInsightsTab('test'); setInsights(true);}}>
+              <Icon name="play" size={13}/> Dry run
+            </button>
+            <button className="wfb-btn-ghost wfb-btn-sm" onClick={()=>{setInsightsTab('history'); setInsights(true);}}>
+              <Icon name="clock" size={13}/> History
+            </button>
+          </>
+        )}
         <button className="wfb-btn-ghost wfb-btn-sm" onClick={()=>setPanel(p=>!p)}>
           <I n="layers" s={13}/> {panel?'Hide':'Panel'}
         </button>
@@ -621,6 +673,15 @@ export function WorkflowBuilder() {
           <I n="save" s={13} c="white"/> {saving?'Saving\u2026':saved?'Saved \u2713':'Save'}
         </button>
       </div>
+
+      {insights && wf.id && (
+        <ClearanceWorkflowInsights
+          workflowId={wf.id}
+          initialTab={insightsTab}
+          unsaved={dirty}
+          onClose={()=>setInsights(false)}
+        />
+      )}
 
       {/* ── Main ── */}
       <div className="wfb-main">
@@ -702,6 +763,15 @@ export function WorkflowBuilder() {
                     <div className="wfb-node-name">{step.name}</div>
                     {step.description&&<div className="wfb-node-desc">{step.description}</div>}
                     <div className="wfb-node-footer">
+                      {/* Live shipments sitting on this step, right now. Shown
+                          first because it is the one badge that changes what
+                          you are allowed to do to the node. */}
+                      {(usage.byStep[step.id] ?? 0) > 0 && (
+                        <span className="wf-badge wf-badge-green" title={`${usage.byStep[step.id]} shipment${usage.byStep[step.id] === 1 ? ' is' : 's are'} on this step now — editing or deleting it will move them`}
+                          style={{fontSize:9.5,padding:'1px 7px'}}>
+                          <Icon name="package" size={9} /> {usage.byStep[step.id]} live
+                        </span>
+                      )}
                       {step.entryConditions.length>0&&<span className="wf-badge wf-badge-orange" style={{fontSize:9.5,padding:'1px 7px'}}><Icon name="lock" size={9} /> {step.entryConditions.length}</span>}
                       {step.autoComms.length>0&&<span className="wf-badge wf-badge-blue" style={{fontSize:9.5,padding:'1px 7px'}}><Icon name="zap" size={9} /> {step.autoComms.length}</span>}
                       {step.slaHours!=null&&<span className="wf-badge wf-badge-gray" style={{fontSize:9.5,padding:'1px 7px'}}><Icon name="timer" size={9} /> {step.slaHours}h</span>}

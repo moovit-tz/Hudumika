@@ -262,6 +262,33 @@ export interface WorkflowCommQueueTable {
   error: string | null;
   created_at: Generated<Date>;
   sent_at: Date | null;
+  /** The transition run that queued this, so its eventual outcome can be
+   *  written back onto that run rather than left reading QUEUED. */
+  run_id: string | null;
+}
+
+/**
+ * One row per clearance transition attempt — what the automation actually did,
+ * not just where the shipment ended up (that is stage_history's job).
+ * See migration 168.
+ */
+export interface WorkflowStepRunsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  workflow_id: string | null;   // NULL on the legacy fixed-stage system
+  shipment_id: string;
+  /** TEXT: a workflow_steps UUID, or a ClearanceStage literal on legacy. */
+  from_step_id: string | null;
+  to_step_id: string;
+  to_step_name: string;
+  actor_id: string | null;
+  status: string;               // SUCCESS | PARTIAL | BLOCKED | FAILED | SIMULATED
+  conditions: Generated<string>;
+  comms: Generated<string>;
+  error_message: string | null;
+  duration_ms: Generated<number>;
+  simulated: Generated<boolean>;
+  created_at: Generated<Date>;
 }
 
 // ── SEAL (bonded warehouse) — Increment 1: the ledger ──
@@ -843,6 +870,10 @@ export interface ExpensesTable {
   is_passthrough: Generated<boolean>;
   recorded_by: string | null;
   created_at: Generated<Date>;
+  /** The landed-cost card this actual belongs under, so an actual and the
+   *  estimate it is compared against share one vocabulary. See CHARGE_HEADS. */
+  charge_head: string | null;
+  estimate_record_id: string | null;
 }
 
 export interface FinanceExpensesTable {
@@ -2415,6 +2446,7 @@ export interface Database {
   workflows: WorkflowsTable;
   workflow_steps: WorkflowStepsTable;
   workflow_comm_queue: WorkflowCommQueueTable;
+  workflow_step_runs: WorkflowStepRunsTable;
   seal_compartments: SealCompartmentsTable;
   seal_zones: SealZonesTable;
   seal_locations: SealLocationsTable;
@@ -2654,6 +2686,9 @@ export interface Database {
   landed_cost_share_leads: LandedCostShareLeadsTable;
   customs_penalties: CustomsPenaltiesTable;
   landed_cost_records: LandedCostRecordsTable;
+  hs_classification_events: HsClassificationEventsTable;
+  trade_wizard_outcomes: TradeWizardOutcomesTable;
+  compliance_outcomes: ComplianceOutcomesTable;
   vessel_positions: VesselPositionsTable;
   geofences: GeofencesTable;
   geofence_events: GeofenceEventsTable;
@@ -3025,6 +3060,53 @@ export interface CustomsPenaltiesTable {
   updated_at: Generated<Date>;
 }
 
+export interface HsClassificationEventsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  description: string;
+  suggested: unknown | null;
+  /** Null when suggestions were shown and none were taken. */
+  accepted_code: string | null;
+  source: Generated<string>;
+  /** True when the accepted code was not the top suggestion — the
+   *  correction signal the ranker learns from. */
+  overrode_top: Generated<boolean>;
+  record_id: string | null;
+  shipment_id: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface TradeWizardOutcomesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  search_id: string | null;
+  procedure_id: string;
+  procedure_name: string | null;
+  goal: string | null;
+  predicted: unknown | null;
+  outcome: Generated<string>;
+  note: string | null;
+  shipment_id: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ComplianceOutcomesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  check_id: string | null;
+  hs_code: string | null;
+  origin_country: string | null;
+  requirement: string;
+  predicted: boolean;
+  actual: string;
+  shipment_id: string | null;
+  note: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
 export interface LandedCostRecordsTable {
   id: Generated<string>;
   tenant_id: string;
@@ -3067,6 +3149,9 @@ export interface LandedCostRecordsTable {
   version: Generated<number>;
   item_count: number | null;
   share_token: string | null;
+  /** The shipment this estimate was produced for, when there was one.
+   *  No FK: shipment_cases is partitioned on (id, created_at). */
+  shipment_id: string | null;
 }
 
 export interface ReferenceCountriesTable {
@@ -4578,6 +4663,9 @@ export interface WorkflowStudioAppsTable {
   /** Key of the code subscriber this workflow replaces once ACTIVE — see
    *  migration 165 and studio/supersession.ts. NULL for tenant-authored ones. */
   supersedes_subscriber: string | null;
+  /** Same shape as workflows.triggers — scopes an automation to a freight
+   *  mode / consignment type / customer / country, not just an event. */
+  targeting:      Generated<string>;
   created_at:     Generated<Date>;
   updated_at:     Generated<Date>;
 }

@@ -26,6 +26,7 @@ import {
   type ContainerLot,
 } from '../services/customs.service.js';
 import { suggestHsCodes } from '../services/hs-suggest.service.js';
+import { hsMemory } from '../services/intelligence.service.js';
 import { callAI } from './ai.routes.js';
 import { db, withTenant } from '../db/client.js';
 import { sql } from 'kysely';
@@ -116,7 +117,28 @@ export async function customsRoutes(fastify: FastifyInstance) {
       .map((i: any) => ({ id: String(i?.id ?? ''), text: String(i?.text ?? '').trim() }))
       .filter((i: { id: string; text: string }) => i.id && i.text);
 
-    return { data: await suggestHsCodes(items, Math.min(Number(body.per_item) || 3, 5)) };
+    const data = await suggestHsCodes(items, Math.min(Number(body.per_item) || 3, 5));
+
+    // Overlay what this tenant has actually declared before for goods
+    // described like this. It does not reorder the tariff-text ranking — it
+    // sits alongside it as evidence, because a code declared consistently can
+    // still be the wrong code, and the operator is the one who decides. Where
+    // memory exists it is by far the strongest signal available, and it is
+    // exactly what breaks the three-way ties word-frequency cannot.
+    const user = request.user as any;
+    const withMemory = await Promise.all(data.map(async (r) => {
+      const item = items.find((i: { id: string }) => i.id === r.id);
+      if (!item?.text) return r;
+      try {
+        const memory = await hsMemory(user.tenant_id, item.text, 3);
+        return memory.length ? { ...r, memory } : r;
+      } catch {
+        // Memory is an enhancement; a failure here must not cost the caller
+        // their suggestions.
+        return r;
+      }
+    }));
+    return { data: withMemory };
   });
 
   // ── POST /v1/customs/hs-suggest/ai-pick ───────────────────────────────────
@@ -286,6 +308,9 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
       customer_email: String(body.customer_email ?? '').trim() || null,
       destination: String(body.destination ?? '').trim() || null,
       title: String(body.title ?? '').trim().slice(0, 160) || null,
+      // The shipment this estimate is for, when it was produced for one.
+      // Validated as tenant-owned by the caller before it reaches here.
+      shipment_id: typeof body.shipment_id === 'string' && body.shipment_id ? body.shipment_id : null,
       parent_id: parentId,
       // An amendment is version N+1 of the original, not a new estimate — the
       // figures a customer was already quoted stay on the record.

@@ -345,7 +345,10 @@ export const ClearOSMetricsDashboard: React.FC = () => {
           },
           {
             title: 'On-Time Performance',
-            value: `${kpis?.on_time_rate_pct ?? 0}%`,
+            // The API returns null until at least one case has closed. "—" is
+            // the honest reading of no data; "100%" or "0%" would both be
+            // claims the figures do not support.
+            value: kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`,
             trend: 0,
             sub1Label: 'AT RISK (48H)',      sub1Value: String(kpis?.demurrage_risk ?? 0),
             sub2Label: 'PENALTY EXPOSURE',   sub2Value: fmtTZS(kpis?.penalty_exposure_tzs ?? 0),

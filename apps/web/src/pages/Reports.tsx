@@ -114,7 +114,7 @@ export const Reports: React.FC = () => {
             },
             {
               title: 'On-Time Rate',
-              value: `${kpis.on_time_rate_pct ?? 0}%`,
+              value: kpis.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`,
               trend: 0,
               sub1Label: 'TARGET', sub1Value: '95%',
               sub2Label: 'ACTIVE CASES', sub2Value: String(kpis.active_cases ?? 0),
@@ -134,7 +134,7 @@ export const Reports: React.FC = () => {
                 <KVRow label="Delivered Today"   value={kpis.delivered_today ?? '—'} />
                 <KVRow label="Demurrage Risk"    value={kpis.demurrage_risk ?? '—'} note="containers" />
                 <KVRow label="SLA Breached"      value={kpis.sla_breached ?? '—'} note="cases" />
-                <KVRow label="On-Time Rate"      value={`${kpis.on_time_rate_pct ?? 0}%`} />
+                <KVRow label="On-Time Rate"      value={kpis.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`} />
                 <KVRow label="Avg Clearance Days" value={kpis.avg_clearance_days ? `${kpis.avg_clearance_days}d` : '—'} />
                 <KVRow label="Penalty Exposure"  value={kpis.penalty_exposure_tzs ? `TZS ${Number(kpis.penalty_exposure_tzs).toLocaleString()}` : '—'} />
               </Section>
