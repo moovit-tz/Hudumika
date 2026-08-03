@@ -36,6 +36,30 @@ async function recordDeclarationEvent(
   }).execute();
 }
 
+/**
+ * Confirms a declaration belongs to this tenant, and returns it.
+ *
+ * The tables hanging off `declarations` — declaration_items, tax_lines,
+ * declaration_attachments, declaration_item_models — carry no tenant_id of
+ * their own, so they cannot be filtered directly. Every path that touches them
+ * goes through here first: a declaration id from another workspace stops at
+ * this check instead of reaching its children.
+ *
+ * RLS is not the guard. This deployment connects as `postgres`, which has
+ * rolbypassrls, so the policies on these tables never even evaluate — the
+ * explicit tenant predicate is the only thing separating two tenants.
+ */
+async function assertOwned(trx: Transaction<Database>, tenantId: string, declarationId: string) {
+  const row = await trx
+    .selectFrom('declarations')
+    .selectAll()
+    .where('id', '=', declarationId)
+    .where('tenant_id', '=', tenantId)
+    .executeTakeFirst();
+  if (!row) throw new Error('Declaration not found');
+  return row;
+}
+
 export class DeclarationService {
   /**
    * Create a new declaration (TANSAD) linked to a shipment case
@@ -138,10 +162,13 @@ export class DeclarationService {
           break;
       }
 
+      await assertOwned(trx, tenantId, declarationId);
+
       const updated = await trx
         .updateTable('declarations')
         .set(updates)
         .where('id', '=', declarationId)
+        .where('tenant_id', '=', tenantId)
         .returningAll()
         .executeTakeFirstOrThrow();
 
@@ -155,6 +182,7 @@ export class DeclarationService {
           .selectFrom('declarations')
           .select('shipment_id')
           .where('id', '=', declarationId)
+          .where('tenant_id', '=', tenantId)
           .executeTakeFirst();
 
         if (decl) {
@@ -182,6 +210,10 @@ export class DeclarationService {
    */
   static async addItem(tenantId: string, input: CreateDeclarationItemInput) {
     return withTenant(tenantId, async (trx) => {
+      // declaration_items has no tenant_id, so ownership is established on the
+      // parent before anything is read or written under it.
+      await assertOwned(trx, tenantId, input.declaration_id);
+
       // Get next item number
       const lastItem = await trx
         .selectFrom('declaration_items')
@@ -232,6 +264,7 @@ export class DeclarationService {
           updated_at: new Date(),
         })
         .where('id', '=', input.declaration_id)
+        .where('tenant_id', '=', tenantId)
         .execute();
 
       return item;
@@ -244,6 +277,14 @@ export class DeclarationService {
   static async recordNotice(tenantId: string, input: CreateDeclarationNoticeInput) {
     return withTenant(tenantId, async (trx) => {
       const now = new Date();
+
+      // A notice sets selectivity, assessment and release status, and writes
+      // through to shipment_cases — so the declaration it names must be proven
+      // to belong to this tenant before any of that happens.
+      const parent = await assertOwned(trx, tenantId, input.declaration_id);
+      if (parent.shipment_id !== input.shipment_id) {
+        throw new Error('Notice shipment does not match the declaration it is filed against');
+      }
 
       // Insert the notice
       const notice = await trx
@@ -296,6 +337,7 @@ export class DeclarationService {
             updated_at: now,
           })
           .where('id', '=', input.declaration_id)
+          .where('tenant_id', '=', tenantId)
           .execute();
 
         await trx
@@ -305,6 +347,7 @@ export class DeclarationService {
             updated_at: now,
           })
           .where('id', '=', input.shipment_id)
+          .where('tenant_id', '=', tenantId)
           .execute();
 
         // Trigger selectivity notification
@@ -333,6 +376,7 @@ export class DeclarationService {
             updated_at: now,
           })
           .where('id', '=', input.declaration_id)
+          .where('tenant_id', '=', tenantId)
           .execute();
 
         NotificationService.triggerNotification(
@@ -352,6 +396,7 @@ export class DeclarationService {
             updated_at: now,
           })
           .where('id', '=', input.declaration_id)
+          .where('tenant_id', '=', tenantId)
           .execute();
 
         NotificationService.triggerNotification(
@@ -378,6 +423,7 @@ export class DeclarationService {
           acknowledged_by: userId,
         })
         .where('id', '=', noticeId)
+        .where('tenant_id', '=', tenantId)
         .returningAll()
         .executeTakeFirstOrThrow();
     });
@@ -392,6 +438,7 @@ export class DeclarationService {
         .selectFrom('declarations')
         .selectAll()
         .where('id', '=', declarationId)
+        .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
 
       if (!declaration) return null;
@@ -444,7 +491,9 @@ export class DeclarationService {
     }
   ) {
     return withTenant(tenantId, async (trx) => {
-      let query = trx.selectFrom('declarations').selectAll();
+      // Without this predicate the list returned every tenant's declarations —
+      // importer names, TINs and values included.
+      let query = trx.selectFrom('declarations').selectAll().where('tenant_id', '=', tenantId);
 
       if (filters.shipment_id) {
         query = query.where('shipment_id', '=', filters.shipment_id);
@@ -485,6 +534,7 @@ export class DeclarationService {
         .selectFrom('shipment_cases')
         .select('declaration_id')
         .where('id', '=', shipmentId)
+        .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
       if (!shipment?.declaration_id) return null;
 
@@ -492,6 +542,7 @@ export class DeclarationService {
         .selectFrom('declarations')
         .selectAll()
         .where('id', '=', shipment.declaration_id)
+        .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
       if (!declaration) return null;
 
@@ -526,6 +577,7 @@ export class DeclarationService {
         .selectFrom('shipment_cases')
         .select('declaration_id')
         .where('id', '=', shipmentId)
+        .where('tenant_id', '=', tenantId)
         .executeTakeFirstOrThrow();
 
       // input is a fully-built payload from the frontend's declaration-form
@@ -541,6 +593,7 @@ export class DeclarationService {
           .updateTable('declarations')
           .set(values)
           .where('id', '=', shipment.declaration_id)
+          .where('tenant_id', '=', tenantId)
           .returningAll()
           .executeTakeFirstOrThrow();
         chainEventType = 'AMENDED';
@@ -556,6 +609,7 @@ export class DeclarationService {
           .updateTable('shipment_cases')
           .set({ declaration_id: declaration.id, tancis_ref: values.tancis_ref, updated_at: now })
           .where('id', '=', shipmentId)
+          .where('tenant_id', '=', tenantId)
           .execute();
       }
 
@@ -594,6 +648,7 @@ export class DeclarationService {
         .updateTable('declarations')
         .set({ no_of_items: itemNo - 1, updated_at: now })
         .where('id', '=', declaration.id)
+        .where('tenant_id', '=', tenantId)
         .returningAll()
         .executeTakeFirstOrThrow();
 
@@ -667,7 +722,7 @@ export class DeclarationService {
     }
   ) {
     return withTenant(tenantId, async (trx) => {
-      let query = trx.selectFrom('declaration_notices').selectAll();
+      let query = trx.selectFrom('declaration_notices').selectAll().where('tenant_id', '=', tenantId);
 
       if (filters.declaration_id) {
         query = query.where('declaration_id', '=', filters.declaration_id);

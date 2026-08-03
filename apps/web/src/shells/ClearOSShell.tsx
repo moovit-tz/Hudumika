@@ -29,8 +29,6 @@ import { FreightRateCardsPage } from '../pages/FreightRateCardsPage.js';
 import { FreightBookingsPage } from '../pages/FreightBookingsPage.js';
 import { CreateFreightBookingPage } from '../pages/CreateFreightBookingPage.js';
 import { ClearOSDeclarations } from '../pages/ClearOSDeclarations.js';
-import { ClearOSDeclarationNew } from '../pages/ClearOSDeclarationNew.js';
-import { ClearOSDeclarationDetail } from '../pages/ClearOSDeclarationDetail.js';
 import { ProductsServices } from '../pages/ProductsServices.js';
 import { RateCardPage } from '../pages/RateCardPage.js';
 
@@ -44,6 +42,18 @@ import { RateCardPage } from '../pages/RateCardPage.js';
 function WorkflowRedirect() {
   const { id } = useParams();
   return <Navigate to={id ? `/studio/clearance/${id}` : '/studio/clearance'} replace />;
+}
+
+/**
+ * Carries an ex-warehouse entry id back to SEAL.
+ *
+ * /clearos/declarations/:id used to render a SEAL customs entry, so any such
+ * bookmark holds a seal_customs_entries id. ClearOS's Declarations screen now
+ * lists real TANSAD declarations, where that id means nothing.
+ */
+function ExWarehouseRedirect() {
+  const { id } = useParams();
+  return <Navigate to={id ? `/seal/ex-warehouse/${id}` : '/seal/ex-warehouse'} replace />;
 }
 
 const NAV: SidebarSection[] = [
@@ -121,8 +131,11 @@ export function ClearOSShell() {
                 <Route path="tracker"         element={<Navigate to="/cargotracker/track" replace />} />
                 <Route path="demurrage"       element={<Navigate to="/cargotracker/demurrage" replace />} />
                 <Route path="declarations"    element={<RequireRoles roles={[...OPS_ROLES, 'FINANCE']}><ClearOSDeclarations /></RequireRoles>} />
-                <Route path="declarations/new" element={<RequireRoles roles={OPS_ROLES}><ClearOSDeclarationNew /></RequireRoles>} />
-                <Route path="declarations/:id" element={<RequireRoles roles={[...OPS_ROLES, 'FINANCE']}><ClearOSDeclarationDetail /></RequireRoles>} />
+                {/* These two paths used to serve SEAL ex-warehouse entries, so a
+                    bookmarked :id is a seal_customs_entries id — it belongs in
+                    SEAL, not on a TANSAD screen that would 404 on it. */}
+                <Route path="declarations/new" element={<Navigate to="/seal/ex-warehouse/new" replace />} />
+                <Route path="declarations/:id" element={<ExWarehouseRedirect />} />
                 <Route path="consignments"    element={<Navigate to="/tracking/shipments" replace />} />
                 <Route path="customs-tools"   element={<RequireRoles roles={OPS_ROLES}><LandedCostPage /></RequireRoles>} />
                 <Route path="customs-tools/history" element={<RequireRoles roles={OPS_ROLES}><LandedCostHistoryPage /></RequireRoles>} />

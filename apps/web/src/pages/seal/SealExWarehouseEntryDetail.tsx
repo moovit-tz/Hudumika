@@ -1,19 +1,15 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { PageHeader } from '../components/PageHeader.js';
-import { Icon } from '../components/Icon.js';
-import { Badge } from '../components/ui/badge.js';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
-import { apiFetch } from '../lib/api.js';
-import { showAlert } from '../lib/alert.js';
-import { SealDocumentPanel } from '../components/SealDocumentPanel.js';
-import { RaiseSealTicketButton } from '../components/RaiseSealTicketButton.js';
+import { PageHeader } from '../../components/PageHeader.js';
+import { Icon } from '../../components/Icon.js';
+import { Badge } from '../../components/ui/badge.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { apiFetch } from '../../lib/api.js';
+import { showAlert } from '../../lib/alert.js';
+import { SealDocumentPanel } from '../../components/SealDocumentPanel.js';
+import { RaiseSealTicketButton } from '../../components/RaiseSealTicketButton.js';
 import { SEAL_DECLARATION_STATUS_LABELS, SEAL_DECLARATION_PROCEDURE_LABELS, type SealDeclarationStatus } from '@hudumika/types';
-// SealDocumentPanel is styled with .seal-* classes — this stylesheet isn't
-// otherwise loaded in ClearOS, but its only [data-seal] scoped rule is a
-// harmless no-op here (ClearOS's DOM has no data-seal attribute), so it's
-// safe to bring in just for this shared component's class names.
-import './Seal.css';
+import '../Seal.css';
 
 const STATUS_VARIANT: Record<SealDeclarationStatus, 'brand' | 'success' | 'warning' | 'error' | 'info' | 'gray'> = {
   DRAFT: 'gray', SUBMITTED: 'info', QUERIED: 'warning', ASSESSED: 'brand', PAID: 'success', RELEASED: 'success', CANCELLED: 'error',
@@ -37,7 +33,7 @@ interface Examination {
   outcome: string | null; findings: string | null;
 }
 
-export function ClearOSDeclarationDetail() {
+export function SealExWarehouseEntryDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [entry, setEntry] = useState<Declaration | null>(null);
@@ -128,7 +124,7 @@ export function ClearOSDeclarationDetail() {
         subtitle={`${SEAL_DECLARATION_PROCEDURE_LABELS[entry.procedureCode] ?? entry.procedureCode} · HS ${entry.hsCode}`}
         actions={
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button type="button" className="btn btn-secondary" onClick={() => navigate('/clearos/declarations')}>
+            <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/ex-warehouse')}>
               <Icon name="arrowLeft" size={13} /> Back
             </button>
             <Badge variant={STATUS_VARIANT[entry.status]}>{SEAL_DECLARATION_STATUS_LABELS[entry.status]}</Badge>

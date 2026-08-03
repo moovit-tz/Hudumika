@@ -23,6 +23,22 @@ export async function declarationRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', requireEntitlement('clearos'));
 
   /**
+   * Proves the :id in the path is a declaration of the caller's own tenant.
+   *
+   * declaration_attachments has no tenant_id, so the attachment routes below
+   * cannot filter by tenant directly — they key on declaration_id alone, which
+   * on its own is just an id somebody could supply. This turns that into an
+   * ownership check. RLS does not cover the gap: this deployment connects as a
+   * role with rolbypassrls, so the policies never evaluate.
+   */
+  const ownsDeclaration = async (tenantId: string, declarationId: string) =>
+    withTenant(tenantId, async (trx) =>
+      !!(await trx.selectFrom('declarations').select('id')
+        .where('id', '=', declarationId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst()));
+
+  /**
    * GET /v1/declarations
    * List declarations with optional filters
    */
@@ -301,6 +317,9 @@ export async function declarationRoutes(fastify: FastifyInstance) {
   fastify.get('/:id/attachments', async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
+    if (!(await ownsDeclaration(user.tenant_id, id))) {
+      return reply.status(404).send({ error: 'Declaration not found' });
+    }
     return withTenant(user.tenant_id, async (trx) =>
       trx.selectFrom('declaration_attachments').selectAll()
         .where('declaration_id', '=', id)
@@ -315,6 +334,10 @@ export async function declarationRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/attachments/upload', async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
+
+    if (!(await ownsDeclaration(user.tenant_id, id))) {
+      return reply.status(404).send({ error: 'Declaration not found' });
+    }
 
     const data = await request.file();
     if (!data) return reply.status(400).send({ error: 'No file uploaded' });
@@ -354,6 +377,9 @@ export async function declarationRoutes(fastify: FastifyInstance) {
   fastify.get('/:id/attachments/:attId/download', async (request, reply) => {
     const user = request.user;
     const { id, attId } = request.params as { id: string; attId: string };
+    if (!(await ownsDeclaration(user.tenant_id, id))) {
+      return reply.status(404).send({ error: 'Declaration not found' });
+    }
 
     return withTenant(user.tenant_id, async (trx) => {
       const att = await trx.selectFrom('declaration_attachments').selectAll()
@@ -379,6 +405,9 @@ export async function declarationRoutes(fastify: FastifyInstance) {
   fastify.delete('/:id/attachments/:attId', async (request, reply) => {
     const user = request.user;
     const { id, attId } = request.params as { id: string; attId: string };
+    if (!(await ownsDeclaration(user.tenant_id, id))) {
+      return reply.status(404).send({ error: 'Declaration not found' });
+    }
 
     return withTenant(user.tenant_id, async (trx) => {
       const att = await trx.selectFrom('declaration_attachments').selectAll()

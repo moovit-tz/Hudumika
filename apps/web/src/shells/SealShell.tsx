@@ -28,13 +28,26 @@ import { SealFulfillment } from '../pages/SealFulfillment.js';
 import { SealFulfillmentDetail } from '../pages/SealFulfillmentDetail.js';
 import { SealSortingDashboard } from '../pages/SealSortingDashboard.js';
 import { SealCompartmentSwitcher } from '../components/SealCompartmentSwitcher.js';
+import { SealExWarehouseEntries } from '../pages/seal/SealExWarehouseEntries.js';
+import { SealExWarehouseEntryNew } from '../pages/seal/SealExWarehouseEntryNew.js';
+import { SealExWarehouseEntryDetail } from '../pages/seal/SealExWarehouseEntryDetail.js';
 
-// Declarations moved to ClearOS's Ops Command — these redirect a bookmarked
-// SEAL declaration URL to its ClearOS equivalent (same underlying
-// seal_customs_entries id) rather than 404ing.
-function DeclarationDetailRedirect() {
+/**
+ * These pages read seal_customs_entries — the ex-warehouse entry that takes a
+ * duty-suspended lot out of the bonded warehouse. They spent a while filed
+ * under ClearOS as "Declarations", which put them next to, and made them look
+ * like, the TANESW/TANSAD declaration a clearing agent lodges for an ordinary
+ * import. They are a different document for a different purpose, and
+ * seal_customs_entries has no shipment link at all (only lot_id), so nothing
+ * on those screens could ever reach a consignment in Ops Command.
+ *
+ * They are back in SEAL under their real name. Both the old ClearOS paths and
+ * the older /seal/declarations paths redirect here, since either could be
+ * bookmarked.
+ */
+function ExWarehouseDetailRedirect() {
   const { id } = useParams<{ id: string }>();
-  return <Navigate to={`/clearos/declarations/${id}`} replace />;
+  return <Navigate to={`/seal/ex-warehouse/${id}`} replace />;
 }
 
 const NAV: SidebarSection[] = [
@@ -60,6 +73,7 @@ const NAV: SidebarSection[] = [
   {
     title: 'CUSTOMS',
     items: [
+      { label: 'Ex-warehouse Entries', icon: 'fileText', path: '/seal/ex-warehouse' },
       { label: 'Examinations', icon: 'search', path: '/seal/examinations' },
       { label: 'Stock Account', icon: 'clipboard', path: '/seal/stock-account' },
     ],
@@ -109,9 +123,12 @@ export function SealShell() {
                 <Route path="guarantees"        element={<SealGuarantees />}         />
                 <Route path="consignments"      element={<SealConsignments />}       />
                 <Route path="consignments/:id"  element={<SealConsignmentDetail />}  />
-                <Route path="declarations"      element={<Navigate to="/clearos/declarations" replace />} />
-                <Route path="declarations/new"  element={<Navigate to="/clearos/declarations/new" replace />} />
-                <Route path="declarations/:id"  element={<DeclarationDetailRedirect />} />
+                <Route path="ex-warehouse"      element={<SealExWarehouseEntries />}     />
+                <Route path="ex-warehouse/new"  element={<SealExWarehouseEntryNew />}    />
+                <Route path="ex-warehouse/:id"  element={<SealExWarehouseEntryDetail />} />
+                <Route path="declarations"      element={<Navigate to="/seal/ex-warehouse" replace />} />
+                <Route path="declarations/new"  element={<Navigate to="/seal/ex-warehouse/new" replace />} />
+                <Route path="declarations/:id"  element={<ExWarehouseDetailRedirect />} />
                 <Route path="examinations"      element={<SealExaminations />}       />
                 <Route path="stock-account"     element={<SealStockAccount />}       />
                 <Route path="yard-slots"        element={<SealYardSlots />}          />

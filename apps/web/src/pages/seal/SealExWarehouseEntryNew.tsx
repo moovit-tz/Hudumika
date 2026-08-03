@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader } from '../components/PageHeader.js';
-import { Icon } from '../components/Icon.js';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
-import { Combobox } from '../components/ui/combobox.js';
-import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
-import { apiFetch } from '../lib/api.js';
-import { showAlert } from '../lib/alert.js';
+import { PageHeader } from '../../components/PageHeader.js';
+import { Icon } from '../../components/Icon.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { Combobox } from '../../components/ui/combobox.js';
+import { DatePicker, toDateOnlyString } from '../../components/ui/date-picker.js';
+import { apiFetch } from '../../lib/api.js';
+import { showAlert } from '../../lib/alert.js';
 import { SEAL_DECLARATION_PROCEDURE_LABELS } from '@hudumika/types';
 
 interface Lot { id: string; description: string; hsCode: string | null; ownerName?: string; qtyOnHand: number; uom: string; }
@@ -18,7 +18,7 @@ interface DutyQuote {
 
 const PROCEDURE_CODES = Object.keys(SEAL_DECLARATION_PROCEDURE_LABELS);
 
-export function ClearOSDeclarationNew() {
+export function SealExWarehouseEntryNew() {
   const navigate = useNavigate();
   const [lots, setLots] = useState<Lot[]>([]);
   const [saving, setSaving] = useState(false);
@@ -85,7 +85,7 @@ export function ClearOSDeclarationNew() {
           currency: currency.trim().toUpperCase(), fxRate: Number(fxRate),
         }),
       });
-      navigate(`/clearos/declarations/${entry.id}`);
+      navigate(`/seal/ex-warehouse/${entry.id}`);
     } catch (err: any) {
       showAlert(err.message || 'Failed to create this declaration.');
     } finally {
