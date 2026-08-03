@@ -111,20 +111,6 @@ const DOMAINS: Domain[] = [
   { id:'D10', domain:'app.eastafricalog.co.tz',  companyId:'C4', status:'active',  ssl:true,  created:'2024-01-05' },
 ];
 
-const TRANSACTIONS: Transaction[] = [
-  { id:'T1',  txRef:'TXN-2025-0142', companyId:'C1', plan:'enterprise', amount:9990, date:'2025-02-14', method:'bank',   status:'completed' },
-  { id:'T2',  txRef:'TXN-2025-0141', companyId:'C2', plan:'growth',     amount:99,   date:'2025-02-13', method:'card',   status:'completed' },
-  { id:'T3',  txRef:'TXN-2025-0140', companyId:'C5', plan:'scale',      amount:2990, date:'2025-02-12', method:'bank',   status:'completed' },
-  { id:'T4',  txRef:'TXN-2025-0139', companyId:'C7', plan:'growth',     amount:99,   date:'2025-02-12', method:'card',   status:'completed' },
-  { id:'T5',  txRef:'TXN-2025-0138', companyId:'C4', plan:'enterprise', amount:9990, date:'2025-02-10', method:'bank',   status:'completed' },
-  { id:'T6',  txRef:'TXN-2025-0137', companyId:'C3', plan:'starter',    amount:29,   date:'2025-02-08', method:'mpesa',  status:'pending'   },
-  { id:'T7',  txRef:'TXN-2025-0136', companyId:'C6', plan:'starter',    amount:29,   date:'2025-02-05', method:'mpesa',  status:'failed'    },
-  { id:'T8',  txRef:'TXN-2025-0135', companyId:'C8', plan:'enterprise', amount:9990, date:'2025-01-30', method:'bank',   status:'refunded'  },
-  { id:'T9',  txRef:'TXN-2025-0134', companyId:'C1', plan:'enterprise', amount:9990, date:'2025-01-15', method:'bank',   status:'completed' },
-  { id:'T10', txRef:'TXN-2025-0133', companyId:'C2', plan:'growth',     amount:99,   date:'2025-01-13', method:'card',   status:'completed' },
-  { id:'T11', txRef:'TXN-2025-0132', companyId:'C7', plan:'growth',     amount:99,   date:'2025-01-12', method:'card',   status:'completed' },
-  { id:'T12', txRef:'TXN-2025-0131', companyId:'C4', plan:'enterprise', amount:9990, date:'2024-12-01', method:'bank',   status:'completed' },
-];
 
 
 const ACT_CFG: Record<ActivityType,{color:string;bg:string;icon:string}> = {
@@ -221,27 +207,47 @@ function DonutChart({ segments, size=110 }: { segments:{pct:number;color:string;
 }
 
 /* ── KPI Card ── */
-function KPICard({ title, value, change, icon, color, spark }: { title:string; value:string; change:number; icon:IconName; color:string; spark:number[] }) {
-  const pos = change >= 0;
+/**
+ * `change` and `spark` are both optional, and both are omitted rather than
+ * faked. Every one of these cards used to hard-code its own "vs last month"
+ * delta — 19.01%, -12%, 6%, -8% — numbers nothing computed, sitting beside
+ * real totals on the screen where platform decisions get made. A card with no
+ * comparable prior period now simply shows the number.
+ */
+function KPICard({ title, value, change, icon, color, spark, hint, emptyHint }: {
+  title:string; value:string; change?:number|null; icon:IconName; color:string; spark?:number[];
+  /** Always shown — real context about the number, e.g. what the estimate is. */
+  hint?:string;
+  /** Shown only when there is no trend to draw, explaining the absence. */
+  emptyHint?:string;
+}) {
+  const pos = (change ?? 0) >= 0;
+  // A flat series is a straight line pretending to be a trend.
+  const showSpark = !!spark && spark.length > 1 && new Set(spark).size > 1;
+  const sub = hint ?? (showSpark ? undefined : emptyHint);
   return (
     <div className="card" style={{ padding:'20px 22px', flex:1 }}>
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:12 }}>
         <div style={{ flex:1 }}>
           <div style={{ fontSize:11, color:'var(--ink3)', marginBottom:8, textTransform:'uppercase', letterSpacing:'0.07em', fontWeight:700 }}>{title}</div>
           <div style={{ fontSize:26, fontWeight:800, color:'var(--ink)', letterSpacing:'-0.02em', lineHeight:1 }}>{value}</div>
-          <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:8 }}>
-            <span style={{ fontSize:12, fontWeight:700, color:pos?'var(--green)':'var(--red)', display:'flex', alignItems:'center', gap:2 }}>
-              <Icon name={pos?'arrowUp':'arrowDown'} size={11} color={pos?'var(--green)':'var(--red)'} />
-              {Math.abs(change)}%
-            </span>
-            <span style={{ fontSize:11, color:'var(--ink3)' }}>vs last month</span>
-          </div>
+          {change != null ? (
+            <div style={{ display:'flex', alignItems:'center', gap:5, marginTop:8 }}>
+              <span style={{ fontSize:12, fontWeight:700, color:pos?'var(--green)':'var(--red)', display:'flex', alignItems:'center', gap:2 }}>
+                <Icon name={pos?'arrowUp':'arrowDown'} size={11} color={pos?'var(--green)':'var(--red)'} />
+                {Math.abs(change)}%
+              </span>
+              <span style={{ fontSize:11, color:'var(--ink3)' }}>vs last month</span>
+            </div>
+          ) : sub ? (
+            <div style={{ fontSize:11, color:'var(--ink3)', marginTop:8 }}>{sub}</div>
+          ) : null}
         </div>
         <div style={{ width:46, height:46, borderRadius: 9, background:`${color}18`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
           <Icon name={icon} size={21} color={color} />
         </div>
       </div>
-      <Spark data={spark} color={color} />
+      {showSpark && <Spark data={spark!} color={color} />}
     </div>
   );
 }
@@ -326,12 +332,6 @@ const SPARK = {
   subscribers: [120,125,130,128,135,140,138,145,150,148,155,160],
   earnings:    [12000,13500,11800,14200,13000,12500,11000,13800,14500,12800,11500,13200],
 };
-const MONTHLY_REV = [
-  {label:'Mar',value:9800},{label:'Apr',value:11200},{label:'May',value:10400},
-  {label:'Jun',value:13100},{label:'Jul',value:12600},{label:'Aug',value:14200},
-  {label:'Sep',value:11800},{label:'Oct',value:15600},{label:'Nov',value:14900},
-  {label:'Dec',value:17200},{label:'Jan',value:16400},{label:'Feb',value:18046},
-];
 const PLAN_DIST = [
   { label:'Starter',      pct:25, color:'var(--blue)' },
   { label:'Professional', pct:37, color:'var(--purple)' },
@@ -360,7 +360,10 @@ export function DashboardView() {
   if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading dashboard statistics…</div>;
   if (error || !stats) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Error loading dashboard stats. Check server connection.</div>;
 
-  const { kpis, planDist, spark, monthlyRev, transactions, renewals } = stats;
+  const { kpis, planDist, spark, monthlyRev, transactions } = stats;
+  // Below two months of history a sparkline is a straight line, so the cards
+  // show the number and say why there is no trend beside it.
+  const noHistory = (stats.monthsWithData ?? 0) < 2 ? 'not enough history yet' : undefined;
 
   return (
     <div>
@@ -368,10 +371,13 @@ export function DashboardView() {
 
       {/* KPI row */}
       <div style={{ display:'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap:16, marginBottom:24 }}>
-        <KPICard title="Total Companies"    value={String(kpis.totalCompanies)}    change={19.01} icon="building"    color="var(--blue)" spark={spark.companies}   />
-        <KPICard title="Active Companies"   value={String(kpis.activeCompanies)}   change={-12}   icon="check"       color="var(--green)" spark={spark.active}      />
-        <KPICard title="Total Subscribers"  value={`${kpis.totalSubscribers} users`}  change={6}     icon="users"       color="var(--purple)" spark={spark.subscribers} />
-        <KPICard title="Total Earnings"     value={fmtCurrency(kpis.totalEarnings)}    change={-8}    icon="dollarSign"  color="var(--teal)" spark={spark.earnings}    />
+        <KPICard title="Total Companies"    value={String(kpis.totalCompanies)}       icon="building"   color="var(--blue)"   spark={spark.companies}   emptyHint={noHistory} />
+        <KPICard title="Active Companies"   value={String(kpis.activeCompanies)}      icon="check"      color="var(--green)"  spark={spark.active}      emptyHint={noHistory} />
+        <KPICard title="Total Subscribers"  value={`${kpis.totalSubscribers} users`}  icon="users"      color="var(--purple)" spark={spark.subscribers} emptyHint={noHistory} />
+        {/* Money received, not a list-price run-rate — the run-rate estimate is
+            the smaller figure and was previously the one shown as "earnings". */}
+        <KPICard title="Revenue Collected"  value={fmtCurrency(kpis.collectedRevenue ?? 0)} icon="dollarSign" color="var(--teal)" spark={spark.earnings}
+                 hint={`${fmtCurrency(kpis.totalEarnings)} list-price run rate`} />
       </div>
 
       {/* Charts row */}
@@ -381,9 +387,9 @@ export function DashboardView() {
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
             <div>
               <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>Monthly Revenue</div>
-              <div style={{ fontSize:11, color:'var(--ink3)' }}>Last 12 months</div>
+              <div style={{ fontSize:11, color:'var(--ink3)' }}>Payments received, last 6 months</div>
             </div>
-            <div style={{ fontSize:20, fontWeight:800, color:'var(--teal)', letterSpacing:'-0.02em' }}>{fmtCurrency(kpis.totalEarnings)}</div>
+            <div style={{ fontSize:20, fontWeight:800, color:'var(--teal)', letterSpacing:'-0.02em' }}>{fmtCurrency(kpis.collectedRevenue ?? 0)}</div>
           </div>
           <BarChart data={monthlyRev} color="var(--teal)" />
         </div>
@@ -395,9 +401,13 @@ export function DashboardView() {
               <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>Company Growth</div>
               <div style={{ fontSize:11, color:'var(--ink3)' }}>Registrations per month</div>
             </div>
-            <span style={{ fontSize:12, fontWeight:700, color:'var(--green)', background:'var(--green-l)', padding:'3px 8px', borderRadius:20 }}>+6% MoM</span>
+            {/* The "+6% MoM" badge that used to sit here was a literal. There is
+                no month-on-month figure to show until there are two months. */}
+            <span style={{ fontSize:12, fontWeight:700, color:'var(--ink2)' }}>
+              {(stats.companyGrowth ?? []).reduce((s: number, m: any) => s + m.value, 0)} in 6 months
+            </span>
           </div>
-          <BarChart data={[{label:'Sep',value:1},{label:'Oct',value:1},{label:'Nov',value:2},{label:'Dec',value:1},{label:'Jan',value:2},{label:'Feb',value:1}]} color="var(--blue)" />
+          <BarChart data={stats.companyGrowth ?? []} color="var(--blue)" />
         </div>
 
         {/* Plans donut */}
@@ -427,15 +437,19 @@ export function DashboardView() {
         <div className="card" style={{ padding:'20px 22px' }}>
           <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', marginBottom:14 }}>Recent Transactions</div>
           <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
+            {transactions.length === 0 && (
+              <div style={{ fontSize:12, color:'var(--ink3)', padding:'14px 0' }}>No payments recorded yet.</div>
+            )}
+            {/* companyName comes from the join on tenants. This used to call
+                coByID(), which searches the mock COMPANIES array — a real
+                tenant id never matched, so every row read "Unknown Company". */}
             {transactions.map((tx: any)=>{
-              const co = coByID(tx.companyId);
               const txcfg = TX_CFG[tx.status as TxStatus] || TX_CFG.completed;
               return (
                 <div key={tx.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 0', borderBottom:'1px solid var(--border)' }}>
-                  <CoAv co={co} size={30} />
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:12, fontWeight:600, color:'var(--ink)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{co?.name || 'Unknown Company'}</div>
-                    <div style={{ fontSize:11, color:'var(--ink3)' }}>{tx.txRef}</div>
+                    <div style={{ fontSize:12, fontWeight:600, color:'var(--ink)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{tx.companyName || 'Deleted company'}</div>
+                    <div style={{ fontSize:11, color:'var(--ink3)' }}>{tx.txRef}{tx.payerName ? ` · ${tx.payerName}` : ''}</div>
                   </div>
                   <div style={{ textAlign:'right' }}>
                     <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>{fmtCurrency(tx.amount)}</div>
@@ -447,26 +461,11 @@ export function DashboardView() {
           </div>
         </div>
 
-        {/* Plan expirations */}
-        <div className="card" style={{ padding:'20px 22px' }}>
-          <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', marginBottom:14 }}>Upcoming Renewals</div>
-          <div style={{ display:'flex', flexDirection:'column', gap:0 }}>
-            {renewals.map((sub: any)=>{
-              const co = coByID(sub.companyId);
-              const planCfg = PLAN_CFG[sub.plan as PlanId] || PLAN_CFG.starter;
-              return (
-                <div key={sub.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'9px 0', borderBottom:'1px solid var(--border)' }}>
-                  <CoAv co={co} size={30} />
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:12, fontWeight:600, color:'var(--ink)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{co?.name || 'Unknown Company'}</div>
-                    <div style={{ fontSize:11, color:'var(--ink3)' }}>Expires {fmtDate(sub.end)}</div>
-                  </div>
-                  <Badge cfg={planCfg} />
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        {/* "Upcoming Renewals" used to live here, built by claiming every tenant
+            renews in exactly 30 days. `tenants` has no expiry or renewal column
+            and there is no subscriptions table, so there is nothing to show —
+            the panel is gone rather than filled with a date nobody committed to.
+            Plan distribution takes the slot. */}
       </div>
     </div>
   );
@@ -1255,33 +1254,60 @@ export function TransactionsView() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<TxStatus|'all'>('all');
 
-  const stats = useMemo(()=>({
-    total:     TRANSACTIONS.reduce((s,t)=>t.status==='completed'?s+t.amount:s, 0),
-    completed: TRANSACTIONS.filter(t=>t.status==='completed').length,
-    pending:   TRANSACTIONS.filter(t=>t.status==='pending').length,
-    failed:    TRANSACTIONS.filter(t=>t.status==='failed').length,
-  }),[]);
+  // Real platform_transactions. This screen previously rendered the hardcoded
+  // TRANSACTIONS sample array — eleven 2025 payments for companies that do not
+  // exist, $43,346 of revenue that was never collected.
+  const [rows, setRows] = useState<any[]>([]);
+  const [totals, setTotals] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    apiFetch('/v1/superadmin/transactions?limit=500')
+      .then((r: any) => { if (alive) { setRows(r?.data ?? []); setTotals(r?.totals ?? null); } })
+      .catch((e: any) => { if (alive) setLoadError(e?.message ?? 'Could not load transactions.'); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
 
   const filtered = useMemo(()=>
-    TRANSACTIONS.filter(t=>{
+    rows.filter(t=>{
       if (statusFilter!=='all' && t.status!==statusFilter) return false;
-      const co = coByID(t.companyId);
-      if (search && !co.name.toLowerCase().includes(search.toLowerCase()) && !t.txRef.toLowerCase().includes(search.toLowerCase())) return false;
+      const q = search.trim().toLowerCase();
+      if (q && !(t.companyName ?? '').toLowerCase().includes(q)
+            && !(t.txRef ?? '').toLowerCase().includes(q)
+            && !(t.payerName ?? '').toLowerCase().includes(q)) return false;
       return true;
     }),
-  [search, statusFilter]);
+  [rows, search, statusFilter]);
+
+  function exportCsv() {
+    const head = ['Ref','Company','Package','Amount','Currency','Date','Method','Status','Payer'];
+    const body = filtered.map(t => [t.txRef, t.companyName ?? '', t.packageCode ?? '', t.amount, t.currency,
+      new Date(t.created).toISOString().slice(0,10), t.method ?? '', t.status, t.payerName ?? '']);
+    const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const csv = [head, ...body].map(r => r.map(esc).join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = `platform-transactions-${new Date().toISOString().slice(0,10)}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  }
 
   return (
     <div>
       <PageHdr title="Purchase Transactions" sub="All billing transactions across the platform"
-        action={<button className="btn btn-secondary btn-sm" style={{gap:6}}><Icon name="download" size={13}/>Export CSV</button>}
+        action={<button className="btn btn-secondary btn-sm" style={{gap:6}} onClick={exportCsv} disabled={filtered.length===0}><Icon name="download" size={13}/>Export CSV</button>}
       />
 
+      {loadError && <div style={{ color:'var(--red)', fontSize:13, marginBottom:14 }}>{loadError}</div>}
+
+      {/* Counts are over the whole table, not the filtered page. */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:22 }}>
-        <StatCard label="Total Revenue"      value={fmtCurrency(stats.total)} color="var(--teal)"  />
-        <StatCard label="Completed"          value={stats.completed}          color="var(--green)"      />
-        <StatCard label="Pending"            value={stats.pending}            color="var(--gold)"      />
-        <StatCard label="Failed"             value={stats.failed}             color="var(--red)"      />
+        <StatCard label="Revenue Collected" value={fmtCurrency(totals?.completed ?? 0)} color="var(--teal)"  />
+        <StatCard label="Completed"         value={totals?.completedCount ?? 0}         color="var(--green)" />
+        <StatCard label="Pending"           value={totals?.pendingCount ?? 0}           color="var(--gold)"  />
+        <StatCard label="Failed"            value={totals?.failedCount ?? 0}            color="var(--red)"   />
       </div>
 
       <div className="sa-toolbar">
@@ -1296,33 +1322,37 @@ export function TransactionsView() {
         />
       </div>
 
-      <DataTable headers={['Ref','Company','Plan','Amount','Date','Method','Status','Actions']}>
-        {filtered.map(tx=>{
-          const co = coByID(tx.companyId);
-          return (
-            <TR key={tx.id}>
-              <TD><span style={{ fontFamily:'var(--mono)', fontSize:12, color:'var(--ink3)' }}>{tx.txRef}</span></TD>
-              <TD>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <CoAv co={co} size={28} />
-                  <span style={{ fontWeight:600, fontSize:13 }}>{co.name}</span>
-                </div>
-              </TD>
-              <TD><Badge cfg={PLAN_CFG[tx.plan]} /></TD>
-              <TD right><span style={{ fontWeight:700, fontFamily:'var(--mono)' }}>{fmtCurrency(tx.amount)}</span></TD>
-              <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(tx.date)}</span></TD>
-              <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{METHOD_LABELS[tx.method]}</span></TD>
-              <TD><Badge cfg={TX_CFG[tx.status]} /></TD>
-              <TD>
-                <div style={{ display:'flex', gap:2 }}>
-                  <ActBtn icon="eye"      title="View receipt" onClick={()=>{}} />
-                  <ActBtn icon="download" title="Download"     onClick={()=>{}} />
-                </div>
-              </TD>
-            </TR>
-          );
-        })}
+      {loading ? (
+        <div style={{ textAlign:'center', padding:'40px 0', color:'var(--ink3)', fontSize:13 }}>Loading transactions…</div>
+      ) : filtered.length === 0 ? (
+        <div className="card" style={{ padding:'34px 22px', textAlign:'center' }}>
+          <div style={{ fontSize:14, fontWeight:650, color:'var(--ink)' }}>
+            {rows.length === 0 ? 'No platform payments recorded yet.' : 'No transactions match these filters.'}
+          </div>
+          <div style={{ fontSize:12.5, color:'var(--ink3)', marginTop:5 }}>
+            {rows.length === 0 ? 'Payments appear here as tenants subscribe.' : 'Try clearing the search or status filter.'}
+          </div>
+        </div>
+      ) : (
+      <DataTable headers={['Ref','Company','Package','Amount','Date','Method','Status']}>
+        {filtered.map(tx=>(
+          <TR key={tx.id}>
+            <TD><span style={{ fontFamily:'var(--mono)', fontSize:12, color:'var(--ink3)' }}>{tx.txRef}</span></TD>
+            <TD>
+              <span style={{ fontWeight:600, fontSize:13 }}>{tx.companyName || 'Deleted company'}</span>
+              {tx.payerName && <span style={{ display:'block', fontSize:11, color:'var(--ink3)' }}>{tx.payerName}</span>}
+            </TD>
+            {/* The package actually paid for, from the transaction — not the
+                tenant's current plan, which can differ from what this payment bought. */}
+            <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{tx.packageCode ?? '—'}{tx.billingCycle ? ` · ${tx.billingCycle}` : ''}</span></TD>
+            <TD right><span style={{ fontWeight:700, fontFamily:'var(--mono)' }}>{tx.currency} {Number(tx.amount).toLocaleString()}</span></TD>
+            <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(tx.created)}</span></TD>
+            <TD><span style={{ fontSize:12, color:'var(--ink2)' }}>{METHOD_LABELS[tx.method as PayMethod] ?? tx.method ?? '—'}</span></TD>
+            <TD><Badge cfg={TX_CFG[tx.status as TxStatus] ?? TX_CFG.completed} /></TD>
+          </TR>
+        ))}
       </DataTable>
+      )}
     </div>
   );
 }
@@ -1330,78 +1360,122 @@ export function TransactionsView() {
 /* ══════════════════════════════════════════════════
    FINANCE VIEW
 ══════════════════════════════════════════════════ */
-const MRR_DATA = [
-  {label:'Mar',value:820},{label:'Apr',value:968},{label:'May',value:968},
-  {label:'Jun',value:1117},{label:'Jul',value:1117},{label:'Aug',value:1266},
-  {label:'Sep',value:1117},{label:'Oct',value:1266},{label:'Nov',value:1266},
-  {label:'Dec',value:1415},{label:'Jan',value:1266},{label:'Feb',value:1087},
-];
-const PLAN_REV: { plan:PlanId; companies:number; mrr:number; arr:number }[] = [
-  { plan:'starter',      companies:2, mrr:58,     arr:696    },
-  { plan:'growth',       companies:2, mrr:198,    arr:2376   },
-  { plan:'scale',        companies:1, mrr:299,    arr:3588   },
-  { plan:'enterprise',   companies:3, mrr:2997,   arr:35964  },
-];
 
+/**
+ * Two different things live on this page and they used to be conflated:
+ *
+ *  - what the platform has actually been paid (platform_transactions), and
+ *  - what it would bill in a month if every active tenant paid list price
+ *    (a run-rate estimate).
+ *
+ * Neither used to be shown. MRR, ARR, "Total Revenue Collected: $21,046",
+ * "Active Paid Subscribers: 5", the 12-month MRR trend and the whole per-plan
+ * breakdown were all hardcoded literals with invented +8.2%/-4.1% deltas.
+ */
 export function FinanceView() {
-  const totalMRR = PLAN_REV.reduce((s,p)=>s+p.mrr, 0);
-  const totalARR = PLAN_REV.reduce((s,p)=>s+p.arr, 0);
+  const [tx, setTx] = useState<{ data: any[]; totals: any; monthly: any[] } | null>(null);
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    Promise.all([
+      apiFetch('/v1/superadmin/transactions?limit=1000'),
+      apiFetch('/v1/superadmin/dashboard-stats'),
+    ])
+      .then(([t, s]: any[]) => { if (alive) { setTx(t); setStats(s); } })
+      .catch((e: any) => { if (alive) setError(e?.message ?? 'Could not load finance data.'); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
+
+  // Money received, by the package each payment actually bought.
+  const byPackage = useMemo(() => {
+    const m = new Map<string, { code: string; total: number; count: number }>();
+    for (const t of tx?.data ?? []) {
+      if (t.status !== 'completed') continue;
+      const code = t.packageCode ?? 'unknown';
+      const cur = m.get(code) ?? { code, total: 0, count: 0 };
+      cur.total += Number(t.amount); cur.count += 1;
+      m.set(code, cur);
+    }
+    return [...m.values()].sort((a, b) => b.total - a.total);
+  }, [tx]);
+
+  if (loading) return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--ink3)' }}>Loading finance data…</div>;
+  if (error)   return <div style={{ textAlign:'center', padding:'48px 0', color:'var(--red)' }}>{error}</div>;
+
+  const collected = tx?.totals?.completed ?? 0;
+  const paidCount = tx?.totals?.completedCount ?? 0;
+  const runRate   = stats?.kpis?.totalEarnings ?? 0;
+  // m.month is "YYYY-MM"; label it "Jul" rather than "07".
+  const trend = (tx?.monthly ?? []).map((m: any) => ({
+    label: new Date(`${m.month}-01T00:00:00Z`).toLocaleString('en', { month: 'short', timeZone: 'UTC' }),
+    value: m.total,
+  }));
+  const noHistory = (stats?.monthsWithData ?? 0) < 2 ? 'not enough history yet' : undefined;
+  const collectedTotal = byPackage.reduce((s, p) => s + p.total, 0);
+
   return (
     <div>
-      <PageHdr title="Finance" sub="Revenue metrics, MRR/ARR and subscription earnings" />
+      <PageHdr title="Finance" sub="Platform billing — what has been received, and what active plans would bill" />
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:24 }}>
-        <KPICard title="Monthly Recurring Revenue" value={fmtCurrency(totalMRR)} change={8.2}   icon="trendingUp"  color="var(--teal)"  spark={MRR_DATA.map(d=>d.value)} />
-        <KPICard title="Annual Recurring Revenue"  value={fmtCurrency(totalARR)} change={8.2}   icon="barChart"    color="var(--purple)"     spark={MRR_DATA.map(d=>d.value*12)} />
-        <KPICard title="Total Revenue Collected"   value="$21,046"               change={-4.1}  icon="dollarSign"  color="var(--gold)"     spark={MONTHLY_REV.map(d=>d.value)} />
-        <KPICard title="Active Paid Subscribers"   value="5"                     change={0}     icon="users"       color="var(--red)"     spark={[3,3,4,4,4,5,5,5,5,5,5,5]} />
+        <KPICard title="Revenue Collected"      value={fmtCurrency(collected)} icon="dollarSign" color="var(--teal)"
+                 spark={trend.map((d: any) => d.value)} emptyHint={noHistory} />
+        <KPICard title="Payments Received"      value={String(paidCount)}      icon="receipt"    color="var(--green)"
+                 hint={`${tx?.totals?.allCount ?? 0} transactions in total`} />
+        {/* Named an estimate on the card, because it is one: list price for
+            every active tenant, whether or not they have ever paid. */}
+        <KPICard title="Run Rate (list price)"  value={fmtCurrency(runRate)}   icon="trendingUp" color="var(--purple)"
+                 hint="estimate — active tenants at list price" />
+        <KPICard title="Paying Companies"       value={String(new Set((tx?.data ?? []).filter((t: any) => t.status === 'completed').map((t: any) => t.companyId)).size)}
+                 icon="building" color="var(--gold)" hint={`of ${stats?.kpis?.activeCompanies ?? 0} active`} />
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'1fr 360px', gap:20 }}>
-        {/* MRR Trend */}
         <div className="card" style={{ padding:'22px 24px' }}>
-          <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>MRR Trend</div>
-          <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:20 }}>Monthly recurring revenue — last 12 months</div>
-          <BarChart data={MRR_DATA} color="var(--teal)" height={100} />
+          <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Revenue Received</div>
+          <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:20 }}>
+            Completed payments by month{trend.length ? '' : ' — nothing recorded yet'}
+          </div>
+          {trend.length > 0
+            ? <BarChart data={trend} color="var(--teal)" height={100} />
+            : <div style={{ fontSize:12.5, color:'var(--ink3)', padding:'22px 0' }}>No payments have been recorded.</div>}
         </div>
 
-        {/* Revenue by Plan */}
         <div className="card" style={{ padding:'22px 24px' }}>
-          <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:16 }}>Revenue by Plan</div>
-          <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-            {PLAN_REV.map(p=>{
-              const pct = Math.round((p.mrr/totalMRR)*100);
-              const cfg = PLAN_CFG[p.plan];
-              return (
-                <div key={p.plan}>
-                  <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <Badge cfg={cfg} />
-                      <span style={{ fontSize:12, color:'var(--ink3)' }}>{p.companies} co.</span>
+          <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)', marginBottom:4 }}>Revenue by Package</div>
+          <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:16 }}>What each package has actually brought in</div>
+          {byPackage.length === 0 ? (
+            <div style={{ fontSize:12.5, color:'var(--ink3)' }}>No completed payments yet.</div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+              {byPackage.map(p => {
+                const pct = collectedTotal > 0 ? Math.round((p.total / collectedTotal) * 100) : 0;
+                const cfg = PLAN_CFG[p.code as PlanId];
+                return (
+                  <div key={p.code}>
+                    <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                        {cfg ? <Badge cfg={cfg} /> : <span style={{ fontSize:12, fontWeight:700, color:'var(--ink2)', textTransform:'capitalize' }}>{p.code}</span>}
+                        <span style={{ fontSize:12, color:'var(--ink3)' }}>{p.count} payment{p.count===1?'':'s'}</span>
+                      </div>
+                      <span style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>{fmtCurrency(p.total)}</span>
                     </div>
-                    <span style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>{fmtCurrency(p.mrr)}<span style={{ fontSize:11, color:'var(--ink3)', fontWeight:400 }}>/mo</span></span>
+                    <div style={{ height:6, background:'var(--border)', borderRadius:99, overflow:'hidden' }}>
+                      <div style={{ width:`${pct}%`, height:'100%', background:cfg?.color ?? 'var(--teal)', borderRadius:99 }} />
+                    </div>
                   </div>
-                  <div style={{ height:6, background:'var(--border)', borderRadius:99, overflow:'hidden' }}>
-                    <div style={{ width:`${pct}%`, height:'100%', background:cfg.color, borderRadius:99 }} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div style={{ marginTop:22, paddingTop:16, borderTop:'1px solid var(--border)' }}>
-            <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:10, fontWeight:600, textTransform:'uppercase', letterSpacing:'0.06em' }}>Annual Breakdown</div>
-            {PLAN_REV.map(p=>(
-              <div key={p.plan} style={{ display:'flex', justifyContent:'space-between', padding:'6px 0', borderBottom:'1px solid var(--border)' }}>
-                <span style={{ fontSize:13, color:'var(--ink2)', textTransform:'capitalize' }}>{p.plan}</span>
-                <span style={{ fontSize:13, fontWeight:700, color:'var(--ink)', fontFamily:'var(--mono)' }}>{fmtCurrency(p.arr)}</span>
+                );
+              })}
+              <div style={{ display:'flex', justifyContent:'space-between', paddingTop:12, marginTop:4, borderTop:'1px solid var(--border)', fontWeight:800 }}>
+                <span style={{ fontSize:13, color:'var(--ink)' }}>Total received</span>
+                <span style={{ fontSize:14, color:'var(--teal)', fontFamily:'var(--mono)' }}>{fmtCurrency(collectedTotal)}</span>
               </div>
-            ))}
-            <div style={{ display:'flex', justifyContent:'space-between', padding:'10px 0 0', fontWeight:800 }}>
-              <span style={{ fontSize:13, color:'var(--ink)' }}>Total ARR</span>
-              <span style={{ fontSize:14, color:'var(--teal)', fontFamily:'var(--mono)' }}>{fmtCurrency(totalARR)}</span>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
