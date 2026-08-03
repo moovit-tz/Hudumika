@@ -1087,6 +1087,63 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
   const [transport, setTransport] = useState(() => emptyTransport(job));
   const [items,     setItems]     = useState<HsLine[]>([emptyHsLine()]);
   const [loadedDeclaration, setLoadedDeclaration] = useState(false);
+  const [prefill, setPrefill] = useState<any>(null);
+  const [applyHs, setApplyHs] = useState(false);
+
+  /**
+   * Copies the shipment-derived draft into the form.
+   *
+   * Only fields the draft actually resolved are written — a blank in the draft
+   * leaves the form's own default alone rather than clearing it. The HS code is
+   * applied only if the filer ticked the box for it.
+   */
+  function applyPrefill() {
+    if (!prefill?.draft) return;
+    const d = prefill.draft;
+    const keep = (v: any, fallback: string) => (v === null || v === undefined || v === '' ? fallback : String(v));
+
+    setGeneral(g => ({
+      ...g,
+      ref_number:     keep(d.tancis_ref, g.ref_number),
+      gross_weight:   d.gross_weight_kg ? String(d.gross_weight_kg) : g.gross_weight,
+      packages_total: d.total_packages ? String(d.total_packages) : g.packages_total,
+    }));
+    setParties(p => ({
+      ...p,
+      country_export:      keep(d.country_of_export, p.country_export),
+      country_destination: keep(d.country_of_destination, p.country_destination),
+      importer: {
+        ...p.importer,
+        name:    keep(d.importer_name, p.importer.name),
+        tin:     keep(d.importer_tin, p.importer.tin),
+        address: keep(d.importer_address, p.importer.address),
+      },
+      declarant: { ...p.declarant, name: keep(d.declarant_name, p.declarant.name) },
+    }));
+    setFinancial(f => ({
+      ...f,
+      invoice_value_usd: d.total_invoice_value ? String(d.total_invoice_value) : f.invoice_value_usd,
+    }));
+    setTransport(t => ({
+      ...t,
+      bl_no:           keep(d.bl_number, t.bl_no),
+      tansad_no:       keep(d.tansad_number, t.tansad_no),
+      vessel_name:     keep(d.vessel_name, t.vessel_name),
+      shipment_place:  keep(d.shipment_place, t.shipment_place),
+      discharge_place: keep(d.discharge_place, t.discharge_place),
+      container_count: d.total_container_count ? String(d.total_container_count) : t.container_count,
+      arrival_date:    d.arrival_date ? new Date(d.arrival_date).toISOString().slice(0, 10) : t.arrival_date,
+    }));
+
+    const hs = prefill.needsConfirmation?.[0];
+    if (applyHs && hs?.value) {
+      setItems(prev => {
+        const [first, ...rest] = prev.length ? prev : [emptyHsLine()];
+        return [{ ...first, hs: hs.value, desc: first.desc || prefill.shipment?.goodsDescription || '' }, ...rest];
+      });
+    }
+    setPrefill(null);
+  }
 
   // Hydrate the form from whatever was actually persisted, so re-opening
   // this tab doesn't show blank Parties/Financial/Items fields for data
@@ -1095,14 +1152,23 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
     if (!isLive) { setLoadedDeclaration(true); return; }
     let cancelled = false;
     apiFetch(`/v1/declarations/by-shipment/${shipmentId}`)
-      .then(decl => {
-        if (cancelled || !decl) return;
-        const mapped = applyDeclarationResponse(decl, job);
-        setGeneral(mapped.general);
-        setParties(mapped.parties);
-        setFinancial(mapped.financial);
-        setTransport(mapped.transport);
-        setItems(mapped.items);
+      .then(async decl => {
+        if (cancelled) return;
+        if (decl) {
+          const mapped = applyDeclarationResponse(decl, job);
+          setGeneral(mapped.general);
+          setParties(mapped.parties);
+          setFinancial(mapped.financial);
+          setTransport(mapped.transport);
+          setItems(mapped.items);
+          return;
+        }
+        // Nothing lodged yet — offer to start from what the shipment already
+        // holds. Offered, not applied: the same stance as the OCR banner, and
+        // required for the HS code, which must never land in a declaration
+        // without someone accepting it.
+        const pre = await apiFetch(`/v1/declarations/prefill/${shipmentId}`).catch(() => null);
+        if (!cancelled && pre?.draft) setPrefill(pre);
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoadedDeclaration(true); });
@@ -1235,6 +1301,58 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
   return (
     <form onSubmit={handleSave} style={{ width: '100%' }}>
       {/* OCR pre-fill banner */}
+      {/* Nothing lodged yet — start from the shipment instead of an empty form. */}
+      {prefill && (
+        <div style={{ padding: '12px 14px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 12, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <Icon name="zap" size={18} color="var(--teal)" style={{ flexShrink: 0, marginTop: 1 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>
+                Start from {prefill.shipment?.refNumber ?? 'this shipment'}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 3, lineHeight: 1.55 }}>
+                {Object.keys(prefill.sources ?? {}).length} field
+                {Object.keys(prefill.sources ?? {}).length === 1 ? '' : 's'} can be filled from what this
+                consignment already records — importer, transport, countries and values.
+              </div>
+
+              {prefill.missing?.length > 0 && (
+                <div style={{ fontSize: 11.5, color: 'var(--ink2)', marginTop: 7 }}>
+                  <span style={{ fontWeight: 650 }}>You will still need to enter:</span>
+                  <ul style={{ margin: '4px 0 0', paddingLeft: 17 }}>
+                    {prefill.missing.map((m: any) => (
+                      <li key={m.field} style={{ marginBottom: 1 }}>
+                        {m.label} <span style={{ color: 'var(--ink3)' }}>— {m.why}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* The HS code is never carried over silently. */}
+              {prefill.needsConfirmation?.length > 0 && (
+                <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 9, fontSize: 11.5, color: 'var(--ink2)', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={applyHs} onChange={e => setApplyHs(e.target.checked)} style={{ marginTop: 2 }} />
+                  <span>
+                    Also use HS code <strong>{prefill.needsConfirmation[0].value}</strong> from the shipment.
+                    <span style={{ display: 'block', color: 'var(--ink3)' }}>{prefill.needsConfirmation[0].note}</span>
+                  </span>
+                </label>
+              )}
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 11 }}>
+                <button type="button" className="btn btn-primary btn-sm" onClick={applyPrefill}>
+                  Fill the form
+                </button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPrefill(null)}>
+                  Start blank
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {ocrBanner && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 14px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 12, marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

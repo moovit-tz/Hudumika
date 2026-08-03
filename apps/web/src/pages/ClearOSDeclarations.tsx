@@ -7,6 +7,7 @@ import { Input } from '../components/ui/input.js';
 import { Button } from '../components/ui/button.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Combobox } from '../components/ui/combobox.js';
 import { apiFetch } from '../lib/api.js';
 import { DECLARATION_STATUS_LABELS, type DeclarationStatus } from '@hudumika/types';
 
@@ -75,6 +76,9 @@ export function ClearOSDeclarations() {
   const navigate = useNavigate();
   const [rows, setRows] = useState<DeclRow[]>([]);
   const [refs, setRefs] = useState<Record<string, string>>({});
+  const [shipments, setShipments] = useState<any[]>([]);
+  const [starting, setStarting] = useState(false);
+  const [pick, setPick] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('__all__');
@@ -96,16 +100,26 @@ export function ClearOSDeclarations() {
     return () => { alive = false; };
   }, [status, lane, search]);
 
-  // The declaration stores shipment_id but not the ref a person recognises.
+  // The declaration stores shipment_id but not the ref a person recognises;
+  // the same list also drives the "which consignment?" picker.
   useEffect(() => {
     apiFetch('/v1/shipments?limit=500')
       .then((r: any) => {
+        const list = r?.data ?? [];
         const map: Record<string, string> = {};
-        for (const s of r?.data ?? []) map[s.id] = s.ref_number;
+        for (const s of list) map[s.id] = s.ref_number;
         setRefs(map);
+        setShipments(list);
       })
-      .catch(() => setRefs({}));
+      .catch(() => { setRefs({}); setShipments([]); });
   }, []);
+
+  // Offering a shipment that already has a declaration would only produce a
+  // 409 from the prefill endpoint, so it is not offered.
+  const undeclared = useMemo(
+    () => shipments.filter(s => !s.declaration_id),
+    [shipments],
+  );
 
   const summary = useMemo(() => {
     const awaiting = rows.filter(r => ['TRANSFERRED', 'ACCEPTED'].includes(r.status)).length;
@@ -125,11 +139,46 @@ export function ClearOSDeclarations() {
         titleEm="declarations"
         subtitle="Every TANSAD lodged for this workspace — its assessment, lane and release."
         actions={
-          <Button type="button" variant="outline" onClick={() => navigate('/clearos/ops')}>
-            <Icon name="package" size={14} /> Ops Command
-          </Button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Button type="button" variant="outline" onClick={() => navigate('/clearos/ops')}>
+              <Icon name="package" size={14} /> Ops Command
+            </Button>
+            <Button type="button" onClick={() => setStarting(s => !s)}>
+              <Icon name="plus" size={14} color="white" /> New declaration
+            </Button>
+          </div>
         }
       />
+
+      {/* A declaration belongs to a consignment, so starting one means choosing
+          which. Inline rather than a modal, and it lists only shipments that do
+          not already have one. */}
+      {starting && (
+        <div style={{ border: '1px solid var(--teal-m)', background: 'var(--teal-l)', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
+          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Which consignment is this for?</div>
+          <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 3, marginBottom: 11, lineHeight: 1.55 }}>
+            The form opens pre-filled from that shipment — importer, transport, countries and values — so
+            you review rather than re-key it.
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 300px', minWidth: 220 }}>
+              <Combobox
+                options={undeclared.map(s => ({ value: s.id, label: s.ref_number, sublabel: [s.customer_name, s.goods_desc].filter(Boolean).join(' · ') }))}
+                value={pick}
+                onChange={setPick}
+                placeholder={undeclared.length ? 'Choose a shipment…' : 'Every shipment already has one'}
+                searchPlaceholder="Search by reference or customer…"
+                emptyText="No shipment without a declaration."
+                disabled={undeclared.length === 0}
+              />
+            </div>
+            <Button type="button" disabled={!pick} onClick={() => navigate(`/clearos/clearance/${pick}?tab=declaration`)}>
+              Start <Icon name="arrowRight" size={13} color="white" />
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => { setStarting(false); setPick(''); }}>Cancel</Button>
+          </div>
+        </div>
+      )}
 
       {/* Tiles read from the rows on screen, so they always agree with the table. */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 12, marginBottom: 16 }}>
@@ -199,11 +248,11 @@ export function ClearOSDeclarations() {
             <div style={{ fontSize: 12.5, color: 'var(--ink3)', marginTop: 5, maxWidth: 430, marginInline: 'auto', lineHeight: 1.6 }}>
               {filtersOn
                 ? 'Try widening the search, or clear the filters.'
-                : 'A declaration is created from its shipment — open a consignment in Ops Command and use its Declaration tab.'}
+                : `A declaration belongs to a consignment. ${undeclared.length} shipment${undeclared.length === 1 ? '' : 's'} ${undeclared.length === 1 ? 'is' : 'are'} waiting for one — starting from a shipment fills most of the form for you.`}
             </div>
             {!filtersOn && (
-              <Button type="button" style={{ marginTop: 14 }} onClick={() => navigate('/clearos/ops')}>
-                <Icon name="package" size={14} color="white" /> Go to Ops Command
+              <Button type="button" style={{ marginTop: 14 }} onClick={() => setStarting(true)}>
+                <Icon name="plus" size={14} color="white" /> New declaration
               </Button>
             )}
           </div>

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import type { Workflow, WorkflowStep, FieldCondition, AutoComm } from './ClearanceWorkflowList.js';
 import type { CreateWorkflowInput } from '@hudumika/types';
+import { COUNTRIES } from '@hudumika/types';
 import { Icon, type IconName } from '../../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import { MultiSelectFilter } from '../../components/ui/filter-dropdown.js';
@@ -142,21 +143,8 @@ const FREIGHT_MODE_ICON: Record<string, IconName> = {
   sea: 'ship', air: 'plane', road: 'truck', rail: 'train', multimodal: 'globe',
 };
 
-// ISO 3166-1 alpha-2 codes — workflow-resolver.service.ts matches these against
-// the first 2 characters of the shipment's origin/dest port (UN/LOCODE country
-// prefix), so these must stay real country codes, not free-text names.
-const COUNTRIES: {code: string; name: string}[] = [
-  {code:'TZ', name:'Tanzania'}, {code:'KE', name:'Kenya'}, {code:'UG', name:'Uganda'},
-  {code:'RW', name:'Rwanda'}, {code:'BI', name:'Burundi'}, {code:'CD', name:'DR Congo'},
-  {code:'ZM', name:'Zambia'}, {code:'MW', name:'Malawi'}, {code:'MZ', name:'Mozambique'},
-  {code:'ZA', name:'South Africa'}, {code:'CN', name:'China'}, {code:'IN', name:'India'},
-  {code:'AE', name:'United Arab Emirates'}, {code:'SA', name:'Saudi Arabia'}, {code:'TR', name:'Turkey'},
-  {code:'SG', name:'Singapore'}, {code:'MY', name:'Malaysia'}, {code:'ID', name:'Indonesia'},
-  {code:'JP', name:'Japan'}, {code:'KR', name:'South Korea'}, {code:'US', name:'United States'},
-  {code:'GB', name:'United Kingdom'}, {code:'DE', name:'Germany'}, {code:'NL', name:'Netherlands'},
-  {code:'BE', name:'Belgium'}, {code:'IT', name:'Italy'}, {code:'FR', name:'France'},
-  {code:'EG', name:'Egypt'}, {code:'BR', name:'Brazil'}, {code:'AU', name:'Australia'},
-];
+// COUNTRIES now lives in @hudumika/types so the API's declaration prefill and
+// this builder read one list rather than two that drift.
 
 function makeStep(order: number, isFirst = false): WorkflowStep {
   // isTerminal is recomputed from nextStepIds.length===0 at save time (see
