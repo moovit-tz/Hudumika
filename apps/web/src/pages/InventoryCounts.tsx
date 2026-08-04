@@ -8,6 +8,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Inventory.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Session { id: string; warehouseId: string; warehouseName?: string; status: string; startedAt: string; postedAt: string | null; notes: string | null; }
 interface Warehouse { id: string; code: string; name: string; }
@@ -53,8 +54,12 @@ export function InventoryCounts() {
     <div className="inv-page">
       <div className="inv-page-hdr">
         <div>
-          <h1 className="inv-page-title">Stock Counts</h1>
-          <p className="inv-page-sub">Every variance found in a count posts a real ledger correction — the expected quantity is frozen the moment a count starts, never silently recomputed.</p>
+          <PageHeader
+            crumbs={['Inventory', 'Stock Counts']}
+            titlePlain="Stock"
+            titleEm="counts"
+            subtitle="Every variance found in a count posts a real ledger correction — the expected quantity is frozen the moment a count starts, never silently recomputed."
+          />
         </div>
         <Button type="button" onClick={() => setShowNew(v => !v)}>
           <Icon name="plus" size={14} /><span>Start Count</span>

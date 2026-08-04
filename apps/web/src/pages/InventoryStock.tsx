@@ -9,6 +9,7 @@ import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Inventory.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface StockLevel {
   itemId: string; locationId: string; batchNo: string | null; expiryDate: string | null; qtyOnHand: number;
@@ -115,8 +116,12 @@ export function InventoryStock() {
     <div className="inv-page">
       <div className="inv-page-hdr">
         <div>
-          <h1 className="inv-page-title">Stock</h1>
-          <p className="inv-page-sub">Every quantity here traces to a real ledger movement — receipts, issues, transfers, and adjustments are never a direct edit to the stock level itself.</p>
+          <PageHeader
+            crumbs={['Inventory', 'Stock']}
+            titlePlain="Stock"
+            titleEm="levels"
+            subtitle="Every quantity here traces to a real ledger movement — receipts, issues, transfers, and adjustments are never a direct edit to the stock level itself."
+          />
         </div>
         <Button type="button" onClick={() => setShowNew(v => !v)}>
           <Icon name="plus" size={14} /><span>Record Movement</span>

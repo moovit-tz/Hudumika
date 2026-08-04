@@ -7,6 +7,7 @@ import { Button } from '../components/ui/button.js';
 import { ClickableBarChart } from '../components/AnalyticsKit.js';
 import { apiFetch } from '../lib/api.js';
 import './Inventory.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Warehouse { id: string; code: string; name: string; }
 interface Item { id: string; sku: string; name: string; isBatchTracked: boolean; }
@@ -47,10 +48,12 @@ export function InventoryDashboard() {
       {/* Header */}
       <div className="inv-page-hdr">
         <div>
-          <h1 className="inv-page-title">Inventory Control Dashboard</h1>
-          <p className="inv-page-sub">
-            General multi-warehouse stock management — metrics, reorder alerts, stock movements &amp; item catalogs.
-          </p>
+          <PageHeader
+            crumbs={['Inventory', 'Inventory Control Dashboard']}
+            titlePlain="Inventory Control"
+            titleEm="dashboard"
+            subtitle="General multi-warehouse stock management — metrics, reorder alerts, stock movements &amp; item catalogs."
+          />
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <Button type="button" variant="outline" onClick={() => navigate('/inventory/stock')}>
