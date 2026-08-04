@@ -28,7 +28,7 @@ export default
     "finops": "Fedha na Hesabu",
     "complyos": "Jukwaa la Uzingatiaji",
     "bliss": "Msaada na Huduma kwa Wateja",
-    "onepi": "Watu na Rasilimali Watu",
+    "nexushr": "Watu na Rasilimali Watu",
     "onesite": "Wavuti na CMS",
     "oneid": "Utambulisho na Ufikiaji",
     "tracking": "Ufuatiliaji wa Magari",

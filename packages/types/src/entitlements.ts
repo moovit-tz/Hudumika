@@ -12,7 +12,7 @@ export type FeatureKey =
   | 'email'
   | 'finops'
   | 'oneid'
-  | 'onepi'
+  | 'nexushr'
   | 'tracking'
   | 'tracking.cargo-loading'
   | 'tracking.warehouse'

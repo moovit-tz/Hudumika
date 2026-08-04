@@ -232,7 +232,7 @@ export const ToolsOverview: React.FC = () => {
           sub={`${hr.active_staff} active, ${hr.on_leave} on leave`}
           subUp={hr.active_staff >= hr.total_staff * 0.7}
           bars={spark('flat')} barColor="var(--teal)"
-          to="/onepi/employees"
+          to="/nexushr/employees"
         />
         <KpiCard
           icon="check" iconBg="rgba(16,185,129,0.1)" iconColor="var(--green)"
@@ -240,7 +240,7 @@ export const ToolsOverview: React.FC = () => {
           sub={`${attendanceRate}% attendance rate`}
           subUp={attendanceRate >= 70}
           bars={spark(attendanceRate >= 70 ? 'up' : 'down')} barColor="var(--green)"
-          to="/onepi/attendance"
+          to="/nexushr/attendance"
         />
         <KpiCard
           icon="calendar" iconBg="rgba(245,158,11,0.12)" iconColor="#f59e0b"
@@ -248,7 +248,7 @@ export const ToolsOverview: React.FC = () => {
           sub={`${hr.on_leave} currently on leave`}
           subUp={hr.pending_leaves === 0}
           bars={spark('flat')} barColor="#f59e0b"
-          to="/onepi/leaves"
+          to="/nexushr/leaves"
         />
         <KpiCard
           icon="bell"
@@ -292,7 +292,7 @@ export const ToolsOverview: React.FC = () => {
         <ModuleSummaryCard
           icon="briefcase" title="HRM Dashboard"
           color="var(--teal)" bg="rgba(20,184,166,0.05)"
-          to="/onepi"
+          to="/nexushr"
         >
           <StatGrid stats={[
             { label: 'Total Staff',    value: hr.total_staff,    sub: `${staffActivePct}% active`,              color: 'var(--teal)' },
@@ -355,8 +355,8 @@ export const ToolsOverview: React.FC = () => {
         >
           <div style={{ flex: 1 }}>
             <SettingsNavItem icon="users"    label="User Management"      sub={`${hr.total_staff} staff accounts`}      to="/settings" />
-            <SettingsNavItem icon="shield"   label="Roles & Permissions"  sub="Access control matrix"                   to="/onepi/roles" />
-            <SettingsNavItem icon="lock"     label="Security & Logs"      sub="Login history, devices"                  to="/onepi/login-history" />
+            <SettingsNavItem icon="shield"   label="Roles & Permissions"  sub="Access control matrix"                   to="/nexushr/roles" />
+            <SettingsNavItem icon="lock"     label="Security & Logs"      sub="Login history, devices"                  to="/nexushr/login-history" />
             <SettingsNavItem icon="building" label="Company Profile"      sub="Tenant & org settings"                   to="/settings" />
           </div>
           <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', alignItems: 'center', gap: 8 }}>

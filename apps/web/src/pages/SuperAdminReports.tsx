@@ -50,10 +50,10 @@ interface ReportRun {
 }
 
 const APP_LABELS: Record<string, string> = {
-  clearos: 'ClearOS', finops: 'FinOps', onepi: 'NexusHR', tracking: 'Tracking', complyos: 'ComplyOS',
+  clearos: 'ClearOS', finops: 'FinOps', nexushr: 'NexusHR', tracking: 'Tracking', complyos: 'ComplyOS',
 };
 const APP_ICONS: Record<string, IconName> = {
-  clearos: 'ship', finops: 'dollarSign', onepi: 'users', tracking: 'truck', complyos: 'shield',
+  clearos: 'ship', finops: 'dollarSign', nexushr: 'users', tracking: 'truck', complyos: 'shield',
 };
 const BAR_COLORS = ['#0052CC', '#00B8D9', '#36B37E', '#6554C0', '#FF5630', '#FFAB00', '#2684FF', '#205081'];
 

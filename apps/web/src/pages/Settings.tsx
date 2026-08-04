@@ -2016,7 +2016,7 @@ const FreightSection: React.FC = () => {
 
 // -- API Keys (developer / partner access) -----------------------------------
 const API_SCOPE_OPTIONS = [
-  'ai', 'clearos', 'cloud', 'complyos', 'contacts', 'email', 'finops', 'oneid', 'onepi', 'tracking',
+  'ai', 'clearos', 'cloud', 'complyos', 'contacts', 'email', 'finops', 'oneid', 'nexushr', 'tracking',
 ];
 
 interface ApiKeyRow {

@@ -241,7 +241,7 @@ export const NAV_CONFIGS: Record<AppId, NavCategory[]> = {
   studio: [],
   clearos:   clearosNav,
   finops:    [],
-  onepi:     onepiNav,
+  nexushr:     onepiNav,
   bliss:     blissNav,
   cloud:     cloudNav,
   workspace: workspaceNav,

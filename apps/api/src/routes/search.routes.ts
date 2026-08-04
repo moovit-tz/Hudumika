@@ -98,7 +98,7 @@ export async function searchRoutes(fastify: FastifyInstance) {
       }));
       if (staff.length) data.staff = staff.map(u => ({
         id: u.id, label: u.name, sublabel: u.email,
-        path: `/onepi/staff/${u.id}`,
+        path: `/nexushr/staff/${u.id}`,
       }));
       if (drivers.length) data.drivers = drivers.map(d => ({
         id: d.id, label: d.name, sublabel: d.license_number || d.phone || null,

@@ -14,7 +14,7 @@ const DEFAULT_APP_COLOR = '#0b1e3a';
 const APP_META_BRAND = [
   { id: 'clearos',   name: 'ClearOS',        slogan: 'Customs & Freight clearance platform', defaultColor: DEFAULT_APP_COLOR },
   { id: 'finops',    name: 'FinOps',         slogan: 'Financial accounts and payroll ledger', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'onepi',     name: 'NexusHR',        slogan: 'People operations and shift rosters', defaultColor: DEFAULT_APP_COLOR },
+  { id: 'nexushr',     name: 'NexusHR',        slogan: 'People operations and shift rosters', defaultColor: DEFAULT_APP_COLOR },
   { id: 'bliss',     name: 'Bliss',          slogan: 'Omnichannel customer helpdesk & ticketing', defaultColor: DEFAULT_APP_COLOR },
   { id: 'complyos',  name: 'ComplyOS',       slogan: 'Compliance tracking, BRELA search & permits', defaultColor: DEFAULT_APP_COLOR },
   { id: 'crm',       name: 'CRM',            slogan: 'Customer relationships and sales deals', defaultColor: DEFAULT_APP_COLOR },

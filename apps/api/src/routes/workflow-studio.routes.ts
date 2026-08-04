@@ -40,7 +40,7 @@ function hydrate(row: any) {
 const APP_META: Record<AppId, { name: string; color: string }> = {
   clearos:      { name: 'ClearOS',      color: '#ea580c' },
   finops:       { name: 'FinOps',       color: '#0284c7' },
-  onepi:        { name: 'NexusHR',      color: '#0d9488' },
+  nexushr:        { name: 'NexusHR',      color: '#0d9488' },
   bliss:        { name: 'Bliss',        color: '#7c3aed' },
   complyos:     { name: 'ComplyOS',     color: '#059669' },
   crm:          { name: 'CRM',          color: '#059669' },

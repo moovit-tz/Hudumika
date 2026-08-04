@@ -233,7 +233,7 @@ export const StaffDetail: React.FC = () => {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <h2 style={{ color: 'var(--ink)', marginBottom: 12 }}>Staff member not found</h2>
-        <Link to="/onepi/employees" className="btn btn-secondary">Back to HR</Link>
+        <Link to="/nexushr/employees" className="btn btn-secondary">Back to HR</Link>
       </div>
     );
   }

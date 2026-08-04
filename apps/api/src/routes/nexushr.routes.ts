@@ -5,7 +5,7 @@ import { requireRole } from '../middleware/rbac.js';
 
 export async function nexusHRRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireEntitlement('onepi'));
+  fastify.addHook('preHandler', requireEntitlement('nexushr'));
 
   // ─── CORE HR ───────────────────────────────────────────────────────────────
 

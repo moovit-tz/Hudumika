@@ -41,7 +41,7 @@ const DEFAULT_APP_COLOR = '#0b1e3a';
 const APPS: { id: string; name: string; color: string }[] = [
   { id: 'clearos',   name: 'ClearOS',  color: DEFAULT_APP_COLOR },
   { id: 'finops',    name: 'FinOps',   color: DEFAULT_APP_COLOR },
-  { id: 'onepi',     name: 'NexusHR',  color: DEFAULT_APP_COLOR },
+  { id: 'nexushr',     name: 'NexusHR',  color: DEFAULT_APP_COLOR },
   { id: 'bliss',     name: 'Bliss',    color: DEFAULT_APP_COLOR },
   { id: 'complyos',  name: 'ComplyOS', color: DEFAULT_APP_COLOR },
   { id: 'crm',       name: 'CRM',      color: DEFAULT_APP_COLOR },

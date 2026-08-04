@@ -197,7 +197,7 @@ export const ACTIONS: ActionDef[] = [
 
   {
     id: 'hr.log_activity',
-    app: 'onepi',
+    app: 'nexushr',
     label: 'Log activity against a staff member',
     description: 'Writes to the HR activity feed the staff detail view already reads.',
     inputSchema: z.object({
@@ -214,6 +214,105 @@ export const ACTIONS: ActionDef[] = [
         module: input.module,
       }).execute());
       return { ok: true, detail: `Logged activity for user ${input.userId}.` };
+    },
+  },
+
+  {
+    /**
+     * The HR service every other app actually needs: who can take this on.
+     *
+     * "Assign the new consignment to a senior officer" is wrong if that officer
+     * is on approved leave — which ClearOS has no way to know, because staffing
+     * lives in NexusHR. This answers it from the one place that knows, and
+     * returns a userId later nodes assign to.
+     */
+    id: 'hr.find_available_staff',
+    app: 'nexushr',
+    label: 'Find an available staff member',
+    description: 'Picks an active staff member of a given role who is not on approved leave on the date given. Read-only.',
+    inputSchema: z.object({
+      role: z.string().min(1),
+      /** ISO date; defaults to today. */
+      onDate: z.string().optional(),
+      /** Round-robin by least recently assigned rather than always the same person. */
+      strategy: z.enum(['first', 'least_loaded']).default('least_loaded'),
+    }),
+    async execute(ctx, input) {
+      const day = (input.onDate ?? new Date().toISOString().slice(0, 10));
+      return withTenant(ctx.tenantId, async (trx) => {
+        const candidates = await trx.selectFrom('users')
+          .select(['id', 'name', 'email'])
+          .where('tenant_id', '=', ctx.tenantId)
+          .where('role', '=', input.role)
+          .where('active', '=', true)
+          .execute();
+
+        if (candidates.length === 0) {
+          return { ok: false, detail: `No active staff with role ${input.role}.` };
+        }
+
+        const away = await trx.selectFrom('hr_leaves')
+          .select('user_id')
+          .where('tenant_id', '=', ctx.tenantId)
+          .where('status', '=', 'APPROVED')
+          .where('from_date', '<=', day as any)
+          .where('to_date', '>=', day as any)
+          .execute();
+        const awaySet = new Set(away.map(a => a.user_id));
+        const free = candidates.filter(c => !awaySet.has(c.id));
+
+        if (free.length === 0) {
+          return { ok: false, detail: `All ${candidates.length} ${input.role} staff are on approved leave on ${day}.` };
+        }
+
+        let chosen = free[0];
+        if (input.strategy === 'least_loaded') {
+          // Fewest open shipments wins. Counted here rather than guessed.
+          const load = await trx.selectFrom('shipment_cases')
+            .select('assigned_to')
+            .select(eb => eb.fn.countAll<string>().as('n'))
+            .where('tenant_id', '=', ctx.tenantId)
+            .where('assigned_to', 'in', free.map(f => f.id))
+            .where('resolved_at', 'is', null)
+            .groupBy('assigned_to')
+            .execute();
+          const byUser = new Map(load.map(l => [l.assigned_to as string, Number(l.n)]));
+          chosen = [...free].sort((a, b) => (byUser.get(a.id) ?? 0) - (byUser.get(b.id) ?? 0))[0];
+        }
+
+        return {
+          ok: true,
+          detail: `${chosen.name ?? chosen.email} is available on ${day} (${free.length} of ${candidates.length} ${input.role} free).`,
+          output: { userId: chosen.id, name: chosen.name, email: chosen.email, availableCount: free.length },
+        };
+      });
+    },
+  },
+
+  {
+    id: 'hr.post_announcement',
+    app: 'nexushr',
+    label: 'Post a staff announcement',
+    description: 'Publishes to the NexusHR announcements board any app can raise something staff-wide.',
+    inputSchema: z.object({
+      title: z.string().min(1),
+      body: z.string().min(1),
+      category: z.string().default('General'),
+      audience: z.string().default('All Staff'),
+    }),
+    async execute(ctx, input) {
+      if (ctx.simulate) return { ok: true, detail: `Would post "${input.title}" to ${input.audience}.` };
+      const row = await withTenant(ctx.tenantId, trx => trx.insertInto('hr_announcements').values({
+        tenant_id: ctx.tenantId,
+        title: input.title,
+        body: input.body,
+        category: input.category,
+        audience: input.audience,
+        // Posted by an automation, not a person — left null rather than
+        // attributed to whoever happened to trigger the event.
+        author_id: null,
+      }).returning('id').executeTakeFirstOrThrow());
+      return { ok: true, detail: `Posted "${input.title}" to ${input.audience}.`, output: { announcementId: row.id } };
     },
   },
 

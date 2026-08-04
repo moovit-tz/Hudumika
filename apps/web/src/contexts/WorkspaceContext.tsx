@@ -8,7 +8,7 @@ const APP_PREFIXES: Array<[string, AppId]> = [
   // New prefix-based routes (Phase 1+)
   ['/clearos',          'clearos'],
   ['/finops',           'finops'],
-  ['/onepi',            'onepi'],
+  ['/nexushr',            'nexushr'],
   ['/bliss',            'bliss'],
   ['/cloud',            'cloud'],
   ['/ai',               'ai'],
@@ -34,7 +34,7 @@ const APP_PREFIXES: Array<[string, AppId]> = [
   ['/purchase-orders',  'finops'],
   ['/expenses',         'finops'],
   ['/accounts',         'finops'],
-  ['/hrm',              'onepi'],
+  ['/hrm',              'nexushr'],
   ['/support',          'bliss'],
   ['/escalations',      'bliss'],
   ['/documents',        'cloud'],

@@ -4,7 +4,7 @@ import type { FeatureKey } from '@hudumika/types';
 import { getUsageSummary } from '../lib/usage.js';
 
 const BASE_FEATURES: FeatureKey[] = [
-  'ai', 'clearos', 'cloud', 'complyos', 'contacts', 'email', 'finops', 'oneid', 'onepi', 'tracking',
+  'ai', 'clearos', 'cloud', 'complyos', 'contacts', 'email', 'finops', 'oneid', 'nexushr', 'tracking',
   'demurrage', 'cargotracker',
 ];
 

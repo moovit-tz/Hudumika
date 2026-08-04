@@ -481,7 +481,7 @@ const CO_FORM_DEFAULT: CoForm = { name:'', email:'', phone:'', plan:'starter', o
 const TENANT_APPS: { id: string; name: string; color: string }[] = [
   { id: 'clearos',   name: 'ClearOS',  color: 'var(--gold)' },
   { id: 'finops',    name: 'FinOps',   color: 'var(--blue)' },
-  { id: 'onepi',     name: 'NexusHR',  color: 'var(--teal)' },
+  { id: 'nexushr',     name: 'NexusHR',  color: 'var(--teal)' },
   { id: 'bliss',     name: 'Bliss',    color: 'var(--purple)' },
   { id: 'complyos',  name: 'ComplyOS', color: 'var(--green)' },
   { id: 'crm',       name: 'CRM',      color: 'var(--green)' },
@@ -886,7 +886,7 @@ export function SubscriptionsView() {
    PACKAGES VIEW
 ══════════════════════════════════════════════════ */
 const ALL_FEATURE_KEYS = [
-  'ai', 'clearos', 'cloud', 'complyos', 'contacts', 'email', 'finops', 'oneid', 'onepi', 'tracking',
+  'ai', 'clearos', 'cloud', 'complyos', 'contacts', 'email', 'finops', 'oneid', 'nexushr', 'tracking',
   'tracking.cargo-loading', 'tracking.warehouse', 'tracking.analytics', 'tracking.reports',
   'demurrage', 'cargotracker',
 ];
@@ -1985,13 +1985,13 @@ export function SettingsView() {
 const APP_LABELS: Record<string, string> = {
   ai: 'AI', clearos: 'ClearOS', cloud: 'Cloud', complyos: 'ComplyOS',
   contacts: 'Contacts', email: 'Email', finops: 'FinOps', oneid: 'Ondi',
-  onepi: 'NexusHR', tracking: 'Tracking', demurrage: 'Demurrage', cargotracker: 'CargoTracker',
+  nexushr: 'NexusHR', tracking: 'Tracking', demurrage: 'Demurrage', cargotracker: 'CargoTracker',
 };
 
 const APP_ICONS: Record<string, IconName> = {
   ai: 'sparkle', clearos: 'ship', cloud: 'folder', complyos: 'shield',
   contacts: 'contact', email: 'mail', finops: 'dollarSign', oneid: 'key',
-  onepi: 'users', tracking: 'truck', demurrage: 'timer', cargotracker: 'container',
+  nexushr: 'users', tracking: 'truck', demurrage: 'timer', cargotracker: 'container',
 };
 
 interface AppStatusRow { app_id: string; status: 'active' | 'maintenance'; message: string | null; updated_at: string; }

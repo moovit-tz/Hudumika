@@ -108,7 +108,7 @@ const NAV: SidebarSection[] = [
       { label: 'Demurrage',         icon: 'alertTriangle', path: '/cargotracker/demurrage' },
       { label: 'Invoices',          icon: 'dollarSign', path: '/finance/invoices' },
       { label: 'Quotations',        icon: 'fileText',   path: '/finance/quotations' },
-      { label: 'Staff',             icon: 'users',      path: '/onepi/employees' },
+      { label: 'Staff',             icon: 'users',      path: '/nexushr/employees' },
     ],
   },
 ];

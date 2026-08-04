@@ -49,7 +49,7 @@ import { ConfirmHost } from './components/ConfirmHost.js';
 
 import { ClearOSShell } from './shells/ClearOSShell.js';
 import { FinOpsShell }  from './shells/FinOpsShell.js';
-import { OnePIShell }   from './shells/OnePIShell.js';
+import { NexusHRShell }   from './shells/NexusHRShell.js';
 import { BlissShell }   from './shells/BlissShell.js';
 import { CloudShell }   from './shells/CloudShell.js';
 import { AdminShell }        from './shells/AdminShell.js';
@@ -109,7 +109,19 @@ const NavShell: React.FC = () => (
 
 function HrmStaffRedirect() {
   const { id } = useParams();
-  return <Navigate to={`/onepi/staff/${id}`} replace />;
+  return <Navigate to={`/nexushr/staff/${id}`} replace />;
+}
+
+/**
+ * Carries the whole path across the /onepi -> /nexushr rename.
+ *
+ * A flat redirect to /nexushr would drop whatever the person was actually
+ * opening — /onepi/payroll and a deep /onepi/staff/:id from a notification
+ * link both have to land on their real destination, with the query string.
+ */
+function OnepiToNexusHR() {
+  const { pathname, search, hash } = useLocation();
+  return <Navigate to={pathname.replace(/^\/onepi/, '/nexushr') + search + hash} replace />;
 }
 
 /* ── Route guard: restrict to specific roles ── */
@@ -301,7 +313,12 @@ const AppContent: React.FC = () => {
           <Route path="/clearos/*"  element={<ClearOSShell />} />
           <Route path="/finance/*"  element={<RequireRoles roles={FIN_ROLES}><FinOpsShell /></RequireRoles>} />
           <Route path="/finops/*"   element={<RequireRoles roles={FIN_ROLES}><FinOpsShell /></RequireRoles>} />
-          <Route path="/onepi/*"    element={<OnePIShell />} />
+          <Route path="/nexushr/*"    element={<NexusHRShell />} />
+          {/* /onepi is retired as the HR prefix — it is being freed for the
+              separate KPI-management app. Bookmarks, printed reports and the
+              links inside already-sent notifications still point here, so the
+              whole subtree redirects with its path preserved. */}
+          <Route path="/onepi/*"    element={<OnepiToNexusHR />} />
           <Route path="/bliss/*"    element={<BlissShell />} />
           <Route path="/cloud/*"    element={<CloudShell />} />
           <Route path="/workspace/*"element={<AdminShell />} />
@@ -382,13 +399,13 @@ const AppContent: React.FC = () => {
           <Route path="/calendar/*"       element={<CalendarShell />} />
           <Route path="/tasks/*"          element={<TasksShell />} />
 
-          {/* Legacy HRM routes — superseded by the OnePI shell (/onepi/*), kept as redirects for old links/bookmarks */}
-          <Route path="/hrm"           element={<Navigate to="/onepi" replace />} />
+          {/* Legacy HRM routes — superseded by the OnePI shell (/nexushr/*), kept as redirects for old links/bookmarks */}
+          <Route path="/hrm"           element={<Navigate to="/nexushr" replace />} />
           <Route path="/hrm/staff/:id" element={<HrmStaffRedirect />} />
           {['employees','roles','permissions','delete-requests','departments','designations','teams','invitations',
             'staff-directory','activity-logs','login-history','device-management','leaves','attendance','shifts',
             'holidays','payroll','announcements','org-chart'].map(seg => (
-            <Route key={seg} path={`/hrm/${seg}`} element={<Navigate to={`/onepi/${seg}`} replace />} />
+            <Route key={seg} path={`/hrm/${seg}`} element={<Navigate to={`/nexushr/${seg}`} replace />} />
           ))}
 
           <Route path="/track/shared/:token" element={<TrackingShared />} />
