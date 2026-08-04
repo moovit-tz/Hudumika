@@ -9,6 +9,7 @@ import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 /**
  * Performance — goals and review cycles.
@@ -92,12 +93,12 @@ export function Performance() {
 
   return (
     <div style={{ padding: '24px 32px', flex: 1, overflowY: 'auto' }}>
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 21, fontWeight: 800, color: 'var(--ink)' }}>Performance</div>
-        <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 3 }}>
-          Goals people are working towards, and the cycles they are reviewed in.
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['NexusHR', 'Performance']}
+        titlePlain="Goals &"
+        titleEm="reviews"
+        subtitle="Goals people are working towards, and the cycles they are reviewed in."
+      />
 
       {error && (
         <div style={{ padding: '10px 13px', borderRadius: 10, background: 'var(--red-l)',

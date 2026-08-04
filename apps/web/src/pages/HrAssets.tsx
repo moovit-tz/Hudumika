@@ -9,6 +9,7 @@ import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 /**
  * Company assets and who is holding them.
@@ -76,12 +77,12 @@ export function HrAssets() {
 
   return (
     <div style={{ padding: '24px 32px', flex: 1, overflowY: 'auto' }}>
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 21, fontWeight: 800, color: 'var(--ink)' }}>Assets</div>
-        <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 3 }}>
-          Company equipment and who is currently holding it.
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['NexusHR', 'Records']}
+        titlePlain="Company"
+        titleEm="assets"
+        subtitle="Company equipment and who is currently holding it."
+      />
 
       {error && (
         <div style={{ padding: '10px 13px', borderRadius: 10, background: 'var(--red-l)',

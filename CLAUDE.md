@@ -4,6 +4,35 @@ Multi-tenant logistics/customs/finance/HR platform. Fastify API in `apps/api`, R
 
 See [`AGENTS.md`](AGENTS.md) for the rest of the stack's conventions — backend/API patterns, verification, dependency hygiene, and the specific traps other agents (or you, in a future session) have already hit once. This file (`CLAUDE.md`) is authoritative for the design-system mapping and the tenant-isolation rule above; `AGENTS.md` is authoritative for everything else, and governs any AI agent working in this repo, not just Claude.
 
+## Page titles — one style, every app, no exceptions
+
+**Every page in every app opens with `PageHeader` (`apps/web/src/components/PageHeader.tsx`). This is not a preference; a page that hand-rolls its title is wrong and gets migrated.** It applies to new pages and existing ones alike, in ClearOS, SEAL, Studio, NexusHR, Drive, HuduFreight, ComplyOS, Calendar, Tasks, Email, Inventory, CargoTracker, Store, Ondi, Admin, FinOps and anything added later.
+
+```tsx
+<PageHeader
+  crumbs={['ClearOS', 'Declarations']}
+  titlePlain="Customs"
+  titleEm="declarations"
+  subtitle="Every TANSAD lodged for this workspace — its assessment, lane and release."
+  actions={<Button>New declaration</Button>}   // optional
+/>
+```
+
+The look is a **font pairing, not just a colour**, and all three parts matter:
+
+- `titlePlain` — the leading word(s), in `var(--font)` at weight 300. The plain face.
+- `titleEm` — the **final** word only, in `Cormorant Garamond` italic 700, coloured `var(--teal)`. The special face. This is what makes it recognisable.
+- The trailing `.` is added by the component in the plain face and ink colour — never type it into `titleEm`.
+- `crumbs` renders uppercase, letter-spaced, `·`-separated.
+
+Because the em word reads `var(--teal)`, the title automatically takes each app's own colour and the tenant's brand — orange in ClearOS, green in Admin, whatever a SuperAdmin sets. **Never hardcode that colour**, and never substitute a different serif; the face is part of the platform's identity.
+
+Splitting the title: put the noun the page is *about* in `titleEm`, the qualifier in `titlePlain` — "Customs *declarations*", "Component *showcase*", "Clearance *operations*", "Employment *records*". One word in `titleEm`, not a phrase.
+
+Sizing, spacing and the 768/480 breakpoints live in `.page-header*` in `index.css`. Do not set a page's own `<h1>`, `fontSize`, or margin above the header — if something looks wrong, fix the CSS so every app gets the fix.
+
+`PageHeader` is defined once. `HRM.tsx` and `SuperAdmin.tsx` grew private `PageHdr` copies; those are being removed, so do not add a third.
+
 ## Design system
 
 `apps/web/src/components/ui/` is the platform's component library (shadcn/Radix-based, themed to the app's real brand palette — teal `--primary`, not shadcn's default blue). **Any new UI — new page, new form, new modal, new panel — must be built from these components, not hand-rolled.** A live, interactive catalog of everything below lives at `/admin/components` (`apps/web/src/pages/ComponentShowcase.tsx`) — check it before building a component from scratch.
