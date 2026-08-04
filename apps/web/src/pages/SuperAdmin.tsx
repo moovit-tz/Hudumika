@@ -11,6 +11,7 @@ import { Switch } from '../components/ui/switch.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 /* ══════════════════════════════════════════════════
    TYPES
@@ -234,15 +235,31 @@ function KPICard({ title, value, change, icon, color, spark, hint, emptyHint }: 
 }
 
 /* ── Page header ── */
+/**
+ * The platform console's page title.
+ *
+ * This was a private 20px <h1> — one of two copies that had grown alongside
+ * the real PageHeader, which is why the SuperAdmin screens did not look like
+ * the rest of the platform. It now delegates, so every view in this file
+ * picks up the house style (plain face + Cormorant Garamond italic final
+ * word in the app's colour) without touching a single call site.
+ *
+ * The final word becomes the emphasised one and is lowercased to match the
+ * house style — "Purchase Transactions" reads as "Purchase transactions".
+ * A one-word title has no plain part to pair with, so those call sites pass
+ * a two-word title instead of relying on the split.
+ */
 function PageHdr({ title, sub, action }: { title:string; sub:string; action?:React.ReactNode }) {
+  const words = title.trim().split(/\s+/);
+  const em = words.pop() ?? title;
   return (
-    <div className="sa-page-hdr" style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginTop: 20, marginBottom:24, gap:16, flexWrap:'wrap' }}>
-      <div style={{ minWidth:0 }}>
-        <h1 style={{ fontSize:20, fontWeight:800, color:'var(--ink)', margin:0, letterSpacing:'-0.02em' }}>{title}</h1>
-        <p style={{ fontSize:13, color:'var(--ink3)', margin:'4px 0 0' }}>{sub}</p>
-      </div>
-      {action}
-    </div>
+    <PageHeader
+      crumbs={['Admin', title]}
+      titlePlain={words.join(' ')}
+      titleEm={em.toLowerCase()}
+      subtitle={sub}
+      actions={action}
+    />
   );
 }
 
@@ -811,7 +828,7 @@ export function SubscriptionsView() {
 
   return (
     <div>
-      <PageHdr title="Subscriptions" sub="All company subscription plans and billing status" />
+      <PageHdr title="Company Subscriptions" sub="All company subscription plans and billing status" />
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:22 }}>
         <StatCard label="Total Subscriptions" value={counts.total}   color="var(--teal)"  />
@@ -972,7 +989,7 @@ export function PackagesView() {
 
   return (
     <div>
-      <PageHdr title="Packages" sub="Manage subscription plans and pricing"
+      <PageHdr title="Subscription Packages" sub="Manage subscription plans and pricing"
         action={
           <div style={{ display:'flex', gap:10, alignItems:'center' }}>
             <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:6, overflow:'hidden' }}>
@@ -1204,7 +1221,7 @@ export function DomainsView() {
 
   return (
     <div>
-      <PageHdr title="Domains" sub="Custom domains across all companies, and what the last DNS and TLS check actually found" />
+      <PageHdr title="Custom Domains" sub="Custom domains across all companies, and what the last DNS and TLS check actually found" />
 
       {loadError && (
         <div style={{ padding:'10px 13px', borderRadius:10, background:'var(--red-l)', color:'var(--red)', fontSize:12.5, marginBottom:14 }}>{loadError}</div>
@@ -1497,7 +1514,7 @@ export function FinanceView() {
 
   return (
     <div>
-      <PageHdr title="Finance" sub="Platform billing — what has been received, and what active plans would bill" />
+      <PageHdr title="Platform Finance" sub="Platform billing — what has been received, and what active plans would bill" />
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:24 }}>
         <KPICard title="Revenue Collected"      value={fmtCurrency(collected)} icon="dollarSign" color="var(--teal)"

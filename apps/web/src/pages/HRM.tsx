@@ -13,6 +13,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox } from '../components/ui/combobox.js';
 import { MultiSelectFilter } from '../components/ui/filter-dropdown.js';
 import { DatePicker } from '../components/ui/date-picker.js';
+import { PageHeader as SharedPageHeader } from '../components/PageHeader.js';
 
 function mapAttStatus(s: string): AttendanceStatus {
   switch (s) {
@@ -255,27 +256,36 @@ function Badge({ status }: { status: string }) {
   return <span style={{ padding:'2px 10px', borderRadius:20, fontSize:11, fontWeight:700, background:c.bg, color:c.color, whiteSpace:'nowrap' }}>{c.label}</span>;
 }
 
-function PageHeader({ icon, title, sub, children, backTo }: { icon: IconName; title: string; sub?: string; children?: React.ReactNode; backTo?: string }) {
+/**
+ * NexusHR's page title — the second private copy of PageHeader that had grown
+ * in this repo. It now delegates to the real one, so all ~30 views in this
+ * file take the house style without touching a call site. `icon` is still
+ * accepted so those call sites compile unchanged, but is no longer rendered.
+ */
+function PageHeader({ icon, title, sub, children, backTo }: { icon?: IconName; title: string; sub?: string; children?: React.ReactNode; backTo?: string }) {
+  const titleWords = title.trim().split(/\s+/);
+  const titleEm = titleWords.pop() ?? title;
   return (
-    <div style={{ marginBottom:20, display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
-      <div style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
-        {backTo !== undefined && (
-          <Link to={backTo || '/nexushr'} title="Go back"
-            style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--border)', background:'var(--white)', cursor:'pointer',
-              display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:2 }}>
-            <Icon name="arrowLeft" size={15} color="var(--ink2)" />
-          </Link>
-        )}
-        <div>
-          <h1 style={{ fontSize:20, fontWeight:800, color:'var(--ink)', margin:'0 0 4px', display:'flex', alignItems:'center', gap:10 }}>
-            <Icon name={icon} size={20} strokeWidth={2.2} color="var(--teal)" />
-            {title}
-          </h1>
-          {sub && <p style={{ fontSize:13, color:'var(--ink3)', margin:0 }}>{sub}</p>}
-        </div>
-      </div>
-      {children && <div style={{ display:'flex', gap:8 }}>{children}</div>}
-    </div>
+    <>
+      {/* The back link stays — it is navigation, not part of the title. The
+          leading icon is dropped: the house style pairs a plain face with a
+          Cormorant Garamond italic final word, and an icon in front of that
+          is a different design. */}
+      {backTo !== undefined && (
+        <Link to={backTo || '/nexushr'} title="Go back"
+          style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--border)', background:'var(--white)', cursor:'pointer',
+            display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:20 }}>
+          <Icon name="arrowLeft" size={15} color="var(--ink2)" />
+        </Link>
+      )}
+      <SharedPageHeader
+        crumbs={['NexusHR', title]}
+        titlePlain={titleWords.join(' ')}
+        titleEm={titleEm.toLowerCase()}
+        subtitle={sub}
+        actions={children}
+      />
+    </>
   );
 }
 
@@ -1079,7 +1089,7 @@ export function DepartmentsPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="building" title="Departments" sub="Organisational departments and their leads" backTo="/nexushr">
+      <PageHeader icon="building" title="Company Departments" sub="Organisational departments and their leads" backTo="/nexushr">
         <PrimaryBtn label="Add Department" icon="plus" onClick={() => { setEditing(null); setShowNew(v => !v); }} />
       </PageHeader>
 
@@ -1130,7 +1140,7 @@ export function TeamsPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="users" title="Teams" sub="Cross-functional working groups and project teams" backTo="/nexushr">
+      <PageHeader icon="users" title="Working Teams" sub="Cross-functional working groups and project teams" backTo="/nexushr">
         <PrimaryBtn label="Create Team" icon="plus" onClick={() => setShowNew(v => !v)} />
       </PageHeader>
 
@@ -1220,7 +1230,7 @@ export function InvitationsPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="userPlus" title="Invitations" sub="Pending and sent user invitations" backTo="/nexushr">
+      <PageHeader icon="userPlus" title="Pending Invitations" sub="Pending and sent user invitations" backTo="/nexushr">
         <PrimaryBtn label="Send Invitation" icon="send" onClick={() => setShowNew(v => !v)} />
       </PageHeader>
 
@@ -1618,7 +1628,7 @@ export function AttendancePage() {
 
   return (
     <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex:1, overflowY:'auto', display: 'flex', flexDirection: 'column' }}>
-      <PageHeader icon="clock" title="Attendances" sub="Daily staff attendance and clock records" backTo="/nexushr">
+      <PageHeader icon="clock" title="Staff Attendance" sub="Daily staff attendance and clock records" backTo="/nexushr">
         <button type="button" className="btn btn-secondary" onClick={() => { setBulkEmpIds([]); setShowBulk(true); }} style={{ display:'flex', alignItems:'center', gap:6 }}>
           <Icon name="tasks" size={14} /> Mark Attendance
         </button>
@@ -2258,7 +2268,7 @@ export function HolidaysPage() {
   const grouped = { Public: holidays.filter(h=>h.type==='Public'), Company: holidays.filter(h=>h.type==='Company') };
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="sun" title="Holidays" sub="Public and company-designated holidays" backTo="/nexushr">
+      <PageHeader icon="sun" title="Public Holidays" sub="Public and company-designated holidays" backTo="/nexushr">
         <PrimaryBtn label="Add Holiday" icon="plus" onClick={() => setShowNew(v => !v)} />
       </PageHeader>
 
@@ -2397,7 +2407,7 @@ export function DesignationsPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="award" title="Designations" sub="Job titles and role classifications" backTo="/nexushr">
+      <PageHeader icon="award" title="Job Designations" sub="Job titles and role classifications" backTo="/nexushr">
         <PrimaryBtn label="Add Designation" icon="plus" onClick={() => { setEditing(null); setShowNew(v => !v); }} />
       </PageHeader>
 
@@ -2484,7 +2494,7 @@ export function PayrollPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="dollarSign" title="Payroll" sub={`Monthly payroll — ${monthLabel}`} backTo="/nexushr">
+      <PageHeader icon="dollarSign" title="Monthly Payroll" sub={`Monthly payroll — ${monthLabel}`} backTo="/nexushr">
         <button type="button" className="btn btn-secondary" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6 }}>
           <Icon name="download" size={13} color="var(--ink2)" /> Export
         </button>
@@ -2547,7 +2557,7 @@ export function AnnouncementsPage() {
   const catBg: Record<string, string> = { HR:'var(--purple-l)', Policy:'var(--teal-l)', IT:'var(--blue-l)' };
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="volume2" title="Announcements" sub="Company-wide announcements and notices" backTo="/nexushr">
+      <PageHeader icon="volume2" title="Company Announcements" sub="Company-wide announcements and notices" backTo="/nexushr">
         <PrimaryBtn label="Post Announcement" icon="plus" onClick={() => setShowNew(v => !v)} />
       </PageHeader>
 
