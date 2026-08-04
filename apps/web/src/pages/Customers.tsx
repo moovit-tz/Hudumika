@@ -49,7 +49,7 @@ function initials(name: string) {
   return name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 }
 function avatarColor(name: string) {
-  return AVATAR_COLORS[name.charCodeAt(0) % AVATAR_COLORS.length];
+  return AVATAR_COLORS[((name ?? '?').charCodeAt(0)) % AVATAR_COLORS.length];
 }
 function Avatar({ name, size = 36 }: { name: string; size?: number }) {
   return (

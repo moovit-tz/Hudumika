@@ -12,7 +12,7 @@ import { showAlert } from '../lib/alert.js';
 
 /* ── Avatar ── */
 const AV_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30'];
-function avColor(name: string) { return AV_COLORS[name.charCodeAt(0) % AV_COLORS.length]; }
+function avColor(name: string) { return AV_COLORS[((name ?? '?').charCodeAt(0)) % AV_COLORS.length]; }
 function initials(name: string) { return name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
 
 /* ── Role label ── */

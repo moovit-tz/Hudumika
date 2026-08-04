@@ -28,7 +28,7 @@ interface StaffData {
 }
 
 const AVATAR_COLORS = ['#e8461a','#0891b2','#7c3aed','#059669','#d97706','#9333ea'];
-function avatarBg(n: string) { return AVATAR_COLORS[[...n].reduce((a,c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length]; }
+function avatarBg(n: string) { return AVATAR_COLORS[[...(n ?? '?')].reduce((a,c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length]; }
 function initials(n: string) { return n.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase(); }
 
 function formatDate(d: string | null | undefined): string {

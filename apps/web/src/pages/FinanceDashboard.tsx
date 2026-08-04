@@ -15,7 +15,7 @@ function pct(n: number) { return (n > 0 ? '+' : '') + n.toFixed(2) + '%'; }
 function Av({ name, color, size = 38, img }: { name: string; color?: string; size?: number; img?: string }) {
   const initials = name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
   const colors = ['#0d7a6b','#4f46e5','#ec4899','#f59e0b','#8b5cf6','#0550ae','#059669'];
-  const bg = color || colors[name.charCodeAt(0) % colors.length];
+  const bg = color || colors[((name ?? '?').charCodeAt(0)) % colors.length];
   if (img) return <img src={img} alt={name} style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />;
   return (
     <div style={{ width: size, height: size, borderRadius: '50%', background: bg, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: size * 0.33, flexShrink: 0, fontFamily: 'var(--font)' }}>

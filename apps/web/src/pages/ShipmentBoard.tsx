@@ -32,7 +32,7 @@ function relative(d: Date) {
 function fmtTZS(n: number) { return 'TZS ' + n.toLocaleString('en'); }
 function avatarBg(name: string) {
   const c = ['#e8461a', '#2563eb', '#059669', '#7c3aed', '#ca8a04', '#0891b2'];
-  let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % c.length;
+  let h = 0; for (const ch of (name ?? '')) h = (h * 31 + ch.charCodeAt(0)) % c.length;
   return c[Math.abs(h)];
 }
 function initials(name: string) { return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase(); }

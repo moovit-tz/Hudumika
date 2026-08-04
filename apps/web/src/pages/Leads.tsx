@@ -65,7 +65,7 @@ const SOURCES   = Object.keys(SOURCE_CFG);
 /* ── Helpers ── */
 const AVATAR_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30','#0e7490'];
 function initials(n: string) { return n.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase(); }
-function avatarColor(n: string) { return AVATAR_COLORS[n.charCodeAt(0) % AVATAR_COLORS.length]; }
+function avatarColor(n: string) { return AVATAR_COLORS[((n ?? '?').charCodeAt(0)) % AVATAR_COLORS.length]; }
 function fmtDate(d: string) { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
 function fmtShort(d: string) { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }); }
 export function fmtValue(v: number) {

@@ -32,7 +32,7 @@ function fmtTZS(n: number): string {
 const AVATAR_COLORS = ['#0b7264', '#7c3aed', '#0891b2', '#ea580c', '#059669', '#dc2626', '#d97706'];
 function avatarColor(name: string): string {
   let h = 0;
-  for (let i = 0; i < name.length; i++) h = ((h << 5) - h) + name.charCodeAt(i);
+  for (let i = 0; i < (name ?? '').length; i++) h = ((h << 5) - h) + (name ?? '').charCodeAt(i);
   return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
 }
 

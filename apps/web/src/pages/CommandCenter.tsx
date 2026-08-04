@@ -40,7 +40,7 @@ function OfficerMentionInput({
   const avatarColor = (name: string) => {
     const colors = ['#0b7264','#7c3aed','#0891b2','#ea580c','#059669','#dc2626','#d97706'];
     let h = 0;
-    for (let i = 0; i < name.length; i++) h = ((h << 5) - h) + name.charCodeAt(i);
+    for (let i = 0; i < (name ?? '').length; i++) h = ((h << 5) - h) + (name ?? '').charCodeAt(i);
     return colors[Math.abs(h) % colors.length];
   };
 

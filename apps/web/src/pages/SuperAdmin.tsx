@@ -123,7 +123,7 @@ const ACT_CFG: Record<ActivityType,{color:string;bg:string;icon:string}> = {
 function fmtCurrency(n: number) { return '$' + n.toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 }); }
 function fmtDate(d: string) { return new Date(d).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); }
 const AV_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30','#0e7490'];
-function avColor(n: string) { return AV_COLORS[n.charCodeAt(0) % AV_COLORS.length]; }
+function avColor(n: string) { return AV_COLORS[((n ?? '?').charCodeAt(0)) % AV_COLORS.length]; }
 function coByID(id: string) { return COMPANIES.find(c=>c.id===id)!; }
 
 /* ── Status badge ── */

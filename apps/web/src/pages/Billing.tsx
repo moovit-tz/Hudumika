@@ -116,7 +116,7 @@ export function invoiceTotal(inv: Invoice) { return invoiceTotals(inv).grandTota
 
 export function genRefCode(id: string, version: number): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let seed = id.split('').reduce((s, c) => (s * 31 + c.charCodeAt(0)) >>> 0, 17);
+  let seed = (id ?? '').split('').reduce((s, c) => (s * 31 + c.charCodeAt(0)) >>> 0, 17);
   let h = '';
   for (let i = 0; i < 6; i++) { h += chars[seed % chars.length]; seed = (seed * 1103515245 + 12345) >>> 0; }
   return `${h.slice(0, 3)}-${h.slice(3)}-V${String(version).padStart(2, '0')}`;

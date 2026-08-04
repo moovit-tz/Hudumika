@@ -186,7 +186,7 @@ function newLine(): LineForm {
 }
 
 const ACOLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30'];
-function acolor(name: string) { return ACOLORS[name.charCodeAt(0)%ACOLORS.length]; }
+function acolor(name: string) { return ACOLORS[((name ?? '?').charCodeAt(0))%ACOLORS.length]; }
 function initials(name: string) { return name.split(' ').slice(0,2).map(w=>w[0]??'').join('').toUpperCase(); }
 
 // -- Shared UI -----------------------------------------------------------------
