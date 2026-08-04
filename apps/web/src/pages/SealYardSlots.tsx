@@ -7,6 +7,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Compartment { id: string; code: string; name: string; }
 interface YardSlot { id: string; compartmentId: string; code: string; capacityTeu: number; active: boolean; occupiedCount: number; }
@@ -59,11 +60,13 @@ export function SealYardSlots() {
 
   return (
     <div className="seal-page">
+      <PageHeader
+        crumbs={['SEAL', 'Yard Slots']}
+        titlePlain="Yard"
+        titleEm="slots"
+        subtitle="Where a gated-in container sits before/during devanning — a different physical spot from the rack/bin a devanned lot is put away into."
+      />
       <div className="seal-page-hdr">
-        <div>
-          <h1 className="seal-page-title">Yard Slots</h1>
-          <p className="seal-page-sub">Where a gated-in container sits before/during devanning — a different physical spot from the rack/bin a devanned lot is put away into.</p>
-        </div>
         <button type="button" className="seal-btn-primary" onClick={() => setShowNew(v => !v)}>
           <Icon name="plus" size={14} /><span>New Slot</span>
         </button>

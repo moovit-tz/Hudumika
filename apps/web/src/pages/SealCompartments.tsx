@@ -9,6 +9,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Compartment {
   id: string;
@@ -117,13 +118,13 @@ export function SealCompartments() {
   return (
     <div className="seal-page">
       {/* Header matching Image Two */}
-      <div className="seal-page-hdr" style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1 className="seal-page-title">Compartments</h1>
-          <p className="seal-page-sub">
-            Separately-licensed bonded perimeters — each with its own zones and locations underneath.
-          </p>
-        </div>
+      <PageHeader
+        crumbs={['SEAL', 'Compartments']}
+        titlePlain="Bonded"
+        titleEm="compartments"
+        subtitle="Separately-licensed bonded perimeters — each with its own zones and locations underneath."
+      />
+      <div className="seal-page-hdr">
         <button
           type="button"
           className="seal-btn-primary"

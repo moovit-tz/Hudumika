@@ -9,6 +9,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Equipment {
   id: string; compartmentId: string; equipmentType: string; assetTag: string; name: string;
@@ -120,11 +121,13 @@ export function SealEquipment() {
 
   return (
     <div className="seal-page">
+      <PageHeader
+        crumbs={['SEAL', 'Equipment & Tools']}
+        titlePlain="Equipment &"
+        titleEm="tools"
+        subtitle="Forklifts, scanners, racking hardware and plant — maintenance history, condition, and due-for-service alerts."
+      />
       <div className="seal-page-hdr">
-        <div>
-          <h1 className="seal-page-title">Equipment &amp; Tools</h1>
-          <p className="seal-page-sub">Forklifts, scanners, racking hardware and plant — maintenance history, condition, and due-for-service alerts.</p>
-        </div>
         <Button type="button" onClick={() => setShowNew(v => !v)}>
           <Icon name="plus" size={14} /><span>Add Equipment</span>
         </Button>

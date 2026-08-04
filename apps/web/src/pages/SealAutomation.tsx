@@ -8,6 +8,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Rule {
   id: string; compartmentId: string | null; name: string;
@@ -115,13 +116,13 @@ export function SealAutomation() {
 
   return (
     <div className="seal-page">
+      <PageHeader
+        crumbs={['SEAL', 'Automation Rules']}
+        titlePlain="Automation"
+        titleEm="rules"
+        subtitle="On-demand trigger→action rules — press &quot;Run Automation Check&quot; to evaluate them against current lots and examinations. There is no background scheduler; this always runs when you ask it to."
+      />
       <div className="seal-page-hdr">
-        <div>
-          <h1 className="seal-page-title">Automation Rules</h1>
-          <p className="seal-page-sub">
-            On-demand trigger→action rules — press "Run Automation Check" to evaluate them against current lots and examinations. There is no background scheduler; this always runs when you ask it to.
-          </p>
-        </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <Button type="button" variant="outline" onClick={handleEvaluate} disabled={evaluating}>
             <Icon name="refresh" size={14} /><span>{evaluating ? 'Running…' : 'Run Automation Check'}</span>

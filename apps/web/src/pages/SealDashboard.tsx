@@ -13,6 +13,7 @@ import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import { CUSTOMS_STATUS_VARIANT } from '../lib/sealStatus.js';
 import { CUSTOMS_STATUS_LABELS, type CustomsStatus } from '@hudumika/types';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
@@ -75,13 +76,13 @@ export function SealDashboard() {
   return (
     <div className="seal-page">
       {/* Header */}
+      <PageHeader
+        crumbs={['SEAL', 'Bonded Warehouse Dashboard']}
+        titlePlain="Bonded Warehouse"
+        titleEm="dashboard"
+        subtitle="Combined customs-controlled stock ledger &amp; operational metrics — real-time fiscal movements, rack utilization &amp; telemetry."
+      />
       <div className="seal-page-hdr">
-        <div>
-          <h1 className="seal-page-title">Bonded Warehouse Dashboard</h1>
-          <p className="seal-page-sub">
-            Combined customs-controlled stock ledger &amp; operational metrics — real-time fiscal movements, rack utilization &amp; telemetry.
-          </p>
-        </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button type="button" className="seal-btn-secondary" onClick={() => navigate('/seal/lots/new')}>
             <Icon name="plus" size={14} />

@@ -8,6 +8,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Compartment { id: string; code: string; name: string; }
 interface Period {
@@ -101,11 +102,13 @@ export function SealStockAccount() {
 
   return (
     <div className="seal-page">
+      <PageHeader
+        crumbs={['SEAL', 'Stock Account']}
+        titlePlain="Stock"
+        titleEm="account"
+        subtitle="The periodic compliance report — opening/closing balances per lot, reconstructed from the movement ledger, never hand-entered."
+      />
       <div className="seal-page-hdr">
-        <div>
-          <h1 className="seal-page-title">Stock Account</h1>
-          <p className="seal-page-sub">The periodic compliance report — opening/closing balances per lot, reconstructed from the movement ledger, never hand-entered.</p>
-        </div>
         <button type="button" className="seal-btn-primary" onClick={() => setShowNew(v => !v)}>
           <Icon name="plus" size={14} /><span>Generate Period</span>
         </button>

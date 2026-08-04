@@ -8,6 +8,7 @@ import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Guarantee {
   id: string; instrument_type: string; issuer: string | null; reference: string;
@@ -63,11 +64,13 @@ export function SealGuarantees() {
 
   return (
     <div className="seal-page">
+      <PageHeader
+        crumbs={['SEAL', 'Guarantees & Bond Headroom']}
+        titlePlain="Guarantees & Bond"
+        titleEm="headroom"
+        subtitle="The financial instruments securing suspended duty — attach one to a compartment and every receipt into bond checks it in real time."
+      />
       <div className="seal-page-hdr">
-        <div>
-          <h1 className="seal-page-title">Guarantees &amp; Bond Headroom</h1>
-          <p className="seal-page-sub">The financial instruments securing suspended duty — attach one to a compartment and every receipt into bond checks it in real time.</p>
-        </div>
         <button type="button" className="seal-btn-primary" onClick={() => setShowNew(v => !v)}>
           <Icon name="plus" size={14} />
           <span>New Guarantee</span>
