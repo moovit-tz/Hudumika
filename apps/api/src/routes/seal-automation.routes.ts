@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 import { withTenant } from '../db/client.js';
+import { toDateParam } from '../utils/dates.js';
 
 // SEAL-owned automation rules — confirmed during planning that both of the
 // platform's existing workflow engines (ClearOS's shipment-lifecycle step-
@@ -51,7 +52,7 @@ async function evaluateRules(trx: Transaction<Database>, tenantId: string) {
       let q = trx.selectFrom('seal_lots').select(['id', 'description', 'owner_id'])
         .where('customs_status', '=', 'FOREIGN_DUTY_SUSPENDED')
         .where('expires_on', 'is not', null)
-        .where('expires_on', '<=', new Date(Date.now() + days * 86400000));
+        .where('expires_on', '<=', toDateParam(new Date(Date.now() + days * 86400000)));
       if (rule.compartment_id) q = q.where('compartment_id', '=', rule.compartment_id);
       candidates = (await q.execute()).map(l => ({ subjectId: l.id, description: l.description, ownerId: l.owner_id }));
     } else if (rule.trigger_type === 'examination_pending') {

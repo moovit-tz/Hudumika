@@ -6,6 +6,7 @@ import { sql } from 'kysely';
 import { env } from '../config/env.js';
 import type { KPIResponse, StageBottleneck, OfficerPerformance, ClearanceStage } from '@hudumika/types';
 import { STAGE_LABELS } from '@hudumika/types';
+import { toDateParam } from '../utils/dates.js';
 
 // Expected max duration per stage (hours) — business SLA policy used to
 // flag real breaches against actual stage_history durations, not a guess.
@@ -448,7 +449,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
       const invoices = await trx.selectFrom('sales_invoices')
         .select(['id', 'customer_id', 'client_name', 'status', 'received', 'due_date', 'bill_date'])
         .where('tenant_id', '=', user.tenant_id)
-        .where('bill_date', '>=', monthStart)
+        .where('bill_date', '>=', toDateParam(monthStart))
         .execute();
       const invoiceIds = invoices.map(i => i.id);
       const lines = invoiceIds.length > 0

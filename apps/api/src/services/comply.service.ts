@@ -1,7 +1,7 @@
 import { db, withTenant } from '../db/client.js';
 import { getAdapter } from '../integrations/comply-agencies.js';
 import { MinioIntegration } from '../integrations/minio.js';
-import { toISODate, toEpochMs } from '../utils/dates.js';
+import { toISODate, toEpochMs, toDateParam } from '../utils/dates.js';
 import type {
   CompDashboardStats,
   CompCertificate,
@@ -671,8 +671,8 @@ export class ComplyService {
         .select(['id', 'name', 'agency_code', 'due_date', 'mandatory'])
         .where('tenant_id', '=', tenantId)
         .where('due_date', 'is not', null)
-        .where('due_date', '>=', monthStart)
-        .where('due_date', '<=', monthEnd)
+        .where('due_date', '>=', toDateParam(monthStart))
+        .where('due_date', '<=', toDateParam(monthEnd))
         .execute();
 
       const certs = await trx
@@ -680,8 +680,8 @@ export class ComplyService {
         .select(['id', 'name', 'agency_code', 'expiry_date'])
         .where('tenant_id', '=', tenantId)
         .where('expiry_date', 'is not', null)
-        .where('expiry_date', '>=', monthStart)
-        .where('expiry_date', '<=', monthEnd)
+        .where('expiry_date', '>=', toDateParam(monthStart))
+        .where('expiry_date', '<=', toDateParam(monthEnd))
         .execute();
 
       const renewals = await trx
@@ -697,8 +697,8 @@ export class ComplyService {
         .selectFrom('comply_reminders')
         .select(['id', 'title', 'agency_code', 'remind_date'])
         .where('tenant_id', '=', tenantId)
-        .where('remind_date', '>=', monthStart)
-        .where('remind_date', '<=', monthEnd)
+        .where('remind_date', '>=', toDateParam(monthStart))
+        .where('remind_date', '<=', toDateParam(monthEnd))
         .execute();
 
       const events: CompCalendarEvent[] = [];

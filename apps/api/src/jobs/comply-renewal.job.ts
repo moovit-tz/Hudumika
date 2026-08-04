@@ -3,7 +3,7 @@ import { emitDomainEvent } from '../services/domain-events.service.js';
 import { NotificationService } from '../services/notification.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { EmailIntegration } from '../integrations/email.js';
-import { toISODate, toEpochMs } from '../utils/dates.js';
+import { toISODate, toEpochMs, toDateParam } from '../utils/dates.js';
 
 const RENEWAL_LEAD_DAYS = 30;
 
@@ -131,8 +131,8 @@ export async function runComplyRenewalJob(): Promise<void> {
     const certs = await db
       .selectFrom('comply_certificates')
       .select(['id', 'tenant_id', 'name', 'agency_code', 'expiry_date', 'cert_number'])
-      .where('expiry_date', '<=', cutoff)
-      .where('expiry_date', '>', new Date())
+      .where('expiry_date', '<=', toDateParam(cutoff))
+      .where('expiry_date', '>', toDateParam(new Date()))
       .where('auto_renew', '=', true)
       .where('status', '!=', 'revoked')
       .execute();

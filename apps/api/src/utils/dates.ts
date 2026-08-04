@@ -37,6 +37,19 @@ export function toEpochMs(value: unknown): number | null {
 }
 
 /**
+ * A comparison parameter for a DATE column.
+ *
+ * Passing a JS Date to `where('expiry_date', '<', someDate)` sends a full
+ * timestamp that Postgres then casts, which reintroduces the timezone
+ * sensitivity DATE columns exist to avoid: "expiring before today" quietly
+ * means a different day for a server at UTC+3 than at UTC. A 'YYYY-MM-DD'
+ * string is unambiguous, and is what the column actually holds.
+ */
+export function toDateParam(value: Date | string): string {
+  return toISODate(value) ?? String(value);
+}
+
+/**
  * Whole days from now until `value`, rounded up. Null when there is no date —
  * callers must decide what "no deadline" means rather than receive a 0 that
  * reads as "due today".

@@ -1,4 +1,4 @@
-import { requireAnyEntitlement } from '../middleware/entitlement.js';
+import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
@@ -8,6 +8,7 @@ import { GLService } from '../services/gl.service.js';
 import { AccountingIntegrationService } from '../services/accounting-integration.service.js';
 import { TRAService } from '../services/tra.service.js';
 import { getNextDocNumber } from '../lib/doc-numbering.js';
+import { toDateParam } from '../utils/dates.js';
 
 export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -100,8 +101,8 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
             'received as paid_amount',
           ])
           .where('tenant_id', '=', user.tenant_id);
-        if (date_from) q = q.where('bill_date', '>=', new Date(date_from));
-        if (date_to) q = q.where('bill_date', '<=', new Date(date_to));
+        if (date_from) q = q.where('bill_date', '>=', toDateParam(new Date(date_from)));
+        if (date_to) q = q.where('bill_date', '<=', toDateParam(new Date(date_to)));
         if (status) q = q.where('status', '=', status);
         if (customer_id) q = q.where('customer_id', '=', customer_id);
         const rows = await q.orderBy('bill_date', 'desc').execute();
@@ -157,8 +158,8 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
             'status',
           ])
           .where('tenant_id', '=', user.tenant_id);
-        if (date_from) q = q.where('bill_date', '>=', new Date(date_from));
-        if (date_to) q = q.where('bill_date', '<=', new Date(date_to));
+        if (date_from) q = q.where('bill_date', '>=', toDateParam(new Date(date_from)));
+        if (date_to) q = q.where('bill_date', '<=', toDateParam(new Date(date_to)));
         if (status) q = q.where('status', '=', status);
         const rows = await q.orderBy('bill_date', 'desc').execute();
         data = rows.map((r: any) => ({

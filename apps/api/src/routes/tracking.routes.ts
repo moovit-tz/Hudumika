@@ -4,6 +4,7 @@ import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { gpswoxService } from '../services/gpswox.service.js';
+import { toDateParam } from '../utils/dates.js';
 
 const FLEET_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR'] as const;
 
@@ -443,14 +444,14 @@ export async function trackingRoutes(fastify: FastifyInstance) {
         .select(({ fn }) => [fn.count<number>('id').as('count')])
         .where('tenant_id', '=', user.tenant_id)
         .where('expiry_date', 'is not', null)
-        .where('expiry_date', '<=', horizon)
+        .where('expiry_date', '<=', toDateParam(horizon))
         .executeTakeFirst();
 
       const pendingReminders = await trx.selectFrom('fleet_reminders')
         .select(({ fn }) => [fn.count<number>('id').as('count')])
         .where('tenant_id', '=', user.tenant_id)
         .where('status', '=', 'PENDING')
-        .where('due_date', '<=', horizon)
+        .where('due_date', '<=', toDateParam(horizon))
         .executeTakeFirst();
 
       const recentAlerts = await trx.selectFrom('fleet_alerts').selectAll()
@@ -494,7 +495,7 @@ export async function trackingRoutes(fastify: FastifyInstance) {
         .executeTakeFirst();
       const maintenanceCost30d = await trx.selectFrom('maintenance_records')
         .select(({ fn }) => [fn.sum<number>('cost').as('total')])
-        .where('tenant_id', '=', user.tenant_id).where('service_date', '>=', since30)
+        .where('tenant_id', '=', user.tenant_id).where('service_date', '>=', toDateParam(since30))
         .executeTakeFirst();
 
       const totalCost30d = Number(fuelCost30d?.total ?? 0) + Number(maintenanceCost30d?.total ?? 0);

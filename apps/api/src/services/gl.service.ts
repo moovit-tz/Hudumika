@@ -1,5 +1,6 @@
 import { db, withTenant, type Database } from '../db/client.js';
 import type { Kysely, Transaction } from 'kysely';
+import { toDateParam } from '../utils/dates.js';
 import type {
   PostingRequest,
   TrialBalanceReport,
@@ -173,7 +174,7 @@ export class GLService {
         .innerJoin('journal_entries', 'journal_entries.id', 'journal_lines.journal_entry_id')
         .select(['journal_lines.account_id', trx.fn.sum('journal_lines.debit').as('debits'), trx.fn.sum('journal_lines.credit').as('credits')])
         .where('journal_entries.tenant_id', '=', tenantId)
-        .where('journal_entries.entry_date', '<', from)
+        .where('journal_entries.entry_date', '<', toDateParam(from))
         .groupBy('journal_lines.account_id')
         .execute();
 
@@ -188,8 +189,8 @@ export class GLService {
         .innerJoin('journal_entries', 'journal_entries.id', 'journal_lines.journal_entry_id')
         .select(['journal_lines.account_id', trx.fn.sum('journal_lines.debit').as('debits'), trx.fn.sum('journal_lines.credit').as('credits')])
         .where('journal_entries.tenant_id', '=', tenantId)
-        .where('journal_entries.entry_date', '>=', from)
-        .where('journal_entries.entry_date', '<=', to)
+        .where('journal_entries.entry_date', '>=', toDateParam(from))
+        .where('journal_entries.entry_date', '<=', toDateParam(to))
         .groupBy('journal_lines.account_id')
         .execute();
 
@@ -256,7 +257,7 @@ export class GLService {
         .innerJoin('journal_entries', 'journal_entries.id', 'journal_lines.journal_entry_id')
         .select(['journal_lines.account_id', trx.fn.sum('journal_lines.debit').as('debits'), trx.fn.sum('journal_lines.credit').as('credits')])
         .where('journal_entries.tenant_id', '=', tenantId)
-        .where('journal_entries.entry_date', '<=', date)
+        .where('journal_entries.entry_date', '<=', toDateParam(date))
         .groupBy('journal_lines.account_id')
         .execute();
 
@@ -326,8 +327,8 @@ export class GLService {
         .innerJoin('journal_entries', 'journal_entries.id', 'journal_lines.journal_entry_id')
         .select(['journal_lines.account_id', trx.fn.sum('journal_lines.debit').as('debits'), trx.fn.sum('journal_lines.credit').as('credits')])
         .where('journal_entries.tenant_id', '=', tenantId)
-        .where('journal_entries.entry_date', '>=', from)
-        .where('journal_entries.entry_date', '<=', to)
+        .where('journal_entries.entry_date', '>=', toDateParam(from))
+        .where('journal_entries.entry_date', '<=', toDateParam(to))
         .groupBy('journal_lines.account_id')
         .execute();
 
@@ -394,7 +395,7 @@ export class GLService {
         .select([trx.fn.sum('journal_lines.debit').as('debits'), trx.fn.sum('journal_lines.credit').as('credits')])
         .where('journal_entries.tenant_id', '=', tenantId)
         .where('journal_lines.account_id', '=', account.id)
-        .where('journal_entries.entry_date', '<', from)
+        .where('journal_entries.entry_date', '<', toDateParam(from))
         .executeTakeFirst();
 
       const opDebits = Number(openingSum?.debits || 0);
@@ -419,8 +420,8 @@ export class GLService {
         ])
         .where('journal_entries.tenant_id', '=', tenantId)
         .where('journal_lines.account_id', '=', account.id)
-        .where('journal_entries.entry_date', '>=', from)
-        .where('journal_entries.entry_date', '<=', to)
+        .where('journal_entries.entry_date', '>=', toDateParam(from))
+        .where('journal_entries.entry_date', '<=', toDateParam(to))
         .orderBy('journal_entries.entry_date', 'asc')
         .orderBy('journal_entries.entry_number', 'asc')
         .orderBy('journal_lines.sort_order', 'asc')

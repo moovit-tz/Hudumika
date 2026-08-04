@@ -1,5 +1,6 @@
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
+import { toDateParam } from '../utils/dates.js';
 
 // Periodic stock-account submission (spec, deferred from Increment 3) — the
 // recurring compliance report a bonded operator files with customs: opening
@@ -42,8 +43,8 @@ export class SealStockAccountService {
 
     const existing = await trx.selectFrom('seal_stock_account_periods').select('id')
       .where('compartment_id', '=', input.compartmentId)
-      .where('period_start', '=', periodStart)
-      .where('period_end', '=', new Date(input.periodEnd))
+      .where('period_start', '=', toDateParam(periodStart))
+      .where('period_end', '=', toDateParam(new Date(input.periodEnd)))
       .executeTakeFirst();
     if (existing) throw new StockAccountPeriodExists('A stock-account period already exists for this exact date range in this compartment.');
 

@@ -59,7 +59,8 @@ async function main() {
           dest_port: inv.destination || '',
           stage: stageFromStatus(inv.status),
           containers: JSON.stringify([]),
-          created_at: inv.bill_date || new Date(),
+          // bill_date is a DATE ('YYYY-MM-DD'); created_at is a TIMESTAMPTZ.
+          created_at: inv.bill_date ? new Date(inv.bill_date) : new Date(),
           updated_at: new Date(),
         }).execute();
         await trx.updateTable('sales_invoices').set({ shipment_ref: refNumber }).where('id', '=', inv.id).execute();
