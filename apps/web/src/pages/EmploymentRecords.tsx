@@ -30,6 +30,9 @@ interface RosterRow {
   employment: null | {
     employment_id: string; status: string; employment_type: string; start_date: string;
     base_salary: string | null; currency: string | null; pay_frequency: string | null;
+    // A raise already agreed but not yet in force. Shown separately — it is
+    // not what they earn today, and it is not nothing either.
+    upcoming: null | { base_salary: string; currency: string; pay_frequency: string; effective_date: string };
   };
 }
 interface UnlinkedPerson {
@@ -37,6 +40,30 @@ interface UnlinkedPerson {
   employment?: RosterRow['employment'];
 }
 interface LegalEntity { id: string; legal_name: string; country_code: string; currency: string; employment_count: number }
+interface CompRow {
+  id: string; effective_date: string; end_date: string | null;
+  base_salary: string | number; currency: string; pay_frequency: string;
+}
+interface PvcRow {
+  userId: string; name: string | null; email: string; paid: number; status: string;
+  contracted: number | null; currency?: string; variance: number | null; note: string | null;
+}
+interface PvcResult {
+  period: { month: number; year: number };
+  rows: PvcRow[];
+  notPaidThisPeriod: { userId: string; contracted: number; currency: string }[];
+  summary: {
+    payrollRows: number; comparable: number; matching: number;
+    differing: number; noContract: number; activeContractsUnpaid: number;
+  };
+}
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+
+function money(v: number | string, currency?: string | null) {
+  return `${currency ? currency + ' ' : ''}${Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+}
 
 const card: React.CSSProperties = {
   border: '1px solid var(--border)', borderRadius: 12,
@@ -55,6 +82,7 @@ export function EmploymentRecords() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState('');
   const [pane, setPane] = useState<'none' | 'entity' | 'person' | 'employment'>('none');
+  const [openComp, setOpenComp] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError('');
@@ -204,8 +232,12 @@ export function EmploymentRecords() {
                     <Badge variant="brand">{u.employment.employment_type.replace(/_/g, ' ').toLowerCase()}</Badge>
                     <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>from {String(u.employment.start_date).slice(0, 10)}</span>
                     {u.employment.base_salary != null
-                      ? <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 650 }}>{u.employment.currency} {Number(u.employment.base_salary).toLocaleString()}</span>
-                      : <span style={{ fontSize: 12, color: 'var(--gold)' }}>pay not agreed</span>}
+                      ? <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 650 }}>{money(u.employment.base_salary, u.employment.currency)}</span>
+                      : u.employment.upcoming
+                        ? <span style={{ fontSize: 12, color: 'var(--gold)' }}>
+                            {money(u.employment.upcoming.base_salary, u.employment.upcoming.currency)} from {String(u.employment.upcoming.effective_date).slice(0, 10)}
+                          </span>
+                        : <span style={{ fontSize: 12, color: 'var(--gold)' }}>pay not agreed</span>}
                   </>
                 : <Badge variant="gray">no contract</Badge>}
             </div>
@@ -228,14 +260,15 @@ export function EmploymentRecords() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
               <thead>
                 <tr style={{ background: 'var(--bg)' }}>
-                  {['Person', 'Role', 'HR record', 'Contract', 'Job started', 'Agreed pay'].map(h => (
-                    <th key={h} style={{ textAlign: 'left', padding: '8px 14px', ...label }}>{h}</th>
+                  {['Person', 'Role', 'HR record', 'Contract', 'Job started', 'Agreed pay', ''].map((h, i) => (
+                    <th key={h || i} style={{ textAlign: 'left', padding: '8px 14px', ...label }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {roster.map(r => (
-                  <tr key={r.userId} style={{ borderTop: '1px solid var(--border)' }}>
+                  <React.Fragment key={r.userId}>
+                  <tr style={{ borderTop: '1px solid var(--border)' }}>
                     <td style={{ padding: '9px 14px' }}>
                       <div style={{ color: 'var(--ink)', fontWeight: 600 }}>{r.name || r.email}</div>
                       <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{r.email}</div>
@@ -261,10 +294,44 @@ export function EmploymentRecords() {
                             <span style={{ color: 'var(--ink3)', fontWeight: 400 }}> /{(r.employment.pay_frequency ?? '').toLowerCase()}</span>
                           </span>
                         : r.employment
-                          ? <span style={{ color: 'var(--gold)' }}>not agreed</span>
+                          ? <span style={{ color: 'var(--gold)' }}>
+                              {r.employment.upcoming ? 'none in force today' : 'not agreed'}
+                            </span>
                           : <span style={{ color: 'var(--ink3)' }}>—</span>}
+                      {/* Agreed, dated, and not yet started. */}
+                      {r.employment?.upcoming && (
+                        <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>
+                          {money(r.employment.upcoming.base_salary, r.employment.upcoming.currency)} from{' '}
+                          {String(r.employment.upcoming.effective_date).slice(0, 10)}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: '9px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      {/* Pay history hangs off the employment, so it only exists
+                          for someone who has a contract at all. */}
+                      {r.employment ? (
+                        <Button type="button" size="sm" variant="ghost"
+                          onClick={() => setOpenComp(openComp === r.employment!.employment_id ? null : r.employment!.employment_id)}>
+                          <Icon name={openComp === r.employment.employment_id ? 'chevronUp' : 'chevronDown'} size={13} />
+                          Pay history
+                        </Button>
+                      ) : null}
                     </td>
                   </tr>
+                  {r.employment && openComp === r.employment.employment_id && (
+                    <tr>
+                      <td colSpan={7} style={{ padding: 0, background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
+                        <CompensationPanel
+                          employmentId={r.employment.employment_id}
+                          who={r.name || r.hrName || r.email}
+                          defaultCurrency={r.employment.currency ?? entities[0]?.currency ?? 'TZS'}
+                          defaultFrequency={r.employment.pay_frequency ?? 'MONTHLY'}
+                          onChanged={load}
+                        />
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 ))}
               </tbody>
             </table>
@@ -276,6 +343,308 @@ export function EmploymentRecords() {
         <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 10 }}>
           {linkedNoEmployment.length} {linkedNoEmployment.length === 1 ? 'person has' : 'people have'} an HR record but no contract yet.
         </div>
+      )}
+
+      <PayrollVsContractPanel roster={roster} />
+    </div>
+  );
+}
+
+/* ══ Compensation ════════════════════════════════════════════════ */
+
+/**
+ * Effective-dated pay history for one contract.
+ *
+ * Pay changes are recorded as a sequence rather than by overwriting a single
+ * figure, so "what were they earning last March" stays answerable. The API
+ * closes the previous open record the day before the new one starts; this
+ * shows that boundary rather than hiding it, and says plainly when a contract
+ * has no agreed pay at all instead of showing zero.
+ */
+function CompensationPanel({ employmentId, who, defaultCurrency, defaultFrequency, onChanged }: {
+  employmentId: string; who: string; defaultCurrency: string; defaultFrequency: string; onChanged: () => void;
+}) {
+  const [rows, setRows] = useState<CompRow[] | null>(null);
+  const [err, setErr] = useState('');
+  const [adding, setAdding] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [salary, setSalary] = useState('');
+  const [currency, setCurrency] = useState(defaultCurrency);
+  const [frequency, setFrequency] = useState(defaultFrequency);
+  const [effective, setEffective] = useState<Date | undefined>(new Date());
+
+  const load = useCallback(async () => {
+    setErr('');
+    try { setRows(await apiFetch(`/v1/hr/employments/${employmentId}/compensation`)); }
+    catch (e: any) { setErr(e?.message ?? 'Could not load pay history.'); setRows([]); }
+  }, [employmentId]);
+  useEffect(() => { load(); }, [load]);
+
+  async function save() {
+    if (!salary || !effective) return;
+    setSaving(true); setErr('');
+    try {
+      await apiFetch(`/v1/hr/employments/${employmentId}/compensation`, {
+        method: 'POST',
+        body: JSON.stringify({
+          base_salary: Number(salary), currency, pay_frequency: frequency,
+          effective_date: toDateOnlyString(effective),
+        }),
+      });
+      setSalary(''); setAdding(false);
+      await load();
+      onChanged();          // the roster's "agreed pay" column reads the current record
+    } catch (e: any) {
+      setErr(e?.message ?? 'Could not record that pay change.');
+    } finally { setSaving(false); }
+  }
+
+  return (
+    <div style={{ padding: '14px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <FeaturedIcon variant="brand" size="sm" shape="circle"><Icon name="wallet" size={13} /></FeaturedIcon>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>Pay history — {who}</div>
+          <div style={{ fontSize: 11, color: 'var(--ink3)' }}>Each row is what was agreed from a date until the next change.</div>
+        </div>
+        <Button type="button" size="sm" variant={adding ? 'outline' : 'default'} onClick={() => setAdding(a => !a)}>
+          {adding ? 'Cancel' : <><Icon name="plus" size={13} color="white" /> Record a pay change</>}
+        </Button>
+      </div>
+
+      {err && (
+        <div style={{ padding: '8px 11px', borderRadius: 8, background: 'var(--red-l)',
+                      color: 'var(--red)', fontSize: 12, marginBottom: 10 }}>{err}</div>
+      )}
+
+      {adding && (
+        <div style={{ ...card, padding: 13, marginBottom: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10 }}>
+            <div>
+              <div style={{ ...label, marginBottom: 4 }}>Base salary</div>
+              <Input value={salary} onChange={e => setSalary(e.target.value.replace(/[^\d.]/g, ''))} placeholder="0" />
+            </div>
+            <div>
+              <div style={{ ...label, marginBottom: 4 }}>Currency</div>
+              <Input value={currency} onChange={e => setCurrency(e.target.value.toUpperCase())} />
+            </div>
+            <div>
+              <div style={{ ...label, marginBottom: 4 }}>Paid</div>
+              <Select value={frequency} onValueChange={setFrequency}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {['MONTHLY', 'ANNUAL', 'WEEKLY', 'DAILY', 'HOURLY'].map(f => (
+                    <SelectItem key={f} value={f}>{f.toLowerCase()}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <div style={{ ...label, marginBottom: 4 }}>Effective from</div>
+              <DatePicker date={effective} onChange={setEffective} />
+            </div>
+          </div>
+          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 9, lineHeight: 1.5 }}>
+            The record currently in force will be closed the day before this date. Backdating is allowed — it rewrites
+            what the history says was agreed, not what was actually paid, which stays in the payroll runs.
+          </div>
+          <Button type="button" size="sm" style={{ marginTop: 11 }} disabled={!salary || !effective || saving} onClick={save}>
+            {saving ? 'Saving…' : 'Record pay change'}
+          </Button>
+        </div>
+      )}
+
+      {rows === null ? (
+        <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Loading pay history…</div>
+      ) : rows.length === 0 ? (
+        <div style={{ fontSize: 12, color: 'var(--gold)' }}>
+          No pay has been agreed on this contract yet — nothing to show, and payroll has nothing to check against.
+        </div>
+      ) : (
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+          <thead>
+            <tr>{['From', 'Until', 'Amount', 'Paid', ''].map((h, i) => (
+              <th key={h || i} style={{ textAlign: 'left', padding: '6px 10px', ...label }}>{h}</th>
+            ))}</tr>
+          </thead>
+          <tbody>
+            {rows.map(c => (
+              <tr key={c.id} style={{ borderTop: '1px solid var(--border)' }}>
+                <td style={{ padding: '7px 10px', color: 'var(--ink2)' }}>{String(c.effective_date).slice(0, 10)}</td>
+                <td style={{ padding: '7px 10px', color: 'var(--ink3)' }}>
+                  {c.end_date ? String(c.end_date).slice(0, 10) : 'still in force'}
+                </td>
+                <td style={{ padding: '7px 10px', color: 'var(--ink)', fontWeight: 650 }}>{money(c.base_salary, c.currency)}</td>
+                <td style={{ padding: '7px 10px', color: 'var(--ink2)' }}>{String(c.pay_frequency).toLowerCase()}</td>
+                <td style={{ padding: '7px 10px' }}>
+                  {!c.end_date && <Badge variant="success">current</Badge>}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+/**
+ * What was paid against what the contract says.
+ *
+ * The two figures live in different families — payroll on `users`, pay
+ * agreements on `hr_employments` — and could disagree indefinitely with
+ * nothing able to notice until migration 172 joined them.
+ *
+ * Where the comparison genuinely cannot be made the API says so per row, and
+ * this renders that sentence rather than a variance of zero: a person with no
+ * contract on file and a person paid exactly right must not look the same.
+ */
+function PayrollVsContractPanel({ roster }: { roster: RosterRow[] }) {
+  const [month, setMonth] = useState(() => new Date().getMonth() + 1);
+  const [year, setYear] = useState(() => new Date().getFullYear());
+  const [data, setData] = useState<PvcResult | null>(null);
+  const [err, setErr] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const nameOf = useCallback((userId: string) => {
+    const r = roster.find(x => x.userId === userId);
+    return r ? (r.name || r.hrName || r.email) : userId;
+  }, [roster]);
+
+  useEffect(() => {
+    let live = true;
+    setLoading(true); setErr('');
+    apiFetch(`/v1/hr/payroll-vs-contract?month=${month}&year=${year}`)
+      .then(d => { if (live) setData(d); })
+      .catch(e => { if (live) { setErr(e?.message ?? 'Could not run the comparison.'); setData(null); } })
+      .finally(() => { if (live) setLoading(false); });
+    return () => { live = false; };
+  }, [month, year]);
+
+  const years = useMemo(() => {
+    const y = new Date().getFullYear();
+    return [y + 1, y, y - 1, y - 2].map(String);
+  }, []);
+
+  return (
+    <div style={{ ...card, marginTop: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderBottom: '1px solid var(--border)', flexWrap: 'wrap' }}>
+        <FeaturedIcon variant="brand" size="sm" shape="square"><Icon name="scale" size={13} /></FeaturedIcon>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Paid vs contracted</div>
+          <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>What payroll actually paid, against what the contract says.</div>
+        </div>
+        <div style={{ minWidth: 130 }}>
+          <Select value={String(month)} onValueChange={v => setMonth(Number(v))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {MONTHS.map((m, i) => <SelectItem key={m} value={String(i + 1)}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div style={{ minWidth: 95 }}>
+          <Select value={String(year)} onValueChange={v => setYear(Number(v))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>{years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {err && (
+        <div style={{ padding: '11px 14px', color: 'var(--red)', fontSize: 12.5, background: 'var(--red-l)' }}>{err}</div>
+      )}
+
+      {loading && <div style={{ padding: '16px 14px', fontSize: 12.5, color: 'var(--ink3)' }}>Comparing…</div>}
+
+      {!loading && !err && data && (
+        data.rows.length === 0 && data.notPaidThisPeriod.length === 0 ? (
+          <div style={{ padding: '22px 14px', textAlign: 'center' }}>
+            <div style={{ fontSize: 12.5, color: 'var(--ink2)' }}>
+              No payroll was run for {MONTHS[month - 1]} {year}, and no active contract covers that period.
+            </div>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+              {([
+                ['Payslips', data.summary.payrollRows, 'var(--ink)'],
+                ['Match the contract', data.summary.matching, 'var(--green)'],
+                ['Differ', data.summary.differing, data.summary.differing > 0 ? 'var(--gold)' : 'var(--ink)'],
+                ['Not comparable', data.summary.noContract, data.summary.noContract > 0 ? 'var(--ink2)' : 'var(--ink)'],
+                ['Contracted, unpaid', data.summary.activeContractsUnpaid,
+                  data.summary.activeContractsUnpaid > 0 ? 'var(--red)' : 'var(--ink)'],
+              ] as const).map(([l, v, colour]) => (
+                <div key={l}>
+                  <div style={label}>{l}</div>
+                  <div style={{ fontSize: 17, fontWeight: 750, color: colour, marginTop: 2 }}>{v}</div>
+                </div>
+              ))}
+            </div>
+
+            {data.rows.length > 0 && (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg)' }}>
+                      {['Person', 'Payslip', 'Paid', 'Contract says', 'Difference'].map(h => (
+                        <th key={h} style={{ textAlign: 'left', padding: '8px 14px', ...label }}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.rows.map(r => (
+                      <tr key={r.userId} style={{ borderTop: '1px solid var(--border)' }}>
+                        <td style={{ padding: '9px 14px' }}>
+                          <div style={{ color: 'var(--ink)', fontWeight: 600 }}>{r.name || r.email}</div>
+                          <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{r.email}</div>
+                        </td>
+                        <td style={{ padding: '9px 14px' }}>
+                          <Badge variant={r.status === 'PAID' ? 'success' : 'gray'}>{String(r.status).toLowerCase()}</Badge>
+                        </td>
+                        <td style={{ padding: '9px 14px', color: 'var(--ink)' }}>{money(r.paid, r.currency)}</td>
+                        {/* The API's own sentence, verbatim. A row it cannot
+                            compare is not a row that matched. */}
+                        {r.note ? (
+                          <td colSpan={2} style={{ padding: '9px 14px', color: 'var(--ink3)', fontStyle: 'italic' }}>{r.note}</td>
+                        ) : (
+                          <>
+                            <td style={{ padding: '9px 14px', color: 'var(--ink2)' }}>{money(r.contracted!, r.currency)}</td>
+                            <td style={{ padding: '9px 14px' }}>
+                              {r.variance === 0
+                                ? <Badge variant="success">exact match</Badge>
+                                : <span style={{ color: r.variance! < 0 ? 'var(--red)' : 'var(--gold)', fontWeight: 650 }}>
+                                    {r.variance! > 0 ? '+' : ''}{Number(r.variance).toLocaleString()}
+                                  </span>}
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Active contracts nobody was paid against — invisible in a
+                payroll-only view, because there is no payslip to list. */}
+            {data.notPaidThisPeriod.length > 0 && (
+              <div style={{ padding: '12px 14px', borderTop: '1px solid var(--border)', background: 'var(--red-l)' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>
+                  {data.notPaidThisPeriod.length} active contract{data.notPaidThisPeriod.length === 1 ? '' : 's'} with no payslip
+                  for {MONTHS[month - 1]} {year}
+                </div>
+                <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {data.notPaidThisPeriod.map(u => (
+                    <div key={u.userId} style={{ display: 'flex', gap: 10, fontSize: 12 }}>
+                      <span style={{ flex: 1, color: 'var(--ink)' }}>{nameOf(u.userId)}</span>
+                      <span style={{ color: 'var(--ink2)' }}>contracted {money(u.contracted, u.currency)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )
       )}
     </div>
   );

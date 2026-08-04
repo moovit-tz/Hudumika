@@ -1,4 +1,5 @@
 import { db, withTenant } from '../db/client.js';
+import { toDateParam } from '../utils/dates.js';
 
 export class NexusHRService {
   // ─── CORE HR ───────────────────────────────────────────────────────────────
@@ -58,19 +59,56 @@ export class NexusHRService {
         ...users.map(u => u.person_id).filter(Boolean) as string[],
         ...unlinkedPeople.map(u => u.person_id),
       ];
-      const employments = personIds.length
+      const employmentRows = personIds.length
         ? await trx
             .selectFrom('hr_employments')
-            .leftJoin('hr_compensations', 'hr_compensations.employment_id', 'hr_employments.id')
             .select([
-              'hr_employments.id as employment_id', 'hr_employments.person_id',
-              'hr_employments.status', 'hr_employments.employment_type', 'hr_employments.start_date',
-              'hr_compensations.base_salary', 'hr_compensations.currency', 'hr_compensations.pay_frequency',
+              'id as employment_id', 'person_id', 'status', 'employment_type', 'start_date',
             ])
-            .where('hr_employments.tenant_id', '=', tenantId)
-            .where('hr_employments.person_id', 'in', personIds)
+            .where('tenant_id', '=', tenantId)
+            .where('person_id', 'in', personIds)
             .execute()
         : [];
+
+      /**
+       * Pay is effective-dated, so "what do they earn" only has an answer as at
+       * a date. Joining the whole history and keeping whichever row arrived
+       * last showed a raise that starts next month as today's salary.
+       *
+       * The record in force today is selected explicitly, and a raise already
+       * agreed for a future date is returned separately rather than either
+       * silently replacing the current figure or being hidden entirely.
+       */
+      const today = toDateParam(new Date());
+      const comps = employmentRows.length
+        ? await trx.selectFrom('hr_compensations')
+            .select(['employment_id', 'base_salary', 'currency', 'pay_frequency', 'effective_date', 'end_date'])
+            .where('tenant_id', '=', tenantId)
+            .where('employment_id', 'in', employmentRows.map(e => e.employment_id))
+            .orderBy('effective_date', 'asc')
+            .execute()
+        : [];
+      const compsByEmployment = new Map<string, typeof comps>();
+      for (const c of comps) {
+        const list = compsByEmployment.get(c.employment_id);
+        if (list) list.push(c); else compsByEmployment.set(c.employment_id, [c]);
+      }
+
+      const employments = employmentRows.map(e => {
+        const list = compsByEmployment.get(e.employment_id) ?? [];
+        const current = list.find(c => c.effective_date <= today && (c.end_date === null || c.end_date >= today));
+        const upcoming = list.find(c => c.effective_date > today);
+        return {
+          ...e,
+          base_salary: current?.base_salary ?? null,
+          currency: current?.currency ?? null,
+          pay_frequency: current?.pay_frequency ?? null,
+          upcoming: upcoming
+            ? { base_salary: upcoming.base_salary, currency: upcoming.currency,
+                pay_frequency: upcoming.pay_frequency, effective_date: upcoming.effective_date }
+            : null,
+        };
+      });
       const empByPerson = new Map(employments.map(e => [e.person_id, e]));
 
       return {
@@ -184,17 +222,35 @@ export class NexusHRService {
         .where('c.effective_date', '<=', periodEnd as any)
         .where(eb => eb.or([eb('c.end_date', 'is', null), eb('c.end_date', '>=', periodStart as any)]))
         .execute();
-      const contractByUser = new Map(contracts.map(c => [c.user_id as string, c]));
+      // A pay change partway through the period leaves two records covering it.
+      // Keeping whichever the Map saw last would pick one arbitrarily and
+      // report a confident variance against it, so that case is reported as
+      // what it is instead.
+      const contractsByUser = new Map<string, typeof contracts>();
+      for (const c of contracts) {
+        const list = contractsByUser.get(c.user_id as string);
+        if (list) list.push(c); else contractsByUser.set(c.user_id as string, [c]);
+      }
 
       const MONTHLY_DIVISOR: Record<string, number> = { MONTHLY: 1, ANNUAL: 12, YEARLY: 12 };
 
       const rows = payroll.map(p => {
-        const contract = contractByUser.get(p.user_id);
+        const covering = contractsByUser.get(p.user_id) ?? [];
+        const contract = covering[0];
         const paid = Number(p.basic_pay);
 
         if (!contract) {
           return { userId: p.user_id, name: p.name, email: p.email, paid, status: p.status,
                    contracted: null, variance: null, note: 'No contract salary on file to compare against.' };
+        }
+
+        if (covering.length > 1) {
+          const amounts = covering
+            .map(c => `${c.currency} ${Number(c.base_salary).toLocaleString()} from ${String(c.effective_date).slice(0, 10)}`)
+            .join(', ');
+          return { userId: p.user_id, name: p.name, email: p.email, paid, status: p.status,
+                   contracted: null, variance: null,
+                   note: `Pay changed during this period (${amounts}) — there is no single contracted figure to compare one payslip against.` };
         }
 
         const divisor = MONTHLY_DIVISOR[String(contract.pay_frequency).toUpperCase()];
@@ -219,9 +275,13 @@ export class NexusHRService {
 
       // Contracts with nobody paid this period — the other half of the picture.
       const paidUserIds = new Set(payroll.map(p => p.user_id));
-      const unpaid = contracts
-        .filter(c => !paidUserIds.has(c.user_id as string) && c.employment_status === 'ACTIVE')
-        .map(c => ({ userId: c.user_id as string, contracted: Number(c.base_salary), currency: c.currency }));
+      const unpaid = [...contractsByUser.entries()]
+        .filter(([userId, list]) => !paidUserIds.has(userId) && list.some(c => c.employment_status === 'ACTIVE'))
+        // One entry per person, not one per pay record they happen to have.
+        .map(([userId, list]) => {
+          const c = list[list.length - 1];
+          return { userId, contracted: Number(c.base_salary), currency: c.currency };
+        });
 
       return {
         period: { month, year },
