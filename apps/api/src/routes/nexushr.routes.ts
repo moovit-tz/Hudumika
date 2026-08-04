@@ -61,6 +61,42 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
+  /** Effective-dated pay history for one employment. */
+  fastify.get('/employments/:id/compensation', async (request: any, reply) => {
+    try {
+      return await NexusHRService.getCompensationHistory(request.user.tenant_id, request.params.id);
+    } catch (err: any) {
+      return reply.status(404).send({ error: err.message });
+    }
+  });
+
+  fastify.post('/employments/:id/compensation', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
+    try {
+      return await NexusHRService.addCompensation(request.user.tenant_id, request.params.id, request.body);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  /**
+   * GET /v1/hr/payroll-vs-contract?month=&year=
+   *
+   * What was paid against what the contract says. Payroll is keyed on users
+   * and compensation on employments, so this comparison was impossible before
+   * migration 172 bridged them.
+   */
+  fastify.get('/payroll-vs-contract', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
+    const now = new Date();
+    const month = Number(request.query?.month) || now.getMonth() + 1;
+    const year = Number(request.query?.year) || now.getFullYear();
+    if (month < 1 || month > 12) return reply.status(400).send({ error: 'month must be 1-12' });
+    try {
+      return await NexusHRService.payrollVsContract(request.user.tenant_id, month, year);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
   /** PATCH /v1/hr/people/:id/user — link (or unlink) an HR record to a login. */
   fastify.patch('/people/:id/user', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
     try {

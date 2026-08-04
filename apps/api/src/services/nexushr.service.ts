@@ -93,6 +93,152 @@ export class NexusHRService {
     });
   }
 
+  // ─── COMPENSATION ──────────────────────────────────────────────────────────
+
+  /** Effective-dated pay history for one employment, newest first. */
+  static async getCompensationHistory(tenantId: string, employmentId: string) {
+    return withTenant(tenantId, async (trx) => {
+      const emp = await trx.selectFrom('hr_employments').select('id')
+        .where('id', '=', employmentId).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!emp) throw new Error('Employment not found');
+      return trx.selectFrom('hr_compensations').selectAll()
+        .where('employment_id', '=', employmentId).where('tenant_id', '=', tenantId)
+        .orderBy('effective_date', 'desc').execute();
+    });
+  }
+
+  /**
+   * Records a pay change from a date. The previous open record is closed the
+   * day before, so the history reads as a sequence rather than overlapping
+   * claims about what someone earns.
+   */
+  static async addCompensation(tenantId: string, employmentId: string, data: any) {
+    if (data?.base_salary === undefined || data.base_salary === null || data.base_salary === '') {
+      throw new Error('base_salary is required');
+    }
+    if (!data?.effective_date) throw new Error('effective_date is required');
+
+    return withTenant(tenantId, async (trx) => {
+      const emp = await trx.selectFrom('hr_employments').select('id')
+        .where('id', '=', employmentId).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!emp) throw new Error('Employment not found');
+
+      const effective = String(data.effective_date).slice(0, 10);
+      const dayBefore = new Date(effective + 'T00:00:00Z');
+      dayBefore.setUTCDate(dayBefore.getUTCDate() - 1);
+      const prevEnd = dayBefore.toISOString().slice(0, 10);
+
+      await trx.updateTable('hr_compensations')
+        .set({ end_date: prevEnd as any })
+        .where('employment_id', '=', employmentId).where('tenant_id', '=', tenantId)
+        .where('end_date', 'is', null)
+        .where('effective_date', '<', effective as any)
+        .execute();
+
+      return trx.insertInto('hr_compensations').values({
+        tenant_id: tenantId,
+        employment_id: employmentId,
+        effective_date: effective as any,
+        base_salary: Number(data.base_salary),
+        currency: data.currency || 'TZS',
+        pay_frequency: data.pay_frequency || 'MONTHLY',
+      }).returningAll().executeTakeFirstOrThrow();
+    });
+  }
+
+  /**
+   * What each person was paid in a period, against what their contract says.
+   *
+   * This is the comparison the person-model bridge exists for: payroll is
+   * keyed on `users`, compensation on `hr_employments`, and until migration
+   * 172 there was no join between them — the two figures could disagree
+   * indefinitely with nothing able to notice.
+   *
+   * It never invents the missing side. A person with no contract, no payroll
+   * row, a currency that differs from their payslip, or a pay frequency this
+   * cannot convert is reported as exactly that, not as a variance of zero.
+   */
+  static async payrollVsContract(tenantId: string, month: number, year: number) {
+    return withTenant(tenantId, async (trx) => {
+      const periodStart = `${year}-${String(month).padStart(2, '0')}-01`;
+      const endDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+      const periodEnd = `${year}-${String(month).padStart(2, '0')}-${endDay}`;
+
+      const payroll = await trx.selectFrom('hr_payroll as p')
+        .innerJoin('users as u', 'u.id', 'p.user_id')
+        .select(['p.id as payroll_id', 'p.user_id', 'p.basic_pay', 'p.allowances', 'p.deductions',
+                 'p.status', 'u.name', 'u.email'])
+        .where('p.tenant_id', '=', tenantId)
+        .where('p.period_month', '=', month)
+        .where('p.period_year', '=', year)
+        .execute();
+
+      // Contract salary in force during the period, reached through the bridge.
+      const contracts = await trx.selectFrom('hr_people as pe')
+        .innerJoin('hr_employments as e', 'e.person_id', 'pe.id')
+        .innerJoin('hr_compensations as c', 'c.employment_id', 'e.id')
+        .select(['pe.user_id', 'c.base_salary', 'c.currency', 'c.pay_frequency',
+                 'c.effective_date', 'c.end_date', 'e.status as employment_status'])
+        .where('pe.tenant_id', '=', tenantId)
+        .where('pe.user_id', 'is not', null)
+        .where('c.effective_date', '<=', periodEnd as any)
+        .where(eb => eb.or([eb('c.end_date', 'is', null), eb('c.end_date', '>=', periodStart as any)]))
+        .execute();
+      const contractByUser = new Map(contracts.map(c => [c.user_id as string, c]));
+
+      const MONTHLY_DIVISOR: Record<string, number> = { MONTHLY: 1, ANNUAL: 12, YEARLY: 12 };
+
+      const rows = payroll.map(p => {
+        const contract = contractByUser.get(p.user_id);
+        const paid = Number(p.basic_pay);
+
+        if (!contract) {
+          return { userId: p.user_id, name: p.name, email: p.email, paid, status: p.status,
+                   contracted: null, variance: null, note: 'No contract salary on file to compare against.' };
+        }
+
+        const divisor = MONTHLY_DIVISOR[String(contract.pay_frequency).toUpperCase()];
+        if (!divisor) {
+          return { userId: p.user_id, name: p.name, email: p.email, paid, status: p.status,
+                   contracted: null, variance: null,
+                   note: `Contract is paid ${contract.pay_frequency}; this comparison only converts MONTHLY and ANNUAL.` };
+        }
+
+        const expected = Number(contract.base_salary) / divisor;
+        return {
+          userId: p.user_id, name: p.name, email: p.email, paid, status: p.status,
+          // hr_payroll records no currency, so the figures are compared as
+          // like for like and labelled with the contract's currency. There is
+          // no field to detect a mismatch against and no FX rate here to
+          // convert with, so neither is claimed.
+          contracted: expected, currency: contract.currency,
+          variance: Math.round((paid - expected) * 100) / 100,
+          note: null as string | null,
+        };
+      });
+
+      // Contracts with nobody paid this period — the other half of the picture.
+      const paidUserIds = new Set(payroll.map(p => p.user_id));
+      const unpaid = contracts
+        .filter(c => !paidUserIds.has(c.user_id as string) && c.employment_status === 'ACTIVE')
+        .map(c => ({ userId: c.user_id as string, contracted: Number(c.base_salary), currency: c.currency }));
+
+      return {
+        period: { month, year },
+        rows,
+        notPaidThisPeriod: unpaid,
+        summary: {
+          payrollRows: payroll.length,
+          comparable: rows.filter(r => r.variance !== null).length,
+          matching: rows.filter(r => r.variance === 0).length,
+          differing: rows.filter(r => r.variance !== null && r.variance !== 0).length,
+          noContract: rows.filter(r => r.contracted === null).length,
+          activeContractsUnpaid: unpaid.length,
+        },
+      };
+    });
+  }
+
   /** Links an existing HR person record to an existing login, or clears it. */
   static async linkPersonToUser(tenantId: string, personId: string, userId: string | null) {
     return withTenant(tenantId, async (trx) => {

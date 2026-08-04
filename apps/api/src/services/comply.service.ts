@@ -1,6 +1,7 @@
 import { db, withTenant } from '../db/client.js';
 import { getAdapter } from '../integrations/comply-agencies.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { toISODate, toEpochMs } from '../utils/dates.js';
 import type {
   CompDashboardStats,
   CompCertificate,
@@ -27,12 +28,17 @@ const CUSTOMER_AVATAR_COLORS = ['#0b7264', '#0e1f3d', '#1849a9', '#5b3ea8', '#b5
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function daysUntil(date: Date | null): number {
-  if (!date) return 9999;
-  return Math.ceil((date.getTime() - Date.now()) / 86400000);
+/**
+ * Accepts a DATE column (a 'YYYY-MM-DD' string from the driver — see the type
+ * parser in db/client.ts) or a TIMESTAMPTZ, which is still a real Date.
+ * 9999 preserves every caller's existing "no expiry means never due" reading.
+ */
+function daysUntil(date: unknown): number {
+  const t = toEpochMs(date);
+  return t === null ? 9999 : Math.ceil((t - Date.now()) / 86400000);
 }
 
-function certStatus(expiry: Date | null): 'active' | 'expiring' | 'expired' {
+function certStatus(expiry: unknown): 'active' | 'expiring' | 'expired' {
   const d = daysUntil(expiry);
   if (d <= 0)  return 'expired';
   if (d <= 30) return 'expiring';
@@ -102,7 +108,8 @@ export class ComplyService {
           cert_id:     c.id,
           cert_name:   c.name,
           agency_code: c.agency_code,
-          expiry_date: c.expiry_date!.toISOString().split('T')[0],
+          // Non-null by the filter directly above.
+          expiry_date: toISODate(c.expiry_date)!,
           days_left:   daysUntil(c.expiry_date),
         }))
         .filter(d => d.days_left <= 90)
@@ -151,8 +158,8 @@ export class ComplyService {
         agency_code:    r.agency_code,
         agency_name:    r.agency_name,
         agency_class:   r.agency_class as any,
-        issued_date:    r.issued_date ? (r.issued_date as Date).toISOString().split('T')[0] : null,
-        expiry_date:    r.expiry_date ? (r.expiry_date as Date).toISOString().split('T')[0] : null,
+        issued_date:    r.issued_date ? toISODate(r.issued_date) : null,
+        expiry_date:    r.expiry_date ? toISODate(r.expiry_date) : null,
         status:         certStatus(r.expiry_date) as any,
         document_url:   r.document_url,
         external_ref:   r.external_ref,
@@ -378,8 +385,8 @@ export class ComplyService {
         frequency:            r.frequency,
         mandatory:            r.mandatory,
         status:               r.status as any,
-        due_date:             r.due_date ? (r.due_date as Date).toISOString().split('T')[0] : null,
-        last_fulfilled_date:  r.last_fulfilled_date ? (r.last_fulfilled_date as Date).toISOString().split('T')[0] : null,
+        due_date:             r.due_date ? toISODate(r.due_date) : null,
+        last_fulfilled_date:  r.last_fulfilled_date ? toISODate(r.last_fulfilled_date) : null,
         linked_cert_id:       r.linked_cert_id,
         customer_id:          r.customer_id,
         customer_name:        r.customer_name,
@@ -416,7 +423,7 @@ export class ComplyService {
         id: row.id, obligation_code: row.obligation_code, agency_code: row.agency_code,
         agency_class: row.agency_class as any, name: row.name, frequency: row.frequency,
         mandatory: row.mandatory, status: row.status as any,
-        due_date: row.due_date ? (row.due_date as Date).toISOString().split('T')[0] : null,
+        due_date: row.due_date ? toISODate(row.due_date) : null,
         last_fulfilled_date: null, linked_cert_id: null,
         customer_id: row.customer_id, customer_name: null,
       };
@@ -697,19 +704,19 @@ export class ComplyService {
       const events: CompCalendarEvent[] = [];
 
       for (const o of obligations) {
-        const daysLeft = Math.ceil(((o.due_date as Date).getTime() - Date.now()) / 86400000);
+        const daysLeft = Math.ceil(((toEpochMs(o.due_date) ?? 0) - Date.now()) / 86400000);
         events.push({
           source: 'obligation', source_id: o.id,
-          date: (o.due_date as Date).toISOString().split('T')[0],
+          date: toISODate(o.due_date)!,
           title: o.name, agency_code: o.agency_code,
           severity: daysLeft <= 0 ? 'red' : daysLeft <= 14 ? 'amber' : o.mandatory ? 'blue' : 'green',
         });
       }
       for (const c of certs) {
-        const daysLeft = Math.ceil(((c.expiry_date as Date).getTime() - Date.now()) / 86400000);
+        const daysLeft = Math.ceil(((toEpochMs(c.expiry_date) ?? 0) - Date.now()) / 86400000);
         events.push({
           source: 'certificate', source_id: c.id,
-          date: (c.expiry_date as Date).toISOString().split('T')[0],
+          date: toISODate(c.expiry_date)!,
           title: `${c.name} expires`, agency_code: c.agency_code,
           severity: daysLeft <= 0 ? 'red' : daysLeft <= 14 ? 'amber' : 'blue',
         });
@@ -725,7 +732,7 @@ export class ComplyService {
       for (const rem of reminders) {
         events.push({
           source: 'reminder', source_id: rem.id,
-          date: (rem.remind_date as Date).toISOString().split('T')[0],
+          date: toISODate(rem.remind_date)!,
           title: rem.title, agency_code: rem.agency_code, severity: 'amber',
         });
       }
@@ -751,7 +758,9 @@ export class ComplyService {
 
       return {
         id: row.id, title: row.title, agency_code: row.agency_code,
-        remind_date: (row.remind_date as Date).toISOString().split('T')[0],
+        // remind_date is NOT NULL and was just written from input, so the
+        // row always has one.
+        remind_date: toISODate(row.remind_date)!,
         notes: row.notes, created_at: (row.created_at as Date).toISOString(),
       };
     });
@@ -810,8 +819,8 @@ export class ComplyService {
     return {
       id: row.id, cert_number: row.cert_number, name: row.name,
       agency_code: row.agency_code, agency_name: row.agency_name, agency_class: row.agency_class as any,
-      issued_date: row.issued_date ? (row.issued_date as Date).toISOString().split('T')[0] : null,
-      expiry_date: row.expiry_date ? (row.expiry_date as Date).toISOString().split('T')[0] : null,
+      issued_date: row.issued_date ? toISODate(row.issued_date) : null,
+      expiry_date: row.expiry_date ? toISODate(row.expiry_date) : null,
       status: row.status as any, document_url: row.document_url, external_ref: row.external_ref,
       auto_renew: row.auto_renew, last_synced_at: null, metadata: row.metadata as Record<string, unknown>,
       customer_id: row.customer_id, customer_name: null,
@@ -829,7 +838,7 @@ export class ComplyService {
   private static mapCustomerRow(row: any): Customer {
     return {
       ...row,
-      incorporation_date: row.incorporation_date ? (row.incorporation_date as Date).toISOString().split('T')[0] : undefined,
+      incorporation_date: row.incorporation_date ? toISODate(row.incorporation_date) ?? undefined : undefined,
       created_at: (row.created_at as Date).toISOString(),
       updated_at: (row.updated_at as Date).toISOString(),
     };
