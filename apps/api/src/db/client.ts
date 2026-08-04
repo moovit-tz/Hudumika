@@ -2614,11 +2614,6 @@ export interface Database {
   hr_compensations: HrCompensationsTable;
   hr_compensation_components: HrCompensationComponentsTable;
   // NexusHR Workflows
-  hr_workflow_definitions: HrWorkflowDefinitionsTable;
-  hr_workflow_stages: HrWorkflowStagesTable;
-  hr_workflow_cases: HrWorkflowCasesTable;
-  hr_workflow_tasks: HrWorkflowTasksTable;
-  hr_workflow_conditions: HrWorkflowConditionsTable;
   // NexusHR Documents & Assets
   hr_documents: HrDocumentsTable;
   hr_document_templates: HrDocumentTemplatesTable;
@@ -3991,77 +3986,15 @@ export interface HrCompensationComponentsTable {
   created_at: Generated<Date>;
 }
 
-export interface HrWorkflowDefinitionsTable {
-  id: Generated<string>;
-  tenant_id: string;
-  name: string;
-  category: string;
-  trigger_event: string | null;
-  is_active: Generated<boolean>;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
-}
-
-export interface HrWorkflowStagesTable {
-  id: Generated<string>;
-  tenant_id: string;
-  definition_id: string;
-  name: string;
-  sort_order: number;
-  stage_type: Generated<string>;
-  assignee_rule: string;
-  specific_user_id: string | null;
-  sla_hours: number | null;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
-}
-
-export interface HrWorkflowCasesTable {
-  id: Generated<string>;
-  tenant_id: string;
-  definition_id: string;
-  subject_id: string;
-  subject_type: string;
-  current_stage_id: string | null;
-  status: Generated<string>;
-  started_at: Generated<Date>;
-  completed_at: Date | null;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
-}
-
-export interface HrWorkflowTasksTable {
-  id: Generated<string>;
-  tenant_id: string;
-  case_id: string;
-  stage_id: string;
-  name: string;
-  assignee_id: string | null;
-  status: Generated<string>;
-  due_date: Date | null;
-  completed_at: Date | null;
-  notes: string | null;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
-}
-
-export interface HrWorkflowConditionsTable {
-  id: Generated<string>;
-  tenant_id: string;
-  stage_id: string;
-  field_name: string;
-  operator: string;
-  value: string;
-  next_stage_id: string | null;
-  created_at: Generated<Date>;
-}
+// HrWorkflow{Definitions,Stages,Cases,Tasks,Conditions}Table were dropped in
+// migration 173 along with the tables behind them — a third workflow engine
+// nothing routed to. HR automation now emits domain events into Workflow Studio.
 
 export interface HrDocumentsTable {
   id: Generated<string>;
   tenant_id: string;
   person_id: string | null;
   employment_id: string | null;
-  case_id: string | null;
   name: string;
   type: string;
   storage_key: string;

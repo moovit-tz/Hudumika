@@ -22,7 +22,7 @@ import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 interface Doc {
   id: string; name: string; type: string; status: string; storage_key: string;
   created_at: string; person_id: string | null; employment_id: string | null;
-  case_id: string | null; person_name: string | null; signature_status: string | null;
+  person_name: string | null; signature_status: string | null;
 }
 interface Template {
   id: string; name: string; type: string; country_code: string | null;

@@ -520,155 +520,11 @@ export class NexusHRService {
     });
   }
 
-  // ─── WORKFLOWS ─────────────────────────────────────────────────────────────
-
-  static async getWorkflowDefinitions(tenantId: string) {
-    return withTenant(tenantId, async (trx) => {
-      return await trx
-        .selectFrom('hr_workflow_definitions')
-        .selectAll()
-        .where('tenant_id', '=', tenantId)
-        .execute();
-    });
-  }
-
-  static async getWorkflowCases(tenantId: string) {
-    return withTenant(tenantId, async (trx) => {
-      const cases = await trx
-        .selectFrom('hr_workflow_cases')
-        .innerJoin('hr_workflow_definitions', 'hr_workflow_definitions.id', 'hr_workflow_cases.definition_id')
-        .select([
-          'hr_workflow_cases.id',
-          'hr_workflow_cases.status',
-          'hr_workflow_cases.started_at',
-          'hr_workflow_cases.completed_at',
-          'hr_workflow_definitions.name as workflow_name',
-          'hr_workflow_definitions.category',
-          'hr_workflow_cases.subject_id',
-          'hr_workflow_cases.subject_type'
-        ])
-        .where('hr_workflow_cases.tenant_id', '=', tenantId)
-        .execute();
-
-      // Fetch tasks for these cases
-      const caseIds = cases.map(c => c.id);
-      let tasks: any[] = [];
-      if (caseIds.length > 0) {
-        tasks = await trx
-          .selectFrom('hr_workflow_tasks')
-          .selectAll()
-          .where('case_id', 'in', caseIds)
-          .orderBy('created_at', 'asc')
-          .execute();
-      }
-
-      return cases.map(c => ({
-        ...c,
-        tasks: tasks.filter(t => t.case_id === c.id)
-      }));
-    });
-  }
-
-  static async createWorkflowCase(tenantId: string, data: any) {
-    return withTenant(tenantId, async (trx) => {
-      // 1. Get definition
-      const def = await trx
-        .selectFrom('hr_workflow_definitions')
-        .selectAll()
-        .where('id', '=', data.definition_id)
-        .executeTakeFirstOrThrow();
-
-      // 2. Get stages
-      const stages = await trx
-        .selectFrom('hr_workflow_stages')
-        .selectAll()
-        .where('definition_id', '=', def.id)
-        .orderBy('sort_order', 'asc')
-        .execute();
-
-      const firstStage = stages[0];
-
-      // 3. Create case
-      const [wfCase] = await trx
-        .insertInto('hr_workflow_cases')
-        .values({
-          tenant_id: tenantId,
-          definition_id: def.id,
-          subject_id: data.subject_id,
-          subject_type: data.subject_type,
-          current_stage_id: firstStage?.id || null,
-          status: 'IN_PROGRESS',
-        })
-        .returningAll()
-        .execute();
-
-      // 4. Create tasks for all stages
-      if (stages.length > 0) {
-        await trx
-          .insertInto('hr_workflow_tasks')
-          .values(stages.map(s => ({
-            tenant_id: tenantId,
-            case_id: wfCase.id,
-            stage_id: s.id,
-            name: s.name,
-            status: s.id === firstStage.id ? 'PENDING' : 'PENDING', // All start pending
-            due_date: s.sla_hours ? new Date(Date.now() + s.sla_hours * 60 * 60 * 1000) : null
-          })))
-          .execute();
-      }
-
-      return wfCase;
-    });
-  }
-
-  static async completeWorkflowTask(tenantId: string, taskId: string, notes?: string) {
-    return withTenant(tenantId, async (trx) => {
-      // Every clause here is scoped to the tenant. Matching on id alone let
-      // one tenant complete another tenant's task and close their case.
-      const task = await trx
-        .selectFrom('hr_workflow_tasks')
-        .selectAll()
-        .where('id', '=', taskId)
-        .where('tenant_id', '=', tenantId)
-        .executeTakeFirst();
-      if (!task) throw new Error('Task not found');
-
-      await trx
-        .updateTable('hr_workflow_tasks')
-        .set({
-          status: 'COMPLETED',
-          completed_at: new Date(),
-          notes: notes || null
-        })
-        .where('id', '=', taskId)
-        .where('tenant_id', '=', tenantId)
-        .execute();
-
-      // Check if all tasks in the case are completed
-      const remaining = await trx
-        .selectFrom('hr_workflow_tasks')
-        .select('id')
-        .where('case_id', '=', task.case_id)
-        .where('tenant_id', '=', tenantId)
-        .where('status', '=', 'PENDING')
-        .execute();
-
-      if (remaining.length === 0) {
-        // Complete the case
-        await trx
-          .updateTable('hr_workflow_cases')
-          .set({
-            status: 'COMPLETED',
-            completed_at: new Date()
-          })
-          .where('id', '=', task.case_id)
-          .where('tenant_id', '=', tenantId)
-          .execute();
-      }
-
-      return { success: true };
-    });
-  }
+  // NexusHR's own workflow engine (hr_workflow_definitions/stages/cases/tasks/
+  // conditions) was removed in migration 173. It was a third engine alongside
+  // the clearance workflow and Workflow Studio, with no UI, no emitters and no
+  // rows in any tenant — and HR now emits domain events that Studio can act on,
+  // so the capability it was meant to provide exists elsewhere.
 
   // ─── DOCUMENTS ─────────────────────────────────────────────────────────────
 
@@ -689,7 +545,7 @@ export class NexusHRService {
         .leftJoin('hr_people as ep', 'ep.id', 'hr_employments.person_id')
         .select([
           'hr_documents.id', 'hr_documents.person_id', 'hr_documents.employment_id',
-          'hr_documents.case_id', 'hr_documents.name', 'hr_documents.type',
+          'hr_documents.name', 'hr_documents.type',
           'hr_documents.storage_key', 'hr_documents.status', 'hr_documents.created_at',
           'dp.first_name as p_first', 'dp.last_name as p_last',
           'ep.first_name as e_first', 'ep.last_name as e_last',
@@ -709,7 +565,7 @@ export class NexusHRService {
       return rows.map(r => ({
         id: r.id, name: r.name, type: r.type, status: r.status,
         storage_key: r.storage_key, created_at: r.created_at,
-        person_id: r.person_id, employment_id: r.employment_id, case_id: r.case_id,
+        person_id: r.person_id, employment_id: r.employment_id,
         person_name: r.p_first ? `${r.p_first} ${r.p_last}` : r.e_first ? `${r.e_first} ${r.e_last}` : null,
         signature_status: sigs.find(s => s.document_id === r.id)?.status ?? null,
       }));

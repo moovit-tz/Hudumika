@@ -135,45 +135,9 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // ─── WORKFLOWS ─────────────────────────────────────────────────────────────
-
-  fastify.get('/workflows/definitions', async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      return await NexusHRService.getWorkflowDefinitions(tenantId);
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
-  });
-
-  fastify.get('/workflows/cases', async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      return await NexusHRService.getWorkflowCases(tenantId);
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
-  });
-
-  fastify.post('/workflows/cases', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      return await NexusHRService.createWorkflowCase(tenantId, request.body);
-    } catch (err: any) {
-      return reply.status(400).send({ error: err.message });
-    }
-  });
-
-  fastify.post('/workflows/tasks/:id/complete', async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      const { id } = request.params as { id: string };
-      const { notes } = request.body as { notes?: string };
-      return await NexusHRService.completeWorkflowTask(tenantId, id, notes);
-    } catch (err: any) {
-      return reply.status(400).send({ error: err.message });
-    }
-  });
+  // NexusHR's own workflow routes were removed with the engine behind them
+  // (migration 173). Nothing in the app called them; HR workflow automation
+  // now goes through domain events and Workflow Studio.
 
   // ─── DOCUMENTS ─────────────────────────────────────────────────────────────
 
