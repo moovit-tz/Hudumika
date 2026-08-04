@@ -13,6 +13,7 @@ import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { showAlert } from '../lib/alert.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
@@ -309,7 +310,11 @@ export const ClearOSMetricsDashboard: React.FC = () => {
           <Icon name="barChart2" size={18} color="var(--teal)" strokeWidth={1.75} />
         </div>
         <div>
-          <h1 style={{ fontSize: 17, fontWeight: 700, color: 'var(--navy)', lineHeight: 1.2 }}>Operations Metrics</h1>
+          <PageHeader
+            crumbs={['ClearOS', 'Operations Metrics']}
+            titlePlain="Operations"
+            titleEm="metrics"
+          />
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>
             {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : 'Loading…'}
           </div>

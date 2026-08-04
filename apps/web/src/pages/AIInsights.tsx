@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import '../pages/AI.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface InsightsResponse {
   digest: string;
@@ -32,8 +33,12 @@ export const AIInsights: React.FC = () => {
     <div style={{ padding: '24px 28px', maxWidth: 900, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>Daily Digest</h1>
-          <p style={{ fontSize: 12.5, color: 'var(--ink3)', margin: '4px 0 0' }}>Generated from live operational and financial data</p>
+          <PageHeader
+            crumbs={['AI', 'Daily Digest']}
+            titlePlain="Daily"
+            titleEm="digest"
+            subtitle="Generated from live operational and financial data"
+          />
         </div>
         <button type="button" className="btn btn-secondary btn-sm" onClick={load} disabled={loading}>
           <Icon name="refresh" size={13} /> Refresh

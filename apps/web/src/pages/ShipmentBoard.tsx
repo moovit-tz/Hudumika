@@ -10,6 +10,7 @@ import {
   type ClearanceJob, type Stage, type Flag, type TransportMode, type Channel,
 } from './clearanceData.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 // --- Store hook ---------------------------------------------------------------
 
@@ -359,7 +360,11 @@ export function ShipmentBoard() {
         <div style={{ padding: '16px 20px 12px', background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div>
-              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Clearance Board</h1>
+              <PageHeader
+                crumbs={['ClearOS', 'Clearance Board']}
+                titlePlain="Clearance"
+                titleEm="board"
+              />
               <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--ink3)' }}>
                 {jobs.length} jobs · {jobs.filter(j => j.flags.includes('sla_breach')).length} SLA breach · {jobs.filter(j => j.flags.includes('demurrage')).length} demurrage
               </p>

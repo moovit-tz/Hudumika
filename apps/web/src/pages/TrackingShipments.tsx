@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Trip {
   id: string;
@@ -80,7 +81,11 @@ export const TrackingShipments: React.FC = () => {
     <div style={{ padding: 24, background: '#f8fafc', minHeight: '100%', fontFamily: 'var(--font)' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
-        <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: 'var(--ink)' }}>Trips</h1>
+        <PageHeader
+          crumbs={['Tracking', 'Trips']}
+          titlePlain="Vehicle"
+          titleEm="trips"
+        />
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ position: 'relative' }}>
             <Icon name="search" size={14} style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' }} />

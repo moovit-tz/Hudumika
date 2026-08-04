@@ -7,6 +7,7 @@ import { EMPLOYEES } from '../data/staffData.js';
 import type { EmpStatus } from '../data/staffData.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface StaffData {
   id: string;
@@ -257,7 +258,11 @@ export const StaffDetail: React.FC = () => {
           <Icon name="arrowLeft" size={16} color="var(--ink2)" />
         </button>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: '0 0 2px' }}>Staff Profile</h1>
+          <PageHeader
+            crumbs={['NexusHR', 'Staff']}
+            titlePlain="Staff"
+            titleEm="profile"
+          />
           <p style={{ fontSize: 13, color: 'var(--ink3)', margin: 0 }}>Manage {staff.name.split(' ')[0]}'s account and details</p>
         </div>
         <span style={{ marginLeft: 'auto', padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: ss.bg, color: ss.color }}>{ss.label}</span>
