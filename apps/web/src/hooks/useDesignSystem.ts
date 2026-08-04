@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
-import { parseHex, lightenHex, tintRgba, hexToHslTriplet, pickForegroundHsl } from '../lib/color.js';
+import { parseHex, lightenHex, tintRgba, hexToHslTriplet, pickForegroundHsl, enforceContrastFloor } from '../lib/color.js';
 import { themeFromSourceColor, argbFromHex, hexFromArgb } from '@material/material-color-utilities';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -489,10 +489,17 @@ export function applyDesignTokens(tokens: DesignTokens): void {
   // component (the ones CLAUDE.md mandates for all new UI) stays pinned to
   // the static Midnight Navy default regardless of the chosen theme preset
   // or per-app color, even though the legacy --teal-driven UI updates live.
-  const primaryHslLight = hexToHslTriplet(tokens.brand.primary);
-  const primaryFgLight = pickForegroundHsl(tokens.brand.primary);
-  const primaryHslDark = hexToHslTriplet(darkTeal);
-  const primaryFgDark = pickForegroundHsl(darkTeal);
+  // --primary is a button *surface* with a label on it, so it has to clear
+  // WCAG AA. The tenant's colour is used as picked wherever it is only a tint
+  // or an accent (--teal and friends below); the floor applies only here,
+  // where text sits directly on it. Colours that already pass are untouched.
+  const primarySurfaceLight = enforceContrastFloor(tokens.brand.primary);
+  const primarySurfaceDark = enforceContrastFloor(darkTeal);
+
+  const primaryHslLight = hexToHslTriplet(primarySurfaceLight.hex);
+  const primaryFgLight = pickForegroundHsl(primarySurfaceLight.hex);
+  const primaryHslDark = hexToHslTriplet(primarySurfaceDark.hex);
+  const primaryFgDark = pickForegroundHsl(primarySurfaceDark.hex);
 
   const lightVars: Record<string, string | number> = {
     '--teal': tokens.brand.primary,
