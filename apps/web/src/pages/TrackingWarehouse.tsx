@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Location { id: string; code: string; name: string; zone: string | null; capacity_units: number | null; active: boolean }
 interface Vehicle { id: string; name: string }
@@ -209,8 +210,12 @@ export const TrackingWarehouse: React.FC = () => {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Warehouse</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Storage locations &amp; dock scheduling</div>
+          <PageHeader
+            crumbs={['HuduFreight', 'Warehouse']}
+            titlePlain="Warehouse"
+            titleEm="operations"
+            subtitle="Storage locations &amp; dock scheduling"
+          />
         </div>
         <div style={{ display: 'flex', gap: 6, background: 'var(--bg)', borderRadius: 9, padding: 4 }}>
           <button type="button" onClick={() => setTab('locations')} style={{ height: 32, padding: '0 16px', borderRadius: 7, border: 'none', background: tab === 'locations' ? 'var(--white)' : 'transparent', color: tab === 'locations' ? 'var(--ink)' : 'var(--ink3)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Locations</button>

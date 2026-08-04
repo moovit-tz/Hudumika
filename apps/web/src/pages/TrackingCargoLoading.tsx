@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 export type CameraPreset = 'iso' | 'front' | 'side' | 'top';
 
@@ -368,8 +369,12 @@ export const TrackingCargoLoading: React.FC = () => {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Cargo Loading</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Plan a container/truck load and visualize it in 3D. Packing is computed automatically (first-fit-decreasing) — not manually draggable.</div>
+          <PageHeader
+            crumbs={['HuduFreight', 'Cargo Loading']}
+            titlePlain="Cargo"
+            titleEm="loading"
+            subtitle="Plan a container/truck load and visualize it in 3D. Packing is computed automatically (first-fit-decreasing) — not manually draggable."
+          />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <Select value={manifestId} onValueChange={setManifestId} disabled={manifests.length === 0}>

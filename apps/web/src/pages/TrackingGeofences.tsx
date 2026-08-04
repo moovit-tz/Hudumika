@@ -6,6 +6,7 @@ import { MapTileLayer } from '../components/MapTileLayer.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import 'leaflet/dist/leaflet.css';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Geofence { id: string; name: string; zone_type: string; center_lat: number; center_lon: number; radius_km: number; active: boolean }
 
@@ -150,8 +151,12 @@ export const TrackingGeofences: React.FC = () => {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Geofences</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Zones checked against live vehicle positions</div>
+          <PageHeader
+            crumbs={['HuduFreight', 'Geofences']}
+            titlePlain="Zone"
+            titleEm="geofences"
+            subtitle="Zones checked against live vehicle positions"
+          />
         </div>
         <button type="button" onClick={() => setShowAdd(true)}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>

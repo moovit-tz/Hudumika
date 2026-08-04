@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Vehicle { id: string; name: string }
 interface Driver { id: string; name: string }
@@ -127,8 +128,12 @@ export const TrackingReminders: React.FC = () => {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Reminders</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Maintenance, document &amp; custom due dates</div>
+          <PageHeader
+            crumbs={['HuduFreight', 'Reminders']}
+            titlePlain="Service"
+            titleEm="reminders"
+            subtitle="Maintenance, document &amp; custom due dates"
+          />
         </div>
         <button type="button" onClick={() => setShowAdd(true)}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>

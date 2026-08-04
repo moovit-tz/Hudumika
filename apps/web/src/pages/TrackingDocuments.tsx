@@ -5,6 +5,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Doc {
@@ -120,8 +121,12 @@ export const TrackingDocuments: React.FC = () => {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Documents &amp; Insurance</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Registration, insurance, inspection &amp; permit expiry tracking</div>
+          <PageHeader
+            crumbs={['HuduFreight', 'Documents']}
+            titlePlain="Fleet"
+            titleEm="documents"
+            subtitle="Registration, insurance, inspection &amp; permit expiry tracking"
+          />
         </div>
         <button type="button" onClick={() => setShowAdd(true)} disabled={vehicles.length === 0}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: vehicles.length === 0 ? 'default' : 'pointer', opacity: vehicles.length === 0 ? 0.5 : 1 }}>

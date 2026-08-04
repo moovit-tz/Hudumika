@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Vendor { id: string; name: string }
 interface Part {
@@ -106,8 +107,12 @@ export const TrackingPartsStock: React.FC = () => {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Parts Stock</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Spare parts inventory</div>
+          <PageHeader
+            crumbs={['HuduFreight', 'Parts']}
+            titlePlain="Spare"
+            titleEm="parts"
+            subtitle="Spare parts inventory"
+          />
         </div>
         <button type="button" onClick={() => setShowAdd(true)}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>

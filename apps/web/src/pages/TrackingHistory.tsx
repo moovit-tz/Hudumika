@@ -9,6 +9,7 @@ import { apiFetch } from '../lib/api.js';
 import { MapTileLayer } from '../components/MapTileLayer.js';
 import { Combobox } from '../components/ui/combobox.js';
 import 'leaflet/dist/leaflet.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend);
 
@@ -54,8 +55,12 @@ export const TrackingHistory: React.FC = () => {
     <div style={{ padding: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>History</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Route trail and speed for a vehicle</div>
+          <PageHeader
+            crumbs={['HuduFreight', 'History']}
+            titlePlain="Trip"
+            titleEm="history"
+            subtitle="Route trail and speed for a vehicle"
+          />
         </div>
         <Combobox
           options={vehicles.map(v => ({ value: v.id, label: v.name, sublabel: v.plate_number || undefined }))}

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Vendor { id: string; name: string }
@@ -107,8 +108,12 @@ export const TrackingMaintenance: React.FC = () => {
     <div style={{ padding: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Maintenance</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Service history &amp; scheduled maintenance</div>
+          <PageHeader
+            crumbs={['HuduFreight', 'Maintenance']}
+            titlePlain="Vehicle"
+            titleEm="maintenance"
+            subtitle="Service history &amp; scheduled maintenance"
+          />
         </div>
         <Link to="/tracking/maintenance/new"
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Vehicle { id: string; name: string }
 interface Alert {
@@ -42,8 +43,12 @@ export const TrackingAlerts: React.FC = () => {
     <div style={{ padding: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Alerts</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Speeding, geofence breach, maintenance &amp; document alerts</div>
+          <PageHeader
+            crumbs={['HuduFreight', 'Alerts']}
+            titlePlain="Fleet"
+            titleEm="alerts"
+            subtitle="Speeding, geofence breach, maintenance &amp; document alerts"
+          />
         </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink2)', cursor: 'pointer' }}>
           <input type="checkbox" checked={showAcknowledged} onChange={e => setShowAcknowledged(e.target.checked)} />
