@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { useComplyBrelaHistory } from '../hooks/useComply.js';
 import type { CompBrelaSearchHistoryEntry } from '@hudumika/types';
 import './ComplyOS.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 function formatWhen(iso: string): string {
   return new Date(iso).toLocaleString('en-GB', {
@@ -22,11 +23,13 @@ export function ComplyBrelaHistory() {
 
   return (
     <div className="comply-page">
+      <PageHeader
+        crumbs={['ComplyOS', 'BRELA Search History']}
+        titlePlain="BRELA Search"
+        titleEm="history"
+        subtitle="Every BRELA search run by your team, with what it found."
+      />
       <div className="comply-page-hdr">
-        <div>
-          <h1 className="comply-page-title">BRELA Search History</h1>
-          <p className="comply-page-sub">Every BRELA search run by your team, with what it found.</p>
-        </div>
         <div className="comply-action-row">
           <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh">
             <Icon name="refresh" size={13} />
