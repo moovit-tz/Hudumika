@@ -204,6 +204,24 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.post('/assets', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
+    try {
+      return await NexusHRService.createAsset(request.user.tenant_id, request.body);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  /** Hand an asset over, or take it back with `employment_id: null`. */
+  fastify.patch('/assets/:id/assignment', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
+    try {
+      const { employment_id, date } = request.body ?? {};
+      return await NexusHRService.assignAsset(request.user.tenant_id, request.params.id, employment_id ?? null, date);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
   // ─── PAYROLL ───────────────────────────────────────────────────────────────
 
   fastify.get('/payroll/runs', async (request: any, reply) => {
@@ -260,6 +278,23 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       return await NexusHRService.getReviewCycles(tenantId);
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.post('/reviews/cycles', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
+    try {
+      return await NexusHRService.createReviewCycle(request.user.tenant_id, request.body);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  /** The individual reviews inside one cycle, each against a named person. */
+  fastify.get('/reviews/cycles/:id/instances', async (request: any, reply) => {
+    try {
+      return await NexusHRService.getReviewInstances(request.user.tenant_id, request.params.id);
+    } catch (err: any) {
+      return reply.status(404).send({ error: err.message });
     }
   });
 
