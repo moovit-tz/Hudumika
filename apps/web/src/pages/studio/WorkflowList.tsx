@@ -10,6 +10,7 @@ import { Input } from '../../components/ui/input.js';
 import { SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
 import type { WorkflowStudioApp, WorkflowStudioTriggerDef, WorkflowStudioActionDef } from '@hudumika/types';
+import { PageHeader } from '../../components/PageHeader.js';
 
 /**
  * The workflow list.
@@ -120,12 +121,14 @@ export function WorkflowList() {
     <div style={{ padding: '20px 22px', maxWidth: 1320, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
         <div style={{ flex: 1, minWidth: 240 }}>
-          <div style={{ fontSize: 21, fontWeight: 800, color: 'var(--ink)' }}>Studio</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 3 }}>
-            {scopeApp
+          <PageHeader
+            crumbs={['Studio', 'Studio']}
+            titlePlain="Workflow"
+            titleEm="automations"
+            subtitle={<>{scopeApp
               ? <>Automations belonging to <strong>{scopeApp}</strong>. <a href="/studio" style={{ color: 'var(--teal)' }}>Show every app</a>.</>
-              : 'Every automation across the platform — what fires it, what it does, and whether it ran.'}
-          </div>
+              : 'Every automation across the platform — what fires it, what it does, and whether it ran.'}</>}
+          />
         </div>
         {returnTo && (
           <Button type="button" variant="outline" size="sm" onClick={() => navigate(returnTo)}>
