@@ -7,10 +7,106 @@ export class NexusHRService {
     return withTenant(tenantId, async (trx) => {
       return await trx
         .selectFrom('hr_people')
-        .selectAll()
+        .leftJoin('users', 'users.id', 'hr_people.user_id')
+        .selectAll('hr_people')
+        .select(['users.name as user_name', 'users.email as user_email', 'users.role as user_role', 'users.active as user_active'])
+        .where('hr_people.tenant_id', '=', tenantId)
+        .orderBy('hr_people.first_name', 'asc')
+        .execute();
+    });
+  }
+
+  /**
+   * The staff roster reconciled across both person models.
+   *
+   * Everything the live UI shows (attendance, leave, payroll) hangs off
+   * `users`; everything the richer HR tables hold (employment, compensation,
+   * documents, goals) hangs off `hr_people` -> `hr_employments`. Until
+   * migration 172 the two had no join, so nothing could answer "does this
+   * employee have an HR record, and is their payroll consistent with their
+   * contracted salary".
+   *
+   * Returns every login with its HR record where one is linked, plus the HR
+   * records that have no login yet — an unlinked row on either side is a real
+   * state worth seeing, not an error to hide.
+   */
+  static async getRoster(tenantId: string) {
+    return withTenant(tenantId, async (trx) => {
+      const users = await trx
+        .selectFrom('users')
+        .leftJoin('hr_people', 'hr_people.user_id', 'users.id')
+        .select([
+          'users.id as user_id', 'users.name', 'users.email', 'users.role', 'users.active',
+          'hr_people.id as person_id', 'hr_people.first_name', 'hr_people.last_name',
+        ])
+        .where('users.tenant_id', '=', tenantId)
+        .orderBy('users.name', 'asc')
+        .execute();
+
+      const unlinkedPeople = await trx
+        .selectFrom('hr_people')
+        .select(['id as person_id', 'first_name', 'last_name', 'personal_email'])
         .where('tenant_id', '=', tenantId)
+        .where('user_id', 'is', null)
         .orderBy('first_name', 'asc')
         .execute();
+
+      // Employment + current compensation, for the people who have them.
+      const personIds = users.map(u => u.person_id).filter(Boolean) as string[];
+      const employments = personIds.length
+        ? await trx
+            .selectFrom('hr_employments')
+            .leftJoin('hr_compensations', 'hr_compensations.employment_id', 'hr_employments.id')
+            .select([
+              'hr_employments.id as employment_id', 'hr_employments.person_id',
+              'hr_employments.status', 'hr_employments.employment_type', 'hr_employments.start_date',
+              'hr_compensations.base_salary', 'hr_compensations.currency', 'hr_compensations.pay_frequency',
+            ])
+            .where('hr_employments.tenant_id', '=', tenantId)
+            .where('hr_employments.person_id', 'in', personIds)
+            .execute()
+        : [];
+      const empByPerson = new Map(employments.map(e => [e.person_id, e]));
+
+      return {
+        roster: users.map(u => ({
+          userId: u.user_id, name: u.name, email: u.email, role: u.role, active: u.active,
+          personId: u.person_id,
+          hrName: u.person_id ? `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() : null,
+          employment: empByPerson.get(u.person_id as string) ?? null,
+        })),
+        unlinkedPeople,
+        // Named plainly so the UI can say what is missing rather than imply
+        // everyone is fully set up.
+        summary: {
+          logins: users.length,
+          withHrRecord: users.filter(u => u.person_id).length,
+          withEmployment: users.filter(u => empByPerson.has(u.person_id as string)).length,
+          hrRecordsWithoutLogin: unlinkedPeople.length,
+        },
+      };
+    });
+  }
+
+  /** Links an existing HR person record to an existing login, or clears it. */
+  static async linkPersonToUser(tenantId: string, personId: string, userId: string | null) {
+    return withTenant(tenantId, async (trx) => {
+      // Both sides must belong to this tenant — a valid-looking id from
+      // elsewhere must not become a cross-tenant join.
+      const person = await trx.selectFrom('hr_people').select('id')
+        .where('id', '=', personId).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!person) throw new Error('Person not found');
+
+      if (userId) {
+        const user = await trx.selectFrom('users').select('id')
+          .where('id', '=', userId).where('tenant_id', '=', tenantId).executeTakeFirst();
+        if (!user) throw new Error('User not found');
+      }
+
+      return trx.updateTable('hr_people')
+        .set({ user_id: userId, updated_at: new Date() })
+        .where('id', '=', personId).where('tenant_id', '=', tenantId)
+        .returningAll().executeTakeFirstOrThrow();
     });
   }
 

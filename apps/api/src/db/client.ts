@@ -3933,6 +3933,9 @@ export interface HrPeopleTable {
   national_identifiers: Generated<Record<string, any>>;
   emergency_contacts: Generated<any[]>;
   avatar_url: string | null;
+  /** The login this HR record belongs to. NULL while a hire has no account yet
+   *  — see migration 172 for why the two person models were separate. */
+  user_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

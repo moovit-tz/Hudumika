@@ -27,6 +27,31 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
+  /**
+   * GET /v1/hr/roster — both person models, reconciled.
+   *
+   * See migration 172. Answers "who has a login, who has an HR record, and who
+   * has both", which nothing could answer while the two families had no join.
+   */
+  fastify.get('/roster', async (request: any, reply) => {
+    try {
+      return await NexusHRService.getRoster(request.user.tenant_id);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  /** PATCH /v1/hr/people/:id/user — link (or unlink) an HR record to a login. */
+  fastify.patch('/people/:id/user', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
+    try {
+      const { id } = request.params;
+      const { user_id } = request.body ?? {};
+      return await NexusHRService.linkPersonToUser(request.user.tenant_id, id, user_id ?? null);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
   fastify.get('/employments', async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
