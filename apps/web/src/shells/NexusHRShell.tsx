@@ -12,6 +12,9 @@ import { MGMT_ROLES } from '../lib/permissions.js';
 import { StaffDetail } from '../pages/StaffDetail.js';
 import { OrgChart }    from '../pages/OrgChart.js';
 import { EmploymentRecords } from '../pages/EmploymentRecords.js';
+import { Performance }  from '../pages/Performance.js';
+import { HrDocuments }  from '../pages/HrDocuments.js';
+import { HrAssets }     from '../pages/HrAssets.js';
 import {
   HrmDashboard, EmployeesPage, DepartmentsPage, DesignationsPage, TeamsPage,
   AttendancePage, LeavesPage, ShiftsPage, HolidaysPage,
@@ -44,6 +47,19 @@ const NAV: SidebarSection[] = [
       { label: 'Leave Requests', icon: 'calendar', path: '/nexushr/leaves'     },
       { label: 'Shift Roster',   icon: 'timer',    path: '/nexushr/shifts'     },
       { label: 'Holidays',       icon: 'sun',      path: '/nexushr/holidays'   },
+    ],
+  },
+  {
+    title: 'PERFORMANCE',
+    items: [
+      { label: 'Goals & Reviews', icon: 'target', path: '/nexushr/performance' },
+    ],
+  },
+  {
+    title: 'RECORDS',
+    items: [
+      { label: 'Documents', icon: 'fileText', path: '/nexushr/documents' },
+      { label: 'Assets',    icon: 'package',  path: '/nexushr/assets'    },
     ],
   },
   {
@@ -103,6 +119,9 @@ export function NexusHRShell() {
               <Route path="announcements"     element={<RequireRoles roles={MGMT_ROLES}><AnnouncementsPage /></RequireRoles>} />
               <Route path="org-chart"         element={<RequireRoles roles={MGMT_ROLES}><OrgChart /></RequireRoles>} />
               <Route path="employment"        element={<RequireRoles roles={MGMT_ROLES}><EmploymentRecords /></RequireRoles>} />
+              <Route path="performance"       element={<RequireRoles roles={MGMT_ROLES}><Performance /></RequireRoles>} />
+              <Route path="documents"         element={<RequireRoles roles={MGMT_ROLES}><HrDocuments /></RequireRoles>} />
+              <Route path="assets"            element={<RequireRoles roles={MGMT_ROLES}><HrAssets /></RequireRoles>} />
               <Route path="permissions"       element={<RequireRoles roles={MGMT_ROLES}><PermissionsPage /></RequireRoles>} />
             </Route>
 
