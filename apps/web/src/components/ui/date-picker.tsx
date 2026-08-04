@@ -10,7 +10,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
 const triggerClass = cn(
-  "flex h-9 w-full items-center gap-2 rounded-lg border border-input bg-transparent px-3 py-2 text-left text-sm font-medium shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+  "flex min-h-9 w-full items-center gap-2 rounded-lg border border-input bg-transparent px-3 py-[var(--ds-input-py,8px)] text-left text-sm font-medium shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
 )
 
 /** Parse a plain "YYYY-MM-DD" string (as produced by <input type="date">) into a local Date, avoiding UTC-parse day-shift. */

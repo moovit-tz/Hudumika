@@ -20,11 +20,18 @@ const buttonVariants = cva(
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
+      // Height comes from the SuperAdmin density setting (--ds-btn-py), not a
+      // fixed Tailwind h-9. Without this, ui/ buttons sat at 36px while every
+      // legacy .btn on the same screen — which does read the token — rendered
+      // at 49px. Two control systems, 13px apart, side by side.
+      //
+      // min-h keeps a floor so a density of 0 cannot collapse the control, and
+      // the icon variant stays square by tracking the same height.
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-lg px-3 text-xs",
-        lg: "h-10 rounded-lg px-8",
-        icon: "h-9 w-9",
+        default: "min-h-9 py-[var(--ds-btn-py,9px)] px-4",
+        sm: "min-h-8 py-[calc(var(--ds-btn-py,9px)-3px)] px-3 text-xs",
+        lg: "min-h-10 py-[calc(var(--ds-btn-py,9px)+2px)] px-8",
+        icon: "min-h-9 aspect-square py-[var(--ds-btn-py,9px)] px-0",
       },
     },
     defaultVariants: {
