@@ -73,7 +73,7 @@ export const TenantManagement: React.FC = () => {
       </button>
 
       {loading ? (
-        <div>Loading…</div>
+        <div>Loadingâ€¦</div>
       ) : (
         <div className="card" style={{ padding: '24px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
