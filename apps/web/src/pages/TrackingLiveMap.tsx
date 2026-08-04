@@ -11,6 +11,7 @@ import {
 } from '../components/ui/dropdown-menu.js';
 import 'leaflet/dist/leaflet.css';
 import './Tracking.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface VehicleWithPosition {
   id: string; name: string; plate_number: string | null; status: string;
@@ -250,6 +251,12 @@ export const TrackingLiveMap: React.FC = () => {
 
   return (
     <div className="trk-livemap-shell">
+      <PageHeader
+        crumbs={['HuduFreight', 'Live Map']}
+        titlePlain="Live vehicle"
+        titleEm="map"
+        subtitle="Where every vehicle is right now, and where it has been."
+      />
       {/* TOP KPI BAR */}
       <div className="trk-top-kpi-bar">
         <div className="trk-kpi-item">

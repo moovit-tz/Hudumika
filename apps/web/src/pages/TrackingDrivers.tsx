@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { AreaChart, Area, XAxis, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import './TrackingDrivers.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 // Interfaces for new data structures
 interface DriverMetrics {
@@ -65,6 +66,12 @@ export const TrackingDrivers: React.FC = () => {
 
   return (
     <div className="drv-layout">
+      <PageHeader
+        crumbs={['HuduFreight', 'Drivers']}
+        titlePlain="Fleet"
+        titleEm="drivers"
+        subtitle="Everyone licensed to drive, their assignments and their record."
+      />
       {/* ── Main Area ── */}
       <div className="drv-main">
         <div className="drv-header">
