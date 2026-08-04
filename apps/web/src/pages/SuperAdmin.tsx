@@ -18,7 +18,7 @@ import { showConfirm } from '../lib/confirm.js';
 type PlanId = 'starter' | 'growth' | 'scale' | 'enterprise';
 type CoStatus = 'active' | 'inactive' | 'trial' | 'suspended';
 type SubStatus = 'active' | 'expired' | 'trial' | 'cancelled';
-type DomainStatus = 'active' | 'pending' | 'expired';
+type DomainStatus = 'active' | 'pending' | 'failed';
 type TxStatus = 'completed' | 'pending' | 'failed' | 'refunded';
 type PayMethod = 'card' | 'bank' | 'mpesa' | 'paypal';
 
@@ -50,9 +50,9 @@ const SUB_CFG: Record<SubStatus,{label:string;color:string;bg:string}> = {
   cancelled: { label:'Cancelled', color:'var(--ink3)', bg:'var(--bg)' },
 };
 const DOM_CFG: Record<DomainStatus,{label:string;color:string;bg:string}> = {
-  active:  { label:'Active',  color:'var(--green)', bg:'var(--green-l)' },
-  pending: { label:'Pending', color:'var(--gold)', bg:'var(--gold-l)' },
-  expired: { label:'Expired', color:'var(--red)', bg:'var(--red-l)' },
+  active:  { label:'Verified',   color:'var(--green)', bg:'var(--green-l)' },
+  pending: { label:'Unverified', color:'var(--gold)', bg:'var(--gold-l)' },
+  failed:  { label:'Failed',     color:'var(--red)', bg:'var(--red-l)' },
 };
 const TX_CFG: Record<TxStatus,{label:string;color:string;bg:string}> = {
   completed: { label:'Completed', color:'var(--green)', bg:'var(--green-l)' },
@@ -98,18 +98,9 @@ const SUBSCRIPTIONS: Subscription[] = [
   { id:'S8', companyId:'C8', plan:'enterprise', start:'2023-09-22', end:'2024-09-22', amount:9990, billing:'annual',  status:'cancelled' },
 ];
 
-const DOMAINS: Domain[] = [
-  { id:'D1',  domain:'summit.clearos.app',       companyId:'C1', status:'active',  ssl:true,  created:'2024-01-15' },
-  { id:'D2',  domain:'serengeti.clearos.app',    companyId:'C2', status:'active',  ssl:true,  created:'2024-02-08' },
-  { id:'D3',  domain:'karibu.clearos.app',       companyId:'C3', status:'pending', ssl:false, created:'2025-01-20' },
-  { id:'D4',  domain:'eal.clearos.app',          companyId:'C4', status:'active',  ssl:true,  created:'2023-11-01' },
-  { id:'D5',  domain:'kilimining.clearos.app',   companyId:'C5', status:'active',  ssl:true,  created:'2024-04-12' },
-  { id:'D6',  domain:'darport.clearos.app',      companyId:'C6', status:'expired', ssl:false, created:'2024-06-30' },
-  { id:'D7',  domain:'tzfreight.clearos.app',    companyId:'C7', status:'active',  ssl:true,  created:'2024-08-15' },
-  { id:'D8',  domain:'coastal.clearos.app',      companyId:'C8', status:'expired', ssl:false, created:'2023-09-22' },
-  { id:'D9',  domain:'clearance.summittz.com',   companyId:'C1', status:'active',  ssl:true,  created:'2024-03-10' },
-  { id:'D10', domain:'app.eastafricalog.co.tz',  companyId:'C4', status:'active',  ssl:true,  created:'2024-01-05' },
-];
+// The DOMAINS sample array lived here: ten fabricated hostnames, six of them
+// claiming a valid SSL certificate. DomainsView reads platform_domains now,
+// where every flag is the outcome of a real DNS or TLS probe.
 
 
 
@@ -120,20 +111,10 @@ const ACT_CFG: Record<ActivityType,{color:string;bg:string;icon:string}> = {
   system:  { color:'var(--gold)', bg:'var(--gold-l)', icon:'settings'    },
 };
 
-const MOCK_ACTIVITY: ActivityLog[] = [
-  { id:'A1',  actor:'Super Admin', action:'Suspended company account',         target:'Coastal Clearers Ltd',   companyId:'C8', time:'2026-06-14T11:45:00', type:'company' },
-  { id:'A2',  actor:'Super Admin', action:'Upgraded plan to Enterprise',        target:'East Africa Logistics',  companyId:'C4', time:'2026-06-14T10:20:00', type:'billing' },
-  { id:'A3',  actor:'Super Admin', action:'Suspended user account',             target:'Brian Otieno (C4)',      companyId:'C4', time:'2026-06-13T16:00:00', type:'user'    },
-  { id:'A4',  actor:'Super Admin', action:'Reset password for user',            target:'Grace Osei (C3)',        companyId:'C3', time:'2026-06-13T14:35:00', type:'user'    },
-  { id:'A5',  actor:'Super Admin', action:'Issued refund',                      target:'TXN-2025-0135 ($3,990)', companyId:'C8', time:'2026-06-13T11:10:00', type:'billing' },
-  { id:'A6',  actor:'Super Admin', action:'Added new company',                  target:'TZ Freight Solutions',   companyId:'C7', time:'2026-06-12T09:00:00', type:'company' },
-  { id:'A7',  actor:'Super Admin', action:'Renewed SSL certificate',            target:'summit.clearos.app',     companyId:'C1', time:'2026-06-11T15:30:00', type:'system'  },
-  { id:'A8',  actor:'Super Admin', action:'Enabled maintenance mode',           target:'Platform-wide',                          time:'2026-06-10T08:00:00', type:'system'  },
-  { id:'A9',  actor:'Super Admin', action:'Created new package — Enterprise+',  target:'Packages',                               time:'2026-06-09T13:20:00', type:'billing' },
-  { id:'A10', actor:'Super Admin', action:'Deactivated user account',           target:'Peter Njoroge (C2)',     companyId:'C2', time:'2026-06-08T10:50:00', type:'user'    },
-  { id:'A11', actor:'Super Admin', action:'Registered custom domain',           target:'clearance.summittz.com', companyId:'C1', time:'2026-06-07T14:00:00', type:'system'  },
-  { id:'A12', actor:'Super Admin', action:'Downgraded plan to Starter',         target:'Dar Port Agency',        companyId:'C6', time:'2026-06-06T11:15:00', type:'billing' },
-];
+// The MOCK_ACTIVITY sample array lived here: twelve invented superadmin
+// actions — refunds, password resets and SSL renewals that never happened,
+// against companies that do not exist. ActivityView reads
+// platform_activity_log now, which the superadmin routes write as they act.
 
 /* ══════════════════════════════════════════════════
    SHARED HELPERS
@@ -1162,10 +1143,47 @@ export function PackagesView() {
 /* ══════════════════════════════════════════════════
    DOMAINS VIEW
 ══════════════════════════════════════════════════ */
+/**
+ * Custom domains, from platform_domains.
+ *
+ * Every state shown here is the outcome of a probe the API actually ran: the
+ * TXT record was resolved, or a TLS handshake returned a certificate valid for
+ * the host. A domain nobody has checked says so rather than appearing verified
+ * or broken, and the SSL column shows the real expiry date off the certificate
+ * rather than a boolean somebody set.
+ */
 export function DomainsView() {
-  const [domains, setDomains] = useState(DOMAINS);
+  const [domains, setDomains] = useState<any[]>([]);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [busy, setBusy] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<DomainStatus|'all'>('all');
+  const [adding, setAdding] = useState(false);
+  const [newHost, setNewHost] = useState('');
+  const [newTenant, setNewTenant] = useState('');
+
+  const load = React.useCallback(async () => {
+    setLoadError('');
+    try {
+      const [d, t] = await Promise.all([
+        apiFetch('/v1/superadmin/domains'),
+        apiFetch('/v1/superadmin/tenants'),
+      ]);
+      setDomains(d?.data ?? []);
+      setTenants(Array.isArray(t) ? t : (t?.data ?? []));
+    } catch (e: any) { setLoadError(e?.message ?? 'Could not load domains.'); }
+    finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  async function act(key: string, fn: () => Promise<any>) {
+    setBusy(key); setLoadError('');
+    try { await fn(); await load(); }
+    catch (e: any) { setLoadError(e?.message ?? 'That did not work.'); }
+    finally { setBusy(''); }
+  }
 
   const filtered = useMemo(()=>
     domains.filter(d=>{
@@ -1176,21 +1194,28 @@ export function DomainsView() {
   [domains, search, statusFilter]);
 
   const stats = useMemo(()=>({
-    total:   domains.length,
-    active:  domains.filter(d=>d.status==='active').length,
-    ssl:     domains.filter(d=>d.ssl).length,
-    pending: domains.filter(d=>d.status==='pending').length,
+    total:    domains.length,
+    verified: domains.filter(d=>d.status==='active').length,
+    ssl:      domains.filter(d=>d.ssl_ok).length,
+    unchecked:domains.filter(d=>d.never_checked).length,
   }),[domains]);
+
+  if (loading) return <div style={{ padding:30, color:'var(--ink3)' }}>Loading domains…</div>;
 
   return (
     <div>
-      <PageHdr title="Domains" sub="Custom domains and SSL certificates across all companies" />
+      <PageHdr title="Domains" sub="Custom domains across all companies, and what the last DNS and TLS check actually found" />
+
+      {loadError && (
+        <div style={{ padding:'10px 13px', borderRadius:10, background:'var(--red-l)', color:'var(--red)', fontSize:12.5, marginBottom:14 }}>{loadError}</div>
+      )}
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:14, marginBottom:22 }}>
-        <StatCard label="Total Domains"  value={stats.total}   color="var(--teal)"  />
-        <StatCard label="Active"         value={stats.active}  color="var(--green)"      />
-        <StatCard label="SSL Secured"    value={stats.ssl}     color="var(--purple)"      />
-        <StatCard label="Pending"        value={stats.pending} color="var(--gold)"      />
+        <StatCard label="Total Domains"  value={stats.total}     color="var(--teal)"   />
+        <StatCard label="Verified"       value={stats.verified}  color="var(--green)"  />
+        {/* Counts certificates actually seen, not domains someone ticked. */}
+        <StatCard label="Serving TLS"    value={stats.ssl}       color="var(--purple)" />
+        <StatCard label="Never checked"  value={stats.unchecked} color="var(--gold)"   />
       </div>
 
       <div className="sa-toolbar">
@@ -1203,46 +1228,99 @@ export function DomainsView() {
           options={(Object.keys(DOM_CFG) as DomainStatus[]).map(k => ({ value: k, label: DOM_CFG[k].label }))}
           value={statusFilter === 'all' ? null : statusFilter} onChange={v => setStatusFilter((v ?? 'all') as DomainStatus | 'all')}
         />
+        <button type="button" className="btn btn-primary" style={{ marginLeft:'auto' }} onClick={()=>setAdding(a=>!a)}>
+          {adding ? 'Cancel' : '+ Add domain'}
+        </button>
       </div>
 
-      <DataTable headers={['Domain','Company','SSL','Status','Created','Actions']}>
-        {filtered.map(d=>{
-          const co = coByID(d.companyId);
-          return (
-            <TR key={d.id}>
-              <TD>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:6, background:'var(--bg)' }}>
-                    <Icon name="globe" size={14} color="var(--teal)" />
+      {adding && (
+        <div className="card" style={{ padding:16, marginBottom:16, display:'flex', gap:10, flexWrap:'wrap', alignItems:'flex-end' }}>
+          <div style={{ flex:'1 1 240px' }}>
+            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', color:'var(--ink3)', marginBottom:4 }}>Hostname</div>
+            <input className="input-field" value={newHost} onChange={e=>setNewHost(e.target.value)} placeholder="clearance.example.com" />
+          </div>
+          <div style={{ flex:'1 1 200px' }}>
+            <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', color:'var(--ink3)', marginBottom:4 }}>Company</div>
+            <select title="Company" className="input-field" value={newTenant} onChange={e=>setNewTenant(e.target.value)}>
+              <option value="">Choose a company…</option>
+              {tenants.map((t:any)=><option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          </div>
+          <button type="button" className="btn btn-primary" disabled={!newHost.trim() || !newTenant || !!busy}
+            onClick={()=>act('add', async () => {
+              await apiFetch('/v1/superadmin/domains', { method:'POST', body: JSON.stringify({ tenant_id:newTenant, domain:newHost.trim() }) });
+              setNewHost(''); setAdding(false);
+            })}>
+            {busy==='add' ? 'Adding…' : 'Add domain'}
+          </button>
+          <div style={{ flexBasis:'100%', fontSize:11.5, color:'var(--ink3)' }}>
+            Added unverified. The company publishes the TXT token it is given, then Check confirms it — nothing is marked verified before that.
+          </div>
+        </div>
+      )}
+
+      {domains.length === 0 ? (
+        <div className="card" style={{ padding:40, textAlign:'center' }}>
+          <Icon name="globe" size={22} color="var(--ink3)" />
+          <div style={{ fontSize:13.5, color:'var(--ink2)', marginTop:10 }}>No custom domains registered.</div>
+          <div style={{ fontSize:12, color:'var(--ink3)', marginTop:4 }}>Companies reach the platform on its default hostname until one is added here.</div>
+        </div>
+      ) : (
+      <DataTable headers={['Domain','Company','TLS certificate','Status','Last checked','Actions']}>
+        {filtered.map(d=>(
+          <TR key={d.id}>
+            <TD>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:28, height:28, borderRadius:6, background:'var(--bg)' }}>
+                  <Icon name="globe" size={14} color="var(--teal)" />
+                </span>
+                <div>
+                  <div style={{ fontFamily:'var(--mono)', fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>{d.domain}</div>
+                  {!d.dns_ok && (
+                    <div style={{ fontFamily:'var(--mono)', fontSize:10.5, color:'var(--ink3)' }}>TXT {d.verification_token}</div>
+                  )}
+                </div>
+              </div>
+            </TD>
+            <TD><span style={{ fontSize:13 }}>{d.tenant_name ?? 'company no longer on file'}</span></TD>
+            <TD>
+              {/* Only a handshake that returned a trusted certificate says
+                  anything here, and it says when that certificate expires. */}
+              {d.ssl_ok
+                ? <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, fontWeight:700, color:'var(--green)', background:'var(--green-l)', padding:'3px 8px', borderRadius:20 }}>
+                    <Icon name="lock" size={10} color="var(--green)" />
+                    expires {d.ssl_expires_at ? fmtDate(d.ssl_expires_at) : 'unknown'}
                   </span>
-                  <span style={{ fontFamily:'var(--mono)', fontSize:12.5, fontWeight:600, color:'var(--ink)' }}>{d.domain}</span>
-                </div>
-              </TD>
-              <TD>
-                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <CoAv co={co} size={26} />
-                  <span style={{ fontSize:13 }}>{co.name}</span>
-                </div>
-              </TD>
-              <TD>
-                {d.ssl
-                  ? <span style={{ display:'inline-flex', alignItems:'center', gap:4, fontSize:11, fontWeight:700, color:'var(--green)', background:'var(--green-l)', padding:'3px 8px', borderRadius:20 }}><Icon name="lock" size={10} color="var(--green)" />SSL Active</span>
-                  : <span style={{ fontSize:11, fontWeight:700, color:'var(--red)', background:'var(--red-l)', padding:'3px 8px', borderRadius:20 }}>No SSL</span>
-                }
-              </TD>
-              <TD><Badge cfg={DOM_CFG[d.status]} /></TD>
-              <TD nowrap><span style={{ fontSize:12, color:'var(--ink3)' }}>{fmtDate(d.created)}</span></TD>
-              <TD>
-                <div style={{ display:'flex', gap:2 }}>
-                  <ActBtn icon="eye"   title="View"   onClick={()=>{}} />
-                  <ActBtn icon="edit"  title="Edit"   onClick={()=>{}} />
-                  <ActBtn icon="trash" color="var(--red)" title="Delete" onClick={()=>setDomains(p=>p.filter(x=>x.id!==d.id))} />
-                </div>
-              </TD>
-            </TR>
-          );
-        })}
+                : d.never_checked
+                  ? <span style={{ fontSize:11.5, color:'var(--ink3)' }}>not checked yet</span>
+                  : <span style={{ fontSize:11, fontWeight:700, color:'var(--red)', background:'var(--red-l)', padding:'3px 8px', borderRadius:20 }}>no certificate</span>}
+            </TD>
+            <TD>
+              <Badge cfg={DOM_CFG[d.status as DomainStatus]} />
+              {d.last_error && (
+                <div style={{ fontSize:10.5, color:'var(--ink3)', marginTop:3, maxWidth:260 }}>{d.last_error}</div>
+              )}
+            </TD>
+            <TD nowrap>
+              <span style={{ fontSize:12, color:'var(--ink3)' }}>
+                {d.last_checked_at ? fmtDate(d.last_checked_at) : 'never'}
+              </span>
+            </TD>
+            <TD>
+              <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                <button type="button" className="btn" style={{ fontSize:11, padding:'3px 9px' }}
+                  disabled={busy==='chk'+d.id}
+                  onClick={()=>act('chk'+d.id, ()=>apiFetch(`/v1/superadmin/domains/${d.id}/check`, { method:'POST', body:'{}' }))}>
+                  {busy==='chk'+d.id ? 'Checking…' : 'Check'}
+                </button>
+                <ActBtn icon="trash" color="var(--red)" title="Remove"
+                  onClick={()=>act('del'+d.id, ()=>apiFetch(`/v1/superadmin/domains/${d.id}`, { method:'DELETE' }))} />
+              </div>
+            </TD>
+          </TR>
+        ))}
       </DataTable>
+      )}
     </div>
   );
 }
@@ -1485,17 +1563,43 @@ export function FinanceView() {
 /* ══════════════════════════════════════════════════
    ACTIVITY VIEW
 ══════════════════════════════════════════════════ */
+/**
+ * The platform audit trail, from platform_activity_log.
+ *
+ * Rows are written by the superadmin routes as they act, so this is a record
+ * of what was done rather than a description of what such a screen might show.
+ * Actor and target names are the snapshots taken at the time — a company that
+ * has since been deleted is still named, which is exactly when an audit trail
+ * earns its keep.
+ */
 export function ActivityView() {
   const [typeFilter, setTypeFilter] = useState<ActivityType|'all'>('all');
   const [coFilter, setCoFilter] = useState<string>('all');
+  const [rows, setRows] = useState<any[]>([]);
+  const [tenants, setTenants] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    Promise.all([apiFetch('/v1/superadmin/activity?limit=300'), apiFetch('/v1/superadmin/tenants')])
+      .then(([a, t]: any[]) => {
+        if (!alive) return;
+        setRows(a?.data ?? []);
+        setTenants(Array.isArray(t) ? t : (t?.data ?? []));
+      })
+      .catch((e: any) => { if (alive) setLoadError(e?.message ?? 'Could not load the activity log.'); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
 
   const filtered = useMemo(() =>
-    MOCK_ACTIVITY.filter(a => {
-      if (typeFilter !== 'all' && a.type !== typeFilter) return false;
-      if (coFilter !== 'all' && a.companyId !== coFilter) return false;
+    rows.filter(a => {
+      if (typeFilter !== 'all' && a.category !== typeFilter) return false;
+      if (coFilter !== 'all' && a.tenant_id !== coFilter) return false;
       return true;
     }),
-  [typeFilter, coFilter]);
+  [rows, typeFilter, coFilter]);
 
   function relTime(iso: string) {
     const diff = Date.now() - new Date(iso).getTime();
@@ -1512,7 +1616,11 @@ export function ActivityView() {
 
   return (
     <div>
-      <PageHdr title="Activity Log" sub="Audit trail of all superadmin actions on the platform" />
+      <PageHdr title="Activity Log" sub="Every superadmin action on the platform, recorded as it happened" />
+
+      {loadError && (
+        <div style={{ padding:'10px 13px', borderRadius:10, background:'var(--red-l)', color:'var(--red)', fontSize:12.5, marginBottom:14 }}>{loadError}</div>
+      )}
 
       <div className="sa-toolbar">
         <SingleSelectFilter
@@ -1522,15 +1630,14 @@ export function ActivityView() {
         />
         <SingleSelectFilter
           label="Company" allLabel="All Companies"
-          options={COMPANIES.map(c => ({ value: c.id, label: c.name }))}
+          options={tenants.map((c:any) => ({ value: c.id, label: c.name }))}
           value={coFilter === 'all' ? null : coFilter} onChange={v => setCoFilter(v ?? 'all')}
         />
       </div>
 
       <div className="card" style={{ padding:'8px 0' }}>
         {filtered.map((a, i) => {
-          const cfg = ACT_CFG[a.type];
-          const co = a.companyId ? coByID(a.companyId) : null;
+          const cfg = ACT_CFG[a.category as ActivityType] ?? ACT_CFG.system;
           return (
             <div key={a.id} style={{ display:'flex', alignItems:'flex-start', gap:14, padding:'14px 22px', borderBottom: i < filtered.length-1 ? '1px solid var(--border)' : 'none' }}>
               <div style={{ width:34, height:34, borderRadius: 9, background:cfg.bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:2 }}>
@@ -1538,25 +1645,38 @@ export function ActivityView() {
               </div>
               <div style={{ flex:1 }}>
                 <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-                  <span style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>{a.actor}</span>
+                  <span style={{ fontSize:13, fontWeight:700, color:'var(--ink)' }}>{a.actor_name}</span>
                   <span style={{ fontSize:13, color:'var(--ink2)' }}>{a.action}</span>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:4, flexWrap:'wrap' }}>
-                  <span style={{ fontSize:11, fontWeight:600, color:cfg.color, background:cfg.bg, padding:'2px 8px', borderRadius: 9 }}>{TYPE_LABELS[a.type]}</span>
-                  <span style={{ fontSize:12, color:'var(--ink3)' }}>{a.target}</span>
-                  {co && (
-                    <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                      <CoAv co={co} size={16} />
-                      <span style={{ fontSize:11, color:'var(--ink3)' }}>{co.name}</span>
-                    </div>
+                  <span style={{ fontSize:11, fontWeight:600, color:cfg.color, background:cfg.bg, padding:'2px 8px', borderRadius: 9 }}>{TYPE_LABELS[a.category as ActivityType] ?? a.category}</span>
+                  {a.target_name && <span style={{ fontSize:12, color:'var(--ink3)' }}>{a.target_name}</span>}
+                  {/* The company as it is named now, when it still exists.
+                      The snapshot above survives its deletion either way. */}
+                  {a.tenant_name && (
+                    <span style={{ fontSize:11, color:'var(--ink3)' }}>· {a.tenant_name}</span>
+                  )}
+                  {a.tenant_id === null && a.target_type === 'tenant' && (
+                    <span style={{ fontSize:11, color:'var(--ink3)', fontStyle:'italic' }}>· company since deleted</span>
                   )}
                 </div>
               </div>
-              <div style={{ fontSize:11, color:'var(--ink3)', whiteSpace:'nowrap', flexShrink:0, marginTop:2 }}>{relTime(a.time)}</div>
+              <div style={{ fontSize:11, color:'var(--ink3)', whiteSpace:'nowrap', flexShrink:0, marginTop:2 }}>{relTime(a.created_at)}</div>
             </div>
           );
         })}
-        {filtered.length === 0 && (
+        {loading && (
+          <div style={{ padding:'48px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading activity…</div>
+        )}
+        {!loading && rows.length === 0 && (
+          <div style={{ padding:'48px 22px', textAlign:'center' }}>
+            <div style={{ fontSize:13.5, color:'var(--ink2)' }}>Nothing has been recorded yet.</div>
+            <div style={{ fontSize:12, color:'var(--ink3)', marginTop:5 }}>
+              Superadmin actions — creating a company, changing a plan, putting an app into maintenance — appear here as they happen.
+            </div>
+          </div>
+        )}
+        {!loading && rows.length > 0 && filtered.length === 0 && (
           <div style={{ padding:'48px 0', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>No activity matching filters</div>
         )}
       </div>

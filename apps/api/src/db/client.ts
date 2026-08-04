@@ -2139,6 +2139,40 @@ export interface PlatformTransactionsTable {
   created_at: Generated<Date>;
 }
 
+/** Platform-level audit trail. Deliberately cross-tenant; SUPER_ADMIN only. */
+export interface PlatformActivityLogTable {
+  id: Generated<string>;
+  actor_user_id: string | null;
+  // Snapshots, not joins: an audit trail that resolves names by join stops
+  // being able to say who did something once that user is deleted.
+  actor_name: string;
+  action: string;
+  category: 'company' | 'user' | 'billing' | 'system';
+  target_type: string | null;
+  target_id: string | null;
+  target_name: string | null;
+  /** The company an action was *about* — null for platform-wide actions. */
+  tenant_id: string | null;
+  metadata: Generated<unknown>;
+  created_at: Generated<Date>;
+}
+
+export interface PlatformDomainsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  domain: string;
+  verification_token: string;
+  status: Generated<'pending' | 'active' | 'failed'>;
+  // Set only by a probe that actually succeeded, never on create.
+  dns_verified_at: Date | null;
+  ssl_verified_at: Date | null;
+  ssl_expires_at: Date | null;
+  last_checked_at: Date | null;
+  last_error: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface TrackingSnapshotsTable {
   id: Generated<string>;
   tenant_id: string;
@@ -2573,6 +2607,8 @@ export interface Database {
   packages: PackagesTable;
   tenant_usage_counters: TenantUsageCountersTable;
   platform_transactions: PlatformTransactionsTable;
+  platform_activity_log: PlatformActivityLogTable;
+  platform_domains: PlatformDomainsTable;
   task_lists: TaskListsTable;
   tasks: TasksTable;
   task_subtasks: TaskSubtasksTable;

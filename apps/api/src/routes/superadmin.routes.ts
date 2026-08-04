@@ -3,12 +3,21 @@ import { requireRole } from '../middleware/rbac.js';
 import { db } from '../db/client.js';
 import { sql } from 'kysely';
 import { GLService } from '../services/gl.service.js';
+import { PlatformAdminService } from '../services/platform-admin.service.js';
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 
 export async function superAdminRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireRole('SUPER_ADMIN'));
+
+  /** Who is doing this, for the audit trail. Falls back to the email rather
+   *  than to a placeholder — an audit row that says "Super Admin" for
+   *  everyone cannot answer which superadmin. */
+  const actor = (request: any) => ({
+    actorUserId: request.user?.sub ?? request.user?.id ?? null,
+    actorName: request.user?.name || request.user?.email || 'Unknown superadmin',
+  });
 
   // 1. GET /v1/superadmin/dashboard-stats
   fastify.get('/dashboard-stats', async (request, reply) => {
@@ -290,6 +299,12 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
 
     await GLService.seedChartOfAccounts(db, result.id);
 
+    await PlatformAdminService.recordActivity({
+      ...actor(request), category: 'company',
+      action: 'Created company', targetType: 'tenant', targetId: result.id,
+      targetName: result.name, tenantId: result.id,
+      metadata: { plan: result.plan },
+    });
     return result;
   });
 
@@ -297,6 +312,8 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
   fastify.patch('/tenants/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = request.body as any;
+    const before = await db.selectFrom('tenants').select(['name', 'plan', 'active'])
+      .where('id', '=', id).executeTakeFirst();
     const updates: any = { updated_at: new Date() };
     if (body.name !== undefined) updates.name = body.name;
     if (body.slug !== undefined) updates.slug = body.slug;
@@ -311,15 +328,43 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       .returningAll()
       .executeTakeFirstOrThrow();
 
+    // Described by what actually changed, so the log reads as a history rather
+    // than as a row of identical "Updated company" entries.
+    const changed = Object.keys(updates).filter(k => k !== 'updated_at');
+    let action = 'Updated company';
+    let category: 'company' | 'billing' = 'company';
+    if (before && body.plan !== undefined && body.plan !== before.plan) {
+      action = `Changed plan from ${before.plan} to ${body.plan}`;
+      category = 'billing';
+    } else if (before && body.active !== undefined && body.active !== before.active) {
+      action = body.active ? 'Reactivated company' : 'Suspended company';
+    } else if (changed.length) {
+      action = `Updated company ${changed.join(', ')}`;
+    }
+    await PlatformAdminService.recordActivity({
+      ...actor(request), category, action,
+      targetType: 'tenant', targetId: id, targetName: result.name, tenantId: id,
+      metadata: { changed },
+    });
     return result;
   });
 
   // 5. DELETE /v1/superadmin/tenants/:id
   fastify.delete('/tenants/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
+    // Read the name before it is gone — the audit row has to outlive the row
+    // it describes, and tenant_id is SET NULL on delete for the same reason.
+    const doomed = await db.selectFrom('tenants').select(['name', 'plan'])
+      .where('id', '=', id).executeTakeFirst();
     await db.deleteFrom('tenants')
       .where('id', '=', id)
       .execute();
+    await PlatformAdminService.recordActivity({
+      ...actor(request), category: 'company',
+      action: 'Deleted company', targetType: 'tenant', targetId: id,
+      targetName: doomed?.name ?? null, tenantId: null,
+      metadata: { plan: doomed?.plan ?? null },
+    });
     return { success: true };
   });
 
@@ -349,6 +394,15 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
 
     const row = await db.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', id).executeTakeFirst();
     const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+
+    const tenant = await db.selectFrom('tenants').select('name').where('id', '=', id).executeTakeFirst();
+    const on = Object.entries(enabledApps).filter(([, v]) => v).map(([k]) => k);
+    await PlatformAdminService.recordActivity({
+      ...actor(request), category: 'system',
+      action: `Set enabled apps to ${on.length ? on.join(', ') : 'none'}`,
+      targetType: 'tenant', targetId: id, targetName: tenant?.name ?? null, tenantId: id,
+      metadata: { enabledApps },
+    });
     return { enabledApps: settings['enabled-apps'] || {} };
   });
 
@@ -391,6 +445,15 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
     const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : body;
+
+    await PlatformAdminService.recordActivity({
+      ...actor(request), category: 'system',
+      action: `Changed platform settings: ${Object.keys(body).join(', ') || 'no keys'}`,
+      targetType: 'settings', targetId: null, targetName: 'Platform settings', tenantId: null,
+      // Keys only. The body carries SMTP passwords and API keys, and an audit
+      // trail is the last place those should be copied to.
+      metadata: { keys: Object.keys(body) },
+    });
     return { settings };
   });
 
@@ -444,6 +507,14 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       }
 
       const row = await db.selectFrom('app_status').selectAll().where('app_id', '=', appId).executeTakeFirstOrThrow();
+      await PlatformAdminService.recordActivity({
+        ...actor(request), category: 'system',
+        action: status === 'maintenance'
+          ? `Put ${appId} into maintenance`
+          : `Brought ${appId} out of maintenance`,
+        targetType: 'app', targetId: null, targetName: appId, tenantId: null,
+        metadata: { status, message: message ?? null },
+      });
       return { appStatus: row };
     }
   );
@@ -471,7 +542,77 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
         }
       });
 
+      await PlatformAdminService.recordActivity({
+        ...actor(request), category: 'billing',
+        action: `Set ${code} plan features (${features.length})`,
+        targetType: 'package', targetId: null, targetName: code, tenantId: null,
+        metadata: { features },
+      });
       return { packageCode: code, features };
     }
   );
+
+  // ─── Activity log ──────────────────────────────────────────────────────────
+
+  fastify.get('/activity', async (request: any, reply) => {
+    try {
+      const { category, tenantId, limit } = request.query ?? {};
+      return { data: await PlatformAdminService.listActivity({
+        category, tenantId, limit: limit ? Number(limit) : undefined,
+      }) };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // ─── Custom domains ────────────────────────────────────────────────────────
+
+  fastify.get('/domains', async (request, reply) => {
+    try {
+      return { data: await PlatformAdminService.listDomains() };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.post('/domains', async (request: any, reply) => {
+    try {
+      const { tenant_id, domain } = request.body ?? {};
+      if (!tenant_id) return reply.status(400).send({ error: 'tenant_id is required' });
+      const row = await PlatformAdminService.addDomain(tenant_id, domain);
+      const tenant = await db.selectFrom('tenants').select('name').where('id', '=', tenant_id).executeTakeFirst();
+      await PlatformAdminService.recordActivity({
+        ...actor(request), category: 'system',
+        action: `Added custom domain ${row.domain}`,
+        targetType: 'domain', targetId: row.id, targetName: row.domain, tenantId: tenant_id,
+        metadata: { tenant: tenant?.name ?? null },
+      });
+      return row;
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  /** Runs the real DNS + TLS probe and stores whatever it actually found. */
+  fastify.post('/domains/:id/check', async (request: any, reply) => {
+    try {
+      return await PlatformAdminService.checkDomain(request.params.id);
+    } catch (err: any) {
+      return reply.status(404).send({ error: err.message });
+    }
+  });
+
+  fastify.delete('/domains/:id', async (request: any, reply) => {
+    try {
+      const row = await PlatformAdminService.deleteDomain(request.params.id);
+      await PlatformAdminService.recordActivity({
+        ...actor(request), category: 'system',
+        action: `Removed custom domain ${row.domain}`,
+        targetType: 'domain', targetId: row.id, targetName: row.domain, tenantId: row.tenant_id,
+      });
+      return { success: true };
+    } catch (err: any) {
+      return reply.status(404).send({ error: err.message });
+    }
+  });
 }
