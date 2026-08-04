@@ -170,7 +170,10 @@ export async function glRoutes(fastify: FastifyInstance) {
 
       const result = entries.map(e => ({
         ...e,
-        entry_date: e.entry_date.toISOString().split('T')[0],
+        // entry_date is a DATE — already 'YYYY-MM-DD' from the driver (see the
+        // type parser in db/client.ts). posted_at is a TIMESTAMPTZ and really
+        // is an instant, so it stays a Date and keeps toISOString().
+        entry_date: String(e.entry_date).slice(0, 10),
         posted_at: e.posted_at ? e.posted_at.toISOString() : null,
         lines: lines.filter(l => l.journal_entry_id === e.id)
       }));

@@ -136,10 +136,13 @@ export class NexusHRService {
   static async getEmployments(tenantId: string) {
     return withTenant(tenantId, async (trx) => {
       // Join employments with people and legal entities
+      // leftJoin, not innerJoin: an employment whose legal entity was removed
+      // must appear as incomplete, not vanish from the list. A record that
+      // disappears reads as "no such employee" to whoever is looking for them.
       return await trx
         .selectFrom('hr_employments')
         .innerJoin('hr_people', 'hr_people.id', 'hr_employments.person_id')
-        .innerJoin('hr_legal_entities', 'hr_legal_entities.id', 'hr_employments.legal_entity_id')
+        .leftJoin('hr_legal_entities', 'hr_legal_entities.id', 'hr_employments.legal_entity_id')
         .select([
           'hr_employments.id as employment_id',
           'hr_employments.person_id',
@@ -159,9 +162,70 @@ export class NexusHRService {
     });
   }
 
-  static async createEmployment(tenantId: string, data: any) {
+  // ─── LEGAL ENTITIES ────────────────────────────────────────────────────────
+  //
+  // hr_employments.legal_entity_id is NOT NULL with ON DELETE RESTRICT, so no
+  // employment can exist until one of these does. There was no way to create
+  // one, which is why the whole employment chain was unreachable.
+
+  static async getLegalEntities(tenantId: string) {
     return withTenant(tenantId, async (trx) => {
-      const [emp] = await trx
+      const entities = await trx.selectFrom('hr_legal_entities').selectAll()
+        .where('tenant_id', '=', tenantId).orderBy('legal_name', 'asc').execute();
+      if (entities.length === 0) return [];
+
+      // How many people each entity employs — so deleting one can say what it
+      // would take with it rather than failing on a constraint.
+      const counts = await trx.selectFrom('hr_employments')
+        .select('legal_entity_id')
+        .select(eb => eb.fn.countAll<string>().as('n'))
+        .where('tenant_id', '=', tenantId)
+        .groupBy('legal_entity_id').execute();
+      const byEntity = new Map(counts.map(c => [c.legal_entity_id, Number(c.n)]));
+      return entities.map(e => ({ ...e, employment_count: byEntity.get(e.id) ?? 0 }));
+    });
+  }
+
+  static async createLegalEntity(tenantId: string, data: any) {
+    if (!data?.legal_name) throw new Error('legal_name is required');
+    if (!data?.country_code) throw new Error('country_code is required');
+    return withTenant(tenantId, trx => trx.insertInto('hr_legal_entities').values({
+      tenant_id: tenantId,
+      legal_name: data.legal_name,
+      registration_no: data.registration_no || null,
+      tax_id: data.tax_id || null,
+      country_code: String(data.country_code).toUpperCase(),
+      currency: data.currency || 'TZS',
+      registered_address: data.registered_address || null,
+    }).returningAll().executeTakeFirstOrThrow());
+  }
+
+  static async createEmployment(tenantId: string, data: any) {
+    // A job title is a fact about someone's contract, so it is required rather
+    // than defaulted — the previous `|| 'Officer'` gave every hire a title
+    // nobody agreed to, indistinguishable afterwards from a real one.
+    if (!data?.person_id) throw new Error('person_id is required');
+    if (!data?.legal_entity_id) throw new Error('legal_entity_id is required');
+    if (!data?.start_date) throw new Error('start_date is required');
+    if (!data?.job_title) throw new Error('job_title is required');
+
+    return withTenant(tenantId, async (trx) => {
+      // Both references must belong to this tenant. Without these checks a
+      // valid-looking id from another workspace would attach one tenant's
+      // employee to another tenant's legal entity.
+      const person = await trx.selectFrom('hr_people').select('id')
+        .where('id', '=', data.person_id).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!person) throw new Error('Person not found');
+      const entity = await trx.selectFrom('hr_legal_entities').select('id')
+        .where('id', '=', data.legal_entity_id).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!entity) throw new Error('Legal entity not found');
+      if (data.manager_id) {
+        const mgr = await trx.selectFrom('hr_employments').select('id')
+          .where('id', '=', data.manager_id).where('tenant_id', '=', tenantId).executeTakeFirst();
+        if (!mgr) throw new Error('Manager employment not found');
+      }
+
+      const emp = await trx
         .insertInto('hr_employments')
         .values({
           tenant_id: tenantId,
@@ -173,16 +237,15 @@ export class NexusHRService {
           end_date: data.end_date ? new Date(data.end_date) : null,
         })
         .returningAll()
-        .execute();
+        .executeTakeFirstOrThrow();
 
-      // Create initial effective record
       await trx
         .insertInto('hr_employment_effective_records')
         .values({
           tenant_id: tenantId,
           employment_id: emp.id,
           effective_date: new Date(data.start_date),
-          job_title: data.job_title || 'Officer',
+          job_title: data.job_title,
           department_id: data.department_id || null,
           location_id: data.location_id || null,
           cost_center_id: data.cost_center_id || null,
@@ -191,18 +254,23 @@ export class NexusHRService {
         })
         .execute();
 
-      // Create initial compensation record
-      await trx
-        .insertInto('hr_compensations')
-        .values({
-          tenant_id: tenantId,
-          employment_id: emp.id,
-          effective_date: new Date(data.start_date),
-          base_salary: Number(data.base_salary || 0),
-          currency: data.currency || 'TZS',
-          pay_frequency: data.pay_frequency || 'MONTHLY',
-        })
-        .execute();
+      // Only when a salary was actually given. base_salary is NOT NULL, so the
+      // old `|| 0` recorded "this person earns zero" — which reads identically
+      // to a real zero and would flow into any payroll comparison built on it.
+      // No salary agreed yet is an absent row, not a zero one.
+      if (data.base_salary !== undefined && data.base_salary !== null && data.base_salary !== '') {
+        await trx
+          .insertInto('hr_compensations')
+          .values({
+            tenant_id: tenantId,
+            employment_id: emp.id,
+            effective_date: new Date(data.start_date),
+            base_salary: Number(data.base_salary),
+            currency: data.currency || 'TZS',
+            pay_frequency: data.pay_frequency || 'MONTHLY',
+          })
+          .execute();
+      }
 
       return emp;
     });

@@ -41,6 +41,26 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
+  /**
+   * Legal entities — the employing company. An employment cannot exist without
+   * one (NOT NULL + RESTRICT), and nothing could create one until now.
+   */
+  fastify.get('/legal-entities', async (request: any, reply) => {
+    try {
+      return await NexusHRService.getLegalEntities(request.user.tenant_id);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.post('/legal-entities', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request: any, reply) => {
+    try {
+      return await NexusHRService.createLegalEntity(request.user.tenant_id, request.body);
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
   /** PATCH /v1/hr/people/:id/user — link (or unlink) an HR record to a login. */
   fastify.patch('/people/:id/user', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
     try {

@@ -435,7 +435,10 @@ export class GLService {
 
         return {
           id: l.id,
-          date: l.date.toISOString().split('T')[0],
+          // entry_date is a DATE, which the driver now hands back as the
+          // literal 'YYYY-MM-DD' (see the type parser in db/client.ts) rather
+          // than a Date at local midnight that JSON-serialised a day early.
+          date: String(l.date).slice(0, 10),
           entry_number: l.entry_number,
           reference: l.reference,
           description: l.description || '',

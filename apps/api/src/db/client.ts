@@ -4690,6 +4690,24 @@ export interface WorkflowStudioRunsTable {
   created_at:     Generated<Date>;
 }
 
+/**
+ * Return DATE columns as the 'YYYY-MM-DD' strings they are.
+ *
+ * By default node-postgres parses OID 1082 (date) into a JS Date at LOCAL
+ * midnight. Serialising that to JSON gives an instant in UTC, so on this
+ * server (UTC+3) a start_date stored as 2026-01-15 reaches the client as
+ * "2026-01-14T21:00:00.000Z" — a day early to anything reading the date part.
+ * Verified: stored 2026-01-15, API returned 2026-01-14T21:00:00.000Z.
+ *
+ * A DATE has no time and no timezone, so materialising it as an instant was
+ * always lossy; there is no correct offset to apply. Handing back the literal
+ * text is the only lossless answer, and it fixes every date column at once
+ * rather than one query at a time — leave dates, holidays, effective dates,
+ * compensation dates. TIMESTAMPTZ (1184) is untouched: those really are
+ * instants and Date is right for them.
+ */
+pg.types.setTypeParser(1082, (value: string) => value);
+
 const pool = new pg.Pool({
   connectionString: env.DATABASE_URL,
 });
