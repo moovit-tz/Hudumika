@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useParams, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth.js';
 import { useBranding } from './hooks/useBranding.js';
+import { AutoSEO } from './components/AutoSEO.js';
 import type { UserRole } from '@hudumika/types';
 import { MGMT_ROLES, OPS_ROLES, FIN_ROLES } from './lib/permissions.js';
 import { WorkspaceProvider } from './contexts/WorkspaceContext.js';
@@ -426,6 +427,10 @@ const App: React.FC = () => (
           <ClockInProvider>
             <WorkspaceProvider>
               <DesignSystemProvider>
+                {/* Every route gets a derived title; pages calling usePageSEO
+                    override it. Mounted here so new routes are covered the
+                    moment they exist, rather than when someone remembers. */}
+                <AutoSEO />
                 <AppContent />
               </DesignSystemProvider>
             </WorkspaceProvider>
