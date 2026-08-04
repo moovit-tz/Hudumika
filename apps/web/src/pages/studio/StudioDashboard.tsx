@@ -5,6 +5,7 @@ import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
+import { PageHeader } from '../../components/PageHeader.js';
 
 interface Stats {
   workflows: { total: number; active: number; draft: number; paused: number; unrunnable: number };
@@ -72,12 +73,12 @@ export function StudioDashboard() {
 
   return (
     <div style={{ padding: '20px 22px', maxWidth: 1320, margin: '0 auto' }}>
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 21, fontWeight: 800, color: 'var(--ink)' }}>Studio</div>
-        <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 3 }}>
-          One place for every automation on the platform — what fires it, what it does, and what really happened.
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Studio', 'Studio']}
+        titlePlain="Workflow"
+        titleEm="studio"
+        subtitle="One place for every automation on the platform — what fires it, what it does, and what really happened."
+      />
 
       <div className="studio-tiles">
         {tile('Workflows', stats.workflows.total, 'brand', 'zap', `${stats.workflows.draft} draft`)}

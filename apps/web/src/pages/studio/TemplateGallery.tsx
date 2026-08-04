@@ -5,6 +5,7 @@ import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
 import { Button } from '../../components/ui/button.js';
 import { Badge } from '../../components/ui/badge.js';
+import { PageHeader } from '../../components/PageHeader.js';
 
 interface TemplateRow {
   id: string; name: string; description: string;
@@ -47,12 +48,12 @@ export function TemplateGallery() {
 
   return (
     <div style={{ padding: '20px 22px', maxWidth: 1320, margin: '0 auto' }}>
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 21, fontWeight: 800, color: 'var(--ink)' }}>Templates</div>
-        <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 3 }}>
-          Ready-made workflows built from real triggers and actions. Installing creates a <strong>draft</strong> you can edit — nothing runs until you switch it on.
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Studio', 'Templates']}
+        titlePlain="Workflow"
+        titleEm="templates"
+        subtitle="Ready-made workflows built from real triggers and actions. Installing creates a <strong>draft</strong> you can edit — nothing runs until you switch it on."
+      />
 
       {error && <div style={{ padding: '9px 13px', background: 'var(--red-l)', color: 'var(--red)', borderRadius: 9, fontSize: 12.5, marginBottom: 12 }}>{error}</div>}
       {loading && <div style={{ color: 'var(--ink3)', fontSize: 13, padding: 20 }}>Loading…</div>}
