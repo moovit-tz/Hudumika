@@ -51,8 +51,13 @@ export class NexusHRService {
         .orderBy('first_name', 'asc')
         .execute();
 
-      // Employment + current compensation, for the people who have them.
-      const personIds = users.map(u => u.person_id).filter(Boolean) as string[];
+      // Employment + current compensation for BOTH sides. Restricting this to
+      // linked people made a contract belonging to someone without a login
+      // invisible everywhere — the record existed and no screen could show it.
+      const personIds = [
+        ...users.map(u => u.person_id).filter(Boolean) as string[],
+        ...unlinkedPeople.map(u => u.person_id),
+      ];
       const employments = personIds.length
         ? await trx
             .selectFrom('hr_employments')
@@ -75,7 +80,7 @@ export class NexusHRService {
           hrName: u.person_id ? `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() : null,
           employment: empByPerson.get(u.person_id as string) ?? null,
         })),
-        unlinkedPeople,
+        unlinkedPeople: unlinkedPeople.map(u => ({ ...u, employment: empByPerson.get(u.person_id) ?? null })),
         // Named plainly so the UI can say what is missing rather than imply
         // everyone is fully set up.
         summary: {

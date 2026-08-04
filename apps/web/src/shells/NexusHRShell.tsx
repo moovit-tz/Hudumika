@@ -11,6 +11,7 @@ import { MGMT_ROLES } from '../lib/permissions.js';
 
 import { StaffDetail } from '../pages/StaffDetail.js';
 import { OrgChart }    from '../pages/OrgChart.js';
+import { EmploymentRecords } from '../pages/EmploymentRecords.js';
 import {
   HrmDashboard, EmployeesPage, DepartmentsPage, DesignationsPage, TeamsPage,
   AttendancePage, LeavesPage, ShiftsPage, HolidaysPage,
@@ -33,6 +34,7 @@ const NAV: SidebarSection[] = [
       { label: 'Designations',    icon: 'award',    path: '/nexushr/designations'    },
       { label: 'Teams',           icon: 'users',    path: '/nexushr/teams'           },
       { label: 'Org Chart',       icon: 'layers',   path: '/nexushr/org-chart'       },
+      { label: 'Employment',      icon: 'fileText', path: '/nexushr/employment'      },
     ],
   },
   {
@@ -100,6 +102,7 @@ export function NexusHRShell() {
               <Route path="payroll"           element={<RequireRoles roles={MGMT_ROLES}><PayrollPage /></RequireRoles>} />
               <Route path="announcements"     element={<RequireRoles roles={MGMT_ROLES}><AnnouncementsPage /></RequireRoles>} />
               <Route path="org-chart"         element={<RequireRoles roles={MGMT_ROLES}><OrgChart /></RequireRoles>} />
+              <Route path="employment"        element={<RequireRoles roles={MGMT_ROLES}><EmploymentRecords /></RequireRoles>} />
               <Route path="permissions"       element={<RequireRoles roles={MGMT_ROLES}><PermissionsPage /></RequireRoles>} />
             </Route>
 
