@@ -129,7 +129,7 @@ function ActMenu({ onView, onEdit, onDelete }: { onView: () => void; onEdit: () 
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button type="button" aria-label="More actions" onClick={e => e.stopPropagation()}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', borderRadius: 'var(--r)', color: 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', borderRadius: 'var(--r)', color: 'var(--ink3)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="moreHorizontal" size={16} strokeWidth={1.75} />
         </button>
       </DropdownMenuTrigger>
@@ -451,7 +451,7 @@ export const Leads: React.FC = () => {
               const isActive = profileTab === tab.key;
               return (
                 <button key={tab.key} type="button" onClick={() => { setProfileTab(tab.key); setEditMode(false); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-lg) 16px', border: 'none', borderBottom: isActive ? '2px solid var(--teal)' : '2px solid transparent', background: 'none', color: isActive ? 'var(--teal)' : 'var(--ink3)', fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', marginBottom: -1, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box'}}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-lg) 16px', border: 'none', borderBottom: isActive ? '2px solid var(--teal)' : '2px solid transparent', background: 'none', color: isActive ? 'var(--teal)' : 'var(--ink3)', fontSize: 13, fontWeight: isActive ? 700 : 500, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', marginBottom: -1, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}
                   onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--ink)'; }}
                   onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--ink3)'; }}>
                   <Icon name={tab.icon} size={13} color={isActive ? 'var(--teal)' : 'var(--ink3)'} strokeWidth={1.75} />
@@ -477,7 +477,7 @@ export const Leads: React.FC = () => {
                     {STAGES.filter(s => s !== sel.stage).map(s => (
                       <button key={s} type="button"
                         onClick={() => updateStage(s)}
-                        style={{ padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
+                        style={{ padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
                         onMouseEnter={e => (e.currentTarget.style.background = STAGE_CFG[s].bg)}
                         onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg)')}>
                         → {STAGE_CFG[s].label}
@@ -553,7 +553,7 @@ export const Leads: React.FC = () => {
                         { label: 'Mark as Lost',       icon: 'x'         as IconName, action: () => updateStage('LOST') },
                       ]).map(action => (
                         <button key={action.label} type="button" onClick={action.action}
-                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                           onMouseEnter={e => (e.currentTarget.style.background = 'var(--white)')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg)')}>
                           <Icon name={action.icon} size={13} color="var(--teal)" strokeWidth={1.75} /> {action.label}
@@ -572,7 +572,7 @@ export const Leads: React.FC = () => {
               {!editMode ? (
                 <>
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-                    <button type="button" onClick={() => setEditMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+                    <button type="button" onClick={() => setEditMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                       <Icon name="edit" size={14} strokeWidth={1.75} /> Edit Contact
                     </button>
                   </div>
@@ -792,10 +792,10 @@ export const Leads: React.FC = () => {
         subtitle={`${leads.length} leads · ${active.length} active · ${fmtValue(pipeline)} pipeline value · ${winRate}% win rate`}
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button type="button" onClick={() => exportLeadsCSV(filtered)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 18px', fontSize: 13, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+            <button type="button" onClick={() => exportLeadsCSV(filtered)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 18px', fontSize: 13, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               <Icon name="download" size={14} strokeWidth={2} /> Export CSV
             </button>
-            <button type="button" onClick={() => { setAddForm({ ...EMPTY_FORM }); setEditingId(null); setShowAdd(true); }} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 22px', fontSize: 14, fontWeight: 700, borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+            <button type="button" onClick={() => { setAddForm({ ...EMPTY_FORM }); setEditingId(null); setShowAdd(true); }} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 22px', fontSize: 14, fontWeight: 700, borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               <Icon name="plus" size={15} strokeWidth={2.5} color="#fff" /> New Lead
             </button>
           </div>
@@ -934,18 +934,18 @@ export const Leads: React.FC = () => {
               </span>
               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                 <button type="button" aria-label="Previous page" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={pg === 1}
-                  style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 8px', background: 'var(--white)', cursor: pg === 1 ? 'default' : 'pointer', color: 'var(--ink3)', opacity: pg === 1 ? 0.4 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
+                  style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 8px', background: 'var(--white)', cursor: pg === 1 ? 'default' : 'pointer', color: 'var(--ink3)', opacity: pg === 1 ? 0.4 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                   <Icon name="chevronLeft" size={14} />
                 </button>
                 {getPageNums(pg, totalPages).map((p, i) =>
                   p === '…' ? <span key={i} style={{ padding: '0 6px', color: 'var(--ink3)', fontSize: 13 }}>…</span> :
                   <button key={p} type="button" onClick={() => setPage(Number(p))}
-                    style={{ border: `1px solid ${pg === p ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', background: pg === p ? 'var(--teal)' : 'var(--white)', cursor: 'pointer', fontSize: 13, color: pg === p ? '#fff' : 'var(--ink)', minWidth: 32, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
+                    style={{ border: `1px solid ${pg === p ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', background: pg === p ? 'var(--teal)' : 'var(--white)', cursor: 'pointer', fontSize: 13, color: pg === p ? '#fff' : 'var(--ink)', minWidth: 32, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                     {p}
                   </button>
                 )}
                 <button type="button" aria-label="Next page" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={pg === totalPages}
-                  style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 8px', background: 'var(--white)', cursor: pg === totalPages ? 'default' : 'pointer', color: 'var(--ink3)', opacity: pg === totalPages ? 0.4 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
+                  style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 8px', background: 'var(--white)', cursor: pg === totalPages ? 'default' : 'pointer', color: 'var(--ink3)', opacity: pg === totalPages ? 0.4 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                   <Icon name="chevronRight" size={14} />
                 </button>
               </div>

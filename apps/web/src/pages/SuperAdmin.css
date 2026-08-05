@@ -347,7 +347,7 @@
 .sa-cron-td--time   { padding: 10px 12px; font-family: var(--mono); font-size: 11.5px; color: var(--ink3); }
 .sa-cron-td--status { padding: 10px 12px; text-align: center; }
 
-.sa-cron-badge            { font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+.sa-cron-badge            { font-size: var(--badge-fs); padding: var(--badge-py) var(--badge-px); border-radius: 20px; }
 .sa-cron-badge--active    { background: var(--green-l); color: var(--green); }
 .sa-cron-badge--inactive  { background: var(--border);  color: var(--ink3);  }
 

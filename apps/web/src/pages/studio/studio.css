@@ -84,9 +84,9 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2.5px 7px;
+  padding: var(--badge-py-sm) var(--badge-px-sm);
   border-radius: 999px;
-  font-size: 10px;
+  font-size: var(--badge-fs-sm);
   font-weight: 700;
   letter-spacing: .2px;
 }
@@ -385,12 +385,12 @@
    brand tint as the rest of the app, from the derived tokens rather
    than a hand-rolled color-mix. */
 .studio-chip {
-  padding: 5px 12px;
+  padding: var(--badge-py) var(--badge-px);
   border-radius: var(--badge-radius, 20px);
   border: 1px solid var(--border);
   background: var(--card-bg, var(--white));
   color: var(--ink2);
-  font-size: 12px;
+  font-size: var(--badge-fs);
   font-weight: 600;
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s, color 0.12s;

@@ -70,7 +70,7 @@ export function CrmChainPartners() {
         <button
           type="button"
           className="btn-primary"
-          style={{ padding: 'var(--ds-btn-py) 18px', fontWeight: 700, borderRadius: 'var(--r)', display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
+          style={{ padding: 'var(--ds-btn-py) 18px', fontWeight: 700, borderRadius: 'var(--r)', display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
           onClick={() => setShowAddForm(v => !v)}
         >
           <Icon name="plus" size={14} />

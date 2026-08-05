@@ -337,12 +337,12 @@
 }
 
 .cts-chip {
-  padding: 4px 13px;
+  padding: var(--badge-py) var(--badge-px);
   border-radius: 16px;
   border: 1px solid #dadce0;
   background: #fff;
   color: #3c4043;
-  font-size: 12.5px;
+  font-size: var(--badge-fs);
   font-weight: 500;
   cursor: pointer;
   transition: background .12s, border-color .12s;
@@ -408,9 +408,9 @@
 }
 
 .cts-list-bar-badge {
-  font-size: 11px;
+  font-size: var(--badge-fs);
   font-weight: 600;
-  padding: 2px 8px;
+  padding: var(--badge-py) var(--badge-px);
   border-radius: 10px;
   border: none;
   cursor: pointer;

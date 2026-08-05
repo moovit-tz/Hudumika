@@ -139,9 +139,9 @@
 }
 
 .rp-driver-badge {
-  font-size: 10px;
+  font-size: var(--badge-fs-sm);
   font-weight: 700;
-  padding: 2px 6px;
+  padding: var(--badge-py-sm) var(--badge-px-sm);
   background: rgba(79,70,229,0.12);
   color: #6366f1;
   border-radius: 6px;

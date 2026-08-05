@@ -183,7 +183,7 @@ export function TradeWizard() {
                   background: draft.kind === null ? 'color-mix(in srgb, var(--teal) 12%, transparent)' : 'var(--surface, rgba(255,255,255,0.03))',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  transition: 'all 0.15s ease', minHeight: 'var(--ctl-h)'}}
+                  transition: 'all 0.15s ease', minHeight: 'var(--ctl-h)', lineHeight: 1.25}}
               >
                 <FeaturedIcon variant={draft.kind === null ? 'brand' : 'gray'} size="sm" shape="square">
                   <Icon name="grid" size={15} />
@@ -213,7 +213,7 @@ export function TradeWizard() {
                       background: isSelected ? 'color-mix(in srgb, var(--teal) 12%, transparent)' : 'var(--card-bg, var(--white))',
                       cursor: 'pointer',
                       textAlign: 'left',
-                      transition: 'all 0.15s ease', minHeight: 'var(--ctl-h)'}}
+                      transition: 'all 0.15s ease', minHeight: 'var(--ctl-h)', lineHeight: 1.25}}
                   >
                     <FeaturedIcon variant={isSelected ? 'brand' : 'gray'} size="sm" shape="square">
                       <Icon name={k.icon} size={15} />

@@ -142,9 +142,9 @@
 .ssg-agent-picker { display: flex; flex-wrap: wrap; gap: 6px; }
 .ssg-agent-chip {
   display: flex; align-items: center; gap: 5px;
-  padding: 5px 10px; border-radius: 20px;
+  padding: var(--badge-py) var(--badge-px); border-radius: 20px;
   border: 1px solid var(--border); background: var(--white);
-  font-size: 11.5px; cursor: pointer;
+  font-size: var(--badge-fs); cursor: pointer;
 }
 
 .ssg-form-actions { display: flex; justify-content: flex-end; gap: 8px; }

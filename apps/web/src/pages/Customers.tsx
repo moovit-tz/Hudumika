@@ -132,7 +132,7 @@ function ActionsMenu({ onView, onEdit, onSuspend, onDelete }: { onView: () => vo
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button aria-label="More actions" onClick={e => e.stopPropagation()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', borderRadius: 'var(--r)', color: 'var(--ink3)', display: 'flex', alignItems: 'center', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
+        <button aria-label="More actions" onClick={e => e.stopPropagation()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', borderRadius: 'var(--r)', color: 'var(--ink3)', display: 'flex', alignItems: 'center', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="moreHorizontal" size={16} strokeWidth={1.75} />
         </button>
       </DropdownMenuTrigger>
@@ -509,7 +509,7 @@ export const Customers: React.FC = () => {
               </SelectContent>
             </Select>
             <button type="button" onClick={handleBulkApply} disabled={!bulkAction || selectedIds.length === 0}
-              style={{ padding: 'var(--ds-btn-py-sm) 14px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: bulkAction && selectedIds.length > 0 ? 'var(--teal)' : 'var(--white)', cursor: bulkAction && selectedIds.length > 0 ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: bulkAction && selectedIds.length > 0 ? '#fff' : 'var(--ink3)', transition: 'all .15s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
+              style={{ padding: 'var(--ds-btn-py-sm) 14px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: bulkAction && selectedIds.length > 0 ? 'var(--teal)' : 'var(--white)', cursor: bulkAction && selectedIds.length > 0 ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: bulkAction && selectedIds.length > 0 ? '#fff' : 'var(--ink3)', transition: 'all .15s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
               Apply
             </button>
             {selectedIds.length > 0 && (
@@ -898,7 +898,7 @@ export const Customers: React.FC = () => {
         return (
           <div style={{ padding: '24px 28px' }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-              <button type="button" onClick={() => setEditMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+              <button type="button" onClick={() => setEditMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                 <Icon name="edit" size={14} strokeWidth={1.75} /> Edit Profile
               </button>
             </div>
@@ -1110,7 +1110,7 @@ export const Customers: React.FC = () => {
                   <span className="badge badge-teal" style={{ fontSize: 9.5 }}>PRIMARY</span>
                   <button type="button" aria-label="Edit contact"
                     onClick={() => { setContactForm({ name: sel.contact_name || '', email: sel.email || '', phone: sel.phone_wa || '', role: 'Primary Contact' }); setShowAddContact(true); }}
-                    style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', cursor: 'pointer', fontSize: 12, color: 'var(--ink2)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
+                    style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', cursor: 'pointer', fontSize: 12, color: 'var(--ink2)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                     Edit
                   </button>
                 </div>
@@ -1638,7 +1638,7 @@ export const Customers: React.FC = () => {
                     </div>
                   </div>
                   <button type="button" onClick={() => apiDownload(`/v1/customers/${sel.id}/documents/${d.id}/download`, d.filename).catch((err: any) => showAlert(err.message || 'Download failed'))}
-                    style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                     <Icon name="download" size={13} /> Download
                   </button>
                   <button type="button" onClick={async () => {
@@ -1647,7 +1647,7 @@ export const Customers: React.FC = () => {
                       await apiFetch(`/v1/customers/${sel.id}/documents/${d.id}`, { method: 'DELETE' });
                       setCustDocuments(prev => prev.filter(x => x.id !== d.id));
                     } catch (err: any) { showAlert(err.message || 'Delete failed'); }
-                  }} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--red, #dc2626)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
+                  }} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--red, #dc2626)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                     <Icon name="trash" size={13} />
                   </button>
                 </div>
@@ -1734,7 +1734,7 @@ export const Customers: React.FC = () => {
             const active = mainTab === tab.key;
             return (
               <button key={tab.key} type="button" onClick={() => { setMainTab(tab.key); setEditMode(false); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-lg) 16px', border: 'none', borderBottom: active ? '2px solid var(--teal)' : '2px solid transparent', background: 'none', color: active ? 'var(--teal)' : 'var(--ink3)', fontSize: 13, fontWeight: active ? 700 : 500, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', marginBottom: -1, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box'}}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-lg) 16px', border: 'none', borderBottom: active ? '2px solid var(--teal)' : '2px solid transparent', background: 'none', color: active ? 'var(--teal)' : 'var(--ink3)', fontSize: 13, fontWeight: active ? 700 : 500, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', marginBottom: -1, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--ink)'; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--ink3)'; }}>
                 <Icon name={tab.icon} size={13} color={active ? 'var(--teal)' : 'var(--ink3)'} strokeWidth={1.75} />
@@ -1769,7 +1769,7 @@ function SubTabBar({ tabs, active, onChange }: { tabs: { key: string; label: str
     <div style={{ display: 'flex', gap: 4, padding: '12px 28px', background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
       {tabs.map(t => (
         <button key={t.key} type="button" onClick={() => onChange(t.key)}
-          style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: active === t.key ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: active === t.key ? 'var(--teal-l)' : 'var(--bg)', color: active === t.key ? 'var(--teal)' : 'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
+          style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: active === t.key ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: active === t.key ? 'var(--teal-l)' : 'var(--bg)', color: active === t.key ? 'var(--teal)' : 'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
           {t.label}
         </button>
       ))}

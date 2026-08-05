@@ -684,7 +684,7 @@ export const Tracker: React.FC = () => {
                       type="button"
                       onMouseDown={e => e.preventDefault()}
                       onClick={() => pickSuggestion(s)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: 'var(--ds-btn-py) 14px', border: 'none', borderBottom: i < suggestions.length - 1 ? '1px solid var(--border)' : 'none', background: 'none', cursor: 'pointer', textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: 'var(--ds-btn-py) 14px', border: 'none', borderBottom: i < suggestions.length - 1 ? '1px solid var(--border)' : 'none', background: 'none', cursor: 'pointer', textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}
                     >

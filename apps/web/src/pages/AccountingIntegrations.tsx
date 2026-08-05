@@ -195,7 +195,7 @@ export function AccountingIntegrations() {
         <div style={{ display: 'flex', gap: 0, borderTop: '1px solid var(--border)', marginTop: 4 }}>
           {(['connected', 'marketplace'] as TabId[]).map(tab => (
             <button key={tab} type="button" onClick={() => setActiveTab(tab)}
-              style={{ padding: 'var(--ds-btn-py) 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', border: 'none', background: 'none', fontFamily: 'var(--font)', color: activeTab === tab ? 'var(--teal)' : 'var(--ink3)', borderBottom: activeTab === tab ? '2px solid var(--teal)' : '2px solid transparent', marginBottom: -1, transition: 'all 0.15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+              style={{ padding: 'var(--ds-btn-py) 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', border: 'none', background: 'none', fontFamily: 'var(--font)', color: activeTab === tab ? 'var(--teal)' : 'var(--ink3)', borderBottom: activeTab === tab ? '2px solid var(--teal)' : '2px solid transparent', marginBottom: -1, transition: 'all 0.15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               {tab === 'connected' ? 'Connected Platforms' : 'Marketplace'}
               {tab === 'connected' && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 8, background: 'var(--teal-l)', color: 'var(--teal)' }}>{integrations.filter(i => i.status === 'CONNECTED').length}</span>}
               {tab === 'marketplace' && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, padding: '1px 6px', borderRadius: 8, background: 'var(--bg)', color: 'var(--ink3)' }}>{MARKETPLACE.length}</span>}
@@ -372,7 +372,7 @@ export function AccountingIntegrations() {
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {categories.map(cat => (
                   <button key={cat} type="button" onClick={() => setActiveCat(cat)}
-                    style={{ padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: activeCat === cat ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: activeCat === cat ? 'var(--teal-l)' : 'var(--white)', color: activeCat === cat ? 'var(--teal)' : 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+                    style={{ padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: activeCat === cat ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: activeCat === cat ? 'var(--teal-l)' : 'var(--white)', color: activeCat === cat ? 'var(--teal)' : 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                     {cat}
                   </button>
                 ))}

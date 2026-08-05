@@ -249,9 +249,9 @@
 }
 
 .trk-pill {
-  padding: 8px 14px;
+  padding: var(--badge-py) var(--badge-px);
   border-radius: 20px;
-  font-size: 12.5px;
+  font-size: var(--badge-fs);
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -317,9 +317,9 @@
 }
 
 .trk-vcard-badge {
-  font-size: 10px;
+  font-size: var(--badge-fs-sm);
   font-weight: 700;
-  padding: 2px 8px;
+  padding: var(--badge-py-sm) var(--badge-px-sm);
   border-radius: 12px;
   text-transform: uppercase;
   border: 1px solid currentColor;

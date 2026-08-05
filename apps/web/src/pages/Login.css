@@ -161,7 +161,7 @@
 .login-acc-email      { font-size: 12px; color: var(--lp-ink3, #5f6368); text-overflow: ellipsis; overflow: hidden; white-space: nowrap; margin-top: 1px; }
 
 /* ── Role badge — same per-account colour vars ── */
-.login-badge          { font-size: 10.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
+.login-badge          { font-size: var(--badge-fs); font-weight: 700; padding: var(--badge-py) var(--badge-px); border-radius: 4px; flex-shrink: 0; }
 [data-theme="light"] .login-badge { background: var(--av-bg-l); color: var(--av-color-l); }
 [data-theme="dark"]  .login-badge { background: var(--av-bg-d); color: var(--av-color-d); }
 

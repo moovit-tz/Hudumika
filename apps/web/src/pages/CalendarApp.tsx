@@ -237,7 +237,7 @@ export const CalendarApp: React.FC = () => {
       }}>
         <div style={{ display: 'flex', gap: 4 }}>
           <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, display: 'flex' }} onClick={handlePrev}><Icon name="chevronLeft"  size={18} /></button>
-          <button onClick={handleToday} style={{ border: '1px solid var(--border)', background: 'var(--white)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', margin: '0 8px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Today</button>
+          <button onClick={handleToday} style={{ border: '1px solid var(--border)', background: 'var(--white)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', margin: '0 8px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Today</button>
           <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, display: 'flex' }} onClick={handleNext}><Icon name="chevronRight" size={18} /></button>
         </div>
 
@@ -259,7 +259,7 @@ export const CalendarApp: React.FC = () => {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5, border: 'none', background: 'none',
                   cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 6px', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600,
-                  color: on ? 'var(--ink2)' : 'var(--ink3)', opacity: on ? 1 : 0.5, whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}
+                  color: on ? 'var(--ink2)' : 'var(--ink3)', opacity: on ? 1 : 0.5, whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
               >
                 <span style={{ width: 9, height: 9, borderRadius: '50%', background: CATEGORY_MAP[cat].color, flexShrink: 0 }} />
                 {!isMobile && CATEGORY_MAP[cat].label}
@@ -636,8 +636,8 @@ export const CalendarApp: React.FC = () => {
                 )}
               </div>
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
-                <button onClick={() => setShowModal(false)} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', background: 'transparent', borderRadius: 'var(--r)', cursor: 'pointer', fontWeight: 500, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
-                <button onClick={handleSave} style={{ padding: 'var(--ds-btn-py) 18px', border: 'none', background: 'var(--teal)', color: '#fff', borderRadius: 'var(--r)', cursor: 'pointer', fontWeight: 600, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Save</button>
+                <button onClick={() => setShowModal(false)} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', background: 'transparent', borderRadius: 'var(--r)', cursor: 'pointer', fontWeight: 500, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+                <button onClick={handleSave} style={{ padding: 'var(--ds-btn-py) 18px', border: 'none', background: 'var(--teal)', color: '#fff', borderRadius: 'var(--r)', cursor: 'pointer', fontWeight: 600, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Save</button>
               </div>
             </div>
           </div>
@@ -673,7 +673,7 @@ export const CalendarApp: React.FC = () => {
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button onClick={() => openEdit(ev)} style={{ background: 'none', border: 'none', color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>Edit</button>
+                <button onClick={() => openEdit(ev)} style={{ background: 'none', border: 'none', color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Edit</button>
               </div>
             </div>
           </>

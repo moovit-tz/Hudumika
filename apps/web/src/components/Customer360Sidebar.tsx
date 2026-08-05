@@ -340,14 +340,14 @@ export function Customer360Sidebar({
                     <button
                       type="button"
                       onClick={() => onUseAiReply(aiSuggestion)}
-                      style={{ flex: 1, padding: 'var(--ds-btn-py) 12px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+                      style={{ flex: 1, padding: 'var(--ds-btn-py) 12px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                       ✓ Use This Reply
                     </button>
                   )}
                   <button
                     type="button"
                     onClick={fetchAI}
-                    style={{ padding: 'var(--ds-btn-py) 12px', background: 'var(--white)', color: 'var(--ink2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+                    style={{ padding: 'var(--ds-btn-py) 12px', background: 'var(--white)', color: 'var(--ink2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                     ↺ Regenerate
                   </button>
                 </div>
@@ -357,7 +357,7 @@ export function Customer360Sidebar({
                 <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}><Icon name="sparkle" size={36} color="var(--teal)" strokeWidth={1.25} /></div>
                 <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16 }}>Generate an AI-powered reply suggestion based on this conversation</div>
                 <button type="button" onClick={fetchAI}
-                  style={{ padding: 'var(--ds-btn-py) 20px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+                  style={{ padding: 'var(--ds-btn-py) 20px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                   Generate Suggestion
                 </button>
               </div>

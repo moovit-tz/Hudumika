@@ -93,10 +93,10 @@ export const TrackingNewVehicle: React.FC = () => {
           />
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-          <button type="button" style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+          <button type="button" style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             + Multiple Vehicles
           </button>
-          <button type="button" onClick={handleSave} disabled={saving} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+          <button type="button" onClick={handleSave} disabled={saving} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             {saving ? 'Saving...' : 'Save Vehicle'}
           </button>
         </div>
@@ -111,7 +111,7 @@ export const TrackingNewVehicle: React.FC = () => {
                 display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
                 background: activeSection === sec ? 'var(--teal-l)' : 'transparent',
                 color: activeSection === sec ? 'var(--teal)' : 'var(--ink2)',
-                fontWeight: activeSection === sec ? 700 : 500, fontSize: 13, textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+                fontWeight: activeSection === sec ? 700 : 500, fontSize: 13, textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               <Icon name={sec === 'Details' ? 'fileText' : sec === 'Maintenance' ? 'tool' : sec === 'Lifecycle' ? 'refresh' : sec === 'Financial' ? 'dollarSign' : sec === 'Specifications' ? 'settings' : 'sliders'} size={16} />
               {sec}
             </button>
@@ -353,14 +353,14 @@ export const TrackingNewVehicle: React.FC = () => {
             )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 40, paddingTop: 24, borderTop: '1px solid var(--border)' }}>
-              <button type="button" onClick={() => navigate(-1)} style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+              <button type="button" onClick={() => navigate(-1)} style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                 Cancel
               </button>
               <div style={{ display: 'flex', gap: 12 }}>
-                <button type="button" style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+                <button type="button" style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                   Save & Add Another
                 </button>
-                <button type="button" onClick={handleSave} disabled={saving} style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+                <button type="button" onClick={handleSave} disabled={saving} style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                   {saving ? 'Saving...' : 'Save Vehicle'}
                 </button>
               </div>

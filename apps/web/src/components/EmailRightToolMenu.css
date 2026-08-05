@@ -101,7 +101,7 @@
   border-radius: 8px;
   background: #0284c7;
   color: #ffffff;
-  font-size: 10px;
+  font-size: var(--badge-fs-sm);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -323,7 +323,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 10px;
+  font-size: var(--badge-fs-sm);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -371,8 +371,8 @@
   background: var(--surface, #ffffff);
   border: 1px solid var(--border, rgba(0,0,0,0.12));
   border-radius: 10px;
-  padding: 9px 12px;
-  font-size: 12px;
+  padding: var(--badge-py) var(--badge-px);
+  font-size: var(--badge-fs);
   font-weight: 600;
   color: var(--ink, #1e293b);
   cursor: pointer;

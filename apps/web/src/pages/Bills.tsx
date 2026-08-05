@@ -242,9 +242,9 @@ function PayModal({ bill, onPay, onClose }: {
           <span style={{ fontWeight:800, color: amount >= balance ? 'var(--green)' : 'var(--gold)' }}>{amount >= balance ? '✓ Fully Paid' : `${fmt(balance - amount, bill.currency)} remaining`}</span>
         </div>
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
-          <button type="button" title="Cancel" onClick={onClose} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
+          <button type="button" title="Cancel" onClick={onClose} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
           <button type="button" title="Confirm payment" disabled={amount <= 0 || amount > balance} onClick={() => onPay(amount, date, method, ref, note)}
-            style={{ padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: amount > 0 && amount <= balance ? 'var(--teal)' : 'var(--border)', color:'#fff', cursor: amount > 0 && amount <= balance ? 'pointer' : 'default', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+            style={{ padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background: amount > 0 && amount <= balance ? 'var(--teal)' : 'var(--border)', color:'#fff', cursor: amount > 0 && amount <= balance ? 'pointer' : 'default', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             Confirm Payment
           </button>
         </div>
@@ -424,7 +424,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
             </table>
             <div style={{ padding:'10px 12px', borderTop:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
               <button type="button" title="Add line item" onClick={addLine}
-                style={{ display:'flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-sm) 12px', border:'1px dashed var(--border)', borderRadius:'var(--r)', background:'none', cursor:'pointer', fontWeight:600, fontSize:12, color:'var(--teal)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
+                style={{ display:'flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-sm) 12px', border:'1px dashed var(--border)', borderRadius:'var(--r)', background:'none', cursor:'pointer', fontWeight:600, fontSize:12, color:'var(--teal)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
                 <Icon name="plus" size={12} /> Add Line
               </button>
               <div style={{ textAlign:'right', fontSize:13 }}>
@@ -438,9 +438,9 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
           <div><label style={lbl}>Notes</label><textarea title="Notes" placeholder="Payment terms, references, or other notes…" value={f.notes} onChange={e => setField('notes', e.target.value)} rows={3} style={{ ...inp, resize:'vertical' }} /></div>
         </div>
         <div style={{ padding:'14px 24px', borderTop:'1px solid var(--border)', display:'flex', gap:8, justifyContent:'flex-end' }}>
-          <button type="button" title="Cancel" onClick={onClose} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
+          <button type="button" title="Cancel" onClick={onClose} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
           <button type="button" title="Save as draft" onClick={() => { if (!f.supplier_id || !f.due_date) { showAlert('Supplier and due date are required.'); return; } onSave(f); }}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="save" size={13} /> {initial ? 'Update Bill' : 'Save Bill'}
           </button>
         </div>
@@ -545,9 +545,9 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
           </div>
         </div>
         <div style={{ padding:'14px 22px', borderTop:'1px solid var(--border)', display:'flex', gap:8, justifyContent:'flex-end' }}>
-          <button type="button" title="Cancel" onClick={onClose} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
+          <button type="button" title="Cancel" onClick={onClose} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
           <button type="button" title="Save recurring" onClick={() => { if (!f.name||!f.supplier_id||!f.next_due) { showAlert('Name, supplier and next due date are required.'); return; } onSave(f); }}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="save" size={13} /> {initial ? 'Update' : 'Create'}
           </button>
         </div>
@@ -605,11 +605,11 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
             <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Billed {fmtDate(bill.bill_date)} · Due {fmtDate(bill.due_date)}{over ? ` — ${daysOverdue(bill.due_date)} days overdue` : ''}</div>
           </div>
           <div style={{ display:'flex', gap:8 }}>
-            {bill.status === 'DRAFT' && <button type="button" title="Post bill" onClick={onPost} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--blue)', borderRadius: 'var(--r)', background:'var(--blue-l)', color:'var(--blue)', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}><Icon name="send" size={13} /> Post</button>}
-            {(bill.status === 'POSTED'||bill.status === 'PARTIAL'||bill.status === 'OVERDUE') && <button type="button" title="Record payment" onClick={onPay} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}><Icon name="dollarSign" size={13} /> Pay</button>}
-            <button type="button" title="Edit bill" onClick={onEdit} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}><Icon name="edit" size={13} /> Edit</button>
-            <button type="button" title="Print bill" onClick={() => window.print()} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}><Icon name="printer" size={13} /></button>
-            {bill.status !== 'VOID' && bill.status !== 'PAID' && <button type="button" title="Void bill" onClick={onVoid} style={{ padding:'var(--ds-btn-py) 10px', border:'1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r)', background:'rgba(239,68,68,0.04)', color:'var(--red)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Void</button>}
+            {bill.status === 'DRAFT' && <button type="button" title="Post bill" onClick={onPost} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--blue)', borderRadius: 'var(--r)', background:'var(--blue-l)', color:'var(--blue)', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="send" size={13} /> Post</button>}
+            {(bill.status === 'POSTED'||bill.status === 'PARTIAL'||bill.status === 'OVERDUE') && <button type="button" title="Record payment" onClick={onPay} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="dollarSign" size={13} /> Pay</button>}
+            <button type="button" title="Edit bill" onClick={onEdit} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="edit" size={13} /> Edit</button>
+            <button type="button" title="Print bill" onClick={() => window.print()} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="printer" size={13} /></button>
+            {bill.status !== 'VOID' && bill.status !== 'PAID' && <button type="button" title="Void bill" onClick={onVoid} style={{ padding:'var(--ds-btn-py) 10px', border:'1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r)', background:'rgba(239,68,68,0.04)', color:'var(--red)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Void</button>}
           </div>
         </div>
         {over && <div style={{ marginTop:12, padding:'10px 14px', background:'var(--red-l)', borderRadius: 9, fontSize:12.5, fontWeight:600, color:'var(--red)' }}>⚠ Payment overdue by {daysOverdue(bill.due_date)} days. Balance: {fmt(balance, bill.currency)}</div>}
@@ -734,7 +734,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
               style={{ width:'100%', padding:'7px 9px', borderRadius:6, border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink)', fontSize:12.5, fontFamily:'var(--mono)', outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}
             />
             <button type="button" onClick={runVerify} disabled={!efdInput.trim() || efdChecking}
-              style={{ width:'100%', padding:'var(--ds-btn-py) 0', borderRadius:'var(--r)', border:'none', background: efdChecking ? 'var(--ink3)' : 'var(--teal)', color:'#fff', fontSize:13, fontWeight:700, cursor: efdChecking ? 'default' : 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+              style={{ width:'100%', padding:'var(--ds-btn-py) 0', borderRadius:'var(--r)', border:'none', background: efdChecking ? 'var(--ink3)' : 'var(--teal)', color:'#fff', fontSize:13, fontWeight:700, cursor: efdChecking ? 'default' : 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               {efdChecking ? 'Checking with TRA…' : 'Verify against TRA'}
             </button>
             {efdError && <div style={{ marginTop:8, fontSize:11.5, color:'var(--red)' }}>{efdError}</div>}
@@ -1048,8 +1048,8 @@ export const Bills: React.FC = () => {
             <div style={{ fontSize:16, fontWeight:700, marginBottom:8 }}>Void Bill</div>
             <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:20 }}>Void <strong>{voidTarget.bill_number}</strong>? This cannot be undone. Payments already recorded will remain.</div>
             <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
-              <button type="button" title="Cancel" onClick={() => setVoidTarget(null)} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
-              <button type="button" title="Confirm void" onClick={() => handleVoid(voidTarget)} style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background:'var(--red)', color:'#fff', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Void Bill</button>
+              <button type="button" title="Cancel" onClick={() => setVoidTarget(null)} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+              <button type="button" title="Confirm void" onClick={() => handleVoid(voidTarget)} style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background:'var(--red)', color:'#fff', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Void Bill</button>
             </div>
           </div>
         </div>
@@ -1095,7 +1095,7 @@ export const Bills: React.FC = () => {
           <div style={{ display:'flex', borderBottom:'1px solid var(--border)', marginBottom:18 }}>
             {([{k:'bills',l:'Bills'},{k:'recurring',l:`Recurring (${recurring.length})`}] as {k:MainTab;l:string}[]).map(t => (
               <button key={t.k} type="button" title={t.l} onClick={() => setTab(t.k)}
-                style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderBottom:`2px solid ${tab===t.k?'var(--teal)':'transparent'}`, background:'none', cursor:'pointer', fontWeight:700, fontSize:14, color:tab===t.k?'var(--teal)':'var(--ink3)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+                style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderBottom:`2px solid ${tab===t.k?'var(--teal)':'transparent'}`, background:'none', cursor:'pointer', fontWeight:700, fontSize:14, color:tab===t.k?'var(--teal)':'var(--ink3)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                 {t.l}
               </button>
             ))}
@@ -1124,7 +1124,7 @@ export const Bills: React.FC = () => {
                 <div style={{ display:'flex', gap:3, background:'var(--bg)', padding:3, borderRadius:9, flexWrap:'wrap' }}>
                   {(['ALL','DRAFT','POSTED','PARTIAL','OVERDUE','PAID','VOID'] as const).map(s => (
                     <button key={s} type="button" title={`Status: ${s}`} onClick={() => setStatusFilter(s)}
-                      style={{ padding:'var(--ds-btn-py-sm) 11px', fontSize:12, fontWeight:600, border:'none', borderRadius:'var(--r)', cursor:'pointer', background:statusFilter===s?'var(--white)':'transparent', color:statusFilter===s?'var(--ink)':'var(--ink3)', boxShadow:statusFilter===s?'0 1px 4px rgba(0,0,0,0.08)':'none', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
+                      style={{ padding:'var(--ds-btn-py-sm) 11px', fontSize:12, fontWeight:600, border:'none', borderRadius:'var(--r)', cursor:'pointer', background:statusFilter===s?'var(--white)':'transparent', color:statusFilter===s?'var(--ink)':'var(--ink3)', boxShadow:statusFilter===s?'0 1px 4px rgba(0,0,0,0.08)':'none', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
                       {s === 'ALL' ? 'All' : STATUS_CFG[s]?.label ?? s}
                     </button>
                   ))}
@@ -1147,7 +1147,7 @@ export const Bills: React.FC = () => {
                     <Icon name="receipt" size={40} color="var(--border)" />
                     <div style={{ marginTop:12, fontSize:14, fontWeight:600, color:'var(--ink3)' }}>No bills found</div>
                     <div style={{ fontSize:13, color:'var(--ink3)', marginTop:6, marginBottom:20 }}>Adjust filters or create a new bill.</div>
-                    <button type="button" title="New bill" onClick={() => setShowBillForm(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}><Icon name="plus" size={13} /> New Bill</button>
+                    <button type="button" title="New bill" onClick={() => setShowBillForm(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="plus" size={13} /> New Bill</button>
                   </div>
                 ) : (
                   <>

@@ -121,9 +121,9 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
+  padding: var(--badge-py) var(--badge-px);
   border-radius: 20px;
-  font-size: 11px;
+  font-size: var(--badge-fs);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -143,9 +143,9 @@
 
 /* Status badge */
 .spt-sbadge {
-  padding: 2px 8px;
+  padding: var(--badge-py) var(--badge-px);
   border-radius: 20px;
-  font-size: 11px;
+  font-size: var(--badge-fs);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -159,9 +159,9 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  padding: 1px 6px;
+  padding: var(--badge-py-sm) var(--badge-px-sm);
   border-radius: 9px;
-  font-size: 10px;
+  font-size: var(--badge-fs-sm);
   font-weight: 700;
   border: 1px solid transparent;
 }
@@ -460,7 +460,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: var(--badge-fs);
   color: var(--ink2);
 }
 
@@ -719,11 +719,11 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 14px;
+  padding: var(--badge-py) var(--badge-px);
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 20px;
-  font-size: 11.5px;
+  font-size: var(--badge-fs);
   color: var(--ink3);
 }
 
@@ -744,11 +744,11 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 8px;
+  padding: var(--badge-py) var(--badge-px);
   background: #fef9c3;
   border: 1px solid #fde04788;
   border-radius: 6px;
-  font-size: 10.5px;
+  font-size: var(--badge-fs);
   font-weight: 700;
   color: #92400e;
 }
@@ -846,11 +846,11 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 12px;
+  padding: var(--badge-py) var(--badge-px);
   border: 1.5px solid var(--border);
   border-radius: 20px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--badge-fs);
   font-weight: 600;
   font-family: var(--font);
   background: var(--white);
@@ -882,7 +882,7 @@
   background: var(--teal-l);
   border: 1px solid var(--teal);
   border-radius: 20px;
-  font-size: 12px;
+  font-size: var(--badge-fs);
   color: var(--teal);
   font-weight: 600;
 }
@@ -892,7 +892,7 @@
   cursor: pointer;
   color: var(--teal);
   padding: 0 0 0 2px;
-  font-size: 14px;
+  font-size: var(--badge-fs);
   line-height: 1;
   display: flex;
   align-items: center;
@@ -1012,11 +1012,11 @@
   flex-wrap: wrap;
 }
 .spt-broadcast-toast-chip {
-  font-size: 10px;
+  font-size: var(--badge-fs-sm);
   font-weight: 700;
   color: var(--green);
   background: var(--white);
-  padding: 2px 8px;
+  padding: var(--badge-py-sm) var(--badge-px-sm);
   border-radius: 10px;
 }
 .spt-broadcast-toast-chip--fail { color: var(--red); }
@@ -1147,16 +1147,16 @@
 .spt-tag {
   display: inline-flex;
   align-items: center;
-  padding: 2px 9px;
+  padding: var(--badge-py) var(--badge-px);
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 10px;
-  font-size: 11px;
+  font-size: var(--badge-fs);
   color: var(--ink2);
 }
 .spt-tag-sm {
-  padding: 1px 7px;
-  font-size: 10px;
+  padding: var(--badge-py-sm) var(--badge-px-sm);
+  font-size: var(--badge-fs-sm);
   margin-right: 5px;
 }
 

@@ -349,11 +349,11 @@ function VendorForm({ vendor, onSave, onClose }: {
 
         <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <button type="button" onClick={onClose}
-            style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+            style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             Cancel
           </button>
           <button type="button" onClick={handleSave} disabled={saving || !form.name.trim()}
-            style={{ padding: 'var(--ds-btn-py) 20px', border: 'none', borderRadius: 'var(--r)', background: !form.name.trim() ? 'var(--border)' : 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: form.name.trim() ? 'pointer' : 'default', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+            style={{ padding: 'var(--ds-btn-py) 20px', border: 'none', borderRadius: 'var(--r)', background: !form.name.trim() ? 'var(--border)' : 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: form.name.trim() ? 'pointer' : 'default', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="check" size={14} color="#fff" /> {vendor ? 'Save Changes' : 'Add Vendor'}
           </button>
         </div>
@@ -520,7 +520,7 @@ export function FinanceVendors() {
         </Select>
         <button type="button"
           onClick={() => { setEditVendor(null); setShowForm(true); }}
-          style={{ padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="plus" size={14} color="#fff" /> New Vendor
         </button>
       </div>

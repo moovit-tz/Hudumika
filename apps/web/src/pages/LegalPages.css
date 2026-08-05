@@ -200,7 +200,7 @@
 .st-upload-label { font-size: 13px; font-weight: 600; color: #384B41; }
 .st-upload-hint  { font-size: 11.5px; color: #64756B; margin-top: 2px; }
 .st-upload-files { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.st-upload-file-chip { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #384B41; background: #EEF4EE; border: 1px solid #D5DEC8; border-radius: 5px; padding: 3px 10px 3px 8px; }
+.st-upload-file-chip { display: flex; align-items: center; gap: 6px; font-size: var(--badge-fs); color: #384B41; background: #EEF4EE; border: 1px solid #D5DEC8; border-radius: 5px; padding: 3px 10px 3px 8px; }
 .st-upload-file-remove { background: none; border: none; cursor: pointer; font-size: 14px; color: #64756B; line-height: 1; padding: 0; }
 .st-form-foot { padding: 20px 28px; border-top: 1px solid #D5DEC8; background: #F7F5F0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .st-form-note { font-size: 12px; color: #64756B; display: flex; align-items: center; gap: 6px; }

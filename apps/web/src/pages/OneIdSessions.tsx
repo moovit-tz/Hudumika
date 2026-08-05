@@ -64,7 +64,7 @@ export const OneIdSessions: React.FC = () => {
           Require multi-factor authentication for all users
         </label>
         <button type="button" onClick={save} disabled={saving}
-          style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+          style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save policy'}
         </button>
       </div>
@@ -90,7 +90,7 @@ export const OneIdSessions: React.FC = () => {
                 <td style={{ padding: '10px 14px', color: 'var(--ink3)' }}>{new Date(d.last_used_at).toLocaleString()}</td>
                 <td style={{ padding: '10px 14px' }}>
                   <button type="button" onClick={() => toggleTrusted(d)}
-                    style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-xs) 12px', border: 'none', cursor: 'pointer', background: d.trusted ? '#ecfdf5' : '#f1f5f9', color: d.trusted ? '#065f46' : '#64748b', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
+                    style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-xs) 12px', border: 'none', cursor: 'pointer', background: d.trusted ? '#ecfdf5' : '#f1f5f9', color: d.trusted ? '#065f46' : '#64748b', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                     {d.trusted ? 'Trusted' : 'Not trusted'}
                   </button>
                 </td>

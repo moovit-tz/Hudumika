@@ -113,7 +113,7 @@ export const TrackingIssueDetail: React.FC = () => {
         <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>{issue.title}</div>
         {issue.status !== 'RESOLVED' && (
           <button type="button" onClick={resolve} disabled={resolving}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: resolving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 18px', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: resolving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="checkCircle" size={15} /> {resolving ? 'Resolving…' : 'Resolve'}
           </button>
         )}

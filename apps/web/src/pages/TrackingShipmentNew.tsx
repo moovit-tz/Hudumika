@@ -267,18 +267,18 @@ export const TrackingShipmentNew: React.FC = () => {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 20 }}>
         <button type="button" disabled={step === 1} onClick={() => setStep(s => s - 1)}
-          style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontSize: 13, cursor: step === 1 ? 'default' : 'pointer', opacity: step === 1 ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+          style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontSize: 13, cursor: step === 1 ? 'default' : 'pointer', opacity: step === 1 ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           Back
         </button>
         {step < 4 ? (
           <button type="button" disabled={step === 1 ? !jobType : step === 2 ? !canAdvanceFromStep2() : !vehicleId}
             onClick={() => setStep(s => s + 1)}
-            style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: (step === 1 && !jobType) || (step === 2 && !canAdvanceFromStep2()) || (step === 3 && !vehicleId) ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+            style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: (step === 1 && !jobType) || (step === 2 && !canAdvanceFromStep2()) || (step === 3 && !vehicleId) ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             Continue
           </button>
         ) : (
           <button type="button" disabled={saving} onClick={submit}
-            style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+            style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             {saving ? 'Creating…' : 'Create Shipment'}
           </button>
         )}

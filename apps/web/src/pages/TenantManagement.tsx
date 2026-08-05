@@ -71,7 +71,7 @@ export const TenantManagement: React.FC = () => {
           padding: 'var(--ds-btn-py) 16px',
           borderRadius: '4px',
           cursor: 'pointer',
-          marginBottom: '16px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
+          marginBottom: '16px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
       >
         + New Company
       </button>

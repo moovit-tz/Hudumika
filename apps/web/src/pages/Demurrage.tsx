@@ -413,7 +413,7 @@ export const Demurrage: React.FC = () => {
                               <button
                                 type="button"
                                 onClick={() => { setReturnModal(c.id); setReturnDate(new Date().toISOString().split('T')[0]); }}
-                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 10px', fontSize: 11, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', border: '1px solid var(--teal-l)', borderRadius: 'var(--r)', cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}
+                                style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 10px', fontSize: 11, fontWeight: 700, color: 'var(--teal)', background: 'var(--teal-l)', border: '1px solid var(--teal-l)', borderRadius: 'var(--r)', cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
                               >
                                 <Icon name="checkCircle" size={11} /> Returned
                               </button>
@@ -422,7 +422,7 @@ export const Demurrage: React.FC = () => {
                               type="button"
                               title="Edit container"
                               onClick={() => startEditC(c)}
-                              style={{ display: 'flex', alignItems: 'center', padding: 'var(--ds-btn-py-xs) 8px', color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}
+                              style={{ display: 'flex', alignItems: 'center', padding: 'var(--ds-btn-py-xs) 8px', color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
                             >
                               <Icon name="edit" size={12} />
                             </button>
@@ -430,7 +430,7 @@ export const Demurrage: React.FC = () => {
                               type="button"
                               title="Remove from tracking"
                               onClick={() => deleteContainer(c.id)}
-                              style={{ display: 'flex', alignItems: 'center', padding: 'var(--ds-btn-py-xs) 8px', color: 'var(--red)', background: 'var(--red-l)', border: '1px solid var(--red-l)', borderRadius: 'var(--r)', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}
+                              style={{ display: 'flex', alignItems: 'center', padding: 'var(--ds-btn-py-xs) 8px', color: 'var(--red)', background: 'var(--red-l)', border: '1px solid var(--red-l)', borderRadius: 'var(--r)', cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
                             >
                               <Icon name="trash" size={12} />
                             </button>

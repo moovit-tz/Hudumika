@@ -7,7 +7,7 @@
    SHARED UTILITIES
    ───────────────────────────────────────────────────── */
 
-.wf-badge { display:inline-flex; align-items:center; gap:3px; padding:2px 8px; border-radius:100px; font-size:11px; font-weight:600; white-space:nowrap; }
+.wf-badge { display:inline-flex; align-items:center; gap:3px; padding:var(--badge-py) var(--badge-px); border-radius:100px; font-size:var(--badge-fs); font-weight:600; white-space:nowrap; }
 .wf-badge-green  { background:var(--green-l); color:var(--green); }
 .wf-badge-gray   { background:var(--bg); color:var(--ink2); }
 .wf-badge-blue   { background:var(--blue-l); color:var(--blue); }
@@ -217,7 +217,7 @@
 .wfb-acc-head { display:flex; align-items:center; gap:8px; padding:10px 14px; cursor:pointer; user-select:none; transition:background 0.1s; }
 .wfb-acc-head:hover { background:var(--bg); }
 .wfb-acc-title { font-size:12px; font-weight:700; color:var(--navy,#0f172a); flex:1; display:flex; align-items:center; gap:6px; }
-.wfb-acc-badge { font-size:9.5px; font-weight:700; background:var(--bg); color:var(--ink3); border-radius:100px; padding:1px 7px; }
+.wfb-acc-badge { font-size:var(--badge-fs-sm); font-weight:700; background:var(--bg); color:var(--ink3); border-radius:100px; padding:var(--badge-py-sm) var(--badge-px-sm); }
 .wfb-acc-body { padding:0 14px 12px; display:flex; flex-direction:column; gap:8px; }
 
 /* Condition row in panel */
@@ -228,10 +228,10 @@
 .wfb-comm-card { background:var(--bg); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
 .wfb-comm-card-head { display:flex; align-items:center; gap:7px; padding:8px 10px; border-bottom:1px solid var(--border); }
 .wfb-comm-card-body { padding:8px 10px; display:flex; flex-direction:column; gap:6px; }
-.wfb-comm-ch-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:100px; color:#334155; }
+.wfb-comm-ch-badge { font-size:var(--badge-fs-sm); font-weight:700; padding:var(--badge-py-sm) var(--badge-px-sm); border-radius:100px; color:#334155; }
 
 .wfb-var-chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:3px; }
-.wfb-var-chip { font-size:9.5px; font-family:'Courier New',monospace; background:var(--bg); border:1px solid var(--border); border-radius:3px; padding:1px 6px; color:var(--teal); cursor:pointer; transition:all 0.1s; }
+.wfb-var-chip { font-size:var(--badge-fs-sm); font-family:'Courier New',monospace; background:var(--bg); border:1px solid var(--border); border-radius:3px; padding:var(--badge-py-sm) var(--badge-px-sm); color:var(--teal); cursor:pointer; transition:all 0.1s; }
 .wfb-var-chip:hover { background:var(--teal-l); border-color:var(--teal); }
 
 /* Color picker dots */
@@ -247,7 +247,7 @@
 .wfb-trans-item.sel .wfb-trans-check { background:var(--teal); border-color:var(--teal); }
 
 /* Tag pills for trigger config */
-.wfb-tag-pill { padding:7px 15px; border-radius:100px; border:1.5px solid var(--border); font-size:13px; font-weight:600; cursor:pointer; transition:all 0.1s; background:var(--white); color:var(--ink2); user-select:none; }
+.wfb-tag-pill { padding:var(--badge-py) var(--badge-px); border-radius:100px; border:1.5px solid var(--border); font-size:var(--badge-fs); font-weight:600; cursor:pointer; transition:all 0.1s; background:var(--white); color:var(--ink2); user-select:none; }
 .wfb-tag-pill:hover { border-color:var(--teal); color:var(--teal); }
 .wfb-tag-pill.sel { background:var(--teal); border-color:var(--teal); color:white; }
 

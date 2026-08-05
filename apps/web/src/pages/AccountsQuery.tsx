@@ -260,7 +260,7 @@ export function AccountsQuery() {
                       background: status === s ? 'var(--teal)' : 'var(--white)',
                       color: status === s ? '#fff' : 'var(--ink)',
                       fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                      fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}
+                      fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
                   >
                     {s}
                   </button>
@@ -302,7 +302,7 @@ export function AccountsQuery() {
           type="button"
           onClick={runReport}
           disabled={loading}
-          style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 0', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box'}}
+          style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 0', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}
         >
           <Icon name="refresh" size={15} color="#fff" />
           {loading ? 'Running…' : 'Run Report'}

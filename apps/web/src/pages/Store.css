@@ -122,10 +122,10 @@
 }
 
 .store-hero-badge {
-  font-size: 10px;
+  font-size: var(--badge-fs-sm);
   font-weight: 800;
   background: rgba(255,255,255,0.2);
-  padding: 4px 8px;
+  padding: var(--badge-py-sm) var(--badge-px-sm);
   border-radius: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -239,9 +239,9 @@
 }
 
 .store-badge {
-  font-size: 11px;
+  font-size: var(--badge-fs);
   font-weight: 700;
-  padding: 2px 8px;
+  padding: var(--badge-py) var(--badge-px);
   border-radius: 12px;
 }
 

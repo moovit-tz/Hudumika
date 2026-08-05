@@ -183,7 +183,7 @@ export const FinanceLedger: React.FC = () => {
               onClick={() => setTypeFilter(t)}
               style={{ padding:'var(--ds-btn-py-sm) 12px', borderRadius:20, border:'1px solid var(--border)', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)',
                 background: typeFilter===t ? (t==='ALL'?'var(--teal)':TYPE_CFG[t].color) : 'var(--white)',
-                color: typeFilter===t ? '#fff' : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
+                color: typeFilter===t ? '#fff' : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
               {t === 'ALL' ? 'All' : TYPE_CFG[t].label}
             </button>
           ))}
@@ -217,7 +217,7 @@ export const FinanceLedger: React.FC = () => {
                   {/* Account header row */}
                   <button type="button" title={`Expand ${acc.account_name}`}
                     onClick={() => toggleExpand(acc)}
-                    style={{ width:'100%', display:'grid', gridTemplateColumns:'28px 70px 1fr 140px 140px 140px 28px', alignItems:'center', gap:0, padding:'var(--ds-btn-py) 14px', background: isOpen ? 'var(--bg)' : 'var(--white)', border:'none', cursor:'pointer', fontFamily:'var(--font)', textAlign:'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+                    style={{ width:'100%', display:'grid', gridTemplateColumns:'28px 70px 1fr 140px 140px 140px 28px', alignItems:'center', gap:0, padding:'var(--ds-btn-py) 14px', background: isOpen ? 'var(--bg)' : 'var(--white)', border:'none', cursor:'pointer', fontFamily:'var(--font)', textAlign:'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                     <span style={{ fontSize:11, color:cfg.color, fontWeight:700 }}>{isOpen ? '−' : '+'}</span>
                     <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--ink3)', fontWeight:600 }}>{acc.account_code}</span>
                     <span style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>{acc.account_name}</span>

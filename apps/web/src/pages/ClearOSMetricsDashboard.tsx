@@ -56,7 +56,7 @@ function MetricSection({ title, icon, variant, onExport, statTiles, chart, table
         onClick={onToggle}
         style={{
           display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer',
-          color: 'var(--cts-accent, var(--teal))', fontSize: 13, fontWeight: 600, padding: 'var(--ds-btn-py-sm) 0', marginBottom: expanded ? 12 : 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
+          color: 'var(--cts-accent, var(--teal))', fontSize: 13, fontWeight: 600, padding: 'var(--ds-btn-py-sm) 0', marginBottom: expanded ? 12 : 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
       >
         <Icon name={expanded ? 'chevronUp' : 'chevronDown'} size={13} />
         {expanded ? 'Hide detailed table' : 'View detailed table'}

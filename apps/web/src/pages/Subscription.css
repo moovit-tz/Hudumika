@@ -109,11 +109,11 @@
 }
 
 .sub-toggle-badge {
-  font-size: 10px;
+  font-size: var(--badge-fs-sm);
   font-weight: 700;
   background: #059669;
   color: #fff;
-  padding: 2px 7px;
+  padding: var(--badge-py-sm) var(--badge-px-sm);
   border-radius: 10px;
   letter-spacing: 0.02em;
 }
@@ -169,11 +169,11 @@
   transform: translateX(-50%);
   background: var(--plan-color);
   color: #fff;
-  font-size: 10.5px;
+  font-size: var(--badge-fs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 3px 12px;
+  padding: var(--badge-py) var(--badge-px);
   border-radius: 20px;
   white-space: nowrap;
 }
@@ -186,11 +186,11 @@
   background: var(--bg);
   border: 1px solid var(--plan-color);
   color: var(--plan-color);
-  font-size: 10.5px;
+  font-size: var(--badge-fs);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 3px 12px;
+  padding: var(--badge-py) var(--badge-px);
   border-radius: 20px;
   white-space: nowrap;
 }
@@ -438,11 +438,11 @@
 
 /* ── Badges ── */
 .sub-badge-active {
-  font-size: 10.5px;
+  font-size: var(--badge-fs);
   font-weight: 800;
   color: #059669;
   background: #ecfdf5;
-  padding: 3px 10px;
+  padding: var(--badge-py) var(--badge-px);
   border-radius: 12px;
   letter-spacing: 0.03em;
 }

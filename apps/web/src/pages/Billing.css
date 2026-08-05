@@ -73,9 +73,9 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 4px 10px;
+  padding: var(--badge-py) var(--badge-px);
   border-radius: 6px;
-  font-size: 11.5px;
+  font-size: var(--badge-fs);
   font-weight: 600;
   cursor: pointer;
   font-family: var(--font);
@@ -87,9 +87,9 @@
 .inv-status-chip--active { border: 1.5px solid var(--teal); background: var(--teal-l); color: var(--teal); }
 
 .inv-status-chip-count {
-  font-size: 10px;
+  font-size: var(--badge-fs-sm);
   font-weight: 700;
-  padding: 1px 5px;
+  padding: var(--badge-py-sm) var(--badge-px-sm);
   border-radius: 9px;
   background: var(--border);
   color: var(--ink2);
@@ -214,12 +214,12 @@
 .inv-cell-due { font-size: 12px; }
 .inv-cell-due--overdue { color: var(--red); font-weight: 700; }
 
-.inv-mode-badge { padding: 2px 7px; border-radius: 4px; font-size: 10.5px; font-weight: 700; }
+.inv-mode-badge { padding: var(--badge-py) var(--badge-px); border-radius: 4px; font-size: var(--badge-fs); font-weight: 700; }
 .inv-mode-badge[data-mode="SEA"]  { background: #dbeafe; color: #1d4ed8; }
 .inv-mode-badge[data-mode="AIR"]  { background: #fce7f3; color: #be185d; }
 .inv-mode-badge[data-mode="ROAD"] { background: #ecfdf5; color: #047857; }
 
-.inv-status-badge { padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+.inv-status-badge { padding: var(--badge-py) var(--badge-px); border-radius: 20px; font-size: var(--badge-fs); font-weight: 700; white-space: nowrap; }
 
 /* ── Empty / loading states ── */
 .inv-table-msg { padding: 48px 20px; text-align: center; color: var(--ink3); font-size: 13px; }

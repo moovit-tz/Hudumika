@@ -294,7 +294,7 @@ export function ComplyLicenseAutomation() {
                   color: activeTab === tab.key ? 'var(--teal)' : 'var(--ink2)',
                   borderBottom: activeTab === tab.key ? '2px solid var(--teal)' : '2px solid transparent',
                   cursor: 'pointer',
-                  transition: 'all 0.15s', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box'}}
+                  transition: 'all 0.15s', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}
               >
                 <Icon name={tab.icon as any} style={{ width: 14, height: 14 }} />
                 {tab.label}

@@ -64,7 +64,7 @@ export const FinanceAgedPayables: React.FC = () => {
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Aged Payables</div>
           <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Outstanding supplier balances by age — as of {asOf}</div>
         </div>
-        <button onClick={exportCsv} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+        <button onClick={exportCsv} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="download" size={13} /> Export
         </button>
       </div>

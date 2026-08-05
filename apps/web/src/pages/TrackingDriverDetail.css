@@ -172,11 +172,11 @@
 }
 
 .dd-courier-badge {
-  font-size: 12px;
+  font-size: var(--badge-fs);
   font-weight: 600;
   color: var(--ink2);
   background: var(--bg);
-  padding: 4px 10px;
+  padding: var(--badge-py) var(--badge-px);
   border-radius: 8px;
 }
 

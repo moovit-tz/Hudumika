@@ -176,7 +176,7 @@
   background: var(--bg); border-radius: 9px;
   display: flex; justify-content: space-between;
 }
-.sov-total-pill-val { font-size: 13px; font-weight: 800; color: var(--navy); }
+.sov-total-pill-val { font-size: var(--badge-fs); font-weight: 800; color: var(--navy); }
 
 /* ── Daily volume bars ── */
 .sov-daybars { display: flex; align-items: flex-end; gap: 4px; height: 80px; margin-bottom: 8px; }

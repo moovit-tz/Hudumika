@@ -607,6 +607,26 @@ export function applyDesignTokens(tokens: DesignTokens): void {
      * line plus 2px of border), so the ladder still tracks the density
      * setting instead of freezing at one number.
      */
+    /**
+     * Badges and chips, on two deliberate steps.
+     *
+     * 88 chip/badge/pill rules each hardcoded their own padding and font
+     * size across eight values (9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5), so a
+     * status pill in a table, a filter chip in a toolbar and a count badge
+     * on a nav item were all different sizes with no rule behind which.
+     *
+     * `sm` is the count/notification step -- the small numeric bubble that
+     * sits on a nav item or a tab. Everything else is the default step.
+     */
+    '--badge-py': `${Math.max(1, Math.round(density.btnPy * 0.33))}px`,
+    '--badge-px': '8px',
+    '--badge-fs': '11px',
+    '--badge-min-h': `${Math.max(1, Math.round(density.btnPy * 0.33)) * 2 + 16}px`,
+    '--badge-py-sm': '1px',
+    '--badge-px-sm': '6px',
+    '--badge-fs-sm': '10px',
+    '--badge-min-h-sm': '16px',
+
     '--ctl-h-xs': `${Math.max(2, Math.round(density.btnPy * 0.45)) * 2 + 22}px`,
     '--ctl-h-sm': `${Math.max(3, Math.round(density.btnPy * 0.75)) * 2 + 22}px`,
     '--ctl-h': `${density.btnPy * 2 + 22}px`,

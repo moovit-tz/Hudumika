@@ -264,7 +264,7 @@
 .trk-v-name-wrap { display: flex; align-items: center; gap: 12px; }
 .trk-v-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
 .trk-status-badge {
-  font-size: 10px; font-weight: 700; text-transform: uppercase; padding: 3px 6px; border-radius: 4px;
+  font-size: var(--badge-fs-sm); font-weight: 700; text-transform: uppercase; padding: var(--badge-py-sm) var(--badge-px-sm); border-radius: 4px;
 }
 .trk-status-badge.moving { background: rgba(16,185,129,0.15); color: #10b981; }
 .trk-status-badge.stopped { background: rgba(245,158,11,0.15); color: #f59e0b; }

@@ -135,7 +135,7 @@ export function ProviderFilesPanel({ provider }: { provider: StorageProvider }) 
               {idx > 0 && <Icon name="chevronRight" size={12} color="var(--ink3)" />}
               <button
                 onClick={() => navToBreadcrumb(idx)}
-                style={{ background: 'none', border: 'none', padding: 'var(--ds-btn-py-xs) 4px', borderRadius:'var(--r-sm)', cursor: idx < breadcrumb.length - 1 ? 'pointer' : 'default', color: idx === breadcrumb.length - 1 ? 'var(--ink)' : 'var(--ink3)', fontWeight: idx === breadcrumb.length - 1 ? 600 : 400, fontSize:'var(--text-md)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}
+                style={{ background: 'none', border: 'none', padding: 'var(--ds-btn-py-xs) 4px', borderRadius:'var(--r-sm)', cursor: idx < breadcrumb.length - 1 ? 'pointer' : 'default', color: idx === breadcrumb.length - 1 ? 'var(--ink)' : 'var(--ink3)', fontWeight: idx === breadcrumb.length - 1 ? 600 : 400, fontSize:'var(--text-md)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
               >
                 {crumb.name}
               </button>

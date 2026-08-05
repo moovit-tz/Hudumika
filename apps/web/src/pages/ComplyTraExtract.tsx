@@ -288,7 +288,7 @@ export function ComplyTraExtract() {
                       type="button" 
                       onClick={handleVerifyOtp} 
                       className="comply-btn-primary" 
-                      style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', fontSize: 12, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
+                      style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', fontSize: 12, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                     >
                       Verify & Proceed
                     </button>
@@ -342,7 +342,7 @@ export function ComplyTraExtract() {
                     color: activeTab === tab.key ? 'var(--teal)' : 'var(--ink2)',
                     borderBottom: activeTab === tab.key ? '2px solid var(--teal)' : '2px solid transparent',
                     cursor: 'pointer',
-                    transition: 'all 0.15s', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box'}}
+                    transition: 'all 0.15s', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}
                 >
                   <Icon name={tab.icon as any} style={{ width: 14, height: 14 }} />
                   {tab.label}

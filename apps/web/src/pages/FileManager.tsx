@@ -514,13 +514,13 @@ function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onShare }: 
             <Icon name="download" size={13} /> Download
           </button>
         )}
-        <button onClick={()=>onShare(item)} style={{ flex: item.type==='folder' ? 1 : undefined, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', padding:'var(--ds-btn-py-sm) 10px', cursor:'pointer', color:GD.blue, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
+        <button onClick={()=>onShare(item)} style={{ flex: item.type==='folder' ? 1 : undefined, background:'var(--bg)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', padding:'var(--ds-btn-py-sm) 10px', cursor:'pointer', color:GD.blue, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="userPlus" size={14} color={GD.blue} />
         </button>
-        <button onClick={()=>onStar(item)} style={{ background: item.starred ? 'var(--gold-l)' : 'var(--bg)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', padding:'var(--ds-btn-py-sm) 10px', cursor:'pointer', color: item.starred ? '#f59e0b' : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
+        <button onClick={()=>onStar(item)} style={{ background: item.starred ? 'var(--gold-l)' : 'var(--bg)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', padding:'var(--ds-btn-py-sm) 10px', cursor:'pointer', color: item.starred ? '#f59e0b' : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="star" size={14} color={item.starred ? '#f59e0b' : 'var(--ink3)'} />
         </button>
-        <button onClick={()=>onDelete(item)} style={{ background:'var(--bg)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', padding:'var(--ds-btn-py-sm) 10px', cursor:'pointer', color:'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
+        <button onClick={()=>onDelete(item)} style={{ background:'var(--bg)', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', padding:'var(--ds-btn-py-sm) 10px', cursor:'pointer', color:'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="trash" size={14} color="var(--red)" />
         </button>
       </div>
@@ -530,7 +530,7 @@ function PreviewPanel({ item, onClose, onStar, onDownload, onDelete, onShare }: 
         {(['details','activity'] as const).map(t => (
           <button key={t} onClick={()=>setTab(t)}
             style={{ flex:1, padding:'var(--ds-btn-py) 0', background:'none', border:'none', cursor:'pointer', fontSize:'var(--text-sm)', fontWeight:600, textTransform:'capitalize',
-              color: tab===t ? GD.blue : 'var(--ink3)', borderBottom: tab===t ? `2px solid ${GD.blue}` : '2px solid transparent', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
+              color: tab===t ? GD.blue : 'var(--ink3)', borderBottom: tab===t ? `2px solid ${GD.blue}` : '2px solid transparent', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
           >{t}</button>
         ))}
       </div>
@@ -935,7 +935,7 @@ export const FileManager: React.FC = () => {
               {/* View toggle */}
               <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', overflow:'hidden', flexShrink:0 }}>
                 {(['grid','list'] as const).map(m => (
-                  <button key={m} onClick={()=>setViewMode(m)} title={m==='grid' ? 'Grid view' : 'List view'} style={{ padding:'var(--ds-btn-py) 12px', display:'flex', alignItems:'center', background: viewMode===m ? GD.blue : 'var(--white)', border:'none', cursor:'pointer', color: viewMode===m ? '#fff' : 'var(--ink3)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+                  <button key={m} onClick={()=>setViewMode(m)} title={m==='grid' ? 'Grid view' : 'List view'} style={{ padding:'var(--ds-btn-py) 12px', display:'flex', alignItems:'center', background: viewMode===m ? GD.blue : 'var(--white)', border:'none', cursor:'pointer', color: viewMode===m ? '#fff' : 'var(--ink3)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                     <Icon name={m==='grid' ? 'grid' : 'list'} size={14} color={viewMode===m ? '#fff' : 'var(--ink3)'} />
                   </button>
                 ))}

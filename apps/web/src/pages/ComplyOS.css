@@ -287,9 +287,9 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: var(--badge-fs);
   font-weight: 700;
-  padding: 3px 9px;
+  padding: var(--badge-py) var(--badge-px);
   border-radius: 20px;
   letter-spacing: 0.03em;
   white-space: nowrap;
@@ -685,9 +685,9 @@
 }
 
 .comply-firm-tag {
-  font-size: 11px;
+  font-size: var(--badge-fs);
   font-weight: 600;
-  padding: 2px 8px;
+  padding: var(--badge-py) var(--badge-px);
   border-radius: 5px;
   background: var(--bg);
   color: var(--ink3);
@@ -1290,11 +1290,11 @@
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
-  padding: 7px 12px;
+  padding: var(--badge-py) var(--badge-px);
   border: 1px solid var(--border);
   border-radius: 999px;
   background: var(--bg);
-  font-size: 12.5px;
+  font-size: var(--badge-fs);
   font-weight: 700;
   color: var(--ink2);
   cursor: pointer;
@@ -1537,11 +1537,11 @@
 .comply-oblig-actions-row  { display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
 .comply-optional-badge     {
   display: inline-block;
-  font-size: 10.5px;
+  font-size: var(--badge-fs);
   font-weight: 600;
   color: var(--ink3);
   margin-left: 8px;
-  padding: 1px 6px;
+  padding: var(--badge-py) var(--badge-px);
   background: var(--bg);
   border-radius: 4px;
   border: 1px solid var(--border);

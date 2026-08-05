@@ -529,7 +529,7 @@ export const EmailApp: React.FC = () => {
               <input type="text" placeholder="Time (e.g. 10:00)" value={newEventTime} onChange={e => setNewEventTime(e.target.value)} style={{ padding: '6px 10px', borderRadius: 9, border: '0.5px solid var(--border)', fontSize: 12, outline: 'none', background: 'var(--white)' }} />
               <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setShowAddEvent(false)} style={{ background: 'none', border: 'none', fontSize: 11, cursor: 'pointer', color: 'var(--ink3)' }}>Cancel</button>
-                <button type="button" onClick={handleAddEvent} style={{ background: '#0b57d0', color: '#fff', border: 'none', padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>Save</button>
+                <button type="button" onClick={handleAddEvent} style={{ background: '#0b57d0', color: '#fff', border: 'none', padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Save</button>
               </div>
             </div>
           )}
@@ -597,7 +597,7 @@ export const EmailApp: React.FC = () => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', borderBottom: '0.5px solid var(--border)', margin: '0 -16px 10px', padding: '0 16px' }}>
           {(['thread', 'all'] as const).map(tab => (
-            <button key={tab} type="button" onClick={() => setContactTab(tab)} style={{ flex: 1, padding: 'var(--ds-btn-py) 0', fontSize: 13, fontWeight: contactTab === tab ? 600 : 500, color: contactTab === tab ? '#0b57d0' : 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer', borderBottom: `2px solid ${contactTab === tab ? '#0b57d0' : 'transparent'}`, marginBottom: -1, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+            <button key={tab} type="button" onClick={() => setContactTab(tab)} style={{ flex: 1, padding: 'var(--ds-btn-py) 0', fontSize: 13, fontWeight: contactTab === tab ? 600 : 500, color: contactTab === tab ? '#0b57d0' : 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer', borderBottom: `2px solid ${contactTab === tab ? '#0b57d0' : 'transparent'}`, marginBottom: -1, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               {tab === 'thread' ? 'In this thread' : 'Contacts'}
             </button>
           ))}
@@ -645,7 +645,7 @@ export const EmailApp: React.FC = () => {
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button type="button" onClick={() => setShowAddNote(false)} style={{ background: 'none', border: 'none', fontSize: 11, cursor: 'pointer', color: 'var(--ink3)' }}>Cancel</button>
-                <button type="button" onClick={handleAddNote} style={{ background: '#0b57d0', color: '#fff', border: 'none', padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>Done</button>
+                <button type="button" onClick={handleAddNote} style={{ background: '#0b57d0', color: '#fff', border: 'none', padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Done</button>
               </div>
             </div>
           </div>
@@ -920,7 +920,7 @@ export const EmailApp: React.FC = () => {
             </div>
             <textarea className="em-compose-body" value={compose.body} onChange={e => setCompose(p => ({ ...p, body: e.target.value }))} placeholder="Write your email here…" />
             <div className="em-compose-footer">
-              <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 20, padding: 'var(--ds-btn-py) 24px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}} onClick={sendCompose}>
+              <button type="button" className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 20, padding: 'var(--ds-btn-py) 24px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}} onClick={sendCompose}>
                 <Icon name="send" size={14} /> Send
               </button>
               <button type="button" className="em-icon-btn em-icon-btn--ghost" onClick={() => setComposeOpen(false)} title="Discard">

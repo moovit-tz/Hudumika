@@ -727,7 +727,7 @@ export const PurchaseOrders: React.FC = () => {
             {viewMode === 'CREATE' && 'Create Purchase Order'}
             {viewMode === 'EDIT' && `Edit PO #${pos.find(p => p.id === selectedPoId)?.po_number ?? ''}`}
           </div>
-          <button onClick={() => setViewMode('LIST')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+          <button onClick={() => setViewMode('LIST')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="arrowLeft" size={13} /> Back
           </button>
         </div>
@@ -865,7 +865,7 @@ export const PurchaseOrders: React.FC = () => {
                       color: showFiltersPanel || filterStatus || filterVendor ? '#059669' : 'var(--ink2)',
                       fontSize: 12,
                       fontWeight: 600,
-                      cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
+                      cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                   >
                     <Icon name="filter" size={13} />
                     Filters
@@ -918,7 +918,7 @@ export const PurchaseOrders: React.FC = () => {
                         color: 'var(--ink3)',
                         fontSize: 12,
                         fontWeight: 600,
-                        cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
+                        cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                     >
                       Reset Filters
                     </button>
@@ -949,7 +949,7 @@ export const PurchaseOrders: React.FC = () => {
                     color: 'var(--ink2)',
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
+                    cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                 >
                   Clear Filters
                 </button>
@@ -1394,7 +1394,7 @@ export const PurchaseOrders: React.FC = () => {
                     color: currentPage === 1 ? 'var(--ink3)' : 'var(--ink)',
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
                 >
                   Previous
                 </button>
@@ -1428,7 +1428,7 @@ export const PurchaseOrders: React.FC = () => {
                     color: currentPage === totalPages || totalPages === 0 ? 'var(--ink3)' : 'var(--ink)',
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: currentPage === totalPages || totalPages === 0 ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
+                    cursor: currentPage === totalPages || totalPages === 0 ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
                 >
                   Next
                 </button>
@@ -1577,7 +1577,7 @@ export const PurchaseOrders: React.FC = () => {
                       color: 'var(--ink)',
                       fontSize: 13,
                       fontWeight: 600,
-                      cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
+                      cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                   >
                     <Icon name="download" size={13} />
                     Download PDF
@@ -1597,7 +1597,7 @@ export const PurchaseOrders: React.FC = () => {
                         color: '#fff',
                         fontSize: 13,
                         fontWeight: 600,
-                        cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
+                        cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                     >
                       <Icon name="checkCircle" size={13} />
                       Send to Vendor
@@ -1793,7 +1793,7 @@ export const PurchaseOrders: React.FC = () => {
                     color: '#fff',
                     fontSize: 12,
                     fontWeight: 600,
-                    cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
+                    cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
                 >
                   <Icon name="plus" size={12} strokeWidth={2.5} /> Add Item
                 </button>
@@ -1979,7 +1979,7 @@ export const PurchaseOrders: React.FC = () => {
                     color: 'var(--ink2)',
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
+                    cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                 >
                   Cancel
                 </button>
@@ -1993,7 +1993,7 @@ export const PurchaseOrders: React.FC = () => {
                     color: '#fff',
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
+                    cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                 >
                   {viewMode === 'CREATE' ? 'Create' : 'Save Changes'}
                 </button>

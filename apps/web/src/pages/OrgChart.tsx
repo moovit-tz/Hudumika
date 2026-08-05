@@ -302,7 +302,7 @@ function Sidebar({ node, allNodes, onClose, onSave, onDelete, saving }: SidebarP
         </button>
         <button type="button" onClick={() => onDelete(node.id)} disabled={saving}
           style={{ padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', cursor: 'pointer',
-            background: 'none', color: 'var(--red)', fontSize: 13, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+            background: 'none', color: 'var(--red)', fontSize: 13, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="trash" size={14} color="var(--red)" />
         </button>
       </div>
@@ -496,13 +496,13 @@ export const OrgChart: React.FC = () => {
           <button type="button" onClick={autoLayout}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)',
               border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer',
-              fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+              fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="zap" size={13} color="var(--ink2)" /> Auto Layout
           </button>
           <button type="button" onClick={() => setShowAdd(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)',
               border: 'none', background: 'var(--teal)', cursor: 'pointer',
-              fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
+              fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="userPlus" size={13} color="#fff" /> Add Node
           </button>
         </div>

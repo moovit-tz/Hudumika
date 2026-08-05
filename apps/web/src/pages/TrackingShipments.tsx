@@ -114,20 +114,20 @@ export const TrackingShipments: React.FC = () => {
                   padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer',
                   border: `1px solid ${filter === f ? 'var(--teal)' : 'var(--border)'}`,
                   background: filter === f ? 'var(--teal)' : '#fff',
-                  color: filter === f ? '#fff' : 'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
+                  color: filter === f ? '#fff' : 'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
               >
                 {f}
               </button>
             ))}
-            <button style={{ padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)', background: '#fff', color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
+            <button style={{ padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)', background: '#fff', color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 4, marginLeft: 8, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
               <Icon name="filter" size={12} /> Filter
             </button>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)', background: '#fff', color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
+            <button style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)', background: '#fff', color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
               <Icon name="download" size={14} /> Import
             </button>
-            <button style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)', background: '#fff', color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
+            <button style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)', background: '#fff', color: 'var(--ink2)', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
               Export <Icon name="upload" size={14} />
             </button>
           </div>
@@ -184,7 +184,7 @@ export const TrackingShipments: React.FC = () => {
                   </td>
                   <td style={{ padding: '16px 20px' }}>
                     <div className="trk-dropdown-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
-                      <button style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 6px', cursor: 'pointer', color: 'var(--ink2)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
+                      <button style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 6px', cursor: 'pointer', color: 'var(--ink2)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                         <Icon name="moreVertical" size={16} />
                       </button>
                     </div>

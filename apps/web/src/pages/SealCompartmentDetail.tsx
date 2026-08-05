@@ -226,7 +226,7 @@ export function SealCompartmentDetail() {
           style={{
             padding: 'var(--ds-btn-py) 18px', fontSize: 13, fontWeight: 700, background: 'none', border: 'none',
             borderBottom: activeTab === 'overview' ? '2px solid var(--seal)' : '2px solid transparent',
-            color: activeTab === 'overview' ? 'var(--seal)' : 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
+            color: activeTab === 'overview' ? 'var(--seal)' : 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
           onClick={() => setActiveTab('overview')}
         >
           Overview & Zones
@@ -236,7 +236,7 @@ export function SealCompartmentDetail() {
           style={{
             padding: 'var(--ds-btn-py) 18px', fontSize: 13, fontWeight: 700, background: 'none', border: 'none',
             borderBottom: activeTab === 'lots' ? '2px solid var(--seal)' : '2px solid transparent',
-            color: activeTab === 'lots' ? 'var(--seal)' : 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
+            color: activeTab === 'lots' ? 'var(--seal)' : 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
           onClick={() => setActiveTab('lots')}
         >
           Lots On Hand ({lots.length})

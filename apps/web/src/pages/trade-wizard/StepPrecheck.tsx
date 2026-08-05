@@ -57,7 +57,7 @@ export function StepPrecheck({ draft, update, onNext, onBack }: StepProps) {
                       padding: 'var(--ds-btn-py) 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer',
                       border: `1.5px solid ${draft.answers[q.question] === o.value ? 'var(--teal)' : 'var(--border)'}`,
                       background: draft.answers[q.question] === o.value ? 'var(--teal-l)' : 'var(--white)',
-                      color: draft.answers[q.question] === o.value ? 'var(--teal)' : 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
+                      color: draft.answers[q.question] === o.value ? 'var(--teal)' : 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
                   >
                     {o.label}
                   </button>

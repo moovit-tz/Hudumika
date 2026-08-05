@@ -143,7 +143,7 @@ const ImpersonationBanner: React.FC = () => {
     <div style={{ background:'#7c3aed', color:'#fff', padding:'8px 20px', display:'flex', alignItems:'center', justifyContent:'space-between', fontSize:13, fontWeight:600, zIndex:1000, flexShrink:0 }}>
       <span>👁 Impersonating: <strong>{user?.name}</strong> ({user?.email}) — {user?.role}</span>
       <button type="button" title="Stop impersonating" onClick={stopImpersonating}
-        style={{ background:'rgba(255,255,255,0.2)', border:'1px solid rgba(255,255,255,0.4)', color:'#fff', borderRadius:'var(--r)', padding:'var(--ds-btn-py-xs) 14px', cursor:'pointer', fontWeight:700, fontSize:12, fontFamily:'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
+        style={{ background:'rgba(255,255,255,0.2)', border:'1px solid rgba(255,255,255,0.4)', color:'#fff', borderRadius:'var(--r)', padding:'var(--ds-btn-py-xs) 14px', cursor:'pointer', fontWeight:700, fontSize:12, fontFamily:'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
         Exit Impersonation
       </button>
     </div>
@@ -220,7 +220,7 @@ const CustomerShell: React.FC = () => {
             {user?.name?.[0] ?? '?'}
           </Link>
           <button type="button" title="Sign out" onClick={logout}
-            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: 14, fontFamily: 'var(--font)', padding: 'var(--ds-btn-py-xs) 0', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
+            style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.8)', cursor: 'pointer', fontSize: 14, fontFamily: 'var(--font)', padding: 'var(--ds-btn-py-xs) 0', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
             Sign out
           </button>
         </div>
