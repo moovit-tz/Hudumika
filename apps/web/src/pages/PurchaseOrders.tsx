@@ -744,6 +744,11 @@ export const PurchaseOrders: React.FC = () => {
             titlePlain="Purchase"
             titleEm="orders"
             subtitle="Request goods and services, manage approvals and track delivery."
+            actions={
+              <button type="button" className="btn btn-primary" onClick={handleCreateInit}>
+                <Icon name="plus" size={13} /> New Purchase Order
+              </button>
+            }
           />
         )}
 

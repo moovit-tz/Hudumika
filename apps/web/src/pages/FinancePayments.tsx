@@ -232,6 +232,11 @@ export const FinancePayments: React.FC = () => {
           titlePlain="Payment"
           titleEm="records"
           subtitle="Manage and reconcile received payments against invoices."
+          actions={
+            <button type="button" className="btn btn-primary" onClick={() => setShowAdd(true)}>
+              <Icon name="plus" size={13} /> Record Payment
+            </button>
+          }
         />
 
         <MetricsRow cards={[
