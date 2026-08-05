@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { APP_REGISTRY } from '../lib/appRegistry.js';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -11,28 +12,11 @@ import { pushBranding } from '../hooks/useBranding.js';
 // APP_COLORS / index.css's --teal) rather than its own hue by default — the
 // color picker below still lets a SuperAdmin recolor individual apps.
 const DEFAULT_APP_COLOR = '#0b1e3a';
-const APP_META_BRAND = [
-  { id: 'clearos',   name: 'ClearOS',        slogan: 'Customs & Freight clearance platform', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'finops',    name: 'FinOps',         slogan: 'Financial accounts and payroll ledger', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'nexushr',     name: 'NexusHR',        slogan: 'People operations and shift rosters', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'bliss',     name: 'Bliss',          slogan: 'Omnichannel customer helpdesk & ticketing', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'complyos',  name: 'ComplyOS',       slogan: 'Compliance tracking, BRELA search & permits', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'crm',       name: 'CRM',            slogan: 'Customer relationships and sales deals', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'cloud',     name: 'CloudOS',        slogan: 'Enterprise document storage & cloud drive', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'email',     name: 'Email',          slogan: 'Internal corporate messaging center', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'contacts',  name: 'Contacts',       slogan: 'Stakeholder and client phone book', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'ai',        name: 'AI Automations', slogan: 'Document OCR, copilot & predictive analytics', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'store',     name: 'Hudumika Store', slogan: 'B2B procurement & equipment marketplace', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'workspace', name: 'Admin',          slogan: 'Organization settings and configuration', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'admin',     name: 'SuperAdmin',     slogan: 'Platform governance, tenants & query builder', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'oneid',     name: 'OneID',          slogan: 'SSO, identity verification & biometrics', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'onesite',   name: 'CMS',            slogan: 'Content management & company intranet', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'tracking',  name: 'CargoTracker',   slogan: 'GPS fleet tracking, telemetry & live map', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'demurrage',     name: 'Demurrage',    slogan: 'Container demurrage tariffs and cost tracking', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'cargotracker',  name: 'AWB Tracker',  slogan: 'AWB and Bill of Lading shipment tracking', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'calendar',  name: 'Calendar',       slogan: 'Scheduling & team calendar', defaultColor: DEFAULT_APP_COLOR },
-  { id: 'tasks',     name: 'Tasks',          slogan: 'To-dos & team task tracking', defaultColor: DEFAULT_APP_COLOR },
-];
+
+/** Derived from APP_REGISTRY, which is itself derived from ALL_APP_IDS, so an
+ *  app added to the platform gets a branding row here without touching this
+ *  file. This used to be a 20-entry array that had drifted three apps behind. */
+const APP_META_BRAND_LIST = APP_REGISTRY.map(a => ({ ...a, defaultColor: DEFAULT_APP_COLOR }));
 
 function readFile(file: File): Promise<string> {
   return new Promise(res => { 
@@ -63,19 +47,19 @@ export function BrandingView() {
   });
 
   const [appNames, setAppNames] = useState<Record<string, string>>(
-    Object.fromEntries(APP_META_BRAND.map(a => [a.id, localStorage.getItem(`hudumika_app_name_${a.id}`) ?? a.name]))
+    Object.fromEntries(APP_META_BRAND_LIST.map(a => [a.id, localStorage.getItem(`hudumika_app_name_${a.id}`) ?? a.name]))
   );
   
   const [appSlogans, setAppSlogans] = useState<Record<string, string>>(
-    Object.fromEntries(APP_META_BRAND.map(a => [a.id, localStorage.getItem(`hudumika_app_slogan_${a.id}`) ?? a.slogan]))
+    Object.fromEntries(APP_META_BRAND_LIST.map(a => [a.id, localStorage.getItem(`hudumika_app_slogan_${a.id}`) ?? a.slogan]))
   );
 
   const [colors, setColors] = useState<Record<string, string>>(
-    Object.fromEntries(APP_META_BRAND.map(a => [a.id, localStorage.getItem(`hudumika_app_color_${a.id}`) ?? a.defaultColor]))
+    Object.fromEntries(APP_META_BRAND_LIST.map(a => [a.id, localStorage.getItem(`hudumika_app_color_${a.id}`) ?? a.defaultColor]))
   );
 
   const [appLogos, setAppLogos] = useState<Record<string, string>>(
-    Object.fromEntries(APP_META_BRAND.map(a => [a.id, localStorage.getItem(`hudumika_app_logo_${a.id}`) ?? '']))
+    Object.fromEntries(APP_META_BRAND_LIST.map(a => [a.id, localStorage.getItem(`hudumika_app_logo_${a.id}`) ?? '']))
   );
   
   const [savedSection, setSavedSection] = useState<string | null>(null);
@@ -103,10 +87,10 @@ export function BrandingView() {
         subtext:  localStorage.getItem('hudumika_login_subtext')  ?? 'Sign in to your Hudumika workspace',
         bgStyle:  (localStorage.getItem('hudumika_login_bg') ?? 'navy') as 'navy'|'teal'|'gradient'|'white',
       });
-      setAppNames(Object.fromEntries(APP_META_BRAND.map(a => [a.id, localStorage.getItem(`hudumika_app_name_${a.id}`) ?? a.name])));
-      setAppSlogans(Object.fromEntries(APP_META_BRAND.map(a => [a.id, localStorage.getItem(`hudumika_app_slogan_${a.id}`) ?? a.slogan])));
-      setColors(Object.fromEntries(APP_META_BRAND.map(a => [a.id, localStorage.getItem(`hudumika_app_color_${a.id}`) ?? a.defaultColor])));
-      setAppLogos(Object.fromEntries(APP_META_BRAND.map(a => [a.id, localStorage.getItem(`hudumika_app_logo_${a.id}`) ?? ''])));
+      setAppNames(Object.fromEntries(APP_META_BRAND_LIST.map(a => [a.id, localStorage.getItem(`hudumika_app_name_${a.id}`) ?? a.name])));
+      setAppSlogans(Object.fromEntries(APP_META_BRAND_LIST.map(a => [a.id, localStorage.getItem(`hudumika_app_slogan_${a.id}`) ?? a.slogan])));
+      setColors(Object.fromEntries(APP_META_BRAND_LIST.map(a => [a.id, localStorage.getItem(`hudumika_app_color_${a.id}`) ?? a.defaultColor])));
+      setAppLogos(Object.fromEntries(APP_META_BRAND_LIST.map(a => [a.id, localStorage.getItem(`hudumika_app_logo_${a.id}`) ?? ''])));
     };
     window.addEventListener('hudumika-brand-updated', resync);
     return () => window.removeEventListener('hudumika-brand-updated', resync);
@@ -312,7 +296,7 @@ export function BrandingView() {
 
         <TabsContent value="apps" className="space-y-6">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {APP_META_BRAND.map(app => (
+            {APP_META_BRAND_LIST.map(app => (
               <Card key={app.id}>
                 <CardHeader>
                   <CardTitle className="text-lg flex items-center gap-2">

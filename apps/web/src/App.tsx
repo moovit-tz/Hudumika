@@ -332,7 +332,10 @@ const AppContent: React.FC = () => {
           <Route path="/crm/*"      element={<CRMShell />} />
           <Route path="/contacts/*"  element={<ContactsShell />} />
           <Route path="/store/*"     element={<StoreShell />} />
-          <Route path="/oneid/*"     element={<OneIdShell />} />
+          <Route path="/ondi/*"      element={<OneIdShell />} />
+          {/* Ondi moved from /oneid to /ondi; the old path stays as a
+              redirect so existing bookmarks and links keep working. */}
+          <Route path="/oneid/*"     element={<Navigate to="/ondi" replace />} />
           <Route path="/tracking/*"  element={<TrackingShell />} />
           <Route path="/cargotracker/*" element={<CargoTrackerShell />} />
           <Route path="/cms/*"       element={<CMSShell />} />

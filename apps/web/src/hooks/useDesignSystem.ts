@@ -164,9 +164,18 @@ export const DENSITY_PRESETS: Record<DensityId, DensityPreset> = {
 interface ShadowTriad { sm: string; base: string; lg: string }
 interface ShadowPreset { light: ShadowTriad; dark: ShadowTriad }
 export const SHADOW_PRESETS: Record<ShadowId, ShadowPreset> = {
+  /**
+   * Flat surfaces, but overlays keep an edge.
+   *
+   * sm and base are what cards, buttons and inline panels read, so those go
+   * to nothing — that is the point of the preset. `lg` is what dropdowns,
+   * popovers and modals read, and a floating layer with neither shadow nor
+   * border is genuinely unreadable against the page behind it. It gets a
+   * hairline ring instead: no lift, still a boundary.
+   */
   flat: {
-    light: { sm: 'none', base: 'none', lg: 'none' },
-    dark:  { sm: 'none', base: 'none', lg: 'none' },
+    light: { sm: 'none', base: 'none', lg: 'rgba(0,0,0,0.08) 0px 0px 0px 1px' },
+    dark:  { sm: 'none', base: 'none', lg: 'rgba(255,255,255,0.12) 0px 0px 0px 1px' },
   },
   subtle: {
     light: { sm: '0 1px 2px rgba(13,17,23,0.03)', base: '0 1px 2px rgba(13,17,23,0.04), 0 4px 12px rgba(13,17,23,0.04)', lg: '0 2px 4px rgba(13,17,23,0.05), 0 10px 24px rgba(13,17,23,0.06)' },

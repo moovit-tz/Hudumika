@@ -17,7 +17,7 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
   { id: 'contacts',  name: 'Contacts', color: '#1a73e8', path: '/contacts'  },
   { id: 'ai',        name: 'AI',       color: '#6d28d9', path: '/ai'        },
   { id: 'store',     name: 'Store',    color: '#8b5cf6', path: '/store'     },
-  { id: 'oneid',     name: 'Ondi',     color: '#4361EE', path: '/oneid'     },
+  { id: 'oneid',     name: 'Ondi',     color: '#4361EE', path: '/ondi'     },
   { id: 'tracking',  name: 'HuduFreight', color: '#0891b2', path: '/tracking'  },
   { id: 'workspace', name: 'Admin',    color: '#64748b', path: '/workspace' },
   { id: 'calendar',  name: 'Calendar', color: '#db2777', path: '/calendar'  },

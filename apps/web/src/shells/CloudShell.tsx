@@ -34,14 +34,15 @@ export function CloudShell() {
             <CloudHeader />
             <div className="app-shell-content">
               <Routes>
-                <Route index element={<Navigate to="files" replace />} />
+                
                 <Route element={<PageLayout />}>
-                  <Route path="files"    element={<FileManager />} />
+                  <Route index           element={<FileManager />} />
+                  <Route path="files"    element={<Navigate to="/cloud" replace />} />
                   <Route path="shared"   element={<FileManager />} />
                   <Route path="recent"   element={<FileManager />} />
                   <Route path="trash"    element={<FileManager />} />
                 </Route>
-                <Route path="*" element={<Navigate to="/cloud/files" replace />} />
+                <Route path="*" element={<Navigate to="/cloud" replace />} />
               </Routes>
             </div>
           </div>

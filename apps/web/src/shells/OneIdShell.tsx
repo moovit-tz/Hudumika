@@ -17,10 +17,10 @@ const ADMIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] as const;
 const NAV: SidebarSection[] = [
   {
     items: [
-      { label: 'Users',          icon: 'users',    path: '/oneid', exact: true },
-      { label: 'SSO & Providers', icon: 'key',     path: '/oneid/sso' },
-      { label: 'Sessions & Security', icon: 'shield', path: '/oneid/sessions' },
-      { label: 'Login Activity', icon: 'clock',    path: '/oneid/login-activity' },
+      { label: 'Users',          icon: 'users',    path: '/ondi', exact: true },
+      { label: 'SSO & Providers', icon: 'key',     path: '/ondi/sso' },
+      { label: 'Sessions & Security', icon: 'shield', path: '/ondi/sessions' },
+      { label: 'Login Activity', icon: 'clock',    path: '/ondi/login-activity' },
     ],
   },
 ];
@@ -40,7 +40,7 @@ export function OneIdShell() {
                 <Route path="sessions" element={<RequireRoles roles={[...ADMIN_ROLES]}><OneIdSessions /></RequireRoles>} />
                 <Route path="login-activity" element={<RequireRoles roles={[...ADMIN_ROLES]}><OneIdLoginActivity /></RequireRoles>} />
               </Route>
-              <Route path="*" element={<Navigate to="/oneid" replace />} />
+              <Route path="*" element={<Navigate to="/ondi" replace />} />
             </Routes>
           </div>
         </div>

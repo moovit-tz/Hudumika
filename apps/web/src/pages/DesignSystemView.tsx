@@ -13,6 +13,7 @@ import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { APP_PALETTE_SLOT } from '../shells/WorkspaceApp.js';
+import { APP_REGISTRY } from '../lib/appRegistry.js';
 
 const SECTIONS: { id: string; group: 'theming' | 'layout'; label: string; icon: IconName }[] = [
   { id: 'themes',     group: 'theming', label: 'Themes',           icon: 'sparkle' },
@@ -39,20 +40,6 @@ const SECTIONS: { id: string; group: 'theming' | 'layout'; label: string; icon: 
 // this list is only the *fallback* shown until a SuperAdmin picks a custom
 // per-app color here.
 const DEFAULT_APP_COLOR = '#0b1e3a';
-const APPS: { id: string; name: string; color: string }[] = [
-  { id: 'clearos',   name: 'ClearOS',  color: DEFAULT_APP_COLOR },
-  { id: 'finops',    name: 'FinOps',   color: DEFAULT_APP_COLOR },
-  { id: 'nexushr',     name: 'NexusHR',  color: DEFAULT_APP_COLOR },
-  { id: 'bliss',     name: 'Bliss',    color: DEFAULT_APP_COLOR },
-  { id: 'complyos',  name: 'ComplyOS', color: DEFAULT_APP_COLOR },
-  { id: 'crm',       name: 'CRM',      color: DEFAULT_APP_COLOR },
-  { id: 'cloud',     name: 'Cloud',    color: DEFAULT_APP_COLOR },
-  { id: 'email',     name: 'Email',    color: DEFAULT_APP_COLOR },
-  { id: 'contacts',  name: 'Contacts', color: DEFAULT_APP_COLOR },
-  { id: 'ai',        name: 'AI',       color: DEFAULT_APP_COLOR },
-  { id: 'store',     name: 'Store',    color: DEFAULT_APP_COLOR },
-  { id: 'workspace', name: 'Admin',    color: DEFAULT_APP_COLOR },
-];
 
 const NEUTRAL_LABELS: Record<keyof NeutralSet, string> = {
   ink: 'Text (primary)', ink2: 'Text (secondary)', ink3: 'Text (muted)',
@@ -533,9 +520,9 @@ export function DesignSystemView() {
               individually here.
             </p>
             <div className="ds-app-grid">
-              {APPS.map(app => (
+              {APP_REGISTRY.map(app => (
                 <div key={app.id} className="ds-app-cell">
-                  <input type="color" className="ds-swatch" value={branding.getAppColor(app.id, app.color)}
+                  <input type="color" className="ds-swatch" value={branding.getAppColor(app.id, DEFAULT_APP_COLOR)}
                     onChange={e => saveAppColor(app.id, e.target.value)} />
                   <span className="ds-app-name">{branding.getAppName(app.id, app.name)}</span>
                 </div>
