@@ -14,7 +14,8 @@ export type FontId    = 'system' | 'inter' | 'plus-jakarta' | 'dm-sans' | 'robot
 export type DensityId = 'compact' | 'default' | 'comfortable';
 export type ShadowId  = 'flat' | 'subtle' | 'default' | 'elevated'
   | 'halo' | 'hairline' | 'outline' | 'ring' | 'raised' | 'overlay'
-  | 'stripe' | 'lifted' | 'layered' | 'inset' | 'well';
+  | 'stripe' | 'lifted' | 'layered'
+  | 'material' | 'tailwind' | 'github' | 'soft' | 'ambient' | 'deep';
 
 export interface NeutralSet {
   ink: string; ink2: string; ink3: string;
@@ -79,9 +80,10 @@ export interface DesignTokens {
 export const FONT_IDS:    FontId[]    = ['system', 'inter', 'plus-jakarta', 'dm-sans', 'roboto', 'atlassian-sans'];
 export const DENSITY_IDS: DensityId[] = ['compact', 'default', 'comfortable'];
 export const SHADOW_IDS:  ShadowId[]  = [
-  'flat', 'subtle', 'default', 'elevated',
-  'hairline', 'outline', 'ring', 'halo', 'raised',
-  'stripe', 'lifted', 'overlay', 'layered', 'inset', 'well',
+  // roughly ordered flat -> deep, so the picker reads as a scale
+  'flat', 'outline', 'hairline', 'subtle', 'github', 'ring',
+  'tailwind', 'default', 'raised', 'stripe', 'halo', 'soft',
+  'material', 'elevated', 'lifted', 'overlay', 'ambient', 'layered', 'deep',
 ];
 
 // ── Label maps ────────────────────────────────────────────────────────────────
@@ -121,7 +123,9 @@ export const SHADOW_LABELS: Record<ShadowId, string> = {
   flat: 'Flat', subtle: 'Subtle', default: 'Default', elevated: 'Elevated',
   hairline: 'Hairline', outline: 'Outline', ring: 'Ring', halo: 'Halo',
   raised: 'Raised', stripe: 'Stripe', lifted: 'Lifted', overlay: 'Overlay',
-  layered: 'Layered', inset: 'Inset', well: 'Well',
+  layered: 'Layered',
+  material: 'Material', tailwind: 'Tailwind', github: 'GitHub',
+  soft: 'Soft', ambient: 'Ambient', deep: 'Deep',
 };
 
 // ── Presets ───────────────────────────────────────────────────────────────────
@@ -239,28 +243,46 @@ export const SHADOW_PRESETS: Record<ShadowId, ShadowPreset> = {
       lg: 'rgba(255,255,255,0.06) 0px 0px 0px 1px, rgba(0,0,0,0.35) 0px 2px 2px -1px, rgba(0,0,0,0.3) 0px 5px 5px -2.5px, rgba(0,0,0,0.3) 0px 10px 10px -5px, rgba(0,0,0,0.3) 0px 24px 24px -8px, rgba(0,0,0,0.3) 0px 48px 48px -12px',
     },
   },
-  // Inset. Surfaces read as recessed rather than raised — see the note on
-  // SHADOW_INSET_IDS below before choosing this platform-wide.
-  inset: {
-    light: { sm: 'rgba(0,0,0,0.04) 0px 1px 2px 0px inset', base: 'rgba(0,0,0,0.06) 0px 2px 4px 0px inset', lg: 'rgba(0,0,0,0.08) 0px 3px 6px 0px inset' },
-    dark:  { sm: 'rgba(0,0,0,0.35) 0px 1px 2px 0px inset', base: 'rgba(0,0,0,0.45) 0px 2px 4px 0px inset', lg: 'rgba(0,0,0,0.55) 0px 3px 6px 0px inset' },
+  /* The two inset entries that were here — a 2px recess and a 60px "well" —
+     are gone. An inset shadow makes every card, button and popover read as
+     pressed *into* the page, and the well was designed for one hero panel,
+     not for a table row; neither survives being chosen platform-wide. The six
+     below replace them, and each is a real ladder from the same collection
+     rather than one value with sm/lg invented around it. */
+
+  // Material Design's elevation steps 1/2/3.
+  material: {
+    light: { sm: 'rgba(0,0,0,0.12) 0px 1px 3px, rgba(0,0,0,0.24) 0px 1px 2px', base: 'rgba(0,0,0,0.16) 0px 3px 6px, rgba(0,0,0,0.23) 0px 3px 6px', lg: 'rgba(0,0,0,0.19) 0px 10px 20px, rgba(0,0,0,0.23) 0px 6px 6px' },
+    dark:  { sm: 'rgba(0,0,0,0.5) 0px 1px 3px, rgba(0,0,0,0.6) 0px 1px 2px', base: 'rgba(0,0,0,0.55) 0px 3px 6px, rgba(0,0,0,0.6) 0px 3px 6px', lg: 'rgba(0,0,0,0.6) 0px 10px 20px, rgba(0,0,0,0.65) 0px 6px 6px' },
   },
-  // Deep inset — a dramatic recess meant for a hero or empty-state panel.
-  well: {
-    light: { sm: 'rgba(50,50,93,0.15) 0px 8px 16px -4px inset, rgba(0,0,0,0.2) 0px 5px 10px -5px inset', base: 'rgba(50,50,93,0.25) 0px 30px 60px -12px inset, rgba(0,0,0,0.3) 0px 18px 36px -18px inset', lg: 'rgba(50,50,93,0.3) 0px 48px 96px -16px inset, rgba(0,0,0,0.35) 0px 28px 56px -24px inset' },
-    dark:  { sm: 'rgba(0,0,0,0.4) 0px 8px 16px -4px inset, rgba(0,0,0,0.4) 0px 5px 10px -5px inset', base: 'rgba(0,0,0,0.55) 0px 30px 60px -12px inset, rgba(0,0,0,0.5) 0px 18px 36px -18px inset', lg: 'rgba(0,0,0,0.65) 0px 48px 96px -16px inset, rgba(0,0,0,0.55) 0px 28px 56px -24px inset' },
+  // Tailwind's own shadow scale — shadow-sm / shadow-md / shadow-lg.
+  tailwind: {
+    light: { sm: 'rgba(0,0,0,0.05) 0px 1px 2px 0px', base: 'rgba(0,0,0,0.1) 0px 4px 6px -1px, rgba(0,0,0,0.06) 0px 2px 4px -1px', lg: 'rgba(0,0,0,0.1) 0px 10px 15px -3px, rgba(0,0,0,0.05) 0px 4px 6px -2px' },
+    dark:  { sm: 'rgba(0,0,0,0.4) 0px 1px 2px 0px', base: 'rgba(0,0,0,0.5) 0px 4px 6px -1px, rgba(0,0,0,0.4) 0px 2px 4px -1px', lg: 'rgba(0,0,0,0.55) 0px 10px 15px -3px, rgba(0,0,0,0.4) 0px 4px 6px -2px' },
+  },
+  // GitHub's: a hairline ring doing the work, with the faintest drop.
+  github: {
+    light: { sm: 'rgba(27,31,35,0.15) 0px 0px 0px 1px', base: 'rgba(0,0,0,0.02) 0px 1px 3px 0px, rgba(27,31,35,0.15) 0px 0px 0px 1px', lg: 'rgba(0,0,0,0.06) 0px 8px 24px 0px, rgba(27,31,35,0.15) 0px 0px 0px 1px' },
+    dark:  { sm: 'rgba(255,255,255,0.1) 0px 0px 0px 1px', base: 'rgba(0,0,0,0.3) 0px 1px 3px 0px, rgba(255,255,255,0.1) 0px 0px 0px 1px', lg: 'rgba(0,0,0,0.5) 0px 8px 24px 0px, rgba(255,255,255,0.1) 0px 0px 0px 1px' },
+  },
+  // Cool near-black at low alpha; diffuse and quiet.
+  soft: {
+    light: { sm: 'rgba(17,17,26,0.05) 0px 1px 0px, rgba(17,17,26,0.1) 0px 0px 8px', base: 'rgba(17,17,26,0.05) 0px 4px 16px, rgba(17,17,26,0.05) 0px 8px 32px', lg: 'rgba(17,17,26,0.1) 0px 4px 16px, rgba(17,17,26,0.1) 0px 8px 24px, rgba(17,17,26,0.1) 0px 16px 56px' },
+    dark:  { sm: 'rgba(0,0,0,0.4) 0px 1px 0px, rgba(0,0,0,0.45) 0px 0px 8px', base: 'rgba(0,0,0,0.45) 0px 4px 16px, rgba(0,0,0,0.45) 0px 8px 32px', lg: 'rgba(0,0,0,0.5) 0px 4px 16px, rgba(0,0,0,0.5) 0px 8px 24px, rgba(0,0,0,0.5) 0px 16px 56px' },
+  },
+  // A single wide grey haze with no hard contact edge — the most-copied
+  // shadow in the set.
+  ambient: {
+    light: { sm: 'rgba(99,99,99,0.2) 0px 2px 8px 0px', base: 'rgba(100,100,111,0.2) 0px 7px 29px 0px', lg: 'rgba(149,157,165,0.2) 0px 8px 24px, rgba(100,100,111,0.2) 0px 16px 48px 0px' },
+    dark:  { sm: 'rgba(0,0,0,0.45) 0px 2px 8px 0px', base: 'rgba(0,0,0,0.55) 0px 7px 29px 0px', lg: 'rgba(0,0,0,0.6) 0px 8px 24px, rgba(0,0,0,0.55) 0px 16px 48px 0px' },
+  },
+  // Stripe's own three steps: blue-tinted, with negative spread so the
+  // shadow stays tucked under the element.
+  deep: {
+    light: { sm: 'rgba(50,50,93,0.25) 0px 2px 5px -1px, rgba(0,0,0,0.3) 0px 1px 3px -1px', base: 'rgba(50,50,93,0.25) 0px 6px 12px -2px, rgba(0,0,0,0.3) 0px 3px 7px -3px', lg: 'rgba(50,50,93,0.25) 0px 13px 27px -5px, rgba(0,0,0,0.3) 0px 8px 16px -8px' },
+    dark:  { sm: 'rgba(0,0,0,0.5) 0px 2px 5px -1px, rgba(0,0,0,0.55) 0px 1px 3px -1px', base: 'rgba(0,0,0,0.55) 0px 6px 12px -2px, rgba(0,0,0,0.6) 0px 3px 7px -3px', lg: 'rgba(0,0,0,0.6) 0px 13px 27px -5px, rgba(0,0,0,0.65) 0px 8px 16px -8px' },
   },
 };
-
-/**
- * Presets whose shadow points inwards.
- *
- * Chosen platform-wide they make every card, button and popover read as
- * pressed-in rather than raised, and `well` in particular is a 60px recess
- * designed for one hero panel, not for a table row. They are offered because
- * they were asked for, but the picker flags them so the choice is deliberate.
- */
-export const SHADOW_INSET_IDS: ShadowId[] = ['inset', 'well'];
 
 // ── Defaults — copied verbatim from index.css's static :root values ───────────
 
