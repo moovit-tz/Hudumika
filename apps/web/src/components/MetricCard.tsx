@@ -3,15 +3,9 @@ import { Icon, IconName } from './Icon.js';
 import { FeaturedIcon } from './ui/featured-icon.js';
 
 /* ── Deterministic sparkline data generator ── */
-export function spark(seed: number, len = 15, trend: 'up' | 'down' | 'flat' = 'up'): number[] {
-  return Array.from({ length: len }, (_, i) => {
-    const noise = (Math.sin(seed * 7.3 + i * 2.1) * 0.5 + 0.5) * 0.35;
-    const base =
-      trend === 'up'   ? 0.3 + (i / (len - 1)) * 0.65 :
-      trend === 'down' ? 0.95 - (i / (len - 1)) * 0.6 : 0.55;
-    return Math.max(0.08, Math.min(1, base + noise));
-  });
-}
+// spark() is gone. It produced a 15-point curve from sin(seed) and was
+// passed to `bars` on 49 metric cards, where it read as a fortnight of
+// history. A card with no real series now simply has no chart.
 
 /* ── Smooth catmull-rom → cubic bezier path ── */
 function smoothLinePath(pts: [number, number][], tension = 0.3): string {
@@ -101,7 +95,11 @@ export function Trend({ val, invert = false }: { val: number; invert?: boolean }
 export interface MetricCardProps {
   title: string;
   value: string;
-  trend: number;
+  /** Percentage change. Omit entirely when nothing measured it — the badge
+   *  is then not rendered at all. 62 of the 69 call sites used to pass a
+   *  literal like `trend: 5.2`, a number nobody computed, sitting next to a
+   *  sparkline drawn from sin(seed). Both are gone. */
+  trend?: number;
   sub1Label?: string;
   sub1Value?: string;
   sub2Label?: string;
@@ -177,7 +175,7 @@ export function MetricCard({
 
       <div className="mc-value-row">
         <span className="mc-value">{value}</span>
-        {trend !== 0 && <Trend val={trend} invert={invertTrend} />}
+        {typeof trend === 'number' && trend !== 0 && <Trend val={trend} invert={invertTrend} />}
       </div>
 
       {(sub1Value || sub2Value) && (

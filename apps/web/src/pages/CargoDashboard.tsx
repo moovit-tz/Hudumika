@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 
@@ -144,29 +144,25 @@ export function CargoDashboard() {
         {
           title: 'Shipments Tracked',
           value: String(summary?.shipments ?? 0),
-          trend: 0,
-          bars: spark(11, 15, 'up'), barColor: 'var(--blue-l)', barHighlight: 'var(--blue)',
+          barHighlight: 'var(--blue)',
           icon: 'map',
         },
         {
           title: 'Containers',
           value: String(summary?.containers ?? 0),
-          trend: 0,
-          bars: spark(12, 15, 'up'), barColor: 'var(--teal-l)', barHighlight: 'var(--teal)',
+          barHighlight: 'var(--teal)',
           icon: 'package',
         },
         {
           title: 'Delayed Shipments',
           value: String(summary?.delayed_shipments ?? 0),
-          trend: 0, invertTrend: true,
-          bars: spark(13, 15, 'down'), barColor: 'var(--red-l)', barHighlight: 'var(--red)',
+          invertTrend: true, barHighlight: 'var(--red)',
           icon: 'alertTriangle',
         },
         {
           title: 'Shipments at POD',
           value: String(summary?.shipments_at_pod ?? 0),
-          trend: 0,
-          bars: spark(14, 15, 'up'), barColor: 'var(--green-l)', barHighlight: 'var(--green)',
+          barHighlight: 'var(--green)',
           icon: 'checkCircle',
         },
       ]} />

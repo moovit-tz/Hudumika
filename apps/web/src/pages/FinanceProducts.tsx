@@ -4,7 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import {
   useProducts, addProduct, updateProduct, deleteProduct,
   Product, ProductType, ProductStatus,
@@ -309,34 +309,26 @@ export function FinanceProducts() {
         {
           title: 'Total Items',
           value: String(stats.total),
-          trend: 8.3,
           sub1Label: 'SERVICES', sub1Value: String(stats.services),
-          sub2Label: 'PRODUCTS', sub2Value: String(stats.prods),
-          bars: spark(90, 12, 'up'), barColor: 'var(--teal-l)', barHighlight: 'var(--teal)',
+          sub2Label: 'PRODUCTS', sub2Value: String(stats.prods), barHighlight: 'var(--teal)',
         },
         {
           title: 'Active Items',
           value: String(stats.active),
-          trend: 5.1,
           sub1Label: 'RATE', sub1Value: `${stats.total ? Math.round((stats.active / stats.total) * 100) : 0}%`,
-          sub2Label: 'INACTIVE', sub2Value: String(stats.total - stats.active),
-          bars: spark(91, 12, 'up'), barColor: 'var(--green-l)', barHighlight: 'var(--green)',
+          sub2Label: 'INACTIVE', sub2Value: String(stats.total - stats.active), barHighlight: 'var(--green)',
         },
         {
           title: 'Services',
           value: String(stats.services),
-          trend: 4.7,
           sub1Label: 'SHARE', sub1Value: `${stats.total ? Math.round((stats.services / stats.total) * 100) : 0}%`,
-          sub2Label: 'PRODUCTS', sub2Value: String(stats.prods),
-          bars: spark(92, 12, 'up'), barColor: 'var(--purple-l)', barHighlight: 'var(--purple)',
+          sub2Label: 'PRODUCTS', sub2Value: String(stats.prods), barHighlight: 'var(--purple)',
         },
         {
           title: 'Avg Sale Price',
           value: fmt(products.length ? Math.round(products.reduce((s, p) => s + p.salePrice, 0) / products.length) : 0),
-          trend: 1.5,
           sub1Label: 'MAX PRICE', sub1Value: fmt(products.length ? Math.max(...products.map(p => p.salePrice)) : 0),
-          sub2Label: 'MIN PRICE', sub2Value: fmt(products.length ? Math.min(...products.map(p => p.salePrice)) : 0),
-          bars: spark(93, 12, 'flat'), barColor: 'var(--gold-l)', barHighlight: 'var(--gold)',
+          sub2Label: 'MIN PRICE', sub2Value: fmt(products.length ? Math.min(...products.map(p => p.salePrice)) : 0), barHighlight: 'var(--gold)',
         },
       ]} />
 

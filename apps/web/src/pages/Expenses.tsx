@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { useCurrency } from '../hooks/useCurrency.js';
@@ -384,27 +384,22 @@ export const Expenses: React.FC = () => {
               {
                 title: 'Total Costs',
                 value: fmt(totalExp, 'TZS'),
-                trend: -4.2,
                 invertTrend: true,
                 sub1Label: 'LINE ITEMS', sub1Value: String(items.filter(e => !e.is_revenue).length),
-                sub2Label: 'AVG COST', sub2Value: fmt(items.filter(e => !e.is_revenue).length ? Math.round(totalExp / items.filter(e => !e.is_revenue).length) : 0, 'TZS'),
-                bars: spark(70, 15, 'down'), barColor: 'var(--red-l)', barHighlight: 'var(--red)',
+                sub2Label: 'AVG COST', sub2Value: fmt(items.filter(e => !e.is_revenue).length ? Math.round(totalExp / items.filter(e => !e.is_revenue).length) : 0, 'TZS'), barHighlight: 'var(--red)',
               },
               {
                 title: 'Total Revenue',
                 value: fmt(totalRev, 'TZS'),
-                trend: 11.3,
                 sub1Label: 'THIS MONTH', sub1Value: fmt(Math.round(totalRev * 0.38), 'TZS'),
-                sub2Label: 'THIS WEEK', sub2Value: fmt(Math.round(totalRev * 0.09), 'TZS'),
-                bars: spark(71, 15, 'up'), barColor: 'var(--green-l)', barHighlight: 'var(--green)',
+                sub2Label: 'THIS WEEK', sub2Value: fmt(Math.round(totalRev * 0.09), 'TZS'), barHighlight: 'var(--green)',
               },
               {
                 title: 'Net Margin',
                 value: fmt(totalRev - totalExp, 'TZS'),
                 trend: !totalRev ? 0 : parseFloat(((totalRev - totalExp) / totalRev * 100).toFixed(1)),
                 sub1Label: 'MARGIN %', sub1Value: !totalRev ? '—' : `${Math.round(((totalRev - totalExp) / totalRev) * 100)}%`,
-                sub2Label: 'ALL ITEMS', sub2Value: String(items.length),
-                bars: spark(72, 15, 'up'), barColor: 'var(--purple-l)', barHighlight: 'var(--purple)',
+                sub2Label: 'ALL ITEMS', sub2Value: String(items.length), barHighlight: 'var(--purple)',
               },
             ]} />
           </div>

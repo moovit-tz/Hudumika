@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 
@@ -48,9 +48,9 @@ export const FinancePlaceholder: React.FC = () => {
 
       {/* Metrics row placeholder */}
       <MetricsRow cards={[
-        { title: 'This Month',  value: '—', trend: 0, sub1Label: 'LAST MONTH', sub1Value: '—', sub2Label: 'CHANGE',   sub2Value: '—', bars: spark(200, 15, 'flat'), barColor: 'var(--blue-l)',  barHighlight: 'var(--blue)' },
-        { title: 'This Quarter',value: '—', trend: 0, sub1Label: 'LAST QTR',   sub1Value: '—', sub2Label: 'YTD',      sub2Value: '—', bars: spark(201, 15, 'flat'), barColor: 'var(--green-l)', barHighlight: 'var(--green)' },
-        { title: 'YTD Total',   value: '—', trend: 0, sub1Label: 'BUDGET',     sub1Value: '—', sub2Label: 'VARIANCE',  sub2Value: '—', bars: spark(202, 15, 'flat'), barColor: 'var(--gold-l)',  barHighlight: 'var(--gold)' },
+        { title: 'This Month',  value: '—', sub1Label: 'LAST MONTH', sub1Value: '—', sub2Label: 'CHANGE',   sub2Value: '—',  barHighlight: 'var(--blue)' },
+        { title: 'This Quarter',value: '—', sub1Label: 'LAST QTR',   sub1Value: '—', sub2Label: 'YTD',      sub2Value: '—', barHighlight: 'var(--green)' },
+        { title: 'YTD Total',   value: '—', sub1Label: 'BUDGET',     sub1Value: '—', sub2Label: 'VARIANCE',  sub2Value: '—',  barHighlight: 'var(--gold)' },
       ]} />
 
       {/* Coming soon card */}

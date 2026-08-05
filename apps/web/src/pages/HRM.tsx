@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
 import { EMPLOYEES } from '../data/staffData.js';
 import type { EmpStatus, Employee } from '../data/staffData.js';
@@ -388,9 +388,9 @@ export function EmployeesPage() {
       </PageHeader>
 
       <MetricsRow cards={[
-        { title: 'Total Staff',    value: String(employees.length),                                          trend: 12, sub1Label: 'ACTIVE',   sub1Value: String(employees.filter(e => e.status === 'ACTIVE').length),   sub2Label: 'ON LEAVE', sub2Value: String(employees.filter(e => e.status === 'ON_LEAVE').length), bars: spark(100, 15, 'up'),   barColor: 'var(--blue-l)',  barHighlight: 'var(--blue)'  },
-        { title: 'New This Month', value: '2',                                                               trend: 0,  sub1Label: 'DEPT',      sub1Value: String(depts.length),                                           sub2Label: 'ROLES',    sub2Value: '4',                                                       bars: spark(101, 15, 'flat'), barColor: 'var(--green-l)', barHighlight: 'var(--green)' },
-        { title: 'Inactive',       value: String(employees.filter(e => e.status === 'INACTIVE').length),     trend: -5, sub1Label: 'PENDING',   sub1Value: '1',                                                            sub2Label: 'LEFT YTD', sub2Value: '2',                                               bars: spark(102, 15, 'down'), barColor: 'var(--red-l)',   barHighlight: 'var(--red)'   },
+        { title: 'Total Staff',    value: String(employees.length),                                          sub1Label: 'ACTIVE',   sub1Value: String(employees.filter(e => e.status === 'ACTIVE').length),   sub2Label: 'ON LEAVE', sub2Value: String(employees.filter(e => e.status === 'ON_LEAVE').length),  barHighlight: 'var(--blue)'  },
+        { title: 'New This Month', value: '2',                                                               sub1Label: 'DEPT',      sub1Value: String(depts.length),                                           sub2Label: 'ROLES',    sub2Value: '4', barHighlight: 'var(--green)' },
+        { title: 'Inactive',       value: String(employees.filter(e => e.status === 'INACTIVE').length),     sub1Label: 'PENDING',   sub1Value: '1',                                                            sub2Label: 'LEFT YTD', sub2Value: '2',   barHighlight: 'var(--red)'   },
       ]} />
 
       {/* -- Toolbar -- */}
@@ -1500,9 +1500,9 @@ export function LeavesPage() {
       )}
 
       <MetricsRow cards={[
-        { title:'Pending',  value:String(leaves.filter(l=>l.status==='PENDING').length),  trend:0, sub1Label:'THIS MONTH', sub1Value:String(leaves.length), sub2Label:'APPROVED', sub2Value:String(leaves.filter(l=>l.status==='APPROVED').length), bars:spark(200,15,'flat'), barColor:'var(--gold-l)',  barHighlight:'var(--gold)'  },
-        { title:'Approved', value:String(leaves.filter(l=>l.status==='APPROVED').length), trend:0, sub1Label:'REJECTED',   sub1Value:String(leaves.filter(l=>l.status==='REJECTED').length), sub2Label:'TYPES', sub2Value:String(LEAVE_TYPES.length), bars:spark(201,15,'up'), barColor:'var(--green-l)', barHighlight:'var(--green)' },
-        { title:'Days Used (Avg)', value:'3.1', trend:0, sub1Label:'ANNUAL BALANCE', sub1Value:'18 days', sub2Label:'REMAINING', sub2Value:'15 days', bars:spark(202,15,'flat'), barColor:'var(--blue-l)', barHighlight:'var(--blue)' },
+        { title:'Pending',  value:String(leaves.filter(l=>l.status==='PENDING').length),  sub1Label:'THIS MONTH', sub1Value:String(leaves.length), sub2Label:'APPROVED', sub2Value:String(leaves.filter(l=>l.status==='APPROVED').length),  barHighlight:'var(--gold)'  },
+        { title:'Approved', value:String(leaves.filter(l=>l.status==='APPROVED').length), sub1Label:'REJECTED',   sub1Value:String(leaves.filter(l=>l.status==='REJECTED').length), sub2Label:'TYPES', sub2Value:String(LEAVE_TYPES.length), barHighlight:'var(--green)' },
+        { title:'Days Used (Avg)', value:'3.1', sub1Label:'ANNUAL BALANCE', sub1Value:'18 days', sub2Label:'REMAINING', sub2Value:'15 days', barHighlight:'var(--blue)' },
       ]} />
       <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }}>
         {chips.map(c => (
@@ -2501,9 +2501,9 @@ export function PayrollPage() {
         <PrimaryBtn label={running ? 'Running—' : 'Run Payroll'} onClick={running ? undefined : runPayroll} />
       </PageHeader>
       <MetricsRow cards={[
-        { title:'Total Payroll', value:'TZS ' + (total/1_000_000).toFixed(1) + 'M', trend:3.2, sub1Label:'BASIC',      sub1Value:'TZS '+(payroll.reduce((s,p)=>s+p.basic,0)/1_000_000).toFixed(1)+'M', sub2Label:'ALLOWANCES', sub2Value:'TZS '+(payroll.reduce((s,p)=>s+p.allow,0)/1_000_000).toFixed(1)+'M', bars:spark(400,15,'up'), barColor:'var(--green-l)', barHighlight:'var(--green)' },
-        { title:'Paid',       value:String(payroll.filter(p=>p.status==='PAID').length),       trend:0, sub1Label:'PROCESSING', sub1Value:String(payroll.filter(p=>p.status==='PROCESSING').length), sub2Label:'PENDING', sub2Value:String(payroll.filter(p=>p.status==='PENDING').length), bars:spark(401,15,'flat'), barColor:'var(--blue-l)',  barHighlight:'var(--blue)'  },
-        { title:'Deductions', value:'TZS '+(payroll.reduce((s,p)=>s+p.ded,0)/1_000_000).toFixed(1)+'M', trend:0, sub1Label:'PAYE',sub1Value:'70%', sub2Label:'NSSF',sub2Value:'30%', bars:spark(402,15,'flat'), barColor:'var(--red-l)',   barHighlight:'var(--red)'   },
+        { title:'Total Payroll', value:'TZS ' + (total/1_000_000).toFixed(1) + 'M', sub1Label:'BASIC',      sub1Value:'TZS '+(payroll.reduce((s,p)=>s+p.basic,0)/1_000_000).toFixed(1)+'M', sub2Label:'ALLOWANCES', sub2Value:'TZS '+(payroll.reduce((s,p)=>s+p.allow,0)/1_000_000).toFixed(1)+'M', barHighlight:'var(--green)' },
+        { title:'Paid',       value:String(payroll.filter(p=>p.status==='PAID').length),       sub1Label:'PROCESSING', sub1Value:String(payroll.filter(p=>p.status==='PROCESSING').length), sub2Label:'PENDING', sub2Value:String(payroll.filter(p=>p.status==='PENDING').length),  barHighlight:'var(--blue)'  },
+        { title:'Deductions', value:'TZS '+(payroll.reduce((s,p)=>s+p.ded,0)/1_000_000).toFixed(1)+'M', sub1Label:'PAYE',sub1Value:'70%', sub2Label:'NSSF',sub2Value:'30%',   barHighlight:'var(--red)'   },
       ]} />
       <Wrap>
         <thead><tr><TH>Employee</TH><TH right>Basic Pay</TH><TH right>Allowances</TH><TH right>Deductions</TH><TH right>Net Pay</TH><TH>Status</TH><TH right>Actions</TH></tr></thead>

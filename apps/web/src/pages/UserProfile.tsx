@@ -4,7 +4,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -243,18 +243,14 @@ export const UserProfile: React.FC = () => {
           {
             title: 'Cases Handled',
             value: '—',
-            trend: 12.4,
             sub1Label: 'THIS MONTH', sub1Value: '—',
-            sub2Label: 'THIS WEEK', sub2Value: '—',
-            bars: spark(120, 15, 'up'), barColor: 'var(--blue-l)', barHighlight: 'var(--blue)',
+            sub2Label: 'THIS WEEK', sub2Value: '—', barHighlight: 'var(--blue)',
           },
           {
             title: 'Login Streak',
             value: '6d',
-            trend: 0,
             sub1Label: 'LAST LOGIN', sub1Value: '2h ago',
-            sub2Label: 'SESSIONS', sub2Value: String(ACTIVITY_LOG.filter(l => l.action === 'Logged in').length),
-            bars: spark(121, 15, 'up'), barColor: 'var(--green-l)', barHighlight: 'var(--green)',
+            sub2Label: 'SESSIONS', sub2Value: String(ACTIVITY_LOG.filter(l => l.action === 'Logged in').length), barHighlight: 'var(--green)',
           },
           {
             title: 'Security Score',
@@ -262,8 +258,7 @@ export const UserProfile: React.FC = () => {
             trend: twoFa ? 4.1 : -8.3,
             invertTrend: !twoFa,
             sub1Label: '2FA', sub1Value: twoFa ? 'Enabled' : 'Disabled',
-            sub2Label: 'FAILED LOGINS', sub2Value: String(ACTIVITY_LOG.filter(l => !l.ok).length),
-            bars: spark(122, 15, twoFa ? 'up' : 'down'), barColor: twoFa ? 'var(--green-l)' : 'var(--red-l)', barHighlight: twoFa ? 'var(--green)' : 'var(--red)',
+            sub2Label: 'FAILED LOGINS', sub2Value: String(ACTIVITY_LOG.filter(l => !l.ok).length), barHighlight: twoFa ? 'var(--green)' : 'var(--red)',
           },
         ]} />
       </div>

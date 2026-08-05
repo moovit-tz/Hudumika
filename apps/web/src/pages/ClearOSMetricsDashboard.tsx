@@ -342,7 +342,6 @@ export const ClearOSMetricsDashboard: React.FC = () => {
           {
             title: 'Monthly Volume',
             value: String(kpis?.cases_this_month ?? 0),
-            trend: 0,
             sub1Label: 'DELIVERED TODAY', sub1Value: String(kpis?.delivered_today ?? 0),
             sub2Label: 'AVG / DAY',       sub2Value: kpis ? String(Math.round((kpis.cases_this_month || 0) / new Date().getDate())) : '—',
             icon: 'package',
@@ -355,7 +354,6 @@ export const ClearOSMetricsDashboard: React.FC = () => {
             // the honest reading of no data; "100%" or "0%" would both be
             // claims the figures do not support.
             value: kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`,
-            trend: 0,
             sub1Label: 'AT RISK (48H)',      sub1Value: String(kpis?.demurrage_risk ?? 0),
             sub2Label: 'PENALTY EXPOSURE',   sub2Value: fmtTZS(kpis?.penalty_exposure_tzs ?? 0),
             icon: 'checkCircle',
@@ -365,7 +363,6 @@ export const ClearOSMetricsDashboard: React.FC = () => {
           {
             title: 'Carbon Footprint',
             value: `${(kpis?.total_co2_emissions_kg ?? 0).toLocaleString('en')} kg`,
-            trend: 0,
             sub1Label: 'CREDITS SAVED', sub1Value: `${kpis?.total_carbon_credits_saved ?? 0}`,
             icon: 'globe',
             barColor: 'var(--green-l)', barHighlight: 'var(--green)',

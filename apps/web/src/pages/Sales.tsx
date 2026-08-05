@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch } from '../lib/api.js';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -764,26 +764,20 @@ export const Sales: React.FC = () => {
           {
             title: 'Total Quotes',
             value: loading ? '—' : String(quotes.length),
-            trend: 6.4,
             sub1Label: 'APPROVED', sub1Value: loading ? '—' : String(byStage('APPROVED').length),
-            sub2Label: 'WIN RATE', sub2Value: loading ? '—' : `${winRate}%`,
-            bars: spark(80, 15, 'up'), barColor: 'var(--blue-l)', barHighlight: 'var(--blue)',
+            sub2Label: 'WIN RATE', sub2Value: loading ? '—' : `${winRate}%`, barHighlight: 'var(--blue)',
           },
           {
             title: 'Converted',
             value: loading ? '—' : String(byStage('CONVERTED').length),
-            trend: 14.2,
             sub1Label: 'THIS MONTH', sub1Value: loading ? '—' : String(Math.floor(byStage('CONVERTED').length * 0.4)),
-            sub2Label: 'THIS WEEK',  sub2Value: loading ? '—' : String(Math.floor(byStage('CONVERTED').length * 0.1)),
-            bars: spark(81, 15, 'up'), barColor: 'var(--green-l)', barHighlight: 'var(--green)',
+            sub2Label: 'THIS WEEK',  sub2Value: loading ? '—' : String(Math.floor(byStage('CONVERTED').length * 0.1)), barHighlight: 'var(--green)',
           },
           {
             title: 'Pipeline Value',
             value: loading ? '—' : fmt(total),
-            trend: 3.1,
             sub1Label: 'WON REVENUE', sub1Value: loading ? '—' : fmt(won),
-            sub2Label: 'AVG DEAL',    sub2Value: loading || !quotes.length ? '—' : fmt(Math.round(total / quotes.length)),
-            bars: spark(82, 15, 'flat'), barColor: 'var(--gold-l)', barHighlight: 'var(--gold)',
+            sub2Label: 'AVG DEAL',    sub2Value: loading || !quotes.length ? '—' : fmt(Math.round(total / quotes.length)), barHighlight: 'var(--gold)',
           },
         ]} />
       </div>

@@ -98,27 +98,21 @@ export const Reports: React.FC = () => {
               // stays neutral (0) rather than a fabricated percentage — and
               // `bars` is omitted rather than passed a fake sparkline, per
               // MetricCard's own "honest gap over fake data" rule.
-              trend: 0,
               sub1Label: 'THIS MONTH', sub1Value: String(kpis.cases_this_month ?? 0),
-              sub2Label: 'DELIVERED TODAY', sub2Value: String(kpis.delivered_today ?? 0),
-              barColor: 'var(--blue-l)', barHighlight: 'var(--blue)',
+              sub2Label: 'DELIVERED TODAY', sub2Value: String(kpis.delivered_today ?? 0), barHighlight: 'var(--blue)',
             },
             {
               title: 'Demurrage Risk',
               value: String(kpis.demurrage_risk ?? 0),
-              trend: 0,
               invertTrend: true,
               sub1Label: 'SLA BREACHED', sub1Value: String(kpis.sla_breached ?? 0),
-              sub2Label: 'PENALTY EXPOSURE', sub2Value: kpis.penalty_exposure_tzs ? `TZS ${(kpis.penalty_exposure_tzs / 1_000_000).toFixed(1)}M` : '—',
-              barColor: 'var(--red-l)', barHighlight: 'var(--red)',
+              sub2Label: 'PENALTY EXPOSURE', sub2Value: kpis.penalty_exposure_tzs ? `TZS ${(kpis.penalty_exposure_tzs / 1_000_000).toFixed(1)}M` : '—', barHighlight: 'var(--red)',
             },
             {
               title: 'On-Time Rate',
               value: kpis.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`,
-              trend: 0,
               sub1Label: 'TARGET', sub1Value: '95%',
-              sub2Label: 'ACTIVE CASES', sub2Value: String(kpis.active_cases ?? 0),
-              barColor: 'var(--green-l)', barHighlight: 'var(--green)',
+              sub2Label: 'ACTIVE CASES', sub2Value: String(kpis.active_cases ?? 0), barHighlight: 'var(--green)',
             },
           ]} />
         )}

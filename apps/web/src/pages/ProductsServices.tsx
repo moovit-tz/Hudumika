@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -838,9 +838,9 @@ export const ProductsServices: React.FC = () => {
 
         {/* Metrics */}
         <MetricsRow cards={[
-          { title: 'Total Services', value: String(products.length), trend: 0, sub1Label: 'ACTIVE', sub1Value: String(active), sub2Label: 'INACTIVE', sub2Value: String(inactive), bars: spark(10, 15, 'flat'), barColor: 'var(--blue-l)', barHighlight: 'var(--blue)' },
-          { title: 'Active Services', value: String(active), trend: 0, sub1Label: 'WITH PRICE', sub1Value: String(priced.length), sub2Label: 'FREE/DUTY', sub2Value: String(products.filter(p => p.sale_price === 0).length), bars: spark(11, 15, 'flat'), barColor: 'var(--green-l)', barHighlight: 'var(--green)' },
-          { title: 'Avg Unit Price', value: avgPrice > 0 ? `$${Math.round(avgPrice)}` : '—', trend: 0, sub1Label: 'CATEGORIES', sub1Value: String(new Set(products.map(p => p.category)).size), sub2Label: 'TOP CAT', sub2Value: products.length ? (CAT_CFG[topCat]?.label ?? '—') : '—', bars: spark(12, 15, 'flat'), barColor: 'var(--gold-l)', barHighlight: 'var(--gold)' },
+          { title: 'Total Services', value: String(products.length), sub1Label: 'ACTIVE', sub1Value: String(active), sub2Label: 'INACTIVE', sub2Value: String(inactive), barHighlight: 'var(--blue)' },
+          { title: 'Active Services', value: String(active), sub1Label: 'WITH PRICE', sub1Value: String(priced.length), sub2Label: 'FREE/DUTY', sub2Value: String(products.filter(p => p.sale_price === 0).length), barHighlight: 'var(--green)' },
+          { title: 'Avg Unit Price', value: avgPrice > 0 ? `$${Math.round(avgPrice)}` : '—', sub1Label: 'CATEGORIES', sub1Value: String(new Set(products.map(p => p.category)).size), sub2Label: 'TOP CAT', sub2Value: products.length ? (CAT_CFG[topCat]?.label ?? '—') : '—', barHighlight: 'var(--gold)' },
         ]} />
 
         {/* Filters */}

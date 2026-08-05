@@ -137,21 +137,19 @@ export const CarbonPortfolio: React.FC = () => {
             {
               title: 'Total Emissions',
               value: `${(data?.total_co2_kg ?? 0).toLocaleString('en')} kg`,
-              trend: 0,
               sub1Label: 'AVG / SHIPMENT', sub1Value: `${(data?.avg_co2_per_shipment_kg ?? 0).toLocaleString('en')} kg`,
               sub2Label: 'SHIPMENTS CALC.', sub2Value: String(data?.calculated_shipment_count ?? 0),
               icon: 'trendingUp',
-              bars: emissionsBars, barColor: 'var(--red-l)', barHighlight: 'var(--red)',
+              bars: emissionsBars, barHighlight: 'var(--red)',
               onMenuClick: load, menuTitle: 'Refresh emissions data',
             },
             {
               title: 'Credits Saved (est.)',
               value: `${(data?.total_credits ?? 0).toLocaleString('en')}`,
-              trend: 0,
               sub1Label: 'MODES TRACKED', sub1Value: String(data?.by_mode.length ?? 0),
               sub2Label: 'CUSTOMERS',      sub2Value: String(data?.by_customer.length ?? 0),
               icon: 'checkCircle',
-              bars: creditsBars, barColor: 'var(--green-l)', barHighlight: 'var(--green)',
+              bars: creditsBars, barHighlight: 'var(--green)',
               onMenuClick: load, menuTitle: 'Refresh credits data',
             },
             {
@@ -159,7 +157,6 @@ export const CarbonPortfolio: React.FC = () => {
               value: data && (data.calculated_shipment_count + data.uncalculated_shipment_count) > 0
                 ? `${Math.round((data.calculated_shipment_count / (data.calculated_shipment_count + data.uncalculated_shipment_count)) * 100)}%`
                 : '—',
-              trend: 0,
               sub1Label: 'NOT YET CALCULATED', sub1Value: String(data?.uncalculated_shipment_count ?? 0),
               icon: 'package',
               // No sparkline: coverage isn't tracked per-month by the API, so

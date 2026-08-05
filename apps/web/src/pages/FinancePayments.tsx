@@ -3,7 +3,7 @@ import { FormPage } from '../components/FormPage.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -319,10 +319,8 @@ export const FinancePayments: React.FC = () => {
           {
             title: 'Total Collected',
             value: `TZS ${totalAmount.toLocaleString()}`,
-            trend: 0,
             sub1Label: 'PAYMENTS', sub1Value: String(payments.length),
-            sub2Label: 'THIS MONTH', sub2Value: String(thisMonth),
-            bars: payments.length > 1 ? spark(payments.length, 15, 'up') : undefined, barColor: 'var(--green-l)', barHighlight: 'var(--green)'
+            sub2Label: 'THIS MONTH', sub2Value: String(thisMonth), barHighlight: 'var(--green)'
           },
         ]} />
       </div>

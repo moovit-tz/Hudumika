@@ -46,7 +46,7 @@ function SparkBars({ data, color }: { data: number[]; color: string }) {
 function KpiCard({ icon, iconBg, iconColor, value, label, sub, subUp, bars, barColor, to }: {
   icon: string; iconBg: string; iconColor: string;
   value: string | number; label: string; sub: string; subUp: boolean;
-  bars: number[]; barColor: string; to?: string;
+  bars?: number[]; barColor: string; to?: string;
 }) {
   const Wrapper = (to ? Link : 'div') as any;
   return (
@@ -56,7 +56,7 @@ function KpiCard({ icon, iconBg, iconColor, value, label, sub, subUp, bars, barC
       padding: '18px 18px 14px', cursor: to ? 'pointer' : 'default',
       textDecoration: 'none', color: 'inherit', boxSizing: 'border-box',
     }}>
-      <SparkBars data={bars} color={barColor} />
+      {bars && bars.length > 1 && <SparkBars data={bars} color={barColor} />}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, position: 'relative' }}>
         <div style={{ width: 44, height: 44, borderRadius: 9, background: iconBg, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name={icon as IconName} size={20} color={iconColor} />
@@ -167,10 +167,8 @@ function SettingsNavItem({ icon, label, sub, to }: { icon: IconName; label: stri
   );
 }
 
-function spark(trend: 'up' | 'down' | 'flat'): number[] {
-  const p = { up: [4,5,4,6,7,8,9,10], down: [10,9,8,7,7,6,5,5], flat: [7,8,6,9,7,8,7,8] };
-  return p[trend];
-}
+// This page had its own spark(), returning one of three hardcoded arrays.
+// Same problem, same fix: no series, no chart.
 
 export const ToolsOverview: React.FC = () => {
   const [metrics, setMetrics] = useState<ToolsMetrics>(FALLBACK);
@@ -230,24 +228,21 @@ export const ToolsOverview: React.FC = () => {
           icon="users" iconBg="rgba(8,145,178,0.1)" iconColor="var(--teal)"
           value={hr.total_staff} label="Total Staff"
           sub={`${hr.active_staff} active, ${hr.on_leave} on leave`}
-          subUp={hr.active_staff >= hr.total_staff * 0.7}
-          bars={spark('flat')} barColor="var(--teal)"
+          subUp={hr.active_staff >= hr.total_staff * 0.7}barColor="var(--teal)"
           to="/nexushr/employees"
         />
         <KpiCard
           icon="check" iconBg="rgba(16,185,129,0.1)" iconColor="var(--green)"
           value={hr.today_present} label="Present Today"
           sub={`${attendanceRate}% attendance rate`}
-          subUp={attendanceRate >= 70}
-          bars={spark(attendanceRate >= 70 ? 'up' : 'down')} barColor="var(--green)"
+          subUp={attendanceRate >= 70}barColor="var(--green)"
           to="/nexushr/attendance"
         />
         <KpiCard
           icon="calendar" iconBg="rgba(245,158,11,0.12)" iconColor="#f59e0b"
           value={hr.pending_leaves} label="Pending Leave Requests"
           sub={`${hr.on_leave} currently on leave`}
-          subUp={hr.pending_leaves === 0}
-          bars={spark('flat')} barColor="#f59e0b"
+          subUp={hr.pending_leaves === 0}barColor="#f59e0b"
           to="/nexushr/leaves"
         />
         <KpiCard
@@ -256,9 +251,7 @@ export const ToolsOverview: React.FC = () => {
           iconColor={support.unread > 0 ? 'var(--red)' : 'var(--green)'}
           value={support.unread} label="Unread Notifications"
           sub={`${support.total_notifications} total in system`}
-          subUp={support.unread === 0}
-          bars={spark(support.unread > 0 ? 'down' : 'up')}
-          barColor={support.unread > 0 ? 'var(--red)' : 'var(--green)'}
+          subUp={support.unread === 0}barColor={support.unread > 0 ? 'var(--red)' : 'var(--green)'}
         />
       </div>
 

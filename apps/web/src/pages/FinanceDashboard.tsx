@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
-import { MetricsRow, MiniBar, spark } from '../components/MetricCard.js';
+import { MetricsRow, MiniBar } from '../components/MetricCard.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -166,9 +166,9 @@ export const FinanceDashboard: React.FC = () => {
      TOP STAT CARDS
   ------------------------------------------ */
   const metricCards = [
-    { title: t('finance.totalRevenue'),       value: fmt(derived.totalRevenue, 'TZS'),  trend: derived.revenueTrendPct, sub1Value: fmt(derived.monthRevenue, 'TZS'),  sub2Value: fmt(derived.weekRevenue, 'TZS'),  bars: derived.totalRevenue > 0 ? spark(1,15,'up') : undefined,   barColor: 'var(--purple-l)', barHighlight: 'var(--purple)' },
-    { title: t('finance.totalDisbursements'), value: fmt(derived.totalWithdraw, 'TZS'), trend: 0, sub1Value: fmt(derived.monthWithdraw, 'TZS'), sub2Value: fmt(derived.weekWithdraw, 'TZS'), bars: derived.totalWithdraw > 0 ? spark(2,15,'flat') : undefined, barColor: 'var(--red-l)',    barHighlight: 'var(--red)', invertTrend: true },
-    { title: t('finance.balanceInAccount'),   value: fmt(derived.balance, 'TZS'),       trend: 0, sub1Value: fmt(derived.monthBalance, 'TZS'),  sub2Value: fmt(derived.weekBalance, 'TZS'),  bars: derived.balance !== 0 ? spark(3,15,'up') : undefined,   barColor: 'var(--green-l)', barHighlight: 'var(--green)' },
+    { title: t('finance.totalRevenue'),       value: fmt(derived.totalRevenue, 'TZS'),  trend: derived.revenueTrendPct, sub1Value: fmt(derived.monthRevenue, 'TZS'),  sub2Value: fmt(derived.weekRevenue, 'TZS'), barHighlight: 'var(--purple)' },
+    { title: t('finance.totalDisbursements'), value: fmt(derived.totalWithdraw, 'TZS'), sub1Value: fmt(derived.monthWithdraw, 'TZS'), sub2Value: fmt(derived.weekWithdraw, 'TZS'),    barHighlight: 'var(--red)', invertTrend: true },
+    { title: t('finance.balanceInAccount'),   value: fmt(derived.balance, 'TZS'),       sub1Value: fmt(derived.monthBalance, 'TZS'),  sub2Value: fmt(derived.weekBalance, 'TZS'), barHighlight: 'var(--green)' },
   ];
 
   return (

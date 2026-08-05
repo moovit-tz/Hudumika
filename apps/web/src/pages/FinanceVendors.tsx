@@ -4,7 +4,7 @@ import { FormPage } from '../components/FormPage.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
 import {
   Vendor, VendorCategory, VendorStatus, PaymentTerms,
@@ -470,35 +470,27 @@ export function FinanceVendors() {
         {
           title: 'Total Vendors',
           value: String(stats.total),
-          trend: 5.2,
           sub1Label: 'ACTIVE', sub1Value: String(stats.active),
-          sub2Label: 'INACTIVE', sub2Value: String(stats.total - stats.active),
-          bars: spark(80, 12, 'up'), barColor: 'var(--teal-l)', barHighlight: 'var(--teal)',
+          sub2Label: 'INACTIVE', sub2Value: String(stats.total - stats.active), barHighlight: 'var(--teal)',
         },
         {
           title: 'Outstanding Balance',
           value: fmt(stats.outstanding),
-          trend: -3.8,
           invertTrend: true,
           sub1Label: 'PAYABLE', sub1Value: fmt(Math.round(stats.outstanding * 0.6)),
-          sub2Label: 'OVERDUE', sub2Value: fmt(Math.round(stats.outstanding * 0.4)),
-          bars: spark(81, 12, 'down'), barColor: 'var(--red-l)', barHighlight: 'var(--red)',
+          sub2Label: 'OVERDUE', sub2Value: fmt(Math.round(stats.outstanding * 0.4)), barHighlight: 'var(--red)',
         },
         {
           title: 'Total Paid',
           value: fmt(stats.totalPaid),
-          trend: 12.1,
           sub1Label: 'LIFETIME', sub1Value: fmt(stats.totalPaid),
-          sub2Label: 'THIS MONTH', sub2Value: fmt(Math.round(stats.totalPaid * 0.07)),
-          bars: spark(82, 12, 'up'), barColor: 'var(--green-l)', barHighlight: 'var(--green)',
+          sub2Label: 'THIS MONTH', sub2Value: fmt(Math.round(stats.totalPaid * 0.07)), barHighlight: 'var(--green)',
         },
         {
           title: 'Active Rate',
           value: `${stats.total ? Math.round((stats.active / stats.total) * 100) : 0}%`,
-          trend: 2.5,
           sub1Label: 'ACTIVE', sub1Value: String(stats.active),
-          sub2Label: 'TOTAL', sub2Value: String(stats.total),
-          bars: spark(83, 12, 'up'), barColor: 'var(--blue-l)', barHighlight: 'var(--blue)',
+          sub2Label: 'TOTAL', sub2Value: String(stats.total), barHighlight: 'var(--blue)',
         },
       ]} />
 

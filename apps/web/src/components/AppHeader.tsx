@@ -86,10 +86,15 @@ export function AppHeader({
   }
 
   // ── Layout toggle (boxed ↔ full-width) ──
+  // Full-width is the default. Boxed capped every page at 1100-1380px, which
+  // on a normal desktop left a third of the window empty beside tables that
+  // then scrolled horizontally. A tenant can still switch back — this changes
+  // which way the toggle starts, not whether it exists.
   const [isFullLayout, setIsFullLayout] = useState(() => {
     const saved = localStorage.getItem('layout');
-    if (saved === 'full') document.documentElement.setAttribute('data-layout', 'full');
-    return saved === 'full';
+    const full = saved ? saved === 'full' : true;
+    if (full) document.documentElement.setAttribute('data-layout', 'full');
+    return full;
   });
   useEffect(() => {
     if (isFullLayout) {

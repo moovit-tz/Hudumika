@@ -5,7 +5,11 @@ import { useState, useEffect } from 'react';
 // <html>). Pages that box their own content width read this instead of
 // duplicating the toggle's state.
 function readFullLayout(): boolean {
-  return localStorage.getItem('layout') === 'full';
+  const saved = localStorage.getItem('layout');
+  // Unset means full — matching AppHeader's toggle, which is the source of
+  // truth. Defaulting to boxed here made a page render narrow for one frame
+  // before the header wrote the key.
+  return saved ? saved === 'full' : true;
 }
 
 export function useFullLayout(): boolean {

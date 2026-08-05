@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile.js';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { getCompany } from '../data/companyStore.js';
@@ -1205,9 +1205,9 @@ export const Quotations: React.FC = () => {
       />
 
       <MetricsRow cards={[
-        { title:'Total Quotes', value:String(quotes.length), trend:6.4, sub1Label:'DRAFT', sub1Value:String(quotes.filter(q=>q.status==='DRAFT').length), sub2Label:'PENDING', sub2Value:String(quotes.filter(q=>q.status==='PENDING').length), bars:spark(1,15,'up'), barColor:'var(--blue-l)', barHighlight:'var(--blue)' },
-        { title:'Converted', value:String(quotes.filter(q=>q.status==='CONVERTED').length), trend:14.2, sub1Label:'WIN RATE', sub1Value:quotes.length?`${Math.round(quotes.filter(q=>q.status==='CONVERTED').length/quotes.length*100)}%`:'0%', sub2Label:'APPROVED', sub2Value:String(quotes.filter(q=>q.status==='APPROVED').length), bars:spark(2,15,'up'), barColor:'var(--green-l)', barHighlight:'var(--green)' },
-        { title:'Pipeline Value', value:`$${(quotes.filter(q=>!['REJECTED','EXPIRED'].includes(q.status)).reduce((s,q)=>s+(q.total_amount||0),0)/1000).toFixed(1)}k`, trend:3.1, sub1Label:'AVG QUOTE', sub1Value:quotes.length?`$${(quotes.reduce((s,q)=>s+(q.total_amount||0),0)/quotes.length/1000).toFixed(1)}k`:'$0', sub2Label:'PENDING $', sub2Value:`$${(quotes.filter(q=>q.status==='PENDING').reduce((s,q)=>s+(q.total_amount||0),0)/1000).toFixed(1)}k`, bars:spark(3,15,'flat'), barColor:'var(--gold-l)', barHighlight:'var(--gold)' },
+        { title:'Total Quotes', value:String(quotes.length), sub1Label:'DRAFT', sub1Value:String(quotes.filter(q=>q.status==='DRAFT').length), sub2Label:'PENDING', sub2Value:String(quotes.filter(q=>q.status==='PENDING').length), barHighlight:'var(--blue)' },
+        { title:'Converted', value:String(quotes.filter(q=>q.status==='CONVERTED').length), sub1Label:'WIN RATE', sub1Value:quotes.length?`${Math.round(quotes.filter(q=>q.status==='CONVERTED').length/quotes.length*100)}%`:'0%', sub2Label:'APPROVED', sub2Value:String(quotes.filter(q=>q.status==='APPROVED').length), barHighlight:'var(--green)' },
+        { title:'Pipeline Value', value:`$${(quotes.filter(q=>!['REJECTED','EXPIRED'].includes(q.status)).reduce((s,q)=>s+(q.total_amount||0),0)/1000).toFixed(1)}k`, sub1Label:'AVG QUOTE', sub1Value:quotes.length?`$${(quotes.reduce((s,q)=>s+(q.total_amount||0),0)/quotes.length/1000).toFixed(1)}k`:'$0', sub2Label:'PENDING $', sub2Value:`$${(quotes.filter(q=>q.status==='PENDING').reduce((s,q)=>s+(q.total_amount||0),0)/1000).toFixed(1)}k`, barHighlight:'var(--gold)' },
       ]}/>
 
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16, gap:12 }}>

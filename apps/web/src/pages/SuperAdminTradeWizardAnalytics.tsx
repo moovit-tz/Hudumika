@@ -3,7 +3,7 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
 
 interface Summary { total_searches: number; total_runs: number; unique_tenants: number; no_result_searches: number; no_result_rate: number; conversion_rate: number }
@@ -72,10 +72,10 @@ export function SuperAdminTradeWizardAnalytics() {
       />
 
       <MetricsRow cards={[
-        { title: 'Total Searches', value: String(summary?.total_searches ?? 0), trend: 0, bars: spark(1, 15, 'up'), barColor: 'var(--blue-l)', barHighlight: 'var(--blue)', icon: 'search' },
-        { title: 'Wizard Runs', value: String(summary?.total_runs ?? 0), trend: 0, bars: spark(2, 15, 'up'), barColor: 'var(--teal-l)', barHighlight: 'var(--teal)', icon: 'checkCircle' },
-        { title: 'Tenants Searching', value: String(summary?.unique_tenants ?? 0), trend: 0, bars: spark(3, 15, 'up'), barColor: 'var(--green-l)', barHighlight: 'var(--green)', icon: 'building' },
-        { title: 'Conversion Rate', value: `${summary?.conversion_rate ?? 0}%`, trend: 0, bars: spark(4, 15, 'up'), barColor: 'var(--gold-l)', barHighlight: 'var(--gold)', icon: 'trendingUp' },
+        { title: 'Total Searches', value: String(summary?.total_searches ?? 0), barHighlight: 'var(--blue)', icon: 'search' },
+        { title: 'Wizard Runs', value: String(summary?.total_runs ?? 0), barHighlight: 'var(--teal)', icon: 'checkCircle' },
+        { title: 'Tenants Searching', value: String(summary?.unique_tenants ?? 0), barHighlight: 'var(--green)', icon: 'building' },
+        { title: 'Conversion Rate', value: `${summary?.conversion_rate ?? 0}%`, barHighlight: 'var(--gold)', icon: 'trendingUp' },
       ]} />
 
       {summary && summary.no_result_searches > 0 && (

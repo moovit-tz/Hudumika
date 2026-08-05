@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -250,10 +250,8 @@ export const Demurrage: React.FC = () => {
               {
                 title: 'Total Containers',
                 value: String(summary?.total_containers || 0),
-                trend: 4.8,
                 sub1Label: 'ACTIVE', sub1Value: String(summary?.active_containers || 0),
-                sub2Label: 'COMPLETED', sub2Value: String(summary?.completed_containers || 0),
-                bars: spark(20, 15, 'up'), barColor: 'var(--blue-l)', barHighlight: 'var(--blue)',
+                sub2Label: 'COMPLETED', sub2Value: String(summary?.completed_containers || 0), barHighlight: 'var(--blue)',
               },
               {
                 title: 'Accruing Demurrage',
@@ -261,17 +259,14 @@ export const Demurrage: React.FC = () => {
                 trend: -(summary?.active_containers || 0) > 0 ? 2.1 : 0,
                 invertTrend: true,
                 sub1Label: 'AT RISK', sub1Value: String(Math.floor((summary?.active_containers || 0) * 0.4)),
-                sub2Label: 'FREE DAYS LEFT', sub2Value: '2.4 avg',
-                bars: spark(21, 15, 'down'), barColor: 'var(--red-l)', barHighlight: 'var(--red)',
+                sub2Label: 'FREE DAYS LEFT', sub2Value: '2.4 avg', barHighlight: 'var(--red)',
               },
               {
                 title: 'Total Cost',
                 value: formatCurrency(summary?.total_demurrage_cost || 0),
-                trend: -8.3,
                 invertTrend: true,
                 sub1Label: 'THIS MONTH', sub1Value: formatCurrency((summary?.total_demurrage_cost || 0) * 0.35),
-                sub2Label: 'AVG PER BOX', sub2Value: formatCurrency(summary?.total_containers ? (summary.total_demurrage_cost || 0) / summary.total_containers : 0),
-                bars: spark(22, 15, 'down'), barColor: 'var(--gold-l)', barHighlight: 'var(--gold)',
+                sub2Label: 'AVG PER BOX', sub2Value: formatCurrency(summary?.total_containers ? (summary.total_demurrage_cost || 0) / summary.total_containers : 0), barHighlight: 'var(--gold)',
               },
             ]} />
 

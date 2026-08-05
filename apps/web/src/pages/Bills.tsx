@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile.js';
-import { MetricsRow, spark } from '../components/MetricCard.js';
+import { MetricsRow } from '../components/MetricCard.js';
 import { FormPage } from '../components/FormPage.js';
 import { Icon } from '../components/Icon.js';
 import { getCompany } from '../data/companyStore.js';
@@ -1094,9 +1094,9 @@ export const Bills: React.FC = () => {
 
           {/* Metrics */}
           <MetricsRow cards={[
-            { title:'Total Bills', value:String(totalBills), trend:0, sub1Label:'DRAFT', sub1Value:String(bills.filter(b=>b.status==='DRAFT').length), sub2Label:'PAID', sub2Value:String(bills.filter(b=>b.status==='PAID').length), bars:spark(5,15,'flat'), barColor:'var(--blue-l)', barHighlight:'var(--blue)' },
-            { title:'Outstanding', value:`$${(outstanding/1000).toFixed(1)}K`, trend:0, sub1Label:'BILLS', sub1Value:String(unpaidBills.length), sub2Label:'PARTIAL', sub2Value:String(bills.filter(b=>b.status==='PARTIAL').length), bars:spark(8,15,'up'), barColor:'var(--gold-l)', barHighlight:'var(--gold)' },
-            { title:'Overdue', value:String(overdueBills.length), trend:0, sub1Label:'AMOUNT', sub1Value:`$${(overdueAmt/1000).toFixed(1)}K`, sub2Label:'AVG DAYS', sub2Value:overdueBills.length ? String(Math.round(overdueBills.reduce((a,b)=>a+daysOverdue(b.due_date),0)/overdueBills.length)) : '0', bars:spark(11,15,'flat'), barColor:'var(--red-l)', barHighlight:'var(--red)' },
+            { title:'Total Bills', value:String(totalBills), sub1Label:'DRAFT', sub1Value:String(bills.filter(b=>b.status==='DRAFT').length), sub2Label:'PAID', sub2Value:String(bills.filter(b=>b.status==='PAID').length), barHighlight:'var(--blue)' },
+            { title:'Outstanding', value:`$${(outstanding/1000).toFixed(1)}K`, sub1Label:'BILLS', sub1Value:String(unpaidBills.length), sub2Label:'PARTIAL', sub2Value:String(bills.filter(b=>b.status==='PARTIAL').length), barHighlight:'var(--gold)' },
+            { title:'Overdue', value:String(overdueBills.length), sub1Label:'AMOUNT', sub1Value:`$${(overdueAmt/1000).toFixed(1)}K`, sub2Label:'AVG DAYS', sub2Value:overdueBills.length ? String(Math.round(overdueBills.reduce((a,b)=>a+daysOverdue(b.due_date),0)/overdueBills.length)) : '0', barHighlight:'var(--red)' },
           ]} />
 
           {/* Main Tabs */}
