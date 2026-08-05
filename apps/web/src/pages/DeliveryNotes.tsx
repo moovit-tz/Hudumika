@@ -4,6 +4,7 @@ import { getCompany, subscribeCompany } from '../data/companyStore.js';
 import { getJobs } from './clearanceData.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch } from '../lib/api.js';
+import { FormPage } from '../components/FormPage.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { useBranding } from '../hooks/useBranding.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -412,25 +413,18 @@ function NoteDrawer({ note, onSave, onClose, isMobile, invoices }: { note: DN; o
   const sel = { ...inp };
 
   return (
-    <>
-      {/* Backdrop */}
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', zIndex: 1000 }} />
-
-      {/* Drawer panel */}
-      <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: isMobile ? '100%' : 680, background: 'var(--white)', zIndex: 1001, display: 'flex', flexDirection: 'column', boxShadow: '-4px 0 32px rgba(0,0,0,0.18)' }}>
-        {/* Header */}
-        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{f.id ? 'Edit Delivery Note' : 'New Delivery Note'}</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{f.noteNo}</div>
-          </div>
-          <button title="Close" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>
-            <Icon name="close" size={18} strokeWidth={2} />
-          </button>
-        </div>
-
-        {/* Scrollable body */}
-        <div style={{ flex: 1, overflowY: 'auto' }}>
+    <FormPage
+      title={f.id ? 'Edit Delivery Note' : 'New Delivery Note'}
+      subtitle="What was delivered, against which shipment, and who signed for it."
+      onCancel={onClose}
+      actions={
+        <>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="button" className="btn btn-primary" onClick={() => onSave(f)}>Save Note</button>
+        </>
+      }
+    >
+      <div className="card" style={{ maxWidth: 900, padding: 0, overflow: 'hidden' }}>
 
           {/* ── BL / Shipment Link ── */}
           <FSection title="Link to BL / Shipment" />
@@ -567,14 +561,7 @@ function NoteDrawer({ note, onSave, onClose, isMobile, invoices }: { note: DN; o
           </div>
 
         </div>
-
-        {/* Footer actions */}
-        <div style={{ padding: '14px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, justifyContent: 'flex-end', background: 'var(--white)' }}>
-          <button onClick={onClose} style={{ padding: 'var(--ds-btn-py) 20px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-          <button onClick={() => onSave(f)} style={{ padding: 'var(--ds-btn-py) 24px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)', color: '#fff', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Save Note</button>
-        </div>
-      </div>
-    </>
+    </FormPage>
   );
 }
 
@@ -798,19 +785,23 @@ export const DeliveryNotes: React.FC = () => {
   const issues    = notes.filter(n => n.statusFlags.some(f => ['damaged','missing','returned'].includes(f))).length;
   const pending   = notes.filter(n => n.statusFlags.includes('pending')).length;
 
+  // Was a 680px right-hand drawer over a dimmed backdrop; now a page, so the
+  // BL link, line items and signature sections get the full content width.
+  if (drawerNote) {
+    return (
+      <NoteDrawer
+        note={drawerNote}
+        onSave={saveNote}
+        onClose={() => setDrawerNote(null)}
+        isMobile={isMobile}
+        invoices={invoices}
+      />
+    );
+  }
+
   return (
     <div style={{ flex: 1, display: 'flex', height: '100%', overflow: 'hidden', fontFamily: 'var(--font)' }}>
 
-      {/* ── Drawer (edit) ── */}
-      {drawerNote && (
-        <NoteDrawer
-          note={drawerNote}
-          onSave={saveNote}
-          onClose={() => setDrawerNote(null)}
-          isMobile={isMobile}
-          invoices={invoices}
-        />
-      )}
 
       {/* ── Left: list panel ── */}
       <div style={{ width: isSplit ? 420 : '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)', borderRight: isSplit ? '1px solid var(--border)' : 'none', transition: 'width 0.18s ease' }}>
