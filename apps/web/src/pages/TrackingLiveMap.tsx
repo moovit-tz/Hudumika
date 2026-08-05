@@ -464,7 +464,7 @@ export const TrackingLiveMap: React.FC = () => {
                 <div className="trk-info-label">Status Overview</div>
                 <div style={{ display: 'flex', gap: 16, marginBottom: 8 }}>
                   <div className="trk-info-value">
-                    <Icon name="zap" size={16} style={{ color: selectedVehicle.ignition ? '#10b981' : '#94a3b8' }}/> 
+                    <Icon name="zap" size={16} style={{ color: selectedVehicle.ignition ? '#10b981' : 'var(--ink3)' }}/> 
                     {selectedVehicle.ignition ? 'Ignition ON' : 'Ignition OFF'}
                   </div>
                   <div className="trk-info-value" style={{ textTransform: 'capitalize' }}>

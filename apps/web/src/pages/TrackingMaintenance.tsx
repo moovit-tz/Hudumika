@@ -133,7 +133,7 @@ export const TrackingMaintenance: React.FC = () => {
         </div>
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '14px 16px' }}>
           <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', fontWeight: 700 }}>Overdue</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: overdueCount > 0 ? '#dc2626' : 'var(--ink)', marginTop: 4 }}>{overdueCount}</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: overdueCount > 0 ? 'var(--red)' : 'var(--ink)', marginTop: 4 }}>{overdueCount}</div>
         </div>
       </div>
 

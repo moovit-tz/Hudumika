@@ -32,13 +32,13 @@ interface Analytics {
 }
 
 const cardStyle: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 20 };
-const BUCKET_COLORS: Record<string, string> = { Excellent: '#10b981', Good: '#84cc16', Fair: '#eab308', Poor: '#f97316', Critical: '#dc2626' };
+const BUCKET_COLORS: Record<string, string> = { Excellent: '#10b981', Good: '#84cc16', Fair: '#eab308', Poor: '#f97316', Critical: 'var(--red)' };
 
 function HealthGauge({ score }: { score: number }) {
   const radius = 70, stroke = 14;
   const circumference = Math.PI * radius; // half circle
   const pct = Math.max(0, Math.min(100, score)) / 100;
-  const color = score >= 80 ? '#10b981' : score >= 60 ? '#84cc16' : score >= 40 ? '#eab308' : score >= 20 ? '#f97316' : '#dc2626';
+  const color = score >= 80 ? '#10b981' : score >= 60 ? '#84cc16' : score >= 40 ? '#eab308' : score >= 20 ? '#f97316' : 'var(--red)';
   const label = score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : score >= 40 ? 'Fair' : score >= 20 ? 'Poor' : 'Critical';
   return (
     <svg width={180} height={100} viewBox="0 0 180 100">
@@ -103,7 +103,7 @@ export const TrackingAnalytics: React.FC = () => {
 
   const totalCostData = {
     labels: data.total_cost_by_month.map(c => c.month),
-    datasets: [{ label: 'Total cost', data: data.total_cost_by_month.map(c => c.total), backgroundColor: '#7c3aed' }],
+    datasets: [{ label: 'Total cost', data: data.total_cost_by_month.map(c => c.total), backgroundColor: 'var(--purple)' }],
   };
 
   const serviceCostData = {
@@ -117,7 +117,7 @@ export const TrackingAnalytics: React.FC = () => {
   };
 
   const vehicleStatusItems: { label: string; value: number; color: string }[] = [
-    { label: 'Active', value: data.vehicle_status_breakdown.active, color: '#7c3aed' },
+    { label: 'Active', value: data.vehicle_status_breakdown.active, color: 'var(--purple)' },
     { label: 'Out of Service', value: data.vehicle_status_breakdown.out_of_service, color: '#ca8a04' },
     { label: 'Rented', value: data.vehicle_status_breakdown.rented, color: '#059669' },
   ];
@@ -213,13 +213,13 @@ export const TrackingAnalytics: React.FC = () => {
             <span style={{ color: 'var(--ink2)' }}>Scheduled</span><span style={{ fontWeight: 800, color: 'var(--ink)' }}>{data.work_orders.scheduled}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderTop: '1px solid var(--border)', fontSize: 13 }}>
-            <span style={{ color: 'var(--ink2)' }}>Overdue</span><span style={{ fontWeight: 800, color: data.work_orders.overdue > 0 ? '#dc2626' : 'var(--ink)' }}>{data.work_orders.overdue}</span>
+            <span style={{ color: 'var(--ink2)' }}>Overdue</span><span style={{ fontWeight: 800, color: data.work_orders.overdue > 0 ? 'var(--red)' : 'var(--ink)' }}>{data.work_orders.overdue}</span>
           </div>
         </div>
 
         <div style={cardStyle}>
           <div style={statBlock}>Overdue Service Items</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: data.overdue_service_count > 0 ? '#dc2626' : 'var(--ink)' }}>{data.overdue_service_count}</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: data.overdue_service_count > 0 ? 'var(--red)' : 'var(--ink)' }}>{data.overdue_service_count}</div>
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 6 }}>Vehicles past their next-due service date</div>
         </div>
       </div>
@@ -248,7 +248,7 @@ export const TrackingAnalytics: React.FC = () => {
           <div style={statBlock}>Avg. resolution time</div>
           <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', marginBottom: 12 }}>{data.issues_summary.avg_resolution_hours != null ? `${data.issues_summary.avg_resolution_hours} hrs` : '—'}</div>
           <div style={statBlock}>Overdue issues</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: data.issues_summary.overdue > 0 ? '#dc2626' : 'var(--ink)' }}>{data.issues_summary.overdue}</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: data.issues_summary.overdue > 0 ? 'var(--red)' : 'var(--ink)' }}>{data.issues_summary.overdue}</div>
         </div>
       </div>
 

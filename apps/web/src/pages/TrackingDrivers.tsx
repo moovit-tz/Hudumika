@@ -260,7 +260,7 @@ export const TrackingDrivers: React.FC = () => {
                       <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
+                  <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--ink3)' }} />
                   <Area type="monotone" dataKey="value" stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorVal)" />
                 </AreaChart>
               </ResponsiveContainer>
@@ -306,7 +306,7 @@ export const TrackingDrivers: React.FC = () => {
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
-              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(20px, -30px)', background: 'rgba(220,38,38,0.12)', color: '#dc2626', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(20px, -30px)', background: 'rgba(220,38,38,0.12)', color: 'var(--red)', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
                 {metrics.total_delays} Delays
               </div>
             </div>

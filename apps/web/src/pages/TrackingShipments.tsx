@@ -22,11 +22,11 @@ interface Trip {
 interface Customer { id: string; name: string }
 
 const STATUS_COLORS: Record<string, { bg: string; fg: string; dot: string }> = {
-  PLANNED:     { bg: '#f1f5f9', fg: '#475569', dot: '#94a3b8' },
-  IN_PROGRESS: { bg: '#ecfdf5', fg: '#059669', dot: '#10b981' },
-  COMPLETED:   { bg: '#eff6ff', fg: '#2563eb', dot: '#3b82f6' },
-  CANCELLED:   { bg: '#fef2f2', fg: '#dc2626', dot: '#ef4444' },
-  DELAYED:     { bg: '#fffbeb', fg: '#d97706', dot: '#f59e0b' },
+  PLANNED:     { bg: 'var(--bg)', fg: 'var(--ink2)', dot: 'var(--ink3)' },
+  IN_PROGRESS: { bg: 'var(--bg)', fg: '#059669', dot: '#10b981' },
+  COMPLETED:   { bg: 'var(--bg)', fg: '#2563eb', dot: '#3b82f6' },
+  CANCELLED:   { bg: 'var(--bg)', fg: 'var(--red)', dot: '#ef4444' },
+  DELAYED:     { bg: 'var(--bg)', fg: '#d97706', dot: '#f59e0b' },
 };
 
 export const TrackingShipments: React.FC = () => {
@@ -78,7 +78,7 @@ export const TrackingShipments: React.FC = () => {
   });
 
   return (
-    <div style={{ padding: 24, background: '#f8fafc', minHeight: '100%', fontFamily: 'var(--font)' }}>
+    <div style={{ padding: 24, background: 'var(--white)', minHeight: '100%', fontFamily: 'var(--font)' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <PageHeader
@@ -152,7 +152,7 @@ export const TrackingShipments: React.FC = () => {
                 <React.Fragment key={s.id}>
                   <tr 
                     onClick={() => setExpandedTrip(expandedTrip === s.id ? null : s.id)}
-                    style={{ borderTop: '1px solid var(--border)', cursor: 'pointer', background: expandedTrip === s.id ? '#f8fafc' : 'transparent' }}
+                    style={{ borderTop: '1px solid var(--border)', cursor: 'pointer', background: expandedTrip === s.id ? 'var(--white)' : 'transparent' }}
                   >
                     <td style={{ padding: '16px 20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -192,7 +192,7 @@ export const TrackingShipments: React.FC = () => {
                   </td>
                 </tr>
                 {expandedTrip === s.id && (
-                  <tr style={{ background: '#f8fafc', borderBottom: '1px solid var(--border)' }}>
+                  <tr style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
                     <td colSpan={7} style={{ padding: '20px' }}>
                       <div style={{ background: '#fff', padding: 20, borderRadius: 8, border: '1px solid var(--border)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
                         <div>

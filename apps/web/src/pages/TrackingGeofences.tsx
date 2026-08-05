@@ -70,7 +70,7 @@ function AddGeofenceModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
             </div>
             <div style={{ width: 120 }}><label style={labelStyle}>Radius (km)</label><input type="number" step="0.1" value={radiusKm} onChange={e => setRadiusKm(e.target.value)} style={inputStyle} /></div>
           </div>
-          {error && <div style={{ fontSize: 12, color: '#dc2626' }}>{error}</div>}
+          {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
             <button type="submit" disabled={saving || !name} style={{ padding: '8px 18px', borderRadius: 9, border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1 }}>
@@ -189,7 +189,7 @@ export const TrackingGeofences: React.FC = () => {
                 <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{g.zone_type.replace('_', ' ')}</td>
                 <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{g.radius_km} km</td>
                 <td style={{ padding: '10px 14px' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 10px', background: g.active ? '#ecfdf5' : '#f1f5f9', color: g.active ? '#065f46' : '#64748b' }}>{g.active ? 'ACTIVE' : 'INACTIVE'}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 10px', background: g.active ? 'var(--bg)' : 'var(--bg)', color: g.active ? '#065f46' : '#64748b' }}>{g.active ? 'ACTIVE' : 'INACTIVE'}</span>
                 </td>
                 <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                   <button type="button" onClick={() => remove(g.id)} title="Delete" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4 }}>

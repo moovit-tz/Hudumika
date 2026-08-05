@@ -68,9 +68,9 @@ export const TrackingDashboard: React.FC = () => {
   const kpis = [
     { label: 'Vehicles moving', value: activeSummary.vehicles.moving, icon: 'compass', color: '#10b981', link: '/tracking/map' },
     { label: 'Vehicles stopped', value: activeSummary.vehicles.stopped, icon: 'mapPin', color: '#ca8a04', link: '/tracking/map' },
-    { label: 'Vehicles offline', value: activeSummary.vehicles.offline, icon: 'alertTriangle', color: '#94a3b8', link: '/tracking/vehicles' },
+    { label: 'Vehicles offline', value: activeSummary.vehicles.offline, icon: 'alertTriangle', color: 'var(--ink3)', link: '/tracking/vehicles' },
     { label: 'In maintenance', value: activeSummary.vehicles.in_maintenance, icon: 'clipboardList', color: '#6366f1', link: '/tracking/maintenance' },
-    { label: 'Documents expiring (30d)', value: activeSummary.expiring_documents, icon: 'shield', color: '#dc2626', link: '/tracking/documents' },
+    { label: 'Documents expiring (30d)', value: activeSummary.expiring_documents, icon: 'shield', color: 'var(--red)', link: '/tracking/documents' },
     { label: 'Reminders due (30d)', value: activeSummary.pending_reminders, icon: 'bell', color: '#d97706', link: '/tracking/reminders' },
   ];
 
@@ -78,7 +78,7 @@ export const TrackingDashboard: React.FC = () => {
     labels: ['Moving', 'Stopped', 'In maintenance', 'Offline'],
     datasets: [{
       data: [activeSummary.vehicles.moving, activeSummary.vehicles.stopped, activeSummary.vehicles.in_maintenance, activeSummary.vehicles.offline],
-      backgroundColor: ['#10b981', '#ca8a04', '#6366f1', '#94a3b8'],
+      backgroundColor: ['#10b981', '#ca8a04', '#6366f1', 'var(--ink3)'],
       borderWidth: 0,
     }],
   };
@@ -178,7 +178,7 @@ export const TrackingDashboard: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {activeSummary.recent_alerts.map(a => (
               <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
-                <Icon name="alertTriangle" size={14} color="#dc2626" />
+                <Icon name="alertTriangle" size={14} color="var(--red)" />
                 <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{a.message}</div>
                 <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{new Date(a.created_at).toLocaleTimeString()}</div>
               </div>
@@ -197,9 +197,9 @@ export const TrackingDashboard: React.FC = () => {
               const overdue = m.next_due_date && new Date(m.next_due_date).getTime() < now;
               return (
                 <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
-                  <Icon name="clipboardList" size={14} color={overdue ? '#dc2626' : '#d97706'} />
+                  <Icon name="clipboardList" size={14} color={overdue ? 'var(--red)' : '#d97706'} />
                   <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{m.service_type} — {vehicleName(m.vehicle_id)}</div>
-                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 9px', background: overdue ? '#fee2e2' : '#fef9c3', color: overdue ? '#dc2626' : '#ca8a04' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 9px', background: overdue ? 'var(--bg)' : '#fef9c3', color: overdue ? 'var(--red)' : '#ca8a04' }}>
                     {m.next_due_date ? new Date(m.next_due_date).toLocaleDateString() : '—'}
                   </span>
                 </div>

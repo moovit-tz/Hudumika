@@ -81,7 +81,7 @@ function AddReminderModal({ vehicles, drivers, onClose, onAdded }: {
             </div>
           </div>
           <div><label style={labelStyle}>Notes</label><input value={notes} onChange={e => setNotes(e.target.value)} style={inputStyle} /></div>
-          {error && <div style={{ fontSize: 12, color: '#dc2626' }}>{error}</div>}
+          {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
             <button type="submit" disabled={saving || !title || !dueDate} style={{ padding: '8px 18px', borderRadius: 9, border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1 }}>
@@ -156,11 +156,11 @@ export const TrackingReminders: React.FC = () => {
                 <td style={{ padding: '10px 14px', fontWeight: 600, color: 'var(--ink)' }}>{r.title}</td>
                 <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{r.reminder_type}</td>
                 <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{vehicleName(r.vehicle_id) || driverName(r.driver_id) || '—'}</td>
-                <td style={{ padding: '10px 14px', color: r.status === 'PENDING' && overdue(r.due_date) ? '#dc2626' : 'var(--ink2)', fontWeight: r.status === 'PENDING' && overdue(r.due_date) ? 700 : 400 }}>
+                <td style={{ padding: '10px 14px', color: r.status === 'PENDING' && overdue(r.due_date) ? 'var(--red)' : 'var(--ink2)', fontWeight: r.status === 'PENDING' && overdue(r.due_date) ? 700 : 400 }}>
                   {new Date(r.due_date).toLocaleDateString()}
                 </td>
                 <td style={{ padding: '10px 14px' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 10px', background: r.status === 'DONE' ? '#ecfdf5' : r.status === 'DISMISSED' ? '#f1f5f9' : '#fef9c3', color: r.status === 'DONE' ? '#065f46' : r.status === 'DISMISSED' ? '#64748b' : '#ca8a04' }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 10px', background: r.status === 'DONE' ? 'var(--bg)' : r.status === 'DISMISSED' ? 'var(--bg)' : '#fef9c3', color: r.status === 'DONE' ? '#065f46' : r.status === 'DISMISSED' ? '#64748b' : '#ca8a04' }}>
                     {r.status}
                   </span>
                 </td>
