@@ -255,7 +255,7 @@
     border: 1px solid transparent;
     background: transparent;
     border-radius: 9px;
-    padding: 9px 6px;
+    padding: var(--ds-btn-py) 6px;
     font: inherit;
     font-size: 13px;
     font-weight: 600;
