@@ -50,10 +50,19 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, style, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
+    // The vertical padding is set inline, which beats any class — so it has to
+    // respect `size` itself. It read --ds-btn-py unconditionally, which made
+    // every button the same height whatever size was asked for and silently
+    // overrode the size variants' own py- classes. sm and lg looked broken and
+    // the class was never the problem.
+    const padBlock =
+      size === 'sm' ? 'var(--ds-btn-py-sm, 5px)'
+      : size === 'lg' ? 'var(--ds-btn-py-lg, 13px)'
+      : 'var(--ds-btn-py)'
     return (
       <Comp
         className={cn(buttonVariants({ variant, size, className }))}
-        style={{ paddingBlock: 'var(--ds-btn-py)', borderWidth: 'var(--border-width, 1px)', ...style }}
+        style={{ paddingBlock: padBlock, borderWidth: 'var(--border-width, 1px)', ...style }}
         ref={ref}
         {...props}
       />
