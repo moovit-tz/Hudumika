@@ -1388,9 +1388,14 @@ body {
   white-space: nowrap;
   font-size: var(--text-base, 14px);
 }
-.btn-sm  { padding: 6px 14px; font-size: 13px; }
+/* The size steps read the same density tokens ui/Button does, so a legacy
+   .btn-sm and a <Button size="sm"> are the same height on the same screen.
+   They were fixed at 6px and 11px, which ignored the SuperAdmin density
+   setting entirely: a small legacy button sat at 32px beside a 48px one,
+   and the gap widened as density rose. */
+.btn-sm  { padding: var(--ds-btn-py-sm, 5px) 14px; font-size: 13px; }
 .btn-md  { padding: var(--ds-btn-py, 9px) 20px; font-size: 14px; }
-.btn-lg  { padding: 11px 24px; font-size: 15px; }
+.btn-lg  { padding: var(--ds-btn-py-lg, 13px) 24px; font-size: 15px; }
 
 .btn-primary   { background: var(--teal); color: #fff; border-color: var(--teal); }
 .btn-primary:hover { filter: brightness(0.88); }
