@@ -167,10 +167,10 @@ export function ClearanceWorkflowList() {
           />
         </div>
         <div className="wf-header-actions">
-          <button className="wfb-btn-ghost wfb-btn-sm" onClick={() => navigate('/clearos/ops')}>
+          <button className="btn btn-secondary btn-sm" onClick={() => navigate('/clearos/ops')}>
             Back to Ops
           </button>
-          <button className="wfb-btn-primary" onClick={() => navigate('/studio/clearance/new')}>
+          <button className="btn btn-primary" onClick={() => navigate('/studio/clearance/new')}>
             <Icon name="plus" size={14} color="white" />
             New Workflow
           </button>
@@ -197,7 +197,7 @@ export function ClearanceWorkflowList() {
                 <div className="wf-empty-icon"><Icon name="tasks" size={32} color="var(--ink3)" /></div>
                 <div className="wf-empty-title">No Workflows Yet</div>
                 <div className="wf-empty-sub">Create your first workflow to configure how shipments move through your operations.</div>
-                <button className="wfb-btn-primary" onClick={() => navigate('/studio/clearance/new')}>
+                <button className="btn btn-primary" onClick={() => navigate('/studio/clearance/new')}>
                   <Icon name="plus" size={13} color="white" /> New Workflow
                 </button>
               </div>
@@ -236,7 +236,7 @@ export function ClearanceWorkflowList() {
                       <span key={c} className="wf-badge wf-badge-orange">{c}</span>
                     ))}
                     <button
-                      style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: wf.isActive ? 'var(--red)' : 'var(--green)', fontWeight: 700, fontFamily: 'inherit', padding: 'var(--ds-btn-py-xs) 4px' }}
+                      style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: wf.isActive ? 'var(--red)' : 'var(--green)', fontWeight: 700, fontFamily: 'inherit', padding: 'var(--ds-btn-py-xs) 4px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}
                       onClick={() => handleToggleActive(wf)}
                     >
                       {wf.isActive ? 'Deactivate' : 'Activate'}

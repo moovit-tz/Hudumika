@@ -98,7 +98,7 @@ function OfficerMentionInput({
             type="button"
             onClick={() => select(o)}
             className="rounded-lg hover:bg-accent hover:text-accent-foreground"
-            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 12px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 12px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
           >
             <div style={{ width: 30, height: 30, borderRadius: '50%', background: avatarColor(o.name), color: '#fff', fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               {inits(o.name)}

@@ -305,10 +305,10 @@ export const RateCardPage: React.FC = () => {
               <div style={{ width: 260 }}>
                 <EntityPicker value={operatorPicker} onChange={item => item && selectOperator(item)} search={searchIcdOperators} placeholder="Search ICD operators…" />
               </div>
-              <button type="button" onClick={() => setAddingOperator(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer' }}>Cancel</button>
+              <button type="button" onClick={() => setAddingOperator(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
             </div>
           ) : (
-            <button type="button" onClick={() => setAddingOperator(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', fontSize: 13, fontWeight: 700, color: 'var(--teal)', cursor: 'pointer' }}>
+            <button type="button" onClick={() => setAddingOperator(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', fontSize: 13, fontWeight: 700, color: 'var(--teal)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
               <Icon name="plusCircle" size={13} /> Link an ICD operator
             </button>
           ))}
@@ -341,11 +341,11 @@ export const RateCardPage: React.FC = () => {
                         <option value="USD">USD</option><option value="TZS">TZS</option>
                       </select>
                       <input style={{ ...editInput, width: 100 }} type="number" min="0" step="0.01" placeholder="Rate" value={extraDraft.rate_amount} onChange={e => setExtraDraft(d => ({ ...d, rate_amount: e.target.value }))} />
-                      <button type="button" disabled={saving} onClick={addExtra} style={{ background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Add</button>
-                      <button type="button" onClick={() => setAddingExtra(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer' }}>Cancel</button>
+                      <button type="button" disabled={saving} onClick={addExtra} style={{ background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Add</button>
+                      <button type="button" onClick={() => setAddingExtra(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
                     </div>
                   ) : (
-                    <button type="button" onClick={() => setAddingExtra(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 700, color: 'var(--teal)', cursor: 'pointer' }}>
+                    <button type="button" onClick={() => setAddingExtra(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 700, color: 'var(--teal)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                       <Icon name="plusCircle" size={14} /> Add charge to this card
                     </button>
                   )

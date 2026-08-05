@@ -538,8 +538,7 @@ export function Contacts() {
                           border: 'none', background: 'none', cursor: 'pointer',
                           borderBottom: active ? '3px solid var(--cts-accent)' : '3px solid transparent',
                           color: active ? 'var(--cts-accent)' : 'var(--ink2)',
-                          fontWeight: 600, fontSize: 14, transition: 'all 0.15s'
-                        }}
+                          fontWeight: 600, fontSize: 14, transition: 'all 0.15s', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box'}}
                       >
                         <Icon name={tab.icon} size={15} color={active ? 'var(--cts-accent)' : 'var(--ink2)'} />
                         {tab.label}
@@ -807,7 +806,7 @@ export function Contacts() {
                   {/* Bulk Label Trigger */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, cursor: 'pointer', background: 'var(--white)', color: 'var(--ink)' }}>
+                      <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, cursor: 'pointer', background: 'var(--white)', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
                         Apply Label…
                       </button>
                     </DropdownMenuTrigger>
@@ -1110,8 +1109,7 @@ export function Contacts() {
                       border: 'none', background: 'none', cursor: 'pointer',
                       borderBottom: on ? '2.5px solid var(--cts-accent)' : '2.5px solid transparent',
                       color: on ? 'var(--cts-accent)' : 'var(--ink2)',
-                      fontWeight: 600, fontSize: 13, marginBottom: -1,
-                    }}
+                      fontWeight: 600, fontSize: 13, marginBottom: -1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
                   >
                     <Icon name={step.icon} size={14} color={on ? 'var(--cts-accent)' : 'var(--ink2)'} />
                     {step.label}
@@ -1231,8 +1229,7 @@ export function Contacts() {
                         onClick={() => { setFormAvatarUrl(null); setShowAvatarSelector(false); }}
                         style={{
                           width: '100%', border: 'none', background: 'none', color: 'var(--red)',
-                          fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 0 0'
-                        }}
+                          fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 0 0', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
                       >
                         Remove Photo
                       </button>
@@ -1418,8 +1415,7 @@ export function Contacts() {
                           background: selected ? 'var(--cts-accent-bg)' : 'var(--white)',
                           color: selected ? 'var(--cts-accent)' : 'var(--ink)',
                           fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6,
-                          transition: 'all 0.15s'
-                        }}
+                          transition: 'all 0.15s', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}
                       >
                         {label.name}
                         {selected && <Icon name="check" size={11} color="var(--cts-accent)" />}

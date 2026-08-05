@@ -109,7 +109,7 @@ export function SealStockAccount() {
         subtitle="The periodic compliance report — opening/closing balances per lot, reconstructed from the movement ledger, never hand-entered."
       />
       <div className="seal-page-hdr">
-        <button type="button" className="seal-btn-primary" onClick={() => setShowNew(v => !v)}>
+        <button type="button" className="btn btn-primary" onClick={() => setShowNew(v => !v)}>
           <Icon name="plus" size={14} /><span>Generate Period</span>
         </button>
       </div>
@@ -134,7 +134,7 @@ export function SealStockAccount() {
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>
-            <button type="submit" className="seal-btn-primary" disabled={generating || !newCompartmentId}>{generating ? 'Generating…' : 'Generate from Ledger'}</button>
+            <button type="submit" className="btn btn-primary" disabled={generating || !newCompartmentId}>{generating ? 'Generating…' : 'Generate from Ledger'}</button>
           </div>
         </form>
       )}
@@ -193,11 +193,11 @@ export function SealStockAccount() {
                               {submittingId === p.id ? (
                                 <>
                                   <input type="text" className="input-field" style={{ width: 220 }} placeholder="Submission reference" value={submitRef} onChange={e => setSubmitRef(e.target.value)} />
-                                  <button type="button" className="seal-btn-primary" disabled={!submitRef.trim()} onClick={() => handleSubmit(p.id)}>Confirm Submission</button>
-                                  <button type="button" className="seal-btn-secondary" onClick={() => setSubmittingId(null)}>Cancel</button>
+                                  <button type="button" className="btn btn-primary" disabled={!submitRef.trim()} onClick={() => handleSubmit(p.id)}>Confirm Submission</button>
+                                  <button type="button" className="btn btn-secondary" onClick={() => setSubmittingId(null)}>Cancel</button>
                                 </>
                               ) : (
-                                <button type="button" className="seal-btn-primary" onClick={() => setSubmittingId(p.id)}>
+                                <button type="button" className="btn btn-primary" onClick={() => setSubmittingId(p.id)}>
                                   <Icon name="send" size={13} /><span>Submit to Customs</span>
                                 </button>
                               )}

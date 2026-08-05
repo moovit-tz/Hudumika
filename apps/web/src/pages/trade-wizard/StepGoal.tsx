@@ -123,8 +123,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                   border: `1.5px solid ${isActive ? 'var(--teal)' : 'var(--border)'}`,
                   background: isActive ? 'color-mix(in srgb, var(--teal) 12%, transparent)' : 'var(--card-bg, var(--white))',
                   color: isActive ? 'var(--teal)' : 'var(--ink2)',
-                  transition: 'all 0.15s ease'
-                }}
+                  transition: 'all 0.15s ease', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
               >
                 {tab.label}
               </button>
@@ -220,8 +219,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                   cursor: currentPage === 1 ? 'default' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4
-                }}
+                  gap: 4, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
               >
                 <Icon name="chevronLeft" size={13} /> Prev
               </button>
@@ -271,8 +269,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                   cursor: currentPage >= totalPages ? 'default' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 4
-                }}
+                  gap: 4, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
               >
                 Next <Icon name="chevronRight" size={13} />
               </button>

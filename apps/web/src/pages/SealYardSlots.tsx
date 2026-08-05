@@ -67,7 +67,7 @@ export function SealYardSlots() {
         subtitle="Where a gated-in container sits before/during devanning — a different physical spot from the rack/bin a devanned lot is put away into."
       />
       <div className="seal-page-hdr">
-        <button type="button" className="seal-btn-primary" onClick={() => setShowNew(v => !v)}>
+        <button type="button" className="btn btn-primary" onClick={() => setShowNew(v => !v)}>
           <Icon name="plus" size={14} /><span>New Slot</span>
         </button>
       </div>
@@ -92,7 +92,7 @@ export function SealYardSlots() {
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>
-            <button type="submit" className="seal-btn-primary" disabled={saving || !newCompartmentId || !newCode.trim()}>{saving ? 'Creating…' : 'Create Slot'}</button>
+            <button type="submit" className="btn btn-primary" disabled={saving || !newCompartmentId || !newCode.trim()}>{saving ? 'Creating…' : 'Create Slot'}</button>
           </div>
         </form>
       )}

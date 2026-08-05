@@ -254,23 +254,23 @@ export function SealWarehouseLayout() {
         {/* Page Header */}
         <div className="seal-page-hdr">
           <div>
-            <button type="button" className="seal-btn-secondary" onClick={() => navigate('/seal/compartments')} style={{ marginBottom: 12 }}>
+            <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/compartments')} style={{ marginBottom: 12 }}>
               <Icon name="arrowLeft" size={13} /><span>Back to Compartments</span>
             </button>
             <h1 className="seal-page-title">{data.compartment.name} — Warehouse Layout</h1>
             <p className="seal-page-sub">Interactive 2D Plan and 3D Stack with real dimensional and lot occupancy data.</p>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" className={viewMode === '2d' ? 'seal-btn-primary' : 'seal-btn-secondary'} onClick={() => setViewMode('2d')}>
+            <button type="button" className={viewMode === '2d' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setViewMode('2d')}>
               <Icon name="grid" size={13} /><span>2D Plan</span>
             </button>
-            <button type="button" className={viewMode === '3d' ? 'seal-btn-primary' : 'seal-btn-secondary'} onClick={() => setViewMode('3d')}>
+            <button type="button" className={viewMode === '3d' ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setViewMode('3d')}>
               <Icon name="package" size={13} /><span>3D View</span>
             </button>
-            <button type="button" className="seal-btn-secondary" onClick={handlePopulateData} disabled={populating}>
+            <button type="button" className="btn btn-secondary" onClick={handlePopulateData} disabled={populating}>
               <Icon name="refresh" size={13} /><span>{populating ? 'Populating…' : 'Populate Real Layout'}</span>
             </button>
-            <button type="button" className={showAddForm ? 'seal-btn-primary' : 'seal-btn-secondary'} onClick={() => setShowAddForm(v => !v)}>
+            <button type="button" className={showAddForm ? 'btn btn-primary' : 'btn btn-secondary'} onClick={() => setShowAddForm(v => !v)}>
               <Icon name="plus" size={13} /><span>Add Rack / Floor</span>
             </button>
           </div>
@@ -301,7 +301,7 @@ export function SealWarehouseLayout() {
                       <SelectContent>{ZONE_TYPES.map(t => <SelectItem key={t} value={t}>{t.replace(/_/g, ' ')}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
-                  <button type="submit" className="seal-btn-primary" disabled={creatingZone}>{creatingZone ? 'Creating…' : 'Create Zone'}</button>
+                  <button type="submit" className="btn btn-primary" disabled={creatingZone}>{creatingZone ? 'Creating…' : 'Create Zone'}</button>
                 </div>
               </form>
             ) : (
@@ -362,8 +362,8 @@ export function SealWarehouseLayout() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                  <button type="button" className="seal-btn-secondary" onClick={() => setShowAddForm(false)}>Cancel</button>
-                  <button type="submit" className="seal-btn-primary" disabled={addingLoc || !newLocZoneId || !newLocCode.trim()}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setShowAddForm(false)}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={addingLoc || !newLocZoneId || !newLocCode.trim()}>
                     {addingLoc ? 'Adding…' : 'Add to Layout'}
                   </button>
                 </div>
@@ -445,7 +445,7 @@ export function SealWarehouseLayout() {
               <button
                 key={f.floorLevel}
                 type="button"
-                className={activeFloor === f.floorLevel ? 'seal-btn-primary' : 'seal-btn-secondary'}
+                className={activeFloor === f.floorLevel ? 'btn btn-primary' : 'btn btn-secondary'}
                 onClick={() => setActiveFloor(f.floorLevel)}
               >
                 <Icon name="layers" size={14} />
@@ -588,8 +588,8 @@ export function SealWarehouseLayout() {
                       </div>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                      <button type="button" className="seal-btn-secondary" onClick={() => setEditingLoc(false)}>Cancel</button>
-                      <button type="button" className="seal-btn-primary" onClick={handleSaveEditLoc} disabled={savingEdit}>{savingEdit ? 'Saving…' : 'Save Changes'}</button>
+                      <button type="button" className="btn btn-secondary" onClick={() => setEditingLoc(false)}>Cancel</button>
+                      <button type="button" className="btn btn-primary" onClick={handleSaveEditLoc} disabled={savingEdit}>{savingEdit ? 'Saving…' : 'Save Changes'}</button>
                     </div>
                   </div>
                 ) : (

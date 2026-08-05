@@ -595,8 +595,8 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, onImport, onClose }: {
           )}
         </div>
         <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 10, background: 'var(--bg)' }}>
-          <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-          <button type="button" onClick={handleImport} disabled={selected.size === 0} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, cursor: selected.size ? 'pointer' : 'default', opacity: selected.size ? 1 : 0.5 }}>Import {selected.size} Entries</button>
+          <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
+          <button type="button" onClick={handleImport} disabled={selected.size === 0} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, cursor: selected.size ? 'pointer' : 'default', opacity: selected.size ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Import {selected.size} Entries</button>
         </div>
       </div>
     </div>
@@ -716,7 +716,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange }:
             <td colSpan={7} style={{ padding: '8px 10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <button type="button" onClick={add}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-sm) 12px', border: `1px dashed ${color}`, borderRadius: 'var(--r)', background: 'none', color, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-sm) 12px', border: `1px dashed ${color}`, borderRadius: 'var(--r)', background: 'none', color, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--teal-l)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                   <Icon name="plus" size={12} color={color} /> Add Line Item
@@ -891,7 +891,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
         <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', flex: 1 }}>{initial ? `Edit ${initial.id}` : 'Create New Invoice'}</span>
         <button type="button" onClick={onCancel} style={tbBtn}>Cancel</button>
         <button type="button" onClick={() => handleSave(true)} style={{ ...tbBtn, borderColor: 'var(--teal)', color: 'var(--teal)', background: 'var(--teal-l)' }}>Save Draft</button>
-        <button type="button" onClick={() => handleSave(false)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+        <button type="button" onClick={() => handleSave(false)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
           <Icon name="send" size={13} color="#fff" /> Save &amp; Send
         </button>
       </div>
@@ -969,7 +969,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
         <ChargeSectionEditor title="Shipping Line Charges — Paid in USD" color="var(--blue)" group="shipping" currency="USD" items={shipping} onChange={setShipping} />
         <div style={{ position: 'relative' }}>
           {shipment && activeShipmentFull && (
-            <button type="button" onClick={() => setShowTimesheets(true)} style={{ position: 'absolute', top: 3, right: 10, display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', background: 'var(--purple-l)', color: 'var(--purple)', border: '1px solid var(--purple)', fontSize: 11, fontWeight: 700, cursor: 'pointer', zIndex: 10 }}>
+            <button type="button" onClick={() => setShowTimesheets(true)} style={{ position: 'absolute', top: 3, right: 10, display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', background: 'var(--purple-l)', color: 'var(--purple)', border: '1px solid var(--purple)', fontSize: 11, fontWeight: 700, cursor: 'pointer', zIndex: 10, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
               <Icon name="clock" size={12} color="var(--purple)" /> Import Unbilled Time
             </button>
           )}
@@ -1166,7 +1166,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
         <div style={{ display: 'flex', overflowX: 'auto', flex: 1, minWidth: 0 }}>
           {TABS.map(t => (
             <button key={t.id} type="button" onClick={() => setTab(t.id)}
-              style={{ padding: 'var(--ds-btn-py) 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: tab === t.id ? 'var(--ink)' : 'var(--ink3)', borderBottom: tab === t.id ? '2px solid var(--ink)' : '2px solid transparent', marginBottom: -1, whiteSpace: 'nowrap', flexShrink: 0 }}>
+              style={{ padding: 'var(--ds-btn-py) 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: tab === t.id ? 'var(--ink)' : 'var(--ink3)', borderBottom: tab === t.id ? '2px solid var(--ink)' : '2px solid transparent', marginBottom: -1, whiteSpace: 'nowrap', flexShrink: 0, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
               {t.label}
             </button>
           ))}
@@ -1206,7 +1206,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               : inv.traStatus === 'failed' ? (inv.traAckMsg || 'Previous submission failed — retry')
               : 'Submit this invoice to TRA EFDMS for fiscalization'
             }
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: (traSubmitting || inv.status === 'Draft' || !inv._dbId) ? 'default' : 'pointer', background: inv.status === 'Draft' || !inv._dbId ? 'var(--bg)' : inv.traStatus === 'failed' ? 'var(--red-l)' : 'var(--gold-l)', color: inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)', opacity: traSubmitting ? 0.7 : 1 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: (traSubmitting || inv.status === 'Draft' || !inv._dbId) ? 'default' : 'pointer', background: inv.status === 'Draft' || !inv._dbId ? 'var(--bg)' : inv.traStatus === 'failed' ? 'var(--red-l)' : 'var(--gold-l)', color: inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)', opacity: traSubmitting ? 0.7 : 1, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
             <Icon name={inv.traStatus === 'failed' ? 'refresh' : 'send'} size={12} color={inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)'} />
             {traSubmitting ? 'Submitting…' : inv.traStatus === 'failed' ? 'Retry TRA Submission' : 'Submit to TRA'}
           </button>
@@ -1232,7 +1232,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           )}
         </div>
         <button type="button" onClick={() => { setShowPayment(v => !v); setPayAmt(String(Math.round(due))); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 'var(--r)', border: 'none', background: showPayment ? 'var(--green)' : 'var(--green)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 'var(--r)', border: 'none', background: showPayment ? 'var(--green)' : 'var(--green)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
           <Icon name="dollarSign" size={13} color="#fff" /> Payment
         </button>
       </div>
@@ -1268,7 +1268,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>Outstanding: <strong style={{ color: due > 0 ? 'var(--red)' : 'var(--green)', fontFamily: 'var(--mono)' }}>{fmt(due, 'TZS')}</strong></div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={submitPayment} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--green)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>Save Payment</button>
+            <button type="button" onClick={submitPayment} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--green)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Save Payment</button>
             <button type="button" onClick={() => setShowPayment(false)} style={tbBtn}>Cancel</button>
           </div>
         </div>
@@ -1771,20 +1771,20 @@ export const Billing: React.FC = () => {
 
       {/* Top bar */}
       <div className="inv-topbar">
-        <button type="button" className="inv-btn inv-btn--primary" onClick={() => { setSelectedId(null); setMode('create'); }}>
+        <button type="button" className="btn btn-primary" onClick={() => { setSelectedId(null); setMode('create'); }}>
           <Icon name="plus" size={15} color="#fff" /> Create New Invoice
         </button>
-        <button type="button" className="inv-btn" onClick={() => setShowBatchPayment(true)} disabled={outstandingInvoices.length === 0} title={outstandingInvoices.length === 0 ? 'No outstanding invoices' : undefined}>
+        <button type="button" className="btn btn-secondary" onClick={() => setShowBatchPayment(true)} disabled={outstandingInvoices.length === 0} title={outstandingInvoices.length === 0 ? 'No outstanding invoices' : undefined}>
           <Icon name="creditCard" size={14} color="var(--ink3)" /> Batch Payments
         </button>
-        <button type="button" className="inv-btn inv-btn--icon" onClick={() => { setSearch(''); setFilterStatus('all'); setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }} title="Reset filters">
+        <button type="button" className="btn btn-secondary inv-btn--icon" onClick={() => { setSearch(''); setFilterStatus('all'); setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }} title="Reset filters">
           <Icon name="refresh" size={15} color="var(--ink3)" />
         </button>
         <div className="inv-topbar-spacer" />
-        <button type="button" className="inv-btn" onClick={exportCsv}>
+        <button type="button" className="btn btn-secondary" onClick={exportCsv}>
           <Icon name="download" size={14} color="var(--ink3)" /> Export CSV
         </button>
-        <button type="button" className={`inv-btn${activeFilterCount > 0 ? ' inv-btn--active' : ''}`} onClick={e => { e.stopPropagation(); setShowFilters(v => !v); }}>
+        <button type="button" className={`btn btn-secondary${activeFilterCount > 0 ? ' inv-btn--active' : ''}`} onClick={e => { e.stopPropagation(); setShowFilters(v => !v); }}>
           <Icon name="filter" size={14} color={activeFilterCount > 0 ? 'var(--teal)' : 'var(--ink3)'} /> Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
         </button>
         {showFilters && (
@@ -1812,8 +1812,8 @@ export const Billing: React.FC = () => {
               </div>
             </div>
             <div className="inv-filters-foot">
-              <button type="button" className="inv-btn" onClick={() => { setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }}>Clear</button>
-              <button type="button" className="inv-btn inv-btn--primary" onClick={() => setShowFilters(false)}>Done</button>
+              <button type="button" className="btn btn-secondary" onClick={() => { setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }}>Clear</button>
+              <button type="button" className="btn btn-primary" onClick={() => setShowFilters(false)}>Done</button>
             </div>
           </div>
         )}
@@ -1902,7 +1902,7 @@ export const Billing: React.FC = () => {
                   <tr><td colSpan={9} className="inv-table-msg">
                     <div className="inv-empty-title">No invoices yet</div>
                     <div className="inv-empty-sub">Create your first invoice to start billing customers.</div>
-                    <button type="button" className="inv-btn inv-btn--primary" onClick={() => { setSelectedId(null); setMode('create'); }}>
+                    <button type="button" className="btn btn-primary" onClick={() => { setSelectedId(null); setMode('create'); }}>
                       <Icon name="plus" size={14} color="#fff" /> Create New Invoice
                     </button>
                   </td></tr>

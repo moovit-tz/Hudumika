@@ -156,8 +156,8 @@ function AddManifestModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
           <div><label style={labelStyle}>Max weight (kg)</label><input type="number" value={maxWeight} onChange={e => setMaxWeight(e.target.value)} style={inputStyle} /></div>
           
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-            <button type="submit" disabled={saving || !name} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1 }}>
+            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
+            <button type="submit" disabled={saving || !name} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
               {saving ? 'Saving…' : 'Create'}
             </button>
           </div>
@@ -208,8 +208,8 @@ function ImportShipmentModal({ manifestId, onClose, onImported }: { manifestId: 
           </div>
           
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-            <button type="submit" disabled={importing || !shipmentId} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: importing ? 0.6 : 1 }}>
+            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
+            <button type="submit" disabled={importing || !shipmentId} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: importing ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
               {importing ? 'Importing…' : 'Import'}
             </button>
           </div>
@@ -256,8 +256,8 @@ function DispatchModal({ manifestId, onClose, onDispatched }: { manifestId: stri
           </div>
           
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-            <button type="submit" disabled={dispatching || !vehicleId} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: dispatching ? 0.6 : 1 }}>
+            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
+            <button type="submit" disabled={dispatching || !vehicleId} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: dispatching ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
               {dispatching ? 'Dispatching…' : 'Dispatch'}
             </button>
           </div>
@@ -383,7 +383,7 @@ export const TrackingCargoLoading: React.FC = () => {
               {manifests.map(m => <SelectItem key={m.id} value={m.id}>{m.name} ({m.status})</SelectItem>)}
             </SelectContent>
           </Select>
-          <button type="button" onClick={() => setShowAddManifest(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+          <button type="button" onClick={() => setShowAddManifest(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             <Icon name="plus" size={15} /> New load plan
           </button>
         </div>
@@ -405,11 +405,11 @@ export const TrackingCargoLoading: React.FC = () => {
               
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                 {isDraft ? (
-                  <button onClick={approvePlan} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', background: 'var(--indigo)', color: '#fff', borderRadius: 'var(--r)', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  <button onClick={approvePlan} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', background: 'var(--indigo)', color: '#fff', borderRadius: 'var(--r)', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
                     Approve Plan
                   </button>
                 ) : manifest.status === 'APPROVED' ? (
-                  <button onClick={() => setShowDispatchModal(true)} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', background: 'var(--teal)', color: '#fff', borderRadius: 'var(--r)', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  <button onClick={() => setShowDispatchModal(true)} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', background: 'var(--teal)', color: '#fff', borderRadius: 'var(--r)', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
                     Dispatch Vehicle
                   </button>
                 ) : (
@@ -438,7 +438,7 @@ export const TrackingCargoLoading: React.FC = () => {
                     <input type="number" value={itemWeight} onChange={e => setItemWeight(e.target.value)} placeholder="kg" style={inputStyle} />
                     <input type="number" value={itemQty} onChange={e => setItemQty(e.target.value)} placeholder="Qty" style={inputStyle} />
                   </div>
-                  <button type="submit" style={{ padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Add item</button>
+                  <button type="submit" style={{ padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Add item</button>
                 </form>
               </div>
             )}
@@ -456,7 +456,7 @@ export const TrackingCargoLoading: React.FC = () => {
                 {items.length === 0 && <div style={{ color: 'var(--ink3)', fontSize: 12 }}>No items added yet.</div>}
               </div>
               <button type="button" onClick={pack} disabled={packing || items.length === 0 || !isDraft}
-                style={{ marginTop: 12, width: '100%', padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: items.length === 0 || !isDraft ? 'default' : 'pointer', opacity: items.length === 0 || !isDraft ? 0.5 : 1 }}>
+                style={{ marginTop: 12, width: '100%', padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 700, fontSize: 13, cursor: items.length === 0 || !isDraft ? 'default' : 'pointer', opacity: items.length === 0 || !isDraft ? 0.5 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                 {packing ? 'Packing…' : 'Pack load'}
               </button>
             </div>
@@ -490,8 +490,7 @@ export const TrackingCargoLoading: React.FC = () => {
                     padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
                     border: `1px solid ${cameraPreset === preset ? 'var(--teal)' : 'var(--border)'}`,
                     background: cameraPreset === preset ? 'var(--teal-l)' : 'var(--white)',
-                    color: cameraPreset === preset ? 'var(--teal)' : 'var(--ink2)',
-                  }}
+                    color: cameraPreset === preset ? 'var(--teal)' : 'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
                 >
                   {label}
                 </button>

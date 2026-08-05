@@ -75,7 +75,7 @@ export const TrackingAssignments: React.FC = () => {
       />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)' }}>Vehicle Assignments</div>
-        <button onClick={() => setShowAddModal(true)} style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button onClick={() => setShowAddModal(true)} style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
           Add Assignment
         </button>
       </div>
@@ -85,7 +85,7 @@ export const TrackingAssignments: React.FC = () => {
           <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink3)' }}>
             <Icon name="search" size={14} /> Search
           </div>
-          <button style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)', cursor: 'pointer' }}>
+          <button style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             <Icon name="filter" size={14} /> Filters
           </button>
         </div>
@@ -97,8 +97,8 @@ export const TrackingAssignments: React.FC = () => {
             <button onClick={nextDay} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="chevronRight" size={16} /></button>
           </div>
           <div style={{ display: 'flex', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
-            <button style={{ padding: 'var(--ds-btn-py-sm) 12px', background: 'var(--bg)', border: 'none', borderRight: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}>Today</button>
-            <button style={{ padding: 'var(--ds-btn-py-sm) 12px', background: 'var(--white)', border: 'none', fontSize: 12, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer' }}>Day <Icon name="chevronDown" size={10} /></button>
+            <button style={{ padding: 'var(--ds-btn-py-sm) 12px', background: 'var(--bg)', border: 'none', borderRight: '1px solid var(--border)', fontSize: 12, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>Today</button>
+            <button style={{ padding: 'var(--ds-btn-py-sm) 12px', background: 'var(--white)', border: 'none', fontSize: 12, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>Day <Icon name="chevronDown" size={10} /></button>
           </div>
         </div>
       </div>
@@ -232,8 +232,8 @@ const AddAssignmentModal = ({ onClose, onSave }: { onClose: () => void, onSave: 
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 24 }}>
-          <button onClick={onClose} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-          <button onClick={handleSave} disabled={saving || !form.vehicle_id || !form.driver_id || !form.start_time} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: (saving || !form.vehicle_id || !form.driver_id || !form.start_time) ? 0.6 : 1 }}>
+          <button onClick={onClose} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
+          <button onClick={handleSave} disabled={saving || !form.vehicle_id || !form.driver_id || !form.start_time} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: (saving || !form.vehicle_id || !form.driver_id || !form.start_time) ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             {saving ? 'Saving...' : 'Save Assignment'}
           </button>
         </div>

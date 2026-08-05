@@ -188,6 +188,10 @@
   --ds-btn-py-xs: 3px;
   --ds-btn-py-sm: 5px;
   --ds-btn-py-lg: 10px;
+  --ctl-h-xs: 28px;
+  --ctl-h-sm: 32px;
+  --ctl-h:    36px;
+  --ctl-h-lg: 42px;
   --ds-input-py: 7px;
   --ds-cell-py:  11px;
 
@@ -1390,16 +1394,26 @@ body {
   transition: all var(--dur-fast, 80ms) var(--ease, ease);
   white-space: nowrap;
   font-size: var(--text-base, 14px);
+  /* Height is stated, not derived. Padding alone left a borderless primary
+     2px under the bordered secondary next to it, and a line-height of 1.2
+     4px under one of 1.5. With a floor, none of that reaches the height. */
+  min-height: var(--ctl-h);
+  box-sizing: border-box;
+  /* 1.25, not the inherited 1.5. A floor only binds when the content is
+     shorter than it: at 1.5 a 14px label made the box 41px on its own and
+     min-height never applied, which is the last 1px between a .btn and a
+     ui/Button. Every step's content now sits under its own floor. */
+  line-height: 1.25;
 }
 /* The size steps read the same density tokens ui/Button does, so a legacy
    .btn-sm and a <Button size="sm"> are the same height on the same screen.
    They were fixed at 6px and 11px, which ignored the SuperAdmin density
    setting entirely: a small legacy button sat at 32px beside a 48px one,
    and the gap widened as density rose. */
-.btn-xs  { padding: var(--ds-btn-py-xs, 3px) 10px; font-size: 12px; }
-.btn-sm  { padding: var(--ds-btn-py-sm, 5px) 14px; font-size: 13px; }
-.btn-md  { padding: var(--ds-btn-py, 7px) 20px; font-size: 14px; }
-.btn-lg  { padding: var(--ds-btn-py-lg, 10px) 24px; font-size: 15px; }
+.btn-xs  { padding: var(--ds-btn-py-xs, 3px) 10px; font-size: 12px; min-height: var(--ctl-h-xs); }
+.btn-sm  { padding: var(--ds-btn-py-sm, 5px) 14px; font-size: 13px; min-height: var(--ctl-h-sm); }
+.btn-md  { padding: var(--ds-btn-py, 7px) 20px; font-size: 14px; min-height: var(--ctl-h); }
+.btn-lg  { padding: var(--ds-btn-py-lg, 10px) 24px; font-size: 15px; min-height: var(--ctl-h-lg); }
 
 .btn-primary   { background: var(--teal); color: #fff; border-color: var(--teal); }
 .btn-primary:hover { filter: brightness(0.88); }

@@ -339,12 +339,12 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', gap: 10 }}>
               <button type="button" title="Reject this quote" onClick={() => setRejecting(true)} disabled={saving}
-                style={{ flex: 1, padding: 'var(--ds-btn-py-lg) 0', border: '1.5px solid #dc2626', borderRadius: 'var(--r)', background: '#fff', color: '#dc2626', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                style={{ flex: 1, padding: 'var(--ds-btn-py-lg) 0', border: '1.5px solid #dc2626', borderRadius: 'var(--r)', background: '#fff', color: '#dc2626', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box'}}>
                 <Icon name="x" size={15} color="#dc2626" />
                 Reject
               </button>
               <button type="button" title="Accept this quote" onClick={() => setAccepting(true)} disabled={saving}
-                style={{ flex: 2, padding: 'var(--ds-btn-py-lg) 0', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                style={{ flex: 2, padding: 'var(--ds-btn-py-lg) 0', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box'}}>
                 <Icon name="checkCircle" size={15} color="#fff" />
                 {saving ? 'Saving…' : 'Accept Quote'}
               </button>
@@ -471,7 +471,7 @@ export const CustomerQuotations: React.FC = () => {
       <div style={{ padding: '0 16px', display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 12 }}>
         {FILTER_OPTIONS.map(f => (
           <button key={f.key} type="button" title={f.label} onClick={() => setFilter(f.key)}
-            style={{ flexShrink: 0, padding: 'var(--ds-btn-py) 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: `1.5px solid ${filter === f.key ? 'var(--teal)' : 'var(--border)'}`, background: filter === f.key ? 'var(--teal)' : 'var(--white)', color: filter === f.key ? '#fff' : 'var(--ink2)' }}>
+            style={{ flexShrink: 0, padding: 'var(--ds-btn-py) 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: `1.5px solid ${filter === f.key ? 'var(--teal)' : 'var(--border)'}`, background: filter === f.key ? 'var(--teal)' : 'var(--white)', color: filter === f.key ? '#fff' : 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             {f.label}
             {f.key === 'PENDING' && pendingCount > 0 && (
               <span style={{ marginLeft: 6, background: '#dc2626', color: '#fff', borderRadius: '50%', width: 16, height: 16, fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>

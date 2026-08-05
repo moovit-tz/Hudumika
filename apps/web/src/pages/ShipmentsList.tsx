@@ -344,7 +344,7 @@ export const ShipmentsList: React.FC = () => {
           <Icon name="plus" size={14} strokeWidth={2.5} /> New Shipment
         </Link>
         <button type="button" onClick={() => exportCsv(shipments)}
-          style={{ padding: 'var(--ds-btn-py) 18px', fontSize: 13, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7 }}>
+          style={{ padding: 'var(--ds-btn-py) 18px', fontSize: 13, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
           <Icon name="download" size={14} /> Export CSV
         </button>
       </div>

@@ -320,8 +320,7 @@ function Seg({ active, onClick, label, icon, fullWidth, grow }: { active: boolea
         background: active ? 'color-mix(in srgb, var(--teal) 12%, transparent)' : 'var(--card-bg, var(--white))',
         color: active ? 'var(--teal)' : 'var(--ink2)',
         fontWeight: active ? 700 : 500, fontSize: 13, cursor: 'pointer',
-        transition: 'all .15s ease', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 10
-      }}>
+        transition: 'all .15s ease', whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 10, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
       {icon && <Icon name={icon as IconName} size={15} color={active ? 'var(--teal)' : 'var(--ink3)'} />}
       {label}
     </button>
@@ -4232,8 +4231,7 @@ export const LandedCostPage: React.FC = () => {
               padding: 'var(--ds-btn-py-sm) 11px', borderRadius: 'var(--r-sm)', cursor: 'pointer',
               background: ISSUE_STYLE[g.kind].tint,
               border: `1px solid ${ISSUE_STYLE[g.kind].edge}`,
-              color: ISSUE_STYLE[g.kind].ink,
-            }}>
+              color: ISSUE_STYLE[g.kind].ink, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
             {g.rows.length} {ISSUE_STYLE[g.kind].label}
             <Icon name="arrowRight" size={12} color={ISSUE_STYLE[g.kind].ink} />
           </button>
@@ -4746,7 +4744,7 @@ export const LandedCostPage: React.FC = () => {
                                   <div key={`mem-${m.code}`} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
                                     <button type="button" onClick={() => acceptSuggestion(row.id, m.code)}
                                       title={`Use ${m.code} — matches "${m.closestDescription}"`}
-                                      style={{ flexShrink: 0, cursor: 'pointer', border: '1px solid var(--green)', background: 'var(--green-l)', color: 'var(--green)', borderRadius: 'var(--badge-radius)', padding: 'var(--ds-btn-py-xs) 10px', fontSize: 12, fontWeight: 700, fontFamily: 'var(--mono, monospace)' }}>
+                                      style={{ flexShrink: 0, cursor: 'pointer', border: '1px solid var(--green)', background: 'var(--green-l)', color: 'var(--green)', borderRadius: 'var(--badge-radius)', padding: 'var(--ds-btn-py-xs) 10px', fontSize: 12, fontWeight: 700, fontFamily: 'var(--mono, monospace)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
                                       {m.code}
                                     </button>
                                     <span style={{ fontSize: 11.5, color: 'var(--ink2)', flex: '1 1 160px', minWidth: 0 }}>
@@ -4772,7 +4770,7 @@ export const LandedCostPage: React.FC = () => {
                                     type="button"
                                     onClick={() => acceptSuggestion(row.id, s.code)}
                                     title={`Use ${s.code} for this line`}
-                                    style={{ flexShrink: 0, cursor: 'pointer', border: '1px solid var(--teal)', background: led ? 'var(--teal)' : 'transparent', color: led ? '#fff' : 'var(--teal)', borderRadius: 'var(--badge-radius)', padding: 'var(--ds-btn-py-xs) 10px', fontSize: 12, fontWeight: 700, fontFamily: 'var(--mono, monospace)' }}
+                                    style={{ flexShrink: 0, cursor: 'pointer', border: '1px solid var(--teal)', background: led ? 'var(--teal)' : 'transparent', color: led ? '#fff' : 'var(--teal)', borderRadius: 'var(--badge-radius)', padding: 'var(--ds-btn-py-xs) 10px', fontSize: 12, fontWeight: 700, fontFamily: 'var(--mono, monospace)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}
                                   >
                                     {s.code}
                                   </button>
@@ -5260,7 +5258,7 @@ export const LandedCostPage: React.FC = () => {
                         )}
 
                         <button type="button" onClick={runAi} disabled={aiPending}
-                          style={{ width: '100%', padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: aiPending ? 'default' : 'pointer', opacity: aiPending ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px color-mix(in srgb, var(--teal) 25%, transparent)' }}>
+                          style={{ width: '100%', padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 700, fontSize: 14, cursor: aiPending ? 'default' : 'pointer', opacity: aiPending ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxShadow: '0 4px 14px color-mix(in srgb, var(--teal) 25%, transparent)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                           <Icon name="sparkle" size={14} color="#fff" />
                           {aiPending ? 'Analysing…' : aiError ? 'Retry AI Analysis' : 'Run AI Analysis'}
                         </button>
@@ -5311,12 +5309,12 @@ export const LandedCostPage: React.FC = () => {
 
                     <div className="lcp-btn-row-3">
                       <button type="button" onClick={() => setStep(3)}
-                        style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                        style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                         <Icon name="edit" size={15} color="var(--ink2)" />
                         Amend details
                       </button>
                       <button type="button" onClick={async () => { if (!result) return; const rc = await fetchRateCardDefaults(rateCardKeyFor(result.mode, container), icdOperatorId); const sc = await fetchSizeCards(result, icdOperatorId); const share = await createShareForReport(result, reportMeta, { result, qty, summary, extraItems, container, rateCard: rc, sizeCards: sc, meta: reportMeta }); setShareNotice(share.qrUnavailableReason ?? ''); printReport(result, qty, summary, extraItems, container, rc, { ...reportMeta, ...share }, sc); }}
-                        style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--teal)', background: 'var(--card-bg, var(--white))', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                        style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--teal)', background: 'var(--card-bg, var(--white))', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                         <Icon name="download" size={15} color="var(--teal)" />
                         Export PDF
                       </button>
@@ -5325,12 +5323,12 @@ export const LandedCostPage: React.FC = () => {
                           upload and the calculation itself, and a half-written report
                           should survive a mis-click. */}
                       <button type="button" onClick={() => navigate('/clearos/report-issue')}
-                        style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                        style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                         <Icon name="alertCircle" size={15} color="var(--ink2)" />
                         Report an issue
                       </button>
                       <button type="button" onClick={newCalculation}
-                        style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                        style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                         New Calculation
                       </button>
                     </div>
@@ -5503,7 +5501,7 @@ export const LandedCostPage: React.FC = () => {
                         the whole invoice. Step 3 keeps every row, and the
                         figures recalculate on return. */}
                     <button type="button" onClick={() => setStep(3)}
-                      style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                       <Icon name="edit" size={15} color="var(--ink2)" />
                       Amend items
                     </button>
@@ -5519,7 +5517,7 @@ export const LandedCostPage: React.FC = () => {
                       setShareNotice(share.qrUnavailableReason ?? '');
                       printMultiReport(multiResult, { ...reportMeta, ...share }, rc, sc, lots);
                     }}
-                      style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--teal)', background: 'var(--card-bg, var(--white))', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--teal)', background: 'var(--card-bg, var(--white))', color: 'var(--teal)', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                       <Icon name="download" size={15} color="var(--teal)" />
                       Export PDF
                     </button>
@@ -5527,12 +5525,12 @@ export const LandedCostPage: React.FC = () => {
                         attachment upload and the calculation itself, and a
                         half-written report should survive a mis-click. */}
                     <button type="button" onClick={() => navigate('/clearos/report-issue')}
-                      style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                       <Icon name="alertCircle" size={15} color="var(--ink2)" />
                       Report an issue
                     </button>
                     <button type="button" onClick={newCalculation}
-                      style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                      style={{ padding: 'var(--ds-btn-py) 0', borderRadius: 'var(--r-sm)', border: '1.5px solid var(--border)', background: 'var(--card-bg, var(--white))', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                       New Calculation
                     </button>
                   </div>

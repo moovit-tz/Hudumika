@@ -393,7 +393,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                 )}
               </div>
             ))}
-            <button className="wfb-btn-ghost wfb-btn-sm" style={{width:'100%',justifyContent:'center'}} onClick={addCond}><I n="plus" s={12}/> Add Condition</button>
+            <button className="btn btn-secondary btn-sm" style={{width:'100%',justifyContent:'center'}} onClick={addCond}><I n="plus" s={12}/> Add Condition</button>
           </div>}
         </div>
 
@@ -444,7 +444,7 @@ function RightPanel({wf, step, allSteps, customers, onUpdateStep, onDeleteStep, 
                 </div>
               </div>;
             })}
-            <button className="wfb-btn-ghost wfb-btn-sm" style={{width:'100%',justifyContent:'center'}} onClick={addComm}><I n="plus" s={12}/> Add Communication</button>
+            <button className="btn btn-secondary btn-sm" style={{width:'100%',justifyContent:'center'}} onClick={addComm}><I n="plus" s={12}/> Add Communication</button>
           </div>}
         </div>
       </div>
@@ -615,7 +615,7 @@ export function ClearanceWorkflowBuilder() {
     return (
       <div className="wfb-page" style={{alignItems:'center', justifyContent:'center', display:'flex', flexDirection:'column', gap:12}}>
         <div style={{color:'var(--red)'}}>{loadError}</div>
-        <button className="wfb-btn-ghost wfb-btn-sm" onClick={()=>navigate('/studio/clearance')}><I n="arrowLeft" s={13}/> Back to clearance workflows</button>
+        <button className="btn btn-secondary btn-sm" onClick={()=>navigate('/studio/clearance')}><I n="arrowLeft" s={13}/> Back to clearance workflows</button>
       </div>
     );
   }
@@ -626,7 +626,7 @@ export function ClearanceWorkflowBuilder() {
 
       {/* ── Top bar ── */}
       <div className="wfb-topbar">
-        <button className="wfb-btn-ghost wfb-btn-sm" onClick={()=>navigate('/studio/clearance')}>
+        <button className="btn btn-secondary btn-sm" onClick={()=>navigate('/studio/clearance')}>
           <I n="arrowLeft" s={13}/> Workflows
         </button>
         <span className="wfb-topbar-sep">/</span>
@@ -646,18 +646,18 @@ export function ClearanceWorkflowBuilder() {
             since both read the saved version by id. */}
         {wf.id && (
           <>
-            <button className="wfb-btn-ghost wfb-btn-sm" onClick={()=>{setInsightsTab('test'); setInsights(true);}}>
+            <button className="btn btn-secondary btn-sm" onClick={()=>{setInsightsTab('test'); setInsights(true);}}>
               <Icon name="play" size={13}/> Dry run
             </button>
-            <button className="wfb-btn-ghost wfb-btn-sm" onClick={()=>{setInsightsTab('history'); setInsights(true);}}>
+            <button className="btn btn-secondary btn-sm" onClick={()=>{setInsightsTab('history'); setInsights(true);}}>
               <Icon name="clock" size={13}/> History
             </button>
           </>
         )}
-        <button className="wfb-btn-ghost wfb-btn-sm" onClick={()=>setPanel(p=>!p)}>
+        <button className="btn btn-secondary btn-sm" onClick={()=>setPanel(p=>!p)}>
           <I n="layers" s={13}/> {panel?'Hide':'Panel'}
         </button>
-        <button className="wfb-btn-primary" onClick={handleSave} disabled={saving}>
+        <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
           <I n="save" s={13} c="white"/> {saving?'Saving\u2026':saved?'Saved \u2713':'Save'}
         </button>
       </div>
@@ -772,7 +772,7 @@ export function ClearanceWorkflowBuilder() {
               {wf.steps.length===0&&(
                 <div className="wfb-add-first">
                   <div style={{fontSize:13,color:'var(--ink3)'}}>No steps yet</div>
-                  <button className="wfb-btn-primary" onClick={()=>addStep()}><I n="plus" s={13} c="white"/> Add First Step</button>
+                  <button className="btn btn-primary" onClick={()=>addStep()}><I n="plus" s={13} c="white"/> Add First Step</button>
                 </div>
               )}
             </div>

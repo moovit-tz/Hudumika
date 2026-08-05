@@ -274,8 +274,8 @@ function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: (
           Are you sure you want to delete <strong>{name}</strong>? This cannot be undone and may affect invoices or quotations referencing this item.
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button type="button" title="Cancel" onClick={onCancel} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)' }}>Cancel</button>
-          <button type="button" title="Confirm delete" onClick={onConfirm} style={{ padding: 'var(--ds-btn-py) 18px', border: 'none', borderRadius: 'var(--r)', background: 'var(--red)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>Delete</button>
+          <button type="button" title="Cancel" onClick={onCancel} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
+          <button type="button" title="Confirm delete" onClick={onConfirm} style={{ padding: 'var(--ds-btn-py) 18px', border: 'none', borderRadius: 'var(--r)', background: 'var(--red)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Delete</button>
         </div>
       </div>
     </div>
@@ -415,7 +415,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Inactive services don't appear in the invoice line-item picker</div>
             </div>
             <button type="button" title="Toggle status" onClick={() => set('status', f.status === 'active' ? 'inactive' : 'active')}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: f.status === 'active' ? 'var(--green)' : 'var(--ink3)' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: f.status === 'active' ? 'var(--green)' : 'var(--ink3)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: f.status === 'active' ? 'var(--green)' : 'var(--ink3)' }} />
               {f.status === 'active' ? 'Active' : 'Inactive'}
             </button>
@@ -445,9 +445,9 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
 
         {/* Footer */}
         <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button type="button" title="Cancel" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)' }}>Cancel</button>
+          <button type="button" title="Cancel" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
           <button type="button" title="Save service" onClick={submit} disabled={saving}
-            style={{ padding: 'var(--ds-btn-py) 20px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+            style={{ padding: 'var(--ds-btn-py) 20px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             <Icon name="save" size={13} /> {saving ? 'Saving…' : initial ? 'Update Service' : 'Add Service'}
           </button>
         </div>
@@ -522,7 +522,7 @@ function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
 
         <div style={{ padding: '16px 22px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button type="button" title="Edit service" onClick={onEdit}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             <Icon name="edit" size={14} /> Edit Service
           </button>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -782,16 +782,16 @@ export const ProductsServices: React.FC = () => {
           <div style={{ display: 'flex', gap: 8 }}>
             {!loading && products.length === 0 && (
               <button type="button" title="Add starter catalog" disabled={loadingStarter} onClick={handleLoadStarterCatalog}
-                style={{ padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                style={{ padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                 <Icon name="refresh" size={13} /> {loadingStarter ? 'Adding…' : 'Load Starter Catalog'}
               </button>
             )}
             <button type="button" title="Import from TPA/TASAC tariff reference" onClick={() => setTariffSheetOpen(true)}
-              style={{ padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              style={{ padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
               <Icon name="layers" size={13} /> Import from Tariff
             </button>
             <button type="button" title="Add new service" onClick={() => setEditing('new')}
-              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 18px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 18px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
               <Icon name="plus" size={14} /> New Service
             </button>
           </div>
@@ -829,7 +829,7 @@ export const ProductsServices: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{tariffSelected.size} selected</span>
               <button type="button" disabled={tariffSelected.size === 0 || tariffImporting} onClick={handleImportSelectedTariff}
-                style={{ padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: tariffSelected.size === 0 ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, opacity: tariffSelected.size === 0 || tariffImporting ? 0.6 : 1 }}>
+                style={{ padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: tariffSelected.size === 0 ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, opacity: tariffSelected.size === 0 || tariffImporting ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                 {tariffImporting ? 'Adding…' : `Add ${tariffSelected.size || ''} Service${tariffSelected.size === 1 ? '' : 's'}`}
               </button>
             </div>
@@ -848,7 +848,7 @@ export const ProductsServices: React.FC = () => {
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {[{ key: 'ALL', label: `All (${products.length})` }, ...CATEGORIES.map(c => ({ key: c, label: `${CAT_CFG[c].label} (${products.filter(p => p.category === c).length})` }))].map(t => (
               <button key={t.key} type="button" title={`Filter: ${t.label}`} onClick={() => { setCatFilter(t.key); setPage(1); }}
-                style={{ padding: 'var(--ds-btn-py-sm) 12px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', transition: 'all 0.1s', background: catFilter === t.key ? 'var(--navy)' : 'var(--bg)', color: catFilter === t.key ? '#fff' : 'var(--ink2)' }}>
+                style={{ padding: 'var(--ds-btn-py-sm) 12px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', transition: 'all 0.1s', background: catFilter === t.key ? 'var(--navy)' : 'var(--bg)', color: catFilter === t.key ? '#fff' : 'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
                 {t.label}
               </button>
             ))}
@@ -857,7 +857,7 @@ export const ProductsServices: React.FC = () => {
             <div style={{ display: 'flex', gap: 2, background: 'var(--bg)', padding: 3, borderRadius: 9 }}>
               {(['ALL', 'active', 'inactive'] as const).map(s => (
                 <button key={s} type="button" title={`Status: ${s}`} onClick={() => { setStatusFilter(s); setPage(1); }}
-                  style={{ padding: 'var(--ds-btn-py-sm) 10px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', background: statusFilter === s ? 'var(--white)' : 'transparent', color: statusFilter === s ? 'var(--ink)' : 'var(--ink3)', boxShadow: statusFilter === s ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}>
+                  style={{ padding: 'var(--ds-btn-py-sm) 10px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', background: statusFilter === s ? 'var(--white)' : 'transparent', color: statusFilter === s ? 'var(--ink)' : 'var(--ink3)', boxShadow: statusFilter === s ? '0 1px 4px rgba(0,0,0,0.08)' : 'none', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
                   {s === 'ALL' ? 'All Status' : s.charAt(0).toUpperCase() + s.slice(1)}
                 </button>
               ))}
@@ -879,14 +879,14 @@ export const ProductsServices: React.FC = () => {
               <div style={{ marginBottom: 12 }}><Icon name="alertCircle" size={44} color="var(--red)" /></div>
               <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Couldn't load the catalog</div>
               <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>{loadError}</div>
-              <button type="button" title="Retry" onClick={loadProducts} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 20px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)' }}><Icon name="refresh" size={13} /> Retry</button>
+              <button type="button" title="Retry" onClick={loadProducts} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 20px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}><Icon name="refresh" size={13} /> Retry</button>
             </div>
           ) : displayed.length === 0 ? (
             <div style={{ padding: '60px 20px', textAlign: 'center' }}>
               <div style={{ marginBottom: 12 }}><Icon name="package" size={44} color="var(--border)" /></div>
               <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>No services found</div>
               <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>{search ? 'Try a different search.' : 'Add your first service to the catalog.'}</div>
-              {!search && <button type="button" title="Add service" onClick={() => setEditing('new')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 20px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}><Icon name="plus" size={13} /> New Service</button>}
+              {!search && <button type="button" title="Add service" onClick={() => setEditing('new')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 20px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}><Icon name="plus" size={13} /> New Service</button>}
             </div>
           ) : (
             <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>

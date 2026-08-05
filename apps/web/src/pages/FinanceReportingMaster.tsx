@@ -875,8 +875,7 @@ export const FinanceReportingMaster: React.FC = () => {
                         border: 'none', borderLeft: `3px solid ${isActive ? 'var(--teal)' : 'transparent'}`,
                         padding: 'var(--ds-btn-py) 20px', cursor: 'pointer', fontSize: 14,
                         fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--teal)' : 'var(--ink)',
-                        fontFamily: 'var(--font)', transition: 'background 0.1s', display: 'block',
-                      }}
+                        fontFamily: 'var(--font)', transition: 'background 0.1s', display: 'block', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
                       onMouseEnter={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg)'; }}
                       onMouseLeave={e => { if (!isActive) (e.currentTarget as HTMLButtonElement).style.background = 'none'; }}
                     >

@@ -166,27 +166,27 @@ export function SealCompartmentDetail() {
 
           {/* Action Toolbar */}
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button type="button" className="seal-btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/layout`)}>
+            <button type="button" className="btn btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/layout`)}>
               <Icon name="warehouse" size={14} /><span>Warehouse Layout</span>
             </button>
-            <button type="button" className="seal-btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/heat-grid`)}>
+            <button type="button" className="btn btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/heat-grid`)}>
               <Icon name="grid" size={14} /><span>Heat Grid</span>
             </button>
             {c.warehouse_type === 'sorting_centre' && (
-              <button type="button" className="seal-btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/sorting-dashboard`)}>
+              <button type="button" className="btn btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/sorting-dashboard`)}>
                 <Icon name="arrowUpDown" size={14} /><span>Sorting Dashboard</span>
               </button>
             )}
-            <button type="button" className="seal-btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/edit`)}>
+            <button type="button" className="btn btn-secondary" onClick={() => navigate(`/seal/compartments/${c.id}/edit`)}>
               <Icon name="edit" size={14} /><span>Edit</span>
             </button>
-            <button type="button" className="seal-btn-secondary" onClick={handleDuplicate} title="Duplicate this warehouse definition">
+            <button type="button" className="btn btn-secondary" onClick={handleDuplicate} title="Duplicate this warehouse definition">
               <Icon name="copy" size={14} /><span>Duplicate</span>
             </button>
-            <button type="button" className="seal-btn-secondary" onClick={handleToggleStatus} style={{ color: isSuspended ? 'var(--seal)' : 'var(--red)' }}>
+            <button type="button" className="btn btn-secondary" onClick={handleToggleStatus} style={{ color: isSuspended ? 'var(--seal)' : 'var(--red)' }}>
               <Icon name={isSuspended ? 'play' : 'pause'} size={14} /><span>{isSuspended ? 'Reactivate' : 'Suspend'}</span>
             </button>
-            <button type="button" className="seal-btn-secondary" onClick={handleDelete} style={{ color: 'var(--red)' }}>
+            <button type="button" className="btn btn-secondary" onClick={handleDelete} style={{ color: 'var(--red)' }}>
               <Icon name="trash" size={14} /><span>Delete</span>
             </button>
           </div>
@@ -226,8 +226,7 @@ export function SealCompartmentDetail() {
           style={{
             padding: 'var(--ds-btn-py) 18px', fontSize: 13, fontWeight: 700, background: 'none', border: 'none',
             borderBottom: activeTab === 'overview' ? '2px solid var(--seal)' : '2px solid transparent',
-            color: activeTab === 'overview' ? 'var(--seal)' : 'var(--ink3)', cursor: 'pointer',
-          }}
+            color: activeTab === 'overview' ? 'var(--seal)' : 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
           onClick={() => setActiveTab('overview')}
         >
           Overview & Zones
@@ -237,8 +236,7 @@ export function SealCompartmentDetail() {
           style={{
             padding: 'var(--ds-btn-py) 18px', fontSize: 13, fontWeight: 700, background: 'none', border: 'none',
             borderBottom: activeTab === 'lots' ? '2px solid var(--seal)' : '2px solid transparent',
-            color: activeTab === 'lots' ? 'var(--seal)' : 'var(--ink3)', cursor: 'pointer',
-          }}
+            color: activeTab === 'lots' ? 'var(--seal)' : 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
           onClick={() => setActiveTab('lots')}
         >
           Lots On Hand ({lots.length})
@@ -273,7 +271,7 @@ export function SealCompartmentDetail() {
                   </SelectContent>
                 </Select>
               </div>
-              <button type="submit" className="seal-btn-primary">Add Zone</button>
+              <button type="submit" className="btn btn-primary">Add Zone</button>
             </div>
           </form>
 

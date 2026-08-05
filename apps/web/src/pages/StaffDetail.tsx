@@ -316,7 +316,7 @@ export const StaffDetail: React.FC = () => {
           <div style={{ padding: '8px' }}>
             {TABS.map(t => (
               <button key={t.key} type="button" onClick={() => setTab(t.key)}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 12px', background: tab === t.key ? 'var(--bg)' : 'transparent', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', color: tab === t.key ? 'var(--teal)' : 'var(--ink2)', fontWeight: tab === t.key ? 600 : 400, fontFamily: 'var(--font)', fontSize: 13, marginBottom: 1 }}>
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 12px', background: tab === t.key ? 'var(--bg)' : 'transparent', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', color: tab === t.key ? 'var(--teal)' : 'var(--ink2)', fontWeight: tab === t.key ? 600 : 400, fontFamily: 'var(--font)', fontSize: 13, marginBottom: 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                 <Icon name={t.icon} size={14} color={tab === t.key ? 'var(--teal)' : 'var(--ink3)'} />
                 {t.label}
               </button>

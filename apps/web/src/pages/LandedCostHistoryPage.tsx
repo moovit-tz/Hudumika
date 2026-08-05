@@ -457,16 +457,16 @@ export const LandedCostHistoryPage: React.FC = () => {
                 )}
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 22 }}>
-                  <button type="button" className="lch-act" style={{ justifyContent: 'center', padding: 'var(--ds-btn-py) 0' }}
+                  <button type="button" className="lch-act" style={{ justifyContent: 'center', padding: 'var(--ds-btn-py) 0', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
                     disabled={!detail.payload} onClick={() => openReport(detail.id)}>
                     <Icon name="download" size={13} /> Open report
                   </button>
-                  <button type="button" className="lch-act" style={{ justifyContent: 'center', padding: 'var(--ds-btn-py) 0' }}
+                  <button type="button" className="lch-act" style={{ justifyContent: 'center', padding: 'var(--ds-btn-py) 0', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
                     disabled={!detail.payload} onClick={() => customise(detail)}>
                     <Icon name="edit" size={13} /> Customise
                   </button>
                 </div>
-                <button type="button" className="lch-act" style={{ width: '100%', justifyContent: 'center', padding: 'var(--ds-btn-py) 0', marginTop: 10 }}
+                <button type="button" className="lch-act" style={{ width: '100%', justifyContent: 'center', padding: 'var(--ds-btn-py) 0', marginTop: 10, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
                   onClick={() => navigate(`/clearos/report-issue?record=${detail.id}`)}>
                   <Icon name="alertCircle" size={13} /> Report an issue with this calculation
                 </button>

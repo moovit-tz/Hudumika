@@ -131,7 +131,7 @@ function DryRunTab({ workflowId, unsaved }: { workflowId: string; unsaved: boole
             className="z-1100"
           />
         </div>
-        <button className="wfb-btn-primary" onClick={run} disabled={busy}>
+        <button className="btn btn-primary" onClick={run} disabled={busy}>
           <Icon name="play" size={13} color="white" /> {busy ? 'Testing…' : 'Run test'}
         </button>
       </div>
@@ -388,7 +388,7 @@ export function ClearanceWorkflowInsights({
               </button>
             ))}
           </div>
-          <button type="button" className="wfb-btn-ghost wfb-btn-sm" onClick={onClose} aria-label="Close">
+          <button type="button" className="btn btn-secondary btn-sm" onClick={onClose} aria-label="Close">
             <Icon name="x" size={14} />
           </button>
         </div>

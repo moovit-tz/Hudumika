@@ -225,9 +225,9 @@ function RejectModal({ onConfirm, onCancel }: { onConfirm:(r:string)=>void; onCa
         <textarea title="Rejection reason" placeholder="Enter rejection reason�" value={reason} onChange={e=>setReason(e.target.value)} rows={4}
           style={{ width:'100%', padding:'10px 12px', border:'1px solid var(--border)', borderRadius: 9, fontSize:13, resize:'vertical', boxSizing:'border-box' as const, fontFamily:'inherit', outline:'none' }} />
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:16 }}>
-          <button type="button" title="Cancel" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)' }}>Cancel</button>
+          <button type="button" title="Cancel" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
           <button type="button" title="Confirm rejection" onClick={()=>reason.trim()&&onConfirm(reason.trim())}
-            style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background:reason.trim()?'var(--red)':'var(--border)', color:'#fff', cursor:reason.trim()?'pointer':'not-allowed', fontWeight:600, fontSize:13 }}>
+            style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background:reason.trim()?'var(--red)':'var(--border)', color:'#fff', cursor:reason.trim()?'pointer':'not-allowed', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             Reject Quote
           </button>
         </div>
@@ -253,9 +253,9 @@ function SendModal({ quote, onSend, onCancel }: { quote:Quote; onSend:(email:str
         <textarea title="Email message" value={msg} onChange={e=>setMsg(e.target.value)} rows={6}
           style={{ width:'100%', padding:'10px 12px', border:'1px solid var(--border)', borderRadius: 9, fontSize:13, resize:'vertical', boxSizing:'border-box' as const, fontFamily:'inherit', marginBottom:16, outline:'none' }}/>
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
-          <button type="button" title="Cancel" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)' }}>Cancel</button>
+          <button type="button" title="Cancel" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
           <button type="button" title="Send quotation" onClick={()=>email.trim()&&onSend(email.trim(),msg)}
-            style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:email.trim()?'pointer':'not-allowed', fontWeight:600, fontSize:13, display:'flex', alignItems:'center', gap:6 }}>
+            style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:email.trim()?'pointer':'not-allowed', fontWeight:600, fontSize:13, display:'flex', alignItems:'center', gap:6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             <Icon name="send" size={13}/> Send Quote
           </button>
         </div>
@@ -545,7 +545,7 @@ function LineItemsEditor({ lines, currency, onChange }: {
                       <Popover open={pickerKey===l._key} onOpenChange={o=>setPickerKey(o?l._key:null)}>
                         <PopoverTrigger asChild>
                           <button type="button" title="Pick from catalog"
-                            style={{ padding:'var(--ds-btn-py) 8px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--bg)', cursor:'pointer', display:'flex', alignItems:'center', color:'var(--ink2)', flexShrink:0 }}>
+                            style={{ padding:'var(--ds-btn-py) 8px', border:'1px solid var(--border)', borderRadius:'var(--r)', background:'var(--bg)', cursor:'pointer', display:'flex', alignItems:'center', color:'var(--ink2)', flexShrink:0, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                             <Icon name="search" size={12}/>
                           </button>
                         </PopoverTrigger>
@@ -592,13 +592,13 @@ function LineItemsEditor({ lines, currency, onChange }: {
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', padding:'12px 8px 4px', flexWrap:'wrap', gap:12 }}>
         <div style={{ display:'flex', gap:8, position:'relative' }}>
           <button type="button" title="Add blank line item" onClick={addBlank}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px dashed var(--teal)', borderRadius: 'var(--r)', background:'var(--teal-l)', color:'var(--teal)', cursor:'pointer', fontWeight:600, fontSize:13 }}>
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px dashed var(--teal)', borderRadius: 'var(--r)', background:'var(--teal-l)', color:'var(--teal)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             <Icon name="plus" size={13}/> Add Line
           </button>
           <Popover open={showCatalog} onOpenChange={setShowCatalog}>
             <PopoverTrigger asChild>
               <button type="button" title="Add from service catalog"
-                style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--white)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13 }}>
+                style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--white)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                 <Icon name="clipboard" size={13}/> From Catalog
               </button>
             </PopoverTrigger>
@@ -683,11 +683,11 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
         </div>
         <div style={{ marginLeft:'auto', display:'flex', gap:8 }}>
           <button type="button" title="Save as draft" onClick={()=>submit(true)} disabled={saving}
-            style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--white)', color:'var(--ink)', cursor:'pointer', fontWeight:600, fontSize:13 }}>
+            style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--white)', color:'var(--ink)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             {saving?'Saving�':'Save as Draft'}
           </button>
           <button type="button" title="Save and submit for approval" onClick={()=>submit(false)} disabled={saving}
-            style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:600, fontSize:13, display:'flex', alignItems:'center', gap:6 }}>
+            style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:600, fontSize:13, display:'flex', alignItems:'center', gap:6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             <Icon name="send" size={13}/> Save &amp; Submit
           </button>
         </div>
@@ -1029,18 +1029,18 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
                   { title:'Send to Customer',icon:'mail'    as const, color:'var(--blue)',  fn:()=>Promise.resolve(setShowSend(true)) },
                 ].map(a=>(
                   <button key={a.title} type="button" title={a.title} onClick={()=>a.fn()}
-                    style={{ display:'flex', alignItems:'center', gap:8, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:a.color }}>
+                    style={{ display:'flex', alignItems:'center', gap:8, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:a.color, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                     <Icon name={a.icon} size={14}/> {a.title}
                   </button>
                 ))}
                 {['DRAFT','PENDING'].includes(quote.status)&&(
                   <button type="button" title="Edit" onClick={onEdit}
-                    style={{ display:'flex', alignItems:'center', gap:8, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink)' }}>
+                    style={{ display:'flex', alignItems:'center', gap:8, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                     <Icon name="edit" size={14}/> Edit Quotation
                   </button>
                 )}
                 <button type="button" title="Duplicate" onClick={()=>act('dup',onDuplicate)}
-                  style={{ display:'flex', alignItems:'center', gap:8, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)' }}>
+                  style={{ display:'flex', alignItems:'center', gap:8, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                   <Icon name="copy" size={14}/> {busy==='dup'?'Duplicating�':'Duplicate'}
                 </button>
 
@@ -1214,7 +1214,7 @@ export const Quotations: React.FC = () => {
         <div style={{ display:'flex', gap:4 }}>
           {STATUS_TABS.map(t=>(
             <button key={t.key} type="button" title={`Filter: ${t.label}`} onClick={()=>setFilter(t.key)}
-              style={{ padding:'var(--ds-btn-py-sm) 14px', fontSize:12, fontWeight:600, border:'none', borderRadius:20, cursor:'pointer', transition:'all 0.12s', background:filter===t.key?'var(--navy)':'var(--bg)', color:filter===t.key?'#fff':'var(--ink2)' }}>
+              style={{ padding:'var(--ds-btn-py-sm) 14px', fontSize:12, fontWeight:600, border:'none', borderRadius:20, cursor:'pointer', transition:'all 0.12s', background:filter===t.key?'var(--navy)':'var(--bg)', color:filter===t.key?'#fff':'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
               {t.label}
               {t.key!=='ALL'&&quotes.filter(q=>q.status===t.key).length>0&&(
                 <span style={{ marginLeft:5, background:filter===t.key?'rgba(255,255,255,0.25)':'var(--border)', borderRadius: 9, padding:'1px 6px', fontSize:10, fontWeight:700 }}>{quotes.filter(q=>q.status===t.key).length}</span>
@@ -1228,10 +1228,10 @@ export const Quotations: React.FC = () => {
             <input type="text" title="Search" placeholder="Search quotes, customers�" value={search} onChange={e=>setSearch(e.target.value)}
               style={{ width:'100%', paddingLeft:32, paddingRight:12, paddingTop:8, paddingBottom:8, border:'1px solid var(--border)', borderRadius: 9, fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const }}/>
           </div>
-          <button type="button" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', borderRadius:'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap' }}>
+          <button type="button" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', borderRadius:'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             <Icon name="download" size={13}/> Export CSV
           </button>
-          <button type="button" onClick={()=>setView('create')} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 18px', borderRadius:'var(--r)', border:'none', background:'var(--teal)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap' }}>
+          <button type="button" onClick={()=>setView('create')} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 18px', borderRadius:'var(--r)', border:'none', background:'var(--teal)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             <Icon name="plus" size={13}/> New Quotation
           </button>
         </div>
@@ -1245,7 +1245,7 @@ export const Quotations: React.FC = () => {
                 <div style={{ marginBottom:12 }}><Icon name="fileText" size={48} color="var(--border)"/></div>
                 <div style={{ fontSize:15, fontWeight:600, color:'var(--ink)', marginBottom:6 }}>No quotations found</div>
                 <div style={{ fontSize:13, color:'var(--ink3)', marginBottom:20 }}>{search?'Try a different search term.':'Get started by creating your first quotation.'}</div>
-                {!search&&<button type="button" title="Create quotation" onClick={()=>setView('create')} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:600, fontSize:13 }}><Icon name="plus" size={13}/>New Quotation</button>}
+                {!search&&<button type="button" title="Create quotation" onClick={()=>setView('create')} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}><Icon name="plus" size={13}/>New Quotation</button>}
               </div>
             : <div className="rtbl-wrap" style={{ overflowX:'auto' }}>
                 <table className="rtbl" style={{ borderCollapse:'collapse', fontSize:13 }}>

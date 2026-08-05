@@ -698,7 +698,7 @@ export function CompaniesView() {
                     title={`Login as ${co.name}`}
                     disabled={!!impersonating}
                     onClick={() => handleImpersonate(co)}
-                    style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:11, fontWeight:700, cursor: impersonating ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonating===co.id ? 0.6 : 1, whiteSpace:'nowrap' }}>
+                    style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:11, fontWeight:700, cursor: impersonating ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonating===co.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
                     <Icon name="eye" size={11} color="var(--teal)" />
                     {impersonating === co.id ? 'Switching…' : 'Login As'}
                   </button>
@@ -994,7 +994,7 @@ export function PackagesView() {
           <div style={{ display:'flex', gap:10, alignItems:'center' }}>
             <div style={{ display:'flex', border:'1px solid var(--border)', borderRadius:6, overflow:'hidden' }}>
               {(['monthly','annual'] as const).map(b=>(
-                <button key={b} onClick={()=>setBilling(b)} style={{ padding:'var(--ds-btn-py-sm) 14px', border:'none', cursor:'pointer', fontSize:12, fontWeight:600, background:billing===b?'var(--teal)':'var(--white)', color:billing===b?'#fff':'var(--ink3)', textTransform:'capitalize' }}>{b}</button>
+                <button key={b} onClick={()=>setBilling(b)} style={{ padding:'var(--ds-btn-py-sm) 14px', border:'none', cursor:'pointer', fontSize:12, fontWeight:600, background:billing===b?'var(--teal)':'var(--white)', color:billing===b?'#fff':'var(--ink3)', textTransform:'capitalize', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>{b}</button>
               ))}
             </div>
             <button onClick={()=>setShowAdd(true)} className="btn btn-primary btn-sm" style={{gap:6}}><Icon name="plus" size={13}/>New Package</button>
@@ -1325,7 +1325,7 @@ export function DomainsView() {
             </TD>
             <TD>
               <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                <button type="button" className="btn" style={{ fontSize:11, padding:'var(--ds-btn-py-xs) 9px' }}
+                <button type="button" className="btn" style={{ fontSize:11, padding:'var(--ds-btn-py-xs) 9px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}
                   disabled={busy==='chk'+d.id}
                   onClick={()=>act('chk'+d.id, ()=>apiFetch(`/v1/superadmin/domains/${d.id}/check`, { method:'POST', body:'{}' }))}>
                   {busy==='chk'+d.id ? 'Checking…' : 'Check'}
@@ -1869,7 +1869,7 @@ export function SettingsView() {
           </div>
           <button type="button" title="Toggle maintenance mode" onClick={toggleMaintenance}
             style={{ padding:'var(--ds-btn-py) 20px', borderRadius:'var(--r)', border:'none', cursor:'pointer', fontWeight:700, fontSize:13, flexShrink:0,
-              background: maintenance ? 'var(--red)' : 'var(--teal)', color:'#fff', fontFamily:'var(--font)' }}>
+              background: maintenance ? 'var(--red)' : 'var(--teal)', color:'#fff', fontFamily:'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             {maintenance ? 'Disable Maintenance' : 'Enable Maintenance'}
           </button>
         </div>

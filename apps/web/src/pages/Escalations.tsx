@@ -109,8 +109,7 @@ function EscCard({ esc, canResolve, onResolve }: {
             onClick={() => onResolve(esc.id)}
             style={{
               fontSize: 12, fontWeight: 600, padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 'var(--r)', cursor: 'pointer',
-              background: 'var(--teal)', color: '#fff', border: 'none', fontFamily: 'var(--font)',
-            }}>
+              background: 'var(--teal)', color: '#fff', border: 'none', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
             {esc.status === 'PENDING' ? 'Accept & Work' : 'Mark Resolved'}
           </button>
         </div>
@@ -183,11 +182,11 @@ function EscalateModal({ onClose, onSubmit }: {
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" title="Cancel" onClick={onClose}
-              style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13 }}>
+              style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
               Cancel
             </button>
             <button type="submit" title="Submit escalation"
-              style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>
+              style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
               Escalate
             </button>
           </div>
@@ -256,8 +255,7 @@ export const Escalations: React.FC = () => {
           <button type="button" title="Create new escalation" onClick={() => setShowModal(true)}
             style={{
               background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)',
-              padding: 'var(--ds-btn-py) 18px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer',
-            }}>
+              padding: 'var(--ds-btn-py) 18px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             + Escalate Case
           </button>
         )}
@@ -271,8 +269,7 @@ export const Escalations: React.FC = () => {
             style={{
               background: filter === status ? cfg.bg : 'var(--white)',
               border: `1px solid ${filter === status ? cfg.color : 'var(--border)'}`,
-              borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-lg) 16px', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)',
-            }}>
+              borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-lg) 16px', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box'}}>
             <div style={{ fontSize: 22, fontWeight: 800, color: cfg.color }}>{counts[status]}</div>
             <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 500, marginTop: 2 }}>{cfg.label}</div>
           </button>

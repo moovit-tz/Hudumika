@@ -280,7 +280,7 @@ export const ShipmentEdit: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
             {currentStep === 4 ? (
               <button type="button" onClick={handleDelete} disabled={deleting}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid rgba(220,38,38,0.3)', background: 'rgba(220,38,38,0.06)', color: '#dc2626', fontSize: 13, fontWeight: 700, cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.6 : 1 }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid rgba(220,38,38,0.3)', background: 'rgba(220,38,38,0.06)', color: '#dc2626', fontSize: 13, fontWeight: 700, cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                 <Icon name="trash" size={14} /> {deleting ? 'Deleting…' : 'Delete'}
               </button>
             ) : (
@@ -289,17 +289,17 @@ export const ShipmentEdit: React.FC = () => {
             
             <div style={{ display: 'flex', gap: 12, marginLeft: 'auto' }}>
               {currentStep > 1 && (
-                <button type="button" onClick={() => setCurrentStep(s => s - 1)} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                <button type="button" onClick={() => setCurrentStep(s => s - 1)} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                   Previous
                 </button>
               )}
               {currentStep < 4 ? (
-                <button type="button" onClick={() => setCurrentStep(s => s + 1)} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                <button type="button" onClick={() => setCurrentStep(s => s + 1)} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                   Next Step
                 </button>
               ) : (
                 <button type="button" onClick={handleSave} disabled={saving}
-                  style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+                  style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.7 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                   {saving ? 'Saving…' : 'Save Changes'}
                 </button>
               )}

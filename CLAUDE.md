@@ -79,6 +79,8 @@ Two related traps when retokenising colour by hand or by script:
 | default | `--ds-btn-py` | ~40px — page/toolbar actions |
 | lg | `--ds-btn-py-lg` | ~48px |
 
+**Height is stated, not derived — `min-height: var(--ctl-h)` (`--ctl-h-xs`/`-sm`/`-lg`).** A button's height used to be the sum of padding + font-size + line-height + border, and every one of those four could break it on its own: a borderless primary rendered 2px under the bordered secondary beside it (72 rules declare `border: none`), and SEAL's `line-height: 1.2` put a whole app 4px under everything else. Unifying padding alone did not fix it and never could. With a floor, only the floor decides. `.btn` also sets `line-height: 1.25` so the content stays *under* its own floor — a floor that the content exceeds is not a floor.
+
 Corners read `--r-sm` / `--r`; **never a raw px radius**. All of these are derived in `useDesignSystem.ts` from the SuperAdmin density and shape settings, so a hardcoded value is not merely inconsistent — it is unreachable by the settings that exist to control it.
 
 Three rules, each learned from a real defect:

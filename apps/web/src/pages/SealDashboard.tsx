@@ -84,11 +84,11 @@ export function SealDashboard() {
       />
       <div className="seal-page-hdr">
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button type="button" className="seal-btn-secondary" onClick={() => navigate('/seal/lots/new')}>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/lots/new')}>
             <Icon name="plus" size={14} />
             <span>Receive Lot</span>
           </button>
-          <button type="button" className="seal-btn-primary" onClick={() => navigate('/seal/lots')}>
+          <button type="button" className="btn btn-primary" onClick={() => navigate('/seal/lots')}>
             <Icon name="package" size={14} />
             <span>View All Lots</span>
           </button>
@@ -166,7 +166,7 @@ export function SealDashboard() {
             <div className="seal-card">
               <div className="seal-card-hdr">
                 <h2 className="seal-card-title">Lots by Customs Status</h2>
-                <button type="button" className="seal-btn-secondary" onClick={() => navigate('/seal/lots')}>
+                <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/lots')}>
                   <Icon name="package" size={13} />
                   <span>View List</span>
                 </button>
@@ -189,7 +189,7 @@ export function SealDashboard() {
             <div className="seal-card">
               <div className="seal-card-hdr">
                 <h2 className="seal-card-title">Warehouses &amp; Compartments</h2>
-                <button type="button" className="seal-btn-secondary" onClick={() => navigate('/seal/compartments')}>
+                <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/compartments')}>
                   <Icon name="layers" size={13} />
                   <span>Manage All</span>
                 </button>
@@ -278,7 +278,7 @@ export function SealDashboard() {
                         <td>
                           <button
                             type="button"
-                            className="seal-btn-secondary"
+                            className="btn btn-secondary"
                             style={{ height: 30, padding: '0 10px', fontSize: 12 }}
                             onClick={e => { e.stopPropagation(); navigate(`/seal/compartments/${c.compartmentId}/heat-grid`); }}
                           >

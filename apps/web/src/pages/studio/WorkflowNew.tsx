@@ -107,8 +107,7 @@ export function WorkflowNew() {
                   style={{
                     textAlign: 'left', padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', cursor: 'pointer',
                     border: `1.5px solid ${triggerId === t.id ? 'var(--teal)' : 'var(--border)'}`,
-                    background: triggerId === t.id ? 'var(--teal-l)' : 'var(--card-bg, var(--white))',
-                  }}>
+                    background: triggerId === t.id ? 'var(--teal-l)' : 'var(--card-bg, var(--white))', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 4 }}>
                     <span style={{ width: 7, height: 7, borderRadius: 99, background: t.color }} />
                     <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', color: t.color }}>{t.appName}</span>

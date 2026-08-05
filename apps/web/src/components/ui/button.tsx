@@ -34,12 +34,15 @@ const buttonVariants = cva(
       // default 14 / lg 15). `sm` was text-xs against .btn-sm's 13px, so the
       // two "small" buttons differed by a line-height even once their padding
       // agreed.
+      // min-h comes from --ctl-h, the same floor the legacy .btn family uses,
+      // rather than a fixed min-h-9. A stated height is what makes border
+      // width, line-height and font-size stop changing how tall a button is.
       size: {
-        xs: "min-h-7 py-[var(--ds-btn-py-xs,3px)] px-2.5 text-xs",
-        default: "min-h-9 py-[var(--ds-btn-py,7px)] px-4",
-        sm: "min-h-8 py-[var(--ds-btn-py-sm,5px)] px-3 text-[13px]",
-        lg: "min-h-10 py-[var(--ds-btn-py-lg,10px)] px-8 text-[15px]",
-        icon: "min-h-9 aspect-square py-[var(--ds-btn-py,7px)] px-0",
+        xs: "min-h-[var(--ctl-h-xs)] py-[var(--ds-btn-py-xs,3px)] px-2.5 text-xs",
+        default: "min-h-[var(--ctl-h)] py-[var(--ds-btn-py,7px)] px-4",
+        sm: "min-h-[var(--ctl-h-sm)] py-[var(--ds-btn-py-sm,5px)] px-3 text-[13px]",
+        lg: "min-h-[var(--ctl-h-lg)] py-[var(--ds-btn-py-lg,10px)] px-8 text-[15px]",
+        icon: "min-h-[var(--ctl-h)] aspect-square py-[var(--ds-btn-py,7px)] px-0",
       },
     },
     defaultVariants: {

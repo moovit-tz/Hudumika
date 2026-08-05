@@ -127,7 +127,7 @@ export function SealCompartments() {
       <div className="seal-page-hdr">
         <button
           type="button"
-          className="seal-btn-primary"
+          className="btn btn-primary"
           onClick={() => setShowNewCompartment(v => !v)}
         >
           <Icon name="plus" size={14} />
@@ -163,8 +163,8 @@ export function SealCompartments() {
             </div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-            <button type="button" className="seal-btn-secondary" onClick={() => setShowNewCompartment(false)}>Cancel</button>
-            <button type="submit" className="seal-btn-primary" disabled={saving}>{saving ? 'Creating…' : 'Create Compartment'}</button>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowNewCompartment(false)}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating…' : 'Create Compartment'}</button>
           </div>
         </form>
       )}
@@ -224,7 +224,7 @@ export function SealCompartments() {
                   {c.warehouse_type === 'sorting_centre' && (
                     <button
                       type="button"
-                      className="seal-btn-secondary"
+                      className="btn btn-secondary"
                       onClick={() => navigate(`/seal/compartments/${c.id}/sorting-dashboard`)}
                     >
                       <Icon name="arrowUpDown" size={13} />
@@ -234,7 +234,7 @@ export function SealCompartments() {
 
                   <button
                     type="button"
-                    className="seal-btn-secondary"
+                    className="btn btn-secondary"
                     onClick={() => navigate(`/seal/compartments/${c.id}/layout`)}
                   >
                     <Icon name="warehouse" size={13} />
@@ -243,7 +243,7 @@ export function SealCompartments() {
 
                   <button
                     type="button"
-                    className="seal-btn-secondary"
+                    className="btn btn-secondary"
                     onClick={() => navigate(`/seal/compartments/${c.id}/heat-grid`)}
                   >
                     <Icon name="grid" size={13} />
@@ -254,7 +254,7 @@ export function SealCompartments() {
                     <DropdownMenuTrigger asChild>
                       <button
                         type="button"
-                        className="seal-btn-secondary"
+                        className="btn btn-secondary"
                         style={{ padding: '9px', aspectRatio: '1 / 1' }}
                       >
                         <Icon name="chevronDown" size={15} />

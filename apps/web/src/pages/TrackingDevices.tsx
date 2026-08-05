@@ -66,7 +66,7 @@ export const TrackingDevices: React.FC = () => {
           />
         </div>
         <button type="button" onClick={syncNow} disabled={syncing || !configured}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: configured ? 'pointer' : 'default', opacity: configured ? 1 : 0.5 }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: configured ? 'pointer' : 'default', opacity: configured ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
           <Icon name="refresh" size={15} /> {syncing ? 'Syncing…' : 'Sync Now'}
         </button>
       </div>

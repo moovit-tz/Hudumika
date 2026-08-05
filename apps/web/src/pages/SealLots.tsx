@@ -44,7 +44,7 @@ export function SealLots() {
         subtitle="Every quantity of stock under customs control — one owner, one status, one storage clock each."
       />
       <div className="seal-page-hdr">
-        <button type="button" className="seal-btn-primary" onClick={() => navigate('/seal/lots/new')}>
+        <button type="button" className="btn btn-primary" onClick={() => navigate('/seal/lots/new')}>
           <Icon name="plus" size={14} />
           <span>Receive Lot</span>
         </button>

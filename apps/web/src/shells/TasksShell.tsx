@@ -66,8 +66,7 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
               border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
               background: isActive ? 'var(--teal-l)' : 'transparent',
               color: isActive ? 'var(--teal)' : 'var(--ink2)',
-              fontWeight: isActive ? 700 : 500, fontSize: 14,
-            }}
+              fontWeight: isActive ? 700 : 500, fontSize: 14, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
           >
             <Icon name={v.icon} size={15} color={isActive ? 'var(--teal)' : 'var(--ink3)'} />
             <span style={{ flex: 1 }}>{v.label}</span>
@@ -98,8 +97,7 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
                 border: 'none', cursor: 'pointer', textAlign: 'left', flex: 1, minWidth: 0,
                 background: isActive ? 'var(--teal-l)' : 'transparent',
                 color: isActive ? 'var(--teal)' : 'var(--ink2)',
-                fontWeight: isActive ? 700 : 500, fontSize: 14,
-              }}
+                fontWeight: isActive ? 700 : 500, fontSize: 14, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
             >
               <span style={{ width: 9, height: 9, borderRadius: '50%', background: l.color, flexShrink: 0 }} />
               <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.name}</span>
@@ -129,7 +127,7 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
         />
       ) : (
         <button type="button" onClick={() => setAddingList(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 10px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--ink3)', fontSize: 13, textAlign: 'left' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 10px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--ink3)', fontSize: 13, textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
           <Icon name="plus" size={13} /> New list
         </button>
       )}

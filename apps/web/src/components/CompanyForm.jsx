@@ -86,10 +86,10 @@ export const CompanyForm = ({ initialData = null, onClose, onSubmit }) => {
           <SubscriptionSelector value={plan} onChange={setPlan} />
         </label>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-          <button type="button" onClick={onClose} style={{ background: 'transparent', border: '1px solid #fff', color: '#fff', padding: 'var(--ds-btn-py-sm) 12px', borderRadius: '4px' }}>
+          <button type="button" onClick={onClose} style={{ background: 'transparent', border: '1px solid #fff', color: '#fff', padding: 'var(--ds-btn-py-sm) 12px', borderRadius: '4px', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
             Cancel
           </button>
-          <button type="submit" style={{ background: 'var(--teal)', border: 'none', color: '#fff', padding: 'var(--ds-btn-py-sm) 12px', borderRadius: '4px' }}>
+          <button type="submit" style={{ background: 'var(--teal)', border: 'none', color: '#fff', padding: 'var(--ds-btn-py-sm) 12px', borderRadius: '4px', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
             {initialData ? 'Update' : 'Create'}
           </button>
         </div>

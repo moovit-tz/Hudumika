@@ -84,7 +84,7 @@ export function SealConsignments() {
         subtitle="Pre-arrival through gate-in to devanning — one consignment per transport document."
       />
       <div className="seal-page-hdr">
-        <button type="button" className="seal-btn-primary" onClick={() => setShowNew(v => !v)}>
+        <button type="button" className="btn btn-primary" onClick={() => setShowNew(v => !v)}>
           <Icon name="plus" size={14} />
           <span>New Consignment</span>
         </button>
@@ -128,7 +128,7 @@ export function SealConsignments() {
             </div>
           </div>
           <div style={{ padding: '0 20px 20px' }}>
-            <button type="submit" className="seal-btn-primary" disabled={saving || !compartmentId || !ownerId}>{saving ? 'Creating…' : 'Create Consignment'}</button>
+            <button type="submit" className="btn btn-primary" disabled={saving || !compartmentId || !ownerId}>{saving ? 'Creating…' : 'Create Consignment'}</button>
           </div>
         </form>
       )}

@@ -71,7 +71,7 @@ export function SealGuarantees() {
         subtitle="The financial instruments securing suspended duty — attach one to a compartment and every receipt into bond checks it in real time."
       />
       <div className="seal-page-hdr">
-        <button type="button" className="seal-btn-primary" onClick={() => setShowNew(v => !v)}>
+        <button type="button" className="btn btn-primary" onClick={() => setShowNew(v => !v)}>
           <Icon name="plus" size={14} />
           <span>New Guarantee</span>
         </button>
@@ -112,7 +112,7 @@ export function SealGuarantees() {
               <DatePicker date={expiresOn} onChange={setExpiresOn} />
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-              <button type="submit" className="seal-btn-primary" disabled={saving}>{saving ? 'Creating…' : 'Create'}</button>
+              <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Creating…' : 'Create'}</button>
             </div>
           </div>
         </form>

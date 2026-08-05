@@ -542,7 +542,7 @@ function NoteDrawer({ note, onSave, onClose, isMobile, invoices }: { note: DN; o
                 </tbody>
               </table>
             </div>
-            <button onClick={addRow} style={{ margin: '8px 0 16px', background: 'none', border: '1.5px dashed var(--border)', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink3)', padding: 'var(--ds-btn-py-sm) 14px', fontSize: 12, fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <button onClick={addRow} style={{ margin: '8px 0 16px', background: 'none', border: '1.5px dashed var(--border)', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink3)', padding: 'var(--ds-btn-py-sm) 14px', fontSize: 12, fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
               <Icon name="plus" size={13} strokeWidth={2.5} /> Add Row
             </button>
           </div>
@@ -570,8 +570,8 @@ function NoteDrawer({ note, onSave, onClose, isMobile, invoices }: { note: DN; o
 
         {/* Footer actions */}
         <div style={{ padding: '14px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, justifyContent: 'flex-end', background: 'var(--white)' }}>
-          <button onClick={onClose} style={{ padding: 'var(--ds-btn-py) 20px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)' }}>Cancel</button>
-          <button onClick={() => onSave(f)} style={{ padding: 'var(--ds-btn-py) 24px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)', color: '#fff' }}>Save Note</button>
+          <button onClick={onClose} style={{ padding: 'var(--ds-btn-py) 20px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
+          <button onClick={() => onSave(f)} style={{ padding: 'var(--ds-btn-py) 24px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)', color: '#fff', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Save Note</button>
         </div>
       </div>
     </>
@@ -822,7 +822,7 @@ export const DeliveryNotes: React.FC = () => {
         titleEm="notes"
         subtitle={`${notes.length} notes · Track and print delivery notes linked to invoices`}
         actions={
-          <button type="button" onClick={() => setDrawerNote(newBlankNote())} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)' }}>
+          <button type="button" onClick={() => setDrawerNote(newBlankNote())} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             <Icon name="plus" size={14} strokeWidth={2.5} /> New Delivery Note
           </button>
         }
@@ -867,7 +867,7 @@ export const DeliveryNotes: React.FC = () => {
           </SelectContent>
         </Select>
         <button type="button" onClick={exportCsv}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
           <Icon name="download" size={13} /> Export CSV
         </button>
       </div>
@@ -931,14 +931,14 @@ export const DeliveryNotes: React.FC = () => {
                       <button
                         title="Edit"
                         onClick={() => setDrawerNote({ ...n })}
-                        style={{ padding: 'var(--ds-btn-py-sm) 8px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--ink)' }}
+                        style={{ padding: 'var(--ds-btn-py-sm) 8px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
                       >
                         <Icon name="edit" size={13} strokeWidth={2} />
                       </button>
                       <button
                         title="Delete"
                         onClick={() => deleteNote(n.id)}
-                        style={{ padding: 'var(--ds-btn-py-sm) 8px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--red)' }}
+                        style={{ padding: 'var(--ds-btn-py-sm) 8px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
                       >
                         <Icon name="trash" size={13} strokeWidth={2} />
                       </button>

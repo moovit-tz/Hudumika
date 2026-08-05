@@ -184,8 +184,7 @@ export function MentionInput({ value, onChange, users, placeholder, disabled, on
                 background: i === activeIdx ? 'var(--bg)' : 'transparent',
                 border: 'none',
                 cursor: 'pointer',
-                textAlign: 'left',
-              }}
+                textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
             >
               <div style={{
                 width: 28, height: 28, borderRadius: '50%', flexShrink: 0,

@@ -212,12 +212,12 @@ export const CheckInWidget: React.FC = () => {
               <div style={{ display: 'flex', background: 'var(--bg)', padding: 4, borderRadius: 10, width: '100%' }}>
                 <button type="button" onClick={() => setCheckInMode('shipment')}
                   style={{ flex: 1, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', transition: 'all 0.2s',
-                    background: checkInMode === 'shipment' ? 'var(--white)' : 'transparent', color: checkInMode === 'shipment' ? 'var(--ink)' : 'var(--ink2)', boxShadow: checkInMode === 'shipment' ? 'var(--shadow-sm)' : 'none' }}>
+                    background: checkInMode === 'shipment' ? 'var(--white)' : 'transparent', color: checkInMode === 'shipment' ? 'var(--ink)' : 'var(--ink2)', boxShadow: checkInMode === 'shipment' ? 'var(--shadow-sm)' : 'none', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                   By Shipment
                 </button>
                 <button type="button" onClick={() => setCheckInMode('task')}
                   style={{ flex: 1, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', transition: 'all 0.2s',
-                    background: checkInMode === 'task' ? 'var(--white)' : 'transparent', color: checkInMode === 'task' ? 'var(--ink)' : 'var(--ink2)', boxShadow: checkInMode === 'task' ? 'var(--shadow-sm)' : 'none' }}>
+                    background: checkInMode === 'task' ? 'var(--white)' : 'transparent', color: checkInMode === 'task' ? 'var(--ink)' : 'var(--ink2)', boxShadow: checkInMode === 'task' ? 'var(--shadow-sm)' : 'none', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                   By Task
                 </button>
               </div>
@@ -251,7 +251,7 @@ export const CheckInWidget: React.FC = () => {
                   <button key={s.id} type="button" onClick={() => setSelShipment(isSelected ? null : s)}
                     style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: 'var(--ds-btn-py-lg) 24px',
                       background: isSelected ? 'var(--teal-l)' : 'transparent', border: 'none', cursor: 'pointer',
-                      fontFamily: 'var(--font)', textAlign: 'left', transition: 'background 0.15s' }}>
+                      fontFamily: 'var(--font)', textAlign: 'left', transition: 'background 0.15s', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box'}}>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: isSelected ? 700 : 500, color: isSelected ? 'var(--teal)' : 'var(--ink)', fontFamily: 'var(--mono)', marginBottom: 2 }}>{s.ref_number}</div>
                       <div style={{ fontSize: 12, color: isSelected ? 'var(--teal)' : 'var(--ink2)' }}>{s.goods_desc || 'Shipment'}</div>
@@ -280,8 +280,7 @@ export const CheckInWidget: React.FC = () => {
                       style={{
                         width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: 'var(--ds-btn-py-lg) 24px',
                         background: isSelected ? 'var(--teal-l)' : 'transparent',
-                        border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left', transition: 'background 0.15s'
-                      }}>
+                        border: 'none', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left', transition: 'background 0.15s', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box'}}>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: isSelected ? 700 : 500, color: isSelected ? 'var(--teal)' : 'var(--ink)' }}>{t.name}</div>
                         <div style={{ fontSize: 12, color: isSelected ? 'var(--teal)' : 'var(--ink2)' }}>{t.category}</div>
@@ -314,22 +313,22 @@ export const CheckInWidget: React.FC = () => {
             {checkedIn ? (
               <>
                 <button type="button" onClick={checkout} disabled={saving}
-                  style={{ background: 'none', border: 'none', padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.6 : 1 }}>
+                  style={{ background: 'none', border: 'none', padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', cursor: saving ? 'default' : 'pointer', opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                   Check Out
                 </button>
                 <button type="button" disabled={!selTask || saving} onClick={switchTask}
-                  style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: (!selTask || saving) ? 'default' : 'pointer', opacity: (!selTask || saving) ? 0.6 : 1, transition: 'opacity 0.2s' }}>
+                  style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: (!selTask || saving) ? 'default' : 'pointer', opacity: (!selTask || saving) ? 0.6 : 1, transition: 'opacity 0.2s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                   {saving ? 'Switching…' : 'Switch Task'}
                 </button>
               </>
             ) : (
               <>
                 <button type="button" onClick={() => setOpen(false)}
-                  style={{ background: 'none', border: 'none', padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer' }}>
+                  style={{ background: 'none', border: 'none', padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                   Cancel
                 </button>
                 <button type="button" disabled={saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task')} onClick={startTask}
-                  style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task') ? 'default' : 'pointer', opacity: saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task') ? 0.6 : 1, transition: 'opacity 0.2s' }}>
+                  style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task') ? 'default' : 'pointer', opacity: saving || (!selShipment && checkInMode === 'shipment') || (!selTask && checkInMode === 'task') ? 0.6 : 1, transition: 'opacity 0.2s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                   {saving ? 'Starting…' : 'Check In'}
                 </button>
               </>

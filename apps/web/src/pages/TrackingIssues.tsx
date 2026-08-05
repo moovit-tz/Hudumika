@@ -55,7 +55,7 @@ export const TrackingIssues: React.FC = () => {
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
         {STATUS_FILTERS.map(s => (
           <button key={s} type="button" onClick={() => setStatusFilter(s)}
-            style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${statusFilter === s ? 'var(--teal)' : 'var(--border)'}`, background: statusFilter === s ? 'var(--teal-l)' : 'var(--white)', color: statusFilter === s ? 'var(--teal)' : 'var(--ink3)' }}>
+            style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${statusFilter === s ? 'var(--teal)' : 'var(--border)'}`, background: statusFilter === s ? 'var(--teal-l)' : 'var(--white)', color: statusFilter === s ? 'var(--teal)' : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
             {s === 'All' ? 'All' : s.replace('_', ' ')} <span style={{ fontWeight: 700 }}>{counts[s] ?? 0}</span>
           </button>
         ))}

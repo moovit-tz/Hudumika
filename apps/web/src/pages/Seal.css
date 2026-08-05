@@ -81,24 +81,6 @@
 
 .seal-mono { font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace; font-size: 12.5px; }
 
-.seal-btn-primary, .seal-btn-secondary {
-  display: inline-flex; align-items: center; gap: 7px; padding: var(--ds-btn-py) 16px;
-  border-radius: 9px; font-family: var(--font); font-size: 13px; cursor: pointer;
-  text-decoration: none; line-height: 1.2;
-}
-.seal-btn-primary {
-  background: var(--seal); color: #fff; border: none; font-weight: 700;
-  transition: opacity 0.12s;
-}
-.seal-btn-primary:hover { opacity: 0.88; }
-.seal-btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
-.seal-btn-secondary {
-  background: var(--white); color: var(--ink); border: 1px solid var(--border);
-  font-weight: 600; transition: background 0.1s, border-color 0.1s;
-}
-.seal-btn-secondary:hover { background: var(--bg); border-color: var(--ink3); }
-.seal-btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
-
 /* Storage-clock runway bar on the lot detail's fiscal panel */
 .seal-runway { height: 8px; border-radius: 4px; background: var(--bg); border: 1px solid var(--border); overflow: hidden; }
 .seal-runway-fill { height: 100%; border-radius: 4px 0 0 4px; transition: width 0.3s ease; }
@@ -295,6 +277,4 @@
   background: var(--teal-l);
   color: var(--seal);
 }
-
-
 

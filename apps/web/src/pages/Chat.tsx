@@ -65,8 +65,7 @@ function CRow({ ch, active, onClick }: { ch: ApiChannel; active: boolean; onClic
       background: active ? 'rgba(232,70,26,0.10)' : 'transparent',
       color: active ? 'var(--teal)' : ch.unread > 0 ? 'var(--ink)' : 'var(--ink2)',
       fontWeight: ch.unread > 0 ? 600 : 400, fontFamily: 'var(--font)', fontSize: 13,
-      transition: 'background 0.1s',
-    }}>
+      transition: 'background 0.1s', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
       {ch.type === 'dm' ? (
         <div style={{ width: 22, height: 22, borderRadius: '50%', background: abg(ch.name), display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: '#fff', flexShrink: 0 }}>{ini(ch.name)}</div>
       ) : ch.type === 'group' ? (
@@ -220,7 +219,7 @@ export const Chat: React.FC = () => {
 
   function SecHdr({ label, sk, count }: { label: string; sk: keyof typeof openSecs; count: number }) {
     return (
-      <button type="button" onClick={() => setOpenSecs(p => ({ ...p, [sk]: !p[sk] }))} style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py) 10px 3px', color: 'var(--ink3)', fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+      <button type="button" onClick={() => setOpenSecs(p => ({ ...p, [sk]: !p[sk] }))} style={{ display: 'flex', alignItems: 'center', gap: 4, width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py) 10px 3px', color: 'var(--ink3)', fontFamily: 'var(--mono)', fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
         <Icon name={openSecs[sk] ? 'chevronDown' : 'chevronRight'} size={10} />
         {label}
         {count > 0 && <span style={{ marginLeft: 'auto', background: 'var(--teal)', color: '#fff', borderRadius: 9, fontSize: 9, fontWeight: 700, padding: '1px 5px' }}>{count}</span>}
@@ -285,19 +284,19 @@ export const Chat: React.FC = () => {
 
           <SecHdr label="Channels" sk="ch" count={chList.reduce((s, c) => s + c.unread, 0)} />
           {openSecs.ch && chList.map(ch => <CRow key={ch.id} ch={ch} active={activeId === ch.id} onClick={() => setActiveId(ch.id)} />)}
-          <button type="button" onClick={() => setCreating('channel')} style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: 'var(--ds-btn-py-xs) 10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12, fontFamily: 'var(--font)', borderRadius: 'var(--r)' }}>
+          <button type="button" onClick={() => setCreating('channel')} style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: 'var(--ds-btn-py-xs) 10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12, fontFamily: 'var(--font)', borderRadius: 'var(--r)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
             <Icon name="plus" size={12} /> Add a channel
           </button>
 
           <SecHdr label="Direct Messages" sk="dm" count={dmList.reduce((s, c) => s + c.unread, 0)} />
           {openSecs.dm && dmList.map(ch => <CRow key={ch.id} ch={ch} active={activeId === ch.id} onClick={() => setActiveId(ch.id)} />)}
-          <button type="button" onClick={() => setCreating('dm')} style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: 'var(--ds-btn-py-xs) 10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12, fontFamily: 'var(--font)', borderRadius: 'var(--r)' }}>
+          <button type="button" onClick={() => setCreating('dm')} style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: 'var(--ds-btn-py-xs) 10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12, fontFamily: 'var(--font)', borderRadius: 'var(--r)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
             <Icon name="plus" size={12} /> New direct message
           </button>
 
           <SecHdr label="Groups" sk="grp" count={grpList.reduce((s, c) => s + c.unread, 0)} />
           {openSecs.grp && grpList.map(ch => <CRow key={ch.id} ch={ch} active={activeId === ch.id} onClick={() => setActiveId(ch.id)} />)}
-          <button type="button" onClick={() => setCreating('group')} style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: 'var(--ds-btn-py-xs) 10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12, fontFamily: 'var(--font)', borderRadius: 'var(--r)' }}>
+          <button type="button" onClick={() => setCreating('group')} style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: 'var(--ds-btn-py-xs) 10px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12, fontFamily: 'var(--font)', borderRadius: 'var(--r)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
             <Icon name="plus" size={12} /> Create a group
           </button>
         </div>
@@ -421,11 +420,11 @@ export const Chat: React.FC = () => {
                         {msg.reactions.length > 0 && (
                           <div style={{ display: 'flex', gap: 4, marginTop: 5, flexWrap: 'wrap' }}>
                             {msg.reactions.map(r => (
-                              <button type="button" key={r.emoji} onClick={() => react(msg.id, r.emoji)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 8px', borderRadius: 'var(--r)', border: `1px solid ${r.mine ? 'var(--teal-m)' : 'var(--border)'}`, background: r.mine ? 'var(--teal-l)' : 'var(--bg)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font)', transition: 'all 0.1s' }}>
+                              <button type="button" key={r.emoji} onClick={() => react(msg.id, r.emoji)} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 8px', borderRadius: 'var(--r)', border: `1px solid ${r.mine ? 'var(--teal-m)' : 'var(--border)'}`, background: r.mine ? 'var(--teal-l)' : 'var(--bg)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font)', transition: 'all 0.1s', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
                                 {r.emoji}<span style={{ fontSize: 11, fontWeight: 600, color: r.mine ? 'var(--teal)' : 'var(--ink2)' }}>{r.count}</span>
                               </button>
                             ))}
-                            <button type="button" onClick={() => react(msg.id, '👍')} style={{ padding: 'var(--ds-btn-py-xs) 8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', fontSize: 12, color: 'var(--ink3)', fontFamily: 'var(--font)' }}>+</button>
+                            <button type="button" onClick={() => react(msg.id, '👍')} style={{ padding: 'var(--ds-btn-py-xs) 8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', fontSize: 12, color: 'var(--ink3)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>+</button>
                           </div>
                         )}
                       </div>
@@ -449,7 +448,7 @@ export const Chat: React.FC = () => {
                 />
                 <div style={{ display: 'flex', alignItems: 'center', padding: '5px 8px', gap: 1, borderTop: '1px solid var(--border)' }}>
                   <div ref={emojiRef} style={{ position: 'relative' }}>
-                    <button type="button" onClick={() => setShowEmoji(p => !p)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 6px', borderRadius: 'var(--r)', color: showEmoji ? 'var(--teal)' : 'var(--ink3)', display: 'flex', alignItems: 'center' }}>
+                    <button type="button" onClick={() => setShowEmoji(p => !p)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 6px', borderRadius: 'var(--r)', color: showEmoji ? 'var(--teal)' : 'var(--ink3)', display: 'flex', alignItems: 'center', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
                       <Icon name="smile" size={15} />
                     </button>
                     {showEmoji && (
@@ -473,7 +472,7 @@ export const Chat: React.FC = () => {
                     </span>
                   )}
 
-                  <button type="button" onClick={send} disabled={!input.trim() || sending} style={{ background: input.trim() ? 'var(--teal)' : 'var(--border)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 14px', cursor: input.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 6, color: input.trim() ? '#fff' : 'var(--ink3)', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)' }}>
+                  <button type="button" onClick={send} disabled={!input.trim() || sending} style={{ background: input.trim() ? 'var(--teal)' : 'var(--border)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 14px', cursor: input.trim() ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', gap: 6, color: input.trim() ? '#fff' : 'var(--ink3)', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
                     <Icon name="send" size={13} color={input.trim() ? '#fff' : 'var(--ink3)'} />
                     {sending ? 'Sending…' : 'Send'}
                   </button>
@@ -511,7 +510,7 @@ export const Chat: React.FC = () => {
                     const on = newMemberIds.includes(s.id);
                     return (
                       <button type="button" key={s.id} onClick={() => setNewMemberIds(p => on ? p.filter(id => id !== s.id) : [...p, s.id])}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: 'var(--ds-btn-py) 12px', border: 'none', borderBottom: '1px solid var(--bg)', background: on ? 'var(--teal-l)' : 'transparent', cursor: 'pointer', textAlign: 'left' }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: 'var(--ds-btn-py) 12px', border: 'none', borderBottom: '1px solid var(--bg)', background: on ? 'var(--teal-l)' : 'transparent', cursor: 'pointer', textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                         <Av name={s.name} size={26} />
                         <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: on ? 'var(--teal)' : 'var(--ink)' }}>{s.name}</span>
                         {on && <Icon name="check" size={14} color="var(--teal)" />}
@@ -522,9 +521,9 @@ export const Chat: React.FC = () => {
               </div>
             )}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button type="button" onClick={() => { setCreating(null); setNewName(''); setNewMemberIds([]); }} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', fontFamily: 'var(--font)' }}>Cancel</button>
+              <button type="button" onClick={() => { setCreating(null); setNewName(''); setNewMemberIds([]); }} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--ink2)', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>Cancel</button>
               <button type="button" onClick={createChannelOrGroup} disabled={!newName.trim() || (creating === 'group' && newMemberIds.length === 0)}
-                style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: newName.trim() ? 'var(--teal)' : 'var(--border)', color: newName.trim() ? '#fff' : 'var(--ink3)', cursor: newName.trim() ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)' }}>
+                style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: newName.trim() ? 'var(--teal)' : 'var(--border)', color: newName.trim() ? '#fff' : 'var(--ink3)', cursor: newName.trim() ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                 {creating === 'channel' ? 'Create Channel' : 'Create Group'}
               </button>
             </div>
@@ -547,7 +546,7 @@ export const Chat: React.FC = () => {
               {staff.length === 0 && <div style={{ padding: 16, fontSize: 13, color: 'var(--ink3)', textAlign: 'center' }}>No other staff found.</div>}
               {staff.map(s => (
                 <button type="button" key={s.id} onClick={() => startDm(s.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: 'var(--ds-btn-py) 12px', border: 'none', borderBottom: '1px solid var(--bg)', background: 'transparent', cursor: 'pointer', textAlign: 'left' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: 'var(--ds-btn-py) 12px', border: 'none', borderBottom: '1px solid var(--bg)', background: 'transparent', cursor: 'pointer', textAlign: 'left', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
                   <Av name={s.name} size={30} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{s.name}</div>

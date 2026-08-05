@@ -279,7 +279,7 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                     type="button"
                     className={`wh-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
                     onClick={() => handleViewChange('list')}
-                    style={{ padding: 'var(--ds-btn-py-sm) 14px', fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, background: viewMode === 'list' ? 'var(--bg, #f1f5f9)' : 'transparent', border: 'none', cursor: 'pointer' }}
+                    style={{ padding: 'var(--ds-btn-py-sm) 14px', fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, background: viewMode === 'list' ? 'var(--bg, #f1f5f9)' : 'transparent', border: 'none', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
                   >
                     <Icon name="list" size={14} />
                     <span>List View</span>
@@ -288,7 +288,7 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
                     type="button"
                     className={`wh-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
                     onClick={() => handleViewChange('grid')}
-                    style={{ padding: 'var(--ds-btn-py-sm) 14px', fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, background: viewMode === 'grid' ? 'var(--bg, #f1f5f9)' : 'transparent', border: 'none', cursor: 'pointer' }}
+                    style={{ padding: 'var(--ds-btn-py-sm) 14px', fontSize: 13, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, background: viewMode === 'grid' ? 'var(--bg, #f1f5f9)' : 'transparent', border: 'none', cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
                   >
                     <Icon name="grid" size={14} />
                     <span>Grid View</span>

@@ -85,7 +85,7 @@ export function SealDocumentPanel({ entityType, entityId }: { entityType: 'lot' 
             <SelectTrigger className="input-field" style={{ width: 220 }}><SelectValue /></SelectTrigger>
             <SelectContent>{DOC_TYPES.map(t => <SelectItem key={t} value={t}>{DOC_TYPE_LABELS[t]}</SelectItem>)}</SelectContent>
           </Select>
-          <label className="seal-btn-secondary" style={{ cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
+          <label className="btn btn-secondary" style={{ cursor: uploading ? 'not-allowed' : 'pointer', opacity: uploading ? 0.6 : 1 }}>
             <Icon name="upload" size={13} />
             <span>{uploading ? 'Uploading…' : 'Upload File'}</span>
             <input type="file" style={{ display: 'none' }} disabled={uploading} onChange={handleUpload} />
@@ -114,11 +114,11 @@ export function SealDocumentPanel({ entityType, entityId }: { entityType: 'lot' 
                 <Badge variant={d.status === 'VERIFIED' ? 'success' : d.status === 'REJECTED' ? 'error' : 'gray'}>{d.status}</Badge>
                 {d.status === 'UPLOADED' && (
                   <>
-                    <button type="button" className="seal-btn-secondary" onClick={() => handleVerify(d.id, 'VERIFIED')}>Verify</button>
-                    <button type="button" className="seal-btn-secondary" onClick={() => handleVerify(d.id, 'REJECTED')}>Reject</button>
+                    <button type="button" className="btn btn-secondary" onClick={() => handleVerify(d.id, 'VERIFIED')}>Verify</button>
+                    <button type="button" className="btn btn-secondary" onClick={() => handleVerify(d.id, 'REJECTED')}>Reject</button>
                   </>
                 )}
-                <button type="button" className="seal-btn-secondary" onClick={() => handleDelete(d.id)}><Icon name="trash" size={12} /></button>
+                <button type="button" className="btn btn-secondary" onClick={() => handleDelete(d.id)}><Icon name="trash" size={12} /></button>
               </div>
             ))}
           </div>

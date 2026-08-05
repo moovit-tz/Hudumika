@@ -727,7 +727,7 @@ export const PurchaseOrders: React.FC = () => {
             {viewMode === 'CREATE' && 'Create Purchase Order'}
             {viewMode === 'EDIT' && `Edit PO #${pos.find(p => p.id === selectedPoId)?.po_number ?? ''}`}
           </div>
-          <button onClick={() => setViewMode('LIST')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => setViewMode('LIST')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             <Icon name="arrowLeft" size={13} /> Back
           </button>
         </div>
@@ -865,8 +865,7 @@ export const PurchaseOrders: React.FC = () => {
                       color: showFiltersPanel || filterStatus || filterVendor ? '#059669' : 'var(--ink2)',
                       fontSize: 12,
                       fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
+                      cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
                   >
                     <Icon name="filter" size={13} />
                     Filters
@@ -919,8 +918,7 @@ export const PurchaseOrders: React.FC = () => {
                         color: 'var(--ink3)',
                         fontSize: 12,
                         fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
+                        cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
                     >
                       Reset Filters
                     </button>
@@ -951,8 +949,7 @@ export const PurchaseOrders: React.FC = () => {
                     color: 'var(--ink2)',
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
+                    cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
                 >
                   Clear Filters
                 </button>
@@ -1397,8 +1394,7 @@ export const PurchaseOrders: React.FC = () => {
                     color: currentPage === 1 ? 'var(--ink3)' : 'var(--ink)',
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
-                  }}
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
                 >
                   Previous
                 </button>
@@ -1432,8 +1428,7 @@ export const PurchaseOrders: React.FC = () => {
                     color: currentPage === totalPages || totalPages === 0 ? 'var(--ink3)' : 'var(--ink)',
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: currentPage === totalPages || totalPages === 0 ? 'not-allowed' : 'pointer'
-                  }}
+                    cursor: currentPage === totalPages || totalPages === 0 ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
                 >
                   Next
                 </button>
@@ -1582,8 +1577,7 @@ export const PurchaseOrders: React.FC = () => {
                       color: 'var(--ink)',
                       fontSize: 13,
                       fontWeight: 600,
-                      cursor: 'pointer'
-                    }}
+                      cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
                   >
                     <Icon name="download" size={13} />
                     Download PDF
@@ -1603,8 +1597,7 @@ export const PurchaseOrders: React.FC = () => {
                         color: '#fff',
                         fontSize: 13,
                         fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
+                        cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
                     >
                       <Icon name="checkCircle" size={13} />
                       Send to Vendor
@@ -1800,8 +1793,7 @@ export const PurchaseOrders: React.FC = () => {
                     color: '#fff',
                     fontSize: 12,
                     fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
+                    cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}
                 >
                   <Icon name="plus" size={12} strokeWidth={2.5} /> Add Item
                 </button>
@@ -1987,8 +1979,7 @@ export const PurchaseOrders: React.FC = () => {
                     color: 'var(--ink2)',
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
+                    cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
                 >
                   Cancel
                 </button>
@@ -2002,8 +1993,7 @@ export const PurchaseOrders: React.FC = () => {
                     color: '#fff',
                     fontSize: 13,
                     fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
+                    cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}
                 >
                   {viewMode === 'CREATE' ? 'Create' : 'Save Changes'}
                 </button>

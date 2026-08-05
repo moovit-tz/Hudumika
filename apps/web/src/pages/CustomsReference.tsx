@@ -246,7 +246,7 @@ export const CustomsReference: React.FC = () => {
         </div>
         {canEdit && tab !== 'tariff' && (
           <button type="button" onClick={() => handleUploadClick(tab)} disabled={importBusy !== null}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: importBusy ? 'wait' : 'pointer', opacity: importBusy ? 0.7 : 1, flexShrink: 0 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: importBusy ? 'wait' : 'pointer', opacity: importBusy ? 0.7 : 1, flexShrink: 0, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             <Icon name="upload" size={15} /> {importBusy === tab ? 'Uploading…' : `Upload fresh ${TABS.find(t => t.key === tab)?.label} list`}
           </button>
         )}

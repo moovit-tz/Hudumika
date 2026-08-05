@@ -592,6 +592,26 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--ds-btn-py-sm': `${Math.max(3, Math.round(density.btnPy * 0.75))}px`,
     '--ds-btn-py-lg': `${Math.round(density.btnPy * 1.45)}px`,
 
+    /**
+     * Control heights, stated rather than derived.
+     *
+     * A button's height was the sum of padding + font-size + line-height +
+     * border, and seven button systems each picked their own three of those.
+     * Unifying padding still left SEAL at 34/36 (line-height 1.2) against 40
+     * elsewhere, and every borderless primary sat 2px under the bordered
+     * secondary beside it -- 72 rules declare `border: none`.
+     *
+     * Locking min-height makes the other three properties stop mattering: a
+     * button is 40px whether its border is 0 or 1px and its line-height 1.2
+     * or 1.5. The +22 is the content box the padding sits around (a ~20px
+     * line plus 2px of border), so the ladder still tracks the density
+     * setting instead of freezing at one number.
+     */
+    '--ctl-h-xs': `${Math.max(2, Math.round(density.btnPy * 0.45)) * 2 + 22}px`,
+    '--ctl-h-sm': `${Math.max(3, Math.round(density.btnPy * 0.75)) * 2 + 22}px`,
+    '--ctl-h': `${density.btnPy * 2 + 22}px`,
+    '--ctl-h-lg': `${Math.round(density.btnPy * 1.45) * 2 + 22}px`,
+
     '--dur-fast': `${motion.durFast}ms`, '--dur': `${motion.dur}ms`, '--dur-slow': `${motion.durSlow}ms`, '--ease': motion.ease,
 
     '--mobile-breakpoint': `${responsive.breakpoint}px`,

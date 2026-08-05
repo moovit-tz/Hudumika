@@ -341,8 +341,7 @@ export const ChartOfAccounts: React.FC = () => {
                 padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, border: '1px solid var(--border)',
                 fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)',
                 background: typeFilter === t ? (t === 'ALL' ? 'var(--teal)' : TYPE_CFG[t].color) : 'var(--white)',
-                color: typeFilter === t ? '#fff' : 'var(--ink3)',
-              }}>
+                color: typeFilter === t ? '#fff' : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box'}}>
               {t === 'ALL' ? 'All' : TYPE_CFG[t].label + 's'}
             </button>
           ))}

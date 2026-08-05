@@ -116,7 +116,7 @@ export const SharedLandedCostReport: React.FC = () => {
         </div>
       </div>
       <button type="button" onClick={download}
-        style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 20px', borderRadius: 'var(--r)', border: 'none', background: '#FF5E1A', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9 }}>
+        style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 20px', borderRadius: 'var(--r)', border: 'none', background: '#FF5E1A', color: '#fff', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 9, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box'}}>
         <Icon name="download" size={16} color="#fff" /> Download the PDF
       </button>
       <div style={{ fontSize: 11.5, color: '#8A939C', marginTop: 12, lineHeight: 1.6 }}>
@@ -180,7 +180,7 @@ export const SharedLandedCostReport: React.FC = () => {
         )}
 
         <button type="submit" disabled={submitting}
-          style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 20px', borderRadius: 'var(--r)', border: 'none', background: submitting ? '#C9CED3' : '#FF5E1A', color: '#fff', fontWeight: 700, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer' }}>
+          style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 20px', borderRadius: 'var(--r)', border: 'none', background: submitting ? '#C9CED3' : '#FF5E1A', color: '#fff', fontWeight: 700, fontSize: 14, cursor: submitting ? 'not-allowed' : 'pointer', minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box'}}>
           {submitting ? 'Unlocking…' : 'Get the full report'}
         </button>
 

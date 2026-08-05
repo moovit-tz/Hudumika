@@ -213,7 +213,7 @@ export function SealConsignmentDetail() {
       {/* Header */}
       <div className="seal-page-hdr">
         <div>
-          <button type="button" className="seal-btn-secondary" onClick={() => navigate('/seal/consignments')} style={{ marginBottom: 12 }}>
+          <button type="button" className="btn btn-secondary" onClick={() => navigate('/seal/consignments')} style={{ marginBottom: 12 }}>
             <Icon name="arrowLeft" size={13} />
             <span>Back to Consignments</span>
           </button>
@@ -257,7 +257,7 @@ export function SealConsignmentDetail() {
 
           <button
             type="submit"
-            className="seal-btn-primary"
+            className="btn btn-primary"
             style={{ height: 38, padding: '0 20px', whiteSpace: 'nowrap' }}
             disabled={!check?.valid || addingContainer}
           >
@@ -300,14 +300,14 @@ export function SealConsignmentDetail() {
                     <label className="seal-field-label">Tare (kg)</label>
                     <input type="number" className="seal-input-control" value={tareWeight} onChange={e => setTareWeight(e.target.value)} />
                   </div>
-                  <button type="button" className="seal-btn-primary" style={{ height: 38 }} disabled={gating} onClick={() => handleGateIn(c.id)}>
+                  <button type="button" className="btn btn-primary" style={{ height: 38 }} disabled={gating} onClick={() => handleGateIn(c.id)}>
                     <Icon name="truck" size={14} /><span>{gating ? 'Recording…' : 'Confirm Gate-In'}</span>
                   </button>
-                  <button type="button" className="seal-btn-secondary" style={{ height: 38 }} onClick={() => setGateActionId(null)}>Cancel</button>
+                  <button type="button" className="btn btn-secondary" style={{ height: 38 }} onClick={() => setGateActionId(null)}>Cancel</button>
                 </div>
               ) : (
                 <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                  <button type="button" className="seal-btn-primary" onClick={() => setGateActionId(c.id)}>
+                  <button type="button" className="btn btn-primary" onClick={() => setGateActionId(c.id)}>
                     <Icon name="truck" size={14} /><span>Gate In</span>
                   </button>
                 </div>
@@ -341,7 +341,7 @@ export function SealConsignmentDetail() {
                       </Select>
                     )}
                     {c.vehicle_id && (
-                      <Link to={`/tracking/vehicles/${c.vehicle_id}`} className="seal-btn-secondary" style={{ height: 32 }}>
+                      <Link to={`/tracking/vehicles/${c.vehicle_id}`} className="btn btn-secondary" style={{ height: 32 }}>
                         <Icon name="mapPin" size={13} /><span>Track on Map</span>
                       </Link>
                     )}
@@ -349,12 +349,12 @@ export function SealConsignmentDetail() {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     {c.eir_reference && (
-                      <button type="button" className="seal-btn-secondary" onClick={() => handlePrintEir(c)}>
+                      <button type="button" className="btn btn-secondary" onClick={() => handlePrintEir(c)}>
                         <Icon name="printer" size={13} /><span>Print EIR ({c.eir_reference})</span>
                       </button>
                     )}
                     {devanActionId !== c.id && (
-                      <button type="button" className="seal-btn-primary" onClick={() => setDevanActionId(c.id)}>
+                      <button type="button" className="btn btn-primary" onClick={() => setDevanActionId(c.id)}>
                         <Icon name="package" size={14} /><span>Devan / Tally</span>
                       </button>
                     )}
@@ -390,19 +390,19 @@ export function SealConsignmentDetail() {
                             </SelectContent>
                           </Select>
                         )}
-                        <button type="button" className="seal-btn-secondary" style={{ height: 38, width: 38, padding: 0, justifyContent: 'center' }} onClick={() => setTallyLines(lines => lines.filter((_, idx) => idx !== i))}>
+                        <button type="button" className="btn btn-secondary" style={{ height: 38, width: 38, padding: 0, justifyContent: 'center' }} onClick={() => setTallyLines(lines => lines.filter((_, idx) => idx !== i))}>
                           <Icon name="trash" size={14} />
                         </button>
                       </div>
                     ))}
                     <div style={{ display: 'flex', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
-                      <button type="button" className="seal-btn-secondary" onClick={() => setTallyLines(lines => [...lines, emptyLine()])}>
+                      <button type="button" className="btn btn-secondary" onClick={() => setTallyLines(lines => [...lines, emptyLine()])}>
                         <Icon name="plus" size={13} /><span>Add Line</span>
                       </button>
-                      <button type="button" className="seal-btn-primary" disabled={devanning} onClick={() => handleDevan(c.id)}>
+                      <button type="button" className="btn btn-primary" disabled={devanning} onClick={() => handleDevan(c.id)}>
                         <Icon name="check" size={14} /><span>{devanning ? 'Recording…' : 'Submit Tally'}</span>
                       </button>
-                      <button type="button" className="seal-btn-secondary" onClick={() => setDevanActionId(null)}>Cancel</button>
+                      <button type="button" className="btn btn-secondary" onClick={() => setDevanActionId(null)}>Cancel</button>
                     </div>
                   </div>
                 )}

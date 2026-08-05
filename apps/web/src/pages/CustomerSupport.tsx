@@ -204,8 +204,7 @@ function TicketThread({ ticket, onBack, onReply }: {
             style={{
               background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 0',
               display: 'flex', alignItems: 'center', gap: 4, color: 'var(--teal)',
-              fontWeight: 600, fontSize: 14, fontFamily: 'var(--font)',
-            }}>
+              fontWeight: 600, fontSize: 14, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box'}}>
             <Icon name="chevronLeft" size={18} color="var(--teal)" />
             Back
           </button>
@@ -495,8 +494,7 @@ export const CustomerSupport: React.FC = () => {
             background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)',
             padding: 'var(--ds-btn-py) 18px', fontSize: 14, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'var(--font)',
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}>
+            display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
           <Icon name="plus" size={16} color="#fff" />
           New
         </button>
@@ -516,8 +514,7 @@ export const CustomerSupport: React.FC = () => {
               border: `1.5px solid ${filter === f ? 'var(--teal)' : 'var(--border)'}`,
               borderRadius: 20, padding: 'var(--ds-btn-py) 16px',
               fontSize: 13, fontWeight: 600,
-              cursor: 'pointer', fontFamily: 'var(--font)',
-            }}>
+              cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
             {f === 'ALL' ? 'All' : f === 'OPEN' ? 'Open' : 'Resolved'}
           </button>
         ))}
@@ -539,8 +536,7 @@ export const CustomerSupport: React.FC = () => {
               style={{
                 background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)',
                 padding: 'var(--ds-btn-py) 22px', fontSize: 14, fontWeight: 700,
-                cursor: 'pointer', fontFamily: 'var(--font)',
-              }}>
+                cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box'}}>
               Open a Ticket
             </button>
           </div>
