@@ -70,6 +70,25 @@ Two related traps when retokenising colour by hand or by script:
 - **Nearest-RGB cannot match light tints.** `#ecfdf5` (success), `#fef2f2` (error) and `#fffbeb` (warning) are all ~95% white, so distance is dominated by lightness and hue is invisible: all three resolve to `--bg` and every semantic panel turns grey. Match on hue first, then pick the token at the right lightness band (`--green` vs `--green-l`). This shipped once and had to be reverted.
 - **Tailwind v4 silently drops `calc()` inside an arbitrary value over a CSS variable.** `py-[calc(var(--ds-btn-py,9px)*0.6)]` emits nothing, the control falls back to its `min-h` floor, and a size scale collapses with no error anywhere. Compute the arithmetic in `useDesignSystem.ts` and reference a plain `py-[var(--ds-btn-py-sm)]`.
 
+**Control size and shape come from the density/shape tokens — never from a number you pick.** One ladder governs every button, input and pill in every app:
+
+| step | token | renders |
+|---|---|---|
+| xs | `--ds-btn-py-xs` | ~28px — table row actions |
+| sm | `--ds-btn-py-sm` | ~36px — the app's most common button |
+| default | `--ds-btn-py` | ~40px — page/toolbar actions |
+| lg | `--ds-btn-py-lg` | ~48px |
+
+Corners read `--r-sm` / `--r`; **never a raw px radius**. All of these are derived in `useDesignSystem.ts` from the SuperAdmin density and shape settings, so a hardcoded value is not merely inconsistent — it is unreachable by the settings that exist to control it.
+
+Three rules, each learned from a real defect:
+
+- **Never re-declare `.btn-primary` / `.btn-secondary` / `.btn-sm` in an app's own stylesheet.** Eleven app CSS files each carried a private copy with `padding: 11px 26px; min-height: 42px; border-radius: 10px`. That is *the* reason apps looked different from one another, and `min-height` meant no fix to the tokens could ever reach those buttons. An app stylesheet may set **appearance** — background, gradient, border-color, box-shadow — and nothing about the **box**.
+- **A size class you use must exist.** `.btn-xs` was used but never defined, so it fell through to `.btn`'s base padding and drew an "extra small" button *taller* than the `.btn-sm` beside it. Grep the CSS before inventing a modifier.
+- **Font size changes height too.** Once padding agrees, `13 / 12.5 / 11.5` still renders `38 / 35 / 33`. Stay on the ladder (12 / 13 / 14 / 15); half-pixel sizes are drift, not a design step.
+
+Hand-rolled `<button style={{…}}>` is still the majority of the app (~900 of them). If you touch one, point its vertical padding and radius at these tokens rather than leaving a frozen number behind. Verify with a live measurement, not by reading the CSS — inline styles beat classes, and this codebase has burned several sessions on fixes that were real in the source and invisible on screen.
+
 **Soft-tint backgrounds — always use the derived tokens, never hand-roll `color-mix()`.** The live brand color is set platform-wide by a SuperAdmin (or per-tenant) through `/admin/design-system` (`apps/web/src/hooks/useDesignSystem.ts`), which injects a `<style>` tag defining `--teal`/`--teal-l`/`--teal-m` (and `--green-l`/`--red-l`/`--gold-l`/`--blue-l`/`--purple-l`) computed from that one source color — `FeaturedIcon` and `Badge` already read these and so pick up the live theme automatically. When building a new soft-tint card/panel/icon chip by hand, reuse those same tokens directly (`background: var(--teal-l)`, `border: 1px solid var(--teal-m)`) instead of inventing your own `color-mix(in srgb, var(--teal) X%, ...)` percentage — a hand-picked percentage will *look* plausible in isolation but drifts from the canonical tint the rest of the app uses, especially once a tenant switches to a different platform theme/preset. This applies to every app in the platform and to any new app added later, not just one page.
 
 Verify with `npx tsc --noEmit` from `apps/web` after touching any of these files or their call sites.
