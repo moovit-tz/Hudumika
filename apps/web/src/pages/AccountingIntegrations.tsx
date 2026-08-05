@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 /* ── SVG brand marks (vector, no 3D) ─────────────────────────────── */
 const XeroLogo = () => (
@@ -180,6 +181,12 @@ export function AccountingIntegrations() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, background: 'var(--bg)' }}>
+      <PageHeader
+        crumbs={['FinOps', 'Integrations']}
+        titlePlain="Accounting"
+        titleEm="integrations"
+        subtitle="Connect the ledger to Xero, QuickBooks or Zoho and keep them in step."
+      />
 
       {/* Page header + tabs */}
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '20px 24px 0', flexShrink: 0 }}>

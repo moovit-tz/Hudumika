@@ -34,6 +34,19 @@ export interface WorkflowStudioEdge {
   label?: string;
 }
 
+/**
+ * Narrows an automation to particular shipments, not just a particular event.
+ * Same shape as a clearance workflow's `triggers` (migration 105) — the two
+ * builders deliberately share one vocabulary. Every list empty = no restriction.
+ */
+export interface WorkflowStudioTargeting {
+  freightModes: string[];
+  consignmentTypes: string[];
+  customerIds: string[];
+  originCountries: string[];
+  destinationCountries: string[];
+}
+
 export interface WorkflowStudioApp {
   id: string;
   tenant_id: string;
@@ -50,6 +63,7 @@ export interface WorkflowStudioApp {
   run_count: number;
   /** Names the code subscriber this workflow stands down once ACTIVE. */
   supersedes_subscriber?: string | null;
+  targeting?: WorkflowStudioTargeting;
   created_by: string | null;
   created_at: string;
   updated_at: string;

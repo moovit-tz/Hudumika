@@ -56,7 +56,7 @@ export const KPIBar: React.FC<KPIBarProps> = ({ kpis, onSelectMetric, selectedMe
     {
       id: 'ontime',
       label: 'On-Time Rate',
-      value: `${kpis.on_time_rate_pct}%`,
+      value: kpis.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`,
       colorClass: 'g',
       bgClass: '',
     },

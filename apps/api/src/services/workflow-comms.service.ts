@@ -3,6 +3,7 @@ import { formatTemplate } from '../config/notification-matrix.js';
 import { EmailIntegration } from '../integrations/email.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { NotificationService } from './notification.service.js';
+import { attachCommOutcomes, settleQueuedComm, type CommOutcome } from './workflow-runs.service.js';
 import type { AutoComm } from '@hudumika/types';
 
 /**
@@ -12,17 +13,46 @@ import type { AutoComm } from '@hudumika/types';
  * blocks or fails the stage transition itself. delayMinutes>0 comms are
  * queued for the workflow-comm job to pick up.
  */
-export async function dispatchAutoComms(tenantId: string, shipmentId: string, stepId: string, stepName: string, comms: AutoComm[]): Promise<void> {
-  if (comms.length === 0) return;
+export async function dispatchAutoComms(
+  tenantId: string,
+  shipmentId: string,
+  stepId: string,
+  stepName: string,
+  comms: AutoComm[],
+  runId?: string | null,
+): Promise<CommOutcome[]> {
+  if (comms.length === 0) return [];
 
   const immediate = comms.filter((c) => !c.delayMinutes || c.delayMinutes <= 0);
   const delayed = comms.filter((c) => c.delayMinutes > 0);
+  const outcomes: CommOutcome[] = [];
 
-  for (const comm of immediate) {
-    sendOneComm(tenantId, shipmentId, comm, stepName).catch((err) =>
-      console.error(`[WorkflowComms] immediate send failed for shipment ${shipmentId}, comm ${comm.id}:`, err.message),
-    );
-  }
+  // Awaited rather than fire-and-forget-per-comm so each send's real verdict
+  // is available to journal. This does not delay the transition: the whole
+  // function is already invoked detached, after the transition has committed.
+  const settled = await Promise.allSettled(
+    immediate.map((comm) => sendOneComm(tenantId, shipmentId, comm, stepName)),
+  );
+
+  settled.forEach((res, i) => {
+    const comm = immediate[i];
+    if (res.status === 'fulfilled') {
+      if (!res.value.success) {
+        console.error(`[WorkflowComms] send failed for shipment ${shipmentId}, comm ${comm.id}: ${res.value.error}`);
+      }
+      outcomes.push({
+        commId: comm.id, channel: comm.channel, recipient: comm.recipient,
+        status: res.value.success ? 'SENT' : 'FAILED',
+        ...(res.value.success ? {} : { error: res.value.error ?? 'Unknown error' }),
+      });
+    } else {
+      console.error(`[WorkflowComms] immediate send threw for shipment ${shipmentId}, comm ${comm.id}:`, res.reason?.message);
+      outcomes.push({
+        commId: comm.id, channel: comm.channel, recipient: comm.recipient,
+        status: 'FAILED', error: res.reason?.message ?? 'Send threw',
+      });
+    }
+  });
 
   if (delayed.length > 0) {
     await withTenant(tenantId, async (trx) => {
@@ -37,16 +67,26 @@ export async function dispatchAutoComms(tenantId: string, shipmentId: string, st
             auto_comm_id: comm.id,
             fire_at: new Date(now + comm.delayMinutes * 60 * 1000),
             status: 'PENDING',
+            // So the job can write this message's real outcome back onto the
+            // run instead of leaving it reading QUEUED (migration 169).
+            run_id: runId ?? null,
           })
           .execute();
+        outcomes.push({
+          commId: comm.id, channel: comm.channel, recipient: comm.recipient,
+          status: 'QUEUED', delayMinutes: comm.delayMinutes,
+        });
       }
     });
   }
+
+  if (runId) await attachCommOutcomes(tenantId, runId, outcomes);
+  return outcomes;
 }
 
 /** Cancels any still-pending delayed comms queued for a step the shipment just left. */
 export async function cancelPendingComms(tenantId: string, shipmentId: string, stepId: string): Promise<void> {
-  await withTenant(tenantId, (trx) =>
+  const cancelled = await withTenant(tenantId, (trx) =>
     trx
       .updateTable('workflow_comm_queue')
       .set({ status: 'CANCELLED' })
@@ -54,14 +94,46 @@ export async function cancelPendingComms(tenantId: string, shipmentId: string, s
       .where('shipment_id', '=', shipmentId)
       .where('workflow_step_id', '=', stepId)
       .where('status', '=', 'PENDING')
+      .returning(['run_id', 'auto_comm_id'])
       .execute(),
   );
+
+  // Show it on the run as deliberately cancelled rather than perpetually
+  // QUEUED — "we chose not to send this" and "it never went" look identical
+  // otherwise, and only one of them is a problem.
+  for (const row of cancelled) {
+    if (row.run_id) {
+      await settleQueuedComm(tenantId, row.run_id, row.auto_comm_id, { status: 'CANCELLED' })
+        .catch(() => { /* journalling must never break the cancel itself */ });
+    }
+  }
 }
 
-/** Sends (or honestly logs, for channels with no real integration) a single AutoComm. Exported for the delayed-queue job to reuse. */
-export async function sendOneComm(tenantId: string, shipmentId: string, comm: AutoComm, stepName: string): Promise<{ success: boolean; error?: string }> {
+export interface ResolvedComm {
+  shipment: any;
+  subject: string;
+  body: string;
+  toEmail?: string;
+  toPhone?: string;
+  toUserId?: string;
+}
+
+/**
+ * Works out who a comm would go to and what it would say — everything
+ * sendOneComm does right up to the moment of actually sending.
+ *
+ * Split out so the dry run can answer "would this reach anyone?" using the
+ * same resolution the real send uses, rather than a second copy that drifts
+ * and eventually lies.
+ */
+export async function resolveComm(
+  tenantId: string,
+  shipmentId: string,
+  comm: AutoComm,
+  stepName: string,
+): Promise<ResolvedComm | null> {
   const shipment = await db.selectFrom('shipment_cases').selectAll().where('id', '=', shipmentId).executeTakeFirst();
-  if (!shipment) return { success: false, error: 'Shipment not found' };
+  if (!shipment) return null;
 
   const customer = await db.selectFrom('customers').selectAll().where('id', '=', shipment.customer_id).executeTakeFirst();
   const officer = shipment.assigned_to
@@ -81,28 +153,36 @@ export async function sendOneComm(tenantId: string, shipmentId: string, comm: Au
   if (shipment.eta) vars.eta = new Date(shipment.eta).toLocaleDateString();
   if (officer?.name) vars.agent_name = officer.name;
 
-  const subject = formatTemplate(comm.subject, vars);
-  const body = formatTemplate(comm.template, vars);
-
-  let toEmail: string | undefined;
-  let toPhone: string | undefined;
-  let toUserId: string | undefined;
+  const out: ResolvedComm = {
+    shipment,
+    subject: formatTemplate(comm.subject, vars),
+    body: formatTemplate(comm.template, vars),
+  };
 
   if (comm.recipient === 'customer') {
-    toEmail = customer?.email || undefined;
-    toPhone = customer?.phone_wa || customer?.phone || undefined;
+    out.toEmail = customer?.email || undefined;
+    out.toPhone = customer?.phone_wa || customer?.phone || undefined;
   } else if (comm.recipient === 'assigned_agent') {
-    toEmail = officer?.email || undefined;
-    toPhone = officer?.phone || undefined;
-    toUserId = officer?.id;
+    out.toEmail = officer?.email || undefined;
+    out.toPhone = officer?.phone || undefined;
+    out.toUserId = officer?.id;
   } else if (comm.recipient === 'manager') {
     const manager = await db.selectFrom('users').selectAll().where('tenant_id', '=', tenantId).where('role', '=', 'MANAGER').where('active', '=', true).executeTakeFirst();
-    toEmail = manager?.email || undefined;
-    toPhone = manager?.phone || undefined;
-    toUserId = manager?.id;
+    out.toEmail = manager?.email || undefined;
+    out.toPhone = manager?.phone || undefined;
+    out.toUserId = manager?.id;
   } else if (comm.recipient === 'custom_email') {
-    toEmail = comm.customEmail || undefined;
+    out.toEmail = comm.customEmail || undefined;
   }
+
+  return out;
+}
+
+/** Sends (or honestly logs, for channels with no real integration) a single AutoComm. Exported for the delayed-queue job to reuse. */
+export async function sendOneComm(tenantId: string, shipmentId: string, comm: AutoComm, stepName: string): Promise<{ success: boolean; error?: string }> {
+  const resolved = await resolveComm(tenantId, shipmentId, comm, stepName);
+  if (!resolved) return { success: false, error: 'Shipment not found' };
+  const { shipment, subject, body, toEmail, toPhone, toUserId } = resolved;
 
   switch (comm.channel) {
     case 'email': {

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { CompanyCard } from '../components/CompanyCard.js';
 import { CompanyForm } from '../components/CompanyForm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 export const TenantManagement: React.FC = () => {
   const [companies, setCompanies] = useState<any[]>([]);
@@ -47,7 +48,11 @@ export const TenantManagement: React.FC = () => {
 
   return (
     <div style={{ padding: '24px' }}>
-      <h1 style={{ color: 'var(--color-text)', marginBottom: '24px' }}>Tenant Management</h1>
+      <PageHeader
+        crumbs={['Admin', 'Tenants']}
+        titlePlain="Tenant"
+        titleEm="management"
+      />
       <div style={{ marginBottom: '16px' }}>
         <input
           type="text"
@@ -73,7 +78,7 @@ export const TenantManagement: React.FC = () => {
       </button>
 
       {loading ? (
-        <div>Loading…</div>
+        <div>Loadingâ€¦</div>
       ) : (
         <div className="card" style={{ padding: '24px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>

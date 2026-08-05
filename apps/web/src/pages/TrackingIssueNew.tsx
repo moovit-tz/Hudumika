@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface StaffUser { id: string; name: string }
@@ -54,7 +55,11 @@ export const TrackingIssueNew: React.FC = () => {
       <Link to="/tracking/issues" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
         <Icon name="arrowLeft" size={12} /> Issues
       </Link>
-      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 20 }}>Report an issue</div>
+      <PageHeader
+        crumbs={['HuduFreight', 'Report Issue']}
+        titlePlain="Report an"
+        titleEm="issue"
+      />
 
       <form onSubmit={submit} style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div>

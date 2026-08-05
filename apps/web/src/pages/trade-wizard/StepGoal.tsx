@@ -43,6 +43,20 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
 
   async function pick(p: ProcedureSummary) {
     const detail = await apiFetch(`/v1/customs/trade-wizard/procedures/${p.id}`);
+    // Record which procedure was chosen out of the results. The search itself
+    // is already logged; without this the log says what was asked and never
+    // what was taken, so no procedure can ever be shown to be mis-mapped.
+    // Fire-and-forget — an observation must not block the wizard.
+    void apiFetch('/v1/intel/trade-wizard-outcomes', {
+      method: 'POST',
+      body: JSON.stringify({
+        procedure_id: p.id,
+        procedure_name: p.name,
+        goal: draft.kind ?? null,
+        predicted: { permits: (detail as any)?.permits ?? null, steps: (detail as any)?.steps?.length ?? null },
+        outcome: 'selected',
+      }),
+    }).catch(() => { /* observation only */ });
     update({ procedure: detail, answers: {} });
     onNext();
   }

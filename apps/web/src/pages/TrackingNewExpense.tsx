@@ -6,6 +6,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import './TrackingNewExpense.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Vehicle {
   id: string;
@@ -90,7 +91,11 @@ export const TrackingNewExpense: React.FC = () => {
           <Link to="/tracking/vehicles" className="exp-back-link">
             <Icon name="arrowLeft" size={14} /> Expense Entries
           </Link>
-          <div className="exp-page-title">New Expense Entry</div>
+          <PageHeader
+            crumbs={['HuduFreight', 'New Expense']}
+            titlePlain="New"
+            titleEm="expense"
+          />
         </div>
         <div className="exp-actions">
           <button className="exp-btn-secondary" onClick={() => navigate(-1)}>Cancel</button>

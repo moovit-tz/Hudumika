@@ -23,7 +23,7 @@ const UPDATE_HISTORY: UpdateEntry[] = [
       'File Manager drag-and-drop upload improvements',
       'Super Admin: Finance module with MRR/ARR analytics',
       'Dark mode refinements across all pages',
-      'Performance improvements — 40% faster page loads',
+      'Performance improvements â€” 40% faster page loads',
     ],
   },
   {
@@ -115,12 +115,12 @@ export const SystemUpdate: React.FC = () => {
     setProgress(0);
 
     const steps = [
-      { pct: 10, label: 'Downloading update package…'    },
-      { pct: 30, label: 'Verifying integrity checksums…'  },
-      { pct: 50, label: 'Backing up current installation…' },
-      { pct: 70, label: 'Applying database migrations…'   },
-      { pct: 85, label: 'Replacing application files…'    },
-      { pct: 95, label: 'Clearing cache and reloading…'   },
+      { pct: 10, label: 'Downloading update packageâ€¦'    },
+      { pct: 30, label: 'Verifying integrity checksumsâ€¦'  },
+      { pct: 50, label: 'Backing up current installationâ€¦' },
+      { pct: 70, label: 'Applying database migrationsâ€¦'   },
+      { pct: 85, label: 'Replacing application filesâ€¦'    },
+      { pct: 95, label: 'Clearing cache and reloadingâ€¦'   },
       { pct: 100, label: 'Update complete!'               },
     ];
 
@@ -161,7 +161,7 @@ export const SystemUpdate: React.FC = () => {
               style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 16px', borderRadius: 9, border:'none', background: updating ? 'var(--ink3)' : 'var(--teal)', color:'#fff', fontSize:12, fontWeight:700, cursor: updating ? 'not-allowed' : 'pointer' }}
             >
               <Icon name="upload" size={13} />
-              {updating ? 'Updating…' : `Update to v${LATEST_VERSION}`}
+              {updating ? 'Updatingâ€¦' : `Update to v${LATEST_VERSION}`}
             </button>
           )}
         </div>
@@ -179,7 +179,7 @@ export const SystemUpdate: React.FC = () => {
                   <Icon name="upload" size={16} color="var(--teal)" />
                 </div>
                 <div>
-                  <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)' }}>Updating Hudumika…</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)' }}>Updating Hudumikaâ€¦</div>
                   <div style={{ fontSize:12, color:'var(--ink3)' }}>Do not close this window</div>
                 </div>
               </div>
@@ -239,7 +239,7 @@ export const SystemUpdate: React.FC = () => {
                 </div>
                 <div>
                   <div style={{ fontSize:14, fontWeight:700, color:'var(--ink)' }}>What's New in v{LATEST_VERSION}</div>
-                  <div style={{ fontSize:12, color:'var(--ink3)' }}>Minor release · {UPDATE_HISTORY[0].date}</div>
+                  <div style={{ fontSize:12, color:'var(--ink3)' }}>Minor release Â· {UPDATE_HISTORY[0].date}</div>
                 </div>
                 <TypeBadge type={UPDATE_HISTORY[0].type} />
               </div>

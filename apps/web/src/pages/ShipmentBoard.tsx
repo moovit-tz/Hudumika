@@ -10,6 +10,7 @@ import {
   type ClearanceJob, type Stage, type Flag, type TransportMode, type Channel,
 } from './clearanceData.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 // --- Store hook ---------------------------------------------------------------
 
@@ -31,7 +32,7 @@ function relative(d: Date) {
 function fmtTZS(n: number) { return 'TZS ' + n.toLocaleString('en'); }
 function avatarBg(name: string) {
   const c = ['#e8461a', '#2563eb', '#059669', '#7c3aed', '#ca8a04', '#0891b2'];
-  let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % c.length;
+  let h = 0; for (const ch of (name ?? '')) h = (h * 31 + ch.charCodeAt(0)) % c.length;
   return c[Math.abs(h)];
 }
 function initials(name: string) { return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase(); }
@@ -92,7 +93,7 @@ function SummaryPanel({ job, onClose }: { job: ClearanceJob; onClose: () => void
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 2 }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.35, marginBottom: 4 }}>{job.title}</div>
-        <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 8 }}>{job.customer} · {job.mode}</div>
+        <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 8 }}>{job.customer} Â· {job.mode}</div>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
           {job.flags.map(f => <FlagChip key={f} flag={f} />)}
           {job.tansad && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: '#dbeafe', color: '#2563eb', border: '1px solid #93c5fd' }}>{job.tansad}</span>}
@@ -146,7 +147,7 @@ function SummaryPanel({ job, onClose }: { job: ClearanceJob; onClose: () => void
           <div style={{ display: 'flex', gap: 8 }}>
             <Av name={lastMsg.userName} size={24} />
             <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)' }}>{lastMsg.userName} <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>· {relative(lastMsg.ts)}</span></div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)' }}>{lastMsg.userName} <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>Â· {relative(lastMsg.ts)}</span></div>
               <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 2, lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                 {lastMsg.content}
               </div>
@@ -177,7 +178,7 @@ function SummaryPanel({ job, onClose }: { job: ClearanceJob; onClose: () => void
         </Link>
         {job.dueDate && (
           <div style={{ textAlign: 'center', fontSize: 11, color: new Date() > job.dueDate ? 'var(--red)' : 'var(--ink3)', marginTop: 8 }}>
-            {new Date() > job.dueDate ? '? Overdue — ' : 'Due '}
+            {new Date() > job.dueDate ? '? Overdue â€” ' : 'Due '}
             {fdate(job.dueDate)}
           </div>
         )}
@@ -286,12 +287,12 @@ function CreateModal({ onClose, onCreate, isMobile }: { onClose: () => void; onC
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={18} /></button>
         </div>
         <div style={{ padding: '20px' }}>
-          {field('Shipment Description *', inp({ value: title, onChange: e => setTitle(e.target.value), placeholder: 'e.g. Generator Parts — 3× 20GP COSCO' }))}
+          {field('Shipment Description *', inp({ value: title, onChange: e => setTitle(e.target.value), placeholder: 'e.g. Generator Parts â€” 3Ã— 20GP COSCO' }))}
           {field('Customer *', (
             <Select value={customer || '__none__'} onValueChange={v => setCustomer(v === '__none__' ? '' : v)}>
-              <SelectTrigger style={selWrap}><SelectValue placeholder="Select existing customer…" /></SelectTrigger>
+              <SelectTrigger style={selWrap}><SelectValue placeholder="Select existing customerâ€¦" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="__none__">Select existing customer…</SelectItem>
+                <SelectItem value="__none__">Select existing customerâ€¦</SelectItem>
                 {CUSTOMERS_LIST.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
               </SelectContent>
             </Select>
@@ -359,9 +360,13 @@ export function ShipmentBoard() {
         <div style={{ padding: '16px 20px 12px', background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
             <div>
-              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Clearance Board</h1>
+              <PageHeader
+                crumbs={['ClearOS', 'Clearance Board']}
+                titlePlain="Clearance"
+                titleEm="board"
+              />
               <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--ink3)' }}>
-                {jobs.length} jobs · {jobs.filter(j => j.flags.includes('sla_breach')).length} SLA breach · {jobs.filter(j => j.flags.includes('demurrage')).length} demurrage
+                {jobs.length} jobs Â· {jobs.filter(j => j.flags.includes('sla_breach')).length} SLA breach Â· {jobs.filter(j => j.flags.includes('demurrage')).length} demurrage
               </p>
             </div>
             <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
@@ -372,7 +377,7 @@ export function ShipmentBoard() {
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
               <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' }}><Icon name="search" size={13} /></span>
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search CLR#, customer, B/L, TANSAD…" style={{ width: '100%', padding: '8px 12px 8px 30px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' as const }} />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search CLR#, customer, B/L, TANSADâ€¦" style={{ width: '100%', padding: '8px 12px 8px 30px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, boxSizing: 'border-box' as const }} />
             </div>
             <Select value={stageFilter} onValueChange={v => setStageFilter(v as Stage | 'all')}>
               <SelectTrigger style={{ width: 'auto', padding: '8px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, height: 'auto' }}><SelectValue /></SelectTrigger>
@@ -437,7 +442,7 @@ export function ShipmentBoard() {
         </div>
       </div>
 
-      {/* Summary panel — hidden on mobile (tap card opens full view) */}
+      {/* Summary panel â€” hidden on mobile (tap card opens full view) */}
       {selectedJob && !isMobile && (
         <SummaryPanel
           job={selectedJob}

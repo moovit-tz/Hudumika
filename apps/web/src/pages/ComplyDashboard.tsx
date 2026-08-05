@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { useComplyDashboard, useComplyApplications, useComplyProfile } from '../hooks/useComply.js';
 import './ComplyOS.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 // agency-code → class name mapping (gov | tax | social | reg | fin)
 const AGENCY_CLASS: Record<string, string> = {
@@ -60,11 +61,13 @@ export function ComplyDashboard() {
   return (
     <div className="comply-page">
       {/* Header */}
+      <PageHeader
+        crumbs={['ComplyOS', 'Compliance Overview']}
+        titlePlain="Compliance"
+        titleEm="overview"
+        subtitle="Live data · Tanzania · East Africa"
+      />
       <div className="comply-page-hdr">
-        <div>
-          <h1 className="comply-page-title">Compliance Overview</h1>
-          <p className="comply-page-sub">Live data · Tanzania · East Africa</p>
-        </div>
         <div className="comply-action-row">
           <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh">
             <Icon name="refresh" size={14} />

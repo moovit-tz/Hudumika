@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { useComplyAgencyDirectory } from '../hooks/useComply.js';
 import type { CompAgencyDirectoryEntry } from '@hudumika/types';
 import './ComplyOS.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 type Agency = CompAgencyDirectoryEntry;
 
@@ -22,12 +23,14 @@ export function ComplyAgencies() {
 
   return (
     <div className="comply-page">
+      <PageHeader
+        crumbs={['ComplyOS', 'Government Agencies']}
+        titlePlain="Government"
+        titleEm="agencies"
+        subtitle="All regulatory bodies relevant to business compliance in Tanzania"
+      />
       <div className="comply-page-hdr">
-        <div>
-          <h1 className="comply-page-title">Government Agencies</h1>
-          <p className="comply-page-sub">All regulatory bodies relevant to business compliance in Tanzania</p>
         </div>
-      </div>
 
       <div className="comply-filters">
         {CATEGORIES.map(c => (

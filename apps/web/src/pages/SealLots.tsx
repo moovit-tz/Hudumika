@@ -8,6 +8,7 @@ import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import { CUSTOMS_STATUS_VARIANT, CUSTOMS_STATUS_COLOR_VAR } from '../lib/sealStatus.js';
 import { CUSTOMS_STATUSES, CUSTOMS_STATUS_LABELS, type CustomsStatus } from '@hudumika/types';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Lot {
   id: string; description: string; hsCode: string | null; ownerName?: string;
@@ -36,11 +37,13 @@ export function SealLots() {
 
   return (
     <div className="seal-page">
+      <PageHeader
+        crumbs={['SEAL', 'Lots']}
+        titlePlain="Bonded"
+        titleEm="lots"
+        subtitle="Every quantity of stock under customs control — one owner, one status, one storage clock each."
+      />
       <div className="seal-page-hdr">
-        <div>
-          <h1 className="seal-page-title">Lots</h1>
-          <p className="seal-page-sub">Every quantity of stock under customs control — one owner, one status, one storage clock each.</p>
-        </div>
         <button type="button" className="seal-btn-primary" onClick={() => navigate('/seal/lots/new')}>
           <Icon name="plus" size={14} />
           <span>Receive Lot</span>

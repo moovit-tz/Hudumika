@@ -13,6 +13,7 @@ import { MetricsRow } from '../components/MetricCard.js';
 import { exportCsv, ExportButton, StatTile, DataTable, ClickableBarChart } from '../components/AnalyticsKit.js';
 import type { ColumnDef } from '../components/AnalyticsKit.js';
 import type { CarbonPortfolioResponse, CarbonModeBreakdown, CarbonCustomerBreakdown } from '@hudumika/types';
+import { PageHeader } from '../components/PageHeader.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
@@ -99,7 +100,11 @@ export const CarbonPortfolio: React.FC = () => {
           <Icon name="globe" size={18} strokeWidth={1.75} />
         </FeaturedIcon>
         <div>
-          <h1 style={{ fontSize: 17, fontWeight: 700, color: 'var(--navy)', lineHeight: 1.2 }}>Carbon Portfolio</h1>
+          <PageHeader
+            crumbs={['ClearOS', 'Carbon Portfolio']}
+            titlePlain="Carbon"
+            titleEm="portfolio"
+          />
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>
             {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : 'Loading…'}
           </div>

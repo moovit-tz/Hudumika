@@ -53,7 +53,7 @@ const AV_COLORS = [
 ];
 
 function avColor(name: string): string {
-  return AV_COLORS[name.charCodeAt(0) % AV_COLORS.length];
+  return AV_COLORS[((name ?? '?').charCodeAt(0)) % AV_COLORS.length];
 }
 
 function initials(name: string): string {

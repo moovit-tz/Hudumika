@@ -9,6 +9,7 @@ import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Consignment {
   id: string; owner_name?: string; transport_doc_type: string; transport_doc_number: string | null;
@@ -76,11 +77,13 @@ export function SealConsignments() {
 
   return (
     <div className="seal-page">
+      <PageHeader
+        crumbs={['SEAL', 'Consignments']}
+        titlePlain="Inbound"
+        titleEm="consignments"
+        subtitle="Pre-arrival through gate-in to devanning — one consignment per transport document."
+      />
       <div className="seal-page-hdr">
-        <div>
-          <h1 className="seal-page-title">Consignments</h1>
-          <p className="seal-page-sub">Pre-arrival through gate-in to devanning — one consignment per transport document.</p>
-        </div>
         <button type="button" className="seal-btn-primary" onClick={() => setShowNew(v => !v)}>
           <Icon name="plus" size={14} />
           <span>New Consignment</span>

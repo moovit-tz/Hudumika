@@ -10,6 +10,7 @@ import { ComplyWizardPage, WizardField } from './ComplyWizardPage.js';
 import { ComplyCustomerPicker } from './ComplyCustomerPicker.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 const NEW_APP_STEPS = ['Document', 'Details', 'Review'];
 
@@ -132,11 +133,13 @@ export function ComplyApplications() {
 
   return (
     <div className="comply-page">
+      <PageHeader
+        crumbs={['ComplyOS', 'Applications']}
+        titlePlain="License"
+        titleEm="applications"
+        subtitle="Track submissions across all government agencies"
+      />
       <div className="comply-page-hdr">
-        <div>
-          <h1 className="comply-page-title">Applications</h1>
-          <p className="comply-page-sub">Track submissions across all government agencies</p>
-        </div>
         <div className="comply-action-row">
           <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh applications">
             <Icon name="refresh" size={13} />

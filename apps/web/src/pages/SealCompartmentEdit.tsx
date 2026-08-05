@@ -6,6 +6,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Compartment {
   id: string;
@@ -144,6 +145,12 @@ export function SealCompartmentEdit() {
 
   return (
     <div className="seal-page" style={{ paddingBottom: 60 }}>
+      <PageHeader
+        crumbs={['SEAL', 'Edit Compartment']}
+        titlePlain="Edit this"
+        titleEm="compartment"
+        subtitle="Licence, fees and billing method for this perimeter."
+      />
       {/* Back Link */}
       <div style={{ marginBottom: 16 }}>
         <Link to={`/seal/compartments/${id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--seal)', textDecoration: 'none' }}>

@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 import type { BalanceSheetReport, BalanceSheetLine } from '@hudumika/types';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface LineItem { label: string; amount: number; sub?: boolean; bold?: boolean; separator?: boolean }
 
@@ -142,6 +143,12 @@ export const FinanceBalanceSheet: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+      <PageHeader
+        crumbs={['FinOps', 'Balance Sheet']}
+        titlePlain="Balance"
+        titleEm="sheet"
+        subtitle="Assets, liabilities and equity as at a date."
+      />
 
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>

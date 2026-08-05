@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 import type { LedgerReport } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 const PERIODS = ['This Month', 'Last Month', 'This Quarter', 'This Year', 'Last Year'];
 
@@ -116,6 +117,12 @@ export const FinanceTaxReport: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+      <PageHeader
+        crumbs={['FinOps', 'Tax']}
+        titlePlain="Tax"
+        titleEm="report"
+        subtitle="VAT and duty collected and payable."
+      />
 
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>

@@ -8,16 +8,39 @@ import { executeAndRecord } from '../studio/executor.js';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/** Same shape as workflows.triggers. Empty everywhere means "no restriction". */
+const EMPTY_TARGETING = () => ({
+  freightModes: [] as string[], consignmentTypes: [] as string[], customerIds: [] as string[],
+  originCountries: [] as string[], destinationCountries: [] as string[],
+});
+
+const TargetingSchema = z.object({
+  freightModes: z.array(z.string()).optional(),
+  consignmentTypes: z.array(z.string()).optional(),
+  customerIds: z.array(z.string()).optional(),
+  originCountries: z.array(z.string()).optional(),
+  destinationCountries: z.array(z.string()).optional(),
+}).strict();
+
 /** JSONB columns arrive as strings from some drivers and objects from others. */
 function hydrate(row: any) {
   const parse = (v: unknown) => (typeof v === 'string' ? JSON.parse(v) : v);
-  return { ...row, trigger_config: parse(row.trigger_config), nodes: parse(row.nodes), edges: parse(row.edges) };
+  return {
+    ...row,
+    trigger_config: parse(row.trigger_config),
+    nodes: parse(row.nodes),
+    edges: parse(row.edges),
+    // Rows created before migration 168 have the column default, but a row
+    // selected without it would otherwise come back undefined and read as
+    // "no targeting" in one place and crash in another.
+    targeting: row.targeting !== undefined ? parse(row.targeting) : EMPTY_TARGETING(),
+  };
 }
 
 const APP_META: Record<AppId, { name: string; color: string }> = {
   clearos:      { name: 'ClearOS',      color: '#ea580c' },
   finops:       { name: 'FinOps',       color: '#0284c7' },
-  onepi:        { name: 'NexusHR',      color: '#0d9488' },
+  nexushr:        { name: 'NexusHR',      color: '#0d9488' },
   bliss:        { name: 'Bliss',        color: '#7c3aed' },
   complyos:     { name: 'ComplyOS',     color: '#059669' },
   crm:          { name: 'CRM',          color: '#059669' },
@@ -228,6 +251,11 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
       return reply.status(400).send({ error: 'BAD_REQUEST', message: 'Name and trigger_event are required' });
     }
 
+    const targetingParsed = TargetingSchema.safeParse(body.targeting ?? {});
+    if (!targetingParsed.success) {
+      return reply.status(400).send({ error: 'BAD_REQUEST', message: 'Invalid targeting: ' + targetingParsed.error.issues.map(i => i.path.join('.') + ' ' + i.message).join('; ') });
+    }
+
     const defaultNodes = body.nodes || [
       { id: 'node-1', type: 'trigger', title: 'Trigger Event', subtitle: `Event: ${body.trigger_event}`, eventOrAction: body.trigger_event, position: { x: 100, y: 80 }, config: {} },
       { id: 'node-2', type: 'action', title: 'Action Step', subtitle: 'Action: send_email', eventOrAction: 'send_email', position: { x: 100, y: 220 }, config: {} }
@@ -251,18 +279,14 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
           trigger_config: JSON.stringify(body.trigger_config || {}),
           nodes: JSON.stringify(defaultNodes),
           edges: JSON.stringify(defaultEdges),
+          targeting: JSON.stringify({ ...EMPTY_TARGETING(), ...targetingParsed.data }),
           created_by: request.user.sub || null,
         })
         .returningAll()
         .executeTakeFirstOrThrow();
     });
 
-    const newApp = {
-      ...rawApp,
-      trigger_config: typeof rawApp.trigger_config === 'string' ? JSON.parse(rawApp.trigger_config) : rawApp.trigger_config,
-      nodes: typeof rawApp.nodes === 'string' ? JSON.parse(rawApp.nodes) : rawApp.nodes,
-      edges: typeof rawApp.edges === 'string' ? JSON.parse(rawApp.edges) : rawApp.edges,
-    };
+    const newApp = hydrate(rawApp);
 
     return reply.status(201).send({ data: newApp });
   });
@@ -285,14 +309,7 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
       return reply.status(404).send({ error: 'NOT_FOUND', message: 'Workflow app not found' });
     }
 
-    const app = {
-      ...rawApp,
-      trigger_config: typeof rawApp.trigger_config === 'string' ? JSON.parse(rawApp.trigger_config) : rawApp.trigger_config,
-      nodes: typeof rawApp.nodes === 'string' ? JSON.parse(rawApp.nodes) : rawApp.nodes,
-      edges: typeof rawApp.edges === 'string' ? JSON.parse(rawApp.edges) : rawApp.edges,
-    };
-
-    return reply.send({ data: app });
+    return reply.send({ data: hydrate(rawApp) });
   });
 
   // ── PATCH /v1/workflow-studio/apps/:id ────────────────────────────────────────
@@ -314,6 +331,13 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
     if (body.trigger_config !== undefined) updateData.trigger_config = JSON.stringify(body.trigger_config);
     if (body.nodes !== undefined) updateData.nodes = JSON.stringify(body.nodes);
     if (body.edges !== undefined) updateData.edges = JSON.stringify(body.edges);
+    if (body.targeting !== undefined) {
+      const parsed = TargetingSchema.safeParse(body.targeting ?? {});
+      if (!parsed.success) {
+        return reply.status(400).send({ error: 'BAD_REQUEST', message: 'Invalid targeting: ' + parsed.error.issues.map(i => i.path.join('.') + ' ' + i.message).join('; ') });
+      }
+      updateData.targeting = JSON.stringify({ ...EMPTY_TARGETING(), ...parsed.data });
+    }
 
     const rawUpdated = await withTenant(tenantId, async (trx) => {
       return await trx
@@ -329,14 +353,7 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
       return reply.status(404).send({ error: 'NOT_FOUND', message: 'Workflow app not found' });
     }
 
-    const updatedApp = {
-      ...rawUpdated,
-      trigger_config: typeof rawUpdated.trigger_config === 'string' ? JSON.parse(rawUpdated.trigger_config) : rawUpdated.trigger_config,
-      nodes: typeof rawUpdated.nodes === 'string' ? JSON.parse(rawUpdated.nodes) : rawUpdated.nodes,
-      edges: typeof rawUpdated.edges === 'string' ? JSON.parse(rawUpdated.edges) : rawUpdated.edges,
-    };
-
-    return reply.send({ data: updatedApp });
+    return reply.send({ data: hydrate(rawUpdated) });
   });
 
   // ── DELETE /v1/workflow-studio/apps/:id ───────────────────────────────────────

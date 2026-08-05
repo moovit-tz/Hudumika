@@ -84,7 +84,7 @@ export interface LeadsTable {
   value: Generated<string>;
   priority: Generated<string>;
   assigned_to: string | null;
-  expected_close: Date | null;
+  expected_close: DateOnlyNull;
   notes: string | null;
   industry: string | null;
   location: string | null;
@@ -118,7 +118,7 @@ export interface CustomersTable {
   entity_type: string | null;
   registration_status: string | null;
   registered_address: string | null;
-  incorporation_date: Date | null;
+  incorporation_date: DateOnlyNull;
   // Profile-tab fields (migration 134) — collected by the Customers edit
   // form since before these columns existed; account_status is the real
   // 3-way status the UI displays ('Active'/'Inactive'/'Suspended'), kept in
@@ -262,6 +262,33 @@ export interface WorkflowCommQueueTable {
   error: string | null;
   created_at: Generated<Date>;
   sent_at: Date | null;
+  /** The transition run that queued this, so its eventual outcome can be
+   *  written back onto that run rather than left reading QUEUED. */
+  run_id: string | null;
+}
+
+/**
+ * One row per clearance transition attempt — what the automation actually did,
+ * not just where the shipment ended up (that is stage_history's job).
+ * See migration 168.
+ */
+export interface WorkflowStepRunsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  workflow_id: string | null;   // NULL on the legacy fixed-stage system
+  shipment_id: string;
+  /** TEXT: a workflow_steps UUID, or a ClearanceStage literal on legacy. */
+  from_step_id: string | null;
+  to_step_id: string;
+  to_step_name: string;
+  actor_id: string | null;
+  status: string;               // SUCCESS | PARTIAL | BLOCKED | FAILED | SIMULATED
+  conditions: Generated<string>;
+  comms: Generated<string>;
+  error_message: string | null;
+  duration_ms: Generated<number>;
+  simulated: Generated<boolean>;
+  created_at: Generated<Date>;
 }
 
 // ── SEAL (bonded warehouse) — Increment 1: the ledger ──
@@ -272,7 +299,7 @@ export interface SealCompartmentsTable {
   name: string;
   warehouse_type: Generated<string>;
   licence_number: string | null;
-  licence_expiry: Date | null;
+  licence_expiry: DateOnlyNull;
   customs_office_code: string | null;
   jurisdiction: Generated<string>;
   default_storage_days: Generated<number>;
@@ -344,16 +371,16 @@ export interface SealLotsTable {
   tax_at_risk: Generated<string>;
   batch: string | null;
   serial: string | null;
-  expiry_date: Date | null;
-  warehoused_on: Date | null;
-  expires_on: Date | null;
+  expiry_date: DateOnlyNull;
+  warehoused_on: DateOnlyNull;
+  expires_on: DateOnlyNull;
   is_dangerous_goods: Generated<boolean>;
   un_number: string | null;
   imdg_class: string | null;
   requires_reefer: Generated<boolean>;
   reefer_setpoint_c: string | null;
   stack_tier: Generated<number>;
-  storage_billed_through: Date | null;
+  storage_billed_through: DateOnlyNull;
   volume_cbm: string | null;
   gross_weight_kg: string | null;
   destination_label: string | null;
@@ -392,8 +419,8 @@ export interface SealGuaranteesTable {
   reference: string;
   face_value: string;
   currency: string;
-  effective_from: Date;
-  expires_on: Date;
+  effective_from: DateOnly;
+  expires_on: DateOnly;
   status: Generated<string>;
   created_at: Generated<Date>;
 }
@@ -418,7 +445,7 @@ export interface SealConsignmentsTable {
   transport_doc_type: Generated<string>;
   transport_doc_number: string | null;
   status: Generated<string>;
-  expected_arrival: Date | null;
+  expected_arrival: DateOnlyNull;
   goods_description: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -473,7 +500,7 @@ export interface SealCustomsEntriesTable {
   lot_id: string;
   procedure_code: Generated<string>;
   jurisdiction: Generated<string>;
-  declaration_date: Date;
+  declaration_date: DateOnly;
   hs_code: string;
   hs_code_ref_id: string | null;
   country_of_origin: string | null;
@@ -531,8 +558,8 @@ export interface SealStockAccountPeriodsTable {
   id: Generated<string>;
   tenant_id: string;
   compartment_id: string;
-  period_start: Date;
-  period_end: Date;
+  period_start: DateOnly;
+  period_end: DateOnly;
   status: Generated<string>;
   opening_lot_count: Generated<number>;
   closing_lot_count: Generated<number>;
@@ -734,8 +761,8 @@ export interface SealEquipmentTable {
   name: string;
   status: Generated<string>; // operational | under_maintenance | out_of_service | retired
   condition: Generated<string>; // good | fair | poor
-  last_service_date: Date | null;
-  next_service_due_date: Date | null;
+  last_service_date: DateOnlyNull;
+  next_service_due_date: DateOnlyNull;
   notes: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -746,11 +773,11 @@ export interface SealEquipmentMaintenanceRecordsTable {
   tenant_id: string;
   equipment_id: string;
   maintenance_type: string; // inspection | repair | service | calibration
-  performed_at: Generated<Date>;
+  performed_at: DateOnlyGenerated;
   performed_by: string | null;
   description: string | null;
   cost: string | null;
-  next_due_date: Date | null;
+  next_due_date: DateOnlyNull;
   created_at: Generated<Date>;
 }
 
@@ -763,7 +790,7 @@ export interface SealTasksTable {
   status: Generated<string>; // open | in_progress | complete | blocked
   priority: Generated<string>; // low | medium | high | urgent
   assigned_to: string | null;
-  due_date: Date | null;
+  due_date: DateOnlyNull;
   note: string | null;
   created_by: string | null;
   created_at: Generated<Date>;
@@ -843,6 +870,10 @@ export interface ExpensesTable {
   is_passthrough: Generated<boolean>;
   recorded_by: string | null;
   created_at: Generated<Date>;
+  /** The landed-cost card this actual belongs under, so an actual and the
+   *  estimate it is compared against share one vocabulary. See CHARGE_HEADS. */
+  charge_head: string | null;
+  estimate_record_id: string | null;
 }
 
 export interface FinanceExpensesTable {
@@ -850,7 +881,7 @@ export interface FinanceExpensesTable {
   tenant_id: string;
   name: string;
   amount: number;
-  expense_date: Generated<Date>;
+  expense_date: DateOnlyGenerated;
   category: string;
   shipment_id: string | null;
   customer_id: string | null;
@@ -940,8 +971,8 @@ export interface AnalyticsKpisTable {
   tenant_id: string;
   metric: string;
   value: number;
-  period_start: Date;
-  period_end: Date;
+  period_start: DateOnly;
+  period_end: DateOnly;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -959,7 +990,7 @@ export interface DeclarationsTable {
   declaration_mode: string;
   tansad_form_type: string;
   clearing_office: string;
-  reference_date: Date;
+  reference_date: DateOnly;
   cl_plan: string | null;
   total_packages: number;
   package_type: string | null;
@@ -983,7 +1014,7 @@ export interface DeclarationsTable {
   delivery_term: string | null;
   delivery_place: string | null;
   invoice_number: string | null;
-  invoice_date: Date | null;
+  invoice_date: DateOnlyNull;
   total_invoice_value: number;
   invoice_currency: string;
   exchange_rate: number;
@@ -1006,14 +1037,14 @@ export interface DeclarationsTable {
   transport_mode: string | null;
   identity_of_transport: string | null;
   nationality_of_transport: string | null;
-  arrival_date: Date | null;
+  arrival_date: DateOnlyNull;
   crn: string | null;
   bl_number: string | null;
   vessel_name: string | null;
   portal_of_bl: string | null;
   shipment_place: string | null;
   discharge_place: string | null;
-  discharge_date: Date | null;
+  discharge_date: DateOnlyNull;
   entry_office: string | null;
   location_of_goods: string | null;
   total_container_count: number | null;
@@ -1046,7 +1077,7 @@ export interface DeclarationItemsTable {
   brand_name: string | null;
   purpose_of_submission: string | null;
   preceding_tansad_no: string | null;
-  preceding_tansad_date: Date | null;
+  preceding_tansad_date: DateOnlyNull;
   preceding_item_no: number | null;
   letter_ref_no: string | null;
   vat_deferment_apply_no: string | null;
@@ -1091,7 +1122,7 @@ export interface DeclarationNoticesTable {
   total_tax_amount: number | null;
   selectivity_channel: string | null;
   bill_number: string | null;
-  bill_date: Date | null;
+  bill_date: DateOnlyNull;
   bill_tax_amount: number | null;
   paid_amount: number | null;
   payment_receipt: string | null;
@@ -1125,8 +1156,8 @@ export interface DeclarationAttachmentsTable {
   storage_key: string | null;
   item_number: number | null;
   issuing_organization: string | null;
-  issue_date: Date | null;
-  registration_date: Date | null;
+  issue_date: DateOnlyNull;
+  registration_date: DateOnlyNull;
   created_at: Generated<Date>;
 }
 
@@ -1142,8 +1173,8 @@ export interface DemurrageTariffsTable {
   free_days: number;
   rate_tiers: string; // JSONB
   currency: string;
-  effective_from: Date;
-  effective_to: Date | null;
+  effective_from: DateOnly;
+  effective_to: DateOnlyNull;
   active: Generated<boolean>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -1157,9 +1188,9 @@ export interface ContainerTrackingTable {
   container_size: string;
   seal_number: string | null;
   carrier_name: string | null;
-  discharge_date: Date | null;
-  gate_out_date: Date | null;
-  return_date: Date | null;
+  discharge_date: DateOnlyNull;
+  gate_out_date: DateOnlyNull;
+  return_date: DateOnlyNull;
   free_days: number;
   total_days: number;
   demurrage_days: number;
@@ -1199,8 +1230,8 @@ export interface FreightRateCardsTable {
   cost_rate: number;
   sell_rate: number;
   currency: Generated<string>;
-  valid_from: Date | null;
-  valid_to: Date | null;
+  valid_from: DateOnlyNull;
+  valid_to: DateOnlyNull;
   notes: string | null;
   active: Generated<boolean>;
   created_at: Generated<Date>;
@@ -1219,7 +1250,7 @@ export interface FreightBookingsTable {
   destination_port: string;
   cargo_desc: string | null;
   quantity: Generated<number>;
-  requested_ship_date: Date | null;
+  requested_ship_date: DateOnlyNull;
   status: Generated<string>;
   quoted_cost: number | null;
   quoted_sell: number | null;
@@ -1229,7 +1260,7 @@ export interface FreightBookingsTable {
   carrier_booking_ref: string | null;
   bl_number: string | null;
   awb_number: string | null;
-  eta: Date | null;
+  eta: DateOnlyNull;
   converted_shipment_id: string | null;
   created_by: string;
   created_at: Generated<Date>;
@@ -1253,8 +1284,8 @@ export interface QuotationsTable {
   tax_amount: number;
   total_amount: number;
   currency: string;
-  valid_from: Date | null;
-  valid_until: Date | null;
+  valid_from: DateOnlyNull;
+  valid_until: DateOnlyNull;
   status: Generated<string>;
   converted_shipment_id: string | null;
   prepared_by: string | null;
@@ -1362,7 +1393,7 @@ export interface VendorBillsTable {
   total_amount: number;
   currency: string;
   status: Generated<string>;
-  due_date: Date | null;
+  due_date: DateOnlyNull;
   paid_at: Date | null;
   expense_ids: string; // JSONB
   notes: string | null;
@@ -1379,7 +1410,7 @@ export interface ShipmentTasksTable {
   status: string; // open | in_progress | complete | blocked
   priority: string; // low | medium | high | urgent
   assigned_to: string | null;
-  due_date: Date | null;
+  due_date: DateOnlyNull;
   note: string | null;
   description: string | null;
   labels: any; // JSONB string[]
@@ -1411,7 +1442,7 @@ export interface TaskChecklistItemsTable {
   completed: Generated<boolean>;
   completed_by: string | null;
   completed_at: Date | null;
-  due_date: Date | null;
+  due_date: DateOnlyNull;
   assigned_to: string | null;
   position: Generated<number>;
   created_at: Generated<Date>;
@@ -1426,7 +1457,7 @@ export interface ShipmentTimeEntriesTable {
   task_ref: string | null;
   hours: number;
   note: string | null;
-  log_date: Date;
+  log_date: DateOnly;
   product_id: string | null;
   service_name: string | null;
   service_rate: number | null;
@@ -1479,7 +1510,7 @@ export interface ClientInvoicesTable {
   tax_amount: number;
   currency: string;
   status: Generated<string>;
-  due_date: Date | null;
+  due_date: DateOnlyNull;
   sent_at: Date | null;
   paid_at: Date | null;
   expense_ids: string; // JSONB
@@ -1691,8 +1722,8 @@ export interface SalesInvoicesTable {
   origin: string | null;
   destination: string | null;
   mode: Generated<string>;
-  bill_date: Date | null;
-  due_date: Date | null;
+  bill_date: DateOnlyNull;
+  due_date: DateOnlyNull;
   sale_agent: string | null;
   payment_terms: string | null;
   exchange_rate: Generated<number>;
@@ -1736,7 +1767,7 @@ export interface InvoicePaymentsTable {
   invoice_id: string;
   amount: number;
   method: string | null;
-  payment_date: Date | null;
+  payment_date: DateOnlyNull;
   note: string | null;
   created_by: string | null;
   created_at: Generated<Date>;
@@ -1758,7 +1789,7 @@ export interface InvoiceTasksTable {
   invoice_id: string;
   description: string;
   assignee: string | null;
-  due_date: Date | null;
+  due_date: DateOnlyNull;
   done: Generated<boolean>;
   created_by: string | null;
   created_at: Generated<Date>;
@@ -1768,7 +1799,7 @@ export interface InvoiceRemindersTable {
   id: Generated<string>;
   tenant_id: string;
   invoice_id: string;
-  remind_date: Date;
+  remind_date: DateOnly;
   message: string;
   done: Generated<boolean>;
   created_at: Generated<Date>;
@@ -1846,8 +1877,8 @@ export interface SupplierBillsTable {
   supplier_name: string | null;
   shipment_ref: string | null;
   po_number: string | null;
-  bill_date: Date | null;
-  due_date: Date | null;
+  bill_date: DateOnlyNull;
+  due_date: DateOnlyNull;
   status: Generated<string>;
   currency: Generated<string>;
   subtotal: Generated<number>;
@@ -1883,7 +1914,7 @@ export interface BillPaymentsTable {
   bill_id: string;
   amount: number;
   currency: Generated<string>;
-  payment_date: Date | null;
+  payment_date: DateOnlyNull;
   method: string | null;
   reference: string | null;
   note: string | null;
@@ -1904,8 +1935,8 @@ export interface RecurringBillsTable {
   category: Generated<string>;
   description: string | null;
   payment_terms: string | null;
-  next_due: Date | null;
-  end_date: Date | null;
+  next_due: DateOnlyNull;
+  end_date: DateOnlyNull;
   state: Generated<string>;
   bills_generated: Generated<number>;
   total_spend: Generated<number>;
@@ -2007,7 +2038,7 @@ export interface TasksTable {
   // Plain 'YYYY-MM-DD' in, Date out — never passed through JS Date parsing on
   // the way in, so there's no local-vs-UTC day-shift risk (see date-picker.tsx's
   // parseDateOnly/toDateOnlyString for the same concern on the frontend).
-  due: ColumnType<Date | null, string | null, string | null>;
+  due: DateOnlyNull;
   starred: Generated<boolean>;
   someday: Generated<boolean>;
   status: Generated<string>;
@@ -2106,6 +2137,40 @@ export interface PlatformTransactionsTable {
   card_last4: string | null;
   mobile_number: string | null;
   created_at: Generated<Date>;
+}
+
+/** Platform-level audit trail. Deliberately cross-tenant; SUPER_ADMIN only. */
+export interface PlatformActivityLogTable {
+  id: Generated<string>;
+  actor_user_id: string | null;
+  // Snapshots, not joins: an audit trail that resolves names by join stops
+  // being able to say who did something once that user is deleted.
+  actor_name: string;
+  action: string;
+  category: 'company' | 'user' | 'billing' | 'system';
+  target_type: string | null;
+  target_id: string | null;
+  target_name: string | null;
+  /** The company an action was *about* — null for platform-wide actions. */
+  tenant_id: string | null;
+  metadata: Generated<unknown>;
+  created_at: Generated<Date>;
+}
+
+export interface PlatformDomainsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  domain: string;
+  verification_token: string;
+  status: Generated<'pending' | 'active' | 'failed'>;
+  // Set only by a probe that actually succeeded, never on create.
+  dns_verified_at: Date | null;
+  ssl_verified_at: Date | null;
+  ssl_expires_at: Date | null;
+  last_checked_at: Date | null;
+  last_error: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 export interface TrackingSnapshotsTable {
@@ -2326,7 +2391,7 @@ export interface InventoryMovementsTable {
   entered_qty: string;
   entered_uom: string;
   batch_no: Generated<string>;
-  expiry_date: Date | null;
+  expiry_date: DateOnlyNull;
   reason_code: string | null;
   reference: string | null;
   created_at: Generated<Date>;
@@ -2337,7 +2402,7 @@ export interface InventoryStockLevelsTable {
   item_id: string;
   location_id: string;
   batch_no: Generated<string>;
-  expiry_date: Date | null;
+  expiry_date: DateOnlyNull;
   qty_on_hand: Generated<string>;
   updated_at: Generated<Date>;
 }
@@ -2375,7 +2440,7 @@ export interface InventoryTasksTable {
   status: Generated<string>; // open | in_progress | complete | blocked
   priority: Generated<string>; // low | medium | high | urgent
   assigned_to: string | null;
-  due_date: Date | null;
+  due_date: DateOnlyNull;
   note: string | null;
   created_by: string | null;
   created_at: Generated<Date>;
@@ -2415,6 +2480,7 @@ export interface Database {
   workflows: WorkflowsTable;
   workflow_steps: WorkflowStepsTable;
   workflow_comm_queue: WorkflowCommQueueTable;
+  workflow_step_runs: WorkflowStepRunsTable;
   seal_compartments: SealCompartmentsTable;
   seal_zones: SealZonesTable;
   seal_locations: SealLocationsTable;
@@ -2541,6 +2607,8 @@ export interface Database {
   packages: PackagesTable;
   tenant_usage_counters: TenantUsageCountersTable;
   platform_transactions: PlatformTransactionsTable;
+  platform_activity_log: PlatformActivityLogTable;
+  platform_domains: PlatformDomainsTable;
   task_lists: TaskListsTable;
   tasks: TasksTable;
   task_subtasks: TaskSubtasksTable;
@@ -2582,11 +2650,6 @@ export interface Database {
   hr_compensations: HrCompensationsTable;
   hr_compensation_components: HrCompensationComponentsTable;
   // NexusHR Workflows
-  hr_workflow_definitions: HrWorkflowDefinitionsTable;
-  hr_workflow_stages: HrWorkflowStagesTable;
-  hr_workflow_cases: HrWorkflowCasesTable;
-  hr_workflow_tasks: HrWorkflowTasksTable;
-  hr_workflow_conditions: HrWorkflowConditionsTable;
   // NexusHR Documents & Assets
   hr_documents: HrDocumentsTable;
   hr_document_templates: HrDocumentTemplatesTable;
@@ -2654,6 +2717,9 @@ export interface Database {
   landed_cost_share_leads: LandedCostShareLeadsTable;
   customs_penalties: CustomsPenaltiesTable;
   landed_cost_records: LandedCostRecordsTable;
+  hs_classification_events: HsClassificationEventsTable;
+  trade_wizard_outcomes: TradeWizardOutcomesTable;
+  compliance_outcomes: ComplianceOutcomesTable;
   vessel_positions: VesselPositionsTable;
   geofences: GeofencesTable;
   geofence_events: GeofenceEventsTable;
@@ -2724,10 +2790,10 @@ export interface TraVfdConfigTable {
   // Counters
   gc: Generated<number>;
   dc: Generated<number>;
-  dc_date: Date | null;
+  dc_date: DateOnlyNull;
   gross_total: Generated<number>;            // Cumulative TZS total ever fiscalized (not a receipt count)
   // Z-Report tracking
-  last_zreport_date: Date | null;
+  last_zreport_date: DateOnlyNull;
   // Config
   environment: Generated<string>;
   registered_at: Date | null;
@@ -2895,8 +2961,8 @@ export interface IcdDirectoryTable {
   address: string | null;
   region: string | null;
   license_no: string | null;
-  license_start: Date | null;
-  license_exp: Date | null;
+  license_start: DateOnlyNull;
+  license_exp: DateOnlyNull;
   source_url: string | null;
   scraped_at: Date | null;
   created_at: Generated<Date>;
@@ -3025,6 +3091,53 @@ export interface CustomsPenaltiesTable {
   updated_at: Generated<Date>;
 }
 
+export interface HsClassificationEventsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  description: string;
+  suggested: unknown | null;
+  /** Null when suggestions were shown and none were taken. */
+  accepted_code: string | null;
+  source: Generated<string>;
+  /** True when the accepted code was not the top suggestion — the
+   *  correction signal the ranker learns from. */
+  overrode_top: Generated<boolean>;
+  record_id: string | null;
+  shipment_id: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface TradeWizardOutcomesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  search_id: string | null;
+  procedure_id: string;
+  procedure_name: string | null;
+  goal: string | null;
+  predicted: unknown | null;
+  outcome: Generated<string>;
+  note: string | null;
+  shipment_id: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface ComplianceOutcomesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  check_id: string | null;
+  hs_code: string | null;
+  origin_country: string | null;
+  requirement: string;
+  predicted: boolean;
+  actual: string;
+  shipment_id: string | null;
+  note: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+}
+
 export interface LandedCostRecordsTable {
   id: Generated<string>;
   tenant_id: string;
@@ -3067,6 +3180,9 @@ export interface LandedCostRecordsTable {
   version: Generated<number>;
   item_count: number | null;
   share_token: string | null;
+  /** The shipment this estimate was produced for, when there was one.
+   *  No FK: shipment_cases is partitioned on (id, created_at). */
+  shipment_id: string | null;
 }
 
 export interface ReferenceCountriesTable {
@@ -3140,16 +3256,16 @@ export interface VehiclesTable {
   fuel_type: string | null;
   group_name: string | null;
   purchase_vendor: string | null;
-  purchase_date: Date | null;
+  purchase_date: DateOnlyNull;
   purchase_price: number | null;
   initial_odometer: number | null;
   financing_type: Generated<string>;
-  in_service_date: Date | null;
+  in_service_date: DateOnlyNull;
   in_service_odometer: number | null;
   est_life_months: number | null;
   est_life_meter: number | null;
   est_resale_value: number | null;
-  out_of_service_date: Date | null;
+  out_of_service_date: DateOnlyNull;
   out_of_service_odometer: number | null;
   lifecycle_notes: string | null;
   created_at: Generated<Date>;
@@ -3183,7 +3299,7 @@ export interface VehicleExpensesTable {
   category: Generated<string>;
   description: string | null;
   amount: number;
-  expense_date: Generated<Date>;
+  expense_date: DateOnlyGenerated;
   vendor_id: string | null;
   created_by: string | null;
   created_at: Generated<Date>;
@@ -3262,7 +3378,7 @@ export interface DriversTable {
   name: string;
   phone: string | null;
   license_number: string | null;
-  license_expiry: Date | null;
+  license_expiry: DateOnlyNull;
   employee_id: string | null;
   assigned_vehicle_id: string | null;
   status: Generated<string>;
@@ -3322,8 +3438,8 @@ export interface MaintenanceRecordsTable {
   description: string | null;
   cost: number | null;
   odometer_km: number | null;
-  service_date: Generated<Date>;
-  next_due_date: Date | null;
+  service_date: DateOnlyGenerated;
+  next_due_date: DateOnlyNull;
   next_due_odometer: number | null;
   status: Generated<string>;
   created_by: string | null;
@@ -3423,8 +3539,8 @@ export interface VehicleDocumentsTable {
   vehicle_id: string;
   doc_type: Generated<string>;
   doc_number: string | null;
-  issued_date: Date | null;
-  expiry_date: Date | null;
+  issued_date: DateOnlyNull;
+  expiry_date: DateOnlyNull;
   file_url: string | null;
   notes: string | null;
   created_at: Generated<Date>;
@@ -3438,7 +3554,7 @@ export interface FleetRemindersTable {
   driver_id: string | null;
   title: string;
   reminder_type: Generated<string>;
-  due_date: Date;
+  due_date: DateOnly;
   status: Generated<string>;
   notes: string | null;
   created_by: string | null;
@@ -3636,7 +3752,7 @@ export interface JournalEntriesTable {
   id: Generated<string>;
   tenant_id: string;
   entry_number: string;
-  entry_date: Date;
+  entry_date: DateOnly;
   reference: string | null;
   description: string;
   status: Generated<string>;
@@ -3671,8 +3787,8 @@ export interface PurchaseOrdersTable {
   supplier_id: string | null;
   supplier_name: string | null;
   status: Generated<string>;
-  order_date: Date | null;
-  expected_date: Date | null;
+  order_date: DateOnlyNull;
+  expected_date: DateOnlyNull;
   currency: Generated<string>;
   subtotal: Generated<number>;
   tax_amount: Generated<number>;
@@ -3707,7 +3823,7 @@ export interface DeliveryNotesTable {
   invoice_id: string | null;
   customer_id: string | null;
   customer_name: string | null;
-  delivery_date: Date | null;
+  delivery_date: DateOnlyNull;
   status: Generated<string>;
   notes: string | null;
   created_by: string | null;
@@ -3841,13 +3957,16 @@ export interface HrPeopleTable {
   first_name: string;
   last_name: string;
   preferred_name: string | null;
-  date_of_birth: Date | null;
+  date_of_birth: DateOnlyNull;
   gender: string | null;
   personal_email: string | null;
   personal_phone: string | null;
   national_identifiers: Generated<Record<string, any>>;
   emergency_contacts: Generated<any[]>;
   avatar_url: string | null;
+  /** The login this HR record belongs to. NULL while a hire has no account yet
+   *  — see migration 172 for why the two person models were separate. */
+  user_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -3859,8 +3978,8 @@ export interface HrEmploymentsTable {
   legal_entity_id: string;
   status: Generated<string>;
   employment_type: Generated<string>;
-  start_date: Date;
-  end_date: Date | null;
+  start_date: DateOnly;
+  end_date: DateOnlyNull;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -3869,8 +3988,8 @@ export interface HrEmploymentEffectiveRecordsTable {
   id: Generated<string>;
   tenant_id: string;
   employment_id: string;
-  effective_date: Date;
-  end_date: Date | null;
+  effective_date: DateOnly;
+  end_date: DateOnlyNull;
   job_title: string;
   department_id: string | null;
   location_id: string | null;
@@ -3884,8 +4003,8 @@ export interface HrCompensationsTable {
   id: Generated<string>;
   tenant_id: string;
   employment_id: string;
-  effective_date: Date;
-  end_date: Date | null;
+  effective_date: DateOnly;
+  end_date: DateOnlyNull;
   base_salary: Generated<number>;
   currency: Generated<string>;
   pay_frequency: Generated<string>;
@@ -3903,77 +4022,15 @@ export interface HrCompensationComponentsTable {
   created_at: Generated<Date>;
 }
 
-export interface HrWorkflowDefinitionsTable {
-  id: Generated<string>;
-  tenant_id: string;
-  name: string;
-  category: string;
-  trigger_event: string | null;
-  is_active: Generated<boolean>;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
-}
-
-export interface HrWorkflowStagesTable {
-  id: Generated<string>;
-  tenant_id: string;
-  definition_id: string;
-  name: string;
-  sort_order: number;
-  stage_type: Generated<string>;
-  assignee_rule: string;
-  specific_user_id: string | null;
-  sla_hours: number | null;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
-}
-
-export interface HrWorkflowCasesTable {
-  id: Generated<string>;
-  tenant_id: string;
-  definition_id: string;
-  subject_id: string;
-  subject_type: string;
-  current_stage_id: string | null;
-  status: Generated<string>;
-  started_at: Generated<Date>;
-  completed_at: Date | null;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
-}
-
-export interface HrWorkflowTasksTable {
-  id: Generated<string>;
-  tenant_id: string;
-  case_id: string;
-  stage_id: string;
-  name: string;
-  assignee_id: string | null;
-  status: Generated<string>;
-  due_date: Date | null;
-  completed_at: Date | null;
-  notes: string | null;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
-}
-
-export interface HrWorkflowConditionsTable {
-  id: Generated<string>;
-  tenant_id: string;
-  stage_id: string;
-  field_name: string;
-  operator: string;
-  value: string;
-  next_stage_id: string | null;
-  created_at: Generated<Date>;
-}
+// HrWorkflow{Definitions,Stages,Cases,Tasks,Conditions}Table were dropped in
+// migration 173 along with the tables behind them — a third workflow engine
+// nothing routed to. HR automation now emits domain events into Workflow Studio.
 
 export interface HrDocumentsTable {
   id: Generated<string>;
   tenant_id: string;
   person_id: string | null;
   employment_id: string | null;
-  case_id: string | null;
   name: string;
   type: string;
   storage_key: string;
@@ -4025,8 +4082,8 @@ export interface HrAssetsTable {
   type: string;
   serial_number: string;
   assigned_to: string | null;
-  assigned_date: Date | null;
-  returned_date: Date | null;
+  assigned_date: DateOnlyNull;
+  returned_date: DateOnlyNull;
   condition_notes: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -4044,7 +4101,7 @@ export interface HrGoalsTable {
   current_value: Generated<number>;
   unit: Generated<string>;
   weight: Generated<number>;
-  due_date: Date | null;
+  due_date: DateOnlyNull;
   status: Generated<string>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -4066,8 +4123,8 @@ export interface HrReviewCyclesTable {
   tenant_id: string;
   name: string;
   type: Generated<string>;
-  start_date: Date;
-  end_date: Date;
+  start_date: DateOnly;
+  end_date: DateOnly;
   status: Generated<string>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -4143,8 +4200,8 @@ export interface HrWellnessProgramsTable {
   tenant_id: string;
   title: string;
   description: string | null;
-  start_date: Date;
-  end_date: Date;
+  start_date: DateOnly;
+  end_date: DateOnly;
   points: Generated<number>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -4163,7 +4220,7 @@ export interface ContactsTable {
   company_id: string | null;
   job_title: string | null;
   notes: string | null;
-  birthday: Date | null;
+  birthday: DateOnlyNull;
   is_favorite: Generated<boolean>;
   avatar_url: string | null;
   status: Generated<string>;
@@ -4230,8 +4287,8 @@ export interface ComplyCertificatesTable {
   agency_code:    string;
   agency_name:    string;
   agency_class:   Generated<string>;
-  issued_date:    Date | null;
-  expiry_date:    Date | null;
+  issued_date: DateOnlyNull;
+  expiry_date: DateOnlyNull;
   status:         Generated<string>;  // active | expiring | expired | revoked
   document_url:   string | null;
   external_ref:   string | null;
@@ -4328,8 +4385,8 @@ export interface ComplyObligationsTable {
   frequency:            string;
   mandatory:            Generated<boolean>;
   status:               Generated<string>;  // active | pending | expired | not-started
-  due_date:             Date | null;
-  last_fulfilled_date:  Date | null;
+  due_date: DateOnlyNull;
+  last_fulfilled_date: DateOnlyNull;
   linked_cert_id:       string | null;
   customer_id:          string | null;
   created_at:           Generated<Date>;
@@ -4383,7 +4440,7 @@ export interface ComplyRemindersTable {
   tenant_id:   string;
   title:       string;
   agency_code: string | null;
-  remind_date: Date;
+  remind_date: DateOnly;
   notes:       string | null;
   created_by:  string;
   created_at:  Generated<Date>;
@@ -4578,6 +4635,9 @@ export interface WorkflowStudioAppsTable {
   /** Key of the code subscriber this workflow replaces once ACTIVE — see
    *  migration 165 and studio/supersession.ts. NULL for tenant-authored ones. */
   supersedes_subscriber: string | null;
+  /** Same shape as workflows.triggers — scopes an automation to a freight
+   *  mode / consignment type / customer / country, not just an event. */
+  targeting:      Generated<string>;
   created_at:     Generated<Date>;
   updated_at:     Generated<Date>;
 }
@@ -4598,6 +4658,45 @@ export interface WorkflowStudioRunsTable {
   domain_event_id: string | null;
   created_at:     Generated<Date>;
 }
+
+/**
+ * Return DATE columns as the 'YYYY-MM-DD' strings they are.
+ *
+ * By default node-postgres parses OID 1082 (date) into a JS Date at LOCAL
+ * midnight. Serialising that to JSON gives an instant in UTC, so on this
+ * server (UTC+3) a start_date stored as 2026-01-15 reaches the client as
+ * "2026-01-14T21:00:00.000Z" — a day early to anything reading the date part.
+ * Verified: stored 2026-01-15, API returned 2026-01-14T21:00:00.000Z.
+ *
+ * A DATE has no time and no timezone, so materialising it as an instant was
+ * always lossy; there is no correct offset to apply. Handing back the literal
+ * text is the only lossless answer, and it fixes every date column at once
+ * rather than one query at a time — leave dates, holidays, effective dates,
+ * compensation dates. TIMESTAMPTZ (1184) is untouched: those really are
+ * instants and Date is right for them.
+ */
+pg.types.setTypeParser(1082, (value: string) => value);
+
+/*
+ * The declared types for DATE columns, matching what the parser above actually
+ * returns.
+ *
+ * They used to say `Date`, which stopped being true the moment that parser was
+ * registered — and a wrong declaration on a runtime type change is worse than
+ * no declaration, because it silences the compiler at exactly the sites that
+ * now break. It cost two runtime crashes to learn: `expiry.getTime is not a
+ * function` in the ComplyOS job, and 39 `as Date` casts across the services
+ * asserting the same thing the compiler could no longer check.
+ *
+ * ColumnType, not a plain `string`, because Kysely uses these for writes too:
+ * reads come back as 'YYYY-MM-DD', while inserts and updates still accept a
+ * Date or a string, since Postgres does. Narrowing the write side would have
+ * broken every call site that passes `new Date(...)`.
+ */
+export type DateOnly = ColumnType<string, Date | string, Date | string>;
+export type DateOnlyNull = ColumnType<string | null, Date | string | null, Date | string | null>;
+/** DATE with a database default — absent on insert. */
+export type DateOnlyGenerated = ColumnType<string, Date | string | undefined, Date | string>;
 
 const pool = new pg.Pool({
   connectionString: env.DATABASE_URL,

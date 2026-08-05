@@ -4,6 +4,8 @@ import { db, withTenant } from '../db/client.js';
 import { ShipmentService } from '../services/shipment.service.js';
 import { co2Service } from '../services/co2.service.js';
 import { requireRole } from '../middleware/rbac.js';
+import { CHARGE_HEADS } from '../services/intelligence.service.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { EmailIntegration } from '../integrations/email.js';
 import { MinioIntegration } from '../integrations/minio.js';
@@ -11,6 +13,13 @@ import { NotificationService } from '../services/notification.service.js';
 import type { CreateShipmentInput, AdvanceStageInput } from '@hudumika/types';
 import { buildMockResult, trackViaShipsGo, trackViaShip24 } from './tracker.routes.js';
 import { sql } from 'kysely';
+
+/** JSONB arrives as a string from some drivers and an object from others. */
+function parseJsonCol<T>(val: unknown, fallback: T): T {
+  if (val == null) return fallback;
+  if (typeof val === 'string') { try { return JSON.parse(val) as T; } catch { return fallback; } }
+  return val as T;
+}
 
 export async function shipmentRoutes(fastify: FastifyInstance) {
   // Enforce authentication on all routes in this file
@@ -430,6 +439,68 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     } catch (error: any) {
       return reply.status(400).send({ error: error.message || 'Failed to create shipment case' });
     }
+  });
+
+  /**
+   * GET /v1/shipments/:id/workflow-runs
+   *
+   * Every transition attempt on THIS shipment, and the automation that ran with
+   * it. The workflow-scoped view (GET /v1/workflows/:id/runs) can only show runs
+   * belonging to a custom workflow — a shipment on the legacy fixed-stage system
+   * has workflow_id NULL, so its runs were being recorded with nowhere to
+   * surface them. This is where they surface, and it is also the view an
+   * operator actually wants: "what happened to this consignment".
+   */
+  fastify.get('/:id/workflow-runs', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { limit } = request.query as { limit?: string };
+    const take = Math.min(Math.max(Number(limit) || 30, 1), 200);
+
+    return withTenant(user.tenant_id, async (trx) => {
+      // Tenant-scoped existence check first: without it a valid-looking id from
+      // another workspace would return that workspace's automation history.
+      const shipment = await trx.selectFrom('shipment_cases').select(['id', 'ref_number'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      if (!shipment) return reply.status(404).send({ error: 'Shipment not found' });
+
+      const rows = await trx.selectFrom('workflow_step_runs')
+        .leftJoin('users', 'users.id', 'workflow_step_runs.actor_id')
+        .leftJoin('workflows', 'workflows.id', 'workflow_step_runs.workflow_id')
+        .select([
+          'workflow_step_runs.id', 'workflow_step_runs.from_step_id', 'workflow_step_runs.to_step_id',
+          'workflow_step_runs.to_step_name', 'workflow_step_runs.status', 'workflow_step_runs.conditions',
+          'workflow_step_runs.comms', 'workflow_step_runs.error_message', 'workflow_step_runs.duration_ms',
+          'workflow_step_runs.simulated', 'workflow_step_runs.created_at',
+          'users.name as actor_name', 'workflows.name as workflow_name',
+        ])
+        .where('workflow_step_runs.tenant_id', '=', user.tenant_id)
+        .where('workflow_step_runs.shipment_id', '=', id)
+        .orderBy('workflow_step_runs.created_at', 'desc')
+        .limit(take)
+        .execute();
+
+      return {
+        data: rows.map((r) => ({
+          id: r.id,
+          fromStepId: r.from_step_id,
+          toStepId: r.to_step_id,
+          toStepName: r.to_step_name,
+          status: r.status,
+          conditions: parseJsonCol(r.conditions, [] as any[]),
+          comms: parseJsonCol(r.comms, [] as any[]),
+          errorMessage: r.error_message,
+          durationMs: r.duration_ms,
+          simulated: r.simulated,
+          actorName: r.actor_name ?? null,
+          // NULL means the shipment is on the legacy fixed-stage system, which
+          // has no workflows row. Named rather than left blank.
+          workflowName: r.workflow_name ?? null,
+          createdAt: new Date(r.created_at).toISOString(),
+        })),
+      };
+    });
   });
 
   /**
@@ -1128,7 +1199,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/ledger', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'FINANCE') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { description, amount, currency, type, category, ref } = request.body as any;
+    const { description, amount, currency, type, category, ref, charge_head } = request.body as any;
     if (!description || !amount) return reply.status(400).send({ error: 'description and amount are required' });
     return withTenant(user.tenant_id, async (trx) => {
       const entry = await trx.insertInto('expenses').values({
@@ -1137,8 +1208,27 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         amount_tzs: Number(amount),
         is_revenue: type === 'payment',
         category: (category || 'CLEARANCE') as any,
+        // The landed-cost card this actual belongs under. Whitelisted rather
+        // than stored as given: variance is only computable while actuals and
+        // estimates share one vocabulary, and a free-text head would quietly
+        // create a bucket nothing is ever compared against.
+        charge_head: CHARGE_HEADS.includes(charge_head) ? charge_head : null,
         recorded_by: user.sub,
       }).returningAll().executeTakeFirstOrThrow();
+
+      // A recorded cost is the only moment the estimate can be scored against
+      // reality. Emitted rather than checked inline so ClearOS's ledger does
+      // not need to know that FinOps, or anything else, cares — the subscriber
+      // decides whether the gap is worth anyone's attention.
+      if (!entry.is_revenue) {
+        emitDomainEvent(trx, user.tenant_id, {
+          type: 'shipment.cost_recorded',
+          sourceApp: 'finops',
+          entityType: 'shipment',
+          entityId: id,
+          payload: { expenseId: entry.id, chargeHead: entry.charge_head, amountTzs: Number(entry.amount_tzs) },
+        });
+      }
       return entry;
     });
   });

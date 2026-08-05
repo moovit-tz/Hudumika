@@ -31,6 +31,7 @@ import ComponentShowcase from '../pages/ComponentShowcase.js';
 import { AdminCMSPages } from '../pages/AdminCMSPages.js';
 import { SuperAdminIssues } from '../pages/SuperAdminIssues.js';
 import { SuperAdminCalculations } from '../pages/SuperAdminCalculations.js';
+import { SuperAdminIntelligence } from '../pages/SuperAdminIntelligence.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -53,6 +54,7 @@ const NAV: SidebarSection[] = [
     items: [
       { label: 'Reported Issues',   icon: 'alertCircle', path: '/admin/issues'      },
       { label: 'Landed Cost Activity', icon: 'package', path: '/admin/calculations' },
+      { label: 'Intelligence',      icon: 'sparkle',  path: '/admin/intelligence' },
       { label: 'App Status',        icon: 'shield',   path: '/admin/app-status'     },
       { label: 'CMS Pages',         icon: 'fileText', path: '/admin/cms-pages'      },
       { label: 'Branding',          icon: 'image',    path: '/admin/branding'       },
@@ -88,6 +90,7 @@ function AdminContent() {
           <Route path="activity"      element={<ActivityView />} />
           <Route path="issues"        element={<SuperAdminIssues />} />
           <Route path="calculations" element={<SuperAdminCalculations />} />
+          <Route path="intelligence" element={<SuperAdminIntelligence />} />
           <Route path="app-status"    element={<AppStatusView />} />
           <Route path="cms-pages"     element={<AdminCMSPages />} />
           <Route path="branding"       element={<BrandingView />} />

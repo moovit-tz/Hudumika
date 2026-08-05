@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 import type { ProfitLossReport, ProfitLossLine } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface PLRow { label: string; amount: number; sub?: boolean; bold?: boolean; separator?: boolean }
 
@@ -176,6 +177,12 @@ export const FinanceProfitLoss: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+      <PageHeader
+        crumbs={['FinOps', 'Profit & Loss']}
+        titlePlain="Profit and"
+        titleEm="loss"
+        subtitle="Revenue less costs for the period."
+      />
 
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>

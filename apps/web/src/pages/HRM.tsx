@@ -13,6 +13,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox } from '../components/ui/combobox.js';
 import { MultiSelectFilter } from '../components/ui/filter-dropdown.js';
 import { DatePicker } from '../components/ui/date-picker.js';
+import { PageHeader as SharedPageHeader } from '../components/PageHeader.js';
 
 function mapAttStatus(s: string): AttendanceStatus {
   switch (s) {
@@ -34,14 +35,6 @@ type PayStatus  = 'PAID' | 'PENDING' | 'PROCESSING';
 /* -- Mock data -- */
 
 const LEAVE_TYPES = ['Annual Leave','Sick Leave','Casual Leave','Maternity Leave','Emergency Leave'];
-const LEAVES = [
-  { id:'l1', emp:'Amina Hassan',  type:'Annual Leave',    from:'2026-06-20', to:'2026-06-24', days:5, reason:'Family vacation',     approvedBy:'Rose Kimaro',  status:'APPROVED' as LeaveStatus },
-  { id:'l2', emp:'Grace Mwamba',  type:'Sick Leave',      from:'2026-06-10', to:'2026-06-13', days:4, reason:'Medical procedure',   approvedBy:'Rose Kimaro',  status:'APPROVED' as LeaveStatus },
-  { id:'l3', emp:'Omar Shariff',  type:'Casual Leave',    from:'2026-06-18', to:'2026-06-18', days:1, reason:'Personal matters',    approvedBy:'-',            status:'PENDING'  as LeaveStatus },
-  { id:'l4', emp:'David Mlay',    type:'Annual Leave',    from:'2026-07-01', to:'2026-07-05', days:5, reason:'Travel',              approvedBy:'-',            status:'PENDING'  as LeaveStatus },
-  { id:'l5', emp:'Fatuma Juma',   type:'Emergency Leave', from:'2026-06-05', to:'2026-06-06', days:2, reason:'Bereavement',         approvedBy:'Rose Kimaro',  status:'APPROVED' as LeaveStatus },
-  { id:'l6', emp:'Said Ali',      type:'Casual Leave',    from:'2026-05-25', to:'2026-05-25', days:1, reason:'Government errand',   approvedBy:'Rose Kimaro',  status:'REJECTED' as LeaveStatus },
-];
 
 const ATT = [
   { emp:'Amina Hassan',  date:'2026-06-14', in:'08:02', out:'17:05', hrs:9.1, status:'PRESENT' as AttStatus },
@@ -61,18 +54,6 @@ const SHIFTS = [
   { name:'Night Shift',     start:'22:00', end:'06:00', break:'60 min', employees:4  },
 ];
 
-const HOLIDAYS = [
-  { date:'2026-01-01', name:'New Year\'s Day',         type:'Public' },
-  { date:'2026-04-07', name:'Karume Day',               type:'Public' },
-  { date:'2026-04-26', name:'Union Day',                type:'Public' },
-  { date:'2026-05-01', name:'Labour Day',               type:'Public' },
-  { date:'2026-07-07', name:'Saba Saba Day',            type:'Public' },
-  { date:'2026-08-08', name:'Nane Nane Day',            type:'Public' },
-  { date:'2026-12-09', name:'Independence Day',         type:'Public' },
-  { date:'2026-12-25', name:'Christmas Day',            type:'Public' },
-  { date:'2026-06-15', name:'Company Founders Day',     type:'Company' },
-  { date:'2026-11-01', name:'Team Building Day',        type:'Company' },
-];
 
 /* -- TZ PAYE Formula -- */
 function calcPAYE(gross: number): number {
@@ -196,7 +177,7 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
             <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%)', borderRadius: 8, padding: '18px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
               <div>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Net Pay</div>
-                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>After all deductions � {monthLabel}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>After all deductions — {monthLabel}</div>
               </div>
               <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>
                 TZS {net.toLocaleString()}
@@ -205,7 +186,7 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
 
             {/* PAYE Note */}
             <div style={{ padding: '10px 14px', background: '#fefce8', border: '1px solid #fef08a', borderRadius: 6, marginBottom: 20, fontSize: 11, color: '#713f12' }}>
-              <strong>PAYE calculated per TRA Tanzania rates:</strong> 0% up to TZS 270,000 � 8% (270k�520k) � 20% (520k�760k) � 25% (760k�1M) � 30% above TZS 1,000,000
+              <strong>PAYE calculated per TRA Tanzania rates:</strong> 0% up to TZS 270,000 — 8% (270k—520k) — 20% (520k—760k) — 25% (760k—1M) — 30% above TZS 1,000,000
             </div>
 
             {/* Signatures */}
@@ -223,7 +204,7 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
             </div>
 
             <div style={{ textAlign: 'center', marginTop: 24, fontSize: 10, color: '#94a3b8' }}>
-              This is a computer-generated payslip � Moovit ClearOS � Generated on {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
+              This is a computer-generated payslip — Moovit ClearOS — Generated on {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
             </div>
           </div>
         </div>
@@ -232,46 +213,13 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
   );
 }
 
-const DESIGNATIONS = [
-  { title:'Clearing Officer',   dept:'Operations', employees:12 },
-  { title:'Senior Officer',     dept:'Operations', employees:4  },
-  { title:'Logistics Officer',  dept:'Operations', employees:6  },
-  { title:'Finance Manager',    dept:'Finance',    employees:1  },
-  { title:'Accountant',         dept:'Finance',    employees:3  },
-  { title:'IT Manager',         dept:'IT',         employees:1  },
-  { title:'HR Manager',         dept:'HR',         employees:1  },
-  { title:'Operations Director',dept:'Operations', employees:1  },
-];
 
-const DEPARTMENTS = [
-  { name:'Operations',  head:'Said Ali',     employees:22, status:'ACTIVE' },
-  { name:'Finance',     head:'John Baraka',  employees:4,  status:'ACTIVE' },
-  { name:'IT',          head:'Said Ali',     employees:3,  status:'ACTIVE' },
-  { name:'HR',          head:'Rose Kimaro',  employees:2,  status:'ACTIVE' },
-  { name:'Logistics',   head:'Omar Shariff', employees:6,  status:'ACTIVE' },
-  { name:'Compliance',  head:'-',            employees:2,  status:'ACTIVE' },
-];
 
-const PAYROLL = [
-  { emp:'Amina Hassan',  basic:1200000, allow:200000,  ded:120000, status:'PAID'       as PayStatus },
-  { emp:'John Baraka',   basic:2500000, allow:500000,  ded:280000, status:'PAID'       as PayStatus },
-  { emp:'Grace Mwamba',  basic:1800000, allow:300000,  ded:185000, status:'PROCESSING' as PayStatus },
-  { emp:'Said Ali',      basic:2200000, allow:400000,  ded:240000, status:'PAID'       as PayStatus },
-  { emp:'Fatuma Juma',   basic:1200000, allow:200000,  ded:120000, status:'PENDING'    as PayStatus },
-  { emp:'David Mlay',    basic:1500000, allow:250000,  ded:150000, status:'PAID'       as PayStatus },
-  { emp:'Rose Kimaro',   basic:2000000, allow:350000,  ded:210000, status:'PAID'       as PayStatus },
-  { emp:'Omar Shariff',  basic:1300000, allow:200000,  ded:130000, status:'PENDING'    as PayStatus },
-];
 
-const ANNOUNCEMENTS = [
-  { id:'a1', title:'Mid-Year Performance Reviews', category:'HR', body:'All managers are required to complete mid-year performance reviews for their team members by June 30, 2026. Please use the standard review form available on the HR portal.', author:'Rose Kimaro', date:'2026-06-10', audience:'All Staff' },
-  { id:'a2', title:'New Overtime Policy Effective July 2026', category:'Policy', body:'Please be informed that the updated overtime policy will come into effect from 1st July 2026. Overtime must be pre-approved by department heads and submitted via the attendance module.', author:'John Baraka', date:'2026-06-08', audience:'All Staff' },
-  { id:'a3', title:'System Maintenance Scheduled', category:'IT', body:'Hudumika will undergo scheduled maintenance on Sunday 22 June 2026 from 00:00 to 04:00 EAT. During this period, all modules will be unavailable. Please plan your work accordingly.', author:'Said Ali', date:'2026-06-05', audience:'All Staff' },
-];
 
 /* -- Shared helpers -- */
 const AVATAR_COLORS = ['#e8461a','#0891b2','#7c3aed','#059669','#d97706','#9333ea'];
-function avatarColor(n: string) { return AVATAR_COLORS[[...n].reduce((a,c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length]; }
+function avatarColor(n: string) { return AVATAR_COLORS[[...(n ?? '?')].reduce((a,c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length]; }
 function ini(n: string) { return n.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase(); }
 function fmtTZS(n: number) { return 'TZS ' + n.toLocaleString(); }
 
@@ -308,27 +256,36 @@ function Badge({ status }: { status: string }) {
   return <span style={{ padding:'2px 10px', borderRadius:20, fontSize:11, fontWeight:700, background:c.bg, color:c.color, whiteSpace:'nowrap' }}>{c.label}</span>;
 }
 
-function PageHeader({ icon, title, sub, children, backTo }: { icon: IconName; title: string; sub?: string; children?: React.ReactNode; backTo?: string }) {
+/**
+ * NexusHR's page title — the second private copy of PageHeader that had grown
+ * in this repo. It now delegates to the real one, so all ~30 views in this
+ * file take the house style without touching a call site. `icon` is still
+ * accepted so those call sites compile unchanged, but is no longer rendered.
+ */
+function PageHeader({ icon, title, sub, children, backTo }: { icon?: IconName; title: string; sub?: string; children?: React.ReactNode; backTo?: string }) {
+  const titleWords = title.trim().split(/\s+/);
+  const titleEm = titleWords.pop() ?? title;
   return (
-    <div style={{ marginBottom:20, display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
-      <div style={{ display:'flex', alignItems:'flex-start', gap:10 }}>
-        {backTo !== undefined && (
-          <Link to={backTo || '/onepi'} title="Go back"
-            style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--border)', background:'var(--white)', cursor:'pointer',
-              display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:2 }}>
-            <Icon name="arrowLeft" size={15} color="var(--ink2)" />
-          </Link>
-        )}
-        <div>
-          <h1 style={{ fontSize:20, fontWeight:800, color:'var(--ink)', margin:'0 0 4px', display:'flex', alignItems:'center', gap:10 }}>
-            <Icon name={icon} size={20} strokeWidth={2.2} color="var(--teal)" />
-            {title}
-          </h1>
-          {sub && <p style={{ fontSize:13, color:'var(--ink3)', margin:0 }}>{sub}</p>}
-        </div>
-      </div>
-      {children && <div style={{ display:'flex', gap:8 }}>{children}</div>}
-    </div>
+    <>
+      {/* The back link stays — it is navigation, not part of the title. The
+          leading icon is dropped: the house style pairs a plain face with a
+          Cormorant Garamond italic final word, and an icon in front of that
+          is a different design. */}
+      {backTo !== undefined && (
+        <Link to={backTo || '/nexushr'} title="Go back"
+          style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--border)', background:'var(--white)', cursor:'pointer',
+            display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:20 }}>
+          <Icon name="arrowLeft" size={15} color="var(--ink2)" />
+        </Link>
+      )}
+      <SharedPageHeader
+        crumbs={['NexusHR', title]}
+        titlePlain={titleWords.join(' ')}
+        titleEm={titleEm.toLowerCase()}
+        subtitle={sub}
+        actions={children}
+      />
+    </>
   );
 }
 
@@ -387,15 +344,17 @@ export function EmployeesPage() {
   const loadEmployees = useCallback(async () => {
     try {
       const data = await apiFetch('/v1/hr/staff');
-      if (Array.isArray(data) && data.length > 0) {
-        setEmployees(data.map((u: any): Employee => ({
-          id: u.id, name: u.name, email: u.email, phone: u.phone || '',
-          dept: u.dept || 'Operations', designation: u.designation || 'Officer',
-          role: u.role, status: (u.status || 'ACTIVE') as EmpStatus,
-          hireDate: u.hireDate || (u.created_at ? String(u.created_at).split('T')[0] : ''),
-        })));
-      }
-    } catch { /* keep mock */ }
+      setEmployees((Array.isArray(data) ? data : []).map((u: any): Employee => ({
+        id: u.id, name: u.name, email: u.email, phone: u.phone || '',
+        // Em dash, not 'Operations'/'Officer'. Those defaults gave every
+        // unassigned person a department this tenant has never created and a
+        // job title nobody gave them — indistinguishable, in the table, from
+        // someone genuinely assigned to Operations.
+        dept: u.dept || '—', designation: u.designation || '—',
+        role: u.role, status: (u.status || 'ACTIVE') as EmpStatus,
+        hireDate: u.hireDate || (u.created_at ? String(u.created_at).split('T')[0] : ''),
+      })));
+    } catch { /* leave the list empty — see note at top of file */ }
   }, []);
   useEffect(() => { loadEmployees(); }, [loadEmployees]);
 
@@ -424,7 +383,7 @@ export function EmployeesPage() {
 
   return (
     <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex: 1, overflowY: 'auto' }}>
-      <PageHeader icon="users" title="Manage Staff" sub={`${employees.filter(e => e.status === 'ACTIVE').length} active � ${employees.length} total`} backTo="/onepi">
+      <PageHeader icon="users" title="Manage Staff" sub={`${employees.filter(e => e.status === 'ACTIVE').length} active — ${employees.length} total`} backTo="/nexushr">
         <PrimaryBtn label="Invite User" icon="userPlus" onClick={() => setShowOnboard(true)} />
       </PageHeader>
 
@@ -452,7 +411,7 @@ export function EmployeesPage() {
         {/* Search */}
         <div style={{ position: 'relative', width: 260 }}>
           <Icon name="search" size={13} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email�"
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or email—"
             style={{ width: '100%', padding: '7px 10px 7px 32px', border: '1px solid var(--border)', borderRadius: 9, fontFamily: 'var(--font)', fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' as const }} />
         </div>
 
@@ -487,7 +446,7 @@ export function EmployeesPage() {
           {rows.map(e => {
             const rCol = roleColor(e.role);
             return (
-              <Link key={e.id} to={'/onepi/staff/' + e.id} style={{ display: 'block', background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
+              <Link key={e.id} to={'/nexushr/staff/' + e.id} style={{ display: 'block', background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden', cursor: 'pointer', textDecoration: 'none', color: 'inherit' }}>
                 <div style={{ height: 3, background: statusBar(e.status) }} />
                 <div style={{ padding: '18px 16px 12px', textAlign: 'center' }}>
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
@@ -527,11 +486,11 @@ export function EmployeesPage() {
               const rCol = roleColor(e.role);
               return (
                 <tr key={e.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
-                  onClick={() => navigate('/onepi/staff/' + e.id)}
+                  onClick={() => navigate('/nexushr/staff/' + e.id)}
                   onMouseEnter={ev => (ev.currentTarget.style.background = 'var(--bg)')}
                   onMouseLeave={ev => (ev.currentTarget.style.background = '')}>
                   <TD>
-                    <Link to={'/onepi/staff/' + e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit' }}>
+                    <Link to={'/nexushr/staff/' + e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit' }}>
                       <div style={{ position: 'relative', flexShrink: 0 }}>
                         <Avatar name={e.name} size={34} />
                         <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: statusBar(e.status), border: '2px solid var(--white)' }} />
@@ -685,11 +644,11 @@ export function RolesPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="shield" title="Roles & Permissions" sub="Manage access control for each role across all modules" backTo="/onepi">
+      <PageHeader icon="shield" title="Roles & Permissions" sub="Manage access control for each role across all modules" backTo="/nexushr">
         {dirty && (
           <button type="button" onClick={save} disabled={saving}
             style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', borderRadius:8, border:'none', background:'var(--teal)', color:'#fff', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer' }}>
-            <Icon name="save" size={14} color="#fff" />{saving ? 'Saving�' : 'Save Changes'}
+            <Icon name="save" size={14} color="#fff" />{saving ? 'Saving—' : 'Save Changes'}
           </button>
         )}
       </PageHeader>
@@ -755,7 +714,7 @@ export function RolesPage() {
               <Icon name="shield" size={17} color={selMeta.color} />
             </div>
             <div>
-              <div style={{ fontSize:14, fontWeight:800, color:'var(--ink)' }}>{selMeta.label} � Permission Matrix</div>
+              <div style={{ fontSize:14, fontWeight:800, color:'var(--ink)' }}>{selMeta.label} — Permission Matrix</div>
               <div style={{ fontSize:11.5, color:'var(--ink3)' }}>Click checkboxes to grant or revoke access. Save when done.</div>
             </div>
           </div>
@@ -816,7 +775,7 @@ export function RolesPage() {
       <div style={{ background:'var(--white)', borderRadius:10, border:'1px solid var(--border)', overflow:'hidden' }}>
         <div style={{ padding:'12px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Staff by Role</span>
-          <Link to="/onepi/employees"
+          <Link to="/nexushr/employees"
             style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)', textDecoration:'none' }}>
             Manage Staff ?
           </Link>
@@ -889,18 +848,18 @@ export function PermissionsPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="key" title="Permission Matrix" sub="Full cross-role permission overview � toggle access per module and action" backTo="/onepi">
+      <PageHeader icon="key" title="Permission Matrix" sub="Full cross-role permission overview — toggle access per module and action" backTo="/nexushr">
         {dirty && (
           <button type="button" onClick={save} disabled={saving}
             style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', borderRadius:8, border:'none', background:'var(--teal)', color:'#fff', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer' }}>
-            <Icon name="save" size={14} color="#fff" />{saving ? 'Saving�' : 'Save Changes'}
+            <Icon name="save" size={14} color="#fff" />{saving ? 'Saving—' : 'Save Changes'}
           </button>
         )}
       </PageHeader>
 
       {/* Filter */}
       <div style={{ marginBottom:16, maxWidth:340 }}>
-        <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter modules�"
+        <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter modules—"
           style={{ width:'100%', padding:'8px 12px', border:'1px solid var(--border)', borderRadius:8, fontSize:13, fontFamily:'var(--font)', color:'var(--ink)', background:'var(--white)', boxSizing:'border-box' as const }} />
       </div>
 
@@ -995,7 +954,7 @@ export function DeleteRequestsPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="userMinus" title="Delete Requests" sub="User account deletion requests pending review" backTo="/onepi">
+      <PageHeader icon="userMinus" title="Delete Requests" sub="User account deletion requests pending review" backTo="/nexushr">
         <PrimaryBtn label="New Request" icon="plus" onClick={() => setShowNew(v => !v)} />
       </PageHeader>
 
@@ -1095,7 +1054,7 @@ function DeptForm({ staff, initial, onCancel, onSubmit }: {
 }
 
 export function DepartmentsPage() {
-  const [depts, setDepts] = useState<DeptRow[]>(DEPARTMENTS);
+  const [depts, setDepts] = useState<DeptRow[]>([]);
   const [staff, setStaff] = useState<Employee[]>([]);
   const [showNew, setShowNew] = useState(false);
   const [editing, setEditing] = useState<DeptRow | null>(null);
@@ -1104,11 +1063,11 @@ export function DepartmentsPage() {
     try {
       const res = await apiFetch('/v1/hr/departments');
       const data = Array.isArray(res) ? res : [];
-      if (data.length > 0) setDepts(data.map((d: any) => ({
+      setDepts(data.map((d: any) => ({
         id: d.id, name: d.name, head: d.head_name || '-', head_user_id: d.head_user_id,
         employees: d.employee_count || 0, status: d.status || 'ACTIVE',
       })));
-    } catch { /* keep mock */ }
+    } catch { /* leave the list empty — see note at top of file */ }
   }, []);
   const loadStaff = useCallback(async () => {
     try { setStaff(await apiFetch('/v1/hr/staff')); } catch { /* keep empty */ }
@@ -1130,7 +1089,7 @@ export function DepartmentsPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="building" title="Departments" sub="Organisational departments and their leads" backTo="/onepi">
+      <PageHeader icon="building" title="Company Departments" sub="Organisational departments and their leads" backTo="/nexushr">
         <PrimaryBtn label="Add Department" icon="plus" onClick={() => { setEditing(null); setShowNew(v => !v); }} />
       </PageHeader>
 
@@ -1143,7 +1102,7 @@ export function DepartmentsPage() {
           {depts.map(d => (
             <tr key={d.name} style={{ borderBottom:'1px solid var(--border)' }}>
               <TD bold>{d.name}</TD>
-              <TD>{d.head === '-' ? <span style={{ color:'var(--ink3)' }}>�</span> : <div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={d.head} size={24} />{d.head}</div>}</TD>
+              <TD>{d.head === '-' ? <span style={{ color:'var(--ink3)' }}>—</span> : <div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={d.head} size={24} />{d.head}</div>}</TD>
               <TD right bold>{d.employees}</TD>
               <TD><Badge status={d.status} /></TD>
               <TD right>{d.id && <ActionBtn label="Edit" onClick={() => { setShowNew(false); setEditing(d); }} />}</TD>
@@ -1181,7 +1140,7 @@ export function TeamsPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="users" title="Teams" sub="Cross-functional working groups and project teams" backTo="/onepi">
+      <PageHeader icon="users" title="Working Teams" sub="Cross-functional working groups and project teams" backTo="/nexushr">
         <PrimaryBtn label="Create Team" icon="plus" onClick={() => setShowNew(v => !v)} />
       </PageHeader>
 
@@ -1223,7 +1182,7 @@ export function TeamsPage() {
         {teams.map(t => (
           <div key={t.id} style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', padding:18 }}>
             <div style={{ fontWeight:700, fontSize:14, color:'var(--ink)', marginBottom:4 }}>{t.name}</div>
-            <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:12 }}>Lead: {t.lead_name || '�'} � {t.members.length} member{t.members.length!==1?'s':''}</div>
+            <div style={{ fontSize:12, color:'var(--ink3)', marginBottom:12 }}>Lead: {t.lead_name || '—'} — {t.members.length} member{t.members.length!==1?'s':''}</div>
             <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:12 }}>
               {t.members.map(m => (
                 <div key={m.user_id} style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -1271,7 +1230,7 @@ export function InvitationsPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="userPlus" title="Invitations" sub="Pending and sent user invitations" backTo="/onepi">
+      <PageHeader icon="userPlus" title="Pending Invitations" sub="Pending and sent user invitations" backTo="/nexushr">
         <PrimaryBtn label="Send Invitation" icon="send" onClick={() => setShowNew(v => !v)} />
       </PageHeader>
 
@@ -1335,15 +1294,19 @@ type ActivityRow = { id: string; user_name: string | null; action: string; modul
 
 export function ActivityLogsPage() {
   const [logs, setLogs] = useState<ActivityRow[]>([]);
-  useEffect(() => { apiFetch('/v1/hr/activity-log').then(setLogs).catch(() => {}); }, []);
+  // A swallowed failure here rendered "No activity recorded yet", which is a
+  // different claim from "we could not load it" — and for three years this
+  // module returned 403 to SUPER_ADMIN while showing exactly that empty state.
+  const [err, setErr] = useState('');
+  useEffect(() => { apiFetch('/v1/hr/activity-log').then(setLogs).catch((e: any) => setErr(e?.message ?? 'Could not load activity.')); }, []);
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="activity" title="User Activity Logs" sub="Recent actions taken through the HR module" backTo="/onepi" />
+      <PageHeader icon="activity" title="User Activity Logs" sub="Recent actions taken through the HR module" backTo="/nexushr" />
       <Wrap>
         <thead><tr><TH>User</TH><TH>Action</TH><TH>Module</TH><TH>Time</TH></tr></thead>
         <tbody>
-          {logs.length === 0 && <tr><td colSpan={4} style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)' }}>No activity recorded yet.</td></tr>}
+          {logs.length === 0 && <tr><td colSpan={4} style={{ padding: 32, textAlign: 'center', color: err ? 'var(--red)' : 'var(--ink3)' }}>{err || 'No activity recorded yet.'}</td></tr>}
           {logs.map(l => (
             <tr key={l.id} style={{ borderBottom:'1px solid var(--border)' }}>
               <TD><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={l.user_name || '?'} size={24} />{l.user_name || 'Unknown'}</div></TD>
@@ -1362,15 +1325,16 @@ type LoginHistoryRow = { id: string; user_name: string; ip: string | null; user_
 
 export function LoginHistoryPage() {
   const [rows, setRows] = useState<LoginHistoryRow[]>([]);
-  useEffect(() => { apiFetch('/v1/hr/login-history').then(setRows).catch(() => {}); }, []);
+  const [err, setErr] = useState('');
+  useEffect(() => { apiFetch('/v1/hr/login-history').then(setRows).catch((e: any) => setErr(e?.message ?? 'Could not load login history.')); }, []);
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="lock" title="Login History" sub="Authentication events for all users" backTo="/onepi" />
+      <PageHeader icon="lock" title="Login History" sub="Authentication events for all users" backTo="/nexushr" />
       <Wrap>
         <thead><tr><TH>User</TH><TH>IP Address</TH><TH>Device</TH><TH>Status</TH><TH>Time</TH></tr></thead>
         <tbody>
-          {rows.length === 0 && <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)' }}>No login history recorded yet.</td></tr>}
+          {rows.length === 0 && <tr><td colSpan={5} style={{ padding: 32, textAlign: 'center', color: err ? 'var(--red)' : 'var(--ink3)' }}>{err || 'No login history recorded yet.'}</td></tr>}
           {rows.map(l => (
             <tr key={l.id} style={{ borderBottom:'1px solid var(--border)' }}>
               <TD><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={l.user_name} size={24} />{l.user_name}</div></TD>
@@ -1390,8 +1354,10 @@ type DeviceRow = { id: string; user_name: string; device_label: string; device_t
 
 export function DeviceManagementPage() {
   const [devices, setDevices] = useState<DeviceRow[]>([]);
+  const [err, setErr] = useState('');
   const load = useCallback(async () => {
-    try { setDevices(await apiFetch('/v1/hr/devices')); } catch { /* none yet */ }
+    try { setDevices(await apiFetch('/v1/hr/devices')); setErr(''); }
+    catch (e: any) { setErr(e?.message ?? 'Could not load devices.'); }
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -1401,11 +1367,11 @@ export function DeviceManagementPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="smartphone" title="Device Management" sub="Trusted and known devices per user" backTo="/onepi" />
+      <PageHeader icon="smartphone" title="Device Management" sub="Trusted and known devices per user" backTo="/nexushr" />
       <Wrap>
         <thead><tr><TH>User</TH><TH>Device</TH><TH>Type</TH><TH>Last Used</TH><TH>Trusted</TH><TH right>Actions</TH></tr></thead>
         <tbody>
-          {devices.length === 0 && <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: 'var(--ink3)' }}>No devices recorded yet.</td></tr>}
+          {devices.length === 0 && <tr><td colSpan={6} style={{ padding: 32, textAlign: 'center', color: err ? 'var(--red)' : 'var(--ink3)' }}>{err || 'No devices recorded yet.'}</td></tr>}
           {devices.map(d => (
             <tr key={d.id} style={{ borderBottom:'1px solid var(--border)' }}>
               <TD><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={d.user_name} size={24} />{d.user_name}</div></TD>
@@ -1447,7 +1413,7 @@ function apiLeaveToRow(l: any): LeaveRow {
 
 export function LeavesPage() {
   const [filter, setFilter] = useState('');
-  const [leaves, setLeaves] = useState<LeaveRow[]>(LEAVES);
+  const [leaves, setLeaves] = useState<LeaveRow[]>([]);
   const [staff, setStaff] = useState<Employee[]>([]);
   const [showNew, setShowNew] = useState(false);
 
@@ -1455,8 +1421,8 @@ export function LeavesPage() {
     try {
       const res = await apiFetch('/v1/hr/leaves');
       const data = Array.isArray(res) ? res : (res?.data ?? []);
-      if (data.length > 0) setLeaves(data.map(apiLeaveToRow));
-    } catch { /* keep mock */ }
+      setLeaves(data.map(apiLeaveToRow));
+    } catch { /* leave the list empty — see note at top of file */ }
   }, []);
   const loadStaff = useCallback(async () => {
     try { setStaff(await apiFetch('/v1/hr/staff')); } catch { /* keep empty */ }
@@ -1476,7 +1442,7 @@ export function LeavesPage() {
   const rows = filter ? leaves.filter(l => l.type === filter) : leaves;
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="calendar" title="Leave Management" sub="Employee leave requests and approvals" backTo="/onepi">
+      <PageHeader icon="calendar" title="Leave Management" sub="Employee leave requests and approvals" backTo="/nexushr">
         <PrimaryBtn label="New Request" icon="plus" onClick={() => setShowNew(v => !v)} />
       </PageHeader>
 
@@ -1592,7 +1558,7 @@ export function AttendancePage() {
           id: u.id, name: u.name, department: u.dept || 'General', role: u.role, avatar: ini(u.name),
         })));
       }
-    } catch { /* keep mock */ }
+    } catch { /* leave the list empty — see note at top of file */ }
   }, []);
 
   const loadAttendance = useCallback(async () => {
@@ -1605,7 +1571,7 @@ export function AttendancePage() {
           status: mapAttStatus(a.status),
         })));
       }
-    } catch { /* keep empty � falls back to no records rendered */ }
+    } catch { /* keep empty — falls back to no records rendered */ }
   }, []);
 
   useEffect(() => { loadStaff(); loadAttendance(); }, [loadStaff, loadAttendance]);
@@ -1662,7 +1628,7 @@ export function AttendancePage() {
 
   return (
     <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex:1, overflowY:'auto', display: 'flex', flexDirection: 'column' }}>
-      <PageHeader icon="clock" title="Attendances" sub="Daily staff attendance and clock records" backTo="/onepi">
+      <PageHeader icon="clock" title="Staff Attendance" sub="Daily staff attendance and clock records" backTo="/nexushr">
         <button type="button" className="btn btn-secondary" onClick={() => { setBulkEmpIds([]); setShowBulk(true); }} style={{ display:'flex', alignItems:'center', gap:6 }}>
           <Icon name="tasks" size={14} /> Mark Attendance
         </button>
@@ -2007,7 +1973,7 @@ export function ShiftsPage() {
           id: u.id, name: u.name, department: u.dept || 'General', role: u.role, avatar: ini(u.name),
         })));
       }
-    } catch { /* keep mock */ }
+    } catch { /* leave the list empty — see note at top of file */ }
   }, []);
 
   const loadShiftTypes = useCallback(async () => {
@@ -2018,7 +1984,7 @@ export function ShiftsPage() {
           id: s.id, name: s.name, startTime: s.start_time, endTime: s.end_time, color: s.color || 'var(--blue)',
         })));
       }
-    } catch { /* keep mock */ }
+    } catch { /* leave the list empty — see note at top of file */ }
   }, []);
 
   const loadAssignments = useCallback(async () => {
@@ -2054,7 +2020,7 @@ export function ShiftsPage() {
 
   return (
     <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex:1, overflowY:'auto', display: 'flex', flexDirection: 'column' }}>
-      <PageHeader icon="timer" title="Shift Roster" sub="Manage employee shift schedules" backTo="/onepi">
+      <PageHeader icon="timer" title="Shift Roster" sub="Manage employee shift schedules" backTo="/nexushr">
         <button type="button" className="btn btn-secondary" onClick={() => { setBulkEmpIds([]); setShowBulk(true); }} style={{ display:'flex', alignItems:'center', gap:6 }}>
           <Icon name="users" size={14} /> Assign Bulk Shifts
         </button>
@@ -2282,15 +2248,15 @@ export function ShiftsPage() {
 type HolidayRow = { id?: string; date: string; name: string; type: string };
 
 export function HolidaysPage() {
-  const [holidays, setHolidays] = useState<HolidayRow[]>(HOLIDAYS);
+  const [holidays, setHolidays] = useState<HolidayRow[]>([]);
   const [showNew, setShowNew] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const res = await apiFetch('/v1/hr/holidays');
       const data = Array.isArray(res) ? res : [];
-      if (data.length > 0) setHolidays(data.map((h: any) => ({ id: h.id, date: String(h.date).slice(0,10), name: h.name, type: h.type })));
-    } catch { /* keep mock */ }
+      setHolidays(data.map((h: any) => ({ id: h.id, date: String(h.date).slice(0,10), name: h.name, type: h.type })));
+    } catch { /* leave the list empty — see note at top of file */ }
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -2302,7 +2268,7 @@ export function HolidaysPage() {
   const grouped = { Public: holidays.filter(h=>h.type==='Public'), Company: holidays.filter(h=>h.type==='Company') };
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="sun" title="Holidays" sub="Public and company-designated holidays" backTo="/onepi">
+      <PageHeader icon="sun" title="Public Holidays" sub="Public and company-designated holidays" backTo="/nexushr">
         <PrimaryBtn label="Add Holiday" icon="plus" onClick={() => setShowNew(v => !v)} />
       </PageHeader>
 
@@ -2402,7 +2368,7 @@ function DesigForm({ depts, initial, onCancel, onSubmit }: {
 }
 
 export function DesignationsPage() {
-  const [desigs, setDesigs] = useState<DesigRow[]>(DESIGNATIONS);
+  const [desigs, setDesigs] = useState<DesigRow[]>([]);
   const [depts, setDepts] = useState<DeptOption[]>([]);
   const [showNew, setShowNew] = useState(false);
   const [editing, setEditing] = useState<DesigRow | null>(null);
@@ -2411,8 +2377,8 @@ export function DesignationsPage() {
     try {
       const res = await apiFetch('/v1/hr/designations');
       const data = Array.isArray(res) ? res : [];
-      if (data.length > 0) setDesigs(data.map((d: any) => ({ id: d.id, title: d.title, dept: d.department_name || '', department_id: d.department_id, employees: d.employee_count || 0 })));
-    } catch { /* keep mock */ }
+      setDesigs(data.map((d: any) => ({ id: d.id, title: d.title, dept: d.department_name || '', department_id: d.department_id, employees: d.employee_count || 0 })));
+    } catch { /* leave the list empty — see note at top of file */ }
   }, []);
   const loadDepts = useCallback(async () => {
     try {
@@ -2441,7 +2407,7 @@ export function DesignationsPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="award" title="Designations" sub="Job titles and role classifications" backTo="/onepi">
+      <PageHeader icon="award" title="Job Designations" sub="Job titles and role classifications" backTo="/nexushr">
         <PrimaryBtn label="Add Designation" icon="plus" onClick={() => { setEditing(null); setShowNew(v => !v); }} />
       </PageHeader>
 
@@ -2471,7 +2437,7 @@ export function PayrollPage() {
   const now = new Date();
   const [monthIdx,    setMonthIdx]    = useState(now.getMonth() + 1);
   const [year,        setYear]        = useState(now.getFullYear());
-  const [payroll,     setPayroll]     = useState<PayRow[]>(PAYROLL);
+  const [payroll,     setPayroll]     = useState<PayRow[]>([]);
   const [slipRow,     setSlipRow]     = useState<PayRow | null>(null);
   const [running,     setRunning]     = useState(false);
   const monthLabel = new Date(year, monthIdx - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -2480,12 +2446,12 @@ export function PayrollPage() {
     try {
       const res = await apiFetch(`/v1/hr/payroll?month=${monthIdx}&year=${year}`);
       const data = Array.isArray(res) ? res : [];
-      if (data.length > 0) setPayroll(data.map((p: any) => ({
+      setPayroll(data.map((p: any) => ({
         id: p.id, emp: p.employee_name || p.emp || '',
         basic: Number(p.basic_pay || p.basic), allow: Number(p.allowances || p.allow),
         ded: Number(p.deductions || p.ded), status: p.status as PayStatus,
       })));
-    } catch { /* keep mock */ }
+    } catch { /* leave the list empty — see note at top of file */ }
   }, [monthIdx, year]);
   useEffect(() => { load(); }, [load]);
 
@@ -2528,11 +2494,11 @@ export function PayrollPage() {
 
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="dollarSign" title="Payroll" sub={`Monthly payroll � ${monthLabel}`} backTo="/onepi">
+      <PageHeader icon="dollarSign" title="Monthly Payroll" sub={`Monthly payroll — ${monthLabel}`} backTo="/nexushr">
         <button type="button" className="btn btn-secondary" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6 }}>
           <Icon name="download" size={13} color="var(--ink2)" /> Export
         </button>
-        <PrimaryBtn label={running ? 'Running�' : 'Run Payroll'} onClick={running ? undefined : runPayroll} />
+        <PrimaryBtn label={running ? 'Running—' : 'Run Payroll'} onClick={running ? undefined : runPayroll} />
       </PageHeader>
       <MetricsRow cards={[
         { title:'Total Payroll', value:'TZS ' + (total/1_000_000).toFixed(1) + 'M', trend:3.2, sub1Label:'BASIC',      sub1Value:'TZS '+(payroll.reduce((s,p)=>s+p.basic,0)/1_000_000).toFixed(1)+'M', sub2Label:'ALLOWANCES', sub2Value:'TZS '+(payroll.reduce((s,p)=>s+p.allow,0)/1_000_000).toFixed(1)+'M', bars:spark(400,15,'up'), barColor:'var(--green-l)', barHighlight:'var(--green)' },
@@ -2566,19 +2532,19 @@ export function PayrollPage() {
 type AnnRow = { id: string; title: string; category: string; body: string; author: string; date: string; audience: string };
 
 export function AnnouncementsPage() {
-  const [announcements, setAnnouncements] = useState<AnnRow[]>(ANNOUNCEMENTS);
+  const [announcements, setAnnouncements] = useState<AnnRow[]>([]);
   const [showNew, setShowNew] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const res = await apiFetch('/v1/hr/announcements');
       const data = Array.isArray(res) ? res : [];
-      if (data.length > 0) setAnnouncements(data.map((a: any) => ({
+      setAnnouncements(data.map((a: any) => ({
         id: a.id, title: a.title, category: a.category, body: a.body,
         author: a.author_name || a.author || '', date: String(a.created_at || a.date || '').slice(0,10),
         audience: a.audience,
       })));
-    } catch { /* keep mock */ }
+    } catch { /* leave the list empty — see note at top of file */ }
   }, []);
   useEffect(() => { load(); }, [load]);
 
@@ -2591,7 +2557,7 @@ export function AnnouncementsPage() {
   const catBg: Record<string, string> = { HR:'var(--purple-l)', Policy:'var(--teal-l)', IT:'var(--blue-l)' };
   return (
     <div style={{ padding:'24px 32px', flex:1, overflowY:'auto' }}>
-      <PageHeader icon="volume2" title="Announcements" sub="Company-wide announcements and notices" backTo="/onepi">
+      <PageHeader icon="volume2" title="Company Announcements" sub="Company-wide announcements and notices" backTo="/nexushr">
         <PrimaryBtn label="Post Announcement" icon="plus" onClick={() => setShowNew(v => !v)} />
       </PageHeader>
 
@@ -2680,19 +2646,36 @@ export function HrmDashboard() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [metrics, setMetrics] = useState<any>(null);
+  const [depts, setDepts] = useState<{ name: string; employees: number }[]>([]);
+  const [payroll, setPayroll] = useState<{ status: string; basic: number; allow: number; ded: number }[]>([]);
 
   useEffect(() => {
     apiFetch('/v1/hr/tools-overview').then(d => setMetrics(d)).catch(() => {});
+    // Both panels below used to render module-level constants — six invented
+    // departments totalling 39 people, and a payroll of TZS 14.7M — on a
+    // dashboard whose own headline said "Total Staff: 1". They read the API now.
+    apiFetch('/v1/hr/departments')
+      .then((r: any) => setDepts((Array.isArray(r) ? r : []).map((d: any) => ({ name: d.name, employees: d.employee_count || 0 }))))
+      .catch(() => setDepts([]));
+    const now = new Date();
+    apiFetch(`/v1/hr/payroll?month=${now.getMonth() + 1}&year=${now.getFullYear()}`)
+      .then((r: any) => setPayroll((Array.isArray(r) ? r : []).map((p: any) => ({
+        status: p.status, basic: Number(p.basic_pay) || 0, allow: Number(p.allowances) || 0, ded: Number(p.deductions) || 0,
+      }))))
+      .catch(() => setPayroll([]));
   }, []);
 
-  const hr    = metrics?.hr    ?? { total_staff:8, active_staff:6, on_leave:1, pending_leaves:2, today_present:5, today_absent:1 };
+  // Zeros, not invented staffing. A dashboard that cannot reach the API says
+  // nothing rather than claiming eight employees.
+  const hr = metrics?.hr ?? { total_staff:0, active_staff:0, on_leave:0, pending_leaves:0, today_present:0, today_absent:0 };
   const attRate = hr.active_staff > 0 ? Math.round((hr.today_present / hr.active_staff) * 100) : 0;
+  const deptTotal = depts.reduce((s, d) => s + d.employees, 0);
 
   const kpis = [
-    { label:'Total Staff',       value: hr.total_staff,       icon:'users'      as IconName, color:'var(--teal)',  bg:'rgba(8,145,178,0.1)',  path:'/onepi/employees' },
-    { label:'Present Today',     value: hr.today_present,     icon:'check'      as IconName, color:'var(--green)', bg:'rgba(16,185,129,0.1)', path:'/onepi/attendance' },
-    { label:'On Leave',          value: hr.on_leave,          icon:'calendar'   as IconName, color:'var(--gold)',      bg:'rgba(245,158,11,0.1)', path:'/onepi/leaves' },
-    { label:'Pending Leaves',    value: hr.pending_leaves,    icon:'clock'      as IconName, color:'var(--red)',   bg:'rgba(239,68,68,0.1)',  path:'/onepi/leaves' },
+    { label:'Total Staff',       value: hr.total_staff,       icon:'users'      as IconName, color:'var(--teal)',  bg:'rgba(8,145,178,0.1)',  path:'/nexushr/employees' },
+    { label:'Present Today',     value: hr.today_present,     icon:'check'      as IconName, color:'var(--green)', bg:'rgba(16,185,129,0.1)', path:'/nexushr/attendance' },
+    { label:'On Leave',          value: hr.on_leave,          icon:'calendar'   as IconName, color:'var(--gold)',      bg:'rgba(245,158,11,0.1)', path:'/nexushr/leaves' },
+    { label:'Pending Leaves',    value: hr.pending_leaves,    icon:'clock'      as IconName, color:'var(--red)',   bg:'rgba(239,68,68,0.1)',  path:'/nexushr/leaves' },
   ];
 
   return (
@@ -2726,7 +2709,7 @@ export function HrmDashboard() {
         <div style={{ background:'var(--white)', borderRadius:9, border:'1px solid var(--border)', overflow:'hidden' }}>
           <div style={{ padding:'11px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
             <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Today's Attendance</span>
-            <Link to="/onepi/attendance" style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)', textDecoration:'none' }}>Mark ?</Link>
+            <Link to="/nexushr/attendance" style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)', textDecoration:'none' }}>Mark →</Link>
           </div>
           <div style={{ padding:'16px 18px' }}>
             {[
@@ -2758,12 +2741,15 @@ export function HrmDashboard() {
         <div style={{ background:'var(--white)', borderRadius:9, border:'1px solid var(--border)', overflow:'hidden' }}>
           <div style={{ padding:'11px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
             <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Departments</span>
-            <Link to="/onepi/departments" style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)', textDecoration:'none' }}>Manage ?</Link>
+            <Link to="/nexushr/departments" style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)', textDecoration:'none' }}>Manage →</Link>
           </div>
           <div style={{ padding:'14px 18px' }}>
-            {DEPARTMENTS.map((d, i) => {
+            {depts.length === 0 && (
+              <div style={{ fontSize:12.5, color:'var(--ink3)', padding:'6px 0' }}>No departments defined yet.</div>
+            )}
+            {depts.map((d, i) => {
               const colors = ['var(--teal)','var(--blue)','var(--purple)','var(--green)','var(--gold)','var(--red)'];
-              const pct = Math.round((d.employees / DEPARTMENTS.reduce((s,x) => s+x.employees, 0)) * 100);
+              const pct = deptTotal > 0 ? Math.round((d.employees / deptTotal) * 100) : 0;
               return (
                 <div key={d.name} style={{ display:'flex', alignItems:'center', gap:12, marginBottom:10 }}>
                   <div style={{ width:8, height:8, borderRadius:'50%', background:colors[i % colors.length], flexShrink:0 }} />
@@ -2781,14 +2767,14 @@ export function HrmDashboard() {
         {/* Payroll summary */}
         <div style={{ background:'var(--white)', borderRadius:9, border:'1px solid var(--border)', overflow:'hidden' }}>
           <div style={{ padding:'11px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Payroll � This Month</span>
-            <Link to="/onepi/payroll" style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)', textDecoration:'none' }}>View All ?</Link>
+            <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Payroll — This Month</span>
+            <Link to="/nexushr/payroll" style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)', textDecoration:'none' }}>View All →</Link>
           </div>
           <div style={{ padding:'16px 18px' }}>
             {[
-              { label:'Paid',       count:PAYROLL.filter(p=>p.status==='PAID').length,       color:'var(--green)', bg:'rgba(16,185,129,0.1)' },
-              { label:'Processing', count:PAYROLL.filter(p=>p.status==='PROCESSING').length, color:'var(--blue)',  bg:'rgba(59,130,246,0.1)' },
-              { label:'Pending',    count:PAYROLL.filter(p=>p.status==='PENDING').length,    color:'var(--gold)',      bg:'rgba(245,158,11,0.1)' },
+              { label:'Paid',       count:payroll.filter(p=>p.status==='PAID').length,       color:'var(--green)', bg:'rgba(16,185,129,0.1)' },
+              { label:'Processing', count:payroll.filter(p=>p.status==='PROCESSING').length, color:'var(--blue)',  bg:'rgba(59,130,246,0.1)' },
+              { label:'Pending',    count:payroll.filter(p=>p.status==='PENDING').length,    color:'var(--gold)',      bg:'rgba(245,158,11,0.1)' },
             ].map(row => (
               <div key={row.label} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', background:row.bg, borderRadius:7, marginBottom:8 }}>
                 <span style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>{row.label}</span>
@@ -2798,7 +2784,7 @@ export function HrmDashboard() {
             <div style={{ marginTop:10, padding:'10px 12px', background:'var(--bg)', borderRadius:7, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
               <span style={{ fontSize:12, color:'var(--ink3)' }}>Total Net Pay</span>
               <span style={{ fontSize:14, fontWeight:800, color:'var(--ink)' }}>
-                TZS {(PAYROLL.reduce((s,p) => s + (p.basic + p.allow - p.ded), 0) / 1_000_000).toFixed(1)}M
+                TZS {(payroll.reduce((s,p) => s + (p.basic + p.allow - p.ded), 0) / 1_000_000).toFixed(1)}M
               </span>
             </div>
           </div>
@@ -2811,16 +2797,16 @@ export function HrmDashboard() {
           </div>
           <div style={{ padding:'14px 16px', display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(160px,1fr))', gap:10 }}>
             {[
-              { label:'Manage Staff',    icon:'users'      as IconName, path:'/onepi/employees',   color:'var(--blue)', bg:'rgba(37,99,235,0.08)' },
-              { label:'Attendance',      icon:'clock'      as IconName, path:'/onepi/attendance',  color:'var(--teal)', bg:'rgba(20,184,166,0.08)' },
-              { label:'Leave Requests',  icon:'calendar'   as IconName, path:'/onepi/leaves',      color:'var(--gold)', bg:'rgba(245,158,11,0.08)' },
-              { label:'Payroll',         icon:'dollarSign' as IconName, path:'/onepi/payroll',     color:'var(--green)', bg:'rgba(22,163,74,0.08)' },
-              { label:'Departments',     icon:'building'   as IconName, path:'/onepi/departments', color:'var(--purple)', bg:'rgba(124,58,237,0.08)' },
-              { label:'Shift Roster',    icon:'timer'      as IconName, path:'/onepi/shifts',      color:'var(--blue)', bg:'rgba(8,145,178,0.08)' },
-              { label:'Roles & Access',  icon:'shield'     as IconName, path:'/onepi/roles',       color:'var(--red)', bg:'rgba(220,38,38,0.08)' },
-              { label:'Announcements',   icon:'volume2'    as IconName, path:'/onepi/announcements',color:'var(--ink3)',bg:'rgba(100,116,139,0.08)' },
-              { label:'Org Chart',       icon:'users'      as IconName, path:'/onepi/org-chart',   color:'var(--blue)', bg:'rgba(8,145,178,0.08)' },
-              { label:'Invitations',     icon:'userPlus'   as IconName, path:'/onepi/invitations', color:'var(--purple)', bg:'rgba(124,58,237,0.08)' },
+              { label:'Manage Staff',    icon:'users'      as IconName, path:'/nexushr/employees',   color:'var(--blue)', bg:'rgba(37,99,235,0.08)' },
+              { label:'Attendance',      icon:'clock'      as IconName, path:'/nexushr/attendance',  color:'var(--teal)', bg:'rgba(20,184,166,0.08)' },
+              { label:'Leave Requests',  icon:'calendar'   as IconName, path:'/nexushr/leaves',      color:'var(--gold)', bg:'rgba(245,158,11,0.08)' },
+              { label:'Payroll',         icon:'dollarSign' as IconName, path:'/nexushr/payroll',     color:'var(--green)', bg:'rgba(22,163,74,0.08)' },
+              { label:'Departments',     icon:'building'   as IconName, path:'/nexushr/departments', color:'var(--purple)', bg:'rgba(124,58,237,0.08)' },
+              { label:'Shift Roster',    icon:'timer'      as IconName, path:'/nexushr/shifts',      color:'var(--blue)', bg:'rgba(8,145,178,0.08)' },
+              { label:'Roles & Access',  icon:'shield'     as IconName, path:'/nexushr/roles',       color:'var(--red)', bg:'rgba(220,38,38,0.08)' },
+              { label:'Announcements',   icon:'volume2'    as IconName, path:'/nexushr/announcements',color:'var(--ink3)',bg:'rgba(100,116,139,0.08)' },
+              { label:'Org Chart',       icon:'users'      as IconName, path:'/nexushr/org-chart',   color:'var(--blue)', bg:'rgba(8,145,178,0.08)' },
+              { label:'Invitations',     icon:'userPlus'   as IconName, path:'/nexushr/invitations', color:'var(--purple)', bg:'rgba(124,58,237,0.08)' },
             ].map(m => (
               <Link key={m.path} to={m.path}
                 style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, cursor:'pointer', fontFamily:'var(--font)', textAlign:'left', textDecoration:'none' }}

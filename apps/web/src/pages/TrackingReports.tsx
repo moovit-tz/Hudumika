@@ -8,6 +8,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Tooltip, Legend);
 
@@ -126,8 +127,12 @@ export const TrackingReports: React.FC = () => {
   return (
     <div style={{ padding: 24 }}>
       <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Reports</div>
-        <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Fleet utilization, fuel cost, trip history &amp; PDF report generation</div>
+        <PageHeader
+          crumbs={['HuduFreight', 'Reports']}
+          titlePlain="Fleet"
+          titleEm="reports"
+          subtitle="Fleet utilization, fuel cost, trip history &amp; PDF report generation"
+        />
       </div>
 
       <div style={{ ...cardStyle, marginBottom: 20, display: 'flex', alignItems: 'flex-end', gap: 12, flexWrap: 'wrap' }}>

@@ -12,6 +12,7 @@ import { useParams } from 'react-router-dom';
 import { BASE_URL } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { printSharedReport } from './LandedCostPage.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Teaser {
   hs_code: string | null;
@@ -127,7 +128,11 @@ export const SharedLandedCostReport: React.FC = () => {
   return shell(
     <>
       <div style={{ fontSize: 10.5, letterSpacing: '.14em', textTransform: 'uppercase', color: '#E8480A', fontWeight: 700 }}>Estimate</div>
-      <h1 style={{ fontSize: 22, fontWeight: 800, color: '#14181B', margin: '3px 0 14px', letterSpacing: '-.01em' }}>Landed Cost Report</h1>
+      <PageHeader
+        crumbs={['ClearOS', 'Landed Cost']}
+        titlePlain="Landed Cost"
+        titleEm="report"
+      />
 
       <div style={{ border: '1px solid #E5E9EC', borderRadius: 11, overflow: 'hidden', marginBottom: 20 }}>
         {([

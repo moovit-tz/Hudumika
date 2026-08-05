@@ -6,6 +6,7 @@ import { apiFetch } from '../lib/api.js';
 import { getHudumikaFooterHtml } from '../lib/watermark.js';
 import { showAlert } from '../lib/alert.js';
 import './ComplyOS.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface TerminalLog {
   id: string;
@@ -155,12 +156,14 @@ export function ComplyLicenseAutomation() {
 
   return (
     <div className="comply-page" data-layout="full">
+      <PageHeader
+        crumbs={['ComplyOS', 'License Automation Tool']}
+        titlePlain="License Automation"
+        titleEm="tool"
+        subtitle="Sign in to Tausi (TAMISEMI) yourself, upload your license &amp; levy statement, and let the ComplyOS agent file the results automatically."
+      />
       <div className="comply-page-hdr">
-        <div>
-          <h1 className="comply-page-title">License Automation Tool</h1>
-          <p className="comply-page-sub">Sign in to Tausi (TAMISEMI) yourself, upload your license &amp; levy statement, and let the ComplyOS agent file the results automatically.</p>
         </div>
-      </div>
 
       {!resultData ? (
         <div style={{ display: 'grid', gridTemplateColumns: '640px 1fr', gap: 24, alignItems: 'start' }}>

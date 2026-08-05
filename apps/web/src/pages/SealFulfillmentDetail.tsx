@@ -8,6 +8,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Line { id: string; lotId: string; lotDescription?: string; lotUom?: string; requestedQty: number; pickedQty: number; packed: boolean; }
 interface Order {
@@ -113,6 +114,12 @@ export function SealFulfillmentDetail() {
 
   return (
     <div className="seal-page">
+      <PageHeader
+        crumbs={['SEAL', 'Fulfillment']}
+        titlePlain="Outbound"
+        titleEm="fulfillment"
+        subtitle="Lines picked, packed and released against this order."
+      />
       <div className="seal-page-hdr">
         <div>
           <Button type="button" variant="outline" onClick={() => navigate('/seal/fulfillment')} style={{ marginBottom: 12 }}>

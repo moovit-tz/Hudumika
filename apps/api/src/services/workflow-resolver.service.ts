@@ -103,7 +103,20 @@ interface NewShipmentInput {
   destPort: string;
 }
 
-function triggerMatches(triggers: any, ctx: { freightMode: string; consignmentType: string; customerId: string; originCountry: string; destCountry: string }): boolean {
+export interface TargetingContext {
+  freightMode: string;
+  consignmentType: string;
+  customerId: string;
+  originCountry: string;
+  destCountry: string;
+}
+
+/**
+ * Exported so Studio's event dispatch narrows automations by exactly the same
+ * rules clearance narrows workflows — one vocabulary, the way studio/conditions.ts
+ * already shares operator semantics. An empty list means "no restriction".
+ */
+export function triggerMatches(triggers: any, ctx: TargetingContext): boolean {
   const check = (arr: string[] | undefined, val: string) =>
     !arr || arr.length === 0 || arr.some((x) => x.toLowerCase() === val.toLowerCase());
   return (
@@ -115,7 +128,7 @@ function triggerMatches(triggers: any, ctx: { freightMode: string; consignmentTy
   );
 }
 
-function hasAnyTrigger(triggers: any): boolean {
+export function hasAnyTrigger(triggers: any): boolean {
   return Boolean(
     triggers.freightModes?.length || triggers.consignmentTypes?.length || triggers.customerIds?.length ||
     triggers.originCountries?.length || triggers.destinationCountries?.length,
@@ -172,9 +185,20 @@ export function pickStartStep(steps: ResolvedStep[]): ResolvedStep {
   return [...steps].sort((a, b) => a.order - b.order)[0];
 }
 
+/** One condition's verdict, kept so a run record can name which one blocked. */
+export interface ConditionOutcome {
+  label: string;
+  field: string;
+  operator: string;
+  passed: boolean;
+}
+
 export interface EntryConditionResult {
   valid: boolean;
   failures: string[];
+  /** Every condition in evaluation order, passed and failed alike — a dry run
+   *  needs the passes too, not just the reasons it stopped. */
+  outcomes: ConditionOutcome[];
 }
 
 /**
@@ -191,22 +215,26 @@ export function evaluateEntryConditions(
   conditions: FieldCondition[],
 ): EntryConditionResult {
   const failures: string[] = [];
+  const outcomes: ConditionOutcome[] = [];
 
   for (const cond of conditions) {
     if (cond.field.startsWith('document:')) {
       const docType = cond.field.slice('document:'.length);
       const doc = documents.find((d) => d.type === docType);
-      if (!doc || doc.status !== 'VERIFIED') {
-        failures.push(cond.label || `${docType} document must be verified`);
-      }
+      const passed = !!doc && doc.status === 'VERIFIED';
+      const label = cond.label || `${docType} document must be verified`;
+      if (!passed) failures.push(label);
+      outcomes.push({ label, field: cond.field, operator: 'verified', passed });
       continue;
     }
 
     // Operator semantics live in studio/conditions.ts so this engine and Studio
     // share one vocabulary rather than two copies that drift.
     const { ok } = applyOperator(shipment[cond.field], cond.operator, cond.value);
-    if (!ok) failures.push(cond.label || `"${cond.field}" ${cond.operator} ${cond.value ?? ''}`.trim());
+    const label = cond.label || `"${cond.field}" ${cond.operator} ${cond.value ?? ''}`.trim();
+    if (!ok) failures.push(label);
+    outcomes.push({ label, field: cond.field, operator: cond.operator, passed: ok });
   }
 
-  return { valid: failures.length === 0, failures };
+  return { valid: failures.length === 0, failures, outcomes };
 }

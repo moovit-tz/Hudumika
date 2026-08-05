@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { Icon } from '../components/Icon.js';
@@ -10,6 +10,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
+import { readXlsxSheets } from '../lib/xlsx-read.js';
 import './CreateShipmentPage.css';
 
 function OfficerMentionInput({
@@ -33,7 +34,7 @@ function OfficerMentionInput({
   const avatarColor = (name: string) => {
     const colors = ['#0b7264','#7c3aed','#0891b2','#ea580c','#059669','#dc2626','#d97706'];
     let h = 0;
-    for (let i = 0; i < name.length; i++) h = ((h << 5) - h) + name.charCodeAt(i);
+    for (let i = 0; i < (name ?? '').length; i++) h = ((h << 5) - h) + (name ?? '').charCodeAt(i);
     return colors[Math.abs(h) % colors.length];
   };
 
@@ -138,6 +139,10 @@ export function CreateShipmentPage() {
   const [ocrDeclarationData, setOcrDeclarationData] = useState<any | null>(null);
 
   const [excelFile, setExcelFile] = useState<File | null>(null);
+  /** What the uploaded sheet actually yielded — never a claim of success on
+   *  its own. Null until a file has been read. */
+  const [excelReport, setExcelReport] = useState<{ ok: boolean; text: string; filled: string[] } | null>(null);
+  const [excelBusy, setExcelBusy] = useState(false);
 
   const [createForm, setCreateForm] = useState({
     customer_id: '',
@@ -151,11 +156,58 @@ export function CreateShipmentPage() {
     free_time_end: '',
     assigned_to: '',
     assigned_to_name: '',
-    container_number: 'MSKU' + Math.floor(1000000 + Math.random() * 9000000),
+    // Blank, not a generated number. This used to default to
+    // 'MSKU' + a random 7 digits, so a shipment saved without the field being
+    // touched carried an invented container number — onto the declaration and
+    // into demurrage tracking, where it identifies a box that does not exist.
+    container_number: '',
     container_size: '40HC' as const,
+    // Was never a field at all: the submit handler generated 'SL-' + random.
+    // A seal number is what proves the box was not opened in transit; it is
+    // read off the seal, never made up.
+    seal_number: '',
   });
   
   const [createLoading, setCreateLoading] = useState(false);
+
+  /**
+   * Feedback on the container number as it is typed.
+   *
+   * ISO 6346 numbers carry a check digit, so a transposed pair is detectable
+   * — which is the whole point of the standard. This *warns* rather than
+   * blocks: the check digit catches typing mistakes, but refusing to save a
+   * shipment because a number the operator read off the box does not
+   * checksum would be the app overruling reality. Never auto-corrects.
+   */
+  const containerHint = useMemo(() => {
+    const raw = createForm.container_number.trim().toUpperCase();
+    if (!raw) return null;
+    const m = /^([A-Z]{4})(\d{6})(\d)$/.exec(raw);
+    if (!m) return { ok: false, text: 'A container number is 4 letters then 7 digits, e.g. MSKU1234565. Check what is stencilled on the box.' };
+    // Letters run 10..38 but skip every multiple of 11 (11, 22, 33) — the
+    // ISO 6346 equivalence table.
+    const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const letterValue = (ch: string) => {
+      let v = 10;
+      for (const letter of LETTERS) {
+        while (v % 11 === 0) v++;
+        if (letter === ch) return v;
+        v++;
+      }
+      return 0;
+    };
+    const body = m[1] + m[2];
+    let sum = 0;
+    for (let i = 0; i < 10; i++) {
+      const ch = body[i];
+      const v = i < 4 ? letterValue(ch) : Number(ch);
+      sum += v * (1 << i);                        // weights 1,2,4,…,512
+    }
+    const expected = (sum % 11) % 10;
+    return Number(m[3]) === expected
+      ? { ok: true, text: 'Check digit valid (ISO 6346).' }
+      : { ok: false, text: `Check digit does not match — ISO 6346 expects ${expected} for ${body}. Re-read the number; it will still save if you are sure.` };
+  }, [createForm.container_number]);
 
   useEffect(() => {
     apiFetch('/v1/customers').then(res => {
@@ -232,6 +284,124 @@ export function CreateShipmentPage() {
     setCurrentStep(3); // skip excel and go to form
   };
 
+  /**
+   * The columns the template ships with and the importer understands. One
+   * list drives both, so the file you download is by construction the file
+   * this reads — they cannot drift apart.
+   */
+  const TEMPLATE_COLUMNS: { header: string; field: keyof typeof createForm | null; example: string }[] = [
+    { header: 'BL / Doc Number',  field: 'bl_number',        example: 'MEDU90123456' },
+    { header: 'Vessel / Flight',  field: 'vessel',           example: 'MSC Savannah' },
+    { header: 'Goods Description',field: 'goods_desc',       example: 'Crusher spare parts' },
+    { header: 'Origin Port',      field: 'origin_port',      example: 'Port of Shanghai' },
+    { header: 'Destination Port', field: 'dest_port',        example: 'Port of Dar es Salaam' },
+    { header: 'ETA (YYYY-MM-DD)', field: 'eta',              example: '2026-09-14' },
+    { header: 'Free Time End (YYYY-MM-DD)', field: 'free_time_end', example: '2026-09-28' },
+    { header: 'Container Number', field: 'container_number', example: 'MSKU1234565' },
+    { header: 'Container Size',   field: 'container_size',   example: '40HC' },
+    { header: 'Seal Number',      field: 'seal_number',      example: 'SL7788213' },
+  ];
+
+  /** Downloads the template as CSV — a real file, not an alert. CSV rather
+   *  than .xlsx so it needs no writer library and opens in Excel either way. */
+  const downloadTemplate = () => {
+    const esc = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+    const csv = [
+      TEMPLATE_COLUMNS.map(c => esc(c.header)).join(','),
+      TEMPLATE_COLUMNS.map(c => esc(c.example)).join(','),
+    ].join('\r\n') + '\r\n';
+    // BOM so Excel opens it as UTF-8 rather than the system codepage.
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'hudumika-shipment-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  /**
+   * Reads an uploaded sheet and fills what it recognises.
+   *
+   * This used to store the File, wait a second, advance the step and announce
+   * "parsed successfully" — the file was never opened and nothing was filled.
+   * Now it reports exactly which fields came from the sheet, and says so
+   * plainly when it recognised nothing.
+   */
+  const importSheet = async (file: File) => {
+    setExcelBusy(true);
+    setExcelReport(null);
+    try {
+      let rows: string[][];
+      if (/\.csv$/i.test(file.name)) {
+        const text = await file.text();
+        rows = text.split(/\r?\n/).filter(l => l.trim()).map(l => {
+          // quote-aware split, so a description containing a comma survives
+          const out: string[] = []; let cur = ''; let q = false;
+          for (let i = 0; i < l.length; i++) {
+            const ch = l[i];
+            if (q && ch === '"' && l[i + 1] === '"') { cur += '"'; i++; }
+            else if (ch === '"') q = !q;
+            else if (ch === ',' && !q) { out.push(cur.trim()); cur = ''; }
+            else cur += ch;
+          }
+          out.push(cur.trim());
+          return out;
+        });
+      } else {
+        const sheets = await readXlsxSheets(file);
+        const sheet = sheets.find(s => s.rows.some(r => r.some(c => c.trim()))) ?? sheets[0];
+        if (!sheet) throw new Error('That workbook has no readable sheet.');
+        rows = sheet.rows;
+      }
+
+      const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const headerIdx = rows.findIndex(r => r.some(c => TEMPLATE_COLUMNS.some(t => norm(t.header) === norm(c))));
+      if (headerIdx < 0) {
+        setExcelFile(file);
+        setExcelReport({
+          ok: false, filled: [],
+          text: `No column in "${file.name}" matched the template. Expected headers like ${TEMPLATE_COLUMNS.slice(0, 3).map(c => `"${c.header}"`).join(', ')}. Download the template above, or fill the form by hand below.`,
+        });
+        return;
+      }
+
+      const header = rows[headerIdx];
+      const dataRow = rows.slice(headerIdx + 1).find(r => r.some(c => c.trim()));
+      if (!dataRow) {
+        setExcelFile(file);
+        setExcelReport({ ok: false, filled: [], text: `"${file.name}" has the template's headers but no filled-in row beneath them.` });
+        return;
+      }
+
+      const patch: Record<string, string> = {};
+      const filled: string[] = [];
+      header.forEach((h, i) => {
+        const col = TEMPLATE_COLUMNS.find(t => norm(t.header) === norm(h));
+        const val = (dataRow[i] ?? '').trim();
+        if (!col?.field || !val) return;
+        patch[col.field] = col.field === 'container_number' || col.field === 'seal_number' ? val.toUpperCase() : val;
+        filled.push(col.header);
+      });
+
+      setExcelFile(file);
+      if (filled.length === 0) {
+        setExcelReport({ ok: false, filled: [], text: `"${file.name}" matched the template but every recognised column was empty.` });
+        return;
+      }
+      setCreateForm(p => ({ ...p, ...patch }));
+      setExcelReport({
+        ok: true, filled,
+        text: `Read ${filled.length} field${filled.length === 1 ? '' : 's'} from "${file.name}": ${filled.join(', ')}. Check them on the form before creating the shipment.`,
+      });
+    } catch (e: any) {
+      setExcelFile(null);
+      setExcelReport({ ok: false, filled: [], text: e?.message || 'That file could not be read.' });
+    } finally {
+      setExcelBusy(false);
+    }
+  };
+
   const handleCreateCase = async () => {
     setCreateLoading(true);
     try {
@@ -248,11 +418,16 @@ export function CreateShipmentPage() {
           eta: createForm.eta ? new Date(createForm.eta).toISOString() : undefined,
           free_time_end: createForm.free_time_end ? new Date(createForm.free_time_end).toISOString() : undefined,
           assigned_to: createForm.assigned_to || undefined,
-          containers: [{
-            number: createForm.container_number,
-            size: createForm.container_size,
-            seal_number: 'SL-' + Math.floor(100000 + Math.random() * 900000),
-          }],
+          // Only sent when a real container number was entered. An empty
+          // container row is worse than none: it looks like a declared box
+          // with a missing number rather than a shipment not yet stuffed.
+          containers: createForm.container_number.trim()
+            ? [{
+                number: createForm.container_number.trim().toUpperCase(),
+                size: createForm.container_size,
+                ...(createForm.seal_number.trim() ? { seal_number: createForm.seal_number.trim() } : {}),
+              }]
+            : undefined,
         }),
       });
 
@@ -435,16 +610,28 @@ export function CreateShipmentPage() {
                   Download our standard shipment template. You can share this with your clients to fill in container and commercial details before uploading it back here.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginBottom: 40 }}>
-                  <button className="btn btn-secondary" onClick={() => showAlert('Downloading Excel template...')}>
+                  <button className="btn btn-secondary" onClick={downloadTemplate}>
                     <Icon name="download" size={16} /> Download Template
                   </button>
-                  <button className="btn btn-primary" onClick={() => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.xlsx,.csv'; inp.onchange = (ev: any) => { const f = ev.target.files?.[0]; if (f) { setExcelFile(f); setTimeout(() => setCurrentStep(3), 1000); } }; inp.click(); }}>
-                    <Icon name="upload" size={16} /> Upload Filled Excel
+                  <button className="btn btn-primary" disabled={excelBusy} onClick={() => { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.xlsx,.csv'; inp.onchange = (ev: any) => { const f = ev.target.files?.[0]; if (f) void importSheet(f); }; inp.click(); }}>
+                    <Icon name="upload" size={16} /> {excelBusy ? 'Reading…' : 'Upload Filled Excel'}
                   </button>
                 </div>
-                {excelFile && (
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--green-l)', color: 'var(--green)', padding: '8px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600 }}>
-                    <Icon name="check" size={16} /> {excelFile.name} parsed successfully.
+                {/* The result of actually reading the file — which fields it
+                    yielded, or why it yielded none. Advancing is the user's
+                    call, so a sheet that read nothing does not silently move
+                    them on as though it had worked. */}
+                {excelReport && (
+                  <div style={{ maxWidth: 620, margin: '0 auto', display: 'flex', gap: 10, alignItems: 'flex-start', textAlign: 'left', padding: '12px 16px', borderRadius: 'var(--r)', background: excelReport.ok ? 'var(--green-l)' : 'var(--gold-l)', border: `1px solid ${excelReport.ok ? 'var(--green)' : 'var(--gold)'}` }}>
+                    <Icon name={excelReport.ok ? 'checkCircle' : 'alertCircle'} size={16} color={excelReport.ok ? 'var(--green)' : 'var(--gold)'} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55 }}>
+                      {excelReport.text}
+                      <div style={{ marginTop: 10 }}>
+                        <button className="btn btn-primary" style={{ fontSize: 12.5 }} onClick={() => setCurrentStep(3)}>
+                          {excelReport.ok ? 'Review the form' : 'Fill the form by hand'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -453,10 +640,19 @@ export function CreateShipmentPage() {
             {/* Step 3: Form */}
             {currentStep === 3 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {(ocrResult || excelFile) && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 16px', background: 'var(--teal-l)', borderRadius: 9, fontSize: 13, color: 'var(--teal)', fontWeight: 600 }}>
-                    <Icon name="check" size={16} />
-                    <span>Data applied — additional details will be pre-filled in the Shipment record.</span>
+                {/* Names what was pre-filled and from where. The old copy said
+                    "Data applied — additional details will be pre-filled"
+                    whenever a file had merely been selected, including when
+                    nothing had been read from it at all. */}
+                {(ocrResult || excelReport?.ok) && (
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '12px 16px', background: 'var(--teal-l)', borderRadius: 9, fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55 }}>
+                    <Icon name="check" size={16} color="var(--teal)" style={{ flexShrink: 0, marginTop: 1 }} />
+                    <span>
+                      {excelReport?.ok
+                        ? <>Pre-filled from <strong>{excelFile?.name}</strong>: {excelReport.filled.join(', ')}. </>
+                        : <>Pre-filled from the scanned document. </>}
+                      Check every field before creating the shipment — nothing here has been verified against the carrier.
+                    </span>
                   </div>
                 )}
 
@@ -523,7 +719,22 @@ export function CreateShipmentPage() {
                       onChange={(id, name) => setCreateForm(p => ({ ...p, assigned_to: id, assigned_to_name: name }))}
                     />
                   </div>
-                  {fld('Container No.', createForm.container_number, v => setCreateForm(p => ({ ...p, container_number: v })))}
+                  <div style={{ flex: 1 }}>
+                    {fld('Container No.', createForm.container_number,
+                      v => setCreateForm(p => ({ ...p, container_number: v.toUpperCase() })),
+                      { placeholder: 'e.g. MSKU1234565' })}
+                    {containerHint && (
+                      <div style={{ marginTop: 5, fontSize: 11.5, lineHeight: 1.45, display: 'flex', gap: 6, alignItems: 'flex-start', color: containerHint.ok ? 'var(--green)' : 'var(--gold)' }}>
+                        <Icon name={containerHint.ok ? 'checkCircle' : 'alertCircle'} size={12} color={containerHint.ok ? 'var(--green)' : 'var(--gold)'} style={{ flexShrink: 0, marginTop: 1 }} />
+                        <span>{containerHint.text}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  {fld('Seal No.', createForm.seal_number, v => setCreateForm(p => ({ ...p, seal_number: v.toUpperCase() })), { placeholder: 'as printed on the seal' })}
+                  <div style={{ flex: 1 }} />
                 </div>
               </div>
             )}
@@ -591,7 +802,7 @@ export function CreateShipmentPage() {
               {currentStep === 2 && (
                 <div style={{ display: 'flex', gap: 12 }}>
                   <button type="button" className="btn btn-secondary" onClick={() => setCurrentStep(3)}>Skip Excel</button>
-                  <button type="button" className="btn btn-primary" onClick={() => setCurrentStep(3)} disabled={!excelFile}>Continue</button>
+                  <button type="button" className="btn btn-primary" onClick={() => setCurrentStep(3)} disabled={!excelReport}>Continue</button>
                 </div>
               )}
               

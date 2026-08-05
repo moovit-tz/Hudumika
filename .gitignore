@@ -39,6 +39,9 @@ apps/api/uploads/
 # Coverage
 coverage/
 
+# Generated knowledge graph — rebuilt from source with `graphify update .`
+graphify-out/
+
 # Misc
 *.bak
 *.tmp

@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Vendor {
   id: string; name: string; vendor_type: string; phone: string | null;
@@ -92,8 +93,12 @@ export const TrackingVendors: React.FC = () => {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Vehicle Vendors</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Workshops, fuel stations, parts suppliers &amp; insurers</div>
+          <PageHeader
+            crumbs={['HuduFreight', 'Vendors']}
+            titlePlain="Service"
+            titleEm="vendors"
+            subtitle="Workshops, fuel stations, parts suppliers &amp; insurers"
+          />
         </div>
         <button type="button" onClick={() => setShowAdd(true)}
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>

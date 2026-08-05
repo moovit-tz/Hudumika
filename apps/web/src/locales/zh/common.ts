@@ -28,7 +28,7 @@ export default
     "finops": "财务与账务",
     "complyos": "合规平台",
     "bliss": "支持与服务台",
-    "onepi": "人事与人力资源",
+    "nexushr": "人事与人力资源",
     "onesite": "网站与内容管理",
     "oneid": "身份与访问管理",
     "tracking": "车辆追踪",

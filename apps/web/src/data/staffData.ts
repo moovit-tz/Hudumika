@@ -18,7 +18,7 @@ export interface Employee {
 const COLORS = ['#e8461a', '#0891b2', '#7c3aed', '#059669', '#d97706', '#9333ea'] as const;
 
 export function empAvatarColor(n: string): string {
-  return COLORS[[...n].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length];
+  return COLORS[[...(n ?? '?')].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length];
 }
 
 export function empInitials(n: string): string {

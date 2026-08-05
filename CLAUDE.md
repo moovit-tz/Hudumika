@@ -4,6 +4,37 @@ Multi-tenant logistics/customs/finance/HR platform. Fastify API in `apps/api`, R
 
 See [`AGENTS.md`](AGENTS.md) for the rest of the stack's conventions — backend/API patterns, verification, dependency hygiene, and the specific traps other agents (or you, in a future session) have already hit once. This file (`CLAUDE.md`) is authoritative for the design-system mapping and the tenant-isolation rule above; `AGENTS.md` is authoritative for everything else, and governs any AI agent working in this repo, not just Claude.
 
+## Page titles — one style, every app, no exceptions
+
+**Every page in every app opens with `PageHeader` (`apps/web/src/components/PageHeader.tsx`). This is not a preference; a page that hand-rolls its title is wrong and gets migrated.** It applies to new pages and existing ones alike, in ClearOS, SEAL, Studio, NexusHR, Drive, HuduFreight, ComplyOS, Calendar, Tasks, Email, Inventory, CargoTracker, Store, Ondi, Admin, FinOps and anything added later.
+
+```tsx
+<PageHeader
+  crumbs={['ClearOS', 'Declarations']}
+  titlePlain="Customs"
+  titleEm="declarations"
+  subtitle="Every TANSAD lodged for this workspace — its assessment, lane and release."
+  actions={<Button>New declaration</Button>}   // optional
+/>
+```
+
+The look is a **font pairing, not just a colour**, and all three parts matter:
+
+- `titlePlain` — the leading word(s), in `var(--font)` at weight 300. The plain face.
+- `titleEm` — the **final** word only, in `Cormorant Garamond` italic 700, coloured `var(--teal)`. The special face. This is what makes it recognisable.
+- The trailing `.` is added by the component in the plain face and ink colour — never type it into `titleEm`.
+- `crumbs` renders uppercase, letter-spaced, `·`-separated.
+
+Because the em word reads `var(--teal)`, the title automatically takes each app's own colour and the tenant's brand — orange in ClearOS, green in Admin, whatever a SuperAdmin sets. **Never hardcode that colour**, and never substitute a different serif; the face is part of the platform's identity.
+
+Splitting the title: put the noun the page is *about* in `titleEm`, the qualifier in `titlePlain` — "Customs *declarations*", "Component *showcase*", "Clearance *operations*", "Employment *records*". One word in `titleEm`, not a phrase.
+
+Sizing, spacing and the 768/480 breakpoints live in `.page-header*` in `index.css`. Do not set a page's own `<h1>`, `fontSize`, or margin above the header — if something looks wrong, fix the CSS so every app gets the fix.
+
+`PageHeader` is defined once. `HRM.tsx` and `SuperAdmin.tsx` grew private `PageHdr` copies; those are being removed, so do not add a third.
+
+**Full-screen app surfaces are excluded, deliberately.** Email, Drive, Calendar, Tasks and the Studio workflow builder are not list pages — their roots are `height:100%` / `flex:1; overflow:hidden` layouts, and a 43px title block does not sit *above* that content, it lands *inside* it. Adding one to Email put the title in the message-list column beside the mail, not over the app; the same was reverted for Drive. Do not add `PageHeader` to these apps. If they should carry the house identity, it needs a compact variant sized for an app toolbar row — a design decision, not a conversion.
+
 ## Design system
 
 `apps/web/src/components/ui/` is the platform's component library (shadcn/Radix-based, themed to the app's real brand palette — teal `--primary`, not shadcn's default blue). **Any new UI — new page, new form, new modal, new panel — must be built from these components, not hand-rolled.** A live, interactive catalog of everything below lives at `/admin/components` (`apps/web/src/pages/ComponentShowcase.tsx`) — check it before building a component from scratch.
@@ -33,3 +64,13 @@ All of the above render inside Radix Popper portals; `index.css` has a global ru
 **Soft-tint backgrounds — always use the derived tokens, never hand-roll `color-mix()`.** The live brand color is set platform-wide by a SuperAdmin (or per-tenant) through `/admin/design-system` (`apps/web/src/hooks/useDesignSystem.ts`), which injects a `<style>` tag defining `--teal`/`--teal-l`/`--teal-m` (and `--green-l`/`--red-l`/`--gold-l`/`--blue-l`/`--purple-l`) computed from that one source color — `FeaturedIcon` and `Badge` already read these and so pick up the live theme automatically. When building a new soft-tint card/panel/icon chip by hand, reuse those same tokens directly (`background: var(--teal-l)`, `border: 1px solid var(--teal-m)`) instead of inventing your own `color-mix(in srgb, var(--teal) X%, ...)` percentage — a hand-picked percentage will *look* plausible in isolation but drifts from the canonical tint the rest of the app uses, especially once a tenant switches to a different platform theme/preset. This applies to every app in the platform and to any new app added later, not just one page.
 
 Verify with `npx tsc --noEmit` from `apps/web` after touching any of these files or their call sites.
+
+## graphify
+
+This project has a knowledge graph at graphify-out/ with god nodes, community structure, and cross-file relationships.
+
+Rules:
+- For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
+- If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
+- Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
+- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).

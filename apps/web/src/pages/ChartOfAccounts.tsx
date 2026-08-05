@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox } from '../components/ui/combobox.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 function flattenTree(tree: ChartOfAccount[]): ChartOfAccount[] {
   const result: ChartOfAccount[] = [];
@@ -273,7 +274,11 @@ export const ChartOfAccounts: React.FC = () => {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em' }}>Chart of Accounts</h1>
+          <PageHeader
+            crumbs={['FinOps', 'Chart of Accounts']}
+            titlePlain="Chart of"
+            titleEm="accounts"
+          />
           <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '4px 0 0' }}>
             {flat.length} accounts · {TYPE_ORDER.length} types
           </p>

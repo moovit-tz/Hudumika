@@ -25,6 +25,7 @@ import { CUSTOMER_MILESTONES, MILESTONE_LABELS, STAGE_TO_MILESTONE } from '@hudu
 import type { CustomerMilestone, ClearanceStage } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { Badge } from '../components/ui/badge.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 
 // ─── Clock-in gate ───────────────────────────────────────────────────────────
@@ -183,7 +184,7 @@ function fmtServiceRate(amount: number, currency: string) {
 }
 function avatarBg(name: string) {
   const c = ['#e8461a', '#2563eb', '#059669', '#7c3aed', '#ca8a04', '#0891b2'];
-  let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % c.length;
+  let h = 0; for (const ch of (name ?? '')) h = (h * 31 + ch.charCodeAt(0)) % c.length;
   return c[Math.abs(h)];
 }
 function initials(name: string) { return name.split(' ').map(p => p[0]).slice(0, 2).join('').toUpperCase(); }
@@ -864,6 +865,202 @@ function EntryPointSteps({ entryOffice }: { entryOffice: string }) {
 
 // ─── Declaration Tab (Full TANCIS form) ───────────────────────────────────────
 
+
+/** The calculator's card names, in the order the report presents them. */
+const HEAD_LABEL: Record<string, string> = {
+  DUTY_TAXES: 'Duties & taxes (TRA)',
+  FREIGHT: 'Freight',
+  INSURANCE: 'Insurance',
+  TPA: 'Port & handling (TPA)',
+  ICD: 'ICD / destination',
+  TBS: 'TBS',
+  SHIPPING_LINE: 'Shipping line',
+  CLEARANCE_AGENCY: 'Clearance & agency',
+  TRANSPORT: 'Transport',
+  OTHER: 'Other',
+};
+
+/**
+ * What this shipment was estimated to cost, against what it actually cost.
+ *
+ * The point of the whole feedback loop, and the first thing it repays: knowing
+ * you under-quote ICD by 12% is worth having whether or not anything ever
+ * automates it.
+ *
+ * A head with only one side populated shows an em dash, not a variance. "We
+ * estimated 900k and have recorded nothing yet" is not a 100% saving, and
+ * printing it as one would discredit the panel the first time somebody read it
+ * mid-clearance.
+ */
+/**
+ * What the workflow automation did on this consignment.
+ *
+ * The Activity Feed records what people did. This records what the workflow
+ * did — including the auto-comms that failed, which used to be returned by
+ * sendOneComm and dropped, visible to nobody.
+ *
+ * It is also the only place a run belonging to a legacy fixed-stage shipment
+ * can appear at all: those have workflow_id NULL, so the workflow-scoped view
+ * in the builder cannot reach them.
+ */
+function AutomationHistoryCard({ shipmentId }: { shipmentId: string }) {
+  const [runs, setRuns] = React.useState<any[]>([]);
+  const [loaded, setLoaded] = React.useState(false);
+  const [open, setOpen] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    apiFetch(`/v1/shipments/${shipmentId}/workflow-runs?limit=25`)
+      .then((r: any) => { if (!cancelled) setRuns(r?.data ?? []); })
+      .catch(() => { /* nothing recorded for this shipment — the card stays hidden */ })
+      .finally(() => { if (!cancelled) setLoaded(true); });
+    return () => { cancelled = true; };
+  }, [shipmentId]);
+
+  // A shipment that predates the journal has no runs. That is not a failure
+  // state worth a panel, so the card simply does not appear.
+  if (!loaded || runs.length === 0) return null;
+
+  const TONE: Record<string, 'success' | 'warning' | 'error' | 'info' | 'gray'> = {
+    SUCCESS: 'success', PARTIAL: 'warning', BLOCKED: 'warning', FAILED: 'error', SIMULATED: 'info',
+  };
+
+  return (
+    <Card title="Workflow automation" padded={false}>
+      <div style={{ maxHeight: 420, overflowY: 'auto' }}>
+        {runs.map(r => {
+          const failed = (r.comms ?? []).filter((c: any) => c.status === 'FAILED');
+          const detail = (r.conditions?.length ?? 0) > 0 || (r.comms?.length ?? 0) > 0 || r.errorMessage;
+          const isOpen = open === r.id;
+          return (
+            <div key={r.id} style={{ borderTop: '1px solid var(--border)' }}>
+              <div
+                style={{ display: 'flex', gap: 9, alignItems: 'center', padding: '10px 16px', cursor: detail ? 'pointer' : 'default' }}
+                onClick={() => detail && setOpen(isOpen ? null : r.id)}
+              >
+                <Badge variant={TONE[r.status] ?? 'gray'}>{r.status}</Badge>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 12.5, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {r.toStepName}
+                  </div>
+                  <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 2 }}>
+                    {/* Named, not left blank — "which workflow?" has an answer
+                        even when the answer is "the built-in stages". */}
+                    {r.workflowName ?? 'Standard stages'}
+                    {r.actorName ? ` · ${r.actorName}` : ''} · {fdatetime(new Date(r.createdAt))}
+                    {failed.length > 0 && (
+                      <span style={{ color: 'var(--red)' }}> · {failed.length} message{failed.length === 1 ? '' : 's'} not sent</span>
+                    )}
+                  </div>
+                </div>
+                {detail && <Icon name={isOpen ? 'chevronUp' : 'chevronDown'} size={13} color="var(--ink3)" />}
+              </div>
+
+              {isOpen && (
+                <div style={{ padding: '0 16px 12px 16px' }}>
+                  {r.errorMessage && <div style={{ fontSize: 12, color: 'var(--red)', marginBottom: 8 }}>{r.errorMessage}</div>}
+                  {(r.conditions ?? []).map((c: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', gap: 7, alignItems: 'center', fontSize: 12, padding: '2px 0' }}>
+                      <Icon name={c.passed ? 'check' : 'x'} size={12} color={c.passed ? 'var(--green)' : 'var(--red)'} />
+                      <span style={{ color: 'var(--ink2)' }}>{c.label}</span>
+                    </div>
+                  ))}
+                  {(r.comms ?? []).map((c: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', gap: 7, alignItems: 'flex-start', fontSize: 12, padding: '3px 0' }}>
+                      <Badge variant={c.status === 'SENT' ? 'success' : c.status === 'FAILED' ? 'error' : 'gray'}>{c.status}</Badge>
+                      <span style={{ color: 'var(--ink2)' }}>
+                        {c.channel} → {String(c.recipient ?? '').replace(/_/g, ' ')}
+                        {c.error && <span style={{ display: 'block', color: 'var(--red)' }}>{c.error}</span>}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function EstimateVarianceCard({ shipmentId }: { shipmentId: string }) {
+  const [data, setData] = React.useState<any>(null);
+  const [loaded, setLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    apiFetch(`/v1/intel/variance/${shipmentId}`)
+      .then(r => { if (!cancelled) setData(r); })
+      .catch(() => { /* no estimate linked yet — the card simply stays hidden */ })
+      .finally(() => { if (!cancelled) setLoaded(true); });
+    return () => { cancelled = true; };
+  }, [shipmentId]);
+
+  // Nothing to compare against is not a failure state worth a panel.
+  if (!loaded || !data?.estimate) return null;
+
+  const money = (n: number | null) =>
+    n == null ? '—' : 'TZS ' + Math.round(n).toLocaleString('en-US');
+
+  return (
+    <div className="card" style={{ marginBottom: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+        <Icon name="barChart" size={16} color="var(--teal)" />
+        <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Estimate vs actual</span>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>
+        Against the landed cost estimate of {new Date(data.estimate.created_at).toLocaleDateString('en-GB')}.
+        Actuals come from the ledger below, so this fills in as costs are recorded.
+      </div>
+
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, minWidth: 480 }}>
+          <thead>
+            <tr>
+              {['Charge head', 'Estimated', 'Actual', 'Variance'].map((h, i) => (
+                <th key={h} style={{ textAlign: i === 0 ? 'left' : 'right', padding: '8px 10px', fontSize: 10.5,
+                  fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.4px',
+                  borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.lines.map((l: any) => {
+              const over = l.varianceTzs != null && l.varianceTzs > 0;
+              return (
+                <tr key={l.head}>
+                  <td style={{ padding: '9px 10px', borderBottom: '1px solid var(--border)', color: 'var(--ink)' }}>
+                    {HEAD_LABEL[l.head] ?? l.head}
+                  </td>
+                  <td style={{ padding: '9px 10px', borderBottom: '1px solid var(--border)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--ink2)' }}>
+                    {money(l.estimatedTzs)}
+                  </td>
+                  <td style={{ padding: '9px 10px', borderBottom: '1px solid var(--border)', textAlign: 'right', fontVariantNumeric: 'tabular-nums', color: 'var(--ink2)' }}>
+                    {money(l.actualTzs)}
+                  </td>
+                  <td style={{ padding: '9px 10px', borderBottom: '1px solid var(--border)', textAlign: 'right', fontVariantNumeric: 'tabular-nums',
+                    fontWeight: 700, color: l.varianceTzs == null ? 'var(--ink3)' : over ? 'var(--red)' : 'var(--green)' }}>
+                    {l.varianceTzs == null
+                      ? '—'
+                      : `${over ? '+' : ''}${Math.round(l.varianceTzs).toLocaleString('en-US')}${l.variancePct != null ? ` (${over ? '+' : ''}${l.variancePct}%)` : ''}`}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.55 }}>
+        A dash means one side has nothing recorded yet — not a saving. Duties and TPA charges are
+        statutory: a difference there points at the classification or the valuation, never at a rate
+        to adjust.
+      </div>
+    </div>
+  );
+}
+
 function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shipmentId: string; isLive: boolean; onRefresh: () => void }) {
   type DeclSubTab = 'general' | 'parties' | 'financial' | 'transport' | 'items';
   const [sub, setSub] = useState<DeclSubTab>('general');
@@ -890,6 +1087,63 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
   const [transport, setTransport] = useState(() => emptyTransport(job));
   const [items,     setItems]     = useState<HsLine[]>([emptyHsLine()]);
   const [loadedDeclaration, setLoadedDeclaration] = useState(false);
+  const [prefill, setPrefill] = useState<any>(null);
+  const [applyHs, setApplyHs] = useState(false);
+
+  /**
+   * Copies the shipment-derived draft into the form.
+   *
+   * Only fields the draft actually resolved are written — a blank in the draft
+   * leaves the form's own default alone rather than clearing it. The HS code is
+   * applied only if the filer ticked the box for it.
+   */
+  function applyPrefill() {
+    if (!prefill?.draft) return;
+    const d = prefill.draft;
+    const keep = (v: any, fallback: string) => (v === null || v === undefined || v === '' ? fallback : String(v));
+
+    setGeneral(g => ({
+      ...g,
+      ref_number:     keep(d.tancis_ref, g.ref_number),
+      gross_weight:   d.gross_weight_kg ? String(d.gross_weight_kg) : g.gross_weight,
+      packages_total: d.total_packages ? String(d.total_packages) : g.packages_total,
+    }));
+    setParties(p => ({
+      ...p,
+      country_export:      keep(d.country_of_export, p.country_export),
+      country_destination: keep(d.country_of_destination, p.country_destination),
+      importer: {
+        ...p.importer,
+        name:    keep(d.importer_name, p.importer.name),
+        tin:     keep(d.importer_tin, p.importer.tin),
+        address: keep(d.importer_address, p.importer.address),
+      },
+      declarant: { ...p.declarant, name: keep(d.declarant_name, p.declarant.name) },
+    }));
+    setFinancial(f => ({
+      ...f,
+      invoice_value_usd: d.total_invoice_value ? String(d.total_invoice_value) : f.invoice_value_usd,
+    }));
+    setTransport(t => ({
+      ...t,
+      bl_no:           keep(d.bl_number, t.bl_no),
+      tansad_no:       keep(d.tansad_number, t.tansad_no),
+      vessel_name:     keep(d.vessel_name, t.vessel_name),
+      shipment_place:  keep(d.shipment_place, t.shipment_place),
+      discharge_place: keep(d.discharge_place, t.discharge_place),
+      container_count: d.total_container_count ? String(d.total_container_count) : t.container_count,
+      arrival_date:    d.arrival_date ? new Date(d.arrival_date).toISOString().slice(0, 10) : t.arrival_date,
+    }));
+
+    const hs = prefill.needsConfirmation?.[0];
+    if (applyHs && hs?.value) {
+      setItems(prev => {
+        const [first, ...rest] = prev.length ? prev : [emptyHsLine()];
+        return [{ ...first, hs: hs.value, desc: first.desc || prefill.shipment?.goodsDescription || '' }, ...rest];
+      });
+    }
+    setPrefill(null);
+  }
 
   // Hydrate the form from whatever was actually persisted, so re-opening
   // this tab doesn't show blank Parties/Financial/Items fields for data
@@ -898,14 +1152,23 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
     if (!isLive) { setLoadedDeclaration(true); return; }
     let cancelled = false;
     apiFetch(`/v1/declarations/by-shipment/${shipmentId}`)
-      .then(decl => {
-        if (cancelled || !decl) return;
-        const mapped = applyDeclarationResponse(decl, job);
-        setGeneral(mapped.general);
-        setParties(mapped.parties);
-        setFinancial(mapped.financial);
-        setTransport(mapped.transport);
-        setItems(mapped.items);
+      .then(async decl => {
+        if (cancelled) return;
+        if (decl) {
+          const mapped = applyDeclarationResponse(decl, job);
+          setGeneral(mapped.general);
+          setParties(mapped.parties);
+          setFinancial(mapped.financial);
+          setTransport(mapped.transport);
+          setItems(mapped.items);
+          return;
+        }
+        // Nothing lodged yet — offer to start from what the shipment already
+        // holds. Offered, not applied: the same stance as the OCR banner, and
+        // required for the HS code, which must never land in a declaration
+        // without someone accepting it.
+        const pre = await apiFetch(`/v1/declarations/prefill/${shipmentId}`).catch(() => null);
+        if (!cancelled && pre?.draft) setPrefill(pre);
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoadedDeclaration(true); });
@@ -1038,6 +1301,58 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
   return (
     <form onSubmit={handleSave} style={{ width: '100%' }}>
       {/* OCR pre-fill banner */}
+      {/* Nothing lodged yet — start from the shipment instead of an empty form. */}
+      {prefill && (
+        <div style={{ padding: '12px 14px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 12, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <Icon name="zap" size={18} color="var(--teal)" style={{ flexShrink: 0, marginTop: 1 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>
+                Start from {prefill.shipment?.refNumber ?? 'this shipment'}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 3, lineHeight: 1.55 }}>
+                {Object.keys(prefill.sources ?? {}).length} field
+                {Object.keys(prefill.sources ?? {}).length === 1 ? '' : 's'} can be filled from what this
+                consignment already records — importer, transport, countries and values.
+              </div>
+
+              {prefill.missing?.length > 0 && (
+                <div style={{ fontSize: 11.5, color: 'var(--ink2)', marginTop: 7 }}>
+                  <span style={{ fontWeight: 650 }}>You will still need to enter:</span>
+                  <ul style={{ margin: '4px 0 0', paddingLeft: 17 }}>
+                    {prefill.missing.map((m: any) => (
+                      <li key={m.field} style={{ marginBottom: 1 }}>
+                        {m.label} <span style={{ color: 'var(--ink3)' }}>— {m.why}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* The HS code is never carried over silently. */}
+              {prefill.needsConfirmation?.length > 0 && (
+                <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 9, fontSize: 11.5, color: 'var(--ink2)', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={applyHs} onChange={e => setApplyHs(e.target.checked)} style={{ marginTop: 2 }} />
+                  <span>
+                    Also use HS code <strong>{prefill.needsConfirmation[0].value}</strong> from the shipment.
+                    <span style={{ display: 'block', color: 'var(--ink3)' }}>{prefill.needsConfirmation[0].note}</span>
+                  </span>
+                </label>
+              )}
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 11 }}>
+                <button type="button" className="btn btn-primary btn-sm" onClick={applyPrefill}>
+                  Fill the form
+                </button>
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPrefill(null)}>
+                  Start blank
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {ocrBanner && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 14px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 12, marginBottom: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1700,6 +2015,9 @@ function OverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: boolean }
               </div>
             </Card>
           )}
+
+          {/* What the workflow did, next to what people did. */}
+          <AutomationHistoryCard shipmentId={job.id} />
 
           {/* Activity feed — timeline style */}
           <Card title="Activity Feed" padded={false}>
@@ -2770,6 +3088,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
 
   return (
     <div>
+      <EstimateVarianceCard shipmentId={shipmentId} />
       {/* ── Economics of this Shipment ── */}
       {(() => {
         const revenue       = totalPaid;
@@ -3660,8 +3979,16 @@ export function ShipmentDetail() {
   // endpoints, not embedded in GET /v1/shipments/:id) — layer the
   // separately-fetched real data on top here rather than inside apiToJob,
   // which stays a pure mapper of the raw shipment record.
-  const job = mockJob || (apiJob ? { ...apiJob, tasks: apiTasks, timeEntries: apiTimeEntries } : null);
-  const isMock = !!mockJob;
+  // The API record wins. This read `mockJob || apiJob`, so the in-memory demo
+  // store shadowed the server: clearanceData.ts seeds a job under the id
+  // 'CLR-2026-0001', which is the same shape as a real ref number and a ref a
+  // real shipment in this database already uses. Anyone reaching that URL got
+  // the demo record with no LIVE badge, and every edit went to memory and was
+  // lost on reload. The demo is now only a fallback for when the server has
+  // nothing.
+  const liveJob = apiJob ? { ...apiJob, tasks: apiTasks, timeEntries: apiTimeEntries } : null;
+  const job = liveJob || mockJob || null;
+  const isMock = !liveJob && !!mockJob;
 
   if (apiLoading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', flexDirection: 'column', gap: 12 }}>

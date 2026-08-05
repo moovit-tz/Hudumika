@@ -11,6 +11,10 @@ import { MGMT_ROLES } from '../lib/permissions.js';
 
 import { StaffDetail } from '../pages/StaffDetail.js';
 import { OrgChart }    from '../pages/OrgChart.js';
+import { EmploymentRecords } from '../pages/EmploymentRecords.js';
+import { Performance }  from '../pages/Performance.js';
+import { HrDocuments }  from '../pages/HrDocuments.js';
+import { HrAssets }     from '../pages/HrAssets.js';
 import {
   HrmDashboard, EmployeesPage, DepartmentsPage, DesignationsPage, TeamsPage,
   AttendancePage, LeavesPage, ShiftsPage, HolidaysPage,
@@ -22,59 +26,73 @@ import {
 const NAV: SidebarSection[] = [
   {
     items: [
-      { label: 'Dashboard', icon: 'home', path: '/onepi', exact: true },
+      { label: 'Dashboard', icon: 'home', path: '/nexushr', exact: true },
     ],
   },
   {
     title: 'PEOPLE',
     items: [
-      { label: 'Manage Staff',    icon: 'users',    path: '/onepi/employees'       },
-      { label: 'Departments',     icon: 'building', path: '/onepi/departments'     },
-      { label: 'Designations',    icon: 'award',    path: '/onepi/designations'    },
-      { label: 'Teams',           icon: 'users',    path: '/onepi/teams'           },
-      { label: 'Org Chart',       icon: 'layers',   path: '/onepi/org-chart'       },
+      { label: 'Manage Staff',    icon: 'users',    path: '/nexushr/employees'       },
+      { label: 'Departments',     icon: 'building', path: '/nexushr/departments'     },
+      { label: 'Designations',    icon: 'award',    path: '/nexushr/designations'    },
+      { label: 'Teams',           icon: 'users',    path: '/nexushr/teams'           },
+      { label: 'Org Chart',       icon: 'layers',   path: '/nexushr/org-chart'       },
+      { label: 'Employment',      icon: 'fileText', path: '/nexushr/employment'      },
     ],
   },
   {
     title: 'TIME & LEAVE',
     items: [
-      { label: 'Attendance',     icon: 'clock',    path: '/onepi/attendance' },
-      { label: 'Leave Requests', icon: 'calendar', path: '/onepi/leaves'     },
-      { label: 'Shift Roster',   icon: 'timer',    path: '/onepi/shifts'     },
-      { label: 'Holidays',       icon: 'sun',      path: '/onepi/holidays'   },
+      { label: 'Attendance',     icon: 'clock',    path: '/nexushr/attendance' },
+      { label: 'Leave Requests', icon: 'calendar', path: '/nexushr/leaves'     },
+      { label: 'Shift Roster',   icon: 'timer',    path: '/nexushr/shifts'     },
+      { label: 'Holidays',       icon: 'sun',      path: '/nexushr/holidays'   },
+    ],
+  },
+  {
+    title: 'PERFORMANCE',
+    items: [
+      { label: 'Goals & Reviews', icon: 'target', path: '/nexushr/performance' },
+    ],
+  },
+  {
+    title: 'RECORDS',
+    items: [
+      { label: 'Documents', icon: 'fileText', path: '/nexushr/documents' },
+      { label: 'Assets',    icon: 'package',  path: '/nexushr/assets'    },
     ],
   },
   {
     title: 'FINANCE',
     items: [
-      { label: 'Payroll', icon: 'dollarSign', path: '/onepi/payroll' },
+      { label: 'Payroll', icon: 'dollarSign', path: '/nexushr/payroll' },
     ],
   },
   {
     title: 'ACCESS & SECURITY',
     items: [
-      { label: 'Roles & Permissions', icon: 'shield',     path: '/onepi/roles'             },
-      { label: 'Permission Matrix',   icon: 'key',        path: '/onepi/permissions'       },
-      { label: 'Activity Logs',       icon: 'activity',   path: '/onepi/activity-logs'     },
-      { label: 'Login History',       icon: 'lock',       path: '/onepi/login-history'     },
-      { label: 'Devices',             icon: 'smartphone', path: '/onepi/device-management' },
-      { label: 'Delete Requests',     icon: 'userMinus',  path: '/onepi/delete-requests'   },
-      { label: 'Invitations',         icon: 'userPlus',   path: '/onepi/invitations'        },
+      { label: 'Roles & Permissions', icon: 'shield',     path: '/nexushr/roles'             },
+      { label: 'Permission Matrix',   icon: 'key',        path: '/nexushr/permissions'       },
+      { label: 'Activity Logs',       icon: 'activity',   path: '/nexushr/activity-logs'     },
+      { label: 'Login History',       icon: 'lock',       path: '/nexushr/login-history'     },
+      { label: 'Devices',             icon: 'smartphone', path: '/nexushr/device-management' },
+      { label: 'Delete Requests',     icon: 'userMinus',  path: '/nexushr/delete-requests'   },
+      { label: 'Invitations',         icon: 'userPlus',   path: '/nexushr/invitations'        },
     ],
   },
   {
     title: 'COMMUNICATIONS',
     items: [
-      { label: 'Announcements', icon: 'volume2', path: '/onepi/announcements' },
+      { label: 'Announcements', icon: 'volume2', path: '/nexushr/announcements' },
     ],
   },
 ];
 
-export function OnePIShell() {
+export function NexusHRShell() {
   return (
-    <WorkspaceApp appId="onepi">
+    <WorkspaceApp appId="nexushr">
       <div className="app-shell" data-onepi="true">
-        <AppSidebar appId="onepi" sections={NAV} />
+        <AppSidebar appId="nexushr" sections={NAV} />
         <div className="app-main">
           <AppHeader />
           <div className="app-shell-content">
@@ -87,7 +105,7 @@ export function OnePIShell() {
               <Route path="departments"       element={<RequireRoles roles={MGMT_ROLES}><DepartmentsPage /></RequireRoles>} />
               <Route path="teams"             element={<RequireRoles roles={MGMT_ROLES}><TeamsPage /></RequireRoles>} />
               <Route path="invitations"       element={<RequireRoles roles={MGMT_ROLES}><InvitationsPage /></RequireRoles>} />
-              <Route path="staff-directory"   element={<Navigate to="/onepi/employees" replace />} />
+              <Route path="staff-directory"   element={<Navigate to="/nexushr/employees" replace />} />
               <Route path="staff/:id"         element={<RequireRoles roles={MGMT_ROLES}><StaffDetail /></RequireRoles>} />
               <Route path="activity-logs"     element={<RequireRoles roles={MGMT_ROLES}><ActivityLogsPage /></RequireRoles>} />
               <Route path="login-history"     element={<RequireRoles roles={MGMT_ROLES}><LoginHistoryPage /></RequireRoles>} />
@@ -100,10 +118,14 @@ export function OnePIShell() {
               <Route path="payroll"           element={<RequireRoles roles={MGMT_ROLES}><PayrollPage /></RequireRoles>} />
               <Route path="announcements"     element={<RequireRoles roles={MGMT_ROLES}><AnnouncementsPage /></RequireRoles>} />
               <Route path="org-chart"         element={<RequireRoles roles={MGMT_ROLES}><OrgChart /></RequireRoles>} />
+              <Route path="employment"        element={<RequireRoles roles={MGMT_ROLES}><EmploymentRecords /></RequireRoles>} />
+              <Route path="performance"       element={<RequireRoles roles={MGMT_ROLES}><Performance /></RequireRoles>} />
+              <Route path="documents"         element={<RequireRoles roles={MGMT_ROLES}><HrDocuments /></RequireRoles>} />
+              <Route path="assets"            element={<RequireRoles roles={MGMT_ROLES}><HrAssets /></RequireRoles>} />
               <Route path="permissions"       element={<RequireRoles roles={MGMT_ROLES}><PermissionsPage /></RequireRoles>} />
             </Route>
 
-            <Route path="*" element={<Navigate to="/onepi" replace />} />
+            <Route path="*" element={<Navigate to="/nexushr" replace />} />
           </Routes>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { requireRole } from '../middleware/rbac.js';
 import type { FastifyInstance } from 'fastify';
 import { GLService } from '../services/gl.service.js';
 import { db } from '../db/client.js';
+import { toDateParam } from '../utils/dates.js';
 
 export async function glRoutes(fastify: FastifyInstance) {
   // Ensure user is authenticated for all GL routes
@@ -170,7 +171,10 @@ export async function glRoutes(fastify: FastifyInstance) {
 
       const result = entries.map(e => ({
         ...e,
-        entry_date: e.entry_date.toISOString().split('T')[0],
+        // entry_date is a DATE — already 'YYYY-MM-DD' from the driver (see the
+        // type parser in db/client.ts). posted_at is a TIMESTAMPTZ and really
+        // is an instant, so it stays a Date and keeps toISOString().
+        entry_date: String(e.entry_date).slice(0, 10),
         posted_at: e.posted_at ? e.posted_at.toISOString() : null,
         lines: lines.filter(l => l.journal_entry_id === e.id)
       }));
@@ -286,7 +290,7 @@ export async function glRoutes(fastify: FastifyInstance) {
           .select([db.fn.sum('journal_lines.debit').as('debits'), db.fn.sum('journal_lines.credit').as('credits')])
           .where('journal_entries.tenant_id', '=', tenantId)
           .where('journal_lines.account_id', 'in', cashAccountIds)
-          .where('journal_entries.entry_date', '<', new Date(from))
+          .where('journal_entries.entry_date', '<', toDateParam(new Date(from)))
           .executeTakeFirst();
 
         opening_cash = Number(openingSum?.debits || 0) - Number(openingSum?.credits || 0);
@@ -297,7 +301,7 @@ export async function glRoutes(fastify: FastifyInstance) {
           .select([db.fn.sum('journal_lines.debit').as('debits'), db.fn.sum('journal_lines.credit').as('credits')])
           .where('journal_entries.tenant_id', '=', tenantId)
           .where('journal_lines.account_id', 'in', cashAccountIds)
-          .where('journal_entries.entry_date', '<=', new Date(to))
+          .where('journal_entries.entry_date', '<=', toDateParam(new Date(to)))
           .executeTakeFirst();
 
         closing_cash = Number(closingSum?.debits || 0) - Number(closingSum?.credits || 0);
@@ -311,8 +315,8 @@ export async function glRoutes(fastify: FastifyInstance) {
         .where('journal_entries.tenant_id', '=', tenantId)
         .where('journal_lines.account_id', 'in', cashAccountIds)
         .where('journal_entries.source_module', '=', 'AR')
-        .where('journal_entries.entry_date', '>=', new Date(from))
-        .where('journal_entries.entry_date', '<=', new Date(to))
+        .where('journal_entries.entry_date', '>=', toDateParam(new Date(from)))
+        .where('journal_entries.entry_date', '<=', toDateParam(new Date(to)))
         .executeTakeFirst();
 
       // Payments to AP (Operating)
@@ -323,8 +327,8 @@ export async function glRoutes(fastify: FastifyInstance) {
         .where('journal_entries.tenant_id', '=', tenantId)
         .where('journal_lines.account_id', 'in', cashAccountIds)
         .where('journal_entries.source_module', '=', 'AP')
-        .where('journal_entries.entry_date', '>=', new Date(from))
-        .where('journal_entries.entry_date', '<=', new Date(to))
+        .where('journal_entries.entry_date', '>=', toDateParam(new Date(from)))
+        .where('journal_entries.entry_date', '<=', toDateParam(new Date(to)))
         .executeTakeFirst();
 
       // Direct Expenses (Operating)
@@ -335,8 +339,8 @@ export async function glRoutes(fastify: FastifyInstance) {
         .where('journal_entries.tenant_id', '=', tenantId)
         .where('journal_lines.account_id', 'in', cashAccountIds)
         .where('journal_entries.source_module', '=', 'EXPENSE')
-        .where('journal_entries.entry_date', '>=', new Date(from))
-        .where('journal_entries.entry_date', '<=', new Date(to))
+        .where('journal_entries.entry_date', '>=', toDateParam(new Date(from)))
+        .where('journal_entries.entry_date', '<=', toDateParam(new Date(to)))
         .executeTakeFirst();
 
       const receiptsVal = Number(arReceipts?.total || 0);

@@ -5,6 +5,7 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch } from '../lib/api.js';
 import type { TrialBalanceReport, AccountType } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 const TYPE_CFG: Record<AccountType, { label: string; color: string; bg: string }> = {
   ASSET:     { label: 'Assets',      color: '#0891b2', bg: '#ecfeff' },
@@ -112,7 +113,11 @@ export const FinanceTrialBalance: React.FC = () => {
       {/* Header */}
       <div style={{ display:'flex', flexWrap:'wrap', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em' }}>Trial Balance</h1>
+          <PageHeader
+            crumbs={['FinOps', 'Trial Balance']}
+            titlePlain="Trial"
+            titleEm="balance"
+          />
           <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '4px 0 0' }}>{co.name} — verifying debits equal credits</p>
         </div>
         <div style={{ display:'flex', gap: 10, alignItems:'center' }}>

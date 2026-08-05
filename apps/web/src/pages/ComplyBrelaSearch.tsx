@@ -8,6 +8,7 @@ import { getHudumikaFooterHtml } from '../lib/watermark.js';
 import { apiFetch } from '../lib/api.js';
 import { formatDashedDigits9, badgeVariantForStatus } from '../lib/complyBrelaFormat.js';
 import './ComplyOS.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 export interface BrelaEntity {
   id: string;
@@ -428,13 +429,13 @@ export function ComplyBrelaSearch() {
   return (
     <div className="comply-page">
       {/* Page Title Header */}
+      <PageHeader
+        crumbs={['ComplyOS', 'BRELA Search']}
+        titlePlain="BRELA"
+        titleEm="search"
+        subtitle="Search Tanzania's BRELA business registry and capture verified company records into ComplyOS."
+      />
       <div className="comply-page-hdr">
-        <div>
-          <h1 className="comply-page-title">BRELA Search</h1>
-          <p className="comply-page-sub">
-            Search Tanzania's BRELA business registry and capture verified company records into ComplyOS.
-          </p>
-        </div>
         <div className="comply-action-row">
           <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => navigate('/complyos/brela-search/history')}>
             <Icon name="clock" size={13} />

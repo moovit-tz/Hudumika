@@ -26,6 +26,7 @@ import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 /* ─── Types ─────────────────────────────────────────────── */
 interface OrgNode {
@@ -466,6 +467,12 @@ export const OrgChart: React.FC = () => {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', background: 'var(--bg)' }}>
+      <PageHeader
+        crumbs={['NexusHR', 'Org Chart']}
+        titlePlain="Reporting"
+        titleEm="structure"
+        subtitle="Who reports to whom, from the contracts on file."
+      />
       {/* ── Toolbar ── */}
       <div style={{ padding: '10px 20px', background: 'var(--white)', borderBottom: '1px solid var(--border)',
         display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, zIndex: 5 }}>

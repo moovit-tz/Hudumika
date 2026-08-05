@@ -24,7 +24,7 @@ interface Props {
 const AV_COLORS = ['#e8461a', '#2563eb', '#059669', '#7c3aed', '#ca8a04', '#0891b2', '#be185d', '#9a3412'];
 function avColor(name: string) {
   let h = 0;
-  for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % AV_COLORS.length;
+  for (const ch of (name ?? '')) h = (h * 31 + ch.charCodeAt(0)) % AV_COLORS.length;
   return AV_COLORS[Math.abs(h)];
 }
 function avInitials(name: string) {

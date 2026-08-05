@@ -31,7 +31,7 @@ const SECTIONS: Record<string, SectionCopy> = {
     seoDesc: 'Fast PVoC/GCLA/TBS/WMA compliance lookup by HS code and origin.',
   },
   advanced: {
-    crumb: 'Advanced Check',
+    crumb: 'Trade Wizard',
     titlePlain: 'Trade compliance',
     titleEm: 'wizard',
     subtitle: "Tell us what you want to export, import or transit — we'll show the real permits, offices and process flow.",

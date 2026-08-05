@@ -98,8 +98,10 @@ export class SealBillingService {
 
     return computeStorageAccrual({
       lotId: lot.id,
-      warehousedOn: lot.warehoused_on ?? new Date(),
-      billedThrough: lot.storage_billed_through,
+      // Both are DATE columns, so they arrive as 'YYYY-MM-DD' strings; the
+      // accrual calculator works in Dates.
+      warehousedOn: lot.warehoused_on ? new Date(lot.warehoused_on) : new Date(),
+      billedThrough: lot.storage_billed_through ? new Date(lot.storage_billed_through) : null,
       asOfDate: asOfDate ?? new Date(),
       billingMethod: lot.billing_method as 'flat_per_lot' | 'per_cbm',
       storageFeePerDay: Number(lot.storage_fee_per_day),

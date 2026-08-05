@@ -6,6 +6,7 @@ import { apiFetch } from '../lib/api.js';
 import { getHudumikaFooterHtml } from '../lib/watermark.js';
 import { showAlert } from '../lib/alert.js';
 import './ComplyOS.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface TerminalLog {
   id: string;
@@ -159,12 +160,14 @@ export function ComplyTraExtract() {
 
   return (
     <div className="comply-page">
+      <PageHeader
+        crumbs={['ComplyOS', 'TRA Taxpayer Portal Agent']}
+        titlePlain="TRA Taxpayer Portal"
+        titleEm="agent"
+        subtitle="Establish a secure session to extract your profile, active obligations, and Tax Compliance Certificates."
+      />
       <div className="comply-page-hdr">
-        <div>
-          <h1 className="comply-page-title">TRA Taxpayer Portal Agent</h1>
-          <p className="comply-page-sub">Establish a secure session to extract your profile, active obligations, and Tax Compliance Certificates.</p>
         </div>
-      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: status === 'completed' ? '1fr' : '1fr 1fr', gap: 24, alignItems: 'start' }}>
         

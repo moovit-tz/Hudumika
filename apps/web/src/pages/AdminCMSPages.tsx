@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { RichTextEditor } from '../components/RichTextEditor.js';
 import type { CmsPage } from '@hudumika/types';
 import { showAlert } from '../lib/alert.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 function PageHdr({ title, sub, action }: { title: string; sub: string; action?: React.ReactNode }) {
   return (
@@ -89,6 +90,12 @@ export function AdminCMSPages() {
 
   return (
     <div>
+      <PageHeader
+        crumbs={['Admin', 'CMS Pages']}
+        titlePlain="Content"
+        titleEm="pages"
+        subtitle="Public pages, their slugs and publish state."
+      />
       <PageHdr
         title="CMS Pages"
         sub="Manage legal terms, privacy policies, and public content pages across the platform."

@@ -2,6 +2,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { SealService, IllegalCustomsTransition, BondHeadroomExceeded, DgSegregationViolation } from '../services/seal.service.js';
+import { toDateParam } from '../utils/dates.js';
 import {
   CUSTOMS_STATUS_ENTRY_POINTS, legalNextCustomsStatuses, validateContainerNumber, type CustomsStatus,
 } from '@hudumika/types';
@@ -117,7 +118,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
         let byStatusQuery = trx.selectFrom('seal_lots').select(({ fn }) => ['customs_status', fn.count<number>('id').as('count')]).groupBy('customs_status');
         let expiringSoonQuery = trx.selectFrom('seal_lots').select(({ fn }) => fn.count<number>('id').as('n'))
           .where('expires_on', 'is not', null)
-          .where('expires_on', '<=', new Date(Date.now() + 30 * 86400000))
+          .where('expires_on', '<=', toDateParam(new Date(Date.now() + 30 * 86400000)))
           .where('customs_status', '=', 'FOREIGN_DUTY_SUSPENDED');
         let lotCountQuery = trx.selectFrom('seal_lots').select(({ fn }) => fn.count<number>('id').as('n'));
         if (compartment_id) {

@@ -5,6 +5,7 @@ import {
 } from 'chart.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Tooltip, Legend);
 
@@ -124,8 +125,12 @@ export const TrackingAnalytics: React.FC = () => {
   return (
     <div style={{ padding: 24 }}>
       <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Analytics</div>
-        <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Fleet health, cost &amp; on-time performance</div>
+        <PageHeader
+          crumbs={['HuduFreight', 'Analytics']}
+          titlePlain="Fleet"
+          titleEm="analytics"
+          subtitle="Fleet health, cost &amp; on-time performance"
+        />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 20 }}>

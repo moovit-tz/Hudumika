@@ -10,6 +10,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { useSealCompartmentId } from '../hooks/useSealCompartment.js';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Task {
   id: string; compartmentId: string | null; lotId: string | null; title: string;
@@ -93,11 +94,13 @@ export function SealTasks() {
 
   return (
     <div className="seal-page">
+      <PageHeader
+        crumbs={['SEAL', 'Warehouse Activities']}
+        titlePlain="Warehouse"
+        titleEm="activities"
+        subtitle="Tasks assigned to real staff — surfaces in their personal Tasks app too, so nothing lives only inside SEAL."
+      />
       <div className="seal-page-hdr">
-        <div>
-          <h1 className="seal-page-title">Warehouse Activities</h1>
-          <p className="seal-page-sub">Tasks assigned to real staff — surfaces in their personal Tasks app too, so nothing lives only inside SEAL.</p>
-        </div>
         <Button type="button" onClick={() => setShowNew(v => !v)}>
           <Icon name="plus" size={14} /><span>New Task</span>
         </Button>

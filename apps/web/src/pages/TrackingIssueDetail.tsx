@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Issue {
   id: string; vehicle_id: string; title: string; description: string | null;
@@ -99,6 +100,11 @@ export const TrackingIssueDetail: React.FC = () => {
 
   return (
     <div style={{ padding: 24 }}>
+      <PageHeader
+        crumbs={['HuduFreight', 'Issue']}
+        titlePlain="Issue"
+        titleEm="detail"
+      />
       <Link to="/tracking/issues" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
         <Icon name="arrowLeft" size={12} /> Issues
       </Link>

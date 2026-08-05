@@ -1,6 +1,7 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
+import { toDateParam } from '../utils/dates.js';
 
 const HEALTH_BUCKETS = [
   { min: 80, max: 100, label: 'Excellent' },
@@ -40,7 +41,7 @@ export async function fleetAnalyticsRoutes(fastify: FastifyInstance) {
           .select(({ fn }) => [fn.count<number>('id').as('count')])
           .where('vehicle_id', '=', v.id)
           .where('next_due_date', 'is not', null)
-          .where('next_due_date', '<', now)
+          .where('next_due_date', '<', toDateParam(now))
           .executeTakeFirst();
         score -= Number(overdueMaint?.count ?? 0) * 15;
 
@@ -48,7 +49,7 @@ export async function fleetAnalyticsRoutes(fastify: FastifyInstance) {
           .select(({ fn }) => [fn.count<number>('id').as('count')])
           .where('vehicle_id', '=', v.id)
           .where('expiry_date', 'is not', null)
-          .where('expiry_date', '<', now)
+          .where('expiry_date', '<', toDateParam(now))
           .executeTakeFirst();
         score -= Number(expiredDocs?.count ?? 0) * 10;
 
@@ -84,7 +85,7 @@ export async function fleetAnalyticsRoutes(fastify: FastifyInstance) {
         .executeTakeFirst();
       const maintenanceCosts = await trx.selectFrom('maintenance_records')
         .select(({ fn }) => [fn.sum<number>('cost').as('total')])
-        .where('tenant_id', '=', user.tenant_id).where('service_date', '>=', since90)
+        .where('tenant_id', '=', user.tenant_id).where('service_date', '>=', toDateParam(since90))
         .executeTakeFirst();
 
       // Fuel consumption by month (last 6 months).
@@ -130,7 +131,7 @@ export async function fleetAnalyticsRoutes(fastify: FastifyInstance) {
       // ── Maintenance (service) cost by month + combined total cost by month ──
       const maintenanceRows = await trx.selectFrom('maintenance_records').select(['cost', 'service_date'])
         .where('tenant_id', '=', user.tenant_id)
-        .where('service_date', '>=', new Date(now.getTime() - 180 * 86_400_000))
+        .where('service_date', '>=', toDateParam(new Date(now.getTime() - 180 * 86_400_000)))
         .execute();
       const serviceByMonth = new Map<string, number>();
       for (const m of maintenanceRows) {
@@ -246,7 +247,7 @@ export async function fleetAnalyticsRoutes(fastify: FastifyInstance) {
         documents_expiring_30d: await trx.selectFrom('vehicle_documents')
           .select(({ fn }) => [fn.count<number>('id').as('count')])
           .where('tenant_id', '=', user.tenant_id)
-          .where('expiry_date', 'is not', null).where('expiry_date', '<=', horizon30)
+          .where('expiry_date', 'is not', null).where('expiry_date', '<=', toDateParam(horizon30))
           .executeTakeFirst().then(r => Number(r?.count ?? 0)),
         vehicle_status_breakdown: vehicleStatusBreakdown,
         total_cost_by_month: totalCostByMonth,
@@ -284,7 +285,7 @@ export async function fleetAnalyticsRoutes(fastify: FastifyInstance) {
       if (type === 'maintenance') {
         const records = await trx.selectFrom('maintenance_records').selectAll()
           .where('tenant_id', '=', user.tenant_id)
-          .where('service_date', '>=', fromDate).where('service_date', '<=', toDate)
+          .where('service_date', '>=', toDateParam(fromDate)).where('service_date', '<=', toDateParam(toDate))
           .orderBy('service_date', 'desc').execute();
         return { type, from: fromDate, to: toDate, records };
       }

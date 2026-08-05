@@ -3,6 +3,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { showAlert } from '../lib/alert.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Vehicle {
   id: string;
@@ -66,6 +67,12 @@ export const TrackingAssignments: React.FC = () => {
 
   return (
     <div style={{ padding: 24, background: 'var(--bg)', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <PageHeader
+        crumbs={['HuduFreight', 'Assignments']}
+        titlePlain="Driver"
+        titleEm="assignments"
+        subtitle="Which driver is on which vehicle, and from when."
+      />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)' }}>Vehicle Assignments</div>
         <button onClick={() => setShowAddModal(true)} style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: 8, fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>

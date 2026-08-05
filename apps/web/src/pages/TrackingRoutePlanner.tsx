@@ -14,6 +14,7 @@ import 'leaflet/dist/leaflet.css';
 import './TrackingRoutePlanner.css';
 import L from 'leaflet';
 import { format } from 'date-fns';
+import { PageHeader } from '../components/PageHeader.js';
 
 const DEFAULT_CENTER: [number, number] = [-6.7924, 39.2083];
 
@@ -137,6 +138,12 @@ export const TrackingRoutePlanner: React.FC = () => {
 
   return (
     <div className="rp-container">
+      <PageHeader
+        crumbs={['HuduFreight', 'Route Planner']}
+        titlePlain="Route"
+        titleEm="planner"
+        subtitle="Plan a trip stop by stop before it is dispatched."
+      />
       {/* ── Background Fullscreen Map ── */}
       <div className="rp-map-wrapper">
         <MapContainer center={DEFAULT_CENTER} zoom={11} style={{ height: '100%', width: '100%' }} zoomControl={false}>

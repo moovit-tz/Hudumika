@@ -8,6 +8,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import type { CmsPage, CmsPost, CmsComment, CmsSiteSettings } from '@hudumika/types';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 /* ── Types ── */
 interface Post {
@@ -331,6 +332,12 @@ export const CMS: React.FC = () => {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+      <PageHeader
+        crumbs={['CMS', 'Dashboard']}
+        titlePlain="Content"
+        titleEm="dashboard"
+        subtitle="What is published, drafted and scheduled."
+      />
 
       {/* ── Top page header ── */}
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>

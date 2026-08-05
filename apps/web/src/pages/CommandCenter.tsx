@@ -40,7 +40,7 @@ function OfficerMentionInput({
   const avatarColor = (name: string) => {
     const colors = ['#0b7264','#7c3aed','#0891b2','#ea580c','#059669','#dc2626','#d97706'];
     let h = 0;
-    for (let i = 0; i < name.length; i++) h = ((h << 5) - h) + name.charCodeAt(i);
+    for (let i = 0; i < (name ?? '').length; i++) h = ((h << 5) - h) + (name ?? '').charCodeAt(i);
     return colors[Math.abs(h) % colors.length];
   };
 
@@ -206,7 +206,17 @@ function KanbanBoard({ groups, refresh, activeWorkflow }: { groups: any[], refre
       if (prereqMatch) {
         showAlert("This shipment can't move to that stage yet — the following are still required:", {
           title: 'Missing Prerequisites',
-          items: prereqMatch[1].split(',').map((s: string) => s.trim()).filter(Boolean),
+          // The API names prerequisites with the enum token it stores
+          // ("PACKING_LIST document"). Shown verbatim that reads as a system
+          // error rather than a thing to go and fetch, so the token is
+          // humanised — never translated, only re-cased.
+          items: prereqMatch[1]
+            .split(',')
+            .map((s: string) => s.trim())
+            .filter(Boolean)
+            .map((s: string) => s.replace(/\b[A-Z][A-Z0-9_]{1,}\b/g, tok =>
+              tok.length <= 3 ? tok                       // BL, DO, TIN stay as-is
+                : tok.charAt(0) + tok.slice(1).toLowerCase().replace(/_/g, ' '))),
         });
       } else {
         showAlert('Failed to move shipment: ' + message);
@@ -503,7 +513,7 @@ export const CommandCenter: React.FC = () => {
     { key: 'sla',       label: 'SLA Breached',        value: loading ? '—' : fmt(kpis?.sla_breached),                cls: 'r', cell: 'alert', metric: 'sla' as Metric },
     { key: 'del',       label: 'Delivered Today',     value: loading ? '—' : fmt(kpis?.delivered_today),             cls: 'g', cell: '',      metric: 'delivered' as Metric },
     { key: 'penalty',   label: 'Penalty Exposure',    value: loading ? '—' : `${fmtM(kpis?.penalty_exposure_tzs)} TZS`, cls: 'a', cell: 'warn', metric: null },
-    { key: 'ontime',    label: 'On-Time Rate',        value: loading ? '—' : `${kpis?.on_time_rate_pct ?? 0}%`,     cls: 'g', cell: '',      metric: null },
+    { key: 'ontime',    label: 'On-Time Rate',        value: loading || kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`,     cls: 'g', cell: '',      metric: null },
     { key: 'month',     label: 'This Month',          value: loading ? '—' : fmt(kpis?.cases_this_month),        cls: 'n', cell: '',      metric: null },
   ];
 

@@ -6,6 +6,7 @@ import { formatDashedDigits9 } from '../lib/complyBrelaFormat.js';
 import type { Customer } from '@hudumika/types';
 import './ComplyOS.css';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 type EditableField = 'name' | 'contact_name' | 'email' | 'phone_wa' | 'tax_id' | 'entity_type' | 'registration_status' | 'registered_address' | 'incorporation_date';
 
@@ -121,14 +122,13 @@ export function ComplyCompanyDirectory() {
 
   return (
     <div className="comply-page">
+      <PageHeader
+        crumbs={['ComplyOS', 'Company Directory']}
+        titlePlain="Company"
+        titleEm="directory"
+        subtitle="Companies captured from BRELA Search. Drafts are a holding layer only you can see here — review and mark a profile complete to move it into the CRM shared across every Hudumika app."
+      />
       <div className="comply-page-hdr">
-        <div>
-          <h1 className="comply-page-title">Company Directory</h1>
-          <p className="comply-page-sub">
-            Companies captured from BRELA Search. Drafts are a holding layer only you can see here —
-            review and mark a profile complete to move it into the CRM shared across every Hudumika app.
-          </p>
-        </div>
         <div className="comply-action-row">
           <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => navigate('/complyos/brela-search')}>
             <Icon name="search" size={13} />

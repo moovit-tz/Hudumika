@@ -163,7 +163,7 @@ function EscalateModal({ onClose, onSubmit }: {
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Case</label>
             <Combobox
-              options={cases.map(c => ({ value: c.id, label: `${c.ref_number} — ${c.goods_desc}` }))}
+              options={cases.map(c => ({ value: c.id, label: `${c.ref_number} â€” ${c.goods_desc}` }))}
               value={selectedCase} onChange={setSelectedCase}
             />
           </div>
@@ -178,7 +178,7 @@ function EscalateModal({ onClose, onSubmit }: {
           </div>
           <div>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 4 }}>Additional note</label>
-            <textarea title="Add note" placeholder="Describe the issue…" value={note} onChange={e => setNote(e.target.value)} rows={3}
+            <textarea title="Add note" placeholder="Describe the issueâ€¦" value={note} onChange={e => setNote(e.target.value)} rows={3}
               style={{ width: '100%', padding: '8px 10px', borderRadius: 9, border: '1px solid var(--border)', fontFamily: 'var(--font)', fontSize: 13, background: 'var(--bg)', color: 'var(--ink)', resize: 'vertical', boxSizing: 'border-box' }} />
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>

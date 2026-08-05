@@ -7,7 +7,7 @@ export type AppId =
   | 'finops'     // Finance & Accounts
   | 'complyos'   // Compliance
   | 'bliss'      // Support & Helpdesk
-  | 'onepi'      // People & HR
+  | 'nexushr'      // People & HR
   | 'onesite'    // Web & CMS
   | 'oneid'      // Identity & Access
   | 'tracking'   // Vehicle GPS & Geospatial Tracking
@@ -29,7 +29,7 @@ export type AppId =
 
 export const ALL_APP_IDS: AppId[] = [
   'clearos', 'finops', 'complyos', 'bliss',
-  'onepi', 'onesite', 'oneid', 'tracking', 'cloud', 'ai', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
+  'nexushr', 'onesite', 'oneid', 'tracking', 'cloud', 'ai', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
   'calendar', 'tasks',
   'demurrage', 'cargotracker', 'seal', 'inventory', 'studio',
 ];

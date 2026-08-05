@@ -8,6 +8,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Inventory.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Item {
   id: string; sku: string; name: string; productId: string | null; productName?: string;
@@ -100,8 +101,12 @@ export function InventoryItems() {
     <div className="inv-page">
       <div className="inv-page-hdr">
         <div>
-          <h1 className="inv-page-title">Items</h1>
-          <p className="inv-page-sub">Every SKU stock is tracked against — optionally linked to a billing catalog entry, never duplicating its name or price.</p>
+          <PageHeader
+            crumbs={['Inventory', 'Items']}
+            titlePlain="Inventory"
+            titleEm="items"
+            subtitle="Every SKU stock is tracked against — optionally linked to a billing catalog entry, never duplicating its name or price."
+          />
         </div>
         <Button type="button" onClick={() => setShowNew(v => !v)}>
           <Icon name="plus" size={14} /><span>New Item</span>

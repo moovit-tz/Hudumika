@@ -15,7 +15,7 @@ const SEED_NODES = (tenantId: string) => [
 
 export async function orgChartRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireEntitlement('onepi'));
+  fastify.addHook('preHandler', requireEntitlement('nexushr'));
 
   // GET /org-chart — returns all nodes for the tenant
   fastify.get('/', async (req) => {

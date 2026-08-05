@@ -5,6 +5,7 @@ import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { SingleSelectFilter } from '../../components/ui/filter-dropdown.js';
+import { PageHeader } from '../../components/PageHeader.js';
 
 interface RunRow {
   id: string; workflow_id: string; workflow_name: string | null; status: string;
@@ -37,10 +38,12 @@ export function RunsPage() {
   return (
     <div style={{ padding: '20px 22px', maxWidth: 1320, margin: '0 auto' }}>
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 21, fontWeight: 800, color: 'var(--ink)' }}>Runs</div>
-        <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 3 }}>
-          Every execution across every workflow. <strong>Simulated</strong> means a dry run — no action was performed.
-        </div>
+        <PageHeader
+          crumbs={['Studio', 'Runs']}
+          titlePlain="Workflow"
+          titleEm="runs"
+          subtitle="Every execution across every workflow. <strong>Simulated</strong> means a dry run — no action was performed."
+        />
       </div>
 
       <div style={{ marginBottom: 12 }}>

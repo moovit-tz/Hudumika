@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Inventory.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Warehouse { id: string; code: string; name: string; address: string | null; active: boolean; }
 interface Location { id: string; warehouseId: string; code: string; name: string; locationType: string; isPickable: boolean; }
@@ -69,8 +70,12 @@ export function InventoryWarehouses() {
     <div className="inv-page">
       <div className="inv-page-hdr">
         <div>
-          <h1 className="inv-page-title">Warehouses</h1>
-          <p className="inv-page-sub">Each warehouse holds its own bins/shelves/staging locations — a simpler two-level hierarchy than SEAL's customs compartments.</p>
+          <PageHeader
+            crumbs={['Inventory', 'Warehouses']}
+            titlePlain="Storage"
+            titleEm="warehouses"
+            subtitle="Each warehouse holds its own bins/shelves/staging locations — a simpler two-level hierarchy than SEAL's customs compartments."
+          />
         </div>
         <Button type="button" onClick={() => setShowNewWarehouse(v => !v)}>
           <Icon name="plus" size={14} /><span>New Warehouse</span>

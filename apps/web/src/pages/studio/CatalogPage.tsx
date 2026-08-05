@@ -6,6 +6,7 @@ import { Badge } from '../../components/ui/badge.js';
 import { Input } from '../../components/ui/input.js';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../../components/ui/tabs.js';
 import type { WorkflowStudioTriggerDef, WorkflowStudioActionDef } from '@hudumika/types';
+import { PageHeader } from '../../components/PageHeader.js';
 
 const KIND_LABEL: Record<string, string> = {
   DOMAIN_EVENT: 'Something happened in an app',
@@ -41,10 +42,12 @@ export function CatalogPage() {
   return (
     <div style={{ padding: '20px 22px', maxWidth: 1320, margin: '0 auto' }}>
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 21, fontWeight: 800, color: 'var(--ink)' }}>Triggers &amp; actions</div>
-        <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 3 }}>
-          Everything a workflow can react to and everything it can do. Each entry is backed by real code — a trigger is only listed once an app genuinely emits it.
-        </div>
+        <PageHeader
+          crumbs={['Studio', 'Triggers & actions']}
+          titlePlain="Triggers &"
+          titleEm="actions"
+          subtitle="Everything a workflow can react to and everything it can do. Each entry is backed by real code — a trigger is only listed once an app genuinely emits it."
+        />
       </div>
 
       <div style={{ maxWidth: 420, marginBottom: 14 }}>

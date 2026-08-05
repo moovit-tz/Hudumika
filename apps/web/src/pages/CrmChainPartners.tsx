@@ -3,6 +3,7 @@ import { Icon } from '../components/Icon.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Partner {
   id: string;
@@ -59,10 +60,12 @@ export function CrmChainPartners() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', margin: '0 0 4px 0' }}>Logistics & Warehousing Chain Partners</h1>
-          <p style={{ fontSize: 13, color: 'var(--ink3)', margin: 0 }}>
-            Registered ICDs, CFS operators, bonded warehouse providers, and logistics partners.
-          </p>
+          <PageHeader
+            crumbs={['CRM', 'Chain Partners']}
+            titlePlain="Logistics & Warehousing Chain"
+            titleEm="partners"
+            subtitle="Registered ICDs, CFS operators, bonded warehouse providers, and logistics partners."
+          />
         </div>
         <button
           type="button"

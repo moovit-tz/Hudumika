@@ -6,6 +6,7 @@ import { sql } from 'kysely';
 import { env } from '../config/env.js';
 import type { KPIResponse, StageBottleneck, OfficerPerformance, ClearanceStage } from '@hudumika/types';
 import { STAGE_LABELS } from '@hudumika/types';
+import { toDateParam } from '../utils/dates.js';
 
 // Expected max duration per stage (hours) — business SLA policy used to
 // flag real breaches against actual stage_history durations, not a guess.
@@ -146,7 +147,11 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
         .where('stage', '=', 'CLOSED')
         .executeTakeFirst())?.cnt ?? 0);
 
-      let on_time_rate_pct = 100;
+      // Null, not 100, when nothing has closed. A rate over zero events is
+      // not 100% on time — it is no measurement, and it was being displayed
+      // beside a live SLA-breach count, which reads as a contradiction and
+      // quietly discredits the rest of the dashboard.
+      let on_time_rate_pct: number | null = null;
       if (closed_cases > 0) {
         const breachedResult = await trx
           .selectFrom('risk_flags')
@@ -444,7 +449,7 @@ export async function analyticsRoutes(fastify: FastifyInstance) {
       const invoices = await trx.selectFrom('sales_invoices')
         .select(['id', 'customer_id', 'client_name', 'status', 'received', 'due_date', 'bill_date'])
         .where('tenant_id', '=', user.tenant_id)
-        .where('bill_date', '>=', monthStart)
+        .where('bill_date', '>=', toDateParam(monthStart))
         .execute();
       const invoiceIds = invoices.map(i => i.id);
       const lines = invoiceIds.length > 0

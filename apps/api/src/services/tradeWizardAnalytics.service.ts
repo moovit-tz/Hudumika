@@ -86,17 +86,25 @@ export const tradeWizardAnalyticsService = {
 
   async getDailyTrend(filters: AnalyticsFilters, days = 30) {
     const from = filters.date_from ?? new Date(Date.now() - days * 86_400_000).toISOString();
+    // to_char, not date(): pg parses a `date` column into a JS Date, and this
+    // method treats `day` as a string in two places that both fail silently or
+    // loudly on an object — the Map below keys on it (every Date instance is a
+    // distinct key, so searches and runs for the same day never merged) and the
+    // final sort calls localeCompare on it (which threw, making the whole
+    // endpoint 500). Returning text from SQL fixes both at the source.
+    const DAY = sql<string>`to_char(created_at, 'YYYY-MM-DD')`;
+
     let searchQ = db.selectFrom('trade_wizard_searches')
-      .select(eb => [sql<string>`date(created_at)`.as('day'), eb.fn.countAll().as('searches')])
+      .select(eb => [DAY.as('day'), eb.fn.countAll().as('searches')])
       .where('created_at', '>=', new Date(from));
     if (filters.tenant_id) searchQ = searchQ.where('tenant_id', '=', filters.tenant_id);
-    const searchRows = await searchQ.groupBy(sql`date(created_at)`).orderBy('day').execute();
+    const searchRows = await searchQ.groupBy(DAY).orderBy('day').execute();
 
     let runQ = db.selectFrom('trade_wizard_runs')
-      .select(eb => [sql<string>`date(created_at)`.as('day'), eb.fn.countAll().as('runs')])
+      .select(eb => [DAY.as('day'), eb.fn.countAll().as('runs')])
       .where('created_at', '>=', new Date(from));
     if (filters.tenant_id) runQ = runQ.where('tenant_id', '=', filters.tenant_id);
-    const runRows = await runQ.groupBy(sql`date(created_at)`).orderBy('day').execute();
+    const runRows = await runQ.groupBy(DAY).orderBy('day').execute();
 
     const byDay = new Map<string, { day: string; searches: number; runs: number }>();
     for (const r of searchRows) byDay.set(r.day, { day: r.day, searches: Number(r.searches), runs: 0 });

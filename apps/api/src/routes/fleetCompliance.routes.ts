@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { NotificationService } from '../services/notification.service.js';
+import { toDateParam } from '../utils/dates.js';
 
 const FLEET_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR'] as const;
 const FLEET_MGMT_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
@@ -150,12 +151,12 @@ export async function fleetComplianceRoutes(fastify: FastifyInstance) {
       const documents = await trx.selectFrom('vehicle_documents').selectAll()
         .where('tenant_id', '=', user.tenant_id)
         .where('expiry_date', 'is not', null)
-        .where('expiry_date', '<=', horizon)
+        .where('expiry_date', '<=', toDateParam(horizon))
         .orderBy('expiry_date').execute();
       const reminders = await trx.selectFrom('fleet_reminders').selectAll()
         .where('tenant_id', '=', user.tenant_id)
         .where('status', '=', 'PENDING')
-        .where('due_date', '<=', horizon)
+        .where('due_date', '<=', toDateParam(horizon))
         .orderBy('due_date').execute();
       return { documents, reminders };
     });

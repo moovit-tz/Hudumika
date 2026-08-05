@@ -5,6 +5,7 @@ import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
 import { Badge } from '../../components/ui/badge.js';
 import { FeaturedIcon } from '../../components/ui/featured-icon.js';
+import { PageHeader } from '../../components/PageHeader.js';
 
 interface Stats {
   workflows: { total: number; active: number; draft: number; paused: number; unrunnable: number };
@@ -72,12 +73,12 @@ export function StudioDashboard() {
 
   return (
     <div style={{ padding: '20px 22px', maxWidth: 1320, margin: '0 auto' }}>
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 21, fontWeight: 800, color: 'var(--ink)' }}>Studio</div>
-        <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 3 }}>
-          One place for every automation on the platform — what fires it, what it does, and what really happened.
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Studio', 'Studio']}
+        titlePlain="Workflow"
+        titleEm="studio"
+        subtitle="One place for every automation on the platform — what fires it, what it does, and what really happened."
+      />
 
       <div className="studio-tiles">
         {tile('Workflows', stats.workflows.total, 'brand', 'zap', `${stats.workflows.draft} draft`)}
@@ -175,6 +176,29 @@ export function StudioDashboard() {
               <div className="studio-run-row" onClick={() => navigate('/studio/templates')}>
                 <Icon name="copy" size={14} color="var(--purple)" /><span>Templates</span>
                 <span style={{ marginLeft: 'auto', color: 'var(--ink3)' }}>{stats.catalogue.templates}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Clearance workflows — the other kind of thing this app builds.
+              Kept in its own panel and named for what it is: these define the
+              stages a shipment moves through, not automations that fire on an
+              event, and conflating the two would be a costly misunderstanding
+              for whoever edits one thinking it is the other. */}
+          <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--card-bg, var(--white))' }}>
+            <div className="studio-panel-head"><span className="studio-panel-title">Clearance workflows</span></div>
+            <div style={{ padding: '10px 12px 6px', fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.55 }}>
+              The stages a shipment moves through, and the conditions for leaving each one.
+              Live consignments sit on these steps.
+            </div>
+            <div style={{ padding: 8 }}>
+              <div className="studio-run-row" onClick={() => navigate('/studio/clearance')}>
+                <Icon name="layers" size={14} color="var(--teal)" /><span>All clearance workflows</span>
+                <Icon name="arrowRight" size={12} color="var(--ink3)" style={{ marginLeft: 'auto' }} />
+              </div>
+              <div className="studio-run-row" onClick={() => navigate('/studio/clearance/new')}>
+                <Icon name="plus" size={14} color="var(--green)" /><span>Design a new one</span>
+                <Icon name="arrowRight" size={12} color="var(--ink3)" style={{ marginLeft: 'auto' }} />
               </div>
             </div>
           </div>

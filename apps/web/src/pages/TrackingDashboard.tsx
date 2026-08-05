@@ -4,6 +4,7 @@ import { Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -85,8 +86,12 @@ export const TrackingDashboard: React.FC = () => {
   return (
     <div style={{ padding: 24 }}>
       <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Dashboard</div>
-        <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Fleet overview — {activeSummary.vehicles.total} vehicles registered</div>
+        <PageHeader
+          crumbs={['HuduFreight', 'Dashboard']}
+          titlePlain="Fleet"
+          titleEm="dashboard"
+          subtitle={<>Fleet overview — {activeSummary.vehicles.total} vehicles registered</>}
+        />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>

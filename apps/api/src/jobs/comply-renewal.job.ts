@@ -1,8 +1,9 @@
-import { db, withTenant } from '../db/client.js';
+import { db, withTenant } from '../db/client.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import { NotificationService } from '../services/notification.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { EmailIntegration } from '../integrations/email.js';
+import { toISODate, toEpochMs, toDateParam } from '../utils/dates.js';
 
 const RENEWAL_LEAD_DAYS = 30;
 
@@ -74,7 +75,10 @@ export async function runComplyExpiryReminderJob(): Promise<void> {
     let sent = 0;
 
     for (const cert of certs) {
-      const expiry = cert.expiry_date as Date;
+      // expiry_date is a DATE, which the driver returns as 'YYYY-MM-DD' (see
+      // the type parser in db/client.ts). The `as Date` cast was a lie the
+      // compiler could not catch, and .getTime() threw at runtime.
+      const expiry = new Date(cert.expiry_date as unknown as string);
       const daysLeft = Math.ceil((expiry.getTime() - now.getTime()) / 86400000);
 
       for (const stage of REMINDER_STAGES) {
@@ -127,8 +131,8 @@ export async function runComplyRenewalJob(): Promise<void> {
     const certs = await db
       .selectFrom('comply_certificates')
       .select(['id', 'tenant_id', 'name', 'agency_code', 'expiry_date', 'cert_number'])
-      .where('expiry_date', '<=', cutoff)
-      .where('expiry_date', '>', new Date())
+      .where('expiry_date', '<=', toDateParam(cutoff))
+      .where('expiry_date', '>', toDateParam(new Date()))
       .where('auto_renew', '=', true)
       .where('status', '!=', 'revoked')
       .execute();
@@ -182,7 +186,7 @@ export async function runComplyRenewalJob(): Promise<void> {
 
       if (renewalId) {
         const daysLeft = Math.ceil(
-          ((cert.expiry_date as Date).getTime() - Date.now()) / 86400000,
+          ((toEpochMs(cert.expiry_date) ?? 0) - Date.now()) / 86400000,
         );
         await notifyComplyManagers(
           cert.tenant_id,

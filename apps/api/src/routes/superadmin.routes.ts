@@ -3,12 +3,21 @@ import { requireRole } from '../middleware/rbac.js';
 import { db } from '../db/client.js';
 import { sql } from 'kysely';
 import { GLService } from '../services/gl.service.js';
+import { PlatformAdminService } from '../services/platform-admin.service.js';
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 
 export async function superAdminRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireRole('SUPER_ADMIN'));
+
+  /** Who is doing this, for the audit trail. Falls back to the email rather
+   *  than to a placeholder — an audit row that says "Super Admin" for
+   *  everyone cannot answer which superadmin. */
+  const actor = (request: any) => ({
+    actorUserId: request.user?.sub ?? request.user?.id ?? null,
+    actorName: request.user?.name || request.user?.email || 'Unknown superadmin',
+  });
 
   // 1. GET /v1/superadmin/dashboard-stats
   fastify.get('/dashboard-stats', async (request, reply) => {
@@ -53,57 +62,192 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       color: meta.color,
     }));
 
+    /*
+     * Everything below is counted from real rows.
+     *
+     * It used to be invented: `spark` was five hardcoded literals with the real
+     * total tacked on the end, `monthlyRev` was activeTenants multiplied by an
+     * arbitrary per-month figure, `recentTransactions` was the tenant list
+     * wearing TXN-1000xx references and a 'completed' status for payments that
+     * never happened, and `renewals` claimed every tenant renews in exactly 30
+     * days. A curve with one real point and five fabricated ones is worse than
+     * no curve — it reads as history, on the screen where platform revenue
+     * decisions get made.
+     *
+     * Where there is genuinely no source, the field is now absent rather than
+     * filled. `tenants` has no expiry or renewal column, so renewals is gone.
+     */
+
+    // Last 6 calendar months, oldest first — a stable window regardless of
+    // whether any rows land in it.
+    const months: { key: string; label: string }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setUTCDate(1);
+      d.setUTCMonth(d.getUTCMonth() - i);
+      months.push({ key: d.toISOString().slice(0, 7), label: d.toLocaleString('en', { month: 'short', timeZone: 'UTC' }) });
+    }
+
+    const monthKey = (v: unknown) => (v ? new Date(v as string).toISOString().slice(0, 7) : null);
+
+    const txRows = await db.selectFrom('platform_transactions')
+      .select(['tx_ref', 'tenant_id', 'amount', 'currency', 'status', 'method', 'package_code', 'payer_name', 'created_at'])
+      .orderBy('created_at', 'desc')
+      .execute();
+
+    const userRows = await db.selectFrom('users').select(['created_at']).execute();
+
+    // Cumulative counts as at the end of each month — the shape a sparkline
+    // implies. A month before anything existed is 0, which is true.
+    const cumulative = (rows: { created_at: unknown }[], filter?: (r: any) => boolean) =>
+      months.map(m => rows.filter(r => {
+        const k = monthKey(r.created_at);
+        return !!k && k <= m.key && (!filter || filter(r));
+      }).length);
+
     const spark = {
-      companies: [1, 2, 2, 3, 5, totalTenants],
-      active: [1, 1, 2, 3, 4, activeTenants],
-      subscribers: [10, 42, 85, 120, 180, totalSubscribers],
-      earnings: [1000, 3500, 7200, 11500, 16800, totalEarnings]
+      companies: cumulative(tenants),
+      active: cumulative(tenants, (t: any) => t.active),
+      subscribers: cumulative(userRows),
+      earnings: months.map(m =>
+        txRows
+          .filter(t => t.status === 'completed' && (monthKey(t.created_at) ?? '') <= m.key)
+          .reduce((s, t) => s + Number(t.amount), 0)),
     };
 
-    const monthlyRev = [
-      { label: 'Jan', value: Math.max(1, activeTenants - 3) * 200 },
-      { label: 'Feb', value: Math.max(1, activeTenants - 2) * 250 },
-      { label: 'Mar', value: Math.max(1, activeTenants - 1) * 290 },
-      { label: 'Apr', value: activeTenants * 320 },
-      { label: 'May', value: activeTenants * 350 },
-      { label: 'Jun', value: totalEarnings }
-    ];
-
-    const recentTransactions = tenants.slice(0, 5).map((t, idx) => ({
-      id: `tx-${t.id}`,
-      companyId: t.id,
-      amount: priceByCode[t.plan] ?? 0,
-      status: 'completed',
-      txRef: `TXN-${100000 + idx}`,
-      created: t.created_at ? new Date(t.created_at).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)
+    // Revenue actually received in each month, not an estimate from list price.
+    const monthlyRev = months.map(m => ({
+      label: m.label,
+      value: txRows
+        .filter(t => t.status === 'completed' && monthKey(t.created_at) === m.key)
+        .reduce((s, t) => s + Number(t.amount), 0),
     }));
 
-    const upcomingRenewals = tenants.slice(0, 4).map(t => {
-      const expiry = new Date();
-      expiry.setDate(expiry.getDate() + 30);
-      return {
-        id: `sub-${t.id}`,
-        companyId: t.id,
-        plan: t.plan,
-        start: new Date().toISOString().slice(0, 10),
-        end: expiry.toISOString().slice(0, 10),
-        amount: priceByCode[t.plan] ?? 0,
-        status: 'active'
-      };
-    });
+    // Tenants that actually registered in each month. The dashboard drew this
+    // from a literal [{Sep:1},{Oct:1},{Nov:2}…] with a "+6% MoM" badge beside it.
+    const companyGrowth = months.map(m => ({
+      label: m.label,
+      value: tenants.filter(t => monthKey(t.created_at) === m.key).length,
+    }));
+
+    const tenantNameById = new Map(tenants.map(t => [t.id, t.name]));
+    const recentTransactions = txRows.slice(0, 5).map(t => ({
+      id: t.tx_ref,
+      txRef: t.tx_ref,
+      companyId: t.tenant_id,
+      companyName: tenantNameById.get(t.tenant_id) ?? null,
+      amount: Number(t.amount),
+      currency: t.currency,
+      method: t.method,
+      status: t.status,
+      payerName: t.payer_name,
+      created: new Date(t.created_at).toISOString().slice(0, 10),
+    }));
+
+    // Revenue genuinely banked, alongside the list-price estimate above so the
+    // two are never confused for one another.
+    const collectedRevenue = txRows
+      .filter(t => t.status === 'completed')
+      .reduce((s, t) => s + Number(t.amount), 0);
+
+    // A sparkline over a single month of history is a straight line pretending
+    // to be a trend; the UI hides it below this threshold.
+    const monthsWithData = new Set(
+      [...tenants, ...txRows].map(r => monthKey((r as any).created_at)).filter(Boolean),
+    ).size;
 
     return {
       kpis: {
         totalCompanies: totalTenants,
         activeCompanies: activeTenants,
         totalSubscribers,
-        totalEarnings
+        // List-price run-rate across active tenants — an estimate, and named
+        // as one. collectedRevenue is what actually came in.
+        totalEarnings,
+        collectedRevenue,
       },
       planDist,
       spark,
       monthlyRev,
+      companyGrowth,
       transactions: recentTransactions,
-      renewals: upcomingRenewals
+      // How many distinct months this platform has any history in. The UI uses
+      // it to decide whether a trend line means anything yet.
+      monthsWithData,
+    };
+  });
+
+  /**
+   * GET /v1/superadmin/transactions
+   *
+   * Platform billing, from platform_transactions. The Transactions and Finance
+   * screens had no endpoint at all and rendered a hardcoded SAMPLE DATA array —
+   * eleven 2025 payments for companies that do not exist, totalling $43,346,
+   * while the table itself held three real ones totalling 4,288.
+   *
+   * Returns the rows plus the aggregates both screens need, so neither has to
+   * re-derive totals and disagree with the other.
+   */
+  fastify.get('/transactions', async (request, reply) => {
+    const { status, limit } = request.query as { status?: string; limit?: string };
+    const take = Math.min(Math.max(Number(limit) || 200, 1), 1000);
+
+    let q = db.selectFrom('platform_transactions as t')
+      .leftJoin('tenants', 'tenants.id', 't.tenant_id')
+      .select(['t.id', 't.tx_ref', 't.tenant_id', 't.amount', 't.currency', 't.method', 't.status',
+               't.package_code', 't.billing_cycle', 't.payer_name', 't.card_last4', 't.created_at',
+               'tenants.name as company_name', 'tenants.plan as company_plan'])
+      .orderBy('t.created_at', 'desc')
+      .limit(take);
+    if (status) q = q.where('t.status', '=', status);
+    const rows = await q.execute();
+
+    // Aggregates over the whole table, not the returned page — a "total
+    // revenue" that silently meant "of the last 200" would be worse than none.
+    const tally = await db.selectFrom('platform_transactions')
+      .select(['status'])
+      .select(db.fn.count('id').as('n'))
+      .select(db.fn.sum('amount').as('total'))
+      .groupBy('status')
+      .execute();
+
+    const byStatus = Object.fromEntries(tally.map(t => [t.status, { count: Number(t.n), total: Number(t.total ?? 0) }]));
+
+    const monthly = await db.selectFrom('platform_transactions')
+      .select([sql<string>`to_char(created_at, 'YYYY-MM')`.as('month')])
+      .select(db.fn.sum('amount').as('total'))
+      .select(db.fn.count('id').as('n'))
+      .where('status', '=', 'completed')
+      .groupBy(sql`to_char(created_at, 'YYYY-MM')`)
+      .orderBy('month')
+      .execute();
+
+    return {
+      data: rows.map(r => ({
+        id: r.id,
+        txRef: r.tx_ref,
+        companyId: r.tenant_id,
+        companyName: r.company_name ?? null,
+        companyPlan: r.company_plan ?? null,
+        amount: Number(r.amount),
+        currency: r.currency,
+        method: r.method,
+        status: r.status,
+        packageCode: r.package_code,
+        billingCycle: r.billing_cycle,
+        payerName: r.payer_name,
+        cardLast4: r.card_last4,
+        created: new Date(r.created_at).toISOString(),
+      })),
+      totals: {
+        completed: byStatus.completed?.total ?? 0,
+        completedCount: byStatus.completed?.count ?? 0,
+        pendingCount: byStatus.pending?.count ?? 0,
+        failedCount: byStatus.failed?.count ?? 0,
+        refundedCount: byStatus.refunded?.count ?? 0,
+        allCount: tally.reduce((s, t) => s + Number(t.n), 0),
+      },
+      monthly: monthly.map(m => ({ month: m.month, total: Number(m.total ?? 0), count: Number(m.n) })),
     };
   });
 
@@ -155,6 +299,12 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
 
     await GLService.seedChartOfAccounts(db, result.id);
 
+    await PlatformAdminService.recordActivity({
+      ...actor(request), category: 'company',
+      action: 'Created company', targetType: 'tenant', targetId: result.id,
+      targetName: result.name, tenantId: result.id,
+      metadata: { plan: result.plan },
+    });
     return result;
   });
 
@@ -162,6 +312,8 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
   fastify.patch('/tenants/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
     const body = request.body as any;
+    const before = await db.selectFrom('tenants').select(['name', 'plan', 'active'])
+      .where('id', '=', id).executeTakeFirst();
     const updates: any = { updated_at: new Date() };
     if (body.name !== undefined) updates.name = body.name;
     if (body.slug !== undefined) updates.slug = body.slug;
@@ -176,15 +328,43 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       .returningAll()
       .executeTakeFirstOrThrow();
 
+    // Described by what actually changed, so the log reads as a history rather
+    // than as a row of identical "Updated company" entries.
+    const changed = Object.keys(updates).filter(k => k !== 'updated_at');
+    let action = 'Updated company';
+    let category: 'company' | 'billing' = 'company';
+    if (before && body.plan !== undefined && body.plan !== before.plan) {
+      action = `Changed plan from ${before.plan} to ${body.plan}`;
+      category = 'billing';
+    } else if (before && body.active !== undefined && body.active !== before.active) {
+      action = body.active ? 'Reactivated company' : 'Suspended company';
+    } else if (changed.length) {
+      action = `Updated company ${changed.join(', ')}`;
+    }
+    await PlatformAdminService.recordActivity({
+      ...actor(request), category, action,
+      targetType: 'tenant', targetId: id, targetName: result.name, tenantId: id,
+      metadata: { changed },
+    });
     return result;
   });
 
   // 5. DELETE /v1/superadmin/tenants/:id
   fastify.delete('/tenants/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
+    // Read the name before it is gone — the audit row has to outlive the row
+    // it describes, and tenant_id is SET NULL on delete for the same reason.
+    const doomed = await db.selectFrom('tenants').select(['name', 'plan'])
+      .where('id', '=', id).executeTakeFirst();
     await db.deleteFrom('tenants')
       .where('id', '=', id)
       .execute();
+    await PlatformAdminService.recordActivity({
+      ...actor(request), category: 'company',
+      action: 'Deleted company', targetType: 'tenant', targetId: id,
+      targetName: doomed?.name ?? null, tenantId: null,
+      metadata: { plan: doomed?.plan ?? null },
+    });
     return { success: true };
   });
 
@@ -214,6 +394,15 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
 
     const row = await db.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', id).executeTakeFirst();
     const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+
+    const tenant = await db.selectFrom('tenants').select('name').where('id', '=', id).executeTakeFirst();
+    const on = Object.entries(enabledApps).filter(([, v]) => v).map(([k]) => k);
+    await PlatformAdminService.recordActivity({
+      ...actor(request), category: 'system',
+      action: `Set enabled apps to ${on.length ? on.join(', ') : 'none'}`,
+      targetType: 'tenant', targetId: id, targetName: tenant?.name ?? null, tenantId: id,
+      metadata: { enabledApps },
+    });
     return { enabledApps: settings['enabled-apps'] || {} };
   });
 
@@ -256,6 +445,15 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
       .executeTakeFirst();
     const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : body;
+
+    await PlatformAdminService.recordActivity({
+      ...actor(request), category: 'system',
+      action: `Changed platform settings: ${Object.keys(body).join(', ') || 'no keys'}`,
+      targetType: 'settings', targetId: null, targetName: 'Platform settings', tenantId: null,
+      // Keys only. The body carries SMTP passwords and API keys, and an audit
+      // trail is the last place those should be copied to.
+      metadata: { keys: Object.keys(body) },
+    });
     return { settings };
   });
 
@@ -309,6 +507,14 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       }
 
       const row = await db.selectFrom('app_status').selectAll().where('app_id', '=', appId).executeTakeFirstOrThrow();
+      await PlatformAdminService.recordActivity({
+        ...actor(request), category: 'system',
+        action: status === 'maintenance'
+          ? `Put ${appId} into maintenance`
+          : `Brought ${appId} out of maintenance`,
+        targetType: 'app', targetId: null, targetName: appId, tenantId: null,
+        metadata: { status, message: message ?? null },
+      });
       return { appStatus: row };
     }
   );
@@ -336,7 +542,77 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
         }
       });
 
+      await PlatformAdminService.recordActivity({
+        ...actor(request), category: 'billing',
+        action: `Set ${code} plan features (${features.length})`,
+        targetType: 'package', targetId: null, targetName: code, tenantId: null,
+        metadata: { features },
+      });
       return { packageCode: code, features };
     }
   );
+
+  // ─── Activity log ──────────────────────────────────────────────────────────
+
+  fastify.get('/activity', async (request: any, reply) => {
+    try {
+      const { category, tenantId, limit } = request.query ?? {};
+      return { data: await PlatformAdminService.listActivity({
+        category, tenantId, limit: limit ? Number(limit) : undefined,
+      }) };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // ─── Custom domains ────────────────────────────────────────────────────────
+
+  fastify.get('/domains', async (request, reply) => {
+    try {
+      return { data: await PlatformAdminService.listDomains() };
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  fastify.post('/domains', async (request: any, reply) => {
+    try {
+      const { tenant_id, domain } = request.body ?? {};
+      if (!tenant_id) return reply.status(400).send({ error: 'tenant_id is required' });
+      const row = await PlatformAdminService.addDomain(tenant_id, domain);
+      const tenant = await db.selectFrom('tenants').select('name').where('id', '=', tenant_id).executeTakeFirst();
+      await PlatformAdminService.recordActivity({
+        ...actor(request), category: 'system',
+        action: `Added custom domain ${row.domain}`,
+        targetType: 'domain', targetId: row.id, targetName: row.domain, tenantId: tenant_id,
+        metadata: { tenant: tenant?.name ?? null },
+      });
+      return row;
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  /** Runs the real DNS + TLS probe and stores whatever it actually found. */
+  fastify.post('/domains/:id/check', async (request: any, reply) => {
+    try {
+      return await PlatformAdminService.checkDomain(request.params.id);
+    } catch (err: any) {
+      return reply.status(404).send({ error: err.message });
+    }
+  });
+
+  fastify.delete('/domains/:id', async (request: any, reply) => {
+    try {
+      const row = await PlatformAdminService.deleteDomain(request.params.id);
+      await PlatformAdminService.recordActivity({
+        ...actor(request), category: 'system',
+        action: `Removed custom domain ${row.domain}`,
+        targetType: 'domain', targetId: row.id, targetName: row.domain, tenantId: row.tenant_id,
+      });
+      return { success: true };
+    } catch (err: any) {
+      return reply.status(404).send({ error: err.message });
+    }
+  });
 }

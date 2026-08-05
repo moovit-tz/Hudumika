@@ -17,6 +17,7 @@ import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from '../components/ui/dropdown-menu.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -160,6 +161,11 @@ export const TrackingVehicleDetail: React.FC = () => {
 
   return (
     <div style={{ padding: 24 }}>
+      <PageHeader
+        crumbs={['HuduFreight', 'Vehicle']}
+        titlePlain="Vehicle"
+        titleEm="detail"
+      />
       <Link to="/tracking/vehicles" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
         <Icon name="arrowLeft" size={12} /> Back to Vehicles
       </Link>

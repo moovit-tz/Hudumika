@@ -16,6 +16,11 @@ import { SupportChat }     from '../pages/SupportChat.js';
 import { SupportKB }       from '../pages/SupportKB.js';
 import { SupportSettings } from '../pages/SupportSettings.js';
 import { BlissNotifications } from '../pages/BlissNotifications.js';
+// Team chat moved here from ClearOS. It is the workspace's internal
+// channels and DMs — distinct from Live Chat above, which is the
+// customer-facing conversation. Both belong in the communications app;
+// neither belonged in a customs app.
+import { Chat }            from '../pages/Chat.js';
 
 const NAV: SidebarSection[] = [
   {
@@ -23,6 +28,7 @@ const NAV: SidebarSection[] = [
       { label: 'Overview',       icon: 'activity',     path: '/bliss', exact: true },
       { label: 'All Tickets',    icon: 'headphones',    path: '/bliss/tickets' },
       { label: 'Live Chat',      icon: 'messageSquare', path: '/bliss/chat' },
+      { label: 'Team Chat',      icon: 'chatBubble',    path: '/bliss/team-chat' },
       { label: 'Knowledge Base', icon: 'fileText',      path: '/bliss/kb' },
       { label: 'Escalations',    icon: 'arrowUpRight',  path: '/bliss/escalations' },
       { label: 'Notifications',  icon: 'bell',          path: '/bliss/notifications' },
@@ -44,6 +50,7 @@ export function BlissShell() {
 
               <Route path="tickets" element={<Support />} />
               <Route path="chat"    element={<SupportChat />} />
+              <Route path="team-chat" element={<Chat />} />
 
               <Route element={<PageLayout />}>
                 <Route path="overview"    element={<SupportOverview />} />

@@ -7,6 +7,7 @@ import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { ComplyWizardPage, WizardField } from './ComplyWizardPage.js';
 import './ComplyOS.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -61,11 +62,13 @@ export function ComplyCalendar() {
 
   return (
     <div className="comply-page">
+      <PageHeader
+        crumbs={['ComplyOS', 'Compliance Calendar']}
+        titlePlain="Compliance"
+        titleEm="calendar"
+        subtitle="Renewal windows, filing deadlines, and penalty dates"
+      />
       <div className="comply-page-hdr">
-        <div>
-          <h1 className="comply-page-title">Compliance Calendar</h1>
-          <p className="comply-page-sub">Renewal windows, filing deadlines, and penalty dates</p>
-        </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <button type="button" className="comply-btn-secondary" onClick={() => { setMonth(today.getMonth()); setYear(today.getFullYear()); }}>
             Today

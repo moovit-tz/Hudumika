@@ -24,7 +24,7 @@ interface AgentStat {
 
 const AVT_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30','#0e7490'];
 const initials = (n: string) => n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
-const avtColor = (n: string) => AVT_COLORS[n.charCodeAt(0) % AVT_COLORS.length];
+const avtColor = (n: string) => AVT_COLORS[((n ?? '?').charCodeAt(0)) % AVT_COLORS.length];
 
 /* ── Shared bits ── */
 function KpiCard({ icon, label, value, sub, color, iconBg, trend, trendUp }: {

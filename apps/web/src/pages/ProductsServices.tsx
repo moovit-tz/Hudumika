@@ -7,6 +7,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 // -- Types ---------------------------------------------------------------------
 // Field names/values below mirror the real `products` table (migration
@@ -771,8 +772,12 @@ export const ProductsServices: React.FC = () => {
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', margin: '0 0 4px' }}>Products &amp; Services</h1>
-            <p style={{ fontSize: 13, color: 'var(--ink3)', margin: 0 }}>Set pricing for clearing and freight services here — they're the catalog invoices are written from in FinOps.</p>
+            <PageHeader
+              crumbs={['FinOps', 'Products & Services']}
+              titlePlain="Products &"
+              titleEm="services"
+              subtitle="Set pricing for clearing and freight services here — they're the catalog invoices are written from in FinOps."
+            />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             {!loading && products.length === 0 && (

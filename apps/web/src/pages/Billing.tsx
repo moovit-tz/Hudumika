@@ -11,6 +11,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import './Billing.css';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 /* ── In-progress invoice draft, preserved across a trip to the full
    customer-onboarding page and back (see InvoiceEditor's createCustomer/
@@ -116,7 +117,7 @@ export function invoiceTotal(inv: Invoice) { return invoiceTotals(inv).grandTota
 
 export function genRefCode(id: string, version: number): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let seed = id.split('').reduce((s, c) => (s * 31 + c.charCodeAt(0)) >>> 0, 17);
+  let seed = (id ?? '').split('').reduce((s, c) => (s * 31 + c.charCodeAt(0)) >>> 0, 17);
   let h = '';
   for (let i = 0; i < 6; i++) { h += chars[seed % chars.length]; seed = (seed * 1103515245 + 12345) >>> 0; }
   return `${h.slice(0, 3)}-${h.slice(3)}-V${String(version).padStart(2, '0')}`;
@@ -1761,6 +1762,12 @@ export const Billing: React.FC = () => {
 
   return (
     <div className="inv-shell" onClick={() => showFilters && setShowFilters(false)}>
+      <PageHeader
+        crumbs={['FinOps', 'Invoices']}
+        titlePlain="Sales"
+        titleEm="invoices"
+        subtitle="Every invoice raised, what has been received and what is still due."
+      />
 
       {/* Top bar */}
       <div className="inv-topbar">

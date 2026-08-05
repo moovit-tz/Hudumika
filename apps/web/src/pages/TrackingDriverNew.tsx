@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 
@@ -51,7 +52,11 @@ export const TrackingDriverNew: React.FC = () => {
       <Link to="/tracking/drivers" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
         <Icon name="arrowLeft" size={12} /> Drivers
       </Link>
-      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 20 }}>Add a new driver</div>
+      <PageHeader
+        crumbs={['HuduFreight', 'New Driver']}
+        titlePlain="Add a"
+        titleEm="driver"
+      />
 
       <form onSubmit={submit} style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div><label style={labelStyle}>Name</label><input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Amara Kone" style={inputStyle} /></div>

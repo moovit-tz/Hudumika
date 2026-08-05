@@ -40,7 +40,7 @@ export const AcceptInvite: React.FC = () => {
         body: JSON.stringify({ token, name, password }),
       });
       completeOnboarding(res);
-      navigate('/onepi');
+      navigate('/nexushr');
     } catch (err: any) {
       setError(err.message || 'This invitation link is invalid or has expired.');
     } finally {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
+import { setTitleSuffix } from '../lib/seo.js';
 
 export interface BrandingState {
   platformName:  string;
@@ -19,8 +20,11 @@ export interface BrandingState {
 }
 
 export function applyWorkspaceBranding(state: BrandingState): void {
-  // Update Document Title
-  document.title = state.platformName || 'Hudumika';
+  // Branding owns the suffix, not the whole title. It used to assign
+  // document.title outright, which ran on every branding apply and overwrote
+  // whatever the page had set — so even the handful of pages calling
+  // usePageSEO ended up showing just the platform name in the tab.
+  setTitleSuffix(state.platformName || 'Hudumika');
 
   // Update Favicon
   let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;

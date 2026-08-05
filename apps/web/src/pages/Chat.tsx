@@ -33,7 +33,7 @@ interface ApiMessage {
 interface StaffOpt { id: string; name: string; role: string; }
 
 const PALETTE = ['#e8461a', '#0569e3', '#059669', '#9a6700', '#8250df', '#cf222e', '#0a7e6a'];
-function abg(name: string) { let h = 0; for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h); return PALETTE[Math.abs(h) % PALETTE.length]; }
+function abg(name: string) { let h = 0; for (let i = 0; i < (name ?? '').length; i++) h = (name ?? '').charCodeAt(i) + ((h << 5) - h); return PALETTE[Math.abs(h) % PALETTE.length]; }
 function ini(name: string) { return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(); }
 function ft(d: Date) { return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }); }
 function fd(d: Date) {

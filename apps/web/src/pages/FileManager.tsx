@@ -53,7 +53,7 @@ function fmtRelative(d: string) {
 }
 
 const AV_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30','#0e7490'];
-function avColor(n: string) { return AV_COLORS[n.charCodeAt(0) % AV_COLORS.length]; }
+function avColor(n: string) { return AV_COLORS[((n ?? '?').charCodeAt(0)) % AV_COLORS.length]; }
 function initials(n: string) { return n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
 
 /* ── Mini Avatar ── */

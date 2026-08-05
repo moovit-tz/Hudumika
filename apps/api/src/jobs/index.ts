@@ -27,10 +27,17 @@ export async function bootstrapJobs(): Promise<void> {
   console.log('🔄 Bootstrapping background jobs...');
 
   try {
-    // Attempt Redis connection
+    // Attempt Redis connection.
+    //
+    // retryStrategy returns null so a dead Redis fails once and stays failed.
+    // The default strategy reconnects forever, which is what produced a
+    // "connected" event followed by an endless ECONNRESET storm from BullMQ
+    // workers built against a socket that was already gone.
     redisConnection = new Redis(env.REDIS_URL, {
       maxRetriesPerRequest: null,
       connectTimeout: 2000,
+      retryStrategy: () => null,
+      enableOfflineQueue: false,
     });
 
     // Handle Redis errors gracefully — only log once, then fall back
@@ -41,13 +48,28 @@ export async function bootstrapJobs(): Promise<void> {
         console.warn('⚠️ Redis not available, using in-memory interval fallback (no Redis/BullMQ in dev).');
         redisConnection?.disconnect();
         redisConnection = null;
+        // Shut down anything already built against that connection. Without
+        // this the workers keep retrying forever behind the fallback, which is
+        // both pointless and how the process used to die.
+        stopBullMQ().catch(() => { /* already gone */ });
         startIntervalFallback();
       }
     });
 
-    redisConnection.on('connect', () => {
-      console.log('🔌 Connected to Redis. Initializing BullMQ queues...');
-      startBullMQ();
+    // 'ready' plus an actual PING, not 'connect'. 'connect' fires on the TCP
+    // handshake alone — the socket can be accepted and then dropped, which is
+    // exactly what happened here: the log said "Connected to Redis", six
+    // queues and six workers were built against it, and the whole API then
+    // died on the reconnect storm. A server that answers PING is one BullMQ
+    // can actually be built on.
+    redisConnection.on('ready', () => {
+      redisConnection?.ping()
+        .then(() => {
+          if (!redisConnection) return;
+          console.log('🔌 Connected to Redis. Initializing BullMQ queues...');
+          startBullMQ();
+        })
+        .catch(() => { /* the 'error' handler above already falls back */ });
     });
   } catch (error) {
     console.warn('⚠️ Could not connect to Redis. Falling back to standard interval timers.');
@@ -55,19 +77,52 @@ export async function bootstrapJobs(): Promise<void> {
   }
 }
 
+/**
+ * Every BullMQ Queue and Worker created, so a Redis outage can be survived.
+ *
+ * These hold their own reference to the connection and keep retrying after the
+ * connection-level error handler has already nulled it and started the interval
+ * fallback. A BullMQ Worker is an EventEmitter, and an 'error' event with no
+ * listener throws — so a Redis blip took down the entire API, minutes after the
+ * log had said "using in-memory interval fallback". Observed: ~30 ECONNRESETs
+ * then "Emitted 'error' event on Worker instance", process dead.
+ */
+const bullInstances: { close: () => Promise<void>; on: (e: string, cb: (err: any) => void) => void }[] = [];
+let bullErrorLogged = false;
+
+/** Attaches the listener whose absence was fatal, and tracks the instance. */
+function track<T extends { on: any; close: any }>(instance: T): T {
+  instance.on('error', (err: any) => {
+    // Logged once. The fallback timers are already running by this point; the
+    // job still happens, it just is not BullMQ doing it.
+    if (!bullErrorLogged) {
+      bullErrorLogged = true;
+      console.warn('⚠️ BullMQ lost Redis; background jobs continue on interval timers.', err?.code ?? err?.message ?? '');
+    }
+  });
+  bullInstances.push(instance as any);
+  return instance;
+}
+
+/** Shuts the queues and workers down when we fall back to interval timers. */
+async function stopBullMQ(): Promise<void> {
+  const instances = bullInstances.splice(0, bullInstances.length);
+  await Promise.allSettled(instances.map(i => i.close()));
+}
+
 function startBullMQ(): void {
   if (!redisConnection) return;
 
   try {
-    riskQueue = new Queue('risk-scans', { connection: redisConnection as any });
-    reminderQueue = new Queue('reminders', { connection: redisConnection as any });
-    gpswoxQueue = new Queue('gpswox-sync', { connection: redisConnection as any });
-    workflowCommQueue = new Queue('workflow-comms', { connection: redisConnection as any });
-    sealAnchorQueue = new Queue('seal-ledger-anchor', { connection: redisConnection as any });
-    declarationAnchorQueue = new Queue('declaration-ledger-anchor', { connection: redisConnection as any });
+    riskQueue = track(new Queue('risk-scans', { connection: redisConnection as any }));
+    reminderQueue = track(new Queue('reminders', { connection: redisConnection as any }));
+    gpswoxQueue = track(new Queue('gpswox-sync', { connection: redisConnection as any }));
+    workflowCommQueue = track(new Queue('workflow-comms', { connection: redisConnection as any }));
+    sealAnchorQueue = track(new Queue('seal-ledger-anchor', { connection: redisConnection as any }));
+    declarationAnchorQueue = track(new Queue('declaration-ledger-anchor', { connection: redisConnection as any }));
 
     // Worker for risk scans
-    new Worker(
+    track(new Worker(
       'risk-scans',
       async (job) => {
         if (job.name === 'scan') {
@@ -75,10 +130,10 @@ function startBullMQ(): void {
         }
       },
       { connection: redisConnection as any }
-    );
+    ));
 
     // Worker for reminders & daily statuses
-    new Worker(
+    track(new Worker(
       'reminders',
       async (job) => {
         if (job.name === 'doc-reminder') {
@@ -96,11 +151,11 @@ function startBullMQ(): void {
         }
       },
       { connection: redisConnection as any }
-    );
+    ));
 
     // Worker for GPSWOX device sync — its own queue since it polls far more
     // frequently (~2 min) than the 15-min/24h cadence of the reminders queue.
-    new Worker(
+    track(new Worker(
       'gpswox-sync',
       async (job) => {
         if (job.name === 'sync') {
@@ -108,11 +163,11 @@ function startBullMQ(): void {
         }
       },
       { connection: redisConnection as any }
-    );
+    ));
 
     // Worker for delayed workflow-step auto-comms — its own queue since it
     // polls far more frequently (~2 min) than the reminders queue.
-    new Worker(
+    track(new Worker(
       'workflow-comms',
       async (job) => {
         if (job.name === 'send-due') {
@@ -120,12 +175,12 @@ function startBullMQ(): void {
         }
       },
       { connection: redisConnection as any }
-    );
+    ));
 
     // Worker for SEAL ledger anchoring — a daily stamp pass plus a more
     // frequent confirmation sweep (proof confirmation lags the stamp by
     // hours to days, independent of the stamp cadence itself).
-    new Worker(
+    track(new Worker(
       'seal-ledger-anchor',
       async (job) => {
         if (job.name === 'stamp') {
@@ -135,11 +190,11 @@ function startBullMQ(): void {
         }
       },
       { connection: redisConnection as any }
-    );
+    ));
 
     // Worker for ClearOS declaration ledger anchoring — same daily
     // stamp + hourly confirmation-sweep shape as SEAL's.
-    new Worker(
+    track(new Worker(
       'declaration-ledger-anchor',
       async (job) => {
         if (job.name === 'stamp') {
@@ -149,7 +204,7 @@ function startBullMQ(): void {
         }
       },
       { connection: redisConnection as any }
-    );
+    ));
 
     // Schedule repeatable jobs
     riskQueue.add('scan', {}, {

@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import './TrackingDriverDetail.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface DriverEnriched {
   id: string; name: string; phone: string | null; license_number: string | null;
@@ -140,7 +141,11 @@ export const TrackingDriverDetail: React.FC = () => {
           {/* Courier Info */}
           <div className="dd-card">
             <div className="dd-card-header">
-              <div className="dd-card-title">Courier Information</div>
+              <PageHeader
+                crumbs={['HuduFreight', 'Driver']}
+                titlePlain="Driver"
+                titleEm="profile"
+              />
               {!editingDriver ? (
                 <button type="button" onClick={startEditDriver}
                   style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }}>

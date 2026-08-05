@@ -10,6 +10,7 @@ import type {
   CreateDeclarationNoticeInput,
   DeclarationStatus,
 } from '@hudumika/types';
+import { countryCodeFromText } from '@hudumika/types';
 
 const ATTACHMENT_MIME_TYPES: Record<string, string> = {
   pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
@@ -21,6 +22,22 @@ export async function declarationRoutes(fastify: FastifyInstance) {
   // Enforce authentication on all routes
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('clearos'));
+
+  /**
+   * Proves the :id in the path is a declaration of the caller's own tenant.
+   *
+   * declaration_attachments has no tenant_id, so the attachment routes below
+   * cannot filter by tenant directly — they key on declaration_id alone, which
+   * on its own is just an id somebody could supply. This turns that into an
+   * ownership check. RLS does not cover the gap: this deployment connects as a
+   * role with rolbypassrls, so the policies never evaluate.
+   */
+  const ownsDeclaration = async (tenantId: string, declarationId: string) =>
+    withTenant(tenantId, async (trx) =>
+      !!(await trx.selectFrom('declarations').select('id')
+        .where('id', '=', declarationId)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst()));
 
   /**
    * GET /v1/declarations
@@ -87,6 +104,114 @@ export async function declarationRoutes(fastify: FastifyInstance) {
       }
     }
   );
+
+  /**
+   * GET /v1/declarations/prefill/:shipmentId
+   *
+   * Builds a declaration draft from what the shipment already holds. Nothing is
+   * saved — the form opens populated, the filer reviews it, and the existing
+   * PUT /by-shipment does the writing.
+   *
+   * This is the difference between 58 shipments carrying a TANSAD number and 1
+   * declaration existing: re-keying BL, vessel, weights, invoice value and
+   * importer by hand is why the module went unused.
+   *
+   * Two rules it does not break:
+   *  - Nothing is invented. Every value carries a `sources` entry naming the
+   *    column it came from, and anything that cannot be resolved is listed in
+   *    `missing` instead of being filled with a plausible default. A country
+   *    that cannot be read out of a free-text port name stays empty, because
+   *    country_of_export is a legal statement on a customs entry.
+   *  - The HS code is offered, never assigned. It comes back under
+   *    `needsConfirmation` so the filer has to accept it — misclassification
+   *    is a penalty offence, and a prefilled field is easy to skim past.
+   */
+  fastify.get('/prefill/:shipmentId', async (request, reply) => {
+    const user = request.user;
+    const { shipmentId } = request.params as { shipmentId: string };
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const s = await trx.selectFrom('shipment_cases').selectAll()
+        .where('id', '=', shipmentId).where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      if (!s) return reply.status(404).send({ error: 'Shipment not found' });
+
+      if (s.declaration_id) {
+        return reply.status(409).send({
+          error: 'This shipment already has a declaration.',
+          declarationId: s.declaration_id,
+        });
+      }
+
+      const customer = s.customer_id
+        ? await trx.selectFrom('customers').selectAll()
+            .where('id', '=', s.customer_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst()
+        : null;
+      const tenant = await trx.selectFrom('tenants').select(['name'])
+        .where('id', '=', user.tenant_id).executeTakeFirst();
+
+      const sources: Record<string, string> = {};
+      const missing: { field: string; label: string; why: string }[] = [];
+      const put = <T,>(field: string, value: T, from: string): T => {
+        if (value !== null && value !== undefined && value !== '') sources[field] = from;
+        return value;
+      };
+      const need = (field: string, label: string, why: string) => missing.push({ field, label, why });
+
+      const originCountry = countryCodeFromText(s.origin_port);
+      const destCountry = countryCodeFromText(s.dest_port);
+      if (!originCountry) need('country_of_export', 'Country of export', `"${s.origin_port ?? 'not set'}" is not a country we can read a code from`);
+      if (!destCountry) need('country_of_destination', 'Country of destination', `"${s.dest_port ?? 'not set'}" is not a country we can read a code from`);
+      if (!customer?.tax_id) need('importer_tin', 'Importer TIN', customer ? `No tax ID on file for ${customer.name}` : 'This shipment has no customer');
+      if (!s.cif_value_usd) need('total_invoice_value', 'Invoice value', 'No CIF value recorded on the shipment');
+
+      const draft = {
+        // Identity — the filer supplies the real TANCIS ref on lodgement, so
+        // the shipment's own reference stands in as a working label only.
+        tancis_ref: put('tancis_ref', s.bl_number || s.awb_number || s.ref_number, s.bl_number ? 'shipment.bl_number' : s.awb_number ? 'shipment.awb_number' : 'shipment.ref_number'),
+        tansad_number: put('tansad_number', s.tansad_number ?? null, 'shipment.tansad_number'),
+        reference_date: new Date(),
+
+        // General
+        gross_weight_kg: put('gross_weight_kg', Number(s.gross_weight_kg ?? 0), 'shipment.gross_weight_kg'),
+        total_packages: put('total_packages', Array.isArray(s.containers) ? s.containers.length : 0, 'shipment.containers'),
+
+        // Trade operators
+        consignment_country: originCountry ?? '',
+        country_of_export: put('country_of_export', originCountry ?? '', 'shipment.origin_port'),
+        country_of_destination: put('country_of_destination', destCountry ?? '', 'shipment.dest_port'),
+        importer_name: put('importer_name', customer?.name ?? '', 'customer.name'),
+        importer_tin: put('importer_tin', customer?.tax_id ?? '', 'customer.tax_id'),
+        importer_address: put('importer_address', customer?.registered_address || customer?.address || '', 'customer.address'),
+        // The declarant is the clearing agent — this workspace.
+        declarant_name: put('declarant_name', tenant?.name ?? '', 'tenant.name'),
+
+        // Financial
+        total_invoice_value: put('total_invoice_value', Number(s.cif_value_usd ?? 0), 'shipment.cif_value_usd'),
+        invoice_currency: 'USD',
+
+        // Transport
+        bl_number: put('bl_number', s.bl_number ?? '', 'shipment.bl_number'),
+        vessel_name: put('vessel_name', s.vessel ?? '', 'shipment.vessel'),
+        arrival_date: put('arrival_date', s.eta ?? null, 'shipment.eta'),
+        shipment_place: put('shipment_place', s.origin_port ?? '', 'shipment.origin_port'),
+        discharge_place: put('discharge_place', s.dest_port ?? '', 'shipment.dest_port'),
+        total_container_count: put('total_container_count', Array.isArray(s.containers) ? s.containers.length : 0, 'shipment.containers'),
+      };
+
+      return {
+        shipment: { id: s.id, refNumber: s.ref_number, goodsDescription: s.goods_desc },
+        draft,
+        sources,
+        missing,
+        // Offered for review, never applied silently.
+        needsConfirmation: s.hs_code
+          ? [{ field: 'hs_code', value: s.hs_code, from: 'shipment.hs_code',
+               note: 'Carried from the shipment. Confirm it before lodging — a wrong classification is a penalty offence.' }]
+          : [],
+      };
+    });
+  });
 
   /**
    * GET /v1/declarations/by-shipment/:shipmentId
@@ -301,6 +426,9 @@ export async function declarationRoutes(fastify: FastifyInstance) {
   fastify.get('/:id/attachments', async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
+    if (!(await ownsDeclaration(user.tenant_id, id))) {
+      return reply.status(404).send({ error: 'Declaration not found' });
+    }
     return withTenant(user.tenant_id, async (trx) =>
       trx.selectFrom('declaration_attachments').selectAll()
         .where('declaration_id', '=', id)
@@ -315,6 +443,10 @@ export async function declarationRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/attachments/upload', async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
+
+    if (!(await ownsDeclaration(user.tenant_id, id))) {
+      return reply.status(404).send({ error: 'Declaration not found' });
+    }
 
     const data = await request.file();
     if (!data) return reply.status(400).send({ error: 'No file uploaded' });
@@ -354,6 +486,9 @@ export async function declarationRoutes(fastify: FastifyInstance) {
   fastify.get('/:id/attachments/:attId/download', async (request, reply) => {
     const user = request.user;
     const { id, attId } = request.params as { id: string; attId: string };
+    if (!(await ownsDeclaration(user.tenant_id, id))) {
+      return reply.status(404).send({ error: 'Declaration not found' });
+    }
 
     return withTenant(user.tenant_id, async (trx) => {
       const att = await trx.selectFrom('declaration_attachments').selectAll()
@@ -379,6 +514,9 @@ export async function declarationRoutes(fastify: FastifyInstance) {
   fastify.delete('/:id/attachments/:attId', async (request, reply) => {
     const user = request.user;
     const { id, attId } = request.params as { id: string; attId: string };
+    if (!(await ownsDeclaration(user.tenant_id, id))) {
+      return reply.status(404).send({ error: 'Declaration not found' });
+    }
 
     return withTenant(user.tenant_id, async (trx) => {
       const att = await trx.selectFrom('declaration_attachments').selectAll()

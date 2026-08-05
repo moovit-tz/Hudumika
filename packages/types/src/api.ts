@@ -123,7 +123,9 @@ export interface KPIResponse {
   sla_breached: number;
   delivered_today: number;
   penalty_exposure_tzs: number;
-  on_time_rate_pct: number;   // last 30 days
+  /** Null when no case has closed yet — a rate over zero events is not 100%,
+   *  it is no measurement. Callers must render "no data", never a number. */
+  on_time_rate_pct: number | null;
   cases_this_month: number;
   total_cases?: number;
   customer_count?: number;

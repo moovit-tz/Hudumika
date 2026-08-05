@@ -7,6 +7,7 @@ import { EMPLOYEES } from '../data/staffData.js';
 import type { EmpStatus } from '../data/staffData.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface StaffData {
   id: string;
@@ -27,7 +28,7 @@ interface StaffData {
 }
 
 const AVATAR_COLORS = ['#e8461a','#0891b2','#7c3aed','#059669','#d97706','#9333ea'];
-function avatarBg(n: string) { return AVATAR_COLORS[[...n].reduce((a,c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length]; }
+function avatarBg(n: string) { return AVATAR_COLORS[[...(n ?? '?')].reduce((a,c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length]; }
 function initials(n: string) { return n.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase(); }
 
 function formatDate(d: string | null | undefined): string {
@@ -233,7 +234,7 @@ export const StaffDetail: React.FC = () => {
     return (
       <div style={{ padding: '40px', textAlign: 'center' }}>
         <h2 style={{ color: 'var(--ink)', marginBottom: 12 }}>Staff member not found</h2>
-        <Link to="/onepi/employees" className="btn btn-secondary">Back to HR</Link>
+        <Link to="/nexushr/employees" className="btn btn-secondary">Back to HR</Link>
       </div>
     );
   }
@@ -257,7 +258,11 @@ export const StaffDetail: React.FC = () => {
           <Icon name="arrowLeft" size={16} color="var(--ink2)" />
         </button>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: '0 0 2px' }}>Staff Profile</h1>
+          <PageHeader
+            crumbs={['NexusHR', 'Staff']}
+            titlePlain="Staff"
+            titleEm="profile"
+          />
           <p style={{ fontSize: 13, color: 'var(--ink3)', margin: 0 }}>Manage {staff.name.split(' ')[0]}'s account and details</p>
         </div>
         <span style={{ marginLeft: 'auto', padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: ss.bg, color: ss.color }}>{ss.label}</span>

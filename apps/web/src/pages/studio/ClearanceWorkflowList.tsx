@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { apiFetch } from '../lib/api.js';
-import { Icon, type IconName } from '../components/Icon.js';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { apiFetch } from '../../lib/api.js';
+import { Icon, type IconName } from '../../components/Icon.js';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
 import type { Workflow } from '@hudumika/types';
-import { showAlert } from '../lib/alert.js';
+import { showAlert } from '../../lib/alert.js';
 import './Workflows.css';
-import { showConfirm } from '../lib/confirm.js';
+import { showConfirm } from '../../lib/confirm.js';
+import { PageHeader } from '../../components/PageHeader.js';
 
 export type { FieldCondition, AutoComm, WorkflowStep, WorkflowTrigger, Workflow } from '@hudumika/types';
 
@@ -43,7 +44,7 @@ function buildDefaultAssignment(wfs: Workflow[]): AssignmentMap {
 
 // ── Main component ───────────────────────────────────────────────────────────
 
-export function WorkflowsPage() {
+export function ClearanceWorkflowList() {
   const navigate = useNavigate();
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -158,17 +159,18 @@ export function WorkflowsPage() {
       {/* Header */}
       <div className="wf-page-header">
         <div>
-          <h1 className="wf-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="tasks" size={20} />
-            Shipment Workflows
-          </h1>
-          <div className="wf-page-sub">Define step-by-step processes, entry conditions, and automated communications for each shipment type.</div>
+          <PageHeader
+            crumbs={['Studio', 'Clearance']}
+            titlePlain="Shipment"
+            titleEm="workflows"
+            subtitle="Define step-by-step processes, entry conditions, and automated communications for each shipment type."
+          />
         </div>
         <div className="wf-header-actions">
           <button className="wfb-btn-ghost wfb-btn-sm" onClick={() => navigate('/clearos/ops')}>
             Back to Ops
           </button>
-          <button className="wfb-btn-primary" onClick={() => navigate('/clearos/workflows/new')}>
+          <button className="wfb-btn-primary" onClick={() => navigate('/studio/clearance/new')}>
             <Icon name="plus" size={14} color="white" />
             New Workflow
           </button>
@@ -195,7 +197,7 @@ export function WorkflowsPage() {
                 <div className="wf-empty-icon"><Icon name="tasks" size={32} color="var(--ink3)" /></div>
                 <div className="wf-empty-title">No Workflows Yet</div>
                 <div className="wf-empty-sub">Create your first workflow to configure how shipments move through your operations.</div>
-                <button className="wfb-btn-primary" onClick={() => navigate('/clearos/workflows/new')}>
+                <button className="wfb-btn-primary" onClick={() => navigate('/studio/clearance/new')}>
                   <Icon name="plus" size={13} color="white" /> New Workflow
                 </button>
               </div>
@@ -210,7 +212,7 @@ export function WorkflowsPage() {
                       </div>
                     </div>
                     <div className="wf-card-actions">
-                      <button className="wf-icon-btn" title="Edit" onClick={() => navigate(`/clearos/workflows/${wf.id}/edit`)}>
+                      <button className="wf-icon-btn" title="Edit" onClick={() => navigate(`/studio/clearance/${wf.id}`)}>
                         <Icon name="edit" size={13} />
                       </button>
                       <button className="wf-icon-btn" title="Duplicate" onClick={() => handleDuplicate(wf)}>

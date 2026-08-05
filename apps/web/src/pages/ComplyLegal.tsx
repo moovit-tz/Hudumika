@@ -8,6 +8,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { ComplyWizardPage, WizardField } from './ComplyWizardPage.js';
 import { ComplyCustomerPicker } from './ComplyCustomerPicker.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 const SPECIALTIES_FILTER = [
   'All', 'Corporate Registration', 'Tax Compliance', 'Employment Law',
@@ -192,12 +193,14 @@ export function ComplyLegal() {
 
   return (
     <div className="comply-page">
+      <PageHeader
+        crumbs={['ComplyOS', 'Legal Firm Marketplace']}
+        titlePlain="Legal Firm"
+        titleEm="marketplace"
+        subtitle="Engage vetted legal firms to handle your compliance applications"
+      />
       <div className="comply-page-hdr">
-        <div>
-          <h1 className="comply-page-title">Legal Firm Marketplace</h1>
-          <p className="comply-page-sub">Engage vetted legal firms to handle your compliance applications</p>
         </div>
-      </div>
 
       <div className="comply-filters" style={{ marginBottom: 18 }}>
         <button type="button" className={`comply-filter-btn${tab === 'firms' ? ' active' : ''}`} onClick={() => setTab('firms')}>Browse Firms</button>

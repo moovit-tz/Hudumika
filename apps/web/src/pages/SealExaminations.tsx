@@ -4,6 +4,7 @@ import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Examination {
   id: string; customsEntryId: string; lotDescription?: string; selectivityChannel: string;
@@ -26,11 +27,13 @@ export function SealExaminations() {
 
   return (
     <div className="seal-page">
+      <PageHeader
+        crumbs={['SEAL', 'Examinations']}
+        titlePlain="Customs"
+        titleEm="examinations"
+        subtitle="Selectivity worklist — YELLOW and RED channel declarations block release until an officer completes an examination here."
+      />
       <div className="seal-page-hdr">
-        <div>
-          <h1 className="seal-page-title">Examinations</h1>
-          <p className="seal-page-sub">Selectivity worklist — YELLOW and RED channel declarations block release until an officer completes an examination here.</p>
-        </div>
       </div>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>

@@ -9,6 +9,7 @@ import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Inventory.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Task {
   id: string; itemId: string | null; warehouseId: string | null; title: string;
@@ -88,8 +89,12 @@ export function InventoryTasks() {
     <div className="inv-page">
       <div className="inv-page-hdr">
         <div>
-          <h1 className="inv-page-title">Tasks</h1>
-          <p className="inv-page-sub">Tasks assigned to real staff — surfaces in their personal Tasks app too, so nothing lives only inside Inventory Control.</p>
+          <PageHeader
+            crumbs={['Inventory', 'Tasks']}
+            titlePlain="Warehouse"
+            titleEm="tasks"
+            subtitle="Tasks assigned to real staff — surfaces in their personal Tasks app too, so nothing lives only inside Inventory Control."
+          />
         </div>
         <Button type="button" onClick={() => setShowNew(v => !v)}>
           <Icon name="plus" size={14} /><span>New Task</span>

@@ -14,10 +14,12 @@ import { Switch } from '../../components/ui/switch.js';
 import { Input } from '../../components/ui/input.js';
 import { Textarea } from '../../components/ui/textarea.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../components/ui/select.js';
+import { Combobox } from '../../components/ui/combobox.js';
 import { STUDIO_NODE_TYPES, NODE_META, type StudioNodeData } from './StudioNodes.js';
 import type {
   WorkflowStudioApp, WorkflowStudioRun, WorkflowStudioNode, WorkflowStudioEdge,
   WorkflowStudioTriggerDef, WorkflowStudioActionDef, WorkflowStudioNodeType,
+  WorkflowStudioTargeting,
 } from '@hudumika/types';
 
 const OPERATORS = [
@@ -38,6 +40,18 @@ const STATUS_VARIANT: Record<string, 'success' | 'warning' | 'error' | 'info' | 
 
 function newId(prefix: string) { return `${prefix}-${Math.random().toString(36).slice(2, 8)}`; }
 
+/** Mirrors clearance's own option lists so the two builders offer the same words. */
+const STUDIO_FREIGHT_MODES = ['sea', 'air', 'road', 'rail'] as const;
+const STUDIO_CONSIGNMENT_TYPES = ['import', 'export', 'transit'] as const;
+
+const emptyTargeting = (): WorkflowStudioTargeting => ({
+  freightModes: [], consignmentTypes: [], customerIds: [], originCountries: [], destinationCountries: [],
+});
+
+const hasTargeting = (t?: WorkflowStudioTargeting): boolean =>
+  !!t && (t.freightModes?.length || t.consignmentTypes?.length || t.customerIds?.length
+    || t.originCountries?.length || t.destinationCountries?.length) > 0;
+
 export function WorkflowEditor() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -48,6 +62,7 @@ export function WorkflowEditor() {
   const [triggers, setTriggers] = useState<WorkflowStudioTriggerDef[]>([]);
   const [actions, setActions] = useState<WorkflowStudioActionDef[]>([]);
   const [runs, setRuns] = useState<WorkflowStudioRun[]>([]);
+  const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
   const [viewedRun, setViewedRun] = useState<WorkflowStudioRun | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
@@ -63,6 +78,12 @@ export function WorkflowEditor() {
 
   const triggerById = useMemo(() => new Map(triggers.map(t => [t.id, t])), [triggers]);
   const actionById = useMemo(() => new Map(actions.map(a => [a.id, a])), [actions]);
+
+  useEffect(() => {
+    apiFetch('/v1/customers')
+      .then((r: any) => setCustomers(Array.isArray(r) ? r : r.data ?? r.customers ?? []))
+      .catch(() => setCustomers([]));
+  }, []);
 
   // ── load ────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -164,6 +185,15 @@ export function WorkflowEditor() {
     patchWorkflow(w => ({ ...w, nodes: w.nodes.map(n => (n.id === nodeId ? { ...n, ...patch } : n)) }));
   }, [patchWorkflow]);
 
+  /** Toggles one value in a targeting list, creating the object if absent. */
+  const patchTargeting = useCallback((key: 'freightModes' | 'consignmentTypes', value: string) => {
+    patchWorkflow(w => {
+      const cur = { ...emptyTargeting(), ...w.targeting };
+      const list = cur[key];
+      return { ...w, targeting: { ...cur, [key]: list.includes(value) ? list.filter(x => x !== value) : [...list, value] } };
+    });
+  }, [patchWorkflow]);
+
   const removeNode = useCallback((nodeId: string) => {
     patchWorkflow(w => ({
       ...w,
@@ -194,6 +224,7 @@ export function WorkflowEditor() {
         body: JSON.stringify({
           name: workflow.name, description: workflow.description,
           trigger_event: workflow.trigger_event, nodes: workflow.nodes, edges: workflow.edges,
+          targeting: workflow.targeting ?? {},
         }),
       });
       setWorkflow(res.data); setDirty(false);
@@ -229,6 +260,12 @@ export function WorkflowEditor() {
   const selectedNode = workflow?.nodes.find(n => n.id === selectedId) ?? null;
   const selectedAction = selectedNode?.type === 'action' ? actionById.get(selectedNode.eventOrAction ?? '') : undefined;
   const currentTrigger = workflow ? triggerById.get(workflow.trigger_event) : undefined;
+  const targetingIsSet = hasTargeting(workflow?.targeting);
+  // Targeting is resolved from the shipment an event is about. A trigger that
+  // carries something else can never satisfy it, and the server skips the
+  // workflow rather than running it unrestricted — so say so here, before the
+  // author activates something that would silently never fire.
+  const triggerCarriesShipment = currentTrigger?.entityType === 'shipment';
 
   if (loading) return <div style={{ padding: 40, color: 'var(--ink3)' }}>Loading workflow…</div>;
   if (!workflow) return <div style={{ padding: 40, color: 'var(--red)' }}>{error || 'Workflow not found.'}</div>;
@@ -433,6 +470,76 @@ export function WorkflowEditor() {
                       : <span style={{ color: 'var(--red)' }}>“{workflow.trigger_event}” is not a registered trigger — nothing emits it, so this workflow can never run.</span>}
                   </div>
                 </div>
+                {/* Targeting — borrowed from clearance workflows (migration 168).
+                    Until this existed an automation could say which event fires
+                    it but never which shipments it applies to. */}
+                <div className="studio-section">
+                  <div className="studio-section-title">Only for these shipments</div>
+                  <div className="studio-field-hint" style={{ marginBottom: 9 }}>
+                    Leave everything empty and this runs for every {currentTrigger?.label?.toLowerCase() ?? 'matching'} event.
+                    Narrow it and only shipments matching <strong>all</strong> the categories you set will run it.
+                  </div>
+
+                  <div className="studio-field">
+                    <label className="studio-field-label">Freight mode</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {STUDIO_FREIGHT_MODES.map(m => {
+                        const on = (workflow.targeting?.freightModes ?? []).includes(m);
+                        return (
+                          <button key={m} type="button" className={`studio-chip ${on ? 'sel' : ''}`}
+                            onClick={() => patchTargeting('freightModes', m)}>{m}</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="studio-field">
+                    <label className="studio-field-label">Consignment type</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {STUDIO_CONSIGNMENT_TYPES.map(c => {
+                        const on = (workflow.targeting?.consignmentTypes ?? []).includes(c);
+                        return (
+                          <button key={c} type="button" className={`studio-chip ${on ? 'sel' : ''}`}
+                            onClick={() => patchTargeting('consignmentTypes', c)}>{c}</button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="studio-field">
+                    <label className="studio-field-label">Customer</label>
+                    <Combobox
+                      options={[
+                        { value: '__none__', label: 'Any customer' },
+                        ...customers.map(c => ({ value: c.id, label: c.name })),
+                      ]}
+                      value={(workflow.targeting?.customerIds ?? [])[0] ?? '__none__'}
+                      onChange={v => patchWorkflow(w => ({
+                        ...w,
+                        targeting: { ...emptyTargeting(), ...w.targeting, customerIds: v === '__none__' ? [] : [v] },
+                      }))}
+                      placeholder="Any customer"
+                      searchPlaceholder="Search customers…"
+                      emptyText="No customers found."
+                    />
+                  </div>
+
+                  {/* Only when the trigger is registered but is about something
+                      other than a shipment. An unregistered trigger already has
+                      a louder, more accurate error on the Trigger field above,
+                      and two overlapping explanations help nobody. */}
+                  {targetingIsSet && currentTrigger && !triggerCarriesShipment && (
+                    <div style={{ display: 'flex', gap: 8, padding: '9px 11px', borderRadius: 9, background: 'var(--gold-l)', border: '1px solid var(--gold-l)', fontSize: 11.5, color: 'var(--ink2)' }}>
+                      <Icon name="alertTriangle" size={14} color="var(--gold)" style={{ flexShrink: 0, marginTop: 1 }} />
+                      <span>
+                        <strong>{currentTrigger?.label ?? workflow.trigger_event}</strong> is not about a shipment, so these
+                        filters can never be checked — this workflow would be skipped every time. Clear the targeting, or pick a
+                        shipment trigger.
+                      </span>
+                    </div>
+                  )}
+                </div>
+
                 {contextFields.length > 0 && (
                   <div className="studio-section">
                     <div className="studio-section-title">Available fields</div>

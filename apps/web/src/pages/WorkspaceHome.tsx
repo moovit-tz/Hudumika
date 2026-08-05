@@ -30,7 +30,7 @@ interface HudumikaApp {
 const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category' | 'status' | 'userCount' | 'dataSize' | 'appServicesCount' | 'tags'>> = {
   clearos:      { desc: 'Customs clearance platform & TANCIS integration', category: 'Logistics', status: 'Live', userCount: 12, dataSize: '33 GB', appServicesCount: 4, tags: ['TANCIS', 'EAC CET', 'PVoC'] },
   finops:       { desc: 'Financial accounts, TRA EFD integration & payroll ledger', category: 'Finance', status: 'Live', userCount: 5, dataSize: '45 GB', appServicesCount: 3, tags: ['Ledger', 'EFD', 'VAT'] },
-  onepi:        { desc: 'People operations, payroll & shift rosters', category: 'HR', status: 'Live', userCount: 15, dataSize: '08 GB', appServicesCount: 2, tags: ['Payroll', 'NSSF', 'WCF'] },
+  nexushr:        { desc: 'People operations, payroll & shift rosters', category: 'HR', status: 'Live', userCount: 15, dataSize: '08 GB', appServicesCount: 2, tags: ['Payroll', 'NSSF', 'WCF'] },
   bliss:        { desc: 'Omnichannel customer helpdesk & ticketing system', category: 'Support', status: 'Live', userCount: 8, dataSize: '24 GB', appServicesCount: 3, tags: ['Helpdesk', 'Tickets', 'SLA'] },
   complyos:     { desc: 'Compliance tracking, BRELA business search, permits & audit logs', category: 'Compliance', status: 'Live', userCount: 3, dataSize: '12 GB', appServicesCount: 1, tags: ['BRELA', 'Permits', 'Audit'] },
   crm:          { desc: 'Customer relationships, leads & sales pipeline', category: 'Sales', status: 'Live', userCount: 6, dataSize: '18 GB', appServicesCount: 2, tags: ['Pipeline', 'Deals', 'KADABRA'] },
@@ -141,9 +141,9 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
   const [starredIds, setStarredIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('hudumika_starred_apps');
-      return saved ? JSON.parse(saved) : ['clearos', 'finops', 'onepi', 'bliss'];
+      return saved ? JSON.parse(saved) : ['clearos', 'finops', 'nexushr', 'bliss'];
     } catch {
-      return ['clearos', 'finops', 'onepi', 'bliss'];
+      return ['clearos', 'finops', 'nexushr', 'bliss'];
     }
   });
 
@@ -155,9 +155,9 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
   const [recentIds, setRecentIds] = useState<string[]>(() => {
     try {
       const saved = localStorage.getItem('hudumika_recently_viewed');
-      return saved ? JSON.parse(saved) : ['clearos', 'finops', 'onepi', 'bliss', 'complyos'];
+      return saved ? JSON.parse(saved) : ['clearos', 'finops', 'nexushr', 'bliss', 'complyos'];
     } catch {
-      return ['clearos', 'finops', 'onepi', 'bliss', 'complyos'];
+      return ['clearos', 'finops', 'nexushr', 'bliss', 'complyos'];
     }
   });
 

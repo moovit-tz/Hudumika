@@ -4,7 +4,32 @@ import crypto from 'crypto';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { EmailIntegration } from '../integrations/email.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
 import { env } from '../config/env.js';
+
+/**
+ * YYYY-MM-DD from a `date` column, whatever the driver hands back.
+ *
+ * pg parses `date` into a JS Date, so `String(v).slice(0, 10)` yields
+ * "Tue Sep 01" — a value that looks like a date, is not one, and would arrive
+ * in every consuming app's workflow payload. The same trap cost the SuperAdmin
+ * trade-wizard trend a 500.
+ */
+function isoDate(v: unknown): string {
+  if (v instanceof Date) {
+    // Local parts, NOT toISOString(). A `date` column has no time or zone, and
+    // pg materialises it at LOCAL midnight — so in any timezone ahead of UTC
+    // toISOString() rolls it back a day. Storing 2026-09-01 and emitting
+    // 2026-08-31 to every subscribing app is a whole day of leave in the wrong
+    // place; verified here, on this machine, before it shipped.
+    const p = (n: number) => String(n).padStart(2, '0');
+    return `${v.getFullYear()}-${p(v.getMonth() + 1)}-${p(v.getDate())}`;
+  }
+  const s = String(v ?? '');
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const d = new Date(s);
+  return Number.isNaN(d.getTime()) ? s : isoDate(d);
+}
 
 async function logActivity(trx: any, tenantId: string, userId: string | null, action: string, module = 'HR') {
   await trx.insertInto('hr_activity_log').values({ tenant_id: tenantId, user_id: userId, action, module }).execute();
@@ -12,7 +37,7 @@ async function logActivity(trx: any, tenantId: string, userId: string | null, ac
 
 export async function hrRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
-  fastify.addHook('preHandler', requireEntitlement('onepi'));
+  fastify.addHook('preHandler', requireEntitlement('nexushr'));
 
   // ── Departments ───────────────────────────────────────────────
 
@@ -33,7 +58,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/departments', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/departments', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const body = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -46,7 +71,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/departments/:id', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/departments/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     const body = req.body as any;
@@ -62,7 +87,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/departments/:id', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.delete('/departments/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -87,7 +112,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/designations', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/designations', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const body = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -99,7 +124,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/designations/:id', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/designations/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     const body = req.body as any;
@@ -113,7 +138,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/designations/:id', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.delete('/designations/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -137,7 +162,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/shifts', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/shifts', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const body = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -152,7 +177,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/shifts/:id', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.delete('/shifts/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -184,7 +209,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/shift-assignments', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') }, async (req) => {
+  fastify.post('/shift-assignments', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') }, async (req) => {
     const user = req.user;
     const body = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -226,7 +251,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/attendance', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') }, async (req) => {
+  fastify.post('/attendance', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') }, async (req) => {
     const user = req.user;
     const body = req.body as any;
     const dateStr: string = body.date;
@@ -261,7 +286,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/attendance/bulk', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') }, async (req) => {
+  fastify.post('/attendance/bulk', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') }, async (req) => {
     const user = req.user;
     const body = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -323,7 +348,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const body = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.insertInto('hr_leaves').values({
+      const row = await trx.insertInto('hr_leaves').values({
         tenant_id: user.tenant_id,
         user_id: body.user_id || user.sub,
         type: body.type,
@@ -332,10 +357,21 @@ export async function hrRoutes(fastify: FastifyInstance) {
         days: Number(body.days),
         reason: body.reason || null,
       }).returningAll().executeTakeFirstOrThrow();
+
+      // Until now NexusHR emitted nothing, so no other app could react to
+      // anything that happened in HR. Operations needs to know a clearing
+      // officer will be away before it assigns them next week's consignments.
+      await emitDomainEvent(trx, user.tenant_id, {
+        type: 'hr.leave_requested', sourceApp: 'nexushr', entityType: 'leave', entityId: row.id,
+        payload: { userId: row.user_id, leaveType: row.type, fromDate: isoDate(row.from_date),
+                   toDate: isoDate(row.to_date), days: Number(row.days) },
+      }).catch(err => console.error('[HR] leave_requested emit failed:', err?.message));
+
+      return row;
     });
   });
 
-  fastify.patch('/leaves/:id/status', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') }, async (req) => {
+  fastify.patch('/leaves/:id/status', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     const body = req.body as any;
@@ -348,6 +384,37 @@ export async function hrRoutes(fastify: FastifyInstance) {
       }).where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow();
       await logActivity(trx, user.tenant_id, user.sub, `${body.status === 'APPROVED' ? 'Approved' : body.status === 'REJECTED' ? 'Rejected' : 'Updated'} leave request (${updated.type})`);
+
+      // Only the settled outcomes are events; an intermediate status change is
+      // not something another app should act on.
+      //
+      // Two explicit calls rather than one with a ternary type: scripts/
+      // check-triggers.ts reads the literal `type:` out of each emit block to
+      // prove every registered trigger has a real emitter, and a computed type
+      // is invisible to it. Keeping the literal visible keeps the guard honest.
+      // The payload is written out in full at each call rather than shared via
+      // a variable, because the same check also reads the payload KEYS from the
+      // block to prove Studio's field picker won't offer a field that is always
+      // empty. A variable reference hides them.
+      const fromDate = isoDate(updated.from_date);
+      const toDate = isoDate(updated.to_date);
+      if (body.status === 'APPROVED') {
+        await emitDomainEvent(trx, user.tenant_id, {
+          type: 'hr.leave_approved', sourceApp: 'nexushr', entityType: 'leave', entityId: updated.id,
+          payload: {
+            userId: updated.user_id, leaveType: updated.type, fromDate, toDate,
+            days: Number(updated.days), decidedBy: user.sub,
+          },
+        }).catch(err => console.error('[HR] leave_approved emit failed:', err?.message));
+      } else if (body.status === 'REJECTED') {
+        await emitDomainEvent(trx, user.tenant_id, {
+          type: 'hr.leave_rejected', sourceApp: 'nexushr', entityType: 'leave', entityId: updated.id,
+          payload: {
+            userId: updated.user_id, leaveType: updated.type, fromDate, toDate,
+            days: Number(updated.days), decidedBy: user.sub,
+          },
+        }).catch(err => console.error('[HR] leave_rejected emit failed:', err?.message));
+      }
       return updated;
     });
   });
@@ -373,7 +440,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/payroll', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/payroll', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const body = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -406,7 +473,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/payroll/:id', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/payroll/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     const body = req.body as any;
@@ -445,7 +512,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/announcements', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/announcements', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const body = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -460,7 +527,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/announcements/:id', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/announcements/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     const body = req.body as any;
@@ -476,7 +543,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/announcements/:id', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.delete('/announcements/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -499,7 +566,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/holidays', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/holidays', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const body = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -512,7 +579,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/holidays/:id', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.delete('/holidays/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -554,7 +621,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/tasks', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/tasks', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const body = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -568,7 +635,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/tasks/:id', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/tasks/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     const body = req.body as any;
@@ -727,7 +794,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
   });
 
   // Patch another staff member's avatar (admin only)
-  fastify.patch('/staff/:id/avatar', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
+  fastify.patch('/staff/:id/avatar', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
     const body = req.body as { avatar_url: string };
@@ -819,7 +886,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/staff/:id', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/staff/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     const body = req.body as any;
@@ -835,7 +902,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/staff/:id/role', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/staff/:id/role', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     const { role } = req.body as any;
@@ -845,11 +912,17 @@ export async function hrRoutes(fastify: FastifyInstance) {
         .returning(['id', 'name', 'email', 'role'])
         .executeTakeFirstOrThrow();
       await logActivity(trx, user.tenant_id, user.sub, `Changed role for ${updated.name} to ${role}`);
+      // Role drives what a person can reach in every app on the platform, so
+      // this is the one HR change other apps most need to hear about.
+      await emitDomainEvent(trx, user.tenant_id, {
+        type: 'hr.staff_role_changed', sourceApp: 'nexushr', entityType: 'user', entityId: updated.id,
+        payload: { userId: updated.id, name: updated.name, email: updated.email, role: updated.role, changedBy: user.sub },
+      }).catch(err => console.error('[HR] staff_role_changed emit failed:', err?.message));
       return updated;
     });
   });
 
-  fastify.patch('/staff/:id/status', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/staff/:id/status', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     const { active } = req.body as any;
@@ -859,6 +932,22 @@ export async function hrRoutes(fastify: FastifyInstance) {
         .returning(['id', 'name', 'active'])
         .executeTakeFirstOrThrow();
       await logActivity(trx, user.tenant_id, user.sub, `${active ? 'Reactivated' : 'Deactivated'} staff member ${updated.name}`);
+      // Deactivation has consequences elsewhere — open shipments and tasks
+      // still assigned to this person need reassigning, which is exactly the
+      // kind of hand-off a Studio automation should own. Split for the same
+      // reason as the leave decision above: the literal type has to be visible
+      // to check-triggers.ts.
+      if (active) {
+        await emitDomainEvent(trx, user.tenant_id, {
+          type: 'hr.staff_reactivated', sourceApp: 'nexushr', entityType: 'user', entityId: updated.id,
+          payload: { userId: updated.id, name: updated.name, active: updated.active, changedBy: user.sub },
+        }).catch(err => console.error('[HR] staff_reactivated emit failed:', err?.message));
+      } else {
+        await emitDomainEvent(trx, user.tenant_id, {
+          type: 'hr.staff_deactivated', sourceApp: 'nexushr', entityType: 'user', entityId: updated.id,
+          payload: { userId: updated.id, name: updated.name, active: updated.active, changedBy: user.sub },
+        }).catch(err => console.error('[HR] staff_deactivated emit failed:', err?.message));
+      }
       return updated;
     });
   });
@@ -1008,7 +1097,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/teams', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/teams', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const body = req.body as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1020,7 +1109,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/teams/:id/members', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/teams/:id/members', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     const { user_id } = req.body as any;
@@ -1033,7 +1122,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/teams/:id/members/:userId', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.delete('/teams/:id/members/:userId', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id, userId } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1058,7 +1147,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/invitations', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/invitations', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const body = req.body as { email: string; role: string };
     return withTenant(user.tenant_id, async (trx) => {
@@ -1085,7 +1174,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/invitations/:id/resend', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/invitations/:id/resend', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1105,7 +1194,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.delete('/invitations/:id', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.delete('/invitations/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
@@ -1130,7 +1219,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/delete-requests', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/delete-requests', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const body = req.body as { user_id: string; reason?: string };
     return withTenant(user.tenant_id, async (trx) => {
@@ -1140,7 +1229,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/delete-requests/:id', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/delete-requests/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     const { status } = req.body as { status: 'APPROVED' | 'REJECTED' };
@@ -1164,7 +1253,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   // ── Login History & Devices ───────────────────────────────────
 
-  fastify.get('/login-history', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.get('/login-history', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       return trx.selectFrom('hr_login_history as l')
@@ -1177,7 +1266,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.get('/devices', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.get('/devices', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       return trx.selectFrom('hr_devices as d')
@@ -1189,7 +1278,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/devices/:id', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/devices/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
     const { trusted } = req.body as { trusted: boolean };
@@ -1202,7 +1291,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   // ── Activity Log ──────────────────────────────────────────────
 
-  fastify.get('/activity-log', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (req) => {
+  fastify.get('/activity-log', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (req) => {
     const user = req.user;
     return withTenant(user.tenant_id, async (trx) => {
       return trx.selectFrom('hr_activity_log as a')

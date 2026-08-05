@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { showConfirm } from '../lib/confirm.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface FuelLog {
   id: string; vehicle_id: string; driver_id: string | null; liters: number;
@@ -34,8 +35,12 @@ export const TrackingFuel: React.FC = () => {
     <div style={{ padding: 24 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)' }}>Fuel</div>
-          <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>{totalLiters.toFixed(1)} L logged · {totalCost.toLocaleString()} total cost</div>
+          <PageHeader
+            crumbs={['HuduFreight', 'Fuel']}
+            titlePlain="Fuel"
+            titleEm="log"
+            subtitle={<>{totalLiters.toFixed(1)} L logged · {totalCost.toLocaleString()} total cost</>}
+          />
         </div>
         <Link to="/tracking/fuel/new"
           style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>

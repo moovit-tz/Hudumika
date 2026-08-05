@@ -28,7 +28,7 @@ export default
     "finops": "Finances & Comptabilité",
     "complyos": "Plateforme de conformité",
     "bliss": "Support & Assistance",
-    "onepi": "Personnel & RH",
+    "nexushr": "Personnel & RH",
     "onesite": "Web & CMS",
     "oneid": "Identité & Accès",
     "tracking": "Suivi de flotte GPS",

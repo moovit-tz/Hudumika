@@ -11,6 +11,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox } from '../components/ui/combobox.js';
 import './TrackingVehicles.css';
 import 'leaflet/dist/leaflet.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Vehicle {
   id: string; name: string; plate_number: string | null; type: string;
@@ -213,7 +214,11 @@ export const TrackingVehicles: React.FC = () => {
     <div className="trk-dashboard" style={{ '--trk-brand': brandColor } as React.CSSProperties}>
       {/* Header */}
       <div className="trk-header">
-        <div className="trk-title">Fleet Dashboard</div>
+        <PageHeader
+            crumbs={['HuduFreight', 'Vehicles']}
+            titlePlain="Fleet"
+            titleEm="vehicles"
+          />
         <div className="trk-actions">
           <div className="trk-search-bar">
             <Icon name="search" size={14} style={{color: 'var(--ink3)'}} />

@@ -15,7 +15,7 @@ import { z } from 'zod';
  */
 
 export type AppId =
-  | 'clearos' | 'finops' | 'onepi' | 'bliss' | 'complyos' | 'crm'
+  | 'clearos' | 'finops' | 'nexushr' | 'bliss' | 'complyos' | 'crm'
   | 'tracking' | 'cargotracker' | 'seal' | 'inventory' | 'studio';
 
 export type TriggerKind = 'DOMAIN_EVENT' | 'SCHEDULE' | 'MANUAL';
@@ -224,6 +224,106 @@ export const TRIGGERS: TriggerDef[] = [
     entityType: null,
     payloadSchema: z.object({}).passthrough(),
     samplePayload: {},
+  },
+
+  {
+    // Emitted by shipments.routes.ts:1225 when a cost is booked against a
+    // shipment. It was added for the estimate-vs-actual intelligence loop and
+    // never registered here, so check:triggers has been failing on it — an
+    // event nothing could subscribe to.
+    id: 'shipment.cost_recorded',
+    kind: 'DOMAIN_EVENT',
+    app: 'finops',
+    label: 'Cost recorded against a shipment',
+    description: 'An expense line was booked to a consignment, under a charge head.',
+    entityType: 'shipment',
+    payloadSchema: z.object({
+      expenseId: z.string(), chargeHead: z.string().nullable(), amountTzs: z.number(),
+    }).passthrough(),
+    samplePayload: { expenseId: '00000000-0000-0000-0000-000000000000', chargeHead: 'TRANSPORT', amountTzs: 450000 },
+  },
+
+  /*
+   * NexusHR. Emitted from hr.routes.ts — leave POST/PATCH and the two
+   * staff PATCH handlers. Before these, HR was reachable from other apps but
+   * announced nothing, so no app could ever respond to something that happened
+   * to a person: a clearing officer going on leave, or being deactivated while
+   * still holding open consignments.
+   */
+  {
+    id: 'hr.leave_requested',
+    kind: 'DOMAIN_EVENT',
+    app: 'nexushr',
+    label: 'Leave requested',
+    description: 'A staff member submitted a leave request. Fires before anyone has approved it.',
+    entityType: 'leave',
+    payloadSchema: z.object({
+      userId: z.string(), leaveType: z.string(), fromDate: z.string(), toDate: z.string(), days: z.number(),
+    }).passthrough(),
+    samplePayload: { userId: '00000000-0000-0000-0000-000000000000', leaveType: 'Annual Leave', fromDate: '2026-09-01', toDate: '2026-09-05', days: 5 },
+  },
+  {
+    id: 'hr.leave_approved',
+    kind: 'DOMAIN_EVENT',
+    app: 'nexushr',
+    label: 'Leave approved',
+    description: 'A leave request was approved — the person will actually be away.',
+    entityType: 'leave',
+    payloadSchema: z.object({
+      userId: z.string(), leaveType: z.string(), fromDate: z.string(), toDate: z.string(),
+      days: z.number(), decidedBy: z.string(),
+    }).passthrough(),
+    samplePayload: { userId: '00000000-0000-0000-0000-000000000000', leaveType: 'Annual Leave', fromDate: '2026-09-01', toDate: '2026-09-05', days: 5, decidedBy: '00000000-0000-0000-0000-000000000000' },
+  },
+  {
+    id: 'hr.leave_rejected',
+    kind: 'DOMAIN_EVENT',
+    app: 'nexushr',
+    label: 'Leave rejected',
+    description: 'A leave request was turned down.',
+    entityType: 'leave',
+    payloadSchema: z.object({
+      userId: z.string(), leaveType: z.string(), fromDate: z.string(), toDate: z.string(),
+      days: z.number(), decidedBy: z.string(),
+    }).passthrough(),
+    samplePayload: { userId: '00000000-0000-0000-0000-000000000000', leaveType: 'Sick Leave', fromDate: '2026-09-01', toDate: '2026-09-02', days: 2, decidedBy: '00000000-0000-0000-0000-000000000000' },
+  },
+  {
+    id: 'hr.staff_role_changed',
+    kind: 'DOMAIN_EVENT',
+    app: 'nexushr',
+    label: 'Staff role changed',
+    description: 'Someone\'s role changed, which changes what they can reach in every app.',
+    entityType: 'user',
+    payloadSchema: z.object({
+      userId: z.string(), name: z.string().nullable(), email: z.string().nullable(),
+      role: z.string(), changedBy: z.string(),
+    }).passthrough(),
+    samplePayload: { userId: '00000000-0000-0000-0000-000000000000', name: 'Jane Mwangi', email: 'jane@example.com', role: 'SENIOR', changedBy: '00000000-0000-0000-0000-000000000000' },
+  },
+  {
+    id: 'hr.staff_deactivated',
+    kind: 'DOMAIN_EVENT',
+    app: 'nexushr',
+    label: 'Staff deactivated',
+    description: 'A staff member was deactivated — anything still assigned to them needs a new owner.',
+    entityType: 'user',
+    payloadSchema: z.object({
+      userId: z.string(), name: z.string().nullable(), active: z.boolean(), changedBy: z.string(),
+    }).passthrough(),
+    samplePayload: { userId: '00000000-0000-0000-0000-000000000000', name: 'Jane Mwangi', active: false, changedBy: '00000000-0000-0000-0000-000000000000' },
+  },
+  {
+    id: 'hr.staff_reactivated',
+    kind: 'DOMAIN_EVENT',
+    app: 'nexushr',
+    label: 'Staff reactivated',
+    description: 'A previously deactivated staff member was switched back on.',
+    entityType: 'user',
+    payloadSchema: z.object({
+      userId: z.string(), name: z.string().nullable(), active: z.boolean(), changedBy: z.string(),
+    }).passthrough(),
+    samplePayload: { userId: '00000000-0000-0000-0000-000000000000', name: 'Jane Mwangi', active: true, changedBy: '00000000-0000-0000-0000-000000000000' },
   },
 ];
 
