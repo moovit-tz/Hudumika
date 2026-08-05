@@ -8,6 +8,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Compartment {
   id: string;
@@ -123,6 +124,12 @@ export function SealCompartmentDetail() {
 
   return (
     <div className="seal-page">
+      <PageHeader
+        crumbs={['SEAL', 'Compartment']}
+        titlePlain="Bonded"
+        titleEm="compartment"
+        subtitle="Its zones, locations and what is stored in them."
+      />
       {/* Back Link */}
       <div style={{ marginBottom: 16 }}>
         <Link to="/seal/compartments" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--seal)', textDecoration: 'none' }}>

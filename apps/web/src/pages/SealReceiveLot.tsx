@@ -9,6 +9,7 @@ import { showAlert } from '../lib/alert.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { CUSTOMS_STATUS_ENTRY_POINTS, CUSTOMS_STATUS_LABELS, type CustomsStatus } from '@hudumika/types';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Compartment { id: string; code: string; name: string; warehouse_type: string; }
 interface Location { id: string; code: string; }
@@ -97,6 +98,12 @@ export function SealReceiveLot() {
 
   return (
     <div className="seal-page">
+      <PageHeader
+        crumbs={['SEAL', 'Receive Lot']}
+        titlePlain="Receive a"
+        titleEm="lot"
+        subtitle="Book stock into bond against a compartment."
+      />
       <div className="seal-page-hdr">
         <div>
           <button type="button" className="seal-btn-secondary" onClick={() => navigate('/seal/lots')} style={{ marginBottom: 12 }}>

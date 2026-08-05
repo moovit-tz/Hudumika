@@ -5,6 +5,7 @@ import { Badge } from '../components/ui/badge.js';
 import { Button } from '../components/ui/button.js';
 import { apiFetch } from '../lib/api.js';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface DestinationGroup { destinationLabel: string | null; lotCount: number; oldestDwellHours: number; }
 interface OverdueLot { id: string; description: string; qtyOnHand: number; uom: string; destinationLabel: string | null; dwellHours: number; }
@@ -37,6 +38,12 @@ export function SealSortingDashboard() {
 
   return (
     <div className="seal-page">
+      <PageHeader
+        crumbs={['SEAL', 'Sorting']}
+        titlePlain="Sorting"
+        titleEm="dashboard"
+        subtitle="What is waiting to be sorted, and where it is going."
+      />
       <div className="seal-page-hdr">
         <div>
           <Button type="button" variant="outline" onClick={() => navigate('/seal/compartments')} style={{ marginBottom: 12 }}>

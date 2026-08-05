@@ -10,6 +10,7 @@ import { SealDocumentPanel } from '../components/SealDocumentPanel.js';
 import { STATUS_VARIANT } from './SealConsignments.js';
 import { validateContainerNumber } from '@hudumika/types';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Container {
   id: string; container_number: string; container_size: string; seal_number: string | null;
@@ -203,6 +204,12 @@ export function SealConsignmentDetail() {
 
   return (
     <div className="seal-page">
+      <PageHeader
+        crumbs={['SEAL', 'Consignment']}
+        titlePlain="Inbound"
+        titleEm="consignment"
+        subtitle="Pre-arrival through gate-in to devanning."
+      />
       {/* Header */}
       <div className="seal-page-hdr">
         <div>

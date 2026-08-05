@@ -14,6 +14,7 @@ import {
   CUSTOMS_STATUS_TRANSITIONS, CUSTOMS_STATUS_LABELS, type CustomsStatus, type SealLot, type SealMovement,
 } from '@hudumika/types';
 import './Seal.css';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Location { id: string; code: string; location_type: string; }
 interface ReeferReading { id: string; recordedAt: string; temperatureC: number; withinRange: boolean; note: string | null; }
@@ -174,6 +175,12 @@ export function SealLotDetail() {
 
   return (
     <div className="seal-page">
+      <PageHeader
+        crumbs={['SEAL', 'Lot']}
+        titlePlain="Bonded"
+        titleEm="lot"
+        subtitle="Ownership, fiscal state and the storage clock on this lot."
+      />
       <div className="seal-page-hdr">
         <div>
           <button type="button" className="seal-btn-secondary" onClick={() => navigate('/seal/lots')} style={{ marginBottom: 12 }}>

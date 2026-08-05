@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
 import { ClearOSMetricsDashboard } from './ClearOSMetricsDashboard.js';
 import { CommandCenter } from './CommandCenter.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 /**
  * Landing page for /clearos. Managers/admins land on the operations metrics
@@ -18,6 +19,12 @@ export const ClearOSLanding: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, overflow: 'hidden' }}>
+      <PageHeader
+        crumbs={['ClearOS', 'Overview']}
+        titlePlain="Clearance"
+        titleEm="overview"
+        subtitle="Your customs workspace at a glance."
+      />
       <div style={{ flex: 1, minHeight: 0, overflow: 'auto', display: 'flex', flexDirection: 'column' }}>
         {isMgmt ? <ClearOSMetricsDashboard /> : <CommandCenter />}
       </div>
