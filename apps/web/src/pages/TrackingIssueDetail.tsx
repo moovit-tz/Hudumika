@@ -22,13 +22,13 @@ const labelStyle: React.CSSProperties = { color: 'var(--ink3)', flexShrink: 0 };
 const valueStyle: React.CSSProperties = { color: 'var(--ink)', fontWeight: 600, textAlign: 'right' };
 
 const SEVERITY_CFG: Record<string, { color: string; bg: string }> = {
-  LOW: { color: '#059669', bg: 'var(--bg)' }, MEDIUM: { color: '#ca8a04', bg: '#fef9c3' },
-  HIGH: { color: 'var(--teal)', bg: 'var(--bg)' }, CRITICAL: { color: 'var(--red)', bg: 'var(--bg)' },
+  LOW: { color: '#059669', bg: '#ecfdf5' }, MEDIUM: { color: '#ca8a04', bg: '#fef9c3' },
+  HIGH: { color: '#ea580c', bg: '#ffedd5' }, CRITICAL: { color: '#dc2626', bg: '#fee2e2' },
 };
 const STATUS_CFG: Record<string, { color: string; bg: string; icon: IconName }> = {
-  OPEN: { color: 'var(--red)', bg: 'var(--bg)', icon: 'alertTriangle' },
-  IN_PROGRESS: { color: '#2563eb', bg: 'var(--border)', icon: 'clock' },
-  RESOLVED: { color: '#059669', bg: 'var(--bg)', icon: 'checkCircle' },
+  OPEN: { color: '#dc2626', bg: '#fee2e2', icon: 'alertTriangle' },
+  IN_PROGRESS: { color: '#2563eb', bg: '#dbeafe', icon: 'clock' },
+  RESOLVED: { color: '#059669', bg: '#ecfdf5', icon: 'checkCircle' },
 };
 
 function fdate(iso?: string | null) {
@@ -173,7 +173,7 @@ export const TrackingIssueDetail: React.FC = () => {
               {events.map((ev, i) => (
                 <div key={ev.id} style={{ display: 'flex', gap: 10, position: 'relative' }}>
                   {i < events.length - 1 && <div style={{ position: 'absolute', left: 13, top: 26, bottom: -16, width: 2, background: 'var(--border)' }} />}
-                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: ev.event_type === 'RESOLVED' ? 'var(--bg)' : ev.event_type === 'OPENED' ? '#fef9c3' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
+                  <div style={{ width: 26, height: 26, borderRadius: '50%', background: ev.event_type === 'RESOLVED' ? '#ecfdf5' : ev.event_type === 'OPENED' ? '#fef9c3' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
                     <Icon name={ev.event_type === 'RESOLVED' ? 'checkCircle' : ev.event_type === 'OPENED' ? 'alertTriangle' : 'chatBubble'} size={13} color={ev.event_type === 'RESOLVED' ? '#059669' : ev.event_type === 'OPENED' ? '#ca8a04' : 'var(--ink3)'} />
                   </div>
                   <div style={{ flex: 1, paddingBottom: 8 }}>

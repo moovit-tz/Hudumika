@@ -134,18 +134,18 @@ export const TrackingNewVehicle: React.FC = () => {
                   <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>Identification</div>
                   
                   <div style={{ marginBottom: 16 }}>
-                    <label style={labelStyle}>Vehicle Name <span style={{color: 'var(--red)'}}>*</span></label>
+                    <label style={labelStyle}>Vehicle Name <span style={{color: '#dc2626'}}>*</span></label>
                     <input style={inputStyle} placeholder="Enter a nickname to distinguish this vehicle in fleet" value={form.name} onChange={e => handleChange('name', e.target.value)} />
                   </div>
 
                   <div style={{ marginBottom: 16 }}>
-                    <label style={labelStyle}>Device ID <span style={{color: 'var(--red)'}}>*</span></label>
+                    <label style={labelStyle}>Device ID <span style={{color: '#dc2626'}}>*</span></label>
                     <input style={inputStyle} placeholder="GPS/Telematics Device ID" value={form.device_id} onChange={e => handleChange('device_id', e.target.value)} />
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                     <div>
-                      <label style={labelStyle}>Type <span style={{color: 'var(--red)'}}>*</span></label>
+                      <label style={labelStyle}>Type <span style={{color: '#dc2626'}}>*</span></label>
                       <Select value={form.type} onValueChange={v => handleChange('type', v)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -158,7 +158,7 @@ export const TrackingNewVehicle: React.FC = () => {
                       </Select>
                     </div>
                     <div>
-                      <label style={labelStyle}>Status <span style={{color: 'var(--red)'}}>*</span></label>
+                      <label style={labelStyle}>Status <span style={{color: '#dc2626'}}>*</span></label>
                       <Select value={form.status} onValueChange={v => handleChange('status', v)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
@@ -171,7 +171,7 @@ export const TrackingNewVehicle: React.FC = () => {
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <div>
-                      <label style={labelStyle}>Ownership <span style={{color: 'var(--red)'}}>*</span></label>
+                      <label style={labelStyle}>Ownership <span style={{color: '#dc2626'}}>*</span></label>
                       <Select value={form.ownership} onValueChange={v => handleChange('ownership', v)}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>

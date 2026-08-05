@@ -183,7 +183,7 @@ export const TrackingVehicleDetail: React.FC = () => {
           </div>
         </div>
         <div style={{ position: 'relative', display: 'flex', gap: 8 }}>
-          <span style={{ alignSelf: 'center', fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '4px 12px', background: vehicle.status === 'ACTIVE' ? 'var(--bg)' : 'var(--bg)', color: vehicle.status === 'ACTIVE' ? '#065f46' : '#64748b' }}>
+          <span style={{ alignSelf: 'center', fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '4px 12px', background: vehicle.status === 'ACTIVE' ? '#ecfdf5' : '#f1f5f9', color: vehicle.status === 'ACTIVE' ? '#065f46' : '#64748b' }}>
             {vehicle.status}
           </span>
           <DropdownMenu>
@@ -331,7 +331,7 @@ export const TrackingVehicleDetail: React.FC = () => {
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Service Reminders</div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
-                <div><div style={statLabel}>Overdue</div><div style={{ fontSize: 20, fontWeight: 800, color: service_reminders.overdue > 0 ? 'var(--red)' : 'var(--ink)' }}>{service_reminders.overdue}</div></div>
+                <div><div style={statLabel}>Overdue</div><div style={{ fontSize: 20, fontWeight: 800, color: service_reminders.overdue > 0 ? '#dc2626' : 'var(--ink)' }}>{service_reminders.overdue}</div></div>
                 <div><div style={statLabel}>Due Soon</div><div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{service_reminders.due_soon}</div></div>
                 <div><div style={statLabel}>Dismissed</div><div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{service_reminders.dismissed}</div></div>
               </div>
@@ -392,7 +392,7 @@ export const TrackingVehicleDetail: React.FC = () => {
             <div style={statLabel}>Status Overview</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '6px 0 14px', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
               <span>Ignition {last_position?.ignition ?? '—'}</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: (last_position?.speed ?? 0) > 3 ? '#059669' : 'var(--red)' }}>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: (last_position?.speed ?? 0) > 3 ? '#059669' : '#dc2626' }}>
                 <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
                 {(last_position?.speed ?? 0) > 3 ? 'Moving' : 'Stopped'}
               </span>
@@ -417,7 +417,7 @@ export const TrackingVehicleDetail: React.FC = () => {
             {open_issues.length === 0 && <div style={{ color: 'var(--ink3)', fontSize: 13 }}>No open issues.</div>}
             {open_issues.map(i => (
               <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderTop: '1px solid var(--border)' }}>
-                <Icon name="alertTriangle" size={14} color="var(--red)" />
+                <Icon name="alertTriangle" size={14} color="#dc2626" />
                 <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{i.title}</div>
                 <button type="button" onClick={() => resolveIssue(i.id)} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer' }}>Resolve</button>
               </div>
@@ -486,7 +486,7 @@ export const TrackingVehicleDetail: React.FC = () => {
           {detail.issues.length === 0 && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No issues reported.</div>}
           {detail.issues.map(i => (
             <div key={i.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 0', borderTop: '1px solid var(--border)' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '2px 8px', background: i.status === 'RESOLVED' ? 'var(--bg)' : 'var(--bg)', color: i.status === 'RESOLVED' ? '#065f46' : 'var(--red)' }}>{i.status}</span>
+              <span style={{ fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '2px 8px', background: i.status === 'RESOLVED' ? '#ecfdf5' : '#fee2e2', color: i.status === 'RESOLVED' ? '#065f46' : '#dc2626' }}>{i.status}</span>
               <Link to={`/tracking/issues/${i.id}`} style={{ flex: 1, fontSize: 13, color: 'var(--ink)', textDecoration: 'none', fontWeight: 600 }}
                 onMouseEnter={e => (e.currentTarget.style.color = 'var(--teal)')}
                 onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink)')}>
@@ -807,7 +807,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
               <span>Weight</span><strong>{packResult.weight_utilization_pct}%</strong>
             </div>
             {packResult.unplaced_items.length > 0 && (
-              <div style={{ marginTop: 8, padding: '7px 9px', background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 7, fontSize: 11, color: 'var(--red)' }}>
+              <div style={{ marginTop: 8, padding: '7px 9px', background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 7, fontSize: 11, color: '#dc2626' }}>
                 Didn't fit: {packResult.unplaced_items.map(u => `${u.label} ×${u.count}`).join(', ')}
               </div>
             )}

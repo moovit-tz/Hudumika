@@ -138,7 +138,7 @@ export const TrackingAssignments: React.FC = () => {
                     </div>
                     {/* Assignment bars */}
                     {vAssignments.map((a, j) => {
-                      const colors = ['var(--border)', 'var(--bg)', 'var(--bg)', '#fef3c7'];
+                      const colors = ['#e0e7ff', '#ecfdf5', '#fce7f3', '#fef3c7'];
                       const textColors = ['#3730a3', '#065f46', '#9d174d', '#92400e'];
                       const cIdx = j % colors.length;
                       return (

@@ -339,7 +339,7 @@ export const TrackingVehicles: React.FC = () => {
                 <span style={{width: 8, height: 8, borderRadius: '50%', background: '#f97316'}}></span> Delayed
               </div>
               <div style={{display: 'flex', alignItems: 'center', gap: 6}}>
-                <span style={{width: 8, height: 8, borderRadius: '50%', background: 'var(--red)'}}></span> Issue
+                <span style={{width: 8, height: 8, borderRadius: '50%', background: '#dc2626'}}></span> Issue
               </div>
             </div>
           </div>

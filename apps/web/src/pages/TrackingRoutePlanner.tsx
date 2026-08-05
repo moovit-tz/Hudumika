@@ -151,7 +151,7 @@ export const TrackingRoutePlanner: React.FC = () => {
           <ClickToAddWaypoint onAdd={addWaypoint} />
           {waypoints.map((pos, i) => <Marker key={i} position={pos} icon={stopMarkerIcon} />)}
           {route && <Polyline positions={route.geometry} pathOptions={{ color: '#2563eb', weight: 5, opacity: 0.8 }} />}
-          {!route && waypoints.length > 1 && <Polyline positions={waypoints} pathOptions={{ color: 'var(--ink3)', weight: 3, dashArray: '8 8' }} />}
+          {!route && waypoints.length > 1 && <Polyline positions={waypoints} pathOptions={{ color: '#94a3b8', weight: 3, dashArray: '8 8' }} />}
         </MapContainer>
 
         <div className="rp-map-controls">
@@ -274,7 +274,7 @@ export const TrackingRoutePlanner: React.FC = () => {
             <Icon name="map" size={16} /> {loading ? 'Optimizing Route...' : 'Generate Route'}
           </button>
           
-          {error && <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(220,38,38,0.1)', color: 'var(--red)', fontSize: '12px', borderRadius: '8px' }}>{error}</div>}
+          {error && <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(220,38,38,0.1)', color: '#dc2626', fontSize: '12px', borderRadius: '8px' }}>{error}</div>}
 
           {/* Results & Timeline Area */}
           {(route || waypoints.length > 0) && (

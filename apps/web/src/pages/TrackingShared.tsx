@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 
-const BRAND = 'var(--ink)';
+const BRAND = '#0b1e3a';
 const NAVY  = '#0e1f3d';
 
 interface TrackingEvent {
@@ -45,15 +45,15 @@ function fmtTime(iso: string): string {
 }
 
 const STATUS_COLORS: Record<string, { bg: string; fg: string }> = {
-  DELIVERED:       { bg: 'var(--bg)', fg: '#059669' },
-  IN_TRANSIT:      { bg: 'var(--border)', fg: '#2563eb' },
-  TRANSIT:         { bg: 'var(--border)', fg: '#2563eb' },
-  PICKED_UP:       { bg: 'var(--bg)', fg: '#6366f1' },
-  DEPARTED:        { bg: 'var(--border)', fg: '#0284c7' },
+  DELIVERED:       { bg: '#ecfdf5', fg: '#059669' },
+  IN_TRANSIT:      { bg: '#dbeafe', fg: '#2563eb' },
+  TRANSIT:         { bg: '#dbeafe', fg: '#2563eb' },
+  PICKED_UP:       { bg: '#ede9fe', fg: '#6366f1' },
+  DEPARTED:        { bg: '#e0f2fe', fg: '#0284c7' },
   CUSTOMS_CLEARED: { bg: '#fef9c3', fg: '#ca8a04' },
-  ON_HOLD:         { bg: 'var(--bg)', fg: 'var(--red)' },
-  DELAYED:         { bg: 'var(--bg)', fg: 'var(--red)' },
-  ARRIVED:         { bg: 'var(--bg)', fg: '#059669' },
+  ON_HOLD:         { bg: '#fee2e2', fg: '#dc2626' },
+  DELAYED:         { bg: '#fee2e2', fg: '#dc2626' },
+  ARRIVED:         { bg: '#ecfdf5', fg: '#059669' },
 };
 
 export const TrackingShared: React.FC = () => {
@@ -71,10 +71,10 @@ export const TrackingShared: React.FC = () => {
   }, [token]);
 
   const events = snap ? parseEvts(snap.events) : [];
-  const sc = snap?.status_code ? STATUS_COLORS[snap.status_code] ?? { bg: 'var(--bg)', fg: '#64748b' } : { bg: 'var(--bg)', fg: '#64748b' };
+  const sc = snap?.status_code ? STATUS_COLORS[snap.status_code] ?? { bg: '#f1f5f9', fg: '#64748b' } : { bg: '#f1f5f9', fg: '#64748b' };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--white)', fontFamily: "'Inter', 'Helvetica Neue', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: "'Inter', 'Helvetica Neue', sans-serif" }}>
 
       {/* Header */}
       <div style={{ background: NAVY, padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -92,15 +92,15 @@ export const TrackingShared: React.FC = () => {
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: 16 }}>
             <div style={{ width: 36, height: 36, border: `3px solid #e2e8f0`, borderTopColor: BRAND, borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
-            <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Loading tracking information…</div>
+            <div style={{ fontSize: 13, color: '#94a3b8' }}>Loading tracking information…</div>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
         )}
 
         {error && !loading && (
           <div style={{ textAlign: 'center', padding: '80px 0' }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-              <Icon name="alertCircle" size={28} color="var(--red)" />
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <Icon name="alertCircle" size={28} color="#dc2626" />
             </div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>Snapshot not found</div>
             <div style={{ fontSize: 14, color: '#64748b' }}>This tracking link may have expired or been removed.</div>
@@ -172,22 +172,22 @@ export const TrackingShared: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                   {events.map((ev, i) => {
                     const isFirst = i === 0;
-                    const evSc = STATUS_COLORS[ev.status_code] ?? { bg: 'var(--bg)', fg: '#64748b' };
+                    const evSc = STATUS_COLORS[ev.status_code] ?? { bg: '#f1f5f9', fg: '#64748b' };
                     return (
                       <div key={i} style={{ display: 'flex', gap: 14, paddingBottom: i < events.length - 1 ? 18 : 0 }}>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, width: 20 }}>
-                          <div style={{ width: 10, height: 10, borderRadius: '50%', background: isFirst ? BRAND : 'var(--border)', flexShrink: 0, marginTop: 4 }} />
-                          {i < events.length - 1 && <div style={{ flex: 1, width: 2, background: 'var(--bg)', marginTop: 4 }} />}
+                          <div style={{ width: 10, height: 10, borderRadius: '50%', background: isFirst ? BRAND : '#cbd5e1', flexShrink: 0, marginTop: 4 }} />
+                          {i < events.length - 1 && <div style={{ flex: 1, width: 2, background: '#f1f5f9', marginTop: 4 }} />}
                         </div>
                         <div style={{ flex: 1, paddingBottom: i < events.length - 1 ? 0 : 0 }}>
                           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                             <div>
                               <div style={{ fontSize: 13, fontWeight: isFirst ? 700 : 500, color: isFirst ? '#1e293b' : '#334155' }}>{ev.description}</div>
-                              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{ev.location}</div>
+                              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{ev.location}</div>
                             </div>
                             <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                              <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600 }}>{fmtDate(ev.timestamp)}</div>
-                              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{fmtTime(ev.timestamp)}</div>
+                              <div style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>{fmtDate(ev.timestamp)}</div>
+                              <div style={{ fontSize: 11, color: '#94a3b8' }}>{fmtTime(ev.timestamp)}</div>
                             </div>
                           </div>
                         </div>
@@ -199,7 +199,7 @@ export const TrackingShared: React.FC = () => {
             )}
 
             {/* Footer */}
-            <div style={{ marginTop: 32, textAlign: 'center', fontSize: 12, color: 'var(--ink3)' }}>
+            <div style={{ marginTop: 32, textAlign: 'center', fontSize: 12, color: '#94a3b8' }}>
               Tracking data is a saved snapshot · last updated {fmtDate(snap.created_at)}<br />
               <span style={{ color: BRAND, fontWeight: 600 }}>Hudumika ClearOS</span> — Freight Management Platform
             </div>

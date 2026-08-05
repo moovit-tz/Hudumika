@@ -10,9 +10,9 @@ interface Alert {
 }
 
 const SEVERITY_COLORS: Record<string, { bg: string; fg: string }> = {
-  INFO: { bg: 'var(--border)', fg: '#0284c7' },
+  INFO: { bg: '#e0f2fe', fg: '#0284c7' },
   WARNING: { bg: '#fef9c3', fg: '#ca8a04' },
-  CRITICAL: { bg: 'var(--bg)', fg: 'var(--red)' },
+  CRITICAL: { bg: '#fee2e2', fg: '#dc2626' },
 };
 
 export const TrackingAlerts: React.FC = () => {

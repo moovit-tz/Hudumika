@@ -261,7 +261,7 @@ export const TrackingShipmentNew: React.FC = () => {
               <span style={{ color: 'var(--ink3)' }}>{k}</span><span style={{ color: 'var(--ink)', fontWeight: 600 }}>{v}</span>
             </div>
           ))}
-          {error && <div style={{ marginTop: 12, fontSize: 12, color: 'var(--red)' }}>{error}</div>}
+          {error && <div style={{ marginTop: 12, fontSize: 12, color: '#dc2626' }}>{error}</div>}
         </div>
       )}
 

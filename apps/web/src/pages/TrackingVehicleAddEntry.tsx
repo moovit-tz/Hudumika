@@ -151,7 +151,7 @@ export const TrackingVehicleAddEntry: React.FC = () => {
             )}
           </div>
         ))}
-        {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
+        {error && <div style={{ fontSize: 12, color: '#dc2626' }}>{error}</div>}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
           <Link to={`/tracking/vehicles/${id}`} style={{ padding: '9px 18px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontSize: 13, textDecoration: 'none' }}>Cancel</Link>
           <button type="submit" disabled={saving} style={{ padding: '9px 18px', borderRadius: 9, border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1 }}>
