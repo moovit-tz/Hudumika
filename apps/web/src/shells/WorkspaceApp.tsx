@@ -6,7 +6,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import type { AppId } from '@hudumika/types';
 import { useBranding } from '../hooks/useBranding.js';
 import { RequireAppEnabled } from '../components/RequireAppEnabled.js';
-import { parseHex, darkenHex, lightenHex } from '../lib/color.js';
+import { parseHex, darkenHex, lightenHex, hexToHslTriplet, pickForegroundHsl, enforceContrastFloor } from '../lib/color.js';
 
 // The SuperAdmin platform panel is never gated by a tenant's enabled-apps config —
 // it's how a SuperAdmin fixes their own mistakes, so it can never lock itself out.
@@ -143,7 +143,29 @@ export function WorkspaceApp({ appId, children }: WorkspaceAppProps) {
     el.style.setProperty('--teal-m', `rgba(${r},${g},${b},0.18)`);
     el.style.setProperty('--teal-d', darkenHex(effectiveColor));
 
-    // App-level DS tokens removed in favor of global M3 tokens
+    /**
+     * The shadcn tokens have to move with the app too.
+     *
+     * Only --teal* was scoped here, while --primary/--ring/--sidebar-primary
+     * stayed global, set once from the tenant's brand colour. Every ui/Button
+     * uses bg-primary, so every primary button in every app rendered the
+     * tenant orange no matter what colour the app was assigned — an orange
+     * Save button in Admin, orange buttons in SEAL, while the page title
+     * beside them correctly showed the app's own colour because titles read
+     * --teal. Two colours from the same source, disagreeing on one screen.
+     *
+     * The contrast floor applies here for the same reason it does globally:
+     * this is a button surface with a label on it, and a tenant may pick any
+     * colour at all.
+     */
+    const surface = enforceContrastFloor(effectiveColor);
+    const primaryHsl = hexToHslTriplet(surface.hex);
+    el.style.setProperty('--primary', primaryHsl);
+    el.style.setProperty('--primary-foreground', pickForegroundHsl(surface.hex));
+    el.style.setProperty('--ring', primaryHsl);
+    el.style.setProperty('--sidebar-primary', primaryHsl);
+    el.style.setProperty('--sidebar-primary-foreground', pickForegroundHsl(surface.hex));
+    el.style.setProperty('--sidebar-ring', primaryHsl);
   }, [appColor, appId, dsRev, isDark]);
 
   const body = (
