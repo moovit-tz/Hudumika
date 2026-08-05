@@ -47,10 +47,19 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
-  --shadow-sm: var(--shadow-sm);
-  --shadow: var(--shadow);
-  --shadow-md: var(--shadow);
-  --shadow-lg: var(--shadow-lg);
+  /* These map Tailwind's shadow scale onto the app's own elevation tokens.
+     They used to read `--shadow-sm: var(--shadow-sm)` — a property defined as
+     itself. That is a cycle, so CSS marks it invalid at computed-value time
+     and every `shadow-sm` / `shadow-md` / `shadow-lg` in the ui/ components
+     resolved to an empty, fully transparent shadow chain. Every Radix popover,
+     dropdown, button and card built on ui/ has therefore been rendering with
+     no shadow at all, and the SuperAdmin elevation setting could not reach
+     them. The app's values live under --elev-* precisely so this alias has
+     something other than itself to point at. */
+  --shadow-sm: var(--elev-sm);
+  --shadow: var(--elev);
+  --shadow-md: var(--elev);
+  --shadow-lg: var(--elev-lg);
 
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
@@ -195,9 +204,13 @@
   --ds-input-py: 7px;
   --ds-cell-py:  11px;
 
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-  --shadow:    0 2px 8px rgba(0,0,0,0.07);
-  --shadow-lg: 0 6px 20px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+  /* Canonical elevation values. SHADOW_PRESETS in useDesignSystem.ts
+     overwrites these three at runtime; the @theme block above aliases
+     Tailwind's --shadow-* scale onto them so a preset reaches the ui/
+     components and the legacy CSS alike. */
+  --elev-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --elev:    0 2px 8px rgba(0,0,0,0.07);
+  --elev-lg: 0 6px 20px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
 
   --font: 'Google Sans Flex', 'DM Sans', system-ui, sans-serif;
   --mono: 'JetBrains Mono', 'Menlo', monospace;
@@ -210,7 +223,10 @@
   /* ── Design system tokens (overridden live by DesignSystemProvider) ── */
   --card-bg:      var(--white);
   --card-border:  1px solid var(--border);
-  --card-shadow:  none;
+  /* Cards follow the elevation setting. This was a hardcoded `none`, so no
+     card anywhere carried a shadow and choosing an elevation preset changed
+     nothing on any card in any app. */
+  --card-shadow:  var(--elev-sm);
   --card-padding: 16px;
   --card-radius:  var(--r);
 

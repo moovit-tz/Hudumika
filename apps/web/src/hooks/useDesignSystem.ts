@@ -12,7 +12,9 @@ import { themeFromSourceColor, argbFromHex, hexFromArgb } from '@material/materi
 
 export type FontId    = 'system' | 'inter' | 'plus-jakarta' | 'dm-sans' | 'roboto' | 'atlassian-sans';
 export type DensityId = 'compact' | 'default' | 'comfortable';
-export type ShadowId  = 'flat' | 'subtle' | 'default' | 'elevated';
+export type ShadowId  = 'flat' | 'subtle' | 'default' | 'elevated'
+  | 'halo' | 'hairline' | 'outline' | 'ring' | 'raised' | 'overlay'
+  | 'stripe' | 'lifted' | 'layered' | 'inset' | 'well';
 
 export interface NeutralSet {
   ink: string; ink2: string; ink3: string;
@@ -76,7 +78,11 @@ export interface DesignTokens {
 
 export const FONT_IDS:    FontId[]    = ['system', 'inter', 'plus-jakarta', 'dm-sans', 'roboto', 'atlassian-sans'];
 export const DENSITY_IDS: DensityId[] = ['compact', 'default', 'comfortable'];
-export const SHADOW_IDS:  ShadowId[]  = ['flat', 'subtle', 'default', 'elevated'];
+export const SHADOW_IDS:  ShadowId[]  = [
+  'flat', 'subtle', 'default', 'elevated',
+  'hairline', 'outline', 'ring', 'halo', 'raised',
+  'stripe', 'lifted', 'overlay', 'layered', 'inset', 'well',
+];
 
 // ── Label maps ────────────────────────────────────────────────────────────────
 
@@ -113,6 +119,9 @@ export const DENSITY_LABELS: Record<DensityId, string> = {
 
 export const SHADOW_LABELS: Record<ShadowId, string> = {
   flat: 'Flat', subtle: 'Subtle', default: 'Default', elevated: 'Elevated',
+  hairline: 'Hairline', outline: 'Outline', ring: 'Ring', halo: 'Halo',
+  raised: 'Raised', stripe: 'Stripe', lifted: 'Lifted', overlay: 'Overlay',
+  layered: 'Layered', inset: 'Inset', well: 'Well',
 };
 
 // ── Presets ───────────────────────────────────────────────────────────────────
@@ -167,7 +176,91 @@ export const SHADOW_PRESETS: Record<ShadowId, ShadowPreset> = {
     light: { sm: '0 2px 4px rgba(13,17,23,0.06)', base: '0 4px 8px rgba(13,17,23,0.10), 0 12px 32px rgba(13,17,23,0.10)', lg: '0 8px 16px rgba(13,17,23,0.14), 0 24px 56px rgba(13,17,23,0.16)' },
     dark:  { sm: '0 2px 8px rgba(0,0,0,0.55)', base: '0 4px 10px rgba(0,0,0,0.6), 0 16px 40px rgba(0,0,0,0.6)', lg: '0 12px 24px rgba(0,0,0,0.75), 0 32px 72px rgba(0,0,0,0.8)' },
   },
+
+  /* ── Supplied presets ──────────────────────────────────────────────────
+     Each was given as a single box-shadow; the system needs an sm/base/lg
+     triad, so the supplied value is the `base` and sm/lg are tightened and
+     opened-up versions of the *same* recipe rather than a different look at
+     another size. Dark variants raise the alpha, because these are all tuned
+     for a light surface and a 0.05-alpha shadow is invisible on a dark one. */
+
+  // Flat 1px ring, no depth at all. Reads as a border you did not have to
+  // reserve layout space for.
+  outline: {
+    light: { sm: 'rgba(0,0,0,0.04) 0px 0px 0px 1px', base: 'rgba(0,0,0,0.05) 0px 0px 0px 1px', lg: 'rgba(0,0,0,0.08) 0px 0px 0px 1px' },
+    dark:  { sm: 'rgba(255,255,255,0.06) 0px 0px 0px 1px', base: 'rgba(255,255,255,0.09) 0px 0px 0px 1px', lg: 'rgba(255,255,255,0.13) 0px 0px 0px 1px' },
+  },
+  // The smallest possible lift — one soft 2px drop.
+  hairline: {
+    light: { sm: 'rgba(0,0,0,0.06) 0px 1px 1px 0px', base: 'rgba(0,0,0,0.1) 0px 1px 2px 0px', lg: 'rgba(0,0,0,0.12) 0px 2px 6px 0px' },
+    dark:  { sm: 'rgba(0,0,0,0.4) 0px 1px 1px 0px', base: 'rgba(0,0,0,0.5) 0px 1px 2px 0px', lg: 'rgba(0,0,0,0.6) 0px 2px 6px 0px' },
+  },
+  // Outer ring plus an inner one, so the edge reads crisp from both sides.
+  ring: {
+    light: { sm: 'rgba(0,0,0,0.05) 0px 0px 0px 1px', base: 'rgba(0,0,0,0.05) 0px 0px 0px 1px, rgb(209,213,219) 0px 0px 0px 1px inset', lg: 'rgba(0,0,0,0.05) 0px 0px 0px 1px, rgb(209,213,219) 0px 0px 0px 1px inset, rgba(0,0,0,0.06) 0px 4px 12px 0px' },
+    dark:  { sm: 'rgba(255,255,255,0.08) 0px 0px 0px 1px', base: 'rgba(255,255,255,0.08) 0px 0px 0px 1px, rgba(255,255,255,0.06) 0px 0px 0px 1px inset', lg: 'rgba(255,255,255,0.08) 0px 0px 0px 1px, rgba(255,255,255,0.06) 0px 0px 0px 1px inset, rgba(0,0,0,0.5) 0px 4px 12px 0px' },
+  },
+  // Even glow on all sides rather than a downward drop — no light direction.
+  halo: {
+    light: { sm: 'rgba(0,0,0,0.08) 0px 0px 3px 0px, rgba(0,0,0,0.08) 0px 0px 1px 0px', base: 'rgba(0,0,0,0.1) 0px 0px 5px 0px, rgba(0,0,0,0.1) 0px 0px 1px 0px', lg: 'rgba(0,0,0,0.12) 0px 0px 12px 0px, rgba(0,0,0,0.1) 0px 0px 1px 0px' },
+    dark:  { sm: 'rgba(0,0,0,0.45) 0px 0px 3px 0px, rgba(0,0,0,0.45) 0px 0px 1px 0px', base: 'rgba(0,0,0,0.55) 0px 0px 6px 0px, rgba(0,0,0,0.5) 0px 0px 1px 0px', lg: 'rgba(0,0,0,0.65) 0px 0px 14px 0px, rgba(0,0,0,0.5) 0px 0px 1px 0px' },
+  },
+  // Atlassian's raised surface: a tight contact shadow with a faint spread ring.
+  raised: {
+    light: { sm: 'rgba(9,30,66,0.2) 0px 1px 1px 0px, rgba(9,30,66,0.1) 0px 0px 1px 0px', base: 'rgba(9,30,66,0.25) 0px 1px 1px 0px, rgba(9,30,66,0.13) 0px 0px 1px 1px', lg: 'rgba(9,30,66,0.25) 0px 4px 8px -2px, rgba(9,30,66,0.13) 0px 0px 1px 1px' },
+    dark:  { sm: 'rgba(0,0,0,0.45) 0px 1px 1px 0px, rgba(0,0,0,0.3) 0px 0px 1px 0px', base: 'rgba(0,0,0,0.55) 0px 1px 1px 0px, rgba(255,255,255,0.08) 0px 0px 1px 1px', lg: 'rgba(0,0,0,0.6) 0px 4px 8px -2px, rgba(255,255,255,0.08) 0px 0px 1px 1px' },
+  },
+  // Atlassian's overlay: a real lift plus a hairline ring to hold the edge.
+  overlay: {
+    light: { sm: 'rgba(9,30,66,0.2) 0px 1px 2px -1px, rgba(9,30,66,0.08) 0px 0px 0px 1px', base: 'rgba(9,30,66,0.25) 0px 4px 8px -2px, rgba(9,30,66,0.08) 0px 0px 0px 1px', lg: 'rgba(9,30,66,0.25) 0px 8px 16px -4px, rgba(9,30,66,0.08) 0px 0px 0px 1px' },
+    dark:  { sm: 'rgba(0,0,0,0.5) 0px 1px 2px -1px, rgba(255,255,255,0.07) 0px 0px 0px 1px', base: 'rgba(0,0,0,0.6) 0px 4px 8px -2px, rgba(255,255,255,0.07) 0px 0px 0px 1px', lg: 'rgba(0,0,0,0.7) 0px 8px 16px -4px, rgba(255,255,255,0.07) 0px 0px 0px 1px' },
+  },
+  // Stripe's signature blue-tinted lift.
+  stripe: {
+    light: { sm: 'rgba(50,50,105,0.1) 0px 1px 2px 0px, rgba(0,0,0,0.04) 0px 1px 1px 0px', base: 'rgba(50,50,105,0.15) 0px 2px 5px 0px, rgba(0,0,0,0.05) 0px 1px 1px 0px', lg: 'rgba(50,50,105,0.2) 0px 6px 16px 0px, rgba(0,0,0,0.06) 0px 1px 2px 0px' },
+    dark:  { sm: 'rgba(0,0,0,0.45) 0px 1px 2px 0px, rgba(0,0,0,0.3) 0px 1px 1px 0px', base: 'rgba(0,0,0,0.55) 0px 2px 5px 0px, rgba(0,0,0,0.35) 0px 1px 1px 0px', lg: 'rgba(0,0,0,0.65) 0px 6px 16px 0px, rgba(0,0,0,0.4) 0px 1px 2px 0px' },
+  },
+  // A wide, very soft lift held together by a 1px ring.
+  lifted: {
+    light: { sm: 'rgba(0,0,0,0.04) 0px 2px 8px 0px, rgba(0,0,0,0.06) 0px 0px 0px 1px', base: 'rgba(0,0,0,0.05) 0px 6px 24px 0px, rgba(0,0,0,0.08) 0px 0px 0px 1px', lg: 'rgba(0,0,0,0.07) 0px 12px 40px 0px, rgba(0,0,0,0.08) 0px 0px 0px 1px' },
+    dark:  { sm: 'rgba(0,0,0,0.45) 0px 2px 8px 0px, rgba(255,255,255,0.06) 0px 0px 0px 1px', base: 'rgba(0,0,0,0.55) 0px 6px 24px 0px, rgba(255,255,255,0.08) 0px 0px 0px 1px', lg: 'rgba(0,0,0,0.65) 0px 12px 40px 0px, rgba(255,255,255,0.08) 0px 0px 0px 1px' },
+  },
+  // Seven stacked layers with widening negative spread — the smoothest
+  // falloff of the set, and the most expensive to paint.
+  layered: {
+    light: {
+      sm: 'rgba(14,63,126,0.06) 0px 0px 0px 1px, rgba(42,51,70,0.03) 0px 1px 1px -0.5px, rgba(42,51,70,0.04) 0px 2px 2px -1px',
+      base: 'rgba(14,63,126,0.06) 0px 0px 0px 1px, rgba(42,51,70,0.03) 0px 1px 1px -0.5px, rgba(42,51,70,0.04) 0px 2px 2px -1px, rgba(42,51,70,0.04) 0px 3px 3px -1.5px, rgba(42,51,70,0.03) 0px 5px 5px -2.5px, rgba(42,51,70,0.03) 0px 10px 10px -5px, rgba(42,51,70,0.03) 0px 24px 24px -8px',
+      lg: 'rgba(14,63,126,0.06) 0px 0px 0px 1px, rgba(42,51,70,0.03) 0px 1px 1px -0.5px, rgba(42,51,70,0.04) 0px 2px 2px -1px, rgba(42,51,70,0.04) 0px 5px 5px -2.5px, rgba(42,51,70,0.03) 0px 10px 10px -5px, rgba(42,51,70,0.03) 0px 24px 24px -8px, rgba(42,51,70,0.03) 0px 48px 48px -12px',
+    },
+    dark: {
+      sm: 'rgba(255,255,255,0.06) 0px 0px 0px 1px, rgba(0,0,0,0.3) 0px 1px 1px -0.5px, rgba(0,0,0,0.35) 0px 2px 2px -1px',
+      base: 'rgba(255,255,255,0.06) 0px 0px 0px 1px, rgba(0,0,0,0.3) 0px 1px 1px -0.5px, rgba(0,0,0,0.35) 0px 2px 2px -1px, rgba(0,0,0,0.35) 0px 3px 3px -1.5px, rgba(0,0,0,0.3) 0px 5px 5px -2.5px, rgba(0,0,0,0.3) 0px 10px 10px -5px, rgba(0,0,0,0.3) 0px 24px 24px -8px',
+      lg: 'rgba(255,255,255,0.06) 0px 0px 0px 1px, rgba(0,0,0,0.35) 0px 2px 2px -1px, rgba(0,0,0,0.3) 0px 5px 5px -2.5px, rgba(0,0,0,0.3) 0px 10px 10px -5px, rgba(0,0,0,0.3) 0px 24px 24px -8px, rgba(0,0,0,0.3) 0px 48px 48px -12px',
+    },
+  },
+  // Inset. Surfaces read as recessed rather than raised — see the note on
+  // SHADOW_INSET_IDS below before choosing this platform-wide.
+  inset: {
+    light: { sm: 'rgba(0,0,0,0.04) 0px 1px 2px 0px inset', base: 'rgba(0,0,0,0.06) 0px 2px 4px 0px inset', lg: 'rgba(0,0,0,0.08) 0px 3px 6px 0px inset' },
+    dark:  { sm: 'rgba(0,0,0,0.35) 0px 1px 2px 0px inset', base: 'rgba(0,0,0,0.45) 0px 2px 4px 0px inset', lg: 'rgba(0,0,0,0.55) 0px 3px 6px 0px inset' },
+  },
+  // Deep inset — a dramatic recess meant for a hero or empty-state panel.
+  well: {
+    light: { sm: 'rgba(50,50,93,0.15) 0px 8px 16px -4px inset, rgba(0,0,0,0.2) 0px 5px 10px -5px inset', base: 'rgba(50,50,93,0.25) 0px 30px 60px -12px inset, rgba(0,0,0,0.3) 0px 18px 36px -18px inset', lg: 'rgba(50,50,93,0.3) 0px 48px 96px -16px inset, rgba(0,0,0,0.35) 0px 28px 56px -24px inset' },
+    dark:  { sm: 'rgba(0,0,0,0.4) 0px 8px 16px -4px inset, rgba(0,0,0,0.4) 0px 5px 10px -5px inset', base: 'rgba(0,0,0,0.55) 0px 30px 60px -12px inset, rgba(0,0,0,0.5) 0px 18px 36px -18px inset', lg: 'rgba(0,0,0,0.65) 0px 48px 96px -16px inset, rgba(0,0,0,0.55) 0px 28px 56px -24px inset' },
+  },
 };
+
+/**
+ * Presets whose shadow points inwards.
+ *
+ * Chosen platform-wide they make every card, button and popover read as
+ * pressed-in rather than raised, and `well` in particular is a 60px recess
+ * designed for one hero panel, not for a table row. They are offered because
+ * they were asked for, but the picker flags them so the choice is deliberate.
+ */
+export const SHADOW_INSET_IDS: ShadowId[] = ['inset', 'well'];
 
 // ── Defaults — copied verbatim from index.css's static :root values ───────────
 
@@ -569,7 +662,7 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--icon-stroke-width': `${shape.iconStrokeWidth}`,
     '--breadcrumb-size': `${shape.breadcrumbSize}px`,
 
-    '--shadow-sm': shadow.light.sm, '--shadow': shadow.light.base, '--shadow-lg': shadow.light.lg,
+    '--elev-sm': shadow.light.sm, '--elev': shadow.light.base, '--elev-lg': shadow.light.lg,
 
     '--page-padding': `${density.pagePadding}px`, '--content-gap': `${density.contentGap}px`,
     '--ds-btn-py': `${density.btnPy}px`, '--ds-input-py': `${density.inputPy}px`, '--ds-cell-py': `${density.cellPy}px`,
@@ -671,7 +764,7 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--teal-l': `rgba(${dtr},${dtg},${dtb},0.14)`,
     '--teal-m': `rgba(${dtr},${dtg},${dtb},0.26)`,
 
-    '--shadow-sm': shadow.dark.sm, '--shadow': shadow.dark.base, '--shadow-lg': shadow.dark.lg,
+    '--elev-sm': shadow.dark.sm, '--elev': shadow.dark.base, '--elev-lg': shadow.dark.lg,
   };
 
   tag.textContent = `:root {\n${block(lightVars)}\n}\n[data-theme="dark"] {\n${block(darkVars)}\n}`;

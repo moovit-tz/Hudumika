@@ -13,7 +13,6 @@ import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { showAlert } from '../lib/alert.js';
-import { PageHeader } from '../components/PageHeader.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
@@ -308,12 +307,15 @@ export const ClearOSMetricsDashboard: React.FC = () => {
         <div style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name="barChart2" size={18} color="var(--teal)" strokeWidth={1.75} />
         </div>
+        {/* A toolbar label, not a PageHeader. This component only ever renders
+            inside ClearOSLanding, which already opens with "Clearance
+            overview." -- a second PageHeader stacked a full page title (with
+            its own crumbs and 43px title block) inside a 60px toolbar row, so
+            the screen carried two titles and a large dead gap between them. */}
         <div>
-          <PageHeader
-            crumbs={['ClearOS', 'Operations Metrics']}
-            titlePlain="Operations"
-            titleEm="metrics"
-          />
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.25 }}>
+            Operations metrics
+          </div>
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>
             {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : 'Loading…'}
           </div>
