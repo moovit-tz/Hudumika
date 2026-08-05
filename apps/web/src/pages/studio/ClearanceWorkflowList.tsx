@@ -7,6 +7,7 @@ import type { Workflow } from '@hudumika/types';
 import { showAlert } from '../../lib/alert.js';
 import './Workflows.css';
 import { showConfirm } from '../../lib/confirm.js';
+import { PageHeader } from '../../components/PageHeader.js';
 
 export type { FieldCondition, AutoComm, WorkflowStep, WorkflowTrigger, Workflow } from '@hudumika/types';
 
@@ -158,11 +159,12 @@ export function ClearanceWorkflowList() {
       {/* Header */}
       <div className="wf-page-header">
         <div>
-          <h1 className="wf-page-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon name="tasks" size={20} />
-            Shipment Workflows
-          </h1>
-          <div className="wf-page-sub">Define step-by-step processes, entry conditions, and automated communications for each shipment type.</div>
+          <PageHeader
+            crumbs={['Studio', 'Clearance']}
+            titlePlain="Shipment"
+            titleEm="workflows"
+            subtitle="Define step-by-step processes, entry conditions, and automated communications for each shipment type."
+          />
         </div>
         <div className="wf-header-actions">
           <button className="wfb-btn-ghost wfb-btn-sm" onClick={() => navigate('/clearos/ops')}>

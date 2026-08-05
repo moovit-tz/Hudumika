@@ -8,6 +8,7 @@ import { Badge } from '../../components/ui/badge.js';
 import { Input } from '../../components/ui/input.js';
 import { Textarea } from '../../components/ui/textarea.js';
 import type { WorkflowStudioTriggerDef } from '@hudumika/types';
+import { PageHeader } from '../../components/PageHeader.js';
 
 const KIND_LABEL: Record<string, string> = {
   DOMAIN_EVENT: 'When something happens in an app',
@@ -74,7 +75,11 @@ export function WorkflowNew() {
         <Icon name="arrowLeft" size={13} /> Workflows
       </button>
 
-      <div style={{ fontSize: 21, fontWeight: 800, color: 'var(--ink)' }}>New workflow</div>
+      <PageHeader
+        crumbs={['Studio', 'New workflow']}
+        titlePlain="New"
+        titleEm="workflow"
+      />
       <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 3, marginBottom: 20 }}>
         Name it and choose what sets it off. You will add the steps next, on the canvas.
       </div>
