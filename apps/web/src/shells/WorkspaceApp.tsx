@@ -160,12 +160,23 @@ export function WorkspaceApp({ appId, children }: WorkspaceAppProps) {
      */
     const surface = enforceContrastFloor(effectiveColor);
     const primaryHsl = hexToHslTriplet(surface.hex);
+    const fgHsl = pickForegroundHsl(surface.hex);
     el.style.setProperty('--primary', primaryHsl);
-    el.style.setProperty('--primary-foreground', pickForegroundHsl(surface.hex));
+    el.style.setProperty('--primary-foreground', fgHsl);
     el.style.setProperty('--ring', primaryHsl);
     el.style.setProperty('--sidebar-primary', primaryHsl);
-    el.style.setProperty('--sidebar-primary-foreground', pickForegroundHsl(surface.hex));
+    el.style.setProperty('--sidebar-primary-foreground', fgHsl);
     el.style.setProperty('--sidebar-ring', primaryHsl);
+
+    // Tailwind v4 resolves its @theme variables where they are declared, so
+    // `--color-primary: hsl(var(--primary))` captured the value of --primary
+    // at :root and never re-reads it. Overriding --primary on a descendant is
+    // therefore invisible to `bg-primary`, which is why the button here saw
+    // the app's indigo in --primary and still painted the tenant's orange.
+    // The v4 variable has to be set on the scope as well.
+    el.style.setProperty('--color-primary', `hsl(${primaryHsl})`);
+    el.style.setProperty('--color-primary-foreground', `hsl(${fgHsl})`);
+    el.style.setProperty('--color-ring', `hsl(${primaryHsl})`);
   }, [appColor, appId, dsRev, isDark]);
 
   const body = (
