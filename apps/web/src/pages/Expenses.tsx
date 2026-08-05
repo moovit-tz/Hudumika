@@ -170,7 +170,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
               ) : (
                 <div>
                   <button type="button" onClick={verifyEfdReceipt} disabled={efdChecking}
-                    style={{ padding: 'var(--ds-btn-py-sm) 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)', fontSize: 11.5, fontWeight: 700, cursor: efdChecking ? 'default' : 'pointer' }}>
+                    style={{ padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)', fontSize: 12, fontWeight: 700, cursor: efdChecking ? 'default' : 'pointer' }}>
                     {efdChecking ? 'Checking with TRA…' : 'Verify with TRA'}
                   </button>
                   {expense.efd_error && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>{expense.efd_error}</div>}
@@ -362,12 +362,12 @@ export const Expenses: React.FC = () => {
           <Icon name="plus" size={15} color="#fff" /> Add Expense
         </Link>
         <button type="button" onClick={() => setShowBulkUpload(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py-lg) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
           <Icon name="upload" size={14} color="var(--ink3)" /> Bulk Upload
         </button>
         <div style={{ flex: 1 }} />
         <button type="button" onClick={exportCsv}
-          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py-lg) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
           <Icon name="download" size={14} color="var(--ink3)" /> Export CSV
         </button>
       </div>

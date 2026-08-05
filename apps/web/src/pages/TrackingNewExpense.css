@@ -47,7 +47,7 @@
 }
 
 .exp-btn-secondary {
-  padding: 10px 20px;
+  padding: var(--ds-btn-py) 20px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--white);
@@ -63,7 +63,7 @@
 }
 
 .exp-btn-primary {
-  padding: 10px 20px;
+  padding: var(--ds-btn-py) 20px;
   border-radius: 8px;
   border: none;
   background: #6225e6; /* The purple from Movex design */

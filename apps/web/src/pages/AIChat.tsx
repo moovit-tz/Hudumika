@@ -60,7 +60,7 @@ export const AIChat: React.FC = () => {
             <div style={{ marginTop: 12, fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Ask about your shipments, customers, or receivables</div>
             <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
               {SUGGESTIONS.map(s => (
-                <button key={s} type="button" onClick={() => send(s)} className="btn btn-secondary btn-sm" style={{ fontSize: 12.5 }}>{s}</button>
+                <button key={s} type="button" onClick={() => send(s)} className="btn btn-secondary btn-sm" style={{ fontSize: 13 }}>{s}</button>
               ))}
             </div>
           </div>

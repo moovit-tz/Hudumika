@@ -679,7 +679,7 @@ html[data-expanded="true"] .app-sidebar {
   justify-content: flex-start;
   gap: 12px;
   width: 100%;
-  padding: 14px 20px;
+  padding: var(--ds-btn-py-lg) 20px;
   border-radius: 18px;
   background: #fff;
   border: none;

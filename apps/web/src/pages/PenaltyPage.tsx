@@ -240,7 +240,7 @@ export const PenaltyPage: React.FC = () => {
               type="button"
               className="btn btn-primary"
               onClick={() => setStep(2)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-lg) 28px', borderRadius: 'var(--r)', fontSize: 13.5 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 28px', borderRadius: 'var(--r)', fontSize: 14 }}
             >
               <span>Continue</span>
               <span style={{ fontSize: 15 }}>→</span>
@@ -337,7 +337,7 @@ export const PenaltyPage: React.FC = () => {
                 setSummary('');
                 setStep(3);
               }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-lg) 28px', borderRadius: 'var(--r)', fontSize: 13.5 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 28px', borderRadius: 'var(--r)', fontSize: 14 }}
             >
               <span>Calculate Penalty</span>
               <span style={{ fontSize: 15 }}>→</span>
@@ -358,7 +358,7 @@ export const PenaltyPage: React.FC = () => {
                 className="btn btn-primary"
                 onClick={calculate}
                 disabled={calcLoading}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-lg) 36px', borderRadius: 'var(--r)', fontSize: 14 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 36px', borderRadius: 'var(--r)', fontSize: 14 }}
               >
                 <Icon name="alertCircle" size={15} color="#fff" />
                 <span>{calcLoading ? 'Calculating…' : 'Estimate Penalty'}</span>

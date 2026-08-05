@@ -66,7 +66,7 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
               border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
               background: isActive ? 'var(--teal-l)' : 'transparent',
               color: isActive ? 'var(--teal)' : 'var(--ink2)',
-              fontWeight: isActive ? 700 : 500, fontSize: 13.5,
+              fontWeight: isActive ? 700 : 500, fontSize: 14,
             }}
           >
             <Icon name={v.icon} size={15} color={isActive ? 'var(--teal)' : 'var(--ink3)'} />
@@ -98,7 +98,7 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
                 border: 'none', cursor: 'pointer', textAlign: 'left', flex: 1, minWidth: 0,
                 background: isActive ? 'var(--teal-l)' : 'transparent',
                 color: isActive ? 'var(--teal)' : 'var(--ink2)',
-                fontWeight: isActive ? 700 : 500, fontSize: 13.5,
+                fontWeight: isActive ? 700 : 500, fontSize: 14,
               }}
             >
               <span style={{ width: 9, height: 9, borderRadius: '50%', background: l.color, flexShrink: 0 }} />

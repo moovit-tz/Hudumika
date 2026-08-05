@@ -592,13 +592,13 @@ function LineItemsEditor({ lines, currency, onChange }: {
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', padding:'12px 8px 4px', flexWrap:'wrap', gap:12 }}>
         <div style={{ display:'flex', gap:8, position:'relative' }}>
           <button type="button" title="Add blank line item" onClick={addBlank}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px dashed var(--teal)', borderRadius: 'var(--r)', background:'var(--teal-l)', color:'var(--teal)', cursor:'pointer', fontWeight:600, fontSize:12.5 }}>
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px dashed var(--teal)', borderRadius: 'var(--r)', background:'var(--teal-l)', color:'var(--teal)', cursor:'pointer', fontWeight:600, fontSize:13 }}>
             <Icon name="plus" size={13}/> Add Line
           </button>
           <Popover open={showCatalog} onOpenChange={setShowCatalog}>
             <PopoverTrigger asChild>
               <button type="button" title="Add from service catalog"
-                style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--white)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:12.5 }}>
+                style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--white)', color:'var(--ink2)', cursor:'pointer', fontWeight:600, fontSize:13 }}>
                 <Icon name="clipboard" size={13}/> From Catalog
               </button>
             </PopoverTrigger>
@@ -1228,7 +1228,7 @@ export const Quotations: React.FC = () => {
             <input type="text" title="Search" placeholder="Search quotes, customers�" value={search} onChange={e=>setSearch(e.target.value)}
               style={{ width:'100%', paddingLeft:32, paddingRight:12, paddingTop:8, paddingBottom:8, border:'1px solid var(--border)', borderRadius: 9, fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const }}/>
           </div>
-          <button type="button" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', borderRadius:'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:12.5, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap' }}>
+          <button type="button" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', borderRadius:'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap' }}>
             <Icon name="download" size={13}/> Export CSV
           </button>
           <button type="button" onClick={()=>setView('create')} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 18px', borderRadius:'var(--r)', border:'none', background:'var(--teal)', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap' }}>

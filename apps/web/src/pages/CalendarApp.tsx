@@ -258,7 +258,7 @@ export const CalendarApp: React.FC = () => {
                 title={on ? `Hide ${CATEGORY_MAP[cat].label}` : `Show ${CATEGORY_MAP[cat].label}`}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5, border: 'none', background: 'none',
-                  cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 6px', borderRadius: 'var(--r)', fontSize: 11.5, fontWeight: 600,
+                  cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 6px', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600,
                   color: on ? 'var(--ink2)' : 'var(--ink3)', opacity: on ? 1 : 0.5, whiteSpace: 'nowrap',
                 }}
               >
@@ -637,8 +637,8 @@ export const CalendarApp: React.FC = () => {
                 )}
               </div>
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
-                <button onClick={() => setShowModal(false)} style={{ padding: 'var(--ds-btn-py-lg) 18px', border: '1px solid var(--border)', background: 'transparent', borderRadius: 'var(--r)', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
-                <button onClick={handleSave} style={{ padding: 'var(--ds-btn-py-lg) 18px', border: 'none', background: 'var(--teal)', color: '#fff', borderRadius: 'var(--r)', cursor: 'pointer', fontWeight: 600 }}>Save</button>
+                <button onClick={() => setShowModal(false)} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', background: 'transparent', borderRadius: 'var(--r)', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
+                <button onClick={handleSave} style={{ padding: 'var(--ds-btn-py) 18px', border: 'none', background: 'var(--teal)', color: '#fff', borderRadius: 'var(--r)', cursor: 'pointer', fontWeight: 600 }}>Save</button>
               </div>
             </div>
           </div>
@@ -674,7 +674,7 @@ export const CalendarApp: React.FC = () => {
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button onClick={() => openEdit(ev)} style={{ background: 'none', border: 'none', color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 8px' }}>Edit</button>
+                <button onClick={() => openEdit(ev)} style={{ background: 'none', border: 'none', color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px' }}>Edit</button>
               </div>
             </div>
           </>

@@ -1655,7 +1655,7 @@ export const Support: React.FC = () => {
                           border: active ? 'none' : '1px solid var(--border)',
                           background: active ? activeBg : 'var(--white)',
                           color: active ? activeColor : 'var(--ink)',
-                          fontSize: 12.5,
+                          fontSize: 13,
                           fontWeight: 700,
                           cursor: 'pointer',
                           display: 'flex',

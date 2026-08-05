@@ -323,7 +323,7 @@ function PrimaryBtn({ label, icon, onClick, type = 'button' }: { label: string; 
 
 function ActionBtn({ label, color = 'var(--teal)', onClick }: { label: string; color?: string; onClick?: () => void }) {
   return (
-    <button type="button" onClick={onClick} style={{ fontSize:11.5, padding:'var(--ds-btn-py-sm) 9px', borderRadius:'var(--r)', border:`1px solid ${color}`, color, background:'none', cursor:'pointer', fontFamily:'var(--font)', fontWeight:600, marginRight:4 }}>
+    <button type="button" onClick={onClick} style={{ fontSize:12, padding:'var(--ds-btn-py-xs) 9px', borderRadius:'var(--r)', border:`1px solid ${color}`, color, background:'none', cursor:'pointer', fontFamily:'var(--font)', fontWeight:600, marginRight:4 }}>
       {label}
     </button>
   );
@@ -757,7 +757,7 @@ export function RolesPage() {
                           const on = isAllowed(selected, res, a);
                           if (on !== !allOn) toggle(selected, res, a);
                         })}
-                          style={{ fontSize:11, fontWeight:700, padding:'var(--ds-btn-py-sm) 8px', borderRadius:'var(--r)', border:'none', cursor:'pointer',
+                          style={{ fontSize:11, fontWeight:700, padding:'var(--ds-btn-py-xs) 8px', borderRadius:'var(--r)', border:'none', cursor:'pointer',
                             background: allOn ? selMeta.bg : 'var(--bg)', color: allOn ? selMeta.color : 'var(--ink3)', fontFamily:'var(--font)' }}>
                           {allOn ? 'Revoke all' : 'Grant all'}
                         </button>
@@ -1658,13 +1658,13 @@ export function AttendancePage() {
 
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-sm) 8px' }} onClick={() => setDate(new Date(year, month - 1, 1))}>
+            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-xs) 8px' }} onClick={() => setDate(new Date(year, month - 1, 1))}>
               <Icon name="chevronLeft" size={14} />
             </button>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', minWidth: 120, textAlign: 'center' }}>
               {date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </span>
-            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-sm) 8px' }} onClick={() => setDate(new Date(year, month + 1, 1))}>
+            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-xs) 8px' }} onClick={() => setDate(new Date(year, month + 1, 1))}>
               <Icon name="chevronRight" size={14} />
             </button>
           </div>
@@ -2050,7 +2050,7 @@ export function ShiftsPage() {
         
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-sm) 8px' }} onClick={() => {
+            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-xs) 8px' }} onClick={() => {
               const d = new Date(startDate);
               d.setDate(d.getDate() - (view === 'week' ? 7 : 30));
               setStartDate(d);
@@ -2060,7 +2060,7 @@ export function ShiftsPage() {
               {startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - {days[days.length-1].toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
             
-            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-sm) 8px' }} onClick={() => {
+            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-xs) 8px' }} onClick={() => {
               const d = new Date(startDate);
               d.setDate(d.getDate() + (view === 'week' ? 7 : 30));
               setStartDate(d);

@@ -202,7 +202,7 @@ function Btn({ label, icon, onClick, variant = 'ghost', disabled = false }: { la
     danger:  { background: 'var(--white)', color: 'var(--red)', border: '1.5px solid var(--border)' },
   };
   return (
-    <button onClick={onClick} disabled={disabled} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 600, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.55 : 1, fontFamily: 'var(--font)', ...style[variant] }}>
+    <button onClick={onClick} disabled={disabled} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: disabled ? 'default' : 'pointer', opacity: disabled ? 0.55 : 1, fontFamily: 'var(--font)', ...style[variant] }}>
       {icon && <Icon name={icon} size={13} strokeWidth={2} />}
       {label}
     </button>
@@ -510,7 +510,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
               </div>
             ))}
             {current && current.status !== 'paid' ? (
-              <button onClick={() => payInvoice(current.id)} disabled={paying === current.id} style={{ width: '100%', marginTop: 16, padding: 'var(--ds-btn-py-lg) 0', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: paying === current.id ? 'default' : 'pointer', opacity: paying === current.id ? 0.6 : 1, fontSize: 13.5, fontWeight: 700, fontFamily: 'var(--font)' }}>
+              <button onClick={() => payInvoice(current.id)} disabled={paying === current.id} style={{ width: '100%', marginTop: 16, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: paying === current.id ? 'default' : 'pointer', opacity: paying === current.id ? 0.6 : 1, fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)' }}>
                 {paying === current.id ? 'Processing…' : 'Pay Now'}
               </button>
             ) : (
@@ -518,7 +518,7 @@ function BillingTab({ tenant, onNavigateTab }: { tenant: any; onNavigateTab: (t:
                 {current ? 'Paid' : 'No invoice yet'}
               </div>
             )}
-            <button onClick={() => current && downloadInvoice(current)} disabled={!current} style={{ width: '100%', marginTop: 8, padding: 'var(--ds-btn-py) 0', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'none', cursor: current ? 'pointer' : 'default', opacity: current ? 1 : 0.5, fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)' }}>Download Statement</button>
+            <button onClick={() => current && downloadInvoice(current)} disabled={!current} style={{ width: '100%', marginTop: 8, padding: 'var(--ds-btn-py) 0', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'none', cursor: current ? 'pointer' : 'default', opacity: current ? 1 : 0.5, fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)' }}>Download Statement</button>
           </div>
         </Card>
       </div>
@@ -761,7 +761,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
                     <span>{k}</span><span>{v}</span>
                   </div>
                 ))}
-                <button onClick={payUpcoming} disabled={payingUpcoming} style={{ width: '100%', marginTop: 16, padding: 'var(--ds-btn-py-lg) 0', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: payingUpcoming ? 'default' : 'pointer', opacity: payingUpcoming ? 0.6 : 1, fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)' }}>
+                <button onClick={payUpcoming} disabled={payingUpcoming} style={{ width: '100%', marginTop: 16, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: payingUpcoming ? 'default' : 'pointer', opacity: payingUpcoming ? 0.6 : 1, fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)' }}>
                   {payingUpcoming ? 'Processing…' : 'Pay Now'}
                 </button>
               </>
@@ -1613,7 +1613,7 @@ export const Subscription: React.FC = () => {
         <div className="sub-hero-tabbar">
           {TABS.map(t => (
             <button key={t.id} type="button" onClick={() => setTab(t.id)} style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-lg) 16px',
+              display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px',
               border: 'none', borderBottom: `2px solid ${tab === t.id ? '#fff' : 'transparent'}`,
               background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
               fontSize: 13, fontWeight: tab === t.id ? 700 : 500,

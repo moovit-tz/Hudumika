@@ -75,7 +75,7 @@ export const TrackingAssignments: React.FC = () => {
       />
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)' }}>Vehicle Assignments</div>
-        <button onClick={() => setShowAddModal(true)} style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: 'var(--ds-btn-py-lg) 16px', borderRadius: 'var(--r)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button onClick={() => setShowAddModal(true)} style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', fontWeight: 600, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
           Add Assignment
         </button>
       </div>

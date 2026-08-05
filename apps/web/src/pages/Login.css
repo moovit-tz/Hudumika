@@ -109,7 +109,7 @@
   align-items: center;
   gap: 14px;
   width: 100%;
-  padding: 14px 18px;
+  padding: var(--ds-btn-py-lg) 18px;
   border: none;
   border-bottom: 1px solid var(--lp-row-border, #f0f2f5);
   background: var(--lp-row-bg, #fff);
@@ -238,7 +238,7 @@
   border: none;
   color: var(--lp-accent, #0d7a6b);
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: 14px;
   cursor: pointer;
   padding: 0;
 }
@@ -247,7 +247,7 @@
   color: #fff;
   border: none;
   border-radius: 100px;
-  padding: 10px 24px;
+  padding: var(--ds-btn-py) 24px;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;

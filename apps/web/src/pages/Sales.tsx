@@ -575,7 +575,7 @@ function QuoteModal({
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Line Items</div>
-              <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: 'var(--ds-btn-py-sm) 10px', display: 'flex', alignItems: 'center', gap: 5 }} onClick={addLine}>
+              <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: 'var(--ds-btn-py-xs) 10px', display: 'flex', alignItems: 'center', gap: 5 }} onClick={addLine}>
                 <Icon name="plus" size={12} /> Add Line
               </button>
             </div>

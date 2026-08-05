@@ -282,7 +282,7 @@ export const CustomsReference: React.FC = () => {
             <button key={t.key} type="button" onClick={() => setTab(t.key)}
               style={{
                 height: 32, padding: '0 14px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
-                fontSize: 12.5, fontWeight: 700, fontFamily: 'var(--font)',
+                fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)',
                 background: tab === t.key ? 'var(--white)' : 'transparent',
                 color: tab === t.key ? 'var(--ink)' : 'var(--ink3)',
                 boxShadow: tab === t.key ? '0 1px 4px rgba(0,0,0,.08)' : 'none',

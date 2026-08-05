@@ -496,13 +496,13 @@ export const OrgChart: React.FC = () => {
           <button type="button" onClick={autoLayout}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)',
               border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer',
-              fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)' }}>
+              fontSize: 13, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)' }}>
             <Icon name="zap" size={13} color="var(--ink2)" /> Auto Layout
           </button>
           <button type="button" onClick={() => setShowAdd(true)}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)',
               border: 'none', background: 'var(--teal)', cursor: 'pointer',
-              fontSize: 12.5, fontWeight: 700, color: '#fff', fontFamily: 'var(--font)' }}>
+              fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: 'var(--font)' }}>
             <Icon name="userPlus" size={13} color="#fff" /> Add Node
           </button>
         </div>

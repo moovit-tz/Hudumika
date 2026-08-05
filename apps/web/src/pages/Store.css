@@ -150,11 +150,11 @@
   background: #fff;
   color: #7c3aed;
   border: none;
-  padding: 10px 20px;
+  padding: var(--ds-btn-py) 20px;
   border-radius: 8px;
   font-family: var(--font);
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: 13px;
   cursor: pointer;
   box-shadow: 0 4px 6px rgba(0,0,0,0.05);
 }
@@ -391,7 +391,7 @@
   background: #8b5cf6;
   color: #fff;
   border: none;
-  padding: 8px 20px;
+  padding: var(--ds-btn-py) 20px;
   border-radius: 8px;
   font-family: var(--font);
   font-weight: 700;
@@ -406,7 +406,7 @@
   background: var(--red-l);
   color: var(--red);
   border: 1px solid rgba(207, 34, 46, 0.25);
-  padding: 8px 16px;
+  padding: var(--ds-btn-py) 16px;
   border-radius: 8px;
   font-family: var(--font);
   font-weight: 700;
@@ -438,7 +438,7 @@
 }
 
 .store-tab-btn {
-  padding: 14px 20px;
+  padding: var(--ds-btn-py-lg) 20px;
   border: none;
   border-bottom: 2px solid transparent;
   background: transparent;
@@ -774,7 +774,7 @@
 
 .store-consent-allow-btn {
   flex: 1;
-  padding: 10px 0;
+  padding: var(--ds-btn-py) 0;
   border-radius: 8px;
   border: none;
   background: #8b5cf6;
@@ -813,23 +813,11 @@
 /* Store brand color — set dynamically by WorkspaceApp via useBranding() */
 .app-shell[data-store] {}
 [data-store] .btn-primary {
-  padding: 11px 26px;
-  font-size: 14px;
   font-weight: 700;
-  border-radius: 10px;
-  min-height: 42px;
 }
 [data-store] .btn-secondary {
-  padding: 10px 22px;
-  font-size: 13.5px;
-  border-radius: 10px;
-  min-height: 42px;
 }
 [data-store] .btn-sm {
-  padding: 9px 20px;
-  font-size: 13.5px;
-  min-height: 38px;
-  border-radius: 9px;
 }
 [data-store] .app-shell-content .page-layout {
   min-height: 100%;

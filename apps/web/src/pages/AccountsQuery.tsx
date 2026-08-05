@@ -255,7 +255,7 @@ export function AccountsQuery() {
                     type="button"
                     onClick={() => setStatus(s)}
                     style={{
-                      padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20,
+                      padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 20,
                       border: `1.5px solid ${status === s ? 'var(--teal)' : 'var(--border)'}`,
                       background: status === s ? 'var(--teal)' : 'var(--white)',
                       color: status === s ? '#fff' : 'var(--ink)',

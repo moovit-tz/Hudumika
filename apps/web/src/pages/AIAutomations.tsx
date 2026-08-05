@@ -303,7 +303,7 @@ export function AIAutomations() {
       <div className="aia-header">
         <div className="aia-header-title">
           Automations
-          <button className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-sm) 10px', height: 28, fontSize: 12, marginLeft: 8 }} onClick={handleNewPage}>
+          <button className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-xs) 10px', height: 28, fontSize: 12, marginLeft: 8 }} onClick={handleNewPage}>
             New page <Icon name="plus" size={12} style={{ marginLeft: 4 }} />
           </button>
 

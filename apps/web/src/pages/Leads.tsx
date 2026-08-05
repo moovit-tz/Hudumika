@@ -129,7 +129,7 @@ function ActMenu({ onView, onEdit, onDelete }: { onView: () => void; onEdit: () 
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <button type="button" aria-label="More actions" onClick={e => e.stopPropagation()}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r)', color: 'var(--ink3)' }}>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', borderRadius: 'var(--r)', color: 'var(--ink3)' }}>
           <Icon name="moreHorizontal" size={16} strokeWidth={1.75} />
         </button>
       </DropdownMenuTrigger>
@@ -384,7 +384,7 @@ export const Leads: React.FC = () => {
           <div style={{ padding: '20px 28px 0' }}>
 
             <button type="button" onClick={() => setView('list')}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--ink3)', fontFamily: 'var(--font)', fontWeight: 600, marginBottom: 16, padding: 0 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink3)', fontFamily: 'var(--font)', fontWeight: 600, marginBottom: 16, padding: 0 }}
               onMouseEnter={e => (e.currentTarget.style.color = 'var(--teal)')}
               onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink3)')}>
               <Icon name="chevronDown" size={13} style={{ transform: 'rotate(90deg)' }} /> Back to Leads
@@ -477,7 +477,7 @@ export const Leads: React.FC = () => {
                     {STAGES.filter(s => s !== sel.stage).map(s => (
                       <button key={s} type="button"
                         onClick={() => updateStage(s)}
-                        style={{ padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontSize: 11.5, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink2)' }}
+                        style={{ padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink2)' }}
                         onMouseEnter={e => (e.currentTarget.style.background = STAGE_CFG[s].bg)}
                         onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg)')}>
                         → {STAGE_CFG[s].label}
@@ -553,7 +553,7 @@ export const Leads: React.FC = () => {
                         { label: 'Mark as Lost',       icon: 'x'         as IconName, action: () => updateStage('LOST') },
                       ]).map(action => (
                         <button key={action.label} type="button" onClick={action.action}
-                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'left' }}
                           onMouseEnter={e => (e.currentTarget.style.background = 'var(--white)')}
                           onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg)')}>
                           <Icon name={action.icon} size={13} color="var(--teal)" strokeWidth={1.75} /> {action.label}
@@ -792,10 +792,10 @@ export const Leads: React.FC = () => {
         subtitle={`${leads.length} leads · ${active.length} active · ${fmtValue(pipeline)} pipeline value · ${winRate}% win rate`}
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button type="button" onClick={() => exportLeadsCSV(filtered)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py-lg) 18px', fontSize: 13, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+            <button type="button" onClick={() => exportLeadsCSV(filtered)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 18px', fontSize: 13, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'var(--font)' }}>
               <Icon name="download" size={14} strokeWidth={2} /> Export CSV
             </button>
-            <button type="button" onClick={() => { setAddForm({ ...EMPTY_FORM }); setEditingId(null); setShowAdd(true); }} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py-lg) 22px', fontSize: 14, fontWeight: 700, borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' }}>
+            <button type="button" onClick={() => { setAddForm({ ...EMPTY_FORM }); setEditingId(null); setShowAdd(true); }} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 22px', fontSize: 14, fontWeight: 700, borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)' }}>
               <Icon name="plus" size={15} strokeWidth={2.5} color="#fff" /> New Lead
             </button>
           </div>
@@ -934,18 +934,18 @@ export const Leads: React.FC = () => {
               </span>
               <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                 <button type="button" aria-label="Previous page" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={pg === 1}
-                  style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', background: 'var(--white)', cursor: pg === 1 ? 'default' : 'pointer', color: 'var(--ink3)', opacity: pg === 1 ? 0.4 : 1 }}>
+                  style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 8px', background: 'var(--white)', cursor: pg === 1 ? 'default' : 'pointer', color: 'var(--ink3)', opacity: pg === 1 ? 0.4 : 1 }}>
                   <Icon name="chevronLeft" size={14} />
                 </button>
                 {getPageNums(pg, totalPages).map((p, i) =>
                   p === '…' ? <span key={i} style={{ padding: '0 6px', color: 'var(--ink3)', fontSize: 13 }}>…</span> :
                   <button key={p} type="button" onClick={() => setPage(Number(p))}
-                    style={{ border: `1px solid ${pg === p ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 10px', background: pg === p ? 'var(--teal)' : 'var(--white)', cursor: 'pointer', fontSize: 13, color: pg === p ? '#fff' : 'var(--ink)', minWidth: 32 }}>
+                    style={{ border: `1px solid ${pg === p ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', background: pg === p ? 'var(--teal)' : 'var(--white)', cursor: 'pointer', fontSize: 13, color: pg === p ? '#fff' : 'var(--ink)', minWidth: 32 }}>
                     {p}
                   </button>
                 )}
                 <button type="button" aria-label="Next page" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={pg === totalPages}
-                  style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', background: 'var(--white)', cursor: pg === totalPages ? 'default' : 'pointer', color: 'var(--ink3)', opacity: pg === totalPages ? 0.4 : 1 }}>
+                  style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 8px', background: 'var(--white)', cursor: pg === totalPages ? 'default' : 'pointer', color: 'var(--ink3)', opacity: pg === totalPages ? 0.4 : 1 }}>
                   <Icon name="chevronRight" size={14} />
                 </button>
               </div>

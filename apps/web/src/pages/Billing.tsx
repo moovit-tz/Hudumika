@@ -716,7 +716,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange }:
             <td colSpan={7} style={{ padding: '8px 10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <button type="button" onClick={add}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-sm) 12px', border: `1px dashed ${color}`, borderRadius: 'var(--r)', background: 'none', color, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-sm) 12px', border: `1px dashed ${color}`, borderRadius: 'var(--r)', background: 'none', color, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--teal-l)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                   <Icon name="plus" size={12} color={color} /> Add Line Item
@@ -969,7 +969,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
         <ChargeSectionEditor title="Shipping Line Charges — Paid in USD" color="var(--blue)" group="shipping" currency="USD" items={shipping} onChange={setShipping} />
         <div style={{ position: 'relative' }}>
           {shipment && activeShipmentFull && (
-            <button type="button" onClick={() => setShowTimesheets(true)} style={{ position: 'absolute', top: 3, right: 10, display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 10px', borderRadius: 'var(--r)', background: 'var(--purple-l)', color: 'var(--purple)', border: '1px solid var(--purple)', fontSize: 11, fontWeight: 700, cursor: 'pointer', zIndex: 10 }}>
+            <button type="button" onClick={() => setShowTimesheets(true)} style={{ position: 'absolute', top: 3, right: 10, display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', background: 'var(--purple-l)', color: 'var(--purple)', border: '1px solid var(--purple)', fontSize: 11, fontWeight: 700, cursor: 'pointer', zIndex: 10 }}>
               <Icon name="clock" size={12} color="var(--purple)" /> Import Unbilled Time
             </button>
           )}
@@ -1166,7 +1166,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
         <div style={{ display: 'flex', overflowX: 'auto', flex: 1, minWidth: 0 }}>
           {TABS.map(t => (
             <button key={t.id} type="button" onClick={() => setTab(t.id)}
-              style={{ padding: 'var(--ds-btn-py-lg) 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: tab === t.id ? 'var(--ink)' : 'var(--ink3)', borderBottom: tab === t.id ? '2px solid var(--ink)' : '2px solid transparent', marginBottom: -1, whiteSpace: 'nowrap', flexShrink: 0 }}>
+              style={{ padding: 'var(--ds-btn-py) 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: tab === t.id ? 'var(--ink)' : 'var(--ink3)', borderBottom: tab === t.id ? '2px solid var(--ink)' : '2px solid transparent', marginBottom: -1, whiteSpace: 'nowrap', flexShrink: 0 }}>
               {t.label}
             </button>
           ))}
@@ -1206,7 +1206,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               : inv.traStatus === 'failed' ? (inv.traAckMsg || 'Previous submission failed — retry')
               : 'Submit this invoice to TRA EFDMS for fiscalization'
             }
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-sm) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: (traSubmitting || inv.status === 'Draft' || !inv._dbId) ? 'default' : 'pointer', background: inv.status === 'Draft' || !inv._dbId ? 'var(--bg)' : inv.traStatus === 'failed' ? 'var(--red-l)' : 'var(--gold-l)', color: inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)', opacity: traSubmitting ? 0.7 : 1 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: (traSubmitting || inv.status === 'Draft' || !inv._dbId) ? 'default' : 'pointer', background: inv.status === 'Draft' || !inv._dbId ? 'var(--bg)' : inv.traStatus === 'failed' ? 'var(--red-l)' : 'var(--gold-l)', color: inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)', opacity: traSubmitting ? 0.7 : 1 }}>
             <Icon name={inv.traStatus === 'failed' ? 'refresh' : 'send'} size={12} color={inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)'} />
             {traSubmitting ? 'Submitting…' : inv.traStatus === 'failed' ? 'Retry TRA Submission' : 'Submit to TRA'}
           </button>

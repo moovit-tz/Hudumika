@@ -357,7 +357,7 @@ export function Customer360Sidebar({
                 <div style={{ marginBottom: 10, display: 'flex', justifyContent: 'center' }}><Icon name="sparkle" size={36} color="var(--teal)" strokeWidth={1.25} /></div>
                 <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 16 }}>Generate an AI-powered reply suggestion based on this conversation</div>
                 <button type="button" onClick={fetchAI}
-                  style={{ padding: 'var(--ds-btn-py-lg) 20px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+                  style={{ padding: 'var(--ds-btn-py) 20px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
                   Generate Suggestion
                 </button>
               </div>

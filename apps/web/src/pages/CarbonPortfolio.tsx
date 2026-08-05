@@ -255,7 +255,7 @@ export const CarbonPortfolio: React.FC = () => {
                   onClick={() => setTableOpen(o => !o)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--teal)', fontSize: 12.5, fontWeight: 600, padding: 'var(--ds-btn-py-sm) 0', marginBottom: tableOpen ? 12 : 0,
+                    color: 'var(--teal)', fontSize: 13, fontWeight: 600, padding: 'var(--ds-btn-py-sm) 0', marginBottom: tableOpen ? 12 : 0,
                   }}
                 >
                   <Icon name={tableOpen ? 'chevronUp' : 'chevronDown'} size={13} />

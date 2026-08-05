@@ -324,7 +324,7 @@ export const SuperAdminIssues: React.FC = () => {
                   placeholder="They see this in their own Report an issue page."
                   style={{ width: '100%', boxSizing: 'border-box', fontSize: 13, resize: 'vertical' }} />
                 <button type="button" className="btn btn-secondary" disabled={saving || !reply.trim()}
-                  style={{ marginTop: 8, fontSize: 12.5 }} onClick={sendReply}>
+                  style={{ marginTop: 8, fontSize: 13 }} onClick={sendReply}>
                   {saving ? 'Sending…' : 'Send reply'}
                 </button>
               </div>
@@ -337,7 +337,7 @@ export const SuperAdminIssues: React.FC = () => {
                   placeholder="What was actually done. Shown to the tenant beside the status — 'Resolved' on its own is not an answer."
                   style={{ width: '100%', boxSizing: 'border-box', fontSize: 13, resize: 'vertical' }} />
                 <button type="button" className="btn btn-primary" disabled={saving}
-                  style={{ marginTop: 8, fontSize: 12.5 }} onClick={() => patch({ resolution })}>
+                  style={{ marginTop: 8, fontSize: 13 }} onClick={() => patch({ resolution })}>
                   Save outcome
                 </button>
               </div>

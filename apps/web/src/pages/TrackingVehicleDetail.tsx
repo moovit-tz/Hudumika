@@ -209,7 +209,7 @@ export const TrackingVehicleDetail: React.FC = () => {
       <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginBottom: 20, flexWrap: 'wrap' }}>
         {TABS.map(t => (
           <button key={t} type="button" onClick={() => setTab(t)}
-            style={{ padding: 'var(--ds-btn-py-lg) 16px', border: 'none', borderBottom: tab === t ? '2px solid var(--teal)' : '2px solid transparent', background: 'none', color: tab === t ? 'var(--ink)' : 'var(--ink3)', fontWeight: tab === t ? 700 : 500, fontSize: 13, cursor: 'pointer' }}>
+            style={{ padding: 'var(--ds-btn-py) 16px', border: 'none', borderBottom: tab === t ? '2px solid var(--teal)' : '2px solid transparent', background: 'none', color: tab === t ? 'var(--ink)' : 'var(--ink3)', fontWeight: tab === t ? 700 : 500, fontSize: 13, cursor: 'pointer' }}>
             {t}
           </button>
         ))}
@@ -228,9 +228,9 @@ export const TrackingVehicleDetail: React.FC = () => {
               ) : (
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button type="button" onClick={() => setEditing(false)}
-                    style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 12px', cursor: 'pointer' }}>Cancel</button>
+                    style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer' }}>Cancel</button>
                   <button type="button" onClick={saveEdit} disabled={saving}
-                    style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: 'var(--teal)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 12px', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+                    style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: 'var(--teal)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
                     {saving ? 'Saving…' : 'Save'}
                   </button>
                 </div>
@@ -823,7 +823,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
               type="button"
               onClick={() => setCameraPreset(preset)}
               style={{
-                padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
+                padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
                 border: `1px solid ${cameraPreset === preset ? 'var(--teal)' : 'var(--border)'}`,
                 background: cameraPreset === preset ? 'var(--teal-l)' : 'var(--white)',
                 color: cameraPreset === preset ? 'var(--teal)' : 'var(--ink2)',

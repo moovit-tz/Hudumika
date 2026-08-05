@@ -185,7 +185,7 @@ export const TrackingShipments: React.FC = () => {
                   </td>
                   <td style={{ padding: '16px 20px' }}>
                     <div className="trk-dropdown-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
-                      <button style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 6px', cursor: 'pointer', color: 'var(--ink2)' }}>
+                      <button style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 6px', cursor: 'pointer', color: 'var(--ink2)' }}>
                         <Icon name="moreVertical" size={16} />
                       </button>
                     </div>

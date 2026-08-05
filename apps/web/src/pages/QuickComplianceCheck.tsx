@@ -72,7 +72,7 @@ function ComplyOSPromoCard() {
         type="button"
         onClick={() => navigate('/complyos')}
         className="btn btn-primary"
-        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 44, fontSize: 13.5, fontWeight: 700, marginTop: 20 }}
+        style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 44, fontSize: 14, fontWeight: 700, marginTop: 20 }}
       >
         <span>{enabled ? 'Open ComplyOS' : 'Explore ComplyOS'}</span>
         <Icon name="arrowRight" size={15} color="#fff" />

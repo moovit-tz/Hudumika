@@ -58,7 +58,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 7px 16px;
+  padding: var(--ds-btn-py) 16px;
   font-size: 13px;
   border-radius: 9px;
   border: 1px solid var(--border);
@@ -68,7 +68,7 @@
   font-family: var(--font);
 }
 .spt-hdr-btn--primary {
-  padding: 8px 18px;
+  padding: var(--ds-btn-py) 18px;
   font-weight: 700;
   border: none;
   background: var(--teal);
@@ -77,23 +77,11 @@
 
 /* ── Larger class-based buttons ─────────────────────────────────── */
 [data-bliss] .btn-primary {
-  padding: 11px 26px;
-  font-size: 14px;
   font-weight: 700;
-  border-radius: 10px;
-  min-height: 42px;
 }
 [data-bliss] .btn-secondary {
-  padding: 10px 22px;
-  font-size: 13.5px;
-  border-radius: 10px;
-  min-height: 42px;
 }
 [data-bliss] .btn-sm {
-  padding: 9px 20px;
-  font-size: 13.5px;
-  min-height: 38px;
-  border-radius: 9px;
 }
 
 /* ── Section stretching ──────────────────────────────────────────── */
@@ -652,7 +640,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 12px;
+  padding: var(--ds-btn-py-sm) 12px;
   border: 1px solid var(--border);
   border-radius: 7px;
   background: var(--white);
@@ -995,7 +983,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 20px;
+  padding: var(--ds-btn-py) 20px;
   border: none;
   border-radius: 9px;
   background: var(--teal);
@@ -1003,7 +991,7 @@
   cursor: pointer;
   font-family: var(--font);
   font-weight: 700;
-  font-size: 13.5px;
+  font-size: 14px;
   transition: background 0.12s;
 }
 .spt-send-btn--disabled  { background: var(--border); color: var(--ink3); cursor: not-allowed; }
@@ -1047,7 +1035,7 @@
 .spt-broadcast-chs { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
 
 .spt-broadcast-btn {
-  padding: 5px 10px;
+  padding: var(--ds-btn-py-sm) 10px;
   border-radius: 8px;
   border: 1.5px solid var(--border);
   background: var(--white);
@@ -1069,7 +1057,7 @@
 .spt-broadcast-btn[data-ch="sms"].spt-broadcast-btn--active      { background: #f5f3ff;       color: #7c3aed;     border-color: #7c3aed; }
 
 .spt-note-toggle-btn {
-  padding: 5px 10px;
+  padding: var(--ds-btn-py-sm) 10px;
   border-radius: 8px;
   border: 1.5px solid var(--border);
   background: var(--white);
@@ -1256,7 +1244,7 @@
   gap: 7px;
   width: 100%;
   box-sizing: border-box;
-  padding: 5px 0;
+  padding: var(--ds-btn-py-sm) 0;
   background: none;
   border: none;
   cursor: pointer;

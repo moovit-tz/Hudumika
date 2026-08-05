@@ -53,7 +53,7 @@
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 10px 16px;
+  padding: var(--ds-btn-py) 16px;
   font-size: 13px;
   font-weight: 600;
   color: var(--ink);

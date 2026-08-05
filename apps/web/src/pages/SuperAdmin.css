@@ -51,12 +51,12 @@
   display: block;
   text-align: center;
   font-size: 11px;
-  padding: 5px 10px;
+  padding: var(--ds-btn-py-sm) 10px;
 }
 
 .sa-brand-reset-logo-btn {
   font-size: 11px;
-  padding: 5px 10px;
+  padding: var(--ds-btn-py-sm) 10px;
   background: var(--bg);
   color: var(--ink2);
   border: 1px solid var(--border);
@@ -120,7 +120,7 @@
 
 .sa-brand-reset-app-btn {
   font-size: 10px;
-  padding: 2px 8px;
+  padding: var(--ds-btn-py-xs) 8px;
   background: var(--bg);
   color: var(--ink3);
   border: 1px solid var(--border);

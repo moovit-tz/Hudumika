@@ -11,7 +11,7 @@
   color: #fff;
   border: none;
   border-radius: 9px;
-  padding: 10px 16px;
+  padding: var(--ds-btn-py) 16px;
   font-weight: 700;
   cursor: pointer;
 }

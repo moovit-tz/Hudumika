@@ -3,23 +3,11 @@
 
 /* ── Larger class-based buttons ─────────────────────────────────── */
 [data-ai] .btn-primary {
-  padding: 11px 26px;
-  font-size: 14px;
   font-weight: 700;
-  border-radius: 10px;
-  min-height: 42px;
 }
 [data-ai] .btn-secondary {
-  padding: 10px 22px;
-  font-size: 13.5px;
-  border-radius: 10px;
-  min-height: 42px;
 }
 [data-ai] .btn-sm {
-  padding: 9px 20px;
-  font-size: 13.5px;
-  min-height: 38px;
-  border-radius: 9px;
 }
 
 /* ── AI coming soon card ─────────────────────────────────────────── */
@@ -91,7 +79,7 @@
   background: linear-gradient(135deg, #a855f7, #ec4899);
   color: white;
   border: none;
-  padding: 8px 16px;
+  padding: var(--ds-btn-py) 16px;
   border-radius: 20px;
   font-size: var(--text-sm);
   font-weight: 600;

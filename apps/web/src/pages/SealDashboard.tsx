@@ -279,7 +279,7 @@ export function SealDashboard() {
                           <button
                             type="button"
                             className="seal-btn-secondary"
-                            style={{ height: 30, padding: '0 10px', fontSize: 11.5 }}
+                            style={{ height: 30, padding: '0 10px', fontSize: 12 }}
                             onClick={e => { e.stopPropagation(); navigate(`/seal/compartments/${c.compartmentId}/heat-grid`); }}
                           >
                             <Icon name="grid" size={12} />

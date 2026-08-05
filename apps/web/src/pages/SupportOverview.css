@@ -29,14 +29,14 @@
 }
 
 .sov-period-btn {
-  padding: 7px 14px;
+  padding: var(--ds-btn-py) 14px;
   border: 1.5px solid var(--border);
   border-radius: 9px;
   background: var(--white);
   color: var(--ink3);
   font-family: var(--font);
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: 13px;
   cursor: pointer;
 }
 .sov-period-btn--active {
@@ -49,7 +49,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 16px;
+  padding: var(--ds-btn-py) 16px;
   background: var(--teal);
   border: none;
   border-radius: 9px;

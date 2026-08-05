@@ -147,7 +147,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
               {QUICK_CHIPS.map(c => (
                 <button key={c.q} type="button" onClick={() => handleChip(c.q)}
                   style={{
-                    fontSize: 11.5, padding: 'var(--ds-btn-py-sm) 11px', borderRadius: 20, cursor: 'pointer',
+                    fontSize: 12, padding: 'var(--ds-btn-py-sm) 11px', borderRadius: 20, cursor: 'pointer',
                     border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)',
                     fontFamily: 'var(--font)',
                   }}>
@@ -167,7 +167,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
                     display: 'flex', alignItems: 'center', gap: 12,
                     width: '100%', padding: 'var(--ds-btn-py) 18px', border: 'none',
                     background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
-                    color: 'var(--ink)', fontSize: 13.5, textAlign: 'left',
+                    color: 'var(--ink)', fontSize: 14, textAlign: 'left',
                   }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                   onMouseLeave={e => (e.currentTarget.style.background = '')}>
@@ -202,7 +202,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
                       display: 'flex', alignItems: 'center', gap: 12,
                       width: '100%', padding: 'var(--ds-btn-py) 18px', border: 'none',
                       background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
-                      color: 'var(--ink)', fontSize: 13.5, textAlign: 'left',
+                      color: 'var(--ink)', fontSize: 14, textAlign: 'left',
                     }}
                     onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                     onMouseLeave={e => (e.currentTarget.style.background = '')}>
@@ -226,7 +226,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
               <button type="button" onClick={searchWeb}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12,
-                  width: '100%', padding: 'var(--ds-btn-py-lg) 18px', border: 'none',
+                  width: '100%', padding: 'var(--ds-btn-py) 18px', border: 'none',
                   background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
                   color: 'var(--ink2)', fontSize: 13, textAlign: 'left',
                 }}
@@ -790,7 +790,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
                 style={{
                   background: 'none',
                   border: 'none', cursor: 'pointer', borderRadius: 'var(--r)',
-                  padding: 'var(--ds-btn-py-sm) 8px 4px 4px',
+                  padding: 'var(--ds-btn-py-xs) 8px 4px 4px',
                   display: 'flex', alignItems: 'center', gap: 8,
                   transition: 'background .15s',
                 }}

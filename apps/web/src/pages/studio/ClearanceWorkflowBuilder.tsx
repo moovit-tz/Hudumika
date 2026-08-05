@@ -786,7 +786,7 @@ export function ClearanceWorkflowBuilder() {
             <div className="wfb-zoom-divider"/>
             <button className="wfb-zoom-btn" onClick={()=>setZoom(1)} title="Reset to 100%"><I n="fit" s={13}/></button>
             <div className="wfb-zoom-divider"/>
-            <button className="wfb-zoom-btn" style={{gap:5,fontSize:11.5,fontWeight:700,color:'var(--teal)',width:'auto',padding:'0 6px'}} onClick={()=>{setSelectedId(null); setPanel(true);}} title="Workflow settings">
+            <button className="wfb-zoom-btn" style={{gap:5,fontSize:12,fontWeight:700,color:'var(--teal)',width:'auto',padding:'0 6px'}} onClick={()=>{setSelectedId(null); setPanel(true);}} title="Workflow settings">
               <I n="settings" s={12} c="var(--teal)"/>Settings
             </button>
           </div>

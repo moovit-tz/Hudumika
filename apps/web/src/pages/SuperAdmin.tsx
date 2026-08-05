@@ -698,7 +698,7 @@ export function CompaniesView() {
                     title={`Login as ${co.name}`}
                     disabled={!!impersonating}
                     onClick={() => handleImpersonate(co)}
-                    style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-sm) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:11, fontWeight:700, cursor: impersonating ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonating===co.id ? 0.6 : 1, whiteSpace:'nowrap' }}>
+                    style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:11, fontWeight:700, cursor: impersonating ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonating===co.id ? 0.6 : 1, whiteSpace:'nowrap' }}>
                     <Icon name="eye" size={11} color="var(--teal)" />
                     {impersonating === co.id ? 'Switching…' : 'Login As'}
                   </button>
@@ -1325,7 +1325,7 @@ export function DomainsView() {
             </TD>
             <TD>
               <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                <button type="button" className="btn" style={{ fontSize:11, padding:'var(--ds-btn-py-sm) 9px' }}
+                <button type="button" className="btn" style={{ fontSize:11, padding:'var(--ds-btn-py-xs) 9px' }}
                   disabled={busy==='chk'+d.id}
                   onClick={()=>act('chk'+d.id, ()=>apiFetch(`/v1/superadmin/domains/${d.id}/check`, { method:'POST', body:'{}' }))}>
                   {busy==='chk'+d.id ? 'Checking…' : 'Check'}

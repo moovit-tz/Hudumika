@@ -185,7 +185,7 @@ export const UserProfile: React.FC = () => {
         <div style={{ borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
         {/* Cover gradient */}
         <div style={{ height: 120, background: 'linear-gradient(135deg, var(--navy) 0%, var(--teal) 100%)', position: 'relative' }}>
-          <button style={{ position: 'absolute', top: 12, right: 16, display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 14px', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.12)', color: '#fff', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font)' }}>
+          <button style={{ position: 'absolute', top: 12, right: 16, display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 14px', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.12)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)' }}>
             <Icon name="camera" size={13} strokeWidth={2} />
             Change Cover
           </button>
@@ -229,7 +229,7 @@ export const UserProfile: React.FC = () => {
         {/* Tab strip */}
         <div style={{ display: 'flex', padding: '0 28px', borderTop: '1px solid var(--border)', gap: 0 }}>
           {TABS.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py-lg) 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: activeTab === t.key ? 'var(--teal)' : 'var(--ink3)', borderBottom: activeTab === t.key ? '2px solid var(--teal)' : '2px solid transparent', marginBottom: -1 }}>
+            <button key={t.key} onClick={() => setTab(t.key)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: activeTab === t.key ? 'var(--teal)' : 'var(--ink3)', borderBottom: activeTab === t.key ? '2px solid var(--teal)' : '2px solid transparent', marginBottom: -1 }}>
               <Icon name={t.icon} size={14} strokeWidth={activeTab === t.key ? 2.3 : 1.8} />
               {t.label}
             </button>
@@ -336,10 +336,10 @@ export const UserProfile: React.FC = () => {
 
             {saveError && <p style={{ fontSize: 12.5, color: 'var(--red)', textAlign: 'right', marginBottom: 8 }}>{saveError}</p>}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button type="button" onClick={() => setForm(buildInitialForm())} style={{ padding: 'var(--ds-btn-py) 20px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)' }}>
+              <button type="button" onClick={() => setForm(buildInitialForm())} style={{ padding: 'var(--ds-btn-py) 20px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 14, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)' }}>
                 Discard
               </button>
-              <button type="submit" disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 22px', border: 'none', borderRadius: 'var(--r)', background: saved ? 'var(--green)' : 'var(--teal)', color: '#fff', cursor: 'pointer', fontSize: 13.5, fontWeight: 700, fontFamily: 'var(--font)' }}>
+              <button type="submit" disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 22px', border: 'none', borderRadius: 'var(--r)', background: saved ? 'var(--green)' : 'var(--teal)', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)' }}>
                 {saved ? <><Icon name="check" size={14} strokeWidth={2.5} /> Saved!</> : saving ? 'Saving…' : 'Save Changes'}
               </button>
             </div>
@@ -373,8 +373,8 @@ export const UserProfile: React.FC = () => {
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                  <button type="button" onClick={() => setPwForm({current:'',next:'',confirm:''})} style={{ padding: 'var(--ds-btn-py) 20px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)' }}>Cancel</button>
-                  <button type="submit" disabled={pwSaving} style={{ padding: 'var(--ds-btn-py) 22px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontSize: 13.5, fontWeight: 700, fontFamily: 'var(--font)' }}>
+                  <button type="button" onClick={() => setPwForm({current:'',next:'',confirm:''})} style={{ padding: 'var(--ds-btn-py) 20px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 14, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)' }}>Cancel</button>
+                  <button type="submit" disabled={pwSaving} style={{ padding: 'var(--ds-btn-py) 22px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)' }}>
                     {pwSaving ? 'Updating…' : 'Update Password'}
                   </button>
                 </div>
@@ -414,7 +414,7 @@ export const UserProfile: React.FC = () => {
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{s.ip} · {s.location} · {s.time}</div>
                   </div>
-                  {!s.current && <button style={{ padding: 'var(--ds-btn-py-sm) 12px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, color: 'var(--red)', fontWeight: 600, fontFamily: 'var(--font)' }}>Revoke</button>}
+                  {!s.current && <button style={{ padding: 'var(--ds-btn-py-sm) 12px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, color: 'var(--red)', fontWeight: 600, fontFamily: 'var(--font)' }}>Revoke</button>}
                 </div>
               ))}
             </Card>
@@ -479,7 +479,7 @@ export const UserProfile: React.FC = () => {
             </Card>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button type="button" style={{ padding: 'var(--ds-btn-py) 22px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontSize: 13.5, fontWeight: 700, fontFamily: 'var(--font)' }}>Save Preferences</button>
+              <button type="button" style={{ padding: 'var(--ds-btn-py) 22px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font)' }}>Save Preferences</button>
             </div>
           </>
         )}
@@ -488,7 +488,7 @@ export const UserProfile: React.FC = () => {
         {activeTab === 'activity' && (
           <Card title="Login & Activity Log" subtitle="Recent account activity. Contact support if you notice anything suspicious.">
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-              <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)' }}>
+              <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)' }}>
                 <Icon name="download" size={13} strokeWidth={2} />
                 Export Log
               </button>

@@ -224,7 +224,7 @@ export function SealCompartmentDetail() {
         <button
           type="button"
           style={{
-            padding: 'var(--ds-btn-py-lg) 18px', fontSize: 13, fontWeight: 700, background: 'none', border: 'none',
+            padding: 'var(--ds-btn-py) 18px', fontSize: 13, fontWeight: 700, background: 'none', border: 'none',
             borderBottom: activeTab === 'overview' ? '2px solid var(--seal)' : '2px solid transparent',
             color: activeTab === 'overview' ? 'var(--seal)' : 'var(--ink3)', cursor: 'pointer',
           }}
@@ -235,7 +235,7 @@ export function SealCompartmentDetail() {
         <button
           type="button"
           style={{
-            padding: 'var(--ds-btn-py-lg) 18px', fontSize: 13, fontWeight: 700, background: 'none', border: 'none',
+            padding: 'var(--ds-btn-py) 18px', fontSize: 13, fontWeight: 700, background: 'none', border: 'none',
             borderBottom: activeTab === 'lots' ? '2px solid var(--seal)' : '2px solid transparent',
             color: activeTab === 'lots' ? 'var(--seal)' : 'var(--ink3)', cursor: 'pointer',
           }}

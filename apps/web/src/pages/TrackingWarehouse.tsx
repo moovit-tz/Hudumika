@@ -359,7 +359,7 @@ export const TrackingWarehouse: React.FC = () => {
               </div>
             )}
             <button type="button" onClick={generateInsight} disabled={insightLoading}
-              style={{ width: '100%', padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', opacity: insightLoading ? 0.6 : 1 }}>
+              style={{ width: '100%', padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: insightLoading ? 0.6 : 1 }}>
               {insightLoading ? 'Generating…' : insight ? 'Regenerate' : 'Generate Insight'}
             </button>
           </div>

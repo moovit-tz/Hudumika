@@ -21,7 +21,7 @@
 .sett-nav-lbl   { display: block; font-size: 10px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.7px; padding: 6px 16px 3px; }
 .sett-nav-btn   {
   width: 100%; text-align: left; border: none; border-left: 3px solid transparent;
-  cursor: pointer; padding: 7px 14px; font-size: 12.5px; font-weight: 400;
+  cursor: pointer; padding: var(--ds-btn-py) 14px; font-size: 13px; font-weight: 400;
   background: transparent; color: var(--ink2); font-family: var(--font);
   display: flex; align-items: center; gap: 9px; transition: background 0.12s, color 0.12s;
 }

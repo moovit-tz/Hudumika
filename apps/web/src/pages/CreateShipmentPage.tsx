@@ -570,7 +570,7 @@ export function CreateShipmentPage() {
                             {ocrSimulated && <span style={{ fontSize: 12, background: '#fef3c7', color: '#d97706', border: '1px solid #fde68a', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>Demo data</span>}
                             <span style={{ fontSize: 12, color: conf >= 85 ? 'var(--green)' : 'var(--gold)', fontWeight: 600 }}>{conf}% confidence</span>
                           </div>
-                          <button type="button" className="btn btn-secondary" title="Re-scan a different document" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', minHeight: 32, height: 32 }}
+                          <button type="button" className="btn btn-secondary" title="Re-scan a different document" style={{ fontSize: 12, padding: 'var(--ds-btn-py-xs) 12px', minHeight: 32, height: 32 }}
                             onClick={() => { setOcrFile(null); setOcrPreview(null); setOcrResult(null); }}>
                             Re-scan
                           </button>
@@ -627,7 +627,7 @@ export function CreateShipmentPage() {
                     <div style={{ fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55 }}>
                       {excelReport.text}
                       <div style={{ marginTop: 10 }}>
-                        <button className="btn btn-primary" style={{ fontSize: 12.5 }} onClick={() => setCurrentStep(3)}>
+                        <button className="btn btn-primary" style={{ fontSize: 13 }} onClick={() => setCurrentStep(3)}>
                           {excelReport.ok ? 'Review the form' : 'Fill the form by hand'}
                         </button>
                       </div>

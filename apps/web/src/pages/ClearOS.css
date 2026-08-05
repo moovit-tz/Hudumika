@@ -235,11 +235,7 @@
 
 /* ── Larger class-based buttons ─────────────────────────────────── */
 [data-clearos] .btn-primary {
-  padding: 11px 26px;
-  font-size: 14px;
   font-weight: 700;
-  border-radius: 10px;
-  min-height: 42px;
   background: var(--cos-gradient-teal);
   border: none;
   color: white;
@@ -253,10 +249,6 @@
 }
 
 [data-clearos] .btn-secondary {
-  padding: 10px 22px;
-  font-size: 13.5px;
-  border-radius: 10px;
-  min-height: 42px;
   background: var(--white);
   border: 1px solid var(--border);
   box-shadow: 0 2px 6px rgba(0,0,0,0.03);
@@ -269,10 +261,6 @@
 }
 
 [data-clearos] .btn-sm {
-  padding: 9px 20px;
-  font-size: 13.5px;
-  min-height: 38px;
-  border-radius: 9px;
 }
 
 /* ── Section stretching ──────────────────────────────────────────── */

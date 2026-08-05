@@ -13,7 +13,10 @@ export interface FilterOption {
 }
 
 const triggerPillClass = cn(
-  "inline-flex items-center gap-2 rounded-full border border-border bg-background px-3.5 py-2 text-sm font-semibold text-foreground/80 shadow-sm transition-colors hover:border-primary/40 hover:text-foreground data-[active=true]:border-primary/50 data-[active=true]:bg-accent data-[active=true]:text-accent-foreground"
+  // py-[var(--ds-btn-py)], not py-2: a filter pill sits in the same toolbar
+  // row as the page's action buttons, so it has to track the same density
+  // token or it renders 2px short of everything beside it.
+  "inline-flex items-center gap-2 rounded-full border border-border bg-background px-3.5 py-[var(--ds-btn-py,7px)] text-sm font-semibold text-foreground/80 shadow-sm transition-colors hover:border-primary/40 hover:text-foreground data-[active=true]:border-primary/50 data-[active=true]:bg-accent data-[active=true]:text-accent-foreground"
 )
 
 function TriggerPill({

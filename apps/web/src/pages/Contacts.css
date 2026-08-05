@@ -10,23 +10,11 @@
 
 /* ── Larger class-based buttons ─────────────────────────────────── */
 [data-contacts] .btn-primary {
-  padding: 11px 26px;
-  font-size: 14px;
   font-weight: 700;
-  border-radius: 10px;
-  min-height: 42px;
 }
 [data-contacts] .btn-secondary {
-  padding: 10px 22px;
-  font-size: 13.5px;
-  border-radius: 10px;
-  min-height: 42px;
 }
 [data-contacts] .btn-sm {
-  padding: 9px 20px;
-  font-size: 13.5px;
-  min-height: 38px;
-  border-radius: 9px;
 }
 
 /* ══════════════════════════════════════════════════
@@ -42,12 +30,12 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 20px 10px 14px;
+  padding: var(--ds-btn-py) 20px 10px 14px;
   border-radius: 24px;
   border: none;
   background: var(--white);
   color: var(--ink);
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   box-shadow: 0 1px 3px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
@@ -159,9 +147,9 @@
   background: none;
   cursor: pointer;
   color: var(--ink2);
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 500;
-  padding: 6px 4px 6px 20px;
+  padding: var(--ds-btn-py-sm) 4px 6px 20px;
   text-align: left;
 }
 .csb-label-row--on .csb-label-btn { color: #1a73e8; font-weight: 600; }

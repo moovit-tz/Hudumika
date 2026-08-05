@@ -28,7 +28,7 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  padding: 14px 20px;
+  padding: var(--ds-btn-py-lg) 20px;
   border-radius: 18px;
   background: var(--white);
   border: none;
@@ -459,12 +459,12 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 6px 10px;
+  padding: var(--ds-btn-py-sm) 10px;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: transparent;
   color: var(--ink3);
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: background 0.12s;
@@ -475,7 +475,7 @@
 .em-icon-btn:disabled { opacity: 0.4; cursor: default; }
 .em-icon-btn--ghost { border-color: transparent; }
 .em-icon-btn--ghost:hover { background: var(--bg); border-color: transparent; }
-.em-icon-btn--pill { border-radius: 20px; padding: 7px 18px; }
+.em-icon-btn--pill { border-radius: 20px; padding: var(--ds-btn-py) 18px; }
 .em-icon-btn--primary {
   background: #e8f0fe;
   border-color: #c5d7f7;
@@ -640,7 +640,7 @@
   cursor: pointer;
   font-size: 13px;
   color: var(--ink3);
-  padding: 6px 8px;
+  padding: var(--ds-btn-py-sm) 8px;
   font-family: var(--font);
 }
 
@@ -807,7 +807,7 @@
   font-size: 12px;
   color: var(--ink3);
   cursor: pointer;
-  padding: 2px 6px;
+  padding: var(--ds-btn-py-xs) 6px;
   font-family: var(--font);
 }
 .em-compose-body {

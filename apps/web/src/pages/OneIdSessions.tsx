@@ -90,7 +90,7 @@ export const OneIdSessions: React.FC = () => {
                 <td style={{ padding: '10px 14px', color: 'var(--ink3)' }}>{new Date(d.last_used_at).toLocaleString()}</td>
                 <td style={{ padding: '10px 14px' }}>
                   <button type="button" onClick={() => toggleTrusted(d)}
-                    style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-sm) 12px', border: 'none', cursor: 'pointer', background: d.trusted ? '#ecfdf5' : '#f1f5f9', color: d.trusted ? '#065f46' : '#64748b' }}>
+                    style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-xs) 12px', border: 'none', cursor: 'pointer', background: d.trusted ? '#ecfdf5' : '#f1f5f9', color: d.trusted ? '#065f46' : '#64748b' }}>
                     {d.trusted ? 'Trusted' : 'Not trusted'}
                   </button>
                 </td>

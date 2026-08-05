@@ -415,7 +415,7 @@ export const EmailRightToolMenu: React.FC<EmailRightToolMenuProps> = ({
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)' }}>Unread: {unreadNotifCount}</span>
-                  <button type="button" className="ertm-btn-primary" style={{ padding: 'var(--ds-btn-py-sm) 10px', fontSize: 11 }} onClick={handleMarkAllNotifsRead}>
+                  <button type="button" className="ertm-btn-primary" style={{ padding: 'var(--ds-btn-py-xs) 10px', fontSize: 11 }} onClick={handleMarkAllNotifsRead}>
                     Mark all read
                   </button>
                 </div>

@@ -48,7 +48,7 @@
   color: #fff;
   border: none;
   border-radius: 8px;
-  padding: 10px 16px;
+  padding: var(--ds-btn-py) 16px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -144,7 +144,7 @@
   background: none;
   border: none;
   border-radius: 6px;
-  padding: 6px 9px;
+  padding: var(--ds-btn-py-sm) 9px;
   cursor: pointer;
   display: flex;
   align-items: center;

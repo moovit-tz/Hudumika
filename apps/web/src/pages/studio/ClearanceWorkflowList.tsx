@@ -236,7 +236,7 @@ export function ClearanceWorkflowList() {
                       <span key={c} className="wf-badge wf-badge-orange">{c}</span>
                     ))}
                     <button
-                      style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: wf.isActive ? 'var(--red)' : 'var(--green)', fontWeight: 700, fontFamily: 'inherit', padding: 'var(--ds-btn-py-sm) 4px' }}
+                      style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: wf.isActive ? 'var(--red)' : 'var(--green)', fontWeight: 700, fontFamily: 'inherit', padding: 'var(--ds-btn-py-xs) 4px' }}
                       onClick={() => handleToggleActive(wf)}
                     >
                       {wf.isActive ? 'Deactivate' : 'Activate'}

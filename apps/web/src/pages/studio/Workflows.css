@@ -19,9 +19,9 @@
 .wf-icon-btn:hover { background:var(--bg); color:var(--navy,#0f172a); }
 .wf-icon-btn.danger:hover { background:var(--red-l); color:var(--red); border-color:var(--red); }
 
-.wfb-btn-primary { display:inline-flex; align-items:center; gap:7px; padding:11px 20px; background:var(--teal); color:white; border:none; border-radius:9px; font-size:14.5px; font-weight:700; font-family:inherit; cursor:pointer; transition:background 0.15s; white-space:nowrap; }
+.wfb-btn-primary { display:inline-flex; align-items:center; gap:7px; padding:11px 20px; background:var(--teal); color:white; border:none; border-radius:9px; font-size: 14px; font-weight:700; font-family:inherit; cursor:pointer; transition:background 0.15s; white-space:nowrap; }
 .wfb-btn-primary:hover { background:var(--teal-d,#0f766e); }
-.wfb-btn-ghost { display:inline-flex; align-items:center; gap:7px; padding:11px 18px; background:none; color:var(--ink2,#475569); border:1.5px solid var(--border); border-radius:9px; font-size:14.5px; font-weight:600; font-family:inherit; cursor:pointer; transition:all 0.15s; text-decoration:none; white-space:nowrap; }
+.wfb-btn-ghost { display:inline-flex; align-items:center; gap:7px; padding:11px 18px; background:none; color:var(--ink2,#475569); border:1.5px solid var(--border); border-radius:9px; font-size: 14px; font-weight:600; font-family:inherit; cursor:pointer; transition:all 0.15s; text-decoration:none; white-space:nowrap; }
 .wfb-btn-ghost:hover { border-color:var(--navy,#0f172a); color:var(--navy,#0f172a); background:var(--bg); }
 .wfb-btn-sm { padding:8px 14px; font-size:13px; }
 

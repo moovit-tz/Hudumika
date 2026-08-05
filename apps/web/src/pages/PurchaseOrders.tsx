@@ -1395,7 +1395,7 @@ export const PurchaseOrders: React.FC = () => {
                     border: '1px solid var(--border)',
                     background: 'var(--white)',
                     color: currentPage === 1 ? 'var(--ink3)' : 'var(--ink)',
-                    fontSize: 12.5,
+                    fontSize: 13,
                     fontWeight: 600,
                     cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
                   }}
@@ -1413,7 +1413,7 @@ export const PurchaseOrders: React.FC = () => {
                       border: 'none',
                       background: currentPage === pageNum ? '#059669' : 'transparent',
                       color: currentPage === pageNum ? '#fff' : 'var(--ink2)',
-                      fontSize: 12.5,
+                      fontSize: 13,
                       fontWeight: 600,
                       cursor: 'pointer'
                     }}
@@ -1430,7 +1430,7 @@ export const PurchaseOrders: React.FC = () => {
                     border: '1px solid var(--border)',
                     background: 'var(--white)',
                     color: currentPage === totalPages || totalPages === 0 ? 'var(--ink3)' : 'var(--ink)',
-                    fontSize: 12.5,
+                    fontSize: 13,
                     fontWeight: 600,
                     cursor: currentPage === totalPages || totalPages === 0 ? 'not-allowed' : 'pointer'
                   }}
@@ -1580,7 +1580,7 @@ export const PurchaseOrders: React.FC = () => {
                       border: '1px solid var(--border)',
                       background: 'var(--white)',
                       color: 'var(--ink)',
-                      fontSize: 12.5,
+                      fontSize: 13,
                       fontWeight: 600,
                       cursor: 'pointer'
                     }}
@@ -1601,7 +1601,7 @@ export const PurchaseOrders: React.FC = () => {
                         border: 'none',
                         background: '#059669',
                         color: '#fff',
-                        fontSize: 12.5,
+                        fontSize: 13,
                         fontWeight: 600,
                         cursor: 'pointer'
                       }}

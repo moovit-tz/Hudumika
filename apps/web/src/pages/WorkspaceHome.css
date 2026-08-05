@@ -269,7 +269,7 @@
   border: none;
   background: transparent;
   color: var(--ink2);
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   font-family: var(--font);
@@ -291,7 +291,7 @@
   border: 0.5px solid transparent;
   border-radius: 9px;
   color: var(--ink2);
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   font-family: var(--font);
@@ -324,7 +324,7 @@
   border: 0.5px solid transparent;
   border-radius: 9px;
   color: #ffffff;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   font-family: var(--font);
@@ -359,7 +359,7 @@
   border: 1.5px solid var(--border2, var(--border));
   background: transparent;
   color: var(--ink2);
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   font-family: var(--font);
@@ -1130,14 +1130,14 @@
 
   .wh-toggle-btn {
     padding: 0 12px;
-    font-size: 12.5px;
+    font-size: 13px;
   }
 
   .wh-toolbar-btn,
   .wh-settings-btn {
     height: 38px;
     padding: 0 14px;
-    font-size: 12.5px;
+    font-size: 13px;
   }
 
   .wh-grid-container {

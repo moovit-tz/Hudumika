@@ -27,7 +27,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 10px 18px;
+  padding: var(--ds-btn-py) 18px;
   border-radius: 10px;
   border: 1px solid var(--border);
   background: var(--white);
@@ -40,7 +40,7 @@
   position: relative;
 }
 .inv-btn--primary {
-  padding: 11px 22px;
+  padding: var(--ds-btn-py) 22px;
   border: none;
   background: var(--teal);
   color: #fff;

@@ -1110,7 +1110,7 @@ export function Contacts() {
                       border: 'none', background: 'none', cursor: 'pointer',
                       borderBottom: on ? '2.5px solid var(--cts-accent)' : '2.5px solid transparent',
                       color: on ? 'var(--cts-accent)' : 'var(--ink2)',
-                      fontWeight: 600, fontSize: 12.5, marginBottom: -1,
+                      fontWeight: 600, fontSize: 13, marginBottom: -1,
                     }}
                   >
                     <Icon name={step.icon} size={14} color={on ? 'var(--cts-accent)' : 'var(--ink2)'} />
@@ -1200,7 +1200,7 @@ export function Contacts() {
                       style={{
                         width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                         padding: '8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)',
-                        fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer'
+                        fontSize: 13, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer'
                       }}
                     >
                       <Icon name="upload" size={14} color="var(--ink2)" />
@@ -1413,7 +1413,7 @@ export function Contacts() {
                           );
                         }}
                         style={{
-                          fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 16, cursor: 'pointer',
+                          fontSize: 12, padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 16, cursor: 'pointer',
                           border: `1px solid ${selected ? 'var(--cts-accent)' : 'var(--border)'}`,
                           background: selected ? 'var(--cts-accent-bg)' : 'var(--white)',
                           color: selected ? 'var(--cts-accent)' : 'var(--ink)',

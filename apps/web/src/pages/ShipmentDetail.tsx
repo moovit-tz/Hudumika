@@ -1366,11 +1366,11 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
           </div>
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             <button type="button" title="Dismiss OCR suggestion" onClick={() => { localStorage.removeItem(`ocrDecl_${job.id}`); setOcrBanner(null); }}
-              style={{ fontSize: 11, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 10px', cursor: 'pointer' }}>
+              style={{ fontSize: 11, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', cursor: 'pointer' }}>
               Dismiss
             </button>
             <button type="button" title="Apply OCR extracted data to all declaration fields" onClick={applyOcrData}
-              style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: 'var(--teal)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 12px', cursor: 'pointer' }}>
+              style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: 'var(--teal)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer' }}>
               Apply OCR data
             </button>
           </div>
@@ -1380,7 +1380,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
       {/* Sub-tab strip */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 20, background: 'var(--bg)', borderRadius: 12, padding: 5, border: '1px solid var(--border)' }}>
         {SUB_TABS.map(t => (
-          <button key={t.key} type="button" onClick={() => setSub(t.key)} style={{ flex: '1 1 110px', padding: 'var(--ds-btn-py-lg) 10px', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', background: sub === t.key ? 'var(--white)' : 'transparent', color: sub === t.key ? 'var(--teal)' : 'var(--ink3)', boxShadow: sub === t.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.12s' }}>
+          <button key={t.key} type="button" onClick={() => setSub(t.key)} style={{ flex: '1 1 110px', padding: 'var(--ds-btn-py) 10px', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', background: sub === t.key ? 'var(--white)' : 'transparent', color: sub === t.key ? 'var(--teal)' : 'var(--ink3)', boxShadow: sub === t.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.12s' }}>
             {t.label}
           </button>
         ))}
@@ -1614,7 +1614,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
 
       {/* Save button */}
       <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button type="submit" className="btn btn-primary btn-sm" disabled={saving || !loadedDeclaration} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py-lg) 20px', fontSize: 13 }}>
+        <button type="submit" className="btn btn-primary btn-sm" disabled={saving || !loadedDeclaration} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 20px', fontSize: 13 }}>
           <Icon name="save" size={14} />
           {!loadedDeclaration ? 'Loading…' : saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Declaration'}
         </button>
@@ -1703,7 +1703,7 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
                 ))}
               </div>
               {msg.reactions?.map(r => (
-                <button key={r.emoji} type="button" style={{ marginTop: 6, padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, cursor: 'pointer' }}>
+                <button key={r.emoji} type="button" style={{ marginTop: 6, padding: 'var(--ds-btn-py-xs) 8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, cursor: 'pointer' }}>
                   {r.emoji} {r.count}
                 </button>
               ))}
@@ -1727,7 +1727,7 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
               const past = stageIdx(s.id) < stageIdx(job.stage);
               return (
                 <button key={s.id} type="button" onClick={() => handleSetStage(s.id)}
-                  style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-sm) 10px', borderRadius: 'var(--r)', cursor: 'pointer', border: `1.5px solid ${cur ? 'var(--teal)' : past ? 'var(--green)' : 'var(--border)'}`, background: cur ? 'var(--teal)' : past ? 'var(--green-l)' : 'var(--white)', color: cur ? '#fff' : past ? 'var(--green)' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', cursor: 'pointer', border: `1.5px solid ${cur ? 'var(--teal)' : past ? 'var(--green)' : 'var(--border)'}`, background: cur ? 'var(--teal)' : past ? 'var(--green-l)' : 'var(--white)', color: cur ? '#fff' : past ? 'var(--green)' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 10, opacity: .7 }}>{i + 1}</span> {s.short}
                 </button>
               );
@@ -1739,11 +1739,11 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>Post to:</span>
-          <button type="button" onClick={() => setIsInternal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${isInternal ? 'var(--ink3)' : 'var(--border)'}`, background: isInternal ? 'var(--bg)' : 'var(--white)', color: isInternal ? 'var(--ink)' : 'var(--ink3)' }}><Icon name="lock" size={11} /> Internal Note</button>
-          <button type="button" onClick={() => { setIsInternal(false); if (!chans.length) setChans(['whatsapp']); }} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${!isInternal ? CH_CFG.whatsapp.color : 'var(--border)'}`, background: !isInternal ? CH_CFG.whatsapp.bg : 'var(--white)', color: !isInternal ? CH_CFG.whatsapp.color : 'var(--ink3)' }}>↗ Share Update</button>
+          <button type="button" onClick={() => setIsInternal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${isInternal ? 'var(--ink3)' : 'var(--border)'}`, background: isInternal ? 'var(--bg)' : 'var(--white)', color: isInternal ? 'var(--ink)' : 'var(--ink3)' }}><Icon name="lock" size={11} /> Internal Note</button>
+          <button type="button" onClick={() => { setIsInternal(false); if (!chans.length) setChans(['whatsapp']); }} style={{ padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${!isInternal ? CH_CFG.whatsapp.color : 'var(--border)'}`, background: !isInternal ? CH_CFG.whatsapp.bg : 'var(--white)', color: !isInternal ? CH_CFG.whatsapp.color : 'var(--ink3)' }}>↗ Share Update</button>
           {!isInternal && (['whatsapp', 'email', 'teams', 'sms'] as Channel[]).map(ch => {
             const cfg = CH_CFG[ch]; const on = chans.includes(ch);
-            return <button key={ch} type="button" onClick={() => toggleCh(ch)} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)' }}>{cfg.label}</button>;
+            return <button key={ch} type="button" onClick={() => toggleCh(ch)} style={{ padding: 'var(--ds-btn-py-xs) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)' }}>{cfg.label}</button>;
           })}
         </div>
         <div style={{ padding: '12px 16px' }}>
@@ -1966,7 +1966,7 @@ function OverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: boolean }
 
           {/* Documents */}
           <Card title="Documents" padded={false} action={job.documents.length > 0 ? (
-            <button type="button" onClick={() => job.documents.forEach(downloadDoc)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+            <button type="button" onClick={() => job.documents.forEach(downloadDoc)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
               <Icon name="download" size={12} color="var(--teal)" /> Download All
             </button>
           ) : undefined}>
@@ -2866,11 +2866,11 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button type="button" onClick={() => handleUploadClick()} disabled={savingStaged}
-              style={{ padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
+              style={{ padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
               + Add more
             </button>
             <button type="button" onClick={saveStagedFiles} disabled={savingStaged}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 12.5, fontWeight: 700, cursor: savingStaged ? 'wait' : 'pointer', opacity: savingStaged ? 0.75 : 1 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: savingStaged ? 'wait' : 'pointer', opacity: savingStaged ? 0.75 : 1 }}>
               {savingStaged ? 'Saving…' : `Save ${stagedFiles.length} file${stagedFiles.length !== 1 ? 's' : ''}`}
             </button>
           </div>
@@ -3013,7 +3013,7 @@ function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shi
         )}
 
         <button type="button" onClick={handleCalculate} disabled={!canCalculate || calcSaving}
-          style={{ padding: 'var(--ds-btn-py-lg) 22px', background: canCalculate ? 'var(--green)' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13.5, fontWeight: 700, cursor: canCalculate && !calcSaving ? 'pointer' : 'default', opacity: calcSaving ? 0.7 : 1 }}>
+          style={{ padding: 'var(--ds-btn-py) 22px', background: canCalculate ? 'var(--green)' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 14, fontWeight: 700, cursor: canCalculate && !calcSaving ? 'pointer' : 'default', opacity: calcSaving ? 0.7 : 1 }}>
           {calcSaving ? 'Calculating…' : job.co2EmissionsKg !== undefined ? 'Recalculate CO₂' : 'Calculate CO₂'}
         </button>
 
@@ -3580,7 +3580,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
             const on = !!selected.find(x => x.id === e.id);
             return (
               <button key={e.id} type="button" onClick={() => toggleEmp(e)}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 'var(--ds-btn-py-lg) 20px', border: 'none', background: on ? 'var(--teal-l)' : 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'background .1s' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 'var(--ds-btn-py) 20px', border: 'none', background: on ? 'var(--teal-l)' : 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'background .1s' }}>
                 <div style={{ width: 38, height: 38, borderRadius: '50%', background: empAvatarColor(e.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
                   {empInitials(e.name)}
                 </div>
@@ -3606,7 +3606,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
               const COLORS: Record<string, string> = { email: 'var(--teal)', whatsapp: 'var(--green)', sms: 'var(--gold)', teams: 'var(--purple)' };
               return (
                 <button key={ch} type="button" onClick={() => toggleCh(ch)}
-                  style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-sm) 10px', borderRadius: 'var(--r)', cursor: 'pointer', border: `1.5px solid ${on ? COLORS[ch] : 'var(--border)'}`, background: on ? `${COLORS[ch]}18` : 'var(--white)', color: on ? COLORS[ch] : 'var(--ink3)', transition: 'all .12s', textTransform: 'capitalize' }}>
+                  style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', cursor: 'pointer', border: `1.5px solid ${on ? COLORS[ch] : 'var(--border)'}`, background: on ? `${COLORS[ch]}18` : 'var(--white)', color: on ? COLORS[ch] : 'var(--ink3)', transition: 'all .12s', textTransform: 'capitalize' }}>
                   {ch === 'whatsapp' ? 'WhatsApp' : ch.charAt(0).toUpperCase() + ch.slice(1)}
                 </button>
               );
@@ -3643,7 +3643,7 @@ function ChannelToggle({ ch, active, onToggle, readOnly }: { ch: Channel; active
   const cfg = CH_CFG[ch];
   return (
     <button type="button" onClick={readOnly ? undefined : onToggle} disabled={readOnly} title={readOnly ? cfg.label : `${active ? 'Disable' : 'Enable'} ${cfg.label}`}
-      style={{ fontSize: 10, padding: 'var(--ds-btn-py-sm) 7px', borderRadius: 'var(--r)', cursor: readOnly ? 'default' : 'pointer', border: `1px solid ${active ? cfg.color : 'var(--border)'}`, background: active ? cfg.bg : 'var(--white)', color: active ? cfg.color : 'var(--ink3)', fontWeight: 600, transition: 'all 0.12s', opacity: readOnly && !active ? 0.6 : 1 }}>
+      style={{ fontSize: 10, padding: 'var(--ds-btn-py-xs) 7px', borderRadius: 'var(--r)', cursor: readOnly ? 'default' : 'pointer', border: `1px solid ${active ? cfg.color : 'var(--border)'}`, background: active ? cfg.bg : 'var(--white)', color: active ? cfg.color : 'var(--ink3)', fontWeight: 600, transition: 'all 0.12s', opacity: readOnly && !active ? 0.6 : 1 }}>
       {cfg.label}
     </button>
   );
@@ -3737,7 +3737,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
           <span>Assigned To</span>
           {canManage && (
             <button type="button" onClick={() => setShowAssignPicker(true)}
-              style={{ fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, padding: 'var(--ds-btn-py-sm) 0' }}>
+              style={{ fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, padding: 'var(--ds-btn-py-xs) 0' }}>
               {job.assignees.length > 0 ? 'Change' : '+ Assign'}
             </button>
           )}
@@ -4090,7 +4090,7 @@ export function ShipmentDetail() {
                 </Link>
               )}
               {isStaff && (
-                <button type="button" onClick={() => setShowAdv(true)} style={{ flex: isMobile ? 1 : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: '#fff', color: 'var(--teal)', border: 'none', borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <button type="button" onClick={() => setShowAdv(true)} style={{ flex: isMobile ? 1 : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: '#fff', color: 'var(--teal)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                   <Icon name="arrowRight" size={13} /> Advance Stage
                 </button>
               )}

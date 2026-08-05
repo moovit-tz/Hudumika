@@ -3,26 +3,14 @@
 
 /* ── Larger class-based buttons ──────────────────────────────────── */
 [data-finops] .btn-primary {
-  padding: 11px 26px;
-  font-size: 14px;
   font-weight: 700;
-  border-radius: 10px;
-  min-height: 42px;
   letter-spacing: 0.01em;
 }
 
 [data-finops] .btn-secondary {
-  padding: 10px 22px;
-  font-size: 13.5px;
-  border-radius: 10px;
-  min-height: 42px;
 }
 
 [data-finops] .btn-sm {
-  padding: 9px 20px;
-  font-size: 13.5px;
-  min-height: 38px;
-  border-radius: 9px;
 }
 
 /* ── Page layout flex column so child pages fill to footer ────────── */

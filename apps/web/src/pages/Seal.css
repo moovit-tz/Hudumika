@@ -82,7 +82,7 @@
 .seal-mono { font-family: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace; font-size: 12.5px; }
 
 .seal-btn-primary, .seal-btn-secondary {
-  display: inline-flex; align-items: center; gap: 7px; padding: 9px 16px;
+  display: inline-flex; align-items: center; gap: 7px; padding: var(--ds-btn-py) 16px;
   border-radius: 9px; font-family: var(--font); font-size: 13px; cursor: pointer;
   text-decoration: none; line-height: 1.2;
 }
@@ -216,7 +216,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: var(--ds-btn-py-sm) 12px;
   border-radius: 7px;
   font-size: 12px;
   font-weight: 700;

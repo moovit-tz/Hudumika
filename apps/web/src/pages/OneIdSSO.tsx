@@ -138,7 +138,7 @@ export const OneIdSSO: React.FC = () => {
                 <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{p.provider_type}</td>
                 <td style={{ padding: '10px 14px' }}>
                   <button type="button" onClick={() => toggleEnabled(p)}
-                    style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-sm) 12px', border: 'none', cursor: 'pointer', background: p.enabled ? '#ecfdf5' : '#f1f5f9', color: p.enabled ? '#065f46' : '#64748b' }}>
+                    style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-xs) 12px', border: 'none', cursor: 'pointer', background: p.enabled ? '#ecfdf5' : '#f1f5f9', color: p.enabled ? '#065f46' : '#64748b' }}>
                     {p.enabled ? 'Enabled' : 'Disabled'}
                   </button>
                 </td>

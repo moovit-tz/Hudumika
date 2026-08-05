@@ -734,7 +734,7 @@ function DetailView({ bill, payments, supplierMap, onBack, onEdit, onPay, onPost
               style={{ width:'100%', padding:'7px 9px', borderRadius:6, border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink)', fontSize:12.5, fontFamily:'var(--mono)', outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}
             />
             <button type="button" onClick={runVerify} disabled={!efdInput.trim() || efdChecking}
-              style={{ width:'100%', padding:'var(--ds-btn-py) 0', borderRadius:'var(--r)', border:'none', background: efdChecking ? 'var(--ink3)' : 'var(--teal)', color:'#fff', fontSize:12.5, fontWeight:700, cursor: efdChecking ? 'default' : 'pointer' }}>
+              style={{ width:'100%', padding:'var(--ds-btn-py) 0', borderRadius:'var(--r)', border:'none', background: efdChecking ? 'var(--ink3)' : 'var(--teal)', color:'#fff', fontSize:13, fontWeight:700, cursor: efdChecking ? 'default' : 'pointer' }}>
               {efdChecking ? 'Checking with TRA…' : 'Verify against TRA'}
             </button>
             {efdError && <div style={{ marginTop:8, fontSize:11.5, color:'var(--red)' }}>{efdError}</div>}

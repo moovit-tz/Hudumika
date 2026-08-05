@@ -1502,7 +1502,7 @@ select.input-field { cursor: pointer; }
   display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid transparent; border-radius: 6px;
   background: transparent; color: var(--ink2);
-  font-size: 12.5px; font-weight: 700; font-family: var(--font);
+  font-size: 13px; font-weight: 700; font-family: var(--font);
   cursor: pointer; transition: background var(--dur, 150ms) var(--ease, ease);
 }
 .rte-toolbar-btn:hover { background: var(--white); border-color: var(--border); color: var(--ink); }
@@ -2820,7 +2820,7 @@ select.input-field { cursor: pointer; }
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 12px;
+  padding: var(--ds-btn-py-sm) 12px;
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -3142,7 +3142,7 @@ select.input-field { cursor: pointer; }
   background: var(--teal-l);
   border: 1px solid var(--teal-m);
   border-radius: 4px;
-  padding: 2px 7px;
+  padding: var(--ds-btn-py-xs) 7px;
   cursor: pointer;
   font-family: var(--font);
   white-space: nowrap;
@@ -3702,7 +3702,7 @@ select.input-field { cursor: pointer; }
   background: var(--teal);
   border: none;
   border-radius: 9px;
-  padding: 10px 20px;
+  padding: var(--ds-btn-py) 20px;
   cursor: pointer;
   font-family: var(--font);
   white-space: nowrap;
@@ -3757,7 +3757,7 @@ select.input-field { cursor: pointer; }
   background: var(--white);
   border: 1.5px solid var(--teal);
   border-radius: 9px;
-  padding: 10px 20px;
+  padding: var(--ds-btn-py) 20px;
   cursor: pointer;
   font-family: var(--font);
   white-space: nowrap;
@@ -4366,7 +4366,7 @@ html:not([data-theme="dark"]) .page-layout {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 14px;
+  padding: var(--ds-btn-py) 14px;
   border-radius: 9px;
   border: none;
   background: #111827;
@@ -4953,7 +4953,7 @@ html:not([data-theme="dark"]) .page-layout {
 
 /* Excel / Print buttons */
 .fin-arch-export-btn {
-  padding: 5px 11px;
+  padding: var(--ds-btn-py-sm) 11px;
   border: 1px solid var(--border);
   border-radius: 6px;
   background: var(--white);
@@ -5381,7 +5381,7 @@ html:not([data-theme="dark"]) .page-layout {
 .fin-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .fin-page-btn--active { background: var(--teal); color: #fff; border-color: var(--teal); }
 .fin-page-btn--active:hover { background: var(--teal); }
-.fin-page-btn--nav { padding: 0 12px; font-size: 12.5px; }
+.fin-page-btn--nav { padding: 0 12px; font-size: 13px; }
 
 /* ── Due date badge ── */
 .fin-due-badge {
@@ -5840,7 +5840,7 @@ html:not([data-theme="dark"]) .page-layout {
 }
 
 .fin-modal-btn-cancel {
-  padding: 7px 14px;
+  padding: var(--ds-btn-py) 14px;
   border-radius: 7px;
   border: 1px solid var(--border);
   background: var(--bg);
@@ -5854,7 +5854,7 @@ html:not([data-theme="dark"]) .page-layout {
 .fin-modal-btn-cancel:hover { background: var(--white); }
 
 .fin-modal-btn-confirm {
-  padding: 7px 14px;
+  padding: var(--ds-btn-py) 14px;
   border-radius: 7px;
   border: none;
   background: var(--teal);
@@ -5999,7 +5999,7 @@ html:not([data-theme="dark"]) .page-layout {
 .frm-btn {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 0 14px; height: 34px; border-radius: 8px;
-  font-size: 12.5px; font-weight: 600; font-family: var(--font);
+  font-size: 13px; font-weight: 600; font-family: var(--font);
   cursor: pointer; white-space: nowrap; transition: background 0.12s, border-color 0.12s, color 0.12s;
   border: 1.5px solid var(--border); background: var(--white); color: var(--ink2);
 }
@@ -6074,7 +6074,7 @@ html:not([data-theme="dark"]) .page-layout {
 /* GroupModal join mode */
 .fin-modal-mode-row { display: flex; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; }
 .fin-modal-mode-btn {
-  padding: 5px 12px; border-radius: 7px; border: 1.5px solid var(--border);
+  padding: var(--ds-btn-py-sm) 12px; border-radius: 7px; border: 1.5px solid var(--border);
   background: var(--bg); color: var(--ink2); font-size: 12px; font-weight: 600;
   cursor: pointer; font-family: var(--font);
 }
@@ -6102,7 +6102,7 @@ html:not([data-theme="dark"]) .page-layout {
 .notif-panel-badge { background: var(--teal); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
 .notif-tabs { display: flex; gap: 0; }
 .notif-tab-btn {
-  padding: 7px 14px; border: none; cursor: pointer;
+  padding: var(--ds-btn-py) 14px; border: none; cursor: pointer;
   font-size: 13px; font-weight: 400; background: transparent;
   color: var(--ink3); font-family: var(--font);
   border-bottom: 2px solid transparent; margin-bottom: -1px;

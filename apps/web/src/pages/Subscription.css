@@ -88,7 +88,7 @@
 }
 
 .sub-toggle-btn {
-  padding: 8px 20px;
+  padding: var(--ds-btn-py) 20px;
   border-radius: 8px;
   border: none;
   background: transparent;
@@ -488,7 +488,7 @@
 
 /* ── Small action buttons ── */
 .sub-sm-btn {
-  padding: 6px 12px;
+  padding: var(--ds-btn-py-sm) 12px;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 7px;

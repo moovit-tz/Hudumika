@@ -522,16 +522,16 @@ function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
 
         <div style={{ padding: '16px 22px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button type="button" title="Edit service" onClick={onEdit}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-lg) 16px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
             <Icon name="edit" size={14} /> Edit Service
           </button>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" title="Toggle active/inactive" onClick={onToggleStatus}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 12.5, color: 'var(--ink2)' }}>
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)' }}>
               <Icon name="eye" size={13} /> {product.status === 'active' ? 'Set Inactive' : 'Set Active'}
             </button>
             <button type="button" title="Delete service" onClick={onDelete}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r)', background: 'rgba(239,68,68,0.04)', cursor: 'pointer', fontWeight: 600, fontSize: 12.5, color: 'var(--red)' }}>
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r)', background: 'rgba(239,68,68,0.04)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--red)' }}>
               <Icon name="trash" size={13} /> Delete
             </button>
           </div>
@@ -782,12 +782,12 @@ export const ProductsServices: React.FC = () => {
           <div style={{ display: 'flex', gap: 8 }}>
             {!loading && products.length === 0 && (
               <button type="button" title="Add starter catalog" disabled={loadingStarter} onClick={handleLoadStarterCatalog}
-                style={{ padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                style={{ padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon name="refresh" size={13} /> {loadingStarter ? 'Adding…' : 'Load Starter Catalog'}
               </button>
             )}
             <button type="button" title="Import from TPA/TASAC tariff reference" onClick={() => setTariffSheetOpen(true)}
-              style={{ padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              style={{ padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <Icon name="layers" size={13} /> Import from Tariff
             </button>
             <button type="button" title="Add new service" onClick={() => setEditing('new')}

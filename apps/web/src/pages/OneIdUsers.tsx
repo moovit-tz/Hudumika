@@ -154,7 +154,7 @@ export const OneIdUsers: React.FC = () => {
                 <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                   {canManage && (
                     <button type="button" title={u.active ? 'Deactivate' : 'Activate'} onClick={() => toggleActive(u)}
-                      style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 10px', fontSize: 11, fontFamily: 'var(--font)', cursor: 'pointer', color: 'var(--ink2)' }}>
+                      style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', fontSize: 11, fontFamily: 'var(--font)', cursor: 'pointer', color: 'var(--ink2)' }}>
                       {u.active ? 'Deactivate' : 'Activate'}
                     </button>
                   )}

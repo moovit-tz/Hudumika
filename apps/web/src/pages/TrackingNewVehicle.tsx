@@ -108,7 +108,7 @@ export const TrackingNewVehicle: React.FC = () => {
           {SECTIONS.map(sec => (
             <button key={sec} type="button" onClick={() => setActiveSection(sec)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--ds-btn-py-lg) 14px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
                 background: activeSection === sec ? 'var(--teal-l)' : 'transparent',
                 color: activeSection === sec ? 'var(--teal)' : 'var(--ink2)',
                 fontWeight: activeSection === sec ? 700 : 500, fontSize: 13, textAlign: 'left'

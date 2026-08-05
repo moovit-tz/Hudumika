@@ -178,7 +178,7 @@ export const TasksApp: React.FC = () => {
         {completed.length > 0 && view !== 'trash' && (
           <div style={{ marginTop: 24 }}>
             <button type="button" onClick={() => setShowCompleted(v => !v)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 12.5, fontWeight: 600, padding: 'var(--ds-btn-py-sm) 0' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', fontSize: 13, fontWeight: 600, padding: 'var(--ds-btn-py-sm) 0' }}>
               <Icon name={showCompleted ? 'chevronDown' : 'chevronRight'} size={13} />
               Completed ({completed.length})
             </button>
@@ -414,7 +414,7 @@ function TaskRow({ todo, list, expanded, onToggleExpand, newSubtaskTitle, setNew
         {!trashed && todo.status === 'none' && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button type="button" title="Set status" style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 20, cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 9px', fontSize: 11, color: 'var(--ink3)' }}>+ Status</button>
+              <button type="button" title="Set status" style={{ background: 'none', border: '1px dashed var(--border)', borderRadius: 20, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 9px', fontSize: 11, color: 'var(--ink3)' }}>+ Status</button>
             </DropdownMenuTrigger>
             <StatusMenuItems todoId={todo.id} />
           </DropdownMenu>

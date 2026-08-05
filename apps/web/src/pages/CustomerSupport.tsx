@@ -202,7 +202,7 @@ function TicketThread({ ticket, onBack, onReply }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
           <button type="button" title="Back to tickets" onClick={onBack}
             style={{
-              background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 0',
+              background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 0',
               display: 'flex', alignItems: 'center', gap: 4, color: 'var(--teal)',
               fontWeight: 600, fontSize: 14, fontFamily: 'var(--font)',
             }}>
@@ -493,7 +493,7 @@ export const CustomerSupport: React.FC = () => {
           onClick={() => setShowNew(true)}
           style={{
             background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)',
-            padding: 'var(--ds-btn-py-lg) 18px', fontSize: 14, fontWeight: 700,
+            padding: 'var(--ds-btn-py) 18px', fontSize: 14, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'var(--font)',
             display: 'flex', alignItems: 'center', gap: 6,
           }}>
@@ -538,7 +538,7 @@ export const CustomerSupport: React.FC = () => {
             <button type="button" title="Open new ticket" onClick={() => setShowNew(true)}
               style={{
                 background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)',
-                padding: 'var(--ds-btn-py-lg) 22px', fontSize: 14, fontWeight: 700,
+                padding: 'var(--ds-btn-py) 22px', fontSize: 14, fontWeight: 700,
                 cursor: 'pointer', fontFamily: 'var(--font)',
               }}>
               Open a Ticket

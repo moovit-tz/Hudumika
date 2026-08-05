@@ -362,7 +362,7 @@ export const ReportIssuePage: React.FC = () => {
               </div>
 
               <button type="button" className="btn btn-primary" disabled={sending}
-                style={{ width: '100%', fontSize: 13.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                style={{ width: '100%', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                 onClick={submit}>
                 <Icon name="send" size={14} color="#fff" />
                 {sending ? 'Filing the report…' : 'File this report'}

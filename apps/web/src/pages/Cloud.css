@@ -3,23 +3,11 @@
 
 /* ── Larger class-based buttons ─────────────────────────────────── */
 [data-cloud] .btn-primary {
-  padding: 11px 26px;
-  font-size: 14px;
   font-weight: 700;
-  border-radius: 10px;
-  min-height: 42px;
 }
 [data-cloud] .btn-secondary {
-  padding: 10px 22px;
-  font-size: 13.5px;
-  border-radius: 10px;
-  min-height: 42px;
 }
 [data-cloud] .btn-sm {
-  padding: 9px 20px;
-  font-size: 13.5px;
-  min-height: 38px;
-  border-radius: 9px;
 }
 
 /* ── Section stretching ──────────────────────────────────────────── */

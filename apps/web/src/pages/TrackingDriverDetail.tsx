@@ -154,9 +154,9 @@ export const TrackingDriverDetail: React.FC = () => {
               ) : (
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button type="button" onClick={() => setEditingDriver(false)}
-                    style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 12px', cursor: 'pointer' }}>Cancel</button>
+                    style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer' }}>Cancel</button>
                   <button type="button" onClick={saveDriver} disabled={savingDriver}
-                    style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: 'var(--teal)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 12px', cursor: 'pointer', opacity: savingDriver ? 0.6 : 1 }}>
+                    style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: 'var(--teal)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 12px', cursor: 'pointer', opacity: savingDriver ? 0.6 : 1 }}>
                     {savingDriver ? 'Saving…' : 'Save'}
                   </button>
                 </div>

@@ -445,7 +445,7 @@ export const CMS: React.FC = () => {
                     <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Recent Drafts</div>
                     {posts.filter(p => p.status === 'draft').slice(0, 3).map(p => (
                       <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid var(--border)' }}>
-                        <button onClick={() => { setEditPost(p); goTo('post-editor'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--teal)', fontFamily: 'var(--font)', padding: 0, fontWeight: 500 }}>{p.title}</button>
+                        <button onClick={() => { setEditPost(p); goTo('post-editor'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--teal)', fontFamily: 'var(--font)', padding: 0, fontWeight: 500 }}>{p.title}</button>
                         <span style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{fmtDate(p.updated_at)}</span>
                       </div>
                     ))}
@@ -631,9 +631,9 @@ export const CMS: React.FC = () => {
                   </div>
                   <div style={{ fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.55, marginBottom: 10 }}>{c.content}</div>
                   <div style={{ display: 'flex', gap: 8 }}>
-                    {c.status !== 'approved' && <button onClick={() => approveCmt(c.id)} className="btn btn-secondary btn-sm" style={{ fontSize: 11.5, color: 'var(--green)' }}>Approve</button>}
-                    {c.status !== 'spam'     && <button onClick={() => spamCmt(c.id)}    className="btn btn-secondary btn-sm" style={{ fontSize: 11.5, color: 'var(--gold)' }}>Mark Spam</button>}
-                    <button onClick={() => deleteCmt(c.id)} className="btn btn-secondary btn-sm" style={{ fontSize: 11.5, color: 'var(--red)' }}>Delete</button>
+                    {c.status !== 'approved' && <button onClick={() => approveCmt(c.id)} className="btn btn-secondary btn-sm" style={{ fontSize: 12, color: 'var(--green)' }}>Approve</button>}
+                    {c.status !== 'spam'     && <button onClick={() => spamCmt(c.id)}    className="btn btn-secondary btn-sm" style={{ fontSize: 12, color: 'var(--gold)' }}>Mark Spam</button>}
+                    <button onClick={() => deleteCmt(c.id)} className="btn btn-secondary btn-sm" style={{ fontSize: 12, color: 'var(--red)' }}>Delete</button>
                   </div>
                 </div>
               </div>

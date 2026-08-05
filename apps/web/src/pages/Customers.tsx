@@ -132,7 +132,7 @@ function ActionsMenu({ onView, onEdit, onSuspend, onDelete }: { onView: () => vo
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button aria-label="More actions" onClick={e => e.stopPropagation()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r)', color: 'var(--ink3)', display: 'flex', alignItems: 'center' }}>
+        <button aria-label="More actions" onClick={e => e.stopPropagation()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', borderRadius: 'var(--r)', color: 'var(--ink3)', display: 'flex', alignItems: 'center' }}>
           <Icon name="moreHorizontal" size={16} strokeWidth={1.75} />
         </button>
       </DropdownMenuTrigger>
@@ -1110,7 +1110,7 @@ export const Customers: React.FC = () => {
                   <span className="badge badge-teal" style={{ fontSize: 9.5 }}>PRIMARY</span>
                   <button type="button" aria-label="Edit contact"
                     onClick={() => { setContactForm({ name: sel.contact_name || '', email: sel.email || '', phone: sel.phone_wa || '', role: 'Primary Contact' }); setShowAddContact(true); }}
-                    style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 10px', cursor: 'pointer', fontSize: 12, color: 'var(--ink2)', fontFamily: 'var(--font)' }}>
+                    style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-xs) 10px', cursor: 'pointer', fontSize: 12, color: 'var(--ink2)', fontFamily: 'var(--font)' }}>
                     Edit
                   </button>
                 </div>
@@ -1638,7 +1638,7 @@ export const Customers: React.FC = () => {
                     </div>
                   </div>
                   <button type="button" onClick={() => apiDownload(`/v1/customers/${sel.id}/documents/${d.id}/download`, d.filename).catch((err: any) => showAlert(err.message || 'Download failed'))}
-                    style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 8px' }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px' }}>
                     <Icon name="download" size={13} /> Download
                   </button>
                   <button type="button" onClick={async () => {
@@ -1647,7 +1647,7 @@ export const Customers: React.FC = () => {
                       await apiFetch(`/v1/customers/${sel.id}/documents/${d.id}`, { method: 'DELETE' });
                       setCustDocuments(prev => prev.filter(x => x.id !== d.id));
                     } catch (err: any) { showAlert(err.message || 'Delete failed'); }
-                  }} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--red, #dc2626)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 8px' }}>
+                  }} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--red, #dc2626)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px' }}>
                     <Icon name="trash" size={13} />
                   </button>
                 </div>
@@ -1669,7 +1669,7 @@ export const Customers: React.FC = () => {
         <div style={{ padding: '20px 28px 0' }}>
 
           {/* Back link */}
-          <button type="button" onClick={() => setView('list')} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, color: 'var(--ink3)', fontFamily: 'var(--font)', fontWeight: 600, marginBottom: 16, padding: 0 }}
+          <button type="button" onClick={() => setView('list')} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink3)', fontFamily: 'var(--font)', fontWeight: 600, marginBottom: 16, padding: 0 }}
             onMouseEnter={e => (e.currentTarget.style.color = 'var(--teal)')}
             onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink3)')}>
             <Icon name="chevronDown" size={13} color="var(--ink3)" style={{ transform: 'rotate(90deg)' }} /> Back to Customers
@@ -1769,7 +1769,7 @@ function SubTabBar({ tabs, active, onChange }: { tabs: { key: string; label: str
     <div style={{ display: 'flex', gap: 4, padding: '12px 28px', background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
       {tabs.map(t => (
         <button key={t.key} type="button" onClick={() => onChange(t.key)}
-          style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: active === t.key ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: active === t.key ? 'var(--teal-l)' : 'var(--bg)', color: active === t.key ? 'var(--teal)' : 'var(--ink2)' }}>
+          style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: active === t.key ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: active === t.key ? 'var(--teal-l)' : 'var(--bg)', color: active === t.key ? 'var(--teal)' : 'var(--ink2)' }}>
           {t.label}
         </button>
       ))}
