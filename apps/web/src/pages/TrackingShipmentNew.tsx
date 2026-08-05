@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Driver { id: string; name: string }
@@ -136,7 +137,11 @@ export const TrackingShipmentNew: React.FC = () => {
       <Link to="/tracking/vehicles" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
         <Icon name="arrowLeft" size={12} /> Vehicles
       </Link>
-      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 20 }}>New Shipment</div>
+      <PageHeader
+        crumbs={['HuduFreight', 'New Trip']}
+        titlePlain="New"
+        titleEm="trip"
+      />
 
       <StepHeader step={step} />
 

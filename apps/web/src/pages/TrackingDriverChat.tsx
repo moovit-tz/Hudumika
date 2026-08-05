@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { DriverChatPanel } from '../components/DriverChatPanel.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 interface Driver { id: string; name: string; phone: string | null }
 
@@ -19,6 +20,11 @@ export const TrackingDriverChat: React.FC = () => {
 
   return (
     <div style={{ padding: 24, display: 'flex', gap: 20, height: 'calc(100vh - 140px)', boxSizing: 'border-box' }}>
+      <PageHeader
+        crumbs={['HuduFreight', 'Driver Chat']}
+        titlePlain="Driver"
+        titleEm="chat"
+      />
       <div style={{ width: 260, flexShrink: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Driver Chat</div>
         <div style={{ flex: 1, overflowY: 'auto' }}>

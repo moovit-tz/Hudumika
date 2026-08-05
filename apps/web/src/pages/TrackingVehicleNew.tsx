@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 const VEHICLE_TYPES = ['TRUCK', 'VAN', 'MOTORBIKE', 'OTHER'];
 const FUEL_TYPES = ['DIESEL', 'PETROL', 'ELECTRIC', 'HYBRID'];
@@ -68,7 +69,11 @@ export const TrackingVehicleNew: React.FC = () => {
       <Link to="/tracking/vehicles" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
         <Icon name="arrowLeft" size={12} /> Vehicles
       </Link>
-      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 20 }}>Register a vehicle</div>
+      <PageHeader
+        crumbs={['HuduFreight', 'Register Vehicle']}
+        titlePlain="Register a"
+        titleEm="vehicle"
+      />
 
       <form onSubmit={submit} style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div style={sectionStyle}>Basics</div>

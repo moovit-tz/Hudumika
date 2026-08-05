@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 type FieldDef = { key: string; label: string; type: 'text' | 'number' | 'date' | 'textarea' | 'select'; options?: { value: string; label: string }[]; required?: boolean };
 
@@ -119,6 +120,11 @@ export const TrackingVehicleAddEntry: React.FC = () => {
 
   return (
     <div style={{ padding: 24 }}>
+      <PageHeader
+        crumbs={['HuduFreight', 'Add Entry']}
+        titlePlain="Add an"
+        titleEm="entry"
+      />
       <Link to={`/tracking/vehicles/${id}`} style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
         <Icon name="arrowLeft" size={12} /> Back to Vehicle
       </Link>

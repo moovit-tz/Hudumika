@@ -6,6 +6,7 @@ import { useVehicleMakes, useVehicleModels } from '../hooks/useVehicleMakeModel.
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 // Rough mapping from this form's vehicle Type to NHTSA vPIC's vehicle-type
 // categories — used only to seed the Make picker with relevant suggestions.
@@ -85,7 +86,11 @@ export const TrackingNewVehicle: React.FC = () => {
           <button type="button" onClick={() => navigate(-1)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
             <Icon name="arrowLeft" size={16} color="var(--ink3)" />
           </button>
-          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>New Vehicle</div>
+          <PageHeader
+            crumbs={['HuduFreight', 'New Vehicle']}
+            titlePlain="Add a"
+            titleEm="vehicle"
+          />
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
           <button type="button" style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
