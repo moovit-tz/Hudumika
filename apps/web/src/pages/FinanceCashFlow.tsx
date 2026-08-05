@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 import type { CashFlowReport } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 const YEARS = ['2026', '2025', '2024'];
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -85,6 +86,12 @@ export const FinanceCashFlow: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+      <PageHeader
+        crumbs={['FinOps', 'Cash Flow']}
+        titlePlain="Cash"
+        titleEm="flow"
+        subtitle="Money in and out over the period."
+      />
 
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>

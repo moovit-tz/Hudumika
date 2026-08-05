@@ -4,6 +4,7 @@ import type { IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 import type { AgedReport, AgedRow } from '@hudumika/types';
+import { PageHeader } from '../components/PageHeader.js';
 
 export const FinanceAgedPayables: React.FC = () => {
   const co = useCompany();
@@ -51,6 +52,12 @@ export const FinanceAgedPayables: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+      <PageHeader
+        crumbs={['FinOps', 'Aged Payables']}
+        titlePlain="Aged"
+        titleEm="payables"
+        subtitle="What is owed to suppliers, by how overdue."
+      />
 
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>

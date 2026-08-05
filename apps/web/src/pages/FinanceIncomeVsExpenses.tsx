@@ -5,6 +5,7 @@ import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 import type { ProfitLossReport } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const YEARS = ['2026', '2025', '2024'];
@@ -96,6 +97,12 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+      <PageHeader
+        crumbs={['FinOps', 'Income vs Expenses']}
+        titlePlain="Income vs"
+        titleEm="expenses"
+        subtitle="Earned against spent, side by side."
+      />
 
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>

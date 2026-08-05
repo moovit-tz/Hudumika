@@ -4,6 +4,7 @@ import type { IconName } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { apiFetch } from '../lib/api.js';
 import type { ExpenseListItem } from './Expenses.js';
+import { PageHeader } from '../components/PageHeader.js';
 
 const fmtM = (n: number) => `TZS ${(n / 1_000_000).toFixed(1)}M`;
 const fmtFull = (n: number) => `TZS ${Math.round(n).toLocaleString()}`;
@@ -117,6 +118,12 @@ export const FinanceExpensesReport: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+      <PageHeader
+        crumbs={['FinOps', 'Expenses']}
+        titlePlain="Expense"
+        titleEm="report"
+        subtitle="What was spent, by category and period."
+      />
 
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div>
