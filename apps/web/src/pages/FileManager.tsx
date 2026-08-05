@@ -10,8 +10,6 @@ import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem, C
 import { showConfirm } from '../lib/confirm.js';
 import { showAlert } from '../lib/alert.js';
 import { BASE_URL } from '../lib/api.js';
-import { PageHeader } from '../components/PageHeader.js';
-import { useLocation } from 'react-router-dom';
 
 const PROVIDER_VIEWS: StorageProvider[] = ['box', 'dropbox', 'mega', 'onedrive'];
 
@@ -695,27 +693,7 @@ function RecentRow({ items, onOpen }: { items: CloudFile[]; onOpen: (item: Cloud
 }
 
 /* ── Main Component ── */
-
-/* One component serves /cloud, /files, /recent, /shared and /trash, so the
-   title has to come from the route — otherwise Trash and Recent both announce
-   themselves as the whole drive. */
-const DRIVE_VIEW: Record<string, { crumb: string; plain: string; em: string; sub: string }> = {
-  files:  { crumb: 'Files',  plain: 'Workspace', em: 'drive',
-            sub: 'Every file the workspace holds.' },
-  recent: { crumb: 'Recent', plain: 'Recently', em: 'opened',
-            sub: 'What has been opened or changed lately.' },
-  shared: { crumb: 'Shared', plain: 'Shared with', em: 'you',
-            sub: 'Files other people have given you access to.' },
-  trash:  { crumb: 'Trash',  plain: 'Deleted', em: 'files',
-            sub: 'Removed files, still recoverable until purged.' },
-};
-
 export const FileManager: React.FC = () => {
-  const driveLocation = useLocation();
-  const view = (driveLocation.pathname.split('/').filter(Boolean).pop() ?? 'files') in DRIVE_VIEW
-    ? driveLocation.pathname.split('/').filter(Boolean).pop()!
-    : 'files';
-
   const {
     files, loading, error, dismissError,
     currentView, currentFolderId, breadcrumb, openFolder, navToBreadcrumb, goToView,
@@ -870,12 +848,6 @@ export const FileManager: React.FC = () => {
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100%', background:'var(--bg)' }}>
-      <PageHeader
-        crumbs={['Drive', DRIVE_VIEW[view].crumb]}
-        titlePlain={DRIVE_VIEW[view].plain}
-        titleEm={DRIVE_VIEW[view].em}
-        subtitle={DRIVE_VIEW[view].sub}
-      />
       {error && (
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, padding:'10px 20px', background:'var(--red-l)', borderBottom:'1px solid var(--red)', color:'var(--red)', fontSize:'var(--text-base)' }}>
           <span>{error}</span>
