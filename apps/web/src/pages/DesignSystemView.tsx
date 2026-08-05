@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs.
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
+import { APP_PALETTE_SLOT } from '../shells/WorkspaceApp.js';
 
 const SECTIONS: { id: string; group: 'theming' | 'layout'; label: string; icon: IconName }[] = [
   { id: 'themes',     group: 'theming', label: 'Themes',           icon: 'sparkle' },
@@ -151,8 +152,13 @@ export function DesignSystemView() {
     const theme = PLATFORM_THEMES.find(t => t.id === themeId);
     if (!theme) return;
     const apps: Record<string, { color: string }> = {};
-    ALL_APP_IDS.forEach((appId, i) => {
-      const color = theme.palette[i % theme.palette.length];
+    ALL_APP_IDS.forEach((appId) => {
+      // Declared slot, not list position — see APP_PALETTE_SLOT. Falls back to
+      // slot 0 only if an app was added without choosing one, which keeps the
+      // apply working while making the omission visible rather than silently
+      // shifting every other app's colour.
+      const slot = APP_PALETTE_SLOT[appId] ?? 0;
+      const color = theme.palette[slot % theme.palette.length];
       apps[appId] = { color };
       localStorage.setItem(`hudumika_app_color_${appId}`, color);
     });

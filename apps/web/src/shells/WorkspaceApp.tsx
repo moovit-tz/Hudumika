@@ -62,6 +62,41 @@ export const APP_COLORS: Record<AppId, string> = {
   inventory: DEFAULT_APP_COLOR,
 };
 
+/**
+ * Which palette slot each app takes when a SuperAdmin applies a theme preset.
+ *
+ * This used to be `palette[i % palette.length]` over ALL_APP_IDS — assignment
+ * by list position. With 23 apps and an 8-colour palette that wraps nearly
+ * three times, so every colour is worn by two or three apps and *which* ones
+ * depends on the order of an array nobody thinks of as significant. SEAL came
+ * out wearing ClearOS's orange, and adding or reordering a single app
+ * reshuffled the whole platform's identity.
+ *
+ * Slots are declared instead, grouped so apps that share a colour share it on
+ * purpose: clearance together, warehouse together, platform tooling together.
+ * A new app must pick a slot, which is the point — it is a design decision,
+ * not an accident of where it landed in a list.
+ */
+export const APP_PALETTE_SLOT: Record<AppId, number> = {
+  // 0 — clearance & customs
+  clearos: 0, cargotracker: 0, demurrage: 0,
+  // 1 — finance & commerce
+  finops: 1, store: 1,
+  // 2 — compliance & legal
+  complyos: 2,
+  // 3 — warehouse & stock
+  seal: 3, inventory: 3,
+  // 4 — people
+  nexushr: 4,
+  // 5 — fleet & freight
+  tracking: 5,
+  // 6 — support, comms & relationships
+  bliss: 6, email: 6, crm: 6, contacts: 6,
+  // 7 — platform, identity & tooling
+  admin: 7, oneid: 7, onesite: 7, workspace: 7,
+  studio: 7, ai: 7, calendar: 7, tasks: 7, cloud: 7,
+};
+
 export const ActiveAppContext = React.createContext<AppId | null>(null);
 
 export const MobileNavContext = React.createContext<{
