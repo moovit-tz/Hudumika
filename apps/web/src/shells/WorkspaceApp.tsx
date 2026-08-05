@@ -138,10 +138,6 @@ export function WorkspaceApp({ appId, children }: WorkspaceAppProps) {
 
     const effectiveColor = isDark ? lightenHex(appColor, 0.45) : appColor;
     const [r, g, b] = parseHex(effectiveColor);
-    el.style.setProperty('--teal',   effectiveColor);
-    el.style.setProperty('--teal-l', `rgba(${r},${g},${b},0.1)`);
-    el.style.setProperty('--teal-m', `rgba(${r},${g},${b},0.18)`);
-    el.style.setProperty('--teal-d', darkenHex(effectiveColor));
 
     /**
      * The shadcn tokens have to move with the app too.
@@ -161,22 +157,53 @@ export function WorkspaceApp({ appId, children }: WorkspaceAppProps) {
     const surface = enforceContrastFloor(effectiveColor);
     const primaryHsl = hexToHslTriplet(surface.hex);
     const fgHsl = pickForegroundHsl(surface.hex);
-    el.style.setProperty('--primary', primaryHsl);
-    el.style.setProperty('--primary-foreground', fgHsl);
-    el.style.setProperty('--ring', primaryHsl);
-    el.style.setProperty('--sidebar-primary', primaryHsl);
-    el.style.setProperty('--sidebar-primary-foreground', fgHsl);
-    el.style.setProperty('--sidebar-ring', primaryHsl);
 
-    // Tailwind v4 resolves its @theme variables where they are declared, so
-    // `--color-primary: hsl(var(--primary))` captured the value of --primary
-    // at :root and never re-reads it. Overriding --primary on a descendant is
-    // therefore invisible to `bg-primary`, which is why the button here saw
-    // the app's indigo in --primary and still painted the tenant's orange.
-    // The v4 variable has to be set on the scope as well.
-    el.style.setProperty('--color-primary', `hsl(${primaryHsl})`);
-    el.style.setProperty('--color-primary-foreground', `hsl(${fgHsl})`);
-    el.style.setProperty('--color-ring', `hsl(${primaryHsl})`);
+    const vars: Record<string, string> = {
+      '--teal': effectiveColor,
+      '--teal-l': `rgba(${r},${g},${b},0.1)`,
+      '--teal-m': `rgba(${r},${g},${b},0.18)`,
+      '--teal-d': darkenHex(effectiveColor),
+
+      '--primary': primaryHsl,
+      '--primary-foreground': fgHsl,
+      '--ring': primaryHsl,
+      '--sidebar-primary': primaryHsl,
+      '--sidebar-primary-foreground': fgHsl,
+      '--sidebar-ring': primaryHsl,
+
+      // Tailwind v4 resolves its @theme variables where they are declared, so
+      // `--color-primary: hsl(var(--primary))` captured the value of --primary
+      // at :root and never re-reads it. Overriding --primary on a descendant is
+      // therefore invisible to `bg-primary`, which is why the button here saw
+      // the app's indigo in --primary and still painted the tenant's orange.
+      '--color-primary': `hsl(${primaryHsl})`,
+      '--color-primary-foreground': `hsl(${fgHsl})`,
+      '--color-ring': `hsl(${primaryHsl})`,
+    };
+
+    /**
+     * Both the wrapper and the document root get these.
+     *
+     * Every Radix overlay — Select, DropdownMenu, Popover, ContextMenu,
+     * Tooltip, HoverCard, Menubar — renders through a portal attached to
+     * document.body, which is *outside* this wrapper. A variable set only
+     * here is invisible to all of them, so inside SEAL the page read
+     * --teal: #059669 while every dropdown it opened read #ea580c and
+     * painted the tenant's orange. Menus disagreed with the page that
+     * opened them, in every app.
+     *
+     * Setting them on :root as well is safe because exactly one WorkspaceApp
+     * is mounted at a time; the cleanup below hands the root back to the
+     * tenant brand when you leave an app for the login or marketing screens.
+     */
+    const root = document.documentElement;
+    for (const [k, v] of Object.entries(vars)) {
+      el.style.setProperty(k, v);
+      root.style.setProperty(k, v);
+    }
+    return () => {
+      for (const k of Object.keys(vars)) root.style.removeProperty(k);
+    };
   }, [appColor, appId, dsRev, isDark]);
 
   const body = (
