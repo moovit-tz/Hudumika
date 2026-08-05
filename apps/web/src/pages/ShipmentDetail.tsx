@@ -13,7 +13,7 @@ import { useClockIn } from '../contexts/ClockInContext.js';
 import { showAlert } from '../lib/alert.js';
 import {
   getJob, updateJob, subscribe,
-  STAGES, FLAG_CFG, CH_CFG, stageIdx, STAGE_API_MAP, API_STAGE_MAP,
+  STAGES, FLAG_CFG, CH_CFG, stageIdx, STAGE_API_MAP, API_STAGE_MAP, apiToJob,
   type ClearanceJob, type Stage, type Channel, type Flag,
   type ThreadMsg, type TimelineEvent, type ShipDoc, type LedgerEntry, type DocType,
   type InternalTask, type TimeEntry, type ActivityEvent, type TaskStatus, type Listener,
@@ -44,86 +44,9 @@ function useJob(id: string) {
   return job;
 }
 
-// ─── API → ClearanceJob adapter ──────────────────────────────────────────────
-
-function toStage(s: string): Stage {
-  if (!s) return 'docs_received';
-  // Try exact API key match first (e.g. 'PERMITS' → 'permit_applications')
-  if (API_STAGE_MAP[s]) return API_STAGE_MAP[s];
-  // Fallback: lowercase match for local IDs
-  const n = s.toLowerCase().replace(/[\s-]+/g, '_') as Stage;
-  return STAGES.find(x => x.id === n) ? n : 'docs_received';
-}
-
-function apiToJob(data: any): ClearanceJob {
-  return {
-    id: String(data.id),
-    title: data.goods_desc || data.ref_number || 'Shipment',
-    sysRef: data.ref_number,
-    customer: data.customer_name || 'Unknown',
-    customerId: String(data.customer_id || ''),
-    mode: 'SEA FCL',
-    origin: data.port_of_loading || '—',
-    destination: data.port_of_discharge || 'Dar es Salaam',
-    bl: data.bl_number,
-    tansad: data.tansad_number,
-    vessel: data.vessel_name,
-    containers: data.container_numbers || [],
-    weight: data.gross_weight_kg ? `${Number(data.gross_weight_kg).toLocaleString()} KG` : undefined,
-    invoiceValue: data.cif_value_usd ? `USD ${Number(data.cif_value_usd).toLocaleString()}` : undefined,
-    stage: toStage(data.stage || ''),
-    workflowId: data.workflow_id ?? null,
-    isDone: Boolean(data.resolved_at),
-    flags: ((data.active_risk_types || []) as string[]).map(r => r.toLowerCase()) as Flag[],
-    assignees: data.assigned_to ? [data.assigned_to] : [],
-    listeners: (data.listeners || []).map((l: any) => ({
-      id: l.user_id || l.id, listenerId: l.id, name: l.name, role: l.role || '',
-      type: l.type as 'internal' | 'customer',
-      channel: (l.channels || []) as Channel[],
-    })),
-    createdAt: new Date(data.created_at || Date.now()),
-    dueDate: data.due_date ? new Date(data.due_date) : undefined,
-    thread: (data.messages || []).map((m: any, i: number) => ({
-      id: m.id || `msg-${i}`, userId: String(m.author_id || 'system'), userName: m.author_name || 'System',
-      content: m.content, ts: new Date(m.created_at || Date.now()),
-      channels: [(m.channel?.toLowerCase() || 'internal') as Channel],
-      isInternal: !m.channel || m.channel === 'INTERNAL',
-    })),
-    timeline: (data.stage_history || []).map((h: any, i: number) => ({
-      id: h.id || `ev-${i}`, stage: toStage(h.stage || ''),
-      label: STAGES.find(s => s.id === toStage(h.stage || ''))?.label || h.stage,
-      userId: h.user_id || 'system', userName: h.user_name || 'System',
-      ts: new Date(h.entered_at || Date.now()), note: h.note, blocker: h.blocker,
-    })),
-    ledger: [
-      ...(data.expenses || []).filter((e: any) => !e.is_revenue).map((e: any) => ({
-        id: e.id || `exp-${e.label}`, description: e.label, amount: Number(e.amount_tzs),
-        currency: 'TZS', type: 'charge' as const, date: new Date(e.created_at || Date.now()), status: 'pending' as const,
-      })),
-      ...(data.expenses || []).filter((e: any) => e.is_revenue).map((e: any) => ({
-        id: `pay-${e.id}`, description: e.label, amount: Number(e.amount_tzs),
-        currency: 'TZS', type: 'payment' as const, date: new Date(e.created_at || Date.now()), status: 'paid' as const,
-      })),
-    ],
-    documents: (data.documents || []).map((d: any) => ({
-      id: String(d.id), name: d.filename || d.type, type: (d.type?.toLowerCase() || 'other') as DocType,
-      size: '—', uploadedBy: d.uploaded_by || 'System',
-      uploadedAt: new Date(d.created_at || Date.now()), extracted: { status: 'pending' as const },
-      apiType: d.type, pending: !d.storage_key,
-    })),
-    tasks: [], timeEntries: [], activity: [], cloudLinks: [],
-    co2EmissionsKg: data.co2_emissions_kg ? Number(data.co2_emissions_kg) : undefined,
-    carbonCreditsSaved: data.carbon_credits_saved ? Number(data.carbon_credits_saved) : undefined,
-    co2CalcDetails: typeof data.co2_calc_details === 'string' ? JSON.parse(data.co2_calc_details) : data.co2_calc_details,
-    customerContactName: data.customer_contact_name || undefined,
-    customerEmail: data.customer_email || undefined,
-    customerPhone: data.customer_phone || undefined,
-    assigneeName: data.assigned_officer_name || undefined,
-    assigneeEmail: data.assigned_officer_email || undefined,
-    assigneePhone: data.assigned_officer_phone || undefined,
-    whatsappBotActive: data.whatsapp_bot_active !== false,
-  };
-}
+// toStage / apiToJob now live in clearanceData.ts, beside the ClearanceJob
+// type and the store that loads them, so the list and the detail screen map
+// a shipment the same way.
 
 // shipment_tasks.status (008_shipment_tasks_time_entries.sql) uses a
 // different vocabulary ('open'/'blocked') than the frontend's TaskStatus

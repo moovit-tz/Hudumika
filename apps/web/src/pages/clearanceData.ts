@@ -1,3 +1,4 @@
+import { apiFetch } from '../lib/api.js';
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export type Stage =
@@ -511,118 +512,147 @@ const MOCK_LEDGER_1: LedgerEntry[] = [
   { id: 'l10', description: 'Client Advance Payment',        amount: 28000000, currency: 'TZS', type: 'payment', date: new Date('2026-02-11'), status: 'paid',    reference: 'CRDB-26-887234' },
 ];
 
-const INITIAL_JOBS: ClearanceJob[] = [
-  {
-    id: 'CLR-2026-0001', title: 'Crusher Accessories & Spare Parts',
-    customer: 'Timeline Company Limited', customerId: 'cust-001',
-    mode: 'SEA FCL', origin: 'Nansha, China', destination: 'Dar es Salaam (Silver ICD)',
-    bl: 'COSU6441534213', tansad: 'TZDL-26-1095360', vessel: 'Cape Flores',
-    containers: ['CSNU2541982', 'COSU7812345'], weight: '23,535 KGS', invoiceValue: 'USD 23,553.59', currency: 'USD',
-    stage: 'inspection_booking', flags: ['green_channel', 'demurrage'],
-    assignees: ['Baraka Osei', 'Amina Rashid'], listeners: MOCK_LISTENERS_1,
-    createdAt: new Date('2026-02-11'), dueDate: new Date('2026-02-20'),
-    thread: MOCK_THREAD_1, timeline: MOCK_TIMELINE_1, ledger: MOCK_LEDGER_1, documents: MOCK_DOCS_1,
-    tasks: MOCK_TASKS_1, timeEntries: MOCK_TIME_1, activity: MOCK_ACTIVITY_1, cloudLinks: MOCK_CLOUD_1,
-  },
-  {
-    id: 'CLR-2026-0002', title: 'Generator Parts & Spare Components',
-    customer: 'Dangote Industries Ltd', customerId: 'cust-002',
-    mode: 'SEA FCL', origin: 'Port Klang, Malaysia', destination: 'Dar es Salaam Port',
-    bl: 'MSKU9887214567', tansad: 'TZDA-26-1379800', vessel: 'MSC GINA',
-    containers: ['MSCU8821001', 'MSCU8821002', 'MSCU8821003'], weight: '41,200 KGS', invoiceValue: 'USD 87,400.00', currency: 'USD',
-    stage: 'transport_delivery', flags: ['green_channel', 'sla_breach'],
-    assignees: ['Baraka Osei'],
-    listeners: [
-      { id: 'u1', name: 'Baraka Osei', role: 'Clearance Officer', type: 'internal', channel: ['internal', 'email'] },
-      { id: 'c3', name: 'Kwame Asante', role: 'Supply Chain Director', type: 'customer', channel: ['whatsapp', 'email', 'teams'] },
-    ],
-    createdAt: new Date('2026-01-28'), dueDate: new Date('2026-02-10'),
-    thread: [
-      { id: 't1', userId: 'u1', userName: 'Baraka Osei', content: 'All stages cleared. Container now in transit to client warehouse. ETA: Feb 16th.', ts: new Date('2026-02-14T16:00:00'), channels: ['whatsapp', 'email', 'teams'], isInternal: false },
-    ],
-    timeline: [
-      { id: 'e1', stage: 'docs_received', label: 'Docs Received', userId: 'u1', userName: 'Baraka Osei', ts: new Date('2026-01-28T09:00:00') },
-      { id: 'e2', stage: 'validation', label: 'Validation', userId: 'u1', userName: 'Baraka Osei', ts: new Date('2026-01-29T10:00:00') },
-      { id: 'e3', stage: 'entry_preparation', label: 'Entry Prep', userId: 'u1', userName: 'Baraka Osei', ts: new Date('2026-01-30T09:00:00') },
-      { id: 'e4', stage: 'tancis_registration', label: 'TANCIS Reg', userId: 'u1', userName: 'Baraka Osei', ts: new Date('2026-01-30T14:00:00') },
-      { id: 'e5', stage: 'assessment_payment', label: 'Assessment', userId: 'u1', userName: 'Baraka Osei', ts: new Date('2026-02-03T08:00:00') },
-      { id: 'e6', stage: 'tax_payment', label: 'Tax Payment', userId: 'u1', userName: 'Baraka Osei', ts: new Date('2026-02-05T11:00:00') },
-      { id: 'e7', stage: 'do_application', label: 'DO Application', userId: 'u1', userName: 'Baraka Osei', ts: new Date('2026-02-07T09:00:00') },
-      { id: 'e8', stage: 'inspection_booking', label: 'Inspection Booking', userId: 'u1', userName: 'Baraka Osei', ts: new Date('2026-02-10T10:00:00') },
-      { id: 'e9', stage: 'transport_delivery', label: 'Transport & Delivery', userId: 'u1', userName: 'Baraka Osei', ts: new Date('2026-02-14T16:00:00'), note: 'Truck dispatched. 3 containers on 2 trucks.' },
-    ],
-    ledger: [
-      { id: 'l1', description: 'Clearing Agency Fee', amount: 4200000, currency: 'TZS', type: 'charge', date: new Date('2026-02-10'), status: 'paid' },
-      { id: 'l2', description: 'Customs Duties & VAT', amount: 54800000, currency: 'TZS', type: 'charge', date: new Date('2026-02-05'), status: 'paid' },
-      { id: 'l3', description: 'ICD & Port Charges', amount: 4100000, currency: 'TZS', type: 'charge', date: new Date('2026-02-08'), status: 'paid' },
-      { id: 'l4', description: 'Transport', amount: 6800000, currency: 'TZS', type: 'charge', date: new Date('2026-02-14'), status: 'pending' },
-      { id: 'l5', description: 'Client Payment', amount: 75000000, currency: 'TZS', type: 'payment', date: new Date('2026-02-01'), status: 'paid' },
-    ],
-    documents: [
-      { id: 'd1', name: 'MSKU9887214567_BL.pdf', type: 'bl', uploadedAt: new Date('2026-01-28'), uploadedBy: 'Kwame Asante', size: '380 KB', extracted: { status: 'done', docType: 'Bill of Lading', confidence: 98, sections: [{ title: 'B/L Info', fields: [{ label: 'B/L Number', value: 'MSKU9887214567', flag: 'ok' }, { label: 'Vessel', value: 'MSC GINA' }] }], summary: 'B/L for 3 containers of Generator Parts from Port Klang.' } },
-      { id: 'd2', name: 'TRA_Assessment_TZDA261379800.pdf', type: 'assessment', uploadedAt: new Date('2026-02-03'), uploadedBy: 'Baraka Osei', size: '2.8 MB', extracted: { status: 'done', docType: 'TRA Assessment', confidence: 91, sections: [], summary: 'Assessment for TZDA-26-1379800. Total taxes: TZS 54.2M.' } },
-    ],
-    tasks: [], timeEntries: [], activity: [], cloudLinks: [],
-  },
-  {
-    id: 'CLR-2026-0003', title: 'Medical Equipment & Consumables',
-    customer: 'Muhimbili National Hospital', customerId: 'cust-003',
-    mode: 'AIR', origin: 'Frankfurt, Germany', destination: 'Julius Nyerere Int\'l Airport',
-    bl: 'ET-721-8891234', stage: 'assessment_payment', flags: ['priority'],
-    assignees: ['Amina Rashid'],
-    listeners: [
-      { id: 'u2', name: 'Amina Rashid', role: 'Senior Manager', type: 'internal', channel: ['internal', 'email'] },
-      { id: 'c4', name: 'Dr. Fatuma Said', role: 'Procurement', type: 'customer', channel: ['email', 'sms'] },
-    ],
-    createdAt: new Date('2026-02-05'), dueDate: new Date('2026-02-15'),
-    thread: [{ id: 't1', userId: 'u2', userName: 'Amina Rashid', content: 'AWB confirmed. Consignment on ground at JNIA Cargo. Awaiting TRA assessment.', ts: new Date('2026-02-09T10:00:00'), channels: ['internal', 'email'], isInternal: false }],
 
-    timeline: [
-      { id: 'e1', stage: 'docs_received', label: 'Docs Received', userId: 'u2', userName: 'Amina Rashid', ts: new Date('2026-02-05T14:00:00') },
-      { id: 'e2', stage: 'validation', label: 'Validation', userId: 'u2', userName: 'Amina Rashid', ts: new Date('2026-02-06T09:00:00') },
-      { id: 'e3', stage: 'entry_preparation', label: 'Entry Prep', userId: 'u2', userName: 'Amina Rashid', ts: new Date('2026-02-07T10:00:00') },
-      { id: 'e4', stage: 'tancis_registration', label: 'TANCIS Reg', userId: 'u2', userName: 'Amina Rashid', ts: new Date('2026-02-08T11:00:00'), note: 'PHARMACY BOARD permit obtained.' },
-      { id: 'e5', stage: 'assessment_payment', label: 'Assessment', userId: 'u2', userName: 'Amina Rashid', ts: new Date('2026-02-09T09:00:00'), blocker: 'TRA exemption application submitted — awaiting approval.' },
+// ─── API → ClearanceJob adapter ──────────────────────────────────────────────
+
+export function toStage(s: string): Stage {
+  if (!s) return 'docs_received';
+  // Try exact API key match first (e.g. 'PERMITS' → 'permit_applications')
+  if (API_STAGE_MAP[s]) return API_STAGE_MAP[s];
+  // Fallback: lowercase match for local IDs
+  const n = s.toLowerCase().replace(/[\s-]+/g, '_') as Stage;
+  return STAGES.find(x => x.id === n) ? n : 'docs_received';
+}
+
+export function apiToJob(data: any): ClearanceJob {
+  return {
+    id: String(data.id),
+    title: data.goods_desc || data.ref_number || 'Shipment',
+    sysRef: data.ref_number,
+    customer: data.customer_name || 'Unknown',
+    customerId: String(data.customer_id || ''),
+    mode: 'SEA FCL',
+    origin: data.port_of_loading || '—',
+    destination: data.port_of_discharge || 'Dar es Salaam',
+    bl: data.bl_number,
+    tansad: data.tansad_number,
+    vessel: data.vessel_name,
+    containers: data.container_numbers || [],
+    weight: data.gross_weight_kg ? `${Number(data.gross_weight_kg).toLocaleString()} KG` : undefined,
+    invoiceValue: data.cif_value_usd ? `USD ${Number(data.cif_value_usd).toLocaleString()}` : undefined,
+    stage: toStage(data.stage || ''),
+    workflowId: data.workflow_id ?? null,
+    isDone: Boolean(data.resolved_at),
+    flags: ((data.active_risk_types || []) as string[]).map(r => r.toLowerCase()) as Flag[],
+    assignees: data.assigned_to ? [data.assigned_to] : [],
+    listeners: (data.listeners || []).map((l: any) => ({
+      id: l.user_id || l.id, listenerId: l.id, name: l.name, role: l.role || '',
+      type: l.type as 'internal' | 'customer',
+      channel: (l.channels || []) as Channel[],
+    })),
+    createdAt: new Date(data.created_at || Date.now()),
+    dueDate: data.due_date ? new Date(data.due_date) : undefined,
+    thread: (data.messages || []).map((m: any, i: number) => ({
+      id: m.id || `msg-${i}`, userId: String(m.author_id || 'system'), userName: m.author_name || 'System',
+      content: m.content, ts: new Date(m.created_at || Date.now()),
+      channels: [(m.channel?.toLowerCase() || 'internal') as Channel],
+      isInternal: !m.channel || m.channel === 'INTERNAL',
+    })),
+    timeline: (data.stage_history || []).map((h: any, i: number) => ({
+      id: h.id || `ev-${i}`, stage: toStage(h.stage || ''),
+      label: STAGES.find(s => s.id === toStage(h.stage || ''))?.label || h.stage,
+      userId: h.user_id || 'system', userName: h.user_name || 'System',
+      ts: new Date(h.entered_at || Date.now()), note: h.note, blocker: h.blocker,
+    })),
+    ledger: [
+      ...(data.expenses || []).filter((e: any) => !e.is_revenue).map((e: any) => ({
+        id: e.id || `exp-${e.label}`, description: e.label, amount: Number(e.amount_tzs),
+        currency: 'TZS', type: 'charge' as const, date: new Date(e.created_at || Date.now()), status: 'pending' as const,
+      })),
+      ...(data.expenses || []).filter((e: any) => e.is_revenue).map((e: any) => ({
+        id: `pay-${e.id}`, description: e.label, amount: Number(e.amount_tzs),
+        currency: 'TZS', type: 'payment' as const, date: new Date(e.created_at || Date.now()), status: 'paid' as const,
+      })),
     ],
-    ledger: [],
-    documents: [{ id: 'd1', name: 'AWB_ET7218891234.pdf', type: 'bl', uploadedAt: new Date('2026-02-05'), uploadedBy: 'Dr. Fatuma Said', size: '210 KB', extracted: { status: 'done', docType: 'Air Waybill', confidence: 96, sections: [{ title: 'AWB Info', fields: [{ label: 'AWB', value: 'ET-721-8891234', flag: 'ok' }, { label: 'Origin', value: 'FRA (Frankfurt)' }, { label: 'Destination', value: 'DAR (Dar es Salaam)' }] }], summary: 'Air Waybill for Medical Equipment on Ethiopian Airlines.' } }],
+    documents: (data.documents || []).map((d: any) => ({
+      id: String(d.id), name: d.filename || d.type, type: (d.type?.toLowerCase() || 'other') as DocType,
+      size: '—', uploadedBy: d.uploaded_by || 'System',
+      uploadedAt: new Date(d.created_at || Date.now()), extracted: { status: 'pending' as const },
+      apiType: d.type, pending: !d.storage_key,
+    })),
     tasks: [], timeEntries: [], activity: [], cloudLinks: [],
-  },
-  {
-    id: 'CLR-2026-0004', title: 'Construction Materials — Cement & Steel',
-    customer: 'TTCL Tanzania', customerId: 'cust-004',
-    mode: 'SEA LCL', origin: 'Mumbai, India', destination: 'Dar es Salaam Port',
-    stage: 'tancis_registration', flags: ['on_hold'],
-    assignees: ['Baraka Osei'],
-    listeners: [
-      { id: 'u1', name: 'Baraka Osei', role: 'Clearance Officer', type: 'internal', channel: ['internal'] },
-      { id: 'c5', name: 'Moses Temba', role: 'Procurement', type: 'customer', channel: ['whatsapp'] },
-    ],
-    createdAt: new Date('2026-02-18'),
-    thread: [{ id: 't1', userId: 'u1', userName: 'Baraka Osei', content: 'ON HOLD — HS code query raised by TRA for steel reinforcement bars. Awaiting client technical specs.', ts: new Date('2026-02-20T11:00:00'), channels: ['internal'], isInternal: true }],
-    timeline: [
-      { id: 'e1', stage: 'docs_received', label: 'Docs Received', userId: 'u1', userName: 'Baraka Osei', ts: new Date('2026-02-18T09:00:00') },
-      { id: 'e2', stage: 'validation', label: 'Validation', userId: 'u1', userName: 'Baraka Osei', ts: new Date('2026-02-19T10:00:00'), note: 'Minor variation in weights noted.' },
-      { id: 'e3', stage: 'entry_preparation', label: 'Entry Prep', userId: 'u1', userName: 'Baraka Osei', ts: new Date('2026-02-20T09:00:00') },
-      { id: 'e4', stage: 'tancis_registration', label: 'TANCIS Reg', userId: 'u1', userName: 'Baraka Osei', ts: new Date('2026-02-20T11:00:00'), blocker: 'HS code dispute — TRA queries steel classification. Client technical spec sheet required.' },
-    ],
-    ledger: [], documents: [], tasks: [], timeEntries: [], activity: [], cloudLinks: [],
-  },
-];
+    co2EmissionsKg: data.co2_emissions_kg ? Number(data.co2_emissions_kg) : undefined,
+    carbonCreditsSaved: data.carbon_credits_saved ? Number(data.carbon_credits_saved) : undefined,
+    co2CalcDetails: typeof data.co2_calc_details === 'string' ? JSON.parse(data.co2_calc_details) : data.co2_calc_details,
+    customerContactName: data.customer_contact_name || undefined,
+    customerEmail: data.customer_email || undefined,
+    customerPhone: data.customer_phone || undefined,
+    assigneeName: data.assigned_officer_name || undefined,
+    assigneeEmail: data.assigned_officer_email || undefined,
+    assigneePhone: data.assigned_officer_phone || undefined,
+    whatsappBotActive: data.whatsapp_bot_active !== false,
+  };
+}
 
 // ─── Reactive Store ───────────────────────────────────────────────────────────
 
-let _jobs: ClearanceJob[] = INITIAL_JOBS.map(j => ({ ...j }));
+/**
+ * Backed by GET /v1/shipments, not by a literal.
+ *
+ * `_jobs` used to be seeded from an INITIAL_JOBS array and mutated in memory:
+ * every edit was lost on reload, nothing was tenant-scoped, and the 51
+ * endpoints in shipments.routes.ts went unused — while ShipmentBoard,
+ * ShipmentDetail, DeliveryNotes and TopBar all read from it.
+ *
+ * The load is lazy and shared: the first subscriber triggers it, later ones
+ * reuse the same in-flight promise, so four consumers mounting together make
+ * one request. Tenant scoping is the API's job — /v1/shipments filters on
+ * tenant_id explicitly (see shipments.routes.ts), which an in-memory array
+ * could not do at all.
+ */
+let _jobs: ClearanceJob[] = [];
 const _subs = new Set<() => void>();
+
+let _loaded = false;
+let _inflight: Promise<void> | null = null;
 
 function notify() { _subs.forEach(fn => fn()); }
 
-export function getJobs(): ClearanceJob[] { return _jobs; }
-export function getJob(id: string): ClearanceJob | undefined { return _jobs.find(j => j.id === id); }
+export function loadJobs(force = false): Promise<void> {
+  if (_inflight) return _inflight;
+  if (_loaded && !force) return Promise.resolve();
+  _inflight = apiFetch('/v1/shipments')
+    .then((rows: any) => {
+      _jobs = (Array.isArray(rows) ? rows : rows?.data ?? []).map(apiToJob);
+      _loaded = true;
+      notify();
+    })
+    .catch(() => { /* leave the list empty rather than show invented rows */ })
+    .finally(() => { _inflight = null; });
+  return _inflight;
+}
 
+// Any read primes the load, not just subscribe(): several consumers call
+// getJobs() once in a useState initialiser and never subscribe, so keying the
+// fetch off subscription alone left them looking at an empty list forever.
+export function getJobs(): ClearanceJob[] { void loadJobs(); return _jobs; }
+export function getJob(id: string): ClearanceJob | undefined { void loadJobs(); return _jobs.find(j => j.id === id); }
+
+/** Optimistic, with rollback — the same shape data/productData.ts uses. */
 export function updateJob(id: string, updater: (j: ClearanceJob) => ClearanceJob): void {
+  const prev = _jobs;
+  const next = _jobs.find(j => j.id === id);
   _jobs = _jobs.map(j => j.id === id ? updater(j) : j);
   notify();
+  if (!next) return;
+  const updated = _jobs.find(j => j.id === id)!;
+  const body: Record<string, unknown> = {};
+  if (updated.stage !== next.stage) body.stage = STAGE_API_MAP[updated.stage] ?? updated.stage;
+  if (updated.bl !== next.bl) body.bl_number = updated.bl;
+  if (updated.tansad !== next.tansad) body.tansad_number = updated.tansad;
+  if (!Object.keys(body).length) return;
+  apiFetch(`/v1/shipments/${id}`, { method: 'PATCH', body: JSON.stringify(body) })
+    .catch(() => { _jobs = prev; notify(); });
 }
 
 export function addJob(job: ClearanceJob): void {
@@ -632,5 +662,6 @@ export function addJob(job: ClearanceJob): void {
 
 export function subscribe(fn: () => void): () => void {
   _subs.add(fn);
+  void loadJobs();
   return () => _subs.delete(fn);
 }
