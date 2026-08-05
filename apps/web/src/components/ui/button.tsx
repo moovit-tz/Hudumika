@@ -29,8 +29,8 @@ const buttonVariants = cva(
       // the icon variant stays square by tracking the same height.
       size: {
         default: "min-h-9 py-[var(--ds-btn-py,9px)] px-4",
-        sm: "min-h-8 py-[calc(var(--ds-btn-py,9px)-3px)] px-3 text-xs",
-        lg: "min-h-10 py-[calc(var(--ds-btn-py,9px)+2px)] px-8",
+        sm: "min-h-8 py-[var(--ds-btn-py-sm,5px)] px-3 text-xs",
+        lg: "min-h-11 py-[var(--ds-btn-py-lg,13px)] px-8",
         icon: "min-h-9 aspect-square py-[var(--ds-btn-py,9px)] px-0",
       },
     },

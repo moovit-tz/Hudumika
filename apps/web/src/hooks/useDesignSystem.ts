@@ -558,6 +558,18 @@ export function applyDesignTokens(tokens: DesignTokens): void {
 
     '--page-padding': `${density.pagePadding}px`, '--content-gap': `${density.contentGap}px`,
     '--ds-btn-py': `${density.btnPy}px`, '--ds-input-py': `${density.inputPy}px`, '--ds-cell-py': `${density.cellPy}px`,
+    // The sm/lg button steps are computed here rather than as a calc() inside a
+    // Tailwind arbitrary value. `py-[calc(var(--ds-btn-py,9px)*0.6)]` silently
+    // fails to compile — the control keeps its min-h floor and the size scale
+    // collapses, which looks like inconsistent buttons rather than a broken
+    // class. A plain `py-[var(--ds-btn-py-sm)]` is the form already proven to
+    // work, so the arithmetic belongs in JS where it is reliable.
+    //
+    // Proportional, not fixed offsets: a -3px/+2px step made sm, default and
+    // lg converge as density rose (45/48/50 at 13px), so three deliberate
+    // sizes read as one control rendered sloppily.
+    '--ds-btn-py-sm': `${Math.max(2, Math.round(density.btnPy * 0.55))}px`,
+    '--ds-btn-py-lg': `${Math.round(density.btnPy * 1.45)}px`,
 
     '--dur-fast': `${motion.durFast}ms`, '--dur': `${motion.dur}ms`, '--dur-slow': `${motion.durSlow}ms`, '--ease': motion.ease,
 
