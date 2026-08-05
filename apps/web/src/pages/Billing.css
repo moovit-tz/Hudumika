@@ -255,3 +255,10 @@
   .inv-list-toolbar { flex-direction: column; align-items: stretch; }
   .inv-search-wrap { width: 100%; }
 }
+
+/* Create/edit occupies the full body. The form was rendering in the right
+   column of a split view, so a full invoice — parties, dates, shipment link
+   and a charges table — was laid out in roughly half the available width
+   with the list still scrolling beside it. */
+.inv-body--form .inv-list-panel { display: none; }
+.inv-body--form .inv-detail-panel { flex: 1; min-width: 0; }

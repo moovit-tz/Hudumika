@@ -1819,7 +1819,10 @@ export const Billing: React.FC = () => {
         )}
       </div>
 
-      <div className={`inv-body${isSplit ? ' inv-body--split' : ''}${selectedInvoice || mode === 'create' ? ' inv-body--has-selection' : ''}`}>
+      {/* While creating or editing, the form takes the whole body — the list
+          panel is hidden rather than the form being squeezed into the right
+          column beside it, matching how Quotations gives its form the page. */}
+      <div className={`inv-body${isSplit ? ' inv-body--split' : ''}${selectedInvoice || mode === 'create' ? ' inv-body--has-selection' : ''}${mode === 'create' || mode === 'edit' ? ' inv-body--form' : ''}`}>
         {/* List panel */}
         <div className="inv-list-panel">
 
