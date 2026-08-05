@@ -147,7 +147,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
               {QUICK_CHIPS.map(c => (
                 <button key={c.q} type="button" onClick={() => handleChip(c.q)}
                   style={{
-                    fontSize: 11.5, padding: '5px 11px', borderRadius: 20, cursor: 'pointer',
+                    fontSize: 11.5, padding: 'var(--ds-btn-py-sm) 11px', borderRadius: 20, cursor: 'pointer',
                     border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink2)',
                     fontFamily: 'var(--font)',
                   }}>
@@ -165,7 +165,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
                 <button key={s.path} type="button" onClick={() => handleSuggestion(s.path)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12,
-                    width: '100%', padding: '9px 18px', border: 'none',
+                    width: '100%', padding: 'var(--ds-btn-py) 18px', border: 'none',
                     background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
                     color: 'var(--ink)', fontSize: 13.5, textAlign: 'left',
                   }}
@@ -200,7 +200,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
                   <button key={h.id} type="button" onClick={() => handleHit(h.path)}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 12,
-                      width: '100%', padding: '8px 18px', border: 'none',
+                      width: '100%', padding: 'var(--ds-btn-py) 18px', border: 'none',
                       background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
                       color: 'var(--ink)', fontSize: 13.5, textAlign: 'left',
                     }}
@@ -226,7 +226,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
               <button type="button" onClick={searchWeb}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 12,
-                  width: '100%', padding: '10px 18px', border: 'none',
+                  width: '100%', padding: 'var(--ds-btn-py-lg) 18px', border: 'none',
                   background: 'none', cursor: 'pointer', fontFamily: 'var(--font)',
                   color: 'var(--ink2)', fontSize: 13, textAlign: 'left',
                 }}
@@ -304,7 +304,7 @@ function ClockInModal({ onClose, onConfirm }: {
               {step === 1 ? 'Select the shipment you are working on' : 'Select up to 3 steps to work on'}
             </div>
           </div>
-          <button type="button" title="Close" onClick={onClose} style={{ background: 'rgba(255,255,255,.2)', border: 'none', borderRadius: 9, cursor: 'pointer', padding: 6, display: 'flex' }}>
+          <button type="button" title="Close" onClick={onClose} style={{ background: 'rgba(255,255,255,.2)', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', padding: 6, display: 'flex' }}>
             <Icon name="x" size={16} color="#fff" />
           </button>
         </div>
@@ -338,7 +338,7 @@ function ClockInModal({ onClose, onConfirm }: {
                   const selected = selectedJobId === j.id;
                   return (
                     <button key={j.id} type="button" onClick={() => setSelectedJobId(j.id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 9, border: `1.5px solid ${selected ? 'var(--teal)' : 'var(--border)'}`, background: selected ? 'var(--teal-l)' : 'var(--white)', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'all .12s' }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--ds-btn-py-lg) 14px', borderRadius: 'var(--r)', border: `1.5px solid ${selected ? 'var(--teal)' : 'var(--border)'}`, background: selected ? 'var(--teal-l)' : 'var(--white)', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'all .12s' }}>
                       <div style={{ width: 40, height: 40, borderRadius: 9, background: selected ? 'var(--teal)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Icon name="ship" size={18} color={selected ? '#fff' : 'var(--ink3)'} />
                       </div>
@@ -356,7 +356,7 @@ function ClockInModal({ onClose, onConfirm }: {
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
                 <button type="button" disabled={!selectedJobId} onClick={() => setStep(2)}
-                  style={{ padding: '9px 20px', background: selectedJobId ? 'var(--teal)' : 'var(--border)', color: selectedJobId ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: selectedJobId ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 7 }}>
+                  style={{ padding: 'var(--ds-btn-py) 20px', background: selectedJobId ? 'var(--teal)' : 'var(--border)', color: selectedJobId ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selectedJobId ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 7 }}>
                   Next <Icon name="arrowRight" size={14} color={selectedJobId ? '#fff' : 'var(--ink3)'} />
                 </button>
               </div>
@@ -378,7 +378,7 @@ function ClockInModal({ onClose, onConfirm }: {
                   const disabled = !on && selectedSteps.length >= 3;
                   return (
                     <button key={s.id} type="button" onClick={() => !disabled && toggleStep(s.id)}
-                      style={{ padding: '9px 12px', borderRadius: 9, border: `1.5px solid ${on ? 'var(--teal)' : 'var(--border)'}`, background: on ? 'var(--teal-l)' : disabled ? 'var(--bg)' : 'var(--white)', cursor: disabled ? 'not-allowed' : 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'all .12s', display: 'flex', alignItems: 'center', gap: 8 }}>
+                      style={{ padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', border: `1.5px solid ${on ? 'var(--teal)' : 'var(--border)'}`, background: on ? 'var(--teal-l)' : disabled ? 'var(--bg)' : 'var(--white)', cursor: disabled ? 'not-allowed' : 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'all .12s', display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ width: 16, height: 16, borderRadius: 4, border: `2px solid ${on ? 'var(--teal)' : 'var(--border)'}`, background: on ? 'var(--teal)' : 'transparent', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         {on && <Icon name="check" size={10} color="#fff" />}
                       </div>
@@ -394,9 +394,9 @@ function ClockInModal({ onClose, onConfirm }: {
               )}
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setStep(1)}
-                  style={{ padding: '9px 16px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer' }}>Back</button>
+                  style={{ padding: 'var(--ds-btn-py) 16px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer' }}>Back</button>
                 <button type="button" disabled={selectedSteps.length === 0} onClick={handleConfirm}
-                  style={{ padding: '9px 20px', background: selectedSteps.length > 0 ? 'var(--teal)' : 'var(--border)', color: selectedSteps.length > 0 ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: selectedSteps.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 7 }}>
+                  style={{ padding: 'var(--ds-btn-py) 20px', background: selectedSteps.length > 0 ? 'var(--teal)' : 'var(--border)', color: selectedSteps.length > 0 ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selectedSteps.length > 0 ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 7 }}>
                   <Icon name="clock" size={14} color={selectedSteps.length > 0 ? '#fff' : 'var(--ink3)'} /> Clock In
                 </button>
               </div>
@@ -594,7 +594,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
           style={{
             position: 'relative', width: '100%', maxWidth: 380, height: 36,
             display: 'flex', alignItems: 'center', gap: 8,
-            border: '1px solid var(--border)', borderRadius: 9,
+            border: '1px solid var(--border)', borderRadius: 'var(--r)',
             background: 'var(--bg)', cursor: 'pointer', padding: '0 10px 0 12px',
             fontFamily: 'var(--font)',
           }}
@@ -670,7 +670,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
               </div>
               <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <button type="button" onClick={() => { setClockOpen(false); triggerOpen(); }}
-                  style={{ width: '100%', padding: '8px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontWeight: 600, fontSize: 12, fontFamily: 'var(--font)', cursor: 'pointer' }}>
+                  style={{ width: '100%', padding: '8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontWeight: 600, fontSize: 12, fontFamily: 'var(--font)', cursor: 'pointer' }}>
                   Switch Task
                 </button>
               </div>
@@ -789,8 +789,8 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
               <button
                 style={{
                   background: 'none',
-                  border: 'none', cursor: 'pointer', borderRadius: 9,
-                  padding: '4px 8px 4px 4px',
+                  border: 'none', cursor: 'pointer', borderRadius: 'var(--r)',
+                  padding: 'var(--ds-btn-py-sm) 8px 4px 4px',
                   display: 'flex', alignItems: 'center', gap: 8,
                   transition: 'background .15s',
                 }}

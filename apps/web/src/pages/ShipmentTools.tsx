@@ -275,7 +275,7 @@ function ToolCard({ title, desc, tags, color, icon, onRun, children }: {
         {children}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
           <button type="button" onClick={onRun}
-            style={{ padding: '8px 24px', borderRadius: 8, border: 'none', background: color, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, transition: 'opacity .15s' }}
+            style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: 'none', background: color, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, transition: 'opacity .15s' }}
             onMouseOver={e => (e.currentTarget.style.opacity = '.85')}
             onMouseOut={e => (e.currentTarget.style.opacity = '1')}>
             <Icon name="zap" size={13} color="#fff" />
@@ -301,7 +301,7 @@ function TF({ label, hint, full, children }: { label: string; hint?: string; ful
 function Seg({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
   return (
     <button type="button" onClick={onClick}
-      style={{ padding: '6px 13px', borderRadius: 7, border: `1.5px solid ${active ? 'var(--teal)' : 'var(--border)'}`, background: active ? 'var(--teal-l)' : 'var(--white)', color: active ? 'var(--teal)' : 'var(--ink3)', fontWeight: active ? 700 : 400, fontSize: 12, cursor: 'pointer', transition: 'all .12s', whiteSpace: 'nowrap' }}>
+      style={{ padding: 'var(--ds-btn-py-sm) 13px', borderRadius: 'var(--r)', border: `1.5px solid ${active ? 'var(--teal)' : 'var(--border)'}`, background: active ? 'var(--teal-l)' : 'var(--white)', color: active ? 'var(--teal)' : 'var(--ink3)', fontWeight: active ? 700 : 400, fontSize: 12, cursor: 'pointer', transition: 'all .12s', whiteSpace: 'nowrap' }}>
       {label}
     </button>
   );

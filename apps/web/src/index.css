@@ -185,7 +185,10 @@
   --r-lg: 9px;
 
   --ds-btn-py:   7px;
-  --ds-input-py: 8px;
+  --ds-btn-py-xs: 3px;
+  --ds-btn-py-sm: 5px;
+  --ds-btn-py-lg: 10px;
+  --ds-input-py: 7px;
   --ds-cell-py:  11px;
 
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
@@ -1381,7 +1384,7 @@ body {
   padding: var(--ds-btn-py, 9px) 18px;
   font-family: var(--font);
   font-weight: 600;
-  border-radius: var(--r-sm);
+  border-radius: var(--r);
   border: var(--border-width, 1px) solid transparent;
   cursor: pointer;
   transition: all var(--dur-fast, 80ms) var(--ease, ease);
@@ -1393,9 +1396,10 @@ body {
    They were fixed at 6px and 11px, which ignored the SuperAdmin density
    setting entirely: a small legacy button sat at 32px beside a 48px one,
    and the gap widened as density rose. */
+.btn-xs  { padding: var(--ds-btn-py-xs, 3px) 10px; font-size: 12px; }
 .btn-sm  { padding: var(--ds-btn-py-sm, 5px) 14px; font-size: 13px; }
-.btn-md  { padding: var(--ds-btn-py, 9px) 20px; font-size: 14px; }
-.btn-lg  { padding: var(--ds-btn-py-lg, 13px) 24px; font-size: 15px; }
+.btn-md  { padding: var(--ds-btn-py, 7px) 20px; font-size: 14px; }
+.btn-lg  { padding: var(--ds-btn-py-lg, 10px) 24px; font-size: 15px; }
 
 .btn-primary   { background: var(--teal); color: #fff; border-color: var(--teal); }
 .btn-primary:hover { filter: brightness(0.88); }

@@ -42,7 +42,7 @@ function InvoiceCard({ inv, onClick }: { inv: Invoice; onClick: () => void }) {
       background: 'var(--white)',
       border: `1px solid ${isOverdue ? '#fca5a5' : 'var(--border)'}`,
       borderLeft: `4px solid ${st.color}`,
-      borderRadius: 9, padding: '16px',
+      borderRadius: 'var(--r)', padding: '16px',
       fontFamily: 'var(--font)',
       boxShadow: isOverdue ? '0 0 0 1px #fca5a5' : 'none',
     }}>
@@ -108,7 +108,7 @@ function DisputeModal({ inv, onClose, onSubmit }: {
         />
         <button type="button" title="Submit dispute" onClick={() => { if (reason.trim()) onSubmit(reason.trim()); }}
           disabled={!reason.trim()}
-          style={{ width: '100%', padding: '14px', background: reason.trim() ? '#dc2626' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 9, fontSize: 15, fontWeight: 700, cursor: reason.trim() ? 'pointer' : 'default', fontFamily: 'var(--font)' }}>
+          style={{ width: '100%', padding: '14px', background: reason.trim() ? '#dc2626' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 15, fontWeight: 700, cursor: reason.trim() ? 'pointer' : 'default', fontFamily: 'var(--font)' }}>
           Submit Dispute
         </button>
       </div>
@@ -315,7 +315,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
       {/* Action bar — fixed at bottom */}
       <div style={{ position: 'fixed', bottom: 70, left: 0, right: 0, padding: '12px 16px', background: 'var(--white)', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, zIndex: 50 }}>
         <button type="button" title="Download PDF" onClick={handlePrint}
-          style={{ flex: 1, padding: '11px 0', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          style={{ flex: 1, padding: 'var(--ds-btn-py-lg) 0', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
           <Icon name="download" size={15} color="var(--ink2)" />
           Download
         </button>
@@ -326,7 +326,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
         </Link>
         {inv.status !== 'Paid' && inv.status !== 'Credited' && (
           <button type="button" title="Dispute this invoice" onClick={() => setDisputing(true)}
-            style={{ flex: 1, padding: '11px 0', border: 'none', borderRadius: 9, background: '#fee2e2', color: '#dc2626', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            style={{ flex: 1, padding: 'var(--ds-btn-py-lg) 0', border: 'none', borderRadius: 'var(--r)', background: '#fee2e2', color: '#dc2626', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
             <Icon name="alertCircle" size={15} color="#dc2626" />
             Dispute
           </button>
@@ -385,7 +385,7 @@ export const CustomerInvoices: React.FC = () => {
               { label: 'Paid',     count: invoices.filter(i => i.status === 'Paid').length,     color: '#059669', bg: '#ecfdf5' },
             ].map(s => (
               <button key={s.label} type="button" title={`Show ${s.label}`} onClick={() => setFilter(s.label as FilterKey)}
-                style={{ background: 'var(--white)', border: `1.5px solid ${filter === s.label ? s.color : 'var(--border)'}`, borderRadius: 9, padding: '10px 8px', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'center' }}>
+                style={{ background: 'var(--white)', border: `1.5px solid ${filter === s.label ? s.color : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-lg) 8px', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'center' }}>
                 <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.count}</div>
                 <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--ink3)', marginTop: 2 }}>{s.label}</div>
               </button>
@@ -398,7 +398,7 @@ export const CustomerInvoices: React.FC = () => {
       <div style={{ padding: '0 16px', display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4, marginBottom: 12 }}>
         {FILTER_TABS.map(f => (
           <button key={f.key} type="button" title={f.label} onClick={() => setFilter(f.key)}
-            style={{ flexShrink: 0, padding: '7px 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: `1.5px solid ${filter === f.key ? 'var(--teal)' : 'var(--border)'}`, background: filter === f.key ? 'var(--teal)' : 'var(--white)', color: filter === f.key ? '#fff' : 'var(--ink2)' }}>
+            style={{ flexShrink: 0, padding: 'var(--ds-btn-py) 16px', borderRadius: 20, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: `1.5px solid ${filter === f.key ? 'var(--teal)' : 'var(--border)'}`, background: filter === f.key ? 'var(--teal)' : 'var(--white)', color: filter === f.key ? '#fff' : 'var(--ink2)' }}>
             {f.label}
           </button>
         ))}

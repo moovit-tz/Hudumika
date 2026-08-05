@@ -737,7 +737,7 @@ function AdvanceStageModal({ job, onClose, onAdvance }: {
       <div style={{ maxWidth: 560, margin: '0 auto' }}>
         <div style={{ padding: '16px 20px 0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Advance Stage</div>
-          <button type="button" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 8, cursor: 'pointer', color: 'var(--ink3)', padding: 6, display: 'flex' }}><Icon name="x" size={16} /></button>
+          <button type="button" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink3)', padding: 6, display: 'flex' }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ padding: 20 }}>
           <div style={{ marginBottom: 14 }}>
@@ -763,7 +763,7 @@ function AdvanceStageModal({ job, onClose, onAdvance }: {
               {(['internal', 'whatsapp', 'email', 'teams', 'sms'] as Channel[]).map(ch => {
                 const cfg = CH_CFG[ch]; const on = chans.includes(ch);
                 return (
-                  <button key={ch} type="button" onClick={() => toggle(ch)} style={{ padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', transition: 'all 0.15s' }}>
+                  <button key={ch} type="button" onClick={() => toggle(ch)} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)', transition: 'all 0.15s' }}>
                     {cfg.label}
                   </button>
                 );
@@ -771,8 +771,8 @@ function AdvanceStageModal({ job, onClose, onAdvance }: {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button type="button" onClick={onClose} style={{ padding: '9px 20px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-            <button type="button" disabled={!selected} onClick={() => selected && onAdvance(selected as Stage, note, blocker, chans)} style={{ padding: '9px 20px', background: selected ? 'var(--teal)' : 'var(--border)', color: selected ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: selected ? 'pointer' : 'default' }}>
+            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 20px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+            <button type="button" disabled={!selected} onClick={() => selected && onAdvance(selected as Stage, note, blocker, chans)} style={{ padding: 'var(--ds-btn-py) 20px', background: selected ? 'var(--teal)' : 'var(--border)', color: selected ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selected ? 'pointer' : 'default' }}>
               Update Stage →
             </button>
           </div>
@@ -1366,11 +1366,11 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
           </div>
           <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
             <button type="button" title="Dismiss OCR suggestion" onClick={() => { localStorage.removeItem(`ocrDecl_${job.id}`); setOcrBanner(null); }}
-              style={{ fontSize: 11, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 10px', cursor: 'pointer' }}>
+              style={{ fontSize: 11, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 10px', cursor: 'pointer' }}>
               Dismiss
             </button>
             <button type="button" title="Apply OCR extracted data to all declaration fields" onClick={applyOcrData}
-              style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: 'var(--teal)', border: 'none', borderRadius: 6, padding: '4px 12px', cursor: 'pointer' }}>
+              style={{ fontSize: 11, fontWeight: 700, color: '#fff', background: 'var(--teal)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 12px', cursor: 'pointer' }}>
               Apply OCR data
             </button>
           </div>
@@ -1380,7 +1380,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
       {/* Sub-tab strip */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 20, background: 'var(--bg)', borderRadius: 12, padding: 5, border: '1px solid var(--border)' }}>
         {SUB_TABS.map(t => (
-          <button key={t.key} type="button" onClick={() => setSub(t.key)} style={{ flex: '1 1 110px', padding: '11px 10px', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', background: sub === t.key ? 'var(--white)' : 'transparent', color: sub === t.key ? 'var(--teal)' : 'var(--ink3)', boxShadow: sub === t.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.12s' }}>
+          <button key={t.key} type="button" onClick={() => setSub(t.key)} style={{ flex: '1 1 110px', padding: 'var(--ds-btn-py-lg) 10px', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', background: sub === t.key ? 'var(--white)' : 'transparent', color: sub === t.key ? 'var(--teal)' : 'var(--ink3)', boxShadow: sub === t.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.12s' }}>
             {t.label}
           </button>
         ))}
@@ -1614,7 +1614,7 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
 
       {/* Save button */}
       <div style={{ marginTop: 20, paddingTop: 14, borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <button type="submit" className="btn btn-primary btn-sm" disabled={saving || !loadedDeclaration} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 20px', fontSize: 13 }}>
+        <button type="submit" className="btn btn-primary btn-sm" disabled={saving || !loadedDeclaration} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py-lg) 20px', fontSize: 13 }}>
           <Icon name="save" size={14} />
           {!loadedDeclaration ? 'Loading…' : saving ? 'Saving…' : saved ? '✓ Saved' : 'Save Declaration'}
         </button>
@@ -1703,7 +1703,7 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
                 ))}
               </div>
               {msg.reactions?.map(r => (
-                <button key={r.emoji} type="button" style={{ marginTop: 6, padding: '3px 8px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, cursor: 'pointer' }}>
+                <button key={r.emoji} type="button" style={{ marginTop: 6, padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, cursor: 'pointer' }}>
                   {r.emoji} {r.count}
                 </button>
               ))}
@@ -1727,7 +1727,7 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
               const past = stageIdx(s.id) < stageIdx(job.stage);
               return (
                 <button key={s.id} type="button" onClick={() => handleSetStage(s.id)}
-                  style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 7, cursor: 'pointer', border: `1.5px solid ${cur ? 'var(--teal)' : past ? 'var(--green)' : 'var(--border)'}`, background: cur ? 'var(--teal)' : past ? 'var(--green-l)' : 'var(--white)', color: cur ? '#fff' : past ? 'var(--green)' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-sm) 10px', borderRadius: 'var(--r)', cursor: 'pointer', border: `1.5px solid ${cur ? 'var(--teal)' : past ? 'var(--green)' : 'var(--border)'}`, background: cur ? 'var(--teal)' : past ? 'var(--green-l)' : 'var(--white)', color: cur ? '#fff' : past ? 'var(--green)' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 5 }}>
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 10, opacity: .7 }}>{i + 1}</span> {s.short}
                 </button>
               );
@@ -1739,11 +1739,11 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>Post to:</span>
-          <button type="button" onClick={() => setIsInternal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${isInternal ? 'var(--ink3)' : 'var(--border)'}`, background: isInternal ? 'var(--bg)' : 'var(--white)', color: isInternal ? 'var(--ink)' : 'var(--ink3)' }}><Icon name="lock" size={11} /> Internal Note</button>
-          <button type="button" onClick={() => { setIsInternal(false); if (!chans.length) setChans(['whatsapp']); }} style={{ padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${!isInternal ? CH_CFG.whatsapp.color : 'var(--border)'}`, background: !isInternal ? CH_CFG.whatsapp.bg : 'var(--white)', color: !isInternal ? CH_CFG.whatsapp.color : 'var(--ink3)' }}>↗ Share Update</button>
+          <button type="button" onClick={() => setIsInternal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${isInternal ? 'var(--ink3)' : 'var(--border)'}`, background: isInternal ? 'var(--bg)' : 'var(--white)', color: isInternal ? 'var(--ink)' : 'var(--ink3)' }}><Icon name="lock" size={11} /> Internal Note</button>
+          <button type="button" onClick={() => { setIsInternal(false); if (!chans.length) setChans(['whatsapp']); }} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${!isInternal ? CH_CFG.whatsapp.color : 'var(--border)'}`, background: !isInternal ? CH_CFG.whatsapp.bg : 'var(--white)', color: !isInternal ? CH_CFG.whatsapp.color : 'var(--ink3)' }}>↗ Share Update</button>
           {!isInternal && (['whatsapp', 'email', 'teams', 'sms'] as Channel[]).map(ch => {
             const cfg = CH_CFG[ch]; const on = chans.includes(ch);
-            return <button key={ch} type="button" onClick={() => toggleCh(ch)} style={{ padding: '4px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)' }}>{cfg.label}</button>;
+            return <button key={ch} type="button" onClick={() => toggleCh(ch)} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)' }}>{cfg.label}</button>;
           })}
         </div>
         <div style={{ padding: '12px 16px' }}>
@@ -1755,11 +1755,11 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
               <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Ctrl+Enter to send</span>
               <button type="button" onClick={() => setShowStageBar(s => !s)}
                 title="Set shipment stage"
-                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', background: showStageBar ? 'var(--teal-l)' : 'var(--bg)', color: showStageBar ? 'var(--teal)' : 'var(--ink3)', border: `1px solid ${showStageBar ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all .12s' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-sm) 12px', background: showStageBar ? 'var(--teal-l)' : 'var(--bg)', color: showStageBar ? 'var(--teal)' : 'var(--ink3)', border: `1px solid ${showStageBar ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer', transition: 'all .12s' }}>
                 <Icon name="flag" size={13} color={showStageBar ? 'var(--teal)' : 'var(--ink3)'} /> Set Stage
               </button>
             </div>
-            <button type="button" onClick={handleSend} disabled={sending || !text.trim()} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 18px', background: text.trim() && !sending ? 'var(--teal)' : 'var(--border)', color: text.trim() && !sending ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 700, cursor: text.trim() && !sending ? 'pointer' : 'default', transition: 'all 0.15s' }}>
+            <button type="button" onClick={handleSend} disabled={sending || !text.trim()} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', background: text.trim() && !sending ? 'var(--teal)' : 'var(--border)', color: text.trim() && !sending ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: text.trim() && !sending ? 'pointer' : 'default', transition: 'all 0.15s' }}>
               <Icon name="send" size={14} /> {sending ? 'Sending…' : 'Send'}
             </button>
           </div>
@@ -1985,10 +1985,10 @@ function OverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: boolean }
                   {d.extracted?.status === 'done' && (
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: 'rgba(124,58,237,0.1)', color: 'var(--purple)', flexShrink: 0 }}>AI ✓</span>
                   )}
-                  <button type="button" onClick={() => viewDoc(d)} title="View" style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <button type="button" onClick={() => viewDoc(d)} title="View" style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name="eye" size={13} color="var(--ink3)" />
                   </button>
-                  <button type="button" onClick={() => downloadDoc(d)} title="Download" style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <button type="button" onClick={() => downloadDoc(d)} title="Download" style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name="download" size={13} color="var(--ink3)" />
                   </button>
                 </div>
@@ -2263,9 +2263,9 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
     <div>
       {/* Status filter strip */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-        <button type="button" onClick={() => setFilterStatus('all')} style={{ padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${filterStatus === 'all' ? 'var(--teal)' : 'var(--border)'}`, background: filterStatus === 'all' ? 'var(--teal-l)' : 'var(--white)', color: filterStatus === 'all' ? 'var(--teal)' : 'var(--ink3)' }}>All <span style={{ fontWeight: 700 }}>{counts.all}</span></button>
+        <button type="button" onClick={() => setFilterStatus('all')} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${filterStatus === 'all' ? 'var(--teal)' : 'var(--border)'}`, background: filterStatus === 'all' ? 'var(--teal-l)' : 'var(--white)', color: filterStatus === 'all' ? 'var(--teal)' : 'var(--ink3)' }}>All <span style={{ fontWeight: 700 }}>{counts.all}</span></button>
         {statuses.map(s => { const cfg = TASK_STATUS_CFG[s]; const on = filterStatus === s; return (
-          <button key={s} type="button" onClick={() => setFilterStatus(s)} style={{ padding: '5px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)' }}>
+          <button key={s} type="button" onClick={() => setFilterStatus(s)} style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1px solid ${on ? cfg.color : 'var(--border)'}`, background: on ? cfg.bg : 'var(--white)', color: on ? cfg.color : 'var(--ink3)' }}>
             {cfg.label} <span style={{ fontWeight: 700 }}>{counts[s]}</span>
           </button>
         ); })}
@@ -2274,7 +2274,7 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
       {/* Toolbar */}
       <div style={{ display: 'flex', gap: 10, marginBottom: 12, alignItems: 'center' }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search tasks…" className="input-field" style={{ flex: 1, fontSize: 13 }} />
-        <button type="button" onClick={() => setShowAdd(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+        <button type="button" onClick={() => setShowAdd(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
           <Icon name="plus" size={14} /> Add Task
         </button>
       </div>
@@ -2488,7 +2488,7 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
             <span> · Billable: <span style={{ fontWeight: 700, color: 'var(--teal)' }}>{Object.entries(billableByCurrency).map(([cur, amt]) => fmtServiceRate(amt, cur)).join(' + ')}</span></span>
           )}
         </div>
-        <button type="button" onClick={() => setShowLog(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+        <button type="button" onClick={() => setShowLog(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
           <Icon name="clock" size={14} /> Log Time
         </button>
       </div>
@@ -2825,7 +2825,7 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
             </SelectContent>
           </Select>
           <button type="button" onClick={() => handleUploadClick()} disabled={savingStaged}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: savingStaged ? 'wait' : 'pointer', opacity: savingStaged ? 0.75 : 1 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: savingStaged ? 'wait' : 'pointer', opacity: savingStaged ? 0.75 : 1 }}>
             <Icon name="upload" size={14} /> Upload Document
           </button>
         </div>
@@ -2866,11 +2866,11 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
           </div>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
             <button type="button" onClick={() => handleUploadClick()} disabled={savingStaged}
-              style={{ padding: '8px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
+              style={{ padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}>
               + Add more
             </button>
             <button type="button" onClick={saveStagedFiles} disabled={savingStaged}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 9, border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 12.5, fontWeight: 700, cursor: savingStaged ? 'wait' : 'pointer', opacity: savingStaged ? 0.75 : 1 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 12.5, fontWeight: 700, cursor: savingStaged ? 'wait' : 'pointer', opacity: savingStaged ? 0.75 : 1 }}>
               {savingStaged ? 'Saving…' : `Save ${stagedFiles.length} file${stagedFiles.length !== 1 ? 's' : ''}`}
             </button>
           </div>
@@ -2901,7 +2901,7 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                   {ex?.status === 'done'       && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, background: 'var(--green-l)', color: 'var(--green)', fontWeight: 700, border: '1px solid var(--green)' }}>✓ AI Extracted · {ex.confidence}%</span>}
                   {ex?.status === 'processing' && <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 4, background: 'var(--gold-l)', color: 'var(--gold)', fontWeight: 700 }}>Processing…</span>}
                   {(!ex || ex.status === 'pending') && (
-                    <button type="button" onClick={e => { e.stopPropagation(); handleExtract(doc.id); }} style={{ fontSize: 12, padding: '5px 12px', borderRadius: 6, border: '1px solid var(--teal)', color: 'var(--teal)', background: 'var(--white)', cursor: 'pointer', fontWeight: 700 }}>
+                    <button type="button" onClick={e => { e.stopPropagation(); handleExtract(doc.id); }} style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--teal)', color: 'var(--teal)', background: 'var(--white)', cursor: 'pointer', fontWeight: 700 }}>
                       Extract with AI
                     </button>
                   )}
@@ -3013,7 +3013,7 @@ function CO2Tab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shi
         )}
 
         <button type="button" onClick={handleCalculate} disabled={!canCalculate || calcSaving}
-          style={{ padding: '11px 22px', background: canCalculate ? 'var(--green)' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 13.5, fontWeight: 700, cursor: canCalculate && !calcSaving ? 'pointer' : 'default', opacity: calcSaving ? 0.7 : 1 }}>
+          style={{ padding: 'var(--ds-btn-py-lg) 22px', background: canCalculate ? 'var(--green)' : 'var(--border)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13.5, fontWeight: 700, cursor: canCalculate && !calcSaving ? 'pointer' : 'default', opacity: calcSaving ? 0.7 : 1 }}>
           {calcSaving ? 'Calculating…' : job.co2EmissionsKg !== undefined ? 'Recalculate CO₂' : 'Calculate CO₂'}
         </button>
 
@@ -3152,13 +3152,13 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
       {/* Add entry */}
       <div style={{ marginBottom: 20, display: 'flex', gap: 10 }}>
         {!showForm ? (
-          <button type="button" onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+          <button type="button" onClick={() => setShowForm(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
             <Icon name="plus" size={14} /> Record Entry
           </button>
         ) : null}
         {isStaff && isLive && payments.length > 0 && job.customerId && (
           <button type="button" onClick={handleFinalize} disabled={finalizing} title="Publish this shipment's billed revenue as a real invoice in FinOps Billing"
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'var(--white)', color: 'var(--teal)', border: '1px solid var(--teal)', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: finalizing ? 'wait' : 'pointer', opacity: finalizing ? 0.6 : 1 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'var(--white)', color: 'var(--teal)', border: '1px solid var(--teal)', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: finalizing ? 'wait' : 'pointer', opacity: finalizing ? 0.6 : 1 }}>
             <Icon name="fileText" size={14} /> {finalizing ? 'Finalizing…' : 'Finalize Invoice'}
           </button>
         )}
@@ -3168,7 +3168,7 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
             {/* Type toggle */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
               {(['charge', 'payment'] as const).map(t => (
-                <button key={t} type="button" onClick={() => setEntryType(t)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, flex: 1, padding: '7px', border: `1px solid ${entryType === t ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 6, background: entryType === t ? 'var(--teal-l)' : 'var(--white)', color: entryType === t ? 'var(--teal)' : 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                <button key={t} type="button" onClick={() => setEntryType(t)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, flex: 1, padding: '7px', border: `1px solid ${entryType === t ? 'var(--teal)' : 'var(--border)'}`, borderRadius: 'var(--r)', background: entryType === t ? 'var(--teal-l)' : 'var(--white)', color: entryType === t ? 'var(--teal)' : 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                   <Icon name={t === 'charge' ? 'arrowUp' : 'arrowDown'} size={12} /> {t === 'charge' ? 'Charge' : 'Payment Received'}
                 </button>
               ))}
@@ -3543,7 +3543,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
                 : 'Select team members to notify and assign to this shipment'}
             </div>
           </div>
-          <button type="button" title="Close" onClick={requestClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 12, cursor: 'pointer', padding: 6, display: 'flex', flexShrink: 0 }}>
+          <button type="button" title="Close" onClick={requestClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', padding: 6, display: 'flex', flexShrink: 0 }}>
             <Icon name="x" size={16} color="var(--ink2)" />
           </button>
         </div>
@@ -3580,7 +3580,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
             const on = !!selected.find(x => x.id === e.id);
             return (
               <button key={e.id} type="button" onClick={() => toggleEmp(e)}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '10px 20px', border: 'none', background: on ? 'var(--teal-l)' : 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'background .1s' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 'var(--ds-btn-py-lg) 20px', border: 'none', background: on ? 'var(--teal-l)' : 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'background .1s' }}>
                 <div style={{ width: 38, height: 38, borderRadius: '50%', background: empAvatarColor(e.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
                   {empInitials(e.name)}
                 </div>
@@ -3606,7 +3606,7 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
               const COLORS: Record<string, string> = { email: 'var(--teal)', whatsapp: 'var(--green)', sms: 'var(--gold)', teams: 'var(--purple)' };
               return (
                 <button key={ch} type="button" onClick={() => toggleCh(ch)}
-                  style={{ fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 12, cursor: 'pointer', border: `1.5px solid ${on ? COLORS[ch] : 'var(--border)'}`, background: on ? `${COLORS[ch]}18` : 'var(--white)', color: on ? COLORS[ch] : 'var(--ink3)', transition: 'all .12s', textTransform: 'capitalize' }}>
+                  style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-sm) 10px', borderRadius: 'var(--r)', cursor: 'pointer', border: `1.5px solid ${on ? COLORS[ch] : 'var(--border)'}`, background: on ? `${COLORS[ch]}18` : 'var(--white)', color: on ? COLORS[ch] : 'var(--ink3)', transition: 'all .12s', textTransform: 'capitalize' }}>
                   {ch === 'whatsapp' ? 'WhatsApp' : ch.charAt(0).toUpperCase() + ch.slice(1)}
                 </button>
               );
@@ -3620,9 +3620,9 @@ function StaffPickerModal({ jobId, shipmentId, isLive, onRefresh, existing, onCl
             {selected.length > 0 ? `${selected.length} person${selected.length > 1 ? 's' : ''} selected` : 'Select staff to tag'}
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={requestClose} style={{ padding: '8px 16px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+            <button type="button" onClick={requestClose} style={{ padding: 'var(--ds-btn-py) 16px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
             <button type="button" disabled={staffLoading || staffError || selected.length === 0 || saved || confirming} onClick={handleConfirm}
-              style={{ padding: '8px 18px', background: saved ? 'var(--green)' : selected.length > 0 ? 'var(--teal)' : 'var(--border)', color: selected.length > 0 || saved ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 12, fontSize: 13, fontWeight: 700, cursor: selected.length > 0 && !confirming ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 7, transition: 'background .15s' }}>
+              style={{ padding: 'var(--ds-btn-py) 18px', background: saved ? 'var(--green)' : selected.length > 0 ? 'var(--teal)' : 'var(--border)', color: selected.length > 0 || saved ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selected.length > 0 && !confirming ? 'pointer' : 'default', display: 'flex', alignItems: 'center', gap: 7, transition: 'background .15s' }}>
               {saved ? <><Icon name="check" size={13} color="#fff" /> Done!</> : confirming ? 'Saving…' : <><Icon name="userPlus" size={13} color={selected.length > 0 ? '#fff' : 'var(--ink3)'} /> {mode === 'assign' ? 'Assign' : 'Tag & Notify'}</>}
             </button>
           </div>
@@ -3643,7 +3643,7 @@ function ChannelToggle({ ch, active, onToggle, readOnly }: { ch: Channel; active
   const cfg = CH_CFG[ch];
   return (
     <button type="button" onClick={readOnly ? undefined : onToggle} disabled={readOnly} title={readOnly ? cfg.label : `${active ? 'Disable' : 'Enable'} ${cfg.label}`}
-      style={{ fontSize: 10, padding: '2px 7px', borderRadius: 12, cursor: readOnly ? 'default' : 'pointer', border: `1px solid ${active ? cfg.color : 'var(--border)'}`, background: active ? cfg.bg : 'var(--white)', color: active ? cfg.color : 'var(--ink3)', fontWeight: 600, transition: 'all 0.12s', opacity: readOnly && !active ? 0.6 : 1 }}>
+      style={{ fontSize: 10, padding: 'var(--ds-btn-py-sm) 7px', borderRadius: 'var(--r)', cursor: readOnly ? 'default' : 'pointer', border: `1px solid ${active ? cfg.color : 'var(--border)'}`, background: active ? cfg.bg : 'var(--white)', color: active ? cfg.color : 'var(--ink3)', fontWeight: 600, transition: 'all 0.12s', opacity: readOnly && !active ? 0.6 : 1 }}>
       {cfg.label}
     </button>
   );
@@ -3737,7 +3737,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
           <span>Assigned To</span>
           {canManage && (
             <button type="button" onClick={() => setShowAssignPicker(true)}
-              style={{ fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, padding: '1px 0' }}>
+              style={{ fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, padding: 'var(--ds-btn-py-sm) 0' }}>
               {job.assignees.length > 0 ? 'Change' : '+ Assign'}
             </button>
           )}
@@ -3746,7 +3746,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
           {job.assignees.length === 0 && (
             canManage ? (
               <button type="button" onClick={() => setShowAssignPicker(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)', background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 7, padding: '9px 12px', cursor: 'pointer', width: '100%', textAlign: 'left', fontFamily: 'var(--font)' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)', background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', cursor: 'pointer', width: '100%', textAlign: 'left', fontFamily: 'var(--font)' }}>
                 <Icon name="userPlus" size={14} color="var(--ink3)" /> Assign an agent…
               </button>
             ) : (
@@ -4090,14 +4090,14 @@ export function ShipmentDetail() {
                 </Link>
               )}
               {isStaff && (
-                <button type="button" onClick={() => setShowAdv(true)} style={{ flex: isMobile ? 1 : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 16px', background: '#fff', color: 'var(--teal)', border: 'none', borderRadius: 10, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                <button type="button" onClick={() => setShowAdv(true)} style={{ flex: isMobile ? 1 : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: '#fff', color: 'var(--teal)', border: 'none', borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
                   <Icon name="arrowRight" size={13} /> Advance Stage
                 </button>
               )}
-              <button type="button" onClick={() => openShipmentReportWindow(job)} title="Print shipment report" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: isMobile ? 'auto' : 30, height: isMobile ? 32 : 30, padding: isMobile ? '0 14px' : 0, borderRadius: 8, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', flexShrink: 0 }}>
+              <button type="button" onClick={() => openShipmentReportWindow(job)} title="Print shipment report" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: isMobile ? 'auto' : 30, height: isMobile ? 32 : 30, padding: isMobile ? '0 14px' : 0, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', flexShrink: 0 }}>
                 <Icon name="printer" size={14} /> {isMobile && <span style={{ marginLeft: 6, fontSize: 12.5, fontWeight: 600 }}>Print</span>}
               </button>
-              <button type="button" onClick={() => setHeroFolded(f => !f)} title={heroFolded ? 'Expand shipment summary' : 'Collapse shipment summary'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: isMobile ? 'auto' : 30, height: isMobile ? 32 : 30, padding: isMobile ? '0 14px' : 0, borderRadius: 8, border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', flexShrink: 0 }}>
+              <button type="button" onClick={() => setHeroFolded(f => !f)} title={heroFolded ? 'Expand shipment summary' : 'Collapse shipment summary'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: isMobile ? 'auto' : 30, height: isMobile ? 32 : 30, padding: isMobile ? '0 14px' : 0, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', flexShrink: 0 }}>
                 <Icon name={heroFolded ? 'chevronDown' : 'chevronUp'} size={14} /> {isMobile && <span style={{ marginLeft: 6, fontSize: 12.5, fontWeight: 600 }}>{heroFolded ? 'Expand' : 'Collapse'}</span>}
               </button>
             </div>

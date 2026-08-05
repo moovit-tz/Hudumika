@@ -83,11 +83,11 @@ function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit
         </div>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
           <button type="button" onClick={() => onEdit(vendor)} title="Edit vendor"
-            style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="edit" size={14} color="var(--ink2)" />
           </button>
           <button type="button" onClick={onClose} title="Close"
-            style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="x" size={14} color="var(--ink2)" />
           </button>
         </div>
@@ -270,7 +270,7 @@ function VendorForm({ vendor, onSave, onClose }: {
       <div style={{ width: '100%', maxWidth: 560, background: 'var(--white)', borderRadius: 12, boxShadow: '0 24px 64px rgba(0,0,0,.20)', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--navy)' }}>
           <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{vendor ? 'Edit Vendor' : 'New Vendor'}</span>
-          <button type="button" onClick={onClose} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 8, cursor: 'pointer', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button type="button" onClick={onClose} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Icon name="x" size={14} color="#fff" />
           </button>
         </div>
@@ -349,11 +349,11 @@ function VendorForm({ vendor, onSave, onClose }: {
 
         <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
           <button type="button" onClick={onClose}
-            style={{ padding: '9px 18px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+            style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font)' }}>
             Cancel
           </button>
           <button type="button" onClick={handleSave} disabled={saving || !form.name.trim()}
-            style={{ padding: '9px 20px', border: 'none', borderRadius: 8, background: !form.name.trim() ? 'var(--border)' : 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: form.name.trim() ? 'pointer' : 'default', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7 }}>
+            style={{ padding: 'var(--ds-btn-py) 20px', border: 'none', borderRadius: 'var(--r)', background: !form.name.trim() ? 'var(--border)' : 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: form.name.trim() ? 'pointer' : 'default', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7 }}>
             <Icon name="check" size={14} color="#fff" /> {vendor ? 'Save Changes' : 'Add Vendor'}
           </button>
         </div>
@@ -520,7 +520,7 @@ export function FinanceVendors() {
         </Select>
         <button type="button"
           onClick={() => { setEditVendor(null); setShowForm(true); }}
-          style={{ padding: '8px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
+          style={{ padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
           <Icon name="plus" size={14} color="#fff" /> New Vendor
         </button>
       </div>
@@ -564,13 +564,13 @@ export function FinanceVendors() {
                     </td>
                     <td style={{ padding: '12px 10px', whiteSpace: 'nowrap' }}>
                       <button type="button" title="Edit" onClick={e => { e.stopPropagation(); setEditVendor(v); setShowForm(true); }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 6 }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
                         onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                         onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                         <Icon name="edit" size={14} />
                       </button>
                       <button type="button" title="Delete" onClick={e => { e.stopPropagation(); handleDelete(v.id); }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 6 }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--ink3)', borderRadius: 'var(--r)' }}
                         onMouseEnter={e => (e.currentTarget.style.color = '#dc2626')}
                         onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink3)')}>
                         <Icon name="trash2" size={14} />

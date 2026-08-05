@@ -105,7 +105,7 @@ export function WorkflowNew() {
               {g.rows.map(t => (
                 <button key={t.id} type="button" onClick={() => setTriggerId(t.id)}
                   style={{
-                    textAlign: 'left', padding: '11px 12px', borderRadius: 11, cursor: 'pointer',
+                    textAlign: 'left', padding: 'var(--ds-btn-py-lg) 12px', borderRadius: 'var(--r)', cursor: 'pointer',
                     border: `1.5px solid ${triggerId === t.id ? 'var(--teal)' : 'var(--border)'}`,
                     background: triggerId === t.id ? 'var(--teal-l)' : 'var(--card-bg, var(--white))',
                   }}>

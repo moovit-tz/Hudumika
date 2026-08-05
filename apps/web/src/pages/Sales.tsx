@@ -223,21 +223,21 @@ function DetailPanel({
 
         {/* Action buttons */}
         <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 5 }}
+          <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5 }}
             onClick={() => onEdit(quote)}>
             <Icon name="edit" size={13} /> Edit
           </button>
-          <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 5 }}
+          <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5 }}
             onClick={() => onStatusChange(quote)}>
             <Icon name="refresh" size={13} /> Status
           </button>
           {quote.status === 'APPROVED' && (
-            <button type="button" className="btn btn-primary" style={{ fontSize: 12, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 5 }}
+            <button type="button" className="btn btn-primary" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5 }}
               onClick={() => onConvert(quote)}>
               <Icon name="arrowRight" size={13} /> Convert to Shipment
             </button>
           )}
-          <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 5, color: 'var(--red)', borderColor: 'var(--red)' }}
+          <button type="button" className="btn btn-secondary" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', display: 'flex', alignItems: 'center', gap: 5, color: 'var(--red)', borderColor: 'var(--red)' }}
             onClick={() => onDelete(quote)}>
             <Icon name="trash2" size={13} /> Delete
           </button>
@@ -575,7 +575,7 @@ function QuoteModal({
           <div style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Line Items</div>
-              <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: '4px 10px', display: 'flex', alignItems: 'center', gap: 5 }} onClick={addLine}>
+              <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: 'var(--ds-btn-py-sm) 10px', display: 'flex', alignItems: 'center', gap: 5 }} onClick={addLine}>
                 <Icon name="plus" size={12} /> Add Line
               </button>
             </div>

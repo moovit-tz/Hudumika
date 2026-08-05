@@ -237,7 +237,7 @@ export const CalendarApp: React.FC = () => {
       }}>
         <div style={{ display: 'flex', gap: 4 }}>
           <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, display: 'flex' }} onClick={handlePrev}><Icon name="chevronLeft"  size={18} /></button>
-          <button onClick={handleToday} style={{ border: '1px solid var(--border)', background: 'var(--white)', borderRadius: 8, padding: '7px 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', margin: '0 8px' }}>Today</button>
+          <button onClick={handleToday} style={{ border: '1px solid var(--border)', background: 'var(--white)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 500, cursor: 'pointer', margin: '0 8px' }}>Today</button>
           <button style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 8, display: 'flex' }} onClick={handleNext}><Icon name="chevronRight" size={18} /></button>
         </div>
 
@@ -258,7 +258,7 @@ export const CalendarApp: React.FC = () => {
                 title={on ? `Hide ${CATEGORY_MAP[cat].label}` : `Show ${CATEGORY_MAP[cat].label}`}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 5, border: 'none', background: 'none',
-                  cursor: 'pointer', padding: '4px 6px', borderRadius: 6, fontSize: 11.5, fontWeight: 600,
+                  cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 6px', borderRadius: 'var(--r)', fontSize: 11.5, fontWeight: 600,
                   color: on ? 'var(--ink2)' : 'var(--ink3)', opacity: on ? 1 : 0.5, whiteSpace: 'nowrap',
                 }}
               >
@@ -276,7 +276,7 @@ export const CalendarApp: React.FC = () => {
               key={m}
               onClick={() => setViewMode(m)}
               style={{
-                padding: isMobile ? '6px 10px' : '6px 16px', border: 'none', borderRadius: 6,
+                padding: isMobile ? '6px 10px' : '6px 16px', border: 'none', borderRadius: 'var(--r)',
                 cursor: 'pointer', fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap',
                 background: viewMode === m ? 'var(--white)' : 'transparent',
                 color:      viewMode === m ? 'var(--ink)'   : 'var(--ink2)',
@@ -637,8 +637,8 @@ export const CalendarApp: React.FC = () => {
                 )}
               </div>
               <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end', marginTop: 8 }}>
-                <button onClick={() => setShowModal(false)} style={{ padding: '10px 18px', border: '1px solid var(--border)', background: 'transparent', borderRadius: 8, cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
-                <button onClick={handleSave} style={{ padding: '10px 18px', border: 'none', background: 'var(--teal)', color: '#fff', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>Save</button>
+                <button onClick={() => setShowModal(false)} style={{ padding: 'var(--ds-btn-py-lg) 18px', border: '1px solid var(--border)', background: 'transparent', borderRadius: 'var(--r)', cursor: 'pointer', fontWeight: 500 }}>Cancel</button>
+                <button onClick={handleSave} style={{ padding: 'var(--ds-btn-py-lg) 18px', border: 'none', background: 'var(--teal)', color: '#fff', borderRadius: 'var(--r)', cursor: 'pointer', fontWeight: 600 }}>Save</button>
               </div>
             </div>
           </div>
@@ -674,7 +674,7 @@ export const CalendarApp: React.FC = () => {
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button onClick={() => openEdit(ev)} style={{ background: 'none', border: 'none', color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', padding: '4px 8px' }}>Edit</button>
+                <button onClick={() => openEdit(ev)} style={{ background: 'none', border: 'none', color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 8px' }}>Edit</button>
               </div>
             </div>
           </>

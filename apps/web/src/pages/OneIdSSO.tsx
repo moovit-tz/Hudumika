@@ -66,8 +66,8 @@ function AddProviderModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
             <input value={metadataUrl} onChange={e => setMetadataUrl(e.target.value)} placeholder="https://…" style={inputStyle} />
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-            <button type="submit" disabled={saving} style={{ padding: '8px 18px', borderRadius: 9, border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1 }}>
+            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+            <button type="submit" disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1 }}>
               {saving ? 'Saving…' : 'Add provider'}
             </button>
           </div>
@@ -112,7 +112,7 @@ export const OneIdSSO: React.FC = () => {
           <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 2 }}>Identity provider configuration for this tenant</div>
         </div>
         <button type="button" onClick={() => setShowAdd(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
           <Icon name="plusCircle" size={15} /> Add provider
         </button>
       </div>
@@ -138,14 +138,14 @@ export const OneIdSSO: React.FC = () => {
                 <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{p.provider_type}</td>
                 <td style={{ padding: '10px 14px' }}>
                   <button type="button" onClick={() => toggleEnabled(p)}
-                    style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '3px 12px', border: 'none', cursor: 'pointer', background: p.enabled ? '#ecfdf5' : '#f1f5f9', color: p.enabled ? '#065f46' : '#64748b' }}>
+                    style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: 'var(--ds-btn-py-sm) 12px', border: 'none', cursor: 'pointer', background: p.enabled ? '#ecfdf5' : '#f1f5f9', color: p.enabled ? '#065f46' : '#64748b' }}>
                     {p.enabled ? 'Enabled' : 'Disabled'}
                   </button>
                 </td>
                 <td style={{ padding: '10px 14px', color: 'var(--ink3)' }}>{new Date(p.created_at).toLocaleDateString()}</td>
                 <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                   <button type="button" title="Remove" onClick={() => remove(p.id)}
-                    style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 7, padding: '5px 8px', cursor: 'pointer', color: '#dc2626' }}>
+                    style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: 'pointer', color: '#dc2626' }}>
                     <Icon name="trash" size={13} />
                   </button>
                 </td>

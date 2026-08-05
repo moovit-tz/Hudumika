@@ -727,7 +727,7 @@ export const PurchaseOrders: React.FC = () => {
             {viewMode === 'CREATE' && 'Create Purchase Order'}
             {viewMode === 'EDIT' && `Edit PO #${pos.find(p => p.id === selectedPoId)?.po_number ?? ''}`}
           </div>
-          <button onClick={() => setViewMode('LIST')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+          <button onClick={() => setViewMode('LIST')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
             <Icon name="arrowLeft" size={13} /> Back
           </button>
         </div>
@@ -787,7 +787,7 @@ export const PurchaseOrders: React.FC = () => {
                       padding: '0 12px',
                       background: '#059669',
                       border: 'none',
-                      borderRadius: 6,
+                      borderRadius: 'var(--r)',
                       color: '#fff',
                       fontSize: 12,
                       fontWeight: 600,
@@ -810,7 +810,7 @@ export const PurchaseOrders: React.FC = () => {
                         border: 'none',
                         background: !isCardView ? '#059669' : 'transparent',
                         color: !isCardView ? '#fff' : 'var(--ink3)',
-                        borderRadius: 6,
+                        borderRadius: 'var(--r)',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -827,7 +827,7 @@ export const PurchaseOrders: React.FC = () => {
                         border: 'none',
                         background: isCardView ? '#059669' : 'transparent',
                         color: isCardView ? '#fff' : 'var(--ink3)',
-                        borderRadius: 6,
+                        borderRadius: 'var(--r)',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -857,8 +857,8 @@ export const PurchaseOrders: React.FC = () => {
                       display: 'flex',
                       alignItems: 'center',
                       gap: 6,
-                      padding: '7px 12px',
-                      borderRadius: 9,
+                      padding: 'var(--ds-btn-py) 12px',
+                      borderRadius: 'var(--r)',
                       border: '1px solid var(--border)',
                       background: showFiltersPanel || filterStatus || filterVendor ? 'rgba(5, 150, 105, 0.08)' : 'var(--white)',
                       borderColor: showFiltersPanel || filterStatus || filterVendor ? '#059669' : 'var(--border)',
@@ -912,8 +912,8 @@ export const PurchaseOrders: React.FC = () => {
                     <button
                       onClick={handleClearFilters}
                       style={{
-                        padding: '7px 12px',
-                        borderRadius: 6,
+                        padding: 'var(--ds-btn-py) 12px',
+                        borderRadius: 'var(--r)',
                         border: '1px solid var(--border)',
                         background: 'transparent',
                         color: 'var(--ink3)',
@@ -944,8 +944,8 @@ export const PurchaseOrders: React.FC = () => {
                 <button
                   onClick={handleClearFilters}
                   style={{
-                    padding: '8px 16px',
-                    borderRadius: 9,
+                    padding: 'var(--ds-btn-py) 16px',
+                    borderRadius: 'var(--r)',
                     border: '1px solid var(--border)',
                     background: 'var(--white)',
                     color: 'var(--ink2)',
@@ -1047,7 +1047,7 @@ export const PurchaseOrders: React.FC = () => {
                           style={{
                             width: 28,
                             height: 28,
-                            borderRadius: 6,
+                            borderRadius: 'var(--r)',
                             border: '1px solid var(--border)',
                             background: 'var(--white)',
                             color: '#e28743',
@@ -1065,7 +1065,7 @@ export const PurchaseOrders: React.FC = () => {
                           style={{
                             width: 28,
                             height: 28,
-                            borderRadius: 6,
+                            borderRadius: 'var(--r)',
                             border: '1px solid var(--border)',
                             background: 'var(--white)',
                             color: 'var(--green)',
@@ -1085,7 +1085,7 @@ export const PurchaseOrders: React.FC = () => {
                               style={{
                                 width: 28,
                                 height: 28,
-                                borderRadius: 6,
+                                borderRadius: 'var(--r)',
                                 border: '1px solid var(--border)',
                                 background: 'var(--white)',
                                 color: '#7c3aed',
@@ -1103,7 +1103,7 @@ export const PurchaseOrders: React.FC = () => {
                               style={{
                                 width: 28,
                                 height: 28,
-                                borderRadius: 6,
+                                borderRadius: 'var(--r)',
                                 border: '1px solid var(--border)',
                                 background: 'var(--white)',
                                 color: 'var(--blue)',
@@ -1121,7 +1121,7 @@ export const PurchaseOrders: React.FC = () => {
                               style={{
                                 width: 28,
                                 height: 28,
-                                borderRadius: 6,
+                                borderRadius: 'var(--r)',
                                 border: '1px solid var(--border)',
                                 background: 'var(--white)',
                                 color: 'var(--red)',
@@ -1278,7 +1278,7 @@ export const PurchaseOrders: React.FC = () => {
                                   style={{
                                     width: 26,
                                     height: 26,
-                                    borderRadius: 6,
+                                    borderRadius: 'var(--r)',
                                     border: '1px solid var(--border)',
                                     background: 'var(--white)',
                                     color: '#e28743',
@@ -1296,7 +1296,7 @@ export const PurchaseOrders: React.FC = () => {
                                   style={{
                                     width: 26,
                                     height: 26,
-                                    borderRadius: 6,
+                                    borderRadius: 'var(--r)',
                                     border: '1px solid var(--border)',
                                     background: 'var(--white)',
                                     color: 'var(--green)',
@@ -1316,7 +1316,7 @@ export const PurchaseOrders: React.FC = () => {
                                       style={{
                                         width: 26,
                                         height: 26,
-                                        borderRadius: 6,
+                                        borderRadius: 'var(--r)',
                                         border: '1px solid var(--border)',
                                         background: 'var(--white)',
                                         color: '#7c3aed',
@@ -1334,7 +1334,7 @@ export const PurchaseOrders: React.FC = () => {
                                       style={{
                                         width: 26,
                                         height: 26,
-                                        borderRadius: 6,
+                                        borderRadius: 'var(--r)',
                                         border: '1px solid var(--border)',
                                         background: 'var(--white)',
                                         color: 'var(--blue)',
@@ -1352,7 +1352,7 @@ export const PurchaseOrders: React.FC = () => {
                                       style={{
                                         width: 26,
                                         height: 26,
-                                        borderRadius: 6,
+                                        borderRadius: 'var(--r)',
                                         border: '1px solid var(--border)',
                                         background: 'var(--white)',
                                         color: 'var(--red)',
@@ -1390,8 +1390,8 @@ export const PurchaseOrders: React.FC = () => {
                   disabled={currentPage === 1}
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   style={{
-                    padding: '6px 12px',
-                    borderRadius: 6,
+                    padding: 'var(--ds-btn-py-sm) 12px',
+                    borderRadius: 'var(--r)',
                     border: '1px solid var(--border)',
                     background: 'var(--white)',
                     color: currentPage === 1 ? 'var(--ink3)' : 'var(--ink)',
@@ -1409,7 +1409,7 @@ export const PurchaseOrders: React.FC = () => {
                     style={{
                       width: 32,
                       height: 32,
-                      borderRadius: 6,
+                      borderRadius: 'var(--r)',
                       border: 'none',
                       background: currentPage === pageNum ? '#059669' : 'transparent',
                       color: currentPage === pageNum ? '#fff' : 'var(--ink2)',
@@ -1425,8 +1425,8 @@ export const PurchaseOrders: React.FC = () => {
                   disabled={currentPage === totalPages || totalPages === 0}
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   style={{
-                    padding: '6px 12px',
-                    borderRadius: 6,
+                    padding: 'var(--ds-btn-py-sm) 12px',
+                    borderRadius: 'var(--r)',
                     border: '1px solid var(--border)',
                     background: 'var(--white)',
                     color: currentPage === totalPages || totalPages === 0 ? 'var(--ink3)' : 'var(--ink)',
@@ -1575,8 +1575,8 @@ export const PurchaseOrders: React.FC = () => {
                       display: 'flex',
                       alignItems: 'center',
                       gap: 6,
-                      padding: '8px 16px',
-                      borderRadius: 9,
+                      padding: 'var(--ds-btn-py) 16px',
+                      borderRadius: 'var(--r)',
                       border: '1px solid var(--border)',
                       background: 'var(--white)',
                       color: 'var(--ink)',
@@ -1596,8 +1596,8 @@ export const PurchaseOrders: React.FC = () => {
                         display: 'flex',
                         alignItems: 'center',
                         gap: 6,
-                        padding: '8px 16px',
-                        borderRadius: 9,
+                        padding: 'var(--ds-btn-py) 16px',
+                        borderRadius: 'var(--r)',
                         border: 'none',
                         background: '#059669',
                         color: '#fff',
@@ -1793,8 +1793,8 @@ export const PurchaseOrders: React.FC = () => {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
-                    padding: '6px 12px',
-                    borderRadius: 6,
+                    padding: 'var(--ds-btn-py-sm) 12px',
+                    borderRadius: 'var(--r)',
                     border: 'none',
                     background: '#059669',
                     color: '#fff',
@@ -1920,7 +1920,7 @@ export const PurchaseOrders: React.FC = () => {
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 padding: 6,
-                                borderRadius: 6
+                                borderRadius: 'var(--r)'
                               }}
                               title="Remove item"
                             >
@@ -1980,8 +1980,8 @@ export const PurchaseOrders: React.FC = () => {
                   type="button"
                   onClick={() => setViewMode('LIST')}
                   style={{
-                    padding: '9px 18px',
-                    borderRadius: 9,
+                    padding: 'var(--ds-btn-py) 18px',
+                    borderRadius: 'var(--r)',
                     border: '1px solid var(--border)',
                     background: 'var(--white)',
                     color: 'var(--ink2)',
@@ -1995,8 +1995,8 @@ export const PurchaseOrders: React.FC = () => {
                 <button
                   type="submit"
                   style={{
-                    padding: '9px 20px',
-                    borderRadius: 9,
+                    padding: 'var(--ds-btn-py) 20px',
+                    borderRadius: 'var(--r)',
                     border: 'none',
                     background: '#059669',
                     color: '#fff',

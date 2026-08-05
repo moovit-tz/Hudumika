@@ -104,7 +104,7 @@ function OfficerMentionInput({
             type="button"
             onClick={() => select(o)}
             className="rounded-lg hover:bg-accent hover:text-accent-foreground"
-            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 12px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
           >
             <div style={{ width: 30, height: 30, borderRadius: '50%', background: avatarColor(o.name), color: '#fff', fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               {inits(o.name)}
@@ -567,7 +567,7 @@ export const CommandCenter: React.FC = () => {
 
   const pgBtn = (disabled: boolean, onClick: () => void, label: string) => (
     <button type="button" disabled={disabled} onClick={onClick}
-      style={{ minWidth: 28, height: 28, padding: '0 6px', fontSize: 13, fontWeight: 600, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--white)', color: disabled ? 'var(--ink3)' : 'var(--ink)', cursor: disabled ? 'default' : 'pointer' }}>
+      style={{ minWidth: 28, height: 28, padding: '0 6px', fontSize: 13, fontWeight: 600, border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: disabled ? 'var(--ink3)' : 'var(--ink)', cursor: disabled ? 'default' : 'pointer' }}>
       {label}
     </button>
   );
@@ -762,7 +762,7 @@ export const CommandCenter: React.FC = () => {
                     .map((p, i) => p === '…'
                       ? <span key={`e${i}`} style={{ fontSize: 13, color: 'var(--ink3)', padding: '0 2px' }}>…</span>
                       : <button key={p} type="button" onClick={() => setPage(p as number)}
-                          style={{ minWidth: 28, height: 28, padding: '0 6px', fontSize: 13, fontWeight: 600, border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', background: page === p ? 'var(--teal)' : 'var(--white)', color: page === p ? '#fff' : 'var(--ink)' }}>
+                          style={{ minWidth: 28, height: 28, padding: '0 6px', fontSize: 13, fontWeight: 600, border: '1px solid var(--border)', borderRadius: 'var(--r)', cursor: 'pointer', background: page === p ? 'var(--teal)' : 'var(--white)', color: page === p ? '#fff' : 'var(--ink)' }}>
                           {p}
                         </button>
                     )

@@ -93,10 +93,10 @@ export const TrackingNewVehicle: React.FC = () => {
           />
         </div>
         <div style={{ display: 'flex', gap: 12 }}>
-          <button type="button" style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+          <button type="button" style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
             + Multiple Vehicles
           </button>
-          <button type="button" onClick={handleSave} disabled={saving} style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
+          <button type="button" onClick={handleSave} disabled={saving} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
             {saving ? 'Saving...' : 'Save Vehicle'}
           </button>
         </div>
@@ -108,7 +108,7 @@ export const TrackingNewVehicle: React.FC = () => {
           {SECTIONS.map(sec => (
             <button key={sec} type="button" onClick={() => setActiveSection(sec)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--ds-btn-py-lg) 14px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
                 background: activeSection === sec ? 'var(--teal-l)' : 'transparent',
                 color: activeSection === sec ? 'var(--teal)' : 'var(--ink2)',
                 fontWeight: activeSection === sec ? 700 : 500, fontSize: 13, textAlign: 'left'
@@ -354,14 +354,14 @@ export const TrackingNewVehicle: React.FC = () => {
             )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 40, paddingTop: 24, borderTop: '1px solid var(--border)' }}>
-              <button type="button" onClick={() => navigate(-1)} style={{ padding: '8px 24px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+              <button type="button" onClick={() => navigate(-1)} style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                 Cancel
               </button>
               <div style={{ display: 'flex', gap: 12 }}>
-                <button type="button" style={{ padding: '8px 24px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                <button type="button" style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                   Save & Add Another
                 </button>
-                <button type="button" onClick={handleSave} disabled={saving} style={{ padding: '8px 24px', borderRadius: 8, border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
+                <button type="button" onClick={handleSave} disabled={saving} style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: saving ? 0.7 : 1 }}>
                   {saving ? 'Saving...' : 'Save Vehicle'}
                 </button>
               </div>

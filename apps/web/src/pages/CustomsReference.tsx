@@ -246,7 +246,7 @@ export const CustomsReference: React.FC = () => {
         </div>
         {canEdit && tab !== 'tariff' && (
           <button type="button" onClick={() => handleUploadClick(tab)} disabled={importBusy !== null}
-            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: importBusy ? 'wait' : 'pointer', opacity: importBusy ? 0.7 : 1, flexShrink: 0 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: importBusy ? 'wait' : 'pointer', opacity: importBusy ? 0.7 : 1, flexShrink: 0 }}>
             <Icon name="upload" size={15} /> {importBusy === tab ? 'Uploading…' : `Upload fresh ${TABS.find(t => t.key === tab)?.label} list`}
           </button>
         )}
@@ -281,7 +281,7 @@ export const CustomsReference: React.FC = () => {
           {TABS.map(t => (
             <button key={t.key} type="button" onClick={() => setTab(t.key)}
               style={{
-                height: 32, padding: '0 14px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                height: 32, padding: '0 14px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
                 fontSize: 12.5, fontWeight: 700, fontFamily: 'var(--font)',
                 background: tab === t.key ? 'var(--white)' : 'transparent',
                 color: tab === t.key ? 'var(--ink)' : 'var(--ink3)',
@@ -537,11 +537,11 @@ export const CustomsReference: React.FC = () => {
               {(() => { const p = tab === 'tariff' ? tariffPage : agentsPage; return (
                 <>
                   <button type="button" disabled={p === 0} onClick={() => gotoPage(p - 1)}
-                    style={{ height: 30, padding: '0 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--white)', color: p === 0 ? 'var(--ink3)' : 'var(--ink)', fontSize: 12, fontWeight: 600, cursor: p === 0 ? 'default' : 'pointer' }}>
+                    style={{ height: 30, padding: '0 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: p === 0 ? 'var(--ink3)' : 'var(--ink)', fontSize: 12, fontWeight: 600, cursor: p === 0 ? 'default' : 'pointer' }}>
                     ‹ Prev
                   </button>
                   <button type="button" disabled={p >= totalPages - 1} onClick={() => gotoPage(p + 1)}
-                    style={{ height: 30, padding: '0 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--white)', color: p >= totalPages - 1 ? 'var(--ink3)' : 'var(--ink)', fontSize: 12, fontWeight: 600, cursor: p >= totalPages - 1 ? 'default' : 'pointer' }}>
+                    style={{ height: 30, padding: '0 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: p >= totalPages - 1 ? 'var(--ink3)' : 'var(--ink)', fontSize: 12, fontWeight: 600, cursor: p >= totalPages - 1 ? 'default' : 'pointer' }}>
                     Next ›
                   </button>
                 </>

@@ -323,7 +323,7 @@ function PrimaryBtn({ label, icon, onClick, type = 'button' }: { label: string; 
 
 function ActionBtn({ label, color = 'var(--teal)', onClick }: { label: string; color?: string; onClick?: () => void }) {
   return (
-    <button type="button" onClick={onClick} style={{ fontSize:11.5, padding:'3px 9px', borderRadius:6, border:`1px solid ${color}`, color, background:'none', cursor:'pointer', fontFamily:'var(--font)', fontWeight:600, marginRight:4 }}>
+    <button type="button" onClick={onClick} style={{ fontSize:11.5, padding:'var(--ds-btn-py-sm) 9px', borderRadius:'var(--r)', border:`1px solid ${color}`, color, background:'none', cursor:'pointer', fontFamily:'var(--font)', fontWeight:600, marginRight:4 }}>
       {label}
     </button>
   );
@@ -399,7 +399,7 @@ export function EmployeesPage() {
         <div style={{ display: 'flex', gap: 4 }}>
           {STATUS_CHIPS.map(chip => (
             <button key={chip.key} type="button" onClick={() => setStatusF(chip.key)}
-              style={{ padding: '5px 12px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 9, cursor: 'pointer', fontFamily: 'var(--font)', background: statusF === chip.key ? 'var(--teal)' : 'var(--bg)', color: statusF === chip.key ? '#fff' : 'var(--ink3)', display: 'flex', gap: 5, alignItems: 'center' }}>
+              style={{ padding: 'var(--ds-btn-py-sm) 12px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', fontFamily: 'var(--font)', background: statusF === chip.key ? 'var(--teal)' : 'var(--bg)', color: statusF === chip.key ? '#fff' : 'var(--ink3)', display: 'flex', gap: 5, alignItems: 'center' }}>
               {chip.label}
               <span style={{ fontSize: 10, padding: '0 5px', borderRadius: 9, background: statusF === chip.key ? 'rgba(255,255,255,.25)' : 'var(--border)', color: statusF === chip.key ? '#fff' : 'var(--ink3)' }}>{chip.count}</span>
             </button>
@@ -428,7 +428,7 @@ export function EmployeesPage() {
         <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
           {(['list', 'grid'] as const).map(mode => (
             <button key={mode} type="button" title={mode === 'list' ? 'List view' : 'Card grid view'} onClick={() => setViewMode(mode)}
-              style={{ padding: '7px 11px', border: 'none', cursor: 'pointer', background: viewMode === mode ? 'var(--teal)' : 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}>
+              style={{ padding: 'var(--ds-btn-py) 11px', border: 'none', cursor: 'pointer', background: viewMode === mode ? 'var(--teal)' : 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background .15s' }}>
               <Icon name={mode === 'list' ? 'list' : 'grid'} size={15} color={viewMode === mode ? '#fff' : 'var(--ink3)'} />
             </button>
           ))}
@@ -647,7 +647,7 @@ export function RolesPage() {
       <PageHeader icon="shield" title="Roles & Permissions" sub="Manage access control for each role across all modules" backTo="/nexushr">
         {dirty && (
           <button type="button" onClick={save} disabled={saving}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', borderRadius:8, border:'none', background:'var(--teal)', color:'#fff', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer' }}>
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background:'var(--teal)', color:'#fff', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer' }}>
             <Icon name="save" size={14} color="#fff" />{saving ? 'Saving—' : 'Save Changes'}
           </button>
         )}
@@ -744,7 +744,7 @@ export function RolesPage() {
                         return (
                           <td key={a} style={{ padding:'8px 12px', textAlign:'center' }}>
                             <button type="button" onClick={() => toggle(selected, res, a)}
-                              style={{ width:22, height:22, borderRadius:5, border:`2px solid ${on ? selMeta.color : 'var(--border)'}`,
+                              style={{ width:22, height:22, borderRadius:'var(--r-sm)', border:`2px solid ${on ? selMeta.color : 'var(--border)'}`,
                                 background: on ? selMeta.color : 'transparent', cursor:'pointer',
                                 display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'all 0.12s' }}>
                               {on && <Icon name="check" size={11} color="#fff" />}
@@ -757,7 +757,7 @@ export function RolesPage() {
                           const on = isAllowed(selected, res, a);
                           if (on !== !allOn) toggle(selected, res, a);
                         })}
-                          style={{ fontSize:11, fontWeight:700, padding:'3px 8px', borderRadius:6, border:'none', cursor:'pointer',
+                          style={{ fontSize:11, fontWeight:700, padding:'var(--ds-btn-py-sm) 8px', borderRadius:'var(--r)', border:'none', cursor:'pointer',
                             background: allOn ? selMeta.bg : 'var(--bg)', color: allOn ? selMeta.color : 'var(--ink3)', fontFamily:'var(--font)' }}>
                           {allOn ? 'Revoke all' : 'Grant all'}
                         </button>
@@ -851,7 +851,7 @@ export function PermissionsPage() {
       <PageHeader icon="key" title="Permission Matrix" sub="Full cross-role permission overview — toggle access per module and action" backTo="/nexushr">
         {dirty && (
           <button type="button" onClick={save} disabled={saving}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 16px', borderRadius:8, border:'none', background:'var(--teal)', color:'#fff', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer' }}>
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 16px', borderRadius:'var(--r)', border:'none', background:'var(--teal)', color:'#fff', fontWeight:700, fontSize:13, fontFamily:'var(--font)', cursor:'pointer' }}>
             <Icon name="save" size={14} color="#fff" />{saving ? 'Saving—' : 'Save Changes'}
           </button>
         )}
@@ -904,7 +904,7 @@ export function PermissionsPage() {
                       return (
                         <td key={`${key}-${a}`} style={{ padding:'6px 4px', textAlign:'center', borderLeft: a === 'view' ? '2px solid var(--border)' : undefined }}>
                           <button type="button" onClick={() => toggle(key, res, a)}
-                            style={{ width:20, height:20, borderRadius:4, border:`2px solid ${on ? meta.color : 'var(--border)'}`,
+                            style={{ width:20, height:20, borderRadius:'var(--r-sm)', border:`2px solid ${on ? meta.color : 'var(--border)'}`,
                               background: on ? meta.color : 'transparent', cursor:'pointer',
                               display:'inline-flex', alignItems:'center', justifyContent:'center', transition:'all 0.1s' }}>
                             {on && <Icon name="check" size={10} color="#fff" />}
@@ -1507,7 +1507,7 @@ export function LeavesPage() {
       <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }}>
         {chips.map(c => (
           <button key={c||'all'} type="button" onClick={()=>setFilter(c)}
-            style={{ padding:'5px 14px', fontSize:12, fontWeight:600, border:'none', borderRadius: 9, cursor:'pointer', background:filter===c?'var(--teal)':'var(--bg)', color:filter===c?'#fff':'var(--ink2)', fontFamily:'var(--font)' }}>
+            style={{ padding:'var(--ds-btn-py-sm) 14px', fontSize:12, fontWeight:600, border:'none', borderRadius: 'var(--r)', cursor:'pointer', background:filter===c?'var(--teal)':'var(--bg)', color:filter===c?'#fff':'var(--ink2)', fontFamily:'var(--font)' }}>
             {c || 'All Types'}
           </button>
         ))}
@@ -1658,13 +1658,13 @@ export function AttendancePage() {
 
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: '4px 8px' }} onClick={() => setDate(new Date(year, month - 1, 1))}>
+            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-sm) 8px' }} onClick={() => setDate(new Date(year, month - 1, 1))}>
               <Icon name="chevronLeft" size={14} />
             </button>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--navy)', minWidth: 120, textAlign: 'center' }}>
               {date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </span>
-            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: '4px 8px' }} onClick={() => setDate(new Date(year, month + 1, 1))}>
+            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-sm) 8px' }} onClick={() => setDate(new Date(year, month + 1, 1))}>
               <Icon name="chevronRight" size={14} />
             </button>
           </div>
@@ -2050,7 +2050,7 @@ export function ShiftsPage() {
         
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: '4px 8px' }} onClick={() => {
+            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-sm) 8px' }} onClick={() => {
               const d = new Date(startDate);
               d.setDate(d.getDate() - (view === 'week' ? 7 : 30));
               setStartDate(d);
@@ -2060,7 +2060,7 @@ export function ShiftsPage() {
               {startDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - {days[days.length-1].toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
             
-            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: '4px 8px' }} onClick={() => {
+            <button type="button" className="btn btn-secondary btn-sm" style={{ padding: 'var(--ds-btn-py-sm) 8px' }} onClick={() => {
               const d = new Date(startDate);
               d.setDate(d.getDate() + (view === 'week' ? 7 : 30));
               setStartDate(d);
@@ -2134,7 +2134,7 @@ export function ShiftsPage() {
                                 setAssignments(prev => [...prev.filter(x => !(x.employeeId === emp.id && x.date === dStr)), { id: `A_${Date.now()}`, employeeId: emp.id, date: dStr, shiftId: st.id }]);
                                 setActiveCell(null);
                                 try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: st.id, date: dStr }) }); loadAssignments(); } catch { /**/ }
-                              }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 4, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }} className="hover-bg">
+                              }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r-sm)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }} className="hover-bg">
                                 <div style={{ width: 10, height: 10, borderRadius: 2, background: st.color }} />
                                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--navy)' }}>{st.name}</span>
                               </button>
@@ -2145,7 +2145,7 @@ export function ShiftsPage() {
                               setAssignments(prev => prev.filter(x => !(x.employeeId === emp.id && x.date === dStr)));
                               setActiveCell(null);
                               try { await apiFetch('/v1/hr/shift-assignments', { method: 'POST', body: JSON.stringify({ user_id: emp.id, shift_id: null, date: dStr }) }); loadAssignments(); } catch { /**/ }
-                            }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 4, background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'var(--red)' }} className="hover-bg">
+                            }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r-sm)', background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left', color: 'var(--red)' }} className="hover-bg">
                               <Icon name="x" size={12} />
                               <span style={{ fontSize: 12, fontWeight: 600 }}>Clear Shift</span>
                             </button>

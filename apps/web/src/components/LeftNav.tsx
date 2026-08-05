@@ -566,7 +566,7 @@ export const LeftNav: React.FC<LeftNavProps> = ({ collapsed, onToggle: _onToggle
               onClick={() => navigate('/subscription')}
               title={`${PLAN_LABEL[plan]} plan — Manage subscription`}
               style={{
-                width: '100%', height: 36, borderRadius: 9,
+                width: '100%', height: 36, borderRadius: 'var(--r)',
                 border: 'none', background: 'var(--teal-l)',
                 cursor: 'pointer', display: 'flex',
                 alignItems: 'center', justifyContent: 'center',

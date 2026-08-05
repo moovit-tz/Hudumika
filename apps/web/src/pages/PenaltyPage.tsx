@@ -240,7 +240,7 @@ export const PenaltyPage: React.FC = () => {
               type="button"
               className="btn btn-primary"
               onClick={() => setStep(2)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 28px', borderRadius: 10, fontSize: 13.5 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-lg) 28px', borderRadius: 'var(--r)', fontSize: 13.5 }}
             >
               <span>Continue</span>
               <span style={{ fontSize: 15 }}>→</span>
@@ -323,7 +323,7 @@ export const PenaltyPage: React.FC = () => {
 
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
             <button type="button" onClick={() => setStep(1)}
-              style={{ padding: '9px 24px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
               ← Back
             </button>
             <button
@@ -337,7 +337,7 @@ export const PenaltyPage: React.FC = () => {
                 setSummary('');
                 setStep(3);
               }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 28px', borderRadius: 10, fontSize: 13.5 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-lg) 28px', borderRadius: 'var(--r)', fontSize: 13.5 }}
             >
               <span>Calculate Penalty</span>
               <span style={{ fontSize: 15 }}>→</span>
@@ -358,7 +358,7 @@ export const PenaltyPage: React.FC = () => {
                 className="btn btn-primary"
                 onClick={calculate}
                 disabled={calcLoading}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 36px', borderRadius: 10, fontSize: 14 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-lg) 36px', borderRadius: 'var(--r)', fontSize: 14 }}
               >
                 <Icon name="alertCircle" size={15} color="#fff" />
                 <span>{calcLoading ? 'Calculating…' : 'Estimate Penalty'}</span>
@@ -423,11 +423,11 @@ export const PenaltyPage: React.FC = () => {
           {/* Bottom nav */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <button type="button" onClick={() => setStep(2)}
-              style={{ padding: '9px 24px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
               ← Back
             </button>
             <button type="button" onClick={resetAll}
-              style={{ padding: '9px 24px', borderRadius: 8, border: '1px solid rgba(13, 148, 136, 0.3)', background: 'var(--teal-l, rgba(13, 148, 136, 0.08))', color: 'var(--teal, #0d9488)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+              style={{ padding: 'var(--ds-btn-py) 24px', borderRadius: 'var(--r)', border: '1px solid rgba(13, 148, 136, 0.3)', background: 'var(--teal-l, rgba(13, 148, 136, 0.08))', color: 'var(--teal, #0d9488)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
               Start New Assessment
             </button>
           </div>

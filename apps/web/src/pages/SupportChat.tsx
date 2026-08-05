@@ -71,7 +71,7 @@ export const SupportChat: React.FC = () => {
               onClick={() => setActiveSession(s.id)}
               style={{
                 width: '100%', textAlign: 'left', background: activeSession === s.id ? 'var(--bg)' : 'transparent',
-                border: 'none', padding: '12px', borderRadius: 9, cursor: 'pointer', marginBottom: 4
+                border: 'none', padding: '12px', borderRadius: 'var(--r)', cursor: 'pointer', marginBottom: 4
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -136,7 +136,7 @@ export const SupportChat: React.FC = () => {
                   placeholder="Type a reply..."
                   style={{ flex: 1, minWidth: 0, padding: '10px 14px', borderRadius: 9, border: '1.5px solid var(--border)', outline: 'none', fontFamily: 'var(--font)' }}
                 />
-                <button onClick={sendMessage} disabled={sending || !draft.trim()} style={{ background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, padding: '0 20px', fontWeight: 600, cursor: 'pointer', flexShrink: 0, opacity: sending || !draft.trim() ? 0.6 : 1 }}>Send</button>
+                <button onClick={sendMessage} disabled={sending || !draft.trim()} style={{ background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: '0 20px', fontWeight: 600, cursor: 'pointer', flexShrink: 0, opacity: sending || !draft.trim() ? 0.6 : 1 }}>Send</button>
               </div>
             </div>
           </div>

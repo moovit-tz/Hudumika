@@ -5,7 +5,10 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  // rounded-(--r), not rounded-lg: the legacy .btn family reads --r for its
+  // corner, so a fixed 8px here put two different radii side by side and put
+  // both out of reach of the SuperAdmin shape setting.
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-(--r) text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
@@ -27,11 +30,16 @@ const buttonVariants = cva(
       //
       // min-h keeps a floor so a density of 0 cannot collapse the control, and
       // the icon variant stays square by tracking the same height.
+      // Text sizes match the .btn family step for step (xs 12 / sm 13 /
+      // default 14 / lg 15). `sm` was text-xs against .btn-sm's 13px, so the
+      // two "small" buttons differed by a line-height even once their padding
+      // agreed.
       size: {
-        default: "min-h-9 py-[var(--ds-btn-py,9px)] px-4",
-        sm: "min-h-8 py-[var(--ds-btn-py-sm,5px)] px-3 text-xs",
-        lg: "min-h-11 py-[var(--ds-btn-py-lg,13px)] px-8",
-        icon: "min-h-9 aspect-square py-[var(--ds-btn-py,9px)] px-0",
+        xs: "min-h-7 py-[var(--ds-btn-py-xs,3px)] px-2.5 text-xs",
+        default: "min-h-9 py-[var(--ds-btn-py,7px)] px-4",
+        sm: "min-h-8 py-[var(--ds-btn-py-sm,5px)] px-3 text-[13px]",
+        lg: "min-h-10 py-[var(--ds-btn-py-lg,10px)] px-8 text-[15px]",
+        icon: "min-h-9 aspect-square py-[var(--ds-btn-py,7px)] px-0",
       },
     },
     defaultVariants: {
@@ -56,8 +64,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     // overrode the size variants' own py- classes. sm and lg looked broken and
     // the class was never the problem.
     const padBlock =
-      size === 'sm' ? 'var(--ds-btn-py-sm, 5px)'
-      : size === 'lg' ? 'var(--ds-btn-py-lg, 13px)'
+      size === 'xs' ? 'var(--ds-btn-py-xs, 3px)'
+      : size === 'sm' ? 'var(--ds-btn-py-sm, 5px)'
+      : size === 'lg' ? 'var(--ds-btn-py-lg, 10px)'
       : 'var(--ds-btn-py)'
     return (
       <Comp

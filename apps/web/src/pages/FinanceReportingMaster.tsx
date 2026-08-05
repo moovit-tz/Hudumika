@@ -873,7 +873,7 @@ export const FinanceReportingMaster: React.FC = () => {
                       style={{
                         width: '100%', textAlign: 'left', background: isActive ? 'var(--teal-l)' : 'none',
                         border: 'none', borderLeft: `3px solid ${isActive ? 'var(--teal)' : 'transparent'}`,
-                        padding: '9px 20px', cursor: 'pointer', fontSize: 13.5,
+                        padding: 'var(--ds-btn-py) 20px', cursor: 'pointer', fontSize: 13.5,
                         fontWeight: isActive ? 700 : 500, color: isActive ? 'var(--teal)' : 'var(--ink)',
                         fontFamily: 'var(--font)', transition: 'background 0.1s', display: 'block',
                       }}

@@ -98,7 +98,7 @@ function OfficerMentionInput({
             type="button"
             onClick={() => select(o)}
             className="rounded-lg hover:bg-accent hover:text-accent-foreground"
-            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
+            style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 12px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)' }}
           >
             <div style={{ width: 30, height: 30, borderRadius: '50%', background: avatarColor(o.name), color: '#fff', fontSize: 10.5, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               {inits(o.name)}
@@ -570,7 +570,7 @@ export function CreateShipmentPage() {
                             {ocrSimulated && <span style={{ fontSize: 12, background: '#fef3c7', color: '#d97706', border: '1px solid #fde68a', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>Demo data</span>}
                             <span style={{ fontSize: 12, color: conf >= 85 ? 'var(--green)' : 'var(--gold)', fontWeight: 600 }}>{conf}% confidence</span>
                           </div>
-                          <button type="button" className="btn btn-secondary" title="Re-scan a different document" style={{ fontSize: 12, padding: '4px 12px', minHeight: 32, height: 32 }}
+                          <button type="button" className="btn btn-secondary" title="Re-scan a different document" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', minHeight: 32, height: 32 }}
                             onClick={() => { setOcrFile(null); setOcrPreview(null); setOcrResult(null); }}>
                             Re-scan
                           </button>

@@ -43,7 +43,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
       type="button"
       onClick={() => onChange(!value)}
       style={{
-        width: 44, height: 24, borderRadius: 9, border: 'none', cursor: 'pointer',
+        width: 44, height: 24, borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
         background: value ? 'var(--teal)' : 'var(--border2)', position: 'relative',
         transition: 'background 0.2s',
       }}

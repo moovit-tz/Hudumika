@@ -534,7 +534,7 @@ export function Contacts() {
                         type="button"
                         onClick={() => setActiveTab(tab.key as any)}
                         style={{
-                          display: 'flex', alignItems: 'center', gap: 8, padding: '16px 20px',
+                          display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-lg) 20px',
                           border: 'none', background: 'none', cursor: 'pointer',
                           borderBottom: active ? '3px solid var(--cts-accent)' : '3px solid transparent',
                           color: active ? 'var(--cts-accent)' : 'var(--ink2)',
@@ -807,7 +807,7 @@ export function Contacts() {
                   {/* Bulk Label Trigger */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 4, border: '1px solid var(--border)', fontSize: 13, cursor: 'pointer', background: 'var(--white)', color: 'var(--ink)' }}>
+                      <button type="button" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', fontSize: 13, cursor: 'pointer', background: 'var(--white)', color: 'var(--ink)' }}>
                         Apply Label…
                       </button>
                     </DropdownMenuTrigger>
@@ -1106,7 +1106,7 @@ export function Contacts() {
                     type="button"
                     onClick={() => setFormStep(step.key)}
                     style={{
-                      display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px',
+                      display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 12px',
                       border: 'none', background: 'none', cursor: 'pointer',
                       borderBottom: on ? '2.5px solid var(--cts-accent)' : '2.5px solid transparent',
                       color: on ? 'var(--cts-accent)' : 'var(--ink2)',
@@ -1199,7 +1199,7 @@ export function Contacts() {
                       onClick={() => fileInputRef.current?.click()}
                       style={{
                         width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                        padding: '8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)',
+                        padding: '8px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)',
                         fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer'
                       }}
                     >
@@ -1231,7 +1231,7 @@ export function Contacts() {
                         onClick={() => { setFormAvatarUrl(null); setShowAvatarSelector(false); }}
                         style={{
                           width: '100%', border: 'none', background: 'none', color: 'var(--red)',
-                          fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '6px 0 0'
+                          fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 0 0'
                         }}
                       >
                         Remove Photo
@@ -1413,7 +1413,7 @@ export function Contacts() {
                           );
                         }}
                         style={{
-                          fontSize: 12, padding: '4px 12px', borderRadius: 16, cursor: 'pointer',
+                          fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 16, cursor: 'pointer',
                           border: `1px solid ${selected ? 'var(--cts-accent)' : 'var(--border)'}`,
                           background: selected ? 'var(--cts-accent-bg)' : 'var(--white)',
                           color: selected ? 'var(--cts-accent)' : 'var(--ink)',
@@ -1445,7 +1445,7 @@ export function Contacts() {
                   type="button"
                   onClick={handleCreateLabelInline}
                   style={{
-                    padding: '0 12px', height: 32, borderRadius: 6, border: 'none',
+                    padding: '0 12px', height: 32, borderRadius: 'var(--r)', border: 'none',
                     background: 'var(--cts-accent)', color: '#fff', fontSize: 12, fontWeight: 600,
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyItems: 'center'
                   }}

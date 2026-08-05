@@ -120,10 +120,25 @@ export const SHADOW_LABELS: Record<ShadowId, string> = {
 // exactly, so leaving everything at defaults is a visual no-op.
 
 interface DensityPreset { pagePadding: number; contentGap: number; btnPy: number; inputPy: number; cellPy: number }
+/**
+ * btnPy is the vertical padding of the *default* control, so it sets the
+ * standard control height: roughly `2*btnPy + line-height + 2px border`.
+ *
+ * These were 7/10/13, which put the default button at 36/42/48px while
+ * `.btn-sm` — used 265 times across the app against `.btn-md`'s 4 — sat at
+ * 36px throughout. The app's real visual norm was the *small* size, so every
+ * ui/Button and every `.btn-md` towered a full 12px over the buttons beside
+ * it, and the effect grew with density. The ladder now lands the default on
+ * 36-40px, which is where the app already draws almost every button, and sm
+ * stays at exactly its current height so those 265 call sites do not move.
+ *
+ * inputPy tracks btnPy rather than running 1-4px ahead of it, so an input and
+ * a button on the same toolbar row are the same height.
+ */
 export const DENSITY_PRESETS: Record<DensityId, DensityPreset> = {
-  compact:     { pagePadding: 16, contentGap: 10, btnPy: 7,  inputPy: 8,  cellPy: 7  },
-  default:     { pagePadding: 24, contentGap: 16, btnPy: 10, inputPy: 10, cellPy: 11 },
-  comfortable: { pagePadding: 32, contentGap: 22, btnPy: 13, inputPy: 13, cellPy: 14 },
+  compact:     { pagePadding: 16, contentGap: 10, btnPy: 5, inputPy: 5, cellPy: 7  },
+  default:     { pagePadding: 24, contentGap: 16, btnPy: 7, inputPy: 7, cellPy: 11 },
+  comfortable: { pagePadding: 32, contentGap: 22, btnPy: 9, inputPy: 9, cellPy: 14 },
 };
 
 // Two-layer shadows (tight contact shadow + wide soft ambient one) — cards
@@ -568,7 +583,13 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     // Proportional, not fixed offsets: a -3px/+2px step made sm, default and
     // lg converge as density rose (45/48/50 at 13px), so three deliberate
     // sizes read as one control rendered sloppily.
-    '--ds-btn-py-sm': `${Math.max(2, Math.round(density.btnPy * 0.55))}px`,
+    //
+    // xs exists because `.btn-xs` was *used* but never *defined*: with no rule
+    // to match, it fell through to `.btn`'s base padding and rendered at the
+    // full default height — an "extra small" button 13px taller than the
+    // `.btn-sm` next to it. That is the CMS Edit/Delete row.
+    '--ds-btn-py-xs': `${Math.max(2, Math.round(density.btnPy * 0.45))}px`,
+    '--ds-btn-py-sm': `${Math.max(3, Math.round(density.btnPy * 0.75))}px`,
     '--ds-btn-py-lg': `${Math.round(density.btnPy * 1.45)}px`,
 
     '--dur-fast': `${motion.durFast}ms`, '--dur': `${motion.dur}ms`, '--dur-slow': `${motion.durSlow}ms`, '--ease': motion.ease,

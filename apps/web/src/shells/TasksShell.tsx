@@ -62,7 +62,7 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
             type="button"
             onClick={() => setActiveTaskView(v.id)}
             style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8,
+              display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 10px', borderRadius: 'var(--r)',
               border: 'none', cursor: 'pointer', textAlign: 'left', width: '100%',
               background: isActive ? 'var(--teal-l)' : 'transparent',
               color: isActive ? 'var(--teal)' : 'var(--ink2)',
@@ -94,7 +94,7 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
               type="button"
               onClick={() => setActiveTaskView(`list:${l.id}` as TaskViewId)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8,
+                display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 10px', borderRadius: 'var(--r)',
                 border: 'none', cursor: 'pointer', textAlign: 'left', flex: 1, minWidth: 0,
                 background: isActive ? 'var(--teal-l)' : 'transparent',
                 color: isActive ? 'var(--teal)' : 'var(--ink2)',
@@ -129,7 +129,7 @@ function TasksSidebarContent({ collapsed }: { collapsed: boolean }) {
         />
       ) : (
         <button type="button" onClick={() => setAddingList(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--ink3)', fontSize: 13, textAlign: 'left' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--ds-btn-py) 10px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--ink3)', fontSize: 13, textAlign: 'left' }}>
           <Icon name="plus" size={13} /> New list
         </button>
       )}

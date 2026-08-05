@@ -132,7 +132,7 @@ function ActionsMenu({ onView, onEdit, onSuspend, onDelete }: { onView: () => vo
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button aria-label="More actions" onClick={e => e.stopPropagation()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px', borderRadius: 6, color: 'var(--ink3)', display: 'flex', alignItems: 'center' }}>
+        <button aria-label="More actions" onClick={e => e.stopPropagation()} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 8px', borderRadius: 'var(--r)', color: 'var(--ink3)', display: 'flex', alignItems: 'center' }}>
           <Icon name="moreHorizontal" size={16} strokeWidth={1.75} />
         </button>
       </DropdownMenuTrigger>
@@ -509,7 +509,7 @@ export const Customers: React.FC = () => {
               </SelectContent>
             </Select>
             <button type="button" onClick={handleBulkApply} disabled={!bulkAction || selectedIds.length === 0}
-              style={{ padding: '6px 14px', border: '1.5px solid var(--border)', borderRadius: 7, background: bulkAction && selectedIds.length > 0 ? 'var(--teal)' : 'var(--white)', cursor: bulkAction && selectedIds.length > 0 ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: bulkAction && selectedIds.length > 0 ? '#fff' : 'var(--ink3)', transition: 'all .15s' }}>
+              style={{ padding: 'var(--ds-btn-py-sm) 14px', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', background: bulkAction && selectedIds.length > 0 ? 'var(--teal)' : 'var(--white)', cursor: bulkAction && selectedIds.length > 0 ? 'pointer' : 'not-allowed', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: bulkAction && selectedIds.length > 0 ? '#fff' : 'var(--ink3)', transition: 'all .15s' }}>
               Apply
             </button>
             {selectedIds.length > 0 && (
@@ -534,7 +534,7 @@ export const Customers: React.FC = () => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button type="button"
-                  style={{ width: 34, height: 34, border: `1.5px solid ${statusFilter !== 'all' ? 'var(--teal)' : 'var(--border)'}`, background: statusFilter !== 'all' ? 'var(--teal-l)' : 'none', borderRadius: 7, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: statusFilter !== 'all' ? 'var(--teal)' : 'var(--ink3)', position: 'relative' }}>
+                  style={{ width: 34, height: 34, border: `1.5px solid ${statusFilter !== 'all' ? 'var(--teal)' : 'var(--border)'}`, background: statusFilter !== 'all' ? 'var(--teal-l)' : 'none', borderRadius: 'var(--r)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: statusFilter !== 'all' ? 'var(--teal)' : 'var(--ink3)', position: 'relative' }}>
                   <Icon name="filter" size={15} strokeWidth={1.75} />
                   {statusFilter !== 'all' && <span style={{ position: 'absolute', top: 5, right: 5, width: 6, height: 6, borderRadius: '50%', background: 'var(--teal)', border: '1.5px solid var(--white)' }} />}
                 </button>
@@ -568,7 +568,7 @@ export const Customers: React.FC = () => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button type="button" aria-label="Column settings"
-                  style={{ width: 34, height: 34, border: '1.5px solid var(--border)', background: 'none', borderRadius: 7, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)' }}>
+                  style={{ width: 34, height: 34, border: '1.5px solid var(--border)', background: 'none', borderRadius: 'var(--r)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)' }}>
                   <Icon name="settings" size={15} strokeWidth={1.75} />
                 </button>
               </DropdownMenuTrigger>
@@ -898,7 +898,7 @@ export const Customers: React.FC = () => {
         return (
           <div style={{ padding: '24px 28px' }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
-              <button type="button" onClick={() => setEditMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+              <button type="button" onClick={() => setEditMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
                 <Icon name="edit" size={14} strokeWidth={1.75} /> Edit Profile
               </button>
             </div>
@@ -1110,7 +1110,7 @@ export const Customers: React.FC = () => {
                   <span className="badge badge-teal" style={{ fontSize: 9.5 }}>PRIMARY</span>
                   <button type="button" aria-label="Edit contact"
                     onClick={() => { setContactForm({ name: sel.contact_name || '', email: sel.email || '', phone: sel.phone_wa || '', role: 'Primary Contact' }); setShowAddContact(true); }}
-                    style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 7, padding: '4px 10px', cursor: 'pointer', fontSize: 12, color: 'var(--ink2)', fontFamily: 'var(--font)' }}>
+                    style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 10px', cursor: 'pointer', fontSize: 12, color: 'var(--ink2)', fontFamily: 'var(--font)' }}>
                     Edit
                   </button>
                 </div>
@@ -1638,7 +1638,7 @@ export const Customers: React.FC = () => {
                     </div>
                   </div>
                   <button type="button" onClick={() => apiDownload(`/v1/customers/${sel.id}/documents/${d.id}/download`, d.filename).catch((err: any) => showAlert(err.message || 'Download failed'))}
-                    style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: '4px 8px' }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 8px' }}>
                     <Icon name="download" size={13} /> Download
                   </button>
                   <button type="button" onClick={async () => {
@@ -1647,7 +1647,7 @@ export const Customers: React.FC = () => {
                       await apiFetch(`/v1/customers/${sel.id}/documents/${d.id}`, { method: 'DELETE' });
                       setCustDocuments(prev => prev.filter(x => x.id !== d.id));
                     } catch (err: any) { showAlert(err.message || 'Delete failed'); }
-                  }} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--red, #dc2626)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: '4px 8px' }}>
+                  }} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--red, #dc2626)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 8px' }}>
                     <Icon name="trash" size={13} />
                   </button>
                 </div>
@@ -1734,7 +1734,7 @@ export const Customers: React.FC = () => {
             const active = mainTab === tab.key;
             return (
               <button key={tab.key} type="button" onClick={() => { setMainTab(tab.key); setEditMode(false); }}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '12px 16px', border: 'none', borderBottom: active ? '2px solid var(--teal)' : '2px solid transparent', background: 'none', color: active ? 'var(--teal)' : 'var(--ink3)', fontSize: 13, fontWeight: active ? 700 : 500, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', marginBottom: -1 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-lg) 16px', border: 'none', borderBottom: active ? '2px solid var(--teal)' : '2px solid transparent', background: 'none', color: active ? 'var(--teal)' : 'var(--ink3)', fontSize: 13, fontWeight: active ? 700 : 500, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', marginBottom: -1 }}
                 onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--ink)'; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--ink3)'; }}>
                 <Icon name={tab.icon} size={13} color={active ? 'var(--teal)' : 'var(--ink3)'} strokeWidth={1.75} />
@@ -1769,7 +1769,7 @@ function SubTabBar({ tabs, active, onChange }: { tabs: { key: string; label: str
     <div style={{ display: 'flex', gap: 4, padding: '12px 28px', background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
       {tabs.map(t => (
         <button key={t.key} type="button" onClick={() => onChange(t.key)}
-          style={{ padding: '5px 12px', borderRadius: 6, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: active === t.key ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: active === t.key ? 'var(--teal-l)' : 'var(--bg)', color: active === t.key ? 'var(--teal)' : 'var(--ink2)' }}>
+          style={{ padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', border: active === t.key ? '1.5px solid var(--teal)' : '1px solid var(--border)', background: active === t.key ? 'var(--teal-l)' : 'var(--bg)', color: active === t.key ? 'var(--teal)' : 'var(--ink2)' }}>
           {t.label}
         </button>
       ))}
@@ -1794,7 +1794,7 @@ function EmptyState({ icon, title, sub }: { icon: IconName; title: string; sub: 
 function PagBtn({ label, active, disabled, onClick }: { label: string; active?: boolean; disabled?: boolean; onClick: () => void }) {
   return (
     <button type="button" disabled={disabled} onClick={onClick}
-      style={{ minWidth: 32, height: 32, padding: '0 8px', border: active ? 'none' : '1.5px solid var(--border)', borderRadius: 7, background: active ? 'var(--navy)' : disabled ? 'var(--bg)' : '#fff', color: active ? '#fff' : disabled ? 'var(--ink3)' : 'var(--ink)', fontSize: 13, fontWeight: active ? 700 : 500, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}>
+      style={{ minWidth: 32, height: 32, padding: '0 8px', border: active ? 'none' : '1.5px solid var(--border)', borderRadius: 'var(--r)', background: active ? 'var(--navy)' : disabled ? 'var(--bg)' : '#fff', color: active ? '#fff' : disabled ? 'var(--ink3)' : 'var(--ink)', fontSize: 13, fontWeight: active ? 700 : 500, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}>
       {label}
     </button>
   );

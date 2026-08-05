@@ -202,7 +202,7 @@ export const FinanceDashboard: React.FC = () => {
               {(['overview', 'year', 'alltime'] as const).map((tabKey, i) => {
                 const labels = [t('finance.tabOverview'), t('finance.tabThisYear'), t('finance.tabAllTime')];
                 return (
-                  <button key={tabKey} onClick={() => setOverviewTab(tabKey)} style={{ padding: '6px 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font)', color: overviewTab === tabKey ? 'var(--teal)' : 'var(--ink3)', borderBottom: overviewTab === tabKey ? '2px solid var(--teal)' : '2px solid transparent', marginBottom: -1, transition: 'all 0.12s' }}>
+                  <button key={tabKey} onClick={() => setOverviewTab(tabKey)} style={{ padding: 'var(--ds-btn-py-sm) 14px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font)', color: overviewTab === tabKey ? 'var(--teal)' : 'var(--ink3)', borderBottom: overviewTab === tabKey ? '2px solid var(--teal)' : '2px solid transparent', marginBottom: -1, transition: 'all 0.12s' }}>
                     {labels[i]}
                   </button>
                 );
@@ -275,7 +275,7 @@ export const FinanceDashboard: React.FC = () => {
               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>{t('finance.recentActivities')}</div>
               <div style={{ display: 'flex', gap: 2 }}>
                 {(['all', 'cancel'] as const).map(f => (
-                  <button key={f} onClick={() => setActFilter(f)} style={{ padding: '3px 11px', border: 'none', borderRadius: 20, background: actFilter === f ? 'var(--navy)' : 'transparent', color: actFilter === f ? '#fff' : 'var(--ink3)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+                  <button key={f} onClick={() => setActFilter(f)} style={{ padding: 'var(--ds-btn-py-sm) 11px', border: 'none', borderRadius: 20, background: actFilter === f ? 'var(--navy)' : 'transparent', color: actFilter === f ? '#fff' : 'var(--ink3)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
                     {f === 'all' ? t('finance.all') : t('finance.cancel')}
                   </button>
                 ))}

@@ -62,8 +62,8 @@ function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: (
           </div>
           {error && <div style={{ fontSize: 12, color: '#dc2626' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-            <button type="submit" disabled={saving} style={{ padding: '8px 18px', borderRadius: 9, border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1 }}>
+            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+            <button type="submit" disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1 }}>
               {saving ? 'Sending…' : 'Send invite'}
             </button>
           </div>
@@ -115,7 +115,7 @@ export const OneIdUsers: React.FC = () => {
         </div>
         {canManage && (
           <button type="button" onClick={() => setShowInvite(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
             <Icon name="userPlus" size={15} /> Invite user
           </button>
         )}
@@ -154,7 +154,7 @@ export const OneIdUsers: React.FC = () => {
                 <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                   {canManage && (
                     <button type="button" title={u.active ? 'Deactivate' : 'Activate'} onClick={() => toggleActive(u)}
-                      style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 7, padding: '4px 10px', fontSize: 11, fontFamily: 'var(--font)', cursor: 'pointer', color: 'var(--ink2)' }}>
+                      style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 10px', fontSize: 11, fontFamily: 'var(--font)', cursor: 'pointer', color: 'var(--ink2)' }}>
                       {u.active ? 'Deactivate' : 'Activate'}
                     </button>
                   )}

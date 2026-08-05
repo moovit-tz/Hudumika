@@ -238,7 +238,7 @@ function getPageNums(cur: number, total: number): (number | '…')[] {
 function PagBtn({ label, active, disabled, onClick }: { label: string; active?: boolean; disabled?: boolean; onClick: () => void }) {
   return (
     <button type="button" disabled={disabled} onClick={onClick}
-      style={{ minWidth: 32, height: 32, padding: '0 8px', border: active ? 'none' : '1.5px solid var(--border)', borderRadius: 7, background: active ? 'var(--navy)' : disabled ? 'var(--bg)' : 'var(--white)', color: active ? '#fff' : disabled ? 'var(--ink3)' : 'var(--ink)', fontSize: 13, fontWeight: active ? 700 : 500, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}>
+      style={{ minWidth: 32, height: 32, padding: '0 8px', border: active ? 'none' : '1.5px solid var(--border)', borderRadius: 'var(--r)', background: active ? 'var(--navy)' : disabled ? 'var(--bg)' : 'var(--white)', color: active ? '#fff' : disabled ? 'var(--ink3)' : 'var(--ink)', fontSize: 13, fontWeight: active ? 700 : 500, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}>
       {label}
     </button>
   );
@@ -274,8 +274,8 @@ function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: (
           Are you sure you want to delete <strong>{name}</strong>? This cannot be undone and may affect invoices or quotations referencing this item.
         </div>
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button type="button" title="Cancel" onClick={onCancel} style={{ padding: '8px 18px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)' }}>Cancel</button>
-          <button type="button" title="Confirm delete" onClick={onConfirm} style={{ padding: '8px 18px', border: 'none', borderRadius: 9, background: 'var(--red)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>Delete</button>
+          <button type="button" title="Cancel" onClick={onCancel} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)' }}>Cancel</button>
+          <button type="button" title="Confirm delete" onClick={onConfirm} style={{ padding: 'var(--ds-btn-py) 18px', border: 'none', borderRadius: 'var(--r)', background: 'var(--red)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>Delete</button>
         </div>
       </div>
     </div>
@@ -415,7 +415,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>Inactive services don't appear in the invoice line-item picker</div>
             </div>
             <button type="button" title="Toggle status" onClick={() => set('status', f.status === 'active' ? 'inactive' : 'active')}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 14px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: f.status === 'active' ? 'var(--green)' : 'var(--ink3)' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: f.status === 'active' ? 'var(--green)' : 'var(--ink3)' }}>
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: f.status === 'active' ? 'var(--green)' : 'var(--ink3)' }} />
               {f.status === 'active' ? 'Active' : 'Inactive'}
             </button>
@@ -445,9 +445,9 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
 
         {/* Footer */}
         <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button type="button" title="Cancel" onClick={onClose} style={{ padding: '9px 18px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)' }}>Cancel</button>
+          <button type="button" title="Cancel" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)' }}>Cancel</button>
           <button type="button" title="Save service" onClick={submit} disabled={saving}
-            style={{ padding: '9px 20px', border: 'none', borderRadius: 9, background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+            style={{ padding: 'var(--ds-btn-py) 20px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="save" size={13} /> {saving ? 'Saving…' : initial ? 'Update Service' : 'Add Service'}
           </button>
         </div>
@@ -522,16 +522,16 @@ function DetailPanel({ product, onEdit, onDelete, onToggleStatus, onClose }: {
 
         <div style={{ padding: '16px 22px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button type="button" title="Edit service" onClick={onEdit}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px', border: 'none', borderRadius: 9, background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--ds-btn-py-lg) 16px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
             <Icon name="edit" size={14} /> Edit Service
           </button>
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" title="Toggle active/inactive" onClick={onToggleStatus}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 12.5, color: 'var(--ink2)' }}>
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 12.5, color: 'var(--ink2)' }}>
               <Icon name="eye" size={13} /> {product.status === 'active' ? 'Set Inactive' : 'Set Active'}
             </button>
             <button type="button" title="Delete service" onClick={onDelete}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 9, background: 'rgba(239,68,68,0.04)', cursor: 'pointer', fontWeight: 600, fontSize: 12.5, color: 'var(--red)' }}>
+              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r)', background: 'rgba(239,68,68,0.04)', cursor: 'pointer', fontWeight: 600, fontSize: 12.5, color: 'var(--red)' }}>
               <Icon name="trash" size={13} /> Delete
             </button>
           </div>
@@ -782,16 +782,16 @@ export const ProductsServices: React.FC = () => {
           <div style={{ display: 'flex', gap: 8 }}>
             {!loading && products.length === 0 && (
               <button type="button" title="Add starter catalog" disabled={loadingStarter} onClick={handleLoadStarterCatalog}
-                style={{ padding: '9px 14px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                style={{ padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Icon name="refresh" size={13} /> {loadingStarter ? 'Adding…' : 'Load Starter Catalog'}
               </button>
             )}
             <button type="button" title="Import from TPA/TASAC tariff reference" onClick={() => setTariffSheetOpen(true)}
-              style={{ padding: '9px 14px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              style={{ padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <Icon name="layers" size={13} /> Import from Tariff
             </button>
             <button type="button" title="Add new service" onClick={() => setEditing('new')}
-              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 18px', border: 'none', borderRadius: 9, background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 18px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
               <Icon name="plus" size={14} /> New Service
             </button>
           </div>
@@ -829,7 +829,7 @@ export const ProductsServices: React.FC = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14 }}>
               <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{tariffSelected.size} selected</span>
               <button type="button" disabled={tariffSelected.size === 0 || tariffImporting} onClick={handleImportSelectedTariff}
-                style={{ padding: '9px 16px', border: 'none', borderRadius: 9, background: 'var(--teal)', color: '#fff', cursor: tariffSelected.size === 0 ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, opacity: tariffSelected.size === 0 || tariffImporting ? 0.6 : 1 }}>
+                style={{ padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: tariffSelected.size === 0 ? 'default' : 'pointer', fontWeight: 700, fontSize: 13, opacity: tariffSelected.size === 0 || tariffImporting ? 0.6 : 1 }}>
                 {tariffImporting ? 'Adding…' : `Add ${tariffSelected.size || ''} Service${tariffSelected.size === 1 ? '' : 's'}`}
               </button>
             </div>
@@ -848,7 +848,7 @@ export const ProductsServices: React.FC = () => {
           <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
             {[{ key: 'ALL', label: `All (${products.length})` }, ...CATEGORIES.map(c => ({ key: c, label: `${CAT_CFG[c].label} (${products.filter(p => p.category === c).length})` }))].map(t => (
               <button key={t.key} type="button" title={`Filter: ${t.label}`} onClick={() => { setCatFilter(t.key); setPage(1); }}
-                style={{ padding: '5px 12px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 9, cursor: 'pointer', transition: 'all 0.1s', background: catFilter === t.key ? 'var(--navy)' : 'var(--bg)', color: catFilter === t.key ? '#fff' : 'var(--ink2)' }}>
+                style={{ padding: 'var(--ds-btn-py-sm) 12px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', transition: 'all 0.1s', background: catFilter === t.key ? 'var(--navy)' : 'var(--bg)', color: catFilter === t.key ? '#fff' : 'var(--ink2)' }}>
                 {t.label}
               </button>
             ))}
@@ -857,7 +857,7 @@ export const ProductsServices: React.FC = () => {
             <div style={{ display: 'flex', gap: 2, background: 'var(--bg)', padding: 3, borderRadius: 9 }}>
               {(['ALL', 'active', 'inactive'] as const).map(s => (
                 <button key={s} type="button" title={`Status: ${s}`} onClick={() => { setStatusFilter(s); setPage(1); }}
-                  style={{ padding: '5px 10px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 6, cursor: 'pointer', background: statusFilter === s ? 'var(--white)' : 'transparent', color: statusFilter === s ? 'var(--ink)' : 'var(--ink3)', boxShadow: statusFilter === s ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}>
+                  style={{ padding: 'var(--ds-btn-py-sm) 10px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', background: statusFilter === s ? 'var(--white)' : 'transparent', color: statusFilter === s ? 'var(--ink)' : 'var(--ink3)', boxShadow: statusFilter === s ? '0 1px 4px rgba(0,0,0,0.08)' : 'none' }}>
                   {s === 'ALL' ? 'All Status' : s.charAt(0).toUpperCase() + s.slice(1)}
                 </button>
               ))}
@@ -879,14 +879,14 @@ export const ProductsServices: React.FC = () => {
               <div style={{ marginBottom: 12 }}><Icon name="alertCircle" size={44} color="var(--red)" /></div>
               <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>Couldn't load the catalog</div>
               <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>{loadError}</div>
-              <button type="button" title="Retry" onClick={loadProducts} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)' }}><Icon name="refresh" size={13} /> Retry</button>
+              <button type="button" title="Retry" onClick={loadProducts} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 20px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)' }}><Icon name="refresh" size={13} /> Retry</button>
             </div>
           ) : displayed.length === 0 ? (
             <div style={{ padding: '60px 20px', textAlign: 'center' }}>
               <div style={{ marginBottom: 12 }}><Icon name="package" size={44} color="var(--border)" /></div>
               <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>No services found</div>
               <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 20 }}>{search ? 'Try a different search.' : 'Add your first service to the catalog.'}</div>
-              {!search && <button type="button" title="Add service" onClick={() => setEditing('new')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 20px', border: 'none', borderRadius: 9, background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}><Icon name="plus" size={13} /> New Service</button>}
+              {!search && <button type="button" title="Add service" onClick={() => setEditing('new')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 20px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}><Icon name="plus" size={13} /> New Service</button>}
             </div>
           ) : (
             <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
@@ -941,7 +941,7 @@ export const ProductsServices: React.FC = () => {
                             { title: 'Delete', icon: 'trash' as const, fn: () => setDeleting(p), red: true  },
                           ].map(a => (
                             <button key={a.title} type="button" title={a.title} onClick={a.fn}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: a.red ? 'var(--red)' : 'var(--ink3)', padding: 5, borderRadius: 5, display: 'flex' }}
+                              style={{ background: 'none', border: 'none', cursor: 'pointer', color: a.red ? 'var(--red)' : 'var(--ink3)', padding: 5, borderRadius: 'var(--r-sm)', display: 'flex' }}
                               onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                               onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                               <Icon name={a.icon} size={14} />

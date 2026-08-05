@@ -286,7 +286,7 @@ export function ComplyLicenseAutomation() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  padding: '14px 20px',
+                  padding: 'var(--ds-btn-py-lg) 20px',
                   border: 'none',
                   background: 'none',
                   fontSize: 13,

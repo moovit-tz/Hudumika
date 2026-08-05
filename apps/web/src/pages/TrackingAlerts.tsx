@@ -73,7 +73,7 @@ export const TrackingAlerts: React.FC = () => {
                 <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{new Date(a.created_at).toLocaleString()}</div>
               </div>
               {!a.acknowledged && (
-                <button type="button" onClick={() => acknowledge(a.id)} style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'none', border: '1px solid var(--border)', borderRadius: 9, padding: '6px 14px', cursor: 'pointer', flexShrink: 0 }}>
+                <button type="button" onClick={() => acknowledge(a.id)} style={{ fontSize: 12, fontWeight: 600, color: 'var(--teal)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 14px', cursor: 'pointer', flexShrink: 0 }}>
                   Acknowledge
                 </button>
               )}

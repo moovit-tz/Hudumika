@@ -296,12 +296,12 @@ function Sidebar({ node, allNodes, onClose, onSave, onDelete, saving }: SidebarP
       {/* Footer */}
       <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8 }}>
         <button type="button" onClick={() => onSave(node.id, form)} disabled={saving}
-          style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', cursor: 'pointer',
+          style={{ flex: 1, padding: '9px', borderRadius: 'var(--r)', border: 'none', cursor: 'pointer',
             background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font)' }}>
           {saving ? 'Saving…' : 'Save Changes'}
         </button>
         <button type="button" onClick={() => onDelete(node.id)} disabled={saving}
-          style={{ padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', cursor: 'pointer',
+          style={{ padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', border: '1px solid var(--border)', cursor: 'pointer',
             background: 'none', color: 'var(--red)', fontSize: 13, fontFamily: 'var(--font)' }}>
           <Icon name="trash" size={14} color="var(--red)" />
         </button>
@@ -494,13 +494,13 @@ export const OrgChart: React.FC = () => {
             </span>
           )}
           <button type="button" onClick={autoLayout}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 7,
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)',
               border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer',
               fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', fontFamily: 'var(--font)' }}>
             <Icon name="zap" size={13} color="var(--ink2)" /> Auto Layout
           </button>
           <button type="button" onClick={() => setShowAdd(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7,
+            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)',
               border: 'none', background: 'var(--teal)', cursor: 'pointer',
               fontSize: 12.5, fontWeight: 700, color: '#fff', fontFamily: 'var(--font)' }}>
             <Icon name="userPlus" size={13} color="#fff" /> Add Node
@@ -641,12 +641,12 @@ export const OrgChart: React.FC = () => {
 
             <div style={{ display: 'flex', gap: 10 }}>
               <button type="button" onClick={() => setShowAdd(false)}
-                style={{ flex: 1, padding: '10px', borderRadius: 8, border: '1px solid var(--border)',
+                style={{ flex: 1, padding: '10px', borderRadius: 'var(--r)', border: '1px solid var(--border)',
                   background: 'var(--bg)', cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)' }}>
                 Cancel
               </button>
               <button type="button" onClick={onAddNode} disabled={saving || !addForm.label.trim()}
-                style={{ flex: 2, padding: '10px', borderRadius: 8, border: 'none', background: 'var(--teal)',
+                style={{ flex: 2, padding: '10px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)',
                   cursor: 'pointer', fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: 'var(--font)',
                   opacity: !addForm.label.trim() ? 0.5 : 1 }}>
                 {saving ? 'Adding…' : 'Add to Chart'}

@@ -70,8 +70,8 @@ function AddLocationModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
             <div style={{ flex: 1 }}><label style={labelStyle}>Capacity (units)</label><input type="number" value={capacity} onChange={e => setCapacity(e.target.value)} style={inputStyle} /></div>
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-            <button type="submit" disabled={saving} style={{ padding: '8px 18px', borderRadius: 9, border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1 }}>
+            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+            <button type="submit" disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1 }}>
               {saving ? 'Saving…' : 'Add location'}
             </button>
           </div>
@@ -129,8 +129,8 @@ function AddAppointmentModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle
           <div><label style={labelStyle}>Reference</label><input value={reference} onChange={e => setReference(e.target.value)} style={inputStyle} /></div>
           <div><label style={labelStyle}>Scheduled at</label><input required type="datetime-local" value={scheduledAt} onChange={e => setScheduledAt(e.target.value)} style={inputStyle} /></div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
-            <button type="button" onClick={onClose} style={{ padding: '8px 18px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
-            <button type="submit" disabled={saving} style={{ padding: '8px 18px', borderRadius: 9, border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1 }}>
+            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+            <button type="submit" disabled={saving} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1 }}>
               {saving ? 'Saving…' : 'Schedule'}
             </button>
           </div>
@@ -218,16 +218,16 @@ export const TrackingWarehouse: React.FC = () => {
           />
         </div>
         <div style={{ display: 'flex', gap: 6, background: 'var(--bg)', borderRadius: 9, padding: 4 }}>
-          <button type="button" onClick={() => setTab('locations')} style={{ height: 32, padding: '0 16px', borderRadius: 7, border: 'none', background: tab === 'locations' ? 'var(--white)' : 'transparent', color: tab === 'locations' ? 'var(--ink)' : 'var(--ink3)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Locations</button>
-          <button type="button" onClick={() => setTab('dock')} style={{ height: 32, padding: '0 16px', borderRadius: 7, border: 'none', background: tab === 'dock' ? 'var(--white)' : 'transparent', color: tab === 'dock' ? 'var(--ink)' : 'var(--ink3)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Dock Schedule</button>
-          <button type="button" onClick={() => setTab('map')} style={{ height: 32, padding: '0 16px', borderRadius: 7, border: 'none', background: tab === 'map' ? 'var(--white)' : 'transparent', color: tab === 'map' ? 'var(--ink)' : 'var(--ink3)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Warehouse Map</button>
+          <button type="button" onClick={() => setTab('locations')} style={{ height: 32, padding: '0 16px', borderRadius: 'var(--r)', border: 'none', background: tab === 'locations' ? 'var(--white)' : 'transparent', color: tab === 'locations' ? 'var(--ink)' : 'var(--ink3)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Locations</button>
+          <button type="button" onClick={() => setTab('dock')} style={{ height: 32, padding: '0 16px', borderRadius: 'var(--r)', border: 'none', background: tab === 'dock' ? 'var(--white)' : 'transparent', color: tab === 'dock' ? 'var(--ink)' : 'var(--ink3)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Dock Schedule</button>
+          <button type="button" onClick={() => setTab('map')} style={{ height: 32, padding: '0 16px', borderRadius: 'var(--r)', border: 'none', background: tab === 'map' ? 'var(--white)' : 'transparent', color: tab === 'map' ? 'var(--ink)' : 'var(--ink3)', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Warehouse Map</button>
         </div>
       </div>
 
       {tab === 'locations' && (
         <>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-            <button type="button" onClick={() => setShowAddLocation(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+            <button type="button" onClick={() => setShowAddLocation(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
               <Icon name="plus" size={15} /> Add location
             </button>
           </div>
@@ -265,7 +265,7 @@ export const TrackingWarehouse: React.FC = () => {
       {tab === 'dock' && (
         <>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-            <button type="button" onClick={() => setShowAddAppointment(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+            <button type="button" onClick={() => setShowAddAppointment(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
               <Icon name="calendar" size={15} /> Schedule appointment
             </button>
           </div>
@@ -359,7 +359,7 @@ export const TrackingWarehouse: React.FC = () => {
               </div>
             )}
             <button type="button" onClick={generateInsight} disabled={insightLoading}
-              style={{ width: '100%', padding: '8px 14px', borderRadius: 9, border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', opacity: insightLoading ? 0.6 : 1 }}>
+              style={{ width: '100%', padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', opacity: insightLoading ? 0.6 : 1 }}>
               {insightLoading ? 'Generating…' : insight ? 'Regenerate' : 'Generate Insight'}
             </button>
           </div>

@@ -344,7 +344,7 @@ export const ShipmentsList: React.FC = () => {
           <Icon name="plus" size={14} strokeWidth={2.5} /> New Shipment
         </Link>
         <button type="button" onClick={() => exportCsv(shipments)}
-          style={{ padding: '10px 18px', fontSize: 13, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7 }}>
+          style={{ padding: 'var(--ds-btn-py-lg) 18px', fontSize: 13, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7 }}>
           <Icon name="download" size={14} /> Export CSV
         </button>
       </div>
@@ -365,7 +365,8 @@ export const ShipmentsList: React.FC = () => {
         <div className="ent-kpi-grid">
 
           {/* Card 1 — Ops & Logistics */}
-          <Link to="/ops" className="ent-kpi-card ent-kpi-ops">
+          <Link to="/ops" className="ent-kpi-card ent-kpi-ops">
+
             <div className="ent-kpi-top">
               <div className="ent-kpi-category"><div className="ent-kpi-dot ent-kpi-dot-ops" />OPS &amp; LOGISTICS</div>
               <div className="ent-kpi-icon-wrap ent-kpi-icon-ops">
@@ -387,7 +388,8 @@ export const ShipmentsList: React.FC = () => {
           </Link>
 
           {/* Card 2 — Risk & Compliance */}
-          <Link to="/ops?filter=risk" className="ent-kpi-card ent-kpi-risk">
+          <Link to="/ops?filter=risk" className="ent-kpi-card ent-kpi-risk">
+
             <div className="ent-kpi-top">
               <div className="ent-kpi-category"><div className="ent-kpi-dot ent-kpi-dot-risk" />RISK &amp; COMPLIANCE</div>
               <div className="ent-kpi-icon-wrap ent-kpi-icon-risk">
@@ -415,7 +417,8 @@ export const ShipmentsList: React.FC = () => {
 
           {/* Card 3 — CRM & Network */}
           <div className="ent-kpi-card ent-kpi-crm">
-            <RowLink to="/customers" label="View CRM & Network" />
+            <RowLink to="/customers" label="View CRM & Network" />
+
             <div className="ent-kpi-top">
               <div className="ent-kpi-category"><div className="ent-kpi-dot ent-kpi-dot-crm" />CRM &amp; NETWORK</div>
               <div className="ent-kpi-icon-wrap ent-kpi-icon-crm">
@@ -439,7 +442,8 @@ export const ShipmentsList: React.FC = () => {
 
           {/* Card 4 — Finance & Billing */}
           <div className="ent-kpi-card ent-kpi-finance">
-            <RowLink to="/billing" label="View Finance & Billing" />
+            <RowLink to="/billing" label="View Finance & Billing" />
+
             <div className="ent-kpi-top">
               <div className="ent-kpi-category"><div className="ent-kpi-dot ent-kpi-dot-finance" />FINANCE &amp; BILLING</div>
               <div className="ent-kpi-icon-wrap ent-kpi-icon-finance">

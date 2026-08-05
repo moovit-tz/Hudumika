@@ -115,7 +115,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                 type="button"
                 onClick={() => update({ kind: tab.value === 'ALL' ? null : tab.value })}
                 style={{
-                  padding: '6px 14px',
+                  padding: 'var(--ds-btn-py-sm) 14px',
                   borderRadius: 20,
                   fontSize: 12.5,
                   fontWeight: isActive ? 700 : 500,
@@ -210,8 +210,8 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                 disabled={currentPage === 1}
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 style={{
-                  padding: '6px 14px',
-                  borderRadius: 8,
+                  padding: 'var(--ds-btn-py-sm) 14px',
+                  borderRadius: 'var(--r)',
                   border: '1px solid var(--border)',
                   background: 'var(--card-bg, var(--white))',
                   color: currentPage === 1 ? 'var(--ink4)' : 'var(--ink)',
@@ -242,7 +242,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                     style={{
                       width: 30,
                       height: 30,
-                      borderRadius: 8,
+                      borderRadius: 'var(--r)',
                       border: `1px solid ${isSelected ? 'var(--teal)' : 'var(--border)'}`,
                       background: isSelected ? 'var(--teal)' : 'var(--card-bg, var(--white))',
                       color: isSelected ? '#ffffff' : 'var(--ink)',
@@ -261,8 +261,8 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                 disabled={currentPage >= totalPages}
                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                 style={{
-                  padding: '6px 14px',
-                  borderRadius: 8,
+                  padding: 'var(--ds-btn-py-sm) 14px',
+                  borderRadius: 'var(--r)',
                   border: '1px solid var(--border)',
                   background: 'var(--card-bg, var(--white))',
                   color: currentPage >= totalPages ? 'var(--ink4)' : 'var(--ink)',

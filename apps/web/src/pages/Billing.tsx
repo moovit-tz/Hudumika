@@ -595,8 +595,8 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, onImport, onClose }: {
           )}
         </div>
         <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 10, background: 'var(--bg)' }}>
-          <button type="button" onClick={onClose} style={{ padding: '8px 16px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--white)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
-          <button type="button" onClick={handleImport} disabled={selected.size === 0} style={{ padding: '8px 16px', borderRadius: 7, border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, cursor: selected.size ? 'pointer' : 'default', opacity: selected.size ? 1 : 0.5 }}>Import {selected.size} Entries</button>
+          <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', fontWeight: 600, cursor: 'pointer' }}>Cancel</button>
+          <button type="button" onClick={handleImport} disabled={selected.size === 0} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, cursor: selected.size ? 'pointer' : 'default', opacity: selected.size ? 1 : 0.5 }}>Import {selected.size} Entries</button>
         </div>
       </div>
     </div>
@@ -700,7 +700,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange }:
                 <td style={{ padding: '6px 4px', verticalAlign: 'middle' }}>
                   {items.length > 0 && (
                     <button type="button" onClick={() => remove(item.uid)}
-                      style={{ width: 24, height: 24, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      style={{ width: 24, height: 24, border: 'none', background: 'none', cursor: 'pointer', borderRadius: 'var(--r-sm)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-l)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                       <Icon name="trash" size={12} color="var(--red)" />
@@ -716,7 +716,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange }:
             <td colSpan={7} style={{ padding: '8px 10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <button type="button" onClick={add}
-                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', border: `1px dashed ${color}`, borderRadius: 6, background: 'none', color, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-sm) 12px', border: `1px dashed ${color}`, borderRadius: 'var(--r)', background: 'none', color, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', flexShrink: 0 }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--teal-l)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
                   <Icon name="plus" size={12} color={color} /> Add Line Item
@@ -891,7 +891,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
         <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', flex: 1 }}>{initial ? `Edit ${initial.id}` : 'Create New Invoice'}</span>
         <button type="button" onClick={onCancel} style={tbBtn}>Cancel</button>
         <button type="button" onClick={() => handleSave(true)} style={{ ...tbBtn, borderColor: 'var(--teal)', color: 'var(--teal)', background: 'var(--teal-l)' }}>Save Draft</button>
-        <button type="button" onClick={() => handleSave(false)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 9, border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+        <button type="button" onClick={() => handleSave(false)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>
           <Icon name="send" size={13} color="#fff" /> Save &amp; Send
         </button>
       </div>
@@ -969,7 +969,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
         <ChargeSectionEditor title="Shipping Line Charges — Paid in USD" color="var(--blue)" group="shipping" currency="USD" items={shipping} onChange={setShipping} />
         <div style={{ position: 'relative' }}>
           {shipment && activeShipmentFull && (
-            <button type="button" onClick={() => setShowTimesheets(true)} style={{ position: 'absolute', top: 3, right: 10, display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 6, background: 'var(--purple-l)', color: 'var(--purple)', border: '1px solid var(--purple)', fontSize: 11, fontWeight: 700, cursor: 'pointer', zIndex: 10 }}>
+            <button type="button" onClick={() => setShowTimesheets(true)} style={{ position: 'absolute', top: 3, right: 10, display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 10px', borderRadius: 'var(--r)', background: 'var(--purple-l)', color: 'var(--purple)', border: '1px solid var(--purple)', fontSize: 11, fontWeight: 700, cursor: 'pointer', zIndex: 10 }}>
               <Icon name="clock" size={12} color="var(--purple)" /> Import Unbilled Time
             </button>
           )}
@@ -1166,7 +1166,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
         <div style={{ display: 'flex', overflowX: 'auto', flex: 1, minWidth: 0 }}>
           {TABS.map(t => (
             <button key={t.id} type="button" onClick={() => setTab(t.id)}
-              style={{ padding: '11px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: tab === t.id ? 'var(--ink)' : 'var(--ink3)', borderBottom: tab === t.id ? '2px solid var(--ink)' : '2px solid transparent', marginBottom: -1, whiteSpace: 'nowrap', flexShrink: 0 }}>
+              style={{ padding: 'var(--ds-btn-py-lg) 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: tab === t.id ? 'var(--ink)' : 'var(--ink3)', borderBottom: tab === t.id ? '2px solid var(--ink)' : '2px solid transparent', marginBottom: -1, whiteSpace: 'nowrap', flexShrink: 0 }}>
               {t.label}
             </button>
           ))}
@@ -1176,14 +1176,14 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             <button key={icon} type="button"
               title={i === 0 ? 'Send email' : i === 1 ? 'View / Print' : 'Export PDF'}
               onClick={() => i === 0 ? (window.location.href = `mailto:?subject=${inv.id}`) : openPrintWindow(inv)}
-              style={{ width: 32, height: 32, borderRadius: 6, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ width: 32, height: 32, borderRadius: 'var(--r)', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
               <Icon name={icon} size={15} color="var(--ink3)" />
             </button>
           ))}
           <button type="button" onClick={onClose}
-            style={{ width: 32, height: 32, borderRadius: 6, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 2 }}
+            style={{ width: 32, height: 32, borderRadius: 'var(--r)', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', marginLeft: 2 }}
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--red-l)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
             <Icon name="x" size={15} color="var(--ink3)" />
@@ -1206,7 +1206,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
               : inv.traStatus === 'failed' ? (inv.traAckMsg || 'Previous submission failed — retry')
               : 'Submit this invoice to TRA EFDMS for fiscalization'
             }
-            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: (traSubmitting || inv.status === 'Draft' || !inv._dbId) ? 'default' : 'pointer', background: inv.status === 'Draft' || !inv._dbId ? 'var(--bg)' : inv.traStatus === 'failed' ? 'var(--red-l)' : 'var(--gold-l)', color: inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)', opacity: traSubmitting ? 0.7 : 1 }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py-sm) 10px', borderRadius: 20, border: 'none', fontSize: 11, fontWeight: 700, cursor: (traSubmitting || inv.status === 'Draft' || !inv._dbId) ? 'default' : 'pointer', background: inv.status === 'Draft' || !inv._dbId ? 'var(--bg)' : inv.traStatus === 'failed' ? 'var(--red-l)' : 'var(--gold-l)', color: inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)', opacity: traSubmitting ? 0.7 : 1 }}>
             <Icon name={inv.traStatus === 'failed' ? 'refresh' : 'send'} size={12} color={inv.status === 'Draft' || !inv._dbId ? 'var(--ink3)' : inv.traStatus === 'failed' ? 'var(--red)' : 'var(--gold)'} />
             {traSubmitting ? 'Submitting…' : inv.traStatus === 'failed' ? 'Retry TRA Submission' : 'Submit to TRA'}
           </button>
@@ -1232,7 +1232,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           )}
         </div>
         <button type="button" onClick={() => { setShowPayment(v => !v); setPayAmt(String(Math.round(due))); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 9, border: 'none', background: showPayment ? 'var(--green)' : 'var(--green)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 14px', borderRadius: 'var(--r)', border: 'none', background: showPayment ? 'var(--green)' : 'var(--green)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap' }}>
           <Icon name="dollarSign" size={13} color="#fff" /> Payment
         </button>
       </div>
@@ -1268,7 +1268,7 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           </div>
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 8 }}>Outstanding: <strong style={{ color: due > 0 ? 'var(--red)' : 'var(--green)', fontFamily: 'var(--mono)' }}>{fmt(due, 'TZS')}</strong></div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button type="button" onClick={submitPayment} style={{ padding: '7px 18px', borderRadius: 7, border: 'none', background: 'var(--green)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>Save Payment</button>
+            <button type="button" onClick={submitPayment} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--green)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)' }}>Save Payment</button>
             <button type="button" onClick={() => setShowPayment(false)} style={tbBtn}>Cancel</button>
           </div>
         </div>

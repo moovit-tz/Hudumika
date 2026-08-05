@@ -180,7 +180,7 @@ export function MentionInput({ value, onChange, users, placeholder, disabled, on
                 alignItems: 'center',
                 gap: 10,
                 width: '100%',
-                padding: '8px 12px',
+                padding: 'var(--ds-btn-py) 12px',
                 background: i === activeIdx ? 'var(--bg)' : 'transparent',
                 border: 'none',
                 cursor: 'pointer',

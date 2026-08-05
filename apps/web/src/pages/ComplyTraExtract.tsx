@@ -229,11 +229,11 @@ export function ComplyTraExtract() {
                 </div>
 
                 {status === 'idle' ? (
-                  <button type="submit" className="comply-btn-primary" style={{ padding: '12px', borderRadius: 8, marginTop: 8 }}>
+                  <button type="submit" className="comply-btn-primary" style={{ padding: '12px', borderRadius: 'var(--r)', marginTop: 8 }}>
                     <Icon name="zap" style={{ marginRight: 8 }} /> Connect & Extract
                   </button>
                 ) : (
-                  <button type="button" className="comply-btn-secondary" disabled style={{ padding: '12px', borderRadius: 8, marginTop: 8 }}>
+                  <button type="button" className="comply-btn-secondary" disabled style={{ padding: '12px', borderRadius: 'var(--r)', marginTop: 8 }}>
                     Connecting...
                   </button>
                 )}
@@ -288,7 +288,7 @@ export function ComplyTraExtract() {
                       type="button" 
                       onClick={handleVerifyOtp} 
                       className="comply-btn-primary" 
-                      style={{ padding: '8px 16px', borderRadius: 6, fontSize: 12 }}
+                      style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', fontSize: 12 }}
                     >
                       Verify & Proceed
                     </button>
@@ -334,7 +334,7 @@ export function ComplyTraExtract() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 8,
-                    padding: '14px 20px',
+                    padding: 'var(--ds-btn-py-lg) 20px',
                     border: 'none',
                     background: 'none',
                     fontSize: 13,

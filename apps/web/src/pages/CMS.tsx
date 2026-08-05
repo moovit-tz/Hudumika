@@ -384,7 +384,7 @@ export const CMS: React.FC = () => {
                       fn: () => { if (siteSettings?.tenantSlug) window.open(`/site/${siteSettings.tenantSlug}`, '_blank', 'noopener'); },
                     },
                   ].map(item => (
-                    <button key={item.label} onClick={item.fn} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--teal)', fontWeight: 500, padding: '5px 0', fontFamily: 'var(--font)', width: '100%' }}>
+                    <button key={item.label} onClick={item.fn} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--teal)', fontWeight: 500, padding: 'var(--ds-btn-py-sm) 0', fontFamily: 'var(--font)', width: '100%' }}>
                       <Icon name={item.icon} size={13} /> {item.label}
                     </button>
                   ))}
@@ -397,7 +397,7 @@ export const CMS: React.FC = () => {
                     { icon: 'file' as const,    label: 'Pages',    count: pages.length, fn: () => goTo('pages') },
                     { icon: 'message' as const, label: 'Comments', count: comments.length, fn: () => goTo('comments') },
                   ].map(item => (
-                    <button key={item.label} onClick={item.fn} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink)', fontWeight: 500, padding: '5px 0', fontFamily: 'var(--font)', width: '100%' }}>
+                    <button key={item.label} onClick={item.fn} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink)', fontWeight: 500, padding: 'var(--ds-btn-py-sm) 0', fontFamily: 'var(--font)', width: '100%' }}>
                       <Icon name={item.icon} size={13} style={{ color: 'var(--teal)' } as React.CSSProperties} />
                       <span style={{ color: 'var(--teal)', fontWeight: 700, minWidth: 22 }}>{item.count}</span>
                       {item.label}
@@ -411,12 +411,12 @@ export const CMS: React.FC = () => {
                     { icon: 'grid' as const,    label: 'Site Identity & Appearance', fn: () => goTo('customize') },
                     { icon: 'message' as const, label: 'Moderate comments',          fn: () => goTo('comments') },
                   ].map(item => (
-                    <button key={item.label} onClick={item.fn} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink2)', fontWeight: 500, padding: '5px 0', fontFamily: 'var(--font)', width: '100%' }}>
+                    <button key={item.label} onClick={item.fn} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink2)', fontWeight: 500, padding: 'var(--ds-btn-py-sm) 0', fontFamily: 'var(--font)', width: '100%' }}>
                       <Icon name={item.icon} size={13} /> {item.label}
                     </button>
                   ))}
                   {user?.role === 'SUPER_ADMIN' && (
-                    <button onClick={() => navigate('/admin/cms-pages')} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink2)', fontWeight: 500, padding: '5px 0', fontFamily: 'var(--font)', width: '100%' }}>
+                    <button onClick={() => navigate('/admin/cms-pages')} style={{ display: 'flex', alignItems: 'center', gap: 9, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink2)', fontWeight: 500, padding: 'var(--ds-btn-py-sm) 0', fontFamily: 'var(--font)', width: '100%' }}>
                       <Icon name="shield" size={13} /> Manage Hudumika's own pages (Privacy, Terms, ...)
                     </button>
                   )}
@@ -503,7 +503,7 @@ export const CMS: React.FC = () => {
                 {(['all', 'published', 'draft', 'trash'] as const).map(f => {
                   const cnt = f === 'all' ? posts.filter(p => p.status !== 'trash').length : posts.filter(p => p.status === f).length;
                   return (
-                    <button key={f} onClick={() => setPFilter(f)} style={{ padding: '5px 13px', border: 'none', borderRadius: 5, background: pFilter === f ? 'var(--teal)' : 'var(--bg)', color: pFilter === f ? '#fff' : 'var(--ink3)', fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font)', transition: 'all 0.1s' }}>
+                    <button key={f} onClick={() => setPFilter(f)} style={{ padding: 'var(--ds-btn-py-sm) 13px', border: 'none', borderRadius: 'var(--r-sm)', background: pFilter === f ? 'var(--teal)' : 'var(--bg)', color: pFilter === f ? '#fff' : 'var(--ink3)', fontWeight: 600, fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font)', transition: 'all 0.1s' }}>
                       {f.charAt(0).toUpperCase() + f.slice(1)} ({cnt})
                     </button>
                   );

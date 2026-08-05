@@ -342,10 +342,10 @@ export function SealCompartmentEdit() {
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 10 }}>
-          <button type="button" className="seal-btn-secondary" style={{ padding: '12px 24px', fontSize: 14 }} onClick={() => navigate(`/seal/compartments/${id}`)}>
+          <button type="button" className="seal-btn-secondary" style={{ padding: 'var(--ds-btn-py-lg) 24px', fontSize: 14 }} onClick={() => navigate(`/seal/compartments/${id}`)}>
             Cancel
           </button>
-          <button type="submit" className="seal-btn-primary" style={{ padding: '12px 28px', fontSize: 14, fontWeight: 700 }} disabled={saving}>
+          <button type="submit" className="seal-btn-primary" style={{ padding: 'var(--ds-btn-py-lg) 28px', fontSize: 14, fontWeight: 700 }} disabled={saving}>
             {saving ? 'Saving Changes…' : 'Save Changes'}
           </button>
         </div>

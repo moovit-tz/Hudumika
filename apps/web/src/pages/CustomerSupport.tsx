@@ -121,7 +121,7 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick: () => void }
         background: 'var(--white)',
         border: '1px solid var(--border)',
         borderLeft: `4px solid ${pr.color}`,
-        borderRadius: 9, padding: '16px',
+        borderRadius: 'var(--r)', padding: '16px',
         fontFamily: 'var(--font)',
         boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
         opacity: ticket.status === 'CLOSED' ? 0.7 : 1,
@@ -202,7 +202,7 @@ function TicketThread({ ticket, onBack, onReply }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
           <button type="button" title="Back to tickets" onClick={onBack}
             style={{
-              background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0',
+              background: 'none', border: 'none', cursor: 'pointer', padding: 'var(--ds-btn-py-sm) 0',
               display: 'flex', alignItems: 'center', gap: 4, color: 'var(--teal)',
               fontWeight: 600, fontSize: 14, fontFamily: 'var(--font)',
             }}>
@@ -280,7 +280,7 @@ function TicketThread({ ticket, onBack, onReply }: {
             disabled={!reply.trim()}
             style={{
               background: reply.trim() ? 'var(--teal)' : 'var(--border)',
-              color: '#fff', border: 'none', borderRadius: 9,
+              color: '#fff', border: 'none', borderRadius: 'var(--r)',
               width: 44, height: 44, cursor: reply.trim() ? 'pointer' : 'default',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0, transition: 'background 0.15s',
@@ -391,7 +391,7 @@ function NewTicketModal({ onClose, onCreate }: {
             disabled={!subject.trim() || !body.trim()}
             style={{
               background: subject.trim() && body.trim() ? 'var(--teal)' : 'var(--border)',
-              color: '#fff', border: 'none', borderRadius: 9,
+              color: '#fff', border: 'none', borderRadius: 'var(--r)',
               padding: '14px', fontSize: 15, fontWeight: 700,
               cursor: subject.trim() && body.trim() ? 'pointer' : 'default',
               fontFamily: 'var(--font)', letterSpacing: '0.01em',
@@ -492,8 +492,8 @@ export const CustomerSupport: React.FC = () => {
           title="Create new ticket"
           onClick={() => setShowNew(true)}
           style={{
-            background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9,
-            padding: '10px 18px', fontSize: 14, fontWeight: 700,
+            background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)',
+            padding: 'var(--ds-btn-py-lg) 18px', fontSize: 14, fontWeight: 700,
             cursor: 'pointer', fontFamily: 'var(--font)',
             display: 'flex', alignItems: 'center', gap: 6,
           }}>
@@ -514,7 +514,7 @@ export const CustomerSupport: React.FC = () => {
               background: filter === f ? 'var(--teal)' : 'var(--white)',
               color: filter === f ? '#fff' : 'var(--ink2)',
               border: `1.5px solid ${filter === f ? 'var(--teal)' : 'var(--border)'}`,
-              borderRadius: 20, padding: '7px 16px',
+              borderRadius: 20, padding: 'var(--ds-btn-py) 16px',
               fontSize: 13, fontWeight: 600,
               cursor: 'pointer', fontFamily: 'var(--font)',
             }}>
@@ -537,8 +537,8 @@ export const CustomerSupport: React.FC = () => {
             </p>
             <button type="button" title="Open new ticket" onClick={() => setShowNew(true)}
               style={{
-                background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9,
-                padding: '10px 22px', fontSize: 14, fontWeight: 700,
+                background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)',
+                padding: 'var(--ds-btn-py-lg) 22px', fontSize: 14, fontWeight: 700,
                 cursor: 'pointer', fontFamily: 'var(--font)',
               }}>
               Open a Ticket

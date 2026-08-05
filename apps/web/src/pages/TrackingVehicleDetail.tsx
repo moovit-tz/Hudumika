@@ -189,7 +189,7 @@ export const TrackingVehicleDetail: React.FC = () => {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button"
-                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 16px', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
                 <Icon name="plus" size={15} /> Add <Icon name="chevronDown" size={12} />
               </button>
             </DropdownMenuTrigger>
@@ -209,7 +209,7 @@ export const TrackingVehicleDetail: React.FC = () => {
       <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginBottom: 20, flexWrap: 'wrap' }}>
         {TABS.map(t => (
           <button key={t} type="button" onClick={() => setTab(t)}
-            style={{ padding: '10px 16px', border: 'none', borderBottom: tab === t ? '2px solid var(--teal)' : '2px solid transparent', background: 'none', color: tab === t ? 'var(--ink)' : 'var(--ink3)', fontWeight: tab === t ? 700 : 500, fontSize: 13, cursor: 'pointer' }}>
+            style={{ padding: 'var(--ds-btn-py-lg) 16px', border: 'none', borderBottom: tab === t ? '2px solid var(--teal)' : '2px solid transparent', background: 'none', color: tab === t ? 'var(--ink)' : 'var(--ink3)', fontWeight: tab === t ? 700 : 500, fontSize: 13, cursor: 'pointer' }}>
             {t}
           </button>
         ))}
@@ -228,9 +228,9 @@ export const TrackingVehicleDetail: React.FC = () => {
               ) : (
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button type="button" onClick={() => setEditing(false)}
-                    style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 12px', cursor: 'pointer' }}>Cancel</button>
+                    style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink3)', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 12px', cursor: 'pointer' }}>Cancel</button>
                   <button type="button" onClick={saveEdit} disabled={saving}
-                    style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: 'var(--teal)', border: 'none', borderRadius: 6, padding: '4px 12px', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+                    style={{ fontSize: 12, fontWeight: 600, color: '#fff', background: 'var(--teal)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 12px', cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
                     {saving ? 'Saving…' : 'Save'}
                   </button>
                 </div>
@@ -743,7 +743,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
       <div style={{ ...cardStyle, padding: '40px 20px', textAlign: 'center' }}>
         <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 12 }}>No load plan yet for this vehicle.</div>
         <button type="button" onClick={createDefaultPlan} disabled={creating}
-          style={{ padding: '8px 18px', borderRadius: 9, border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: creating ? 0.6 : 1 }}>
+          style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', opacity: creating ? 0.6 : 1 }}>
           {creating ? 'Creating…' : 'Create load plan'}
         </button>
       </div>
@@ -775,7 +775,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
               <input type="number" value={itemWeight} onChange={e => setItemWeight(e.target.value)} placeholder="kg" style={smallInput} />
               <input type="number" value={itemQty} onChange={e => setItemQty(e.target.value)} placeholder="Qty" style={smallInput} />
             </div>
-            <button type="submit" style={{ padding: '7px 12px', borderRadius: 7, border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>Add item</button>
+            <button type="submit" style={{ padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}>Add item</button>
           </form>
         </div>
 
@@ -792,7 +792,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
             {items.length === 0 && <div style={{ color: 'var(--ink3)', fontSize: 12 }}>No items added yet.</div>}
           </div>
           <button type="button" onClick={pack} disabled={packing || items.length === 0}
-            style={{ marginTop: 10, width: '100%', padding: '8px 12px', borderRadius: 7, border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: items.length === 0 ? 'default' : 'pointer', opacity: items.length === 0 ? 0.5 : 1 }}>
+            style={{ marginTop: 10, width: '100%', padding: 'var(--ds-btn-py) 12px', borderRadius: 'var(--r)', border: 'none', background: 'var(--ink)', color: '#fff', fontWeight: 700, fontSize: 12, cursor: items.length === 0 ? 'default' : 'pointer', opacity: items.length === 0 ? 0.5 : 1 }}>
             {packing ? 'Packing…' : 'Pack load'}
           </button>
         </div>
@@ -823,7 +823,7 @@ function VehicleLoadPlanTab({ vehicleId }: { vehicleId: string }) {
               type="button"
               onClick={() => setCameraPreset(preset)}
               style={{
-                padding: '5px 12px', borderRadius: 7, fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
+                padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
                 border: `1px solid ${cameraPreset === preset ? 'var(--teal)' : 'var(--border)'}`,
                 background: cameraPreset === preset ? 'var(--teal-l)' : 'var(--white)',
                 color: cameraPreset === preset ? 'var(--teal)' : 'var(--ink2)',

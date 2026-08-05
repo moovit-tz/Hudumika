@@ -313,8 +313,8 @@ function CreateModal({ onClose, onCreate, isMobile }: { onClose: () => void; onC
             {field('Destination', inp({ value: dest, onChange: e => setDest(e.target.value) }))}
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-            <button onClick={onClose} style={{ padding: '9px 20px', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-            <button onClick={handleCreate} disabled={!title || (!customer && !newCustomer)} style={{ padding: '9px 20px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: (!title || (!customer && !newCustomer)) ? 0.5 : 1 }}>Create Job</button>
+            <button onClick={onClose} style={{ padding: 'var(--ds-btn-py) 20px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
+            <button onClick={handleCreate} disabled={!title || (!customer && !newCustomer)} style={{ padding: 'var(--ds-btn-py) 20px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: (!title || (!customer && !newCustomer)) ? 0.5 : 1 }}>Create Job</button>
           </div>
         </div>
       </div>
@@ -369,7 +369,7 @@ export function ShipmentBoard() {
                 {jobs.length} jobs · {jobs.filter(j => j.flags.includes('sla_breach')).length} SLA breach · {jobs.filter(j => j.flags.includes('demurrage')).length} demurrage
               </p>
             </div>
-            <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            <button onClick={() => setShowCreate(true)} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
               <Icon name="plus" size={15} /> New Shipment
             </button>
           </div>
@@ -388,7 +388,7 @@ export function ShipmentBoard() {
             </Select>
             <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
               {(['list', 'kanban'] as const).map(v => (
-                <button key={v} onClick={() => setView(v)} style={{ padding: '7px 12px', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: view === v ? 'var(--teal)' : 'var(--white)', color: view === v ? '#fff' : 'var(--ink3)' }}>
+                <button key={v} onClick={() => setView(v)} style={{ padding: 'var(--ds-btn-py) 12px', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, background: view === v ? 'var(--teal)' : 'var(--white)', color: view === v ? '#fff' : 'var(--ink3)' }}>
                   {v === 'list' ? '= List' : '? Board'}
                 </button>
               ))}

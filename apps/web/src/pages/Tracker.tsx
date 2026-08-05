@@ -636,7 +636,7 @@ export const Tracker: React.FC = () => {
           <div style={{ display: 'flex', gap: 6, marginBottom: 18, background: 'var(--bg)', borderRadius: 10, padding: 4, width: 'fit-content' }}>
             {(['AWB', 'BL'] as const).map(t => (
               <button key={t} className="tr-btn" onClick={() => setTrackType(t)} style={{
-                height: 32, padding: '0 16px', borderRadius: 7,
+                height: 32, padding: '0 16px', borderRadius: 'var(--r)',
                 border: 'none',
                 background: trackType === t ? 'var(--white)' : 'transparent',
                 color: trackType === t ? 'var(--ink)' : 'var(--ink3)',
@@ -684,7 +684,7 @@ export const Tracker: React.FC = () => {
                       type="button"
                       onMouseDown={e => e.preventDefault()}
                       onClick={() => pickSuggestion(s)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', border: 'none', borderBottom: i < suggestions.length - 1 ? '1px solid var(--border)' : 'none', background: 'none', cursor: 'pointer', textAlign: 'left' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: 'var(--ds-btn-py-lg) 14px', border: 'none', borderBottom: i < suggestions.length - 1 ? '1px solid var(--border)' : 'none', background: 'none', cursor: 'pointer', textAlign: 'left' }}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                       onMouseLeave={e => (e.currentTarget.style.background = '')}
                     >
@@ -706,7 +706,7 @@ export const Tracker: React.FC = () => {
               onClick={handleTrack}
               disabled={loading || !inputNumber.trim()}
               style={{
-                height: 50, padding: '0 30px', borderRadius: 12,
+                height: 50, padding: '0 30px', borderRadius: 'var(--r)',
                 border: inputNumber.trim() && !loading ? 'none' : '1.5px solid var(--border)',
                 background: inputNumber.trim() && !loading ? `linear-gradient(135deg,${NAVY},${BRAND})` : 'var(--bg)',
                 color: inputNumber.trim() && !loading ? '#fff' : 'var(--ink3)',
@@ -1024,7 +1024,7 @@ export const Tracker: React.FC = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {!savedId ? (
                   <button className="tr-btn" onClick={handleSave} disabled={savingSnap} style={{
-                    height: 44, borderRadius: 11, border: 'none', width: '100%',
+                    height: 44, borderRadius: 'var(--r)', border: 'none', width: '100%',
                     background: `linear-gradient(135deg,${NAVY},${BRAND})`,
                     color: '#fff', fontFamily: 'var(--font)', fontWeight: 800, fontSize: 13,
                     cursor: savingSnap ? 'default' : 'pointer', opacity: savingSnap ? .7 : 1,
@@ -1045,7 +1045,7 @@ export const Tracker: React.FC = () => {
                 {savedId && (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     <button className="tr-btn" onClick={() => copyLink(snapshots.find(s => s.id === savedId)?.share_token ?? '')} style={{
-                      height: 40, borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--white)',
+                      height: 40, borderRadius: 'var(--r)', border: '1.5px solid var(--border)', background: 'var(--white)',
                       color: 'var(--teal)', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 12, cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     }}>
@@ -1053,7 +1053,7 @@ export const Tracker: React.FC = () => {
                       {copied ? 'Copied!' : 'Share Link'}
                     </button>
                     <button className="tr-btn" onClick={() => generatePDF(result)} style={{
-                      height: 40, borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--white)',
+                      height: 40, borderRadius: 'var(--r)', border: '1.5px solid var(--border)', background: 'var(--white)',
                       color: 'var(--ink2)', fontFamily: 'var(--font)', fontWeight: 700, fontSize: 12, cursor: 'pointer',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                     }}>
@@ -1065,7 +1065,7 @@ export const Tracker: React.FC = () => {
 
                 {result && (
                   <button className="tr-btn" onClick={() => generatePDF(result)} style={{
-                    height: 38, borderRadius: 10, border: '1.5px dashed var(--border)', background: 'transparent',
+                    height: 38, borderRadius: 'var(--r)', border: '1.5px dashed var(--border)', background: 'transparent',
                     color: 'var(--ink3)', fontFamily: 'var(--font)', fontWeight: 600, fontSize: 11, cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
                   }}>
@@ -1167,7 +1167,7 @@ export const Tracker: React.FC = () => {
               <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{snapshots.length} snapshot{snapshots.length !== 1 ? 's' : ''}</div>
             </div>
           </div>
-          <button className="tr-btn" onClick={loadSnapshots} style={{ height: 34, padding: '0 14px', borderRadius: 9, border: '1.5px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button className="tr-btn" onClick={loadSnapshots} style={{ height: 34, padding: '0 14px', borderRadius: 'var(--r)', border: '1.5px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
             <Icon name="refresh" size={13} />Refresh
           </button>
         </div>
@@ -1205,8 +1205,8 @@ export const Tracker: React.FC = () => {
                       <input value={editCarrier} onChange={e => setEditCarrier(e.target.value)} placeholder="Carrier"
                         style={{ height: 30, borderRadius: 7, border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.07)', color: 'var(--bg)', padding: '0 10px', fontSize: 12 }} />
                       <div style={{ display: 'flex', gap: 6 }}>
-                        <button className="tr-btn" onClick={saveEdit} style={{ flex: 1, height: 28, borderRadius: 7, border: 'none', background: BRAND, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Save</button>
-                        <button className="tr-btn" onClick={() => setEditingId(null)} style={{ flex: 1, height: 28, borderRadius: 7, border: '1px solid rgba(255,255,255,.15)', background: 'transparent', color: 'var(--ink3)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+                        <button className="tr-btn" onClick={saveEdit} style={{ flex: 1, height: 28, borderRadius: 'var(--r)', border: 'none', background: BRAND, color: '#fff', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Save</button>
+                        <button className="tr-btn" onClick={() => setEditingId(null)} style={{ flex: 1, height: 28, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.15)', background: 'transparent', color: 'var(--ink3)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
                       </div>
                     </div>
                   ) : (
@@ -1218,10 +1218,10 @@ export const Tracker: React.FC = () => {
                         <div style={{ fontSize: 9, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '.09em' }}>{snap.tracking_type} · {snap.carrier}</div>
                         <div style={{ fontSize: 13, fontWeight: 800, fontFamily: 'var(--mono)' }}>{snap.tracking_number}</div>
                       </div>
-                      <button className="tr-btn" title="Edit entry" onClick={() => startEdit(snap)} style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <button className="tr-btn" title="Edit entry" onClick={() => startEdit(snap)} style={{ width: 26, height: 26, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Icon name="edit" size={11} color="var(--ink3)" />
                       </button>
-                      <button className="tr-btn" title="Refresh tracking status" onClick={() => retrack(snap)} disabled={retrackingId === snap.id} style={{ width: 26, height: 26, borderRadius: 7, border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 20, opacity: retrackingId === snap.id ? 0.5 : 1 }}>
+                      <button className="tr-btn" title="Refresh tracking status" onClick={() => retrack(snap)} disabled={retrackingId === snap.id} style={{ width: 26, height: 26, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginRight: 20, opacity: retrackingId === snap.id ? 0.5 : 1 }}>
                         <Icon name="refresh" size={11} color="var(--ink3)" />
                       </button>
                     </div>
@@ -1247,10 +1247,10 @@ export const Tracker: React.FC = () => {
 
                   {/* Snap actions */}
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button className="tr-btn" onClick={() => copyLink(snap.share_token)} style={{ flex: 1, height: 30, borderRadius: 7, border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                    <button className="tr-btn" onClick={() => copyLink(snap.share_token)} style={{ flex: 1, height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
                       <Icon name="link" size={10} color="var(--ink3)" />Share
                     </button>
-                    <button className="tr-btn" onClick={() => { const base = { tracking_number: snap.tracking_number, tracking_type: snap.tracking_type, carrier: snap.carrier ?? '', origin_name: snap.origin_name ?? '', origin_code: '', dest_name: snap.dest_name ?? '', dest_code: '', current_location: snap.current_location ?? '', status: snap.status ?? '', status_code: snap.status_code ?? '', eta: snap.eta, progress_pct: snap.progress_pct, events: parseEvents(snap.events), source: 'mock' as const }; generatePDF(base); }} style={{ flex: 1, height: 30, borderRadius: 7, border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                    <button className="tr-btn" onClick={() => { const base = { tracking_number: snap.tracking_number, tracking_type: snap.tracking_type, carrier: snap.carrier ?? '', origin_name: snap.origin_name ?? '', origin_code: '', dest_name: snap.dest_name ?? '', dest_code: '', current_location: snap.current_location ?? '', status: snap.status ?? '', status_code: snap.status_code ?? '', eta: snap.eta, progress_pct: snap.progress_pct, events: parseEvents(snap.events), source: 'mock' as const }; generatePDF(base); }} style={{ flex: 1, height: 30, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,.09)', background: 'rgba(255,255,255,.04)', cursor: 'pointer', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
                       <Icon name="fileText" size={10} color="var(--ink3)" />PDF
                     </button>
                     {!snap.shipment_id

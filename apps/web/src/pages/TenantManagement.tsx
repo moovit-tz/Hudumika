@@ -68,7 +68,7 @@ export const TenantManagement: React.FC = () => {
           background: 'var(--teal)',
           color: '#fff',
           border: 'none',
-          padding: '8px 16px',
+          padding: 'var(--ds-btn-py) 16px',
           borderRadius: '4px',
           cursor: 'pointer',
           marginBottom: '16px',

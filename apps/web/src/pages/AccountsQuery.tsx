@@ -255,7 +255,7 @@ export function AccountsQuery() {
                     type="button"
                     onClick={() => setStatus(s)}
                     style={{
-                      padding: '4px 12px', borderRadius: 20,
+                      padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20,
                       border: `1.5px solid ${status === s ? 'var(--teal)' : 'var(--border)'}`,
                       background: status === s ? 'var(--teal)' : 'var(--white)',
                       color: status === s ? '#fff' : 'var(--ink)',
@@ -303,7 +303,7 @@ export function AccountsQuery() {
           type="button"
           onClick={runReport}
           disabled={loading}
-          style={{ width: '100%', padding: '12px 0', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+          style={{ width: '100%', padding: 'var(--ds-btn-py-lg) 0', fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
         >
           <Icon name="refresh" size={15} color="#fff" />
           {loading ? 'Running…' : 'Run Report'}

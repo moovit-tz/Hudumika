@@ -140,11 +140,11 @@ export const TrackingMaintenance: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: selectedDate ? '1fr 300px' : '1fr', gap: 16, alignItems: 'flex-start' }}>
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <button type="button" title="Previous month" onClick={prevMonth} style={{ width: 30, height: 30, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink2)' }}>
+            <button type="button" title="Previous month" onClick={prevMonth} style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink2)' }}>
               <Icon name="chevronLeft" size={13} />
             </button>
             <span style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>{MONTHS[month]} {year}</span>
-            <button type="button" title="Next month" onClick={nextMonth} style={{ width: 30, height: 30, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink2)' }}>
+            <button type="button" title="Next month" onClick={nextMonth} style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink2)' }}>
               <Icon name="chevronRight" size={13} />
             </button>
           </div>
