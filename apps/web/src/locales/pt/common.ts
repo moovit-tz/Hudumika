@@ -13,6 +13,7 @@ export default
     "fullWidth": "Visualização em largura total",
     "compact": "Visualização compacta",
     "myProfile": "Meu perfil",
+    "adminPanel": "Painel de administração",
     "signOut": "Sair",
     "account": "Conta"
   },

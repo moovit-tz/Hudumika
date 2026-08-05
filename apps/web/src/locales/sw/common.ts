@@ -13,6 +13,7 @@ export default
     "fullWidth": "Muonekano wa upana kamili",
     "compact": "Muonekano mdogo",
     "myProfile": "Wasifu wangu",
+    "adminPanel": "Paneli ya msimamizi",
     "signOut": "Toka",
     "account": "Akaunti"
   },

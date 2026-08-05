@@ -13,6 +13,7 @@ export default
     "fullWidth": "Full-width view",
     "compact": "Compact view",
     "myProfile": "My profile",
+    "adminPanel": "Admin panel",
     "signOut": "Sign out",
     "account": "Account"
   },

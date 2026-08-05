@@ -13,6 +13,7 @@ export default
     "fullWidth": "全宽视图",
     "compact": "紧凑视图",
     "myProfile": "我的资料",
+    "adminPanel": "管理面板",
     "signOut": "退出登录",
     "account": "账户"
   },

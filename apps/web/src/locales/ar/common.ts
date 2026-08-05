@@ -13,6 +13,7 @@ export default
     "fullWidth": "عرض كامل العرض",
     "compact": "عرض مضغوط",
     "myProfile": "ملفي الشخصي",
+    "adminPanel": "لوحة الإدارة",
     "signOut": "تسجيل الخروج",
     "account": "الحساب"
   },

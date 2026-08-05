@@ -468,6 +468,17 @@ export function AppHeader({
                       <span>{t('header.myProfile')}</span>
                     </Link>
                   </DropdownMenuItem>
+                  {/* Gated on the same role /admin/* itself requires (see
+                      SuperAdminShell's RequireRoles), so the menu can never
+                      offer a route the router will bounce. */}
+                  {user?.role === 'SUPER_ADMIN' && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin" className="flex w-full cursor-pointer items-center gap-3">
+                        <Icon name="shield" size={16} className="text-muted-foreground" />
+                        <span>{t('header.adminPanel')}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                 </div>
                 <DropdownMenuSeparator />
                 <div className="p-1">

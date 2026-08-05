@@ -13,6 +13,7 @@ export default
     "fullWidth": "Vue pleine largeur",
     "compact": "Vue compacte",
     "myProfile": "Mon profil",
+    "adminPanel": "Panneau d'administration",
     "signOut": "Déconnexion",
     "account": "Compte"
   },
