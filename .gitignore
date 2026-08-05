@@ -1,7 +1,17 @@
 # Dependencies
 node_modules/
 
-.claude/
+.claude/*
+# ...but the agent's memory is the one thing in there worth keeping. It
+# lived only under the user's home .claude/projects/ directory, outside
+# any repo -- untracked, unpushed, and gone with the machine. Tracking it
+# makes git the backup of record.
+#
+# Note `.claude/*` not `.claude/` -- git cannot re-include a path inside an
+# excluded *directory*, so the negation below only works if the directory
+# itself is never excluded, only its contents.
+!.claude/memory/
+!.claude/memory/**
 
 # Build outputs
 dist/

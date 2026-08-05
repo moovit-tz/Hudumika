@@ -76,3 +76,39 @@ npm run lint          # eslint . --ext .ts,.tsx
 - `LandedCostPage.tsx` Landed Cost Breakdown UI must remain formatted per the 4-card structure (`CIF VALUE`, `DUTIES & TAXES`, `PORT, ICD & CLEARANCE`, and `GRAND TOTAL — LANDED COST` banner card with 2x2 grid stats) matching Image 1 design guidance. Avoid replacing it with a single flat table.
 - `LandedCostPage.tsx` PDF Export (`printReport` and `printMultiReport`) uses the signature ClearOS report sheet (`ClearOS` brand mark header, `Space Grotesk` fonts, multi-tenant company block, numbered section headers, dark `#161A1E` summary hero card, notes & assumptions grid, legal box, signature block, and single-page dynamic fit script `fitPageToContent`). Always preserve this format when editing PDF export templates.
 - `Workflow Studio` (`/studio` / `WorkflowStudioPage.tsx` & `workflow-studio.routes.ts`) is the Google Workspace Studio style visual workflow builder app. Interlinked across platform entities (`shipment.created`, `landed_cost.computed`, `penalty.high_risk`, `invoice.created`, `compliance.checked`, `crm.lead_created`). Tables `workflow_studio_apps` and `workflow_studio_runs` store app node graphs and execution logs.
+- `Header User Profile Dropdown` (`AppHeader.tsx`) follows the modern Dreams AI / SaaS profile card design: 36px circular avatar trigger with a 10px green status indicator dot (`#10b981`), opening a `w-64 p-3 rounded-2xl shadow-xl` card containing a top identity block (38px avatar + green status dot, user name, email, role pill badge), navigation links (My Profile `/profile`, AI Studio `/studio`, Workspace Settings `/workspace`, Billing & Subscription `/workspace/billing`, and role-gated SuperAdmin `/admin`), and a soft red-tinted Sign Out item.
+- `Notification Centre Popup` (`NotificationCentre.tsx` / `NotificationListItem.tsx` / `NotificationCentre.css`) follows the UBold / Coderthemes retro layout (380px wide card, top title + compact numeric count badge e.g. `193` in a single-line `var(--teal-l)` pill, circular user avatar with top-right type badge overlay, bold actor/title text, relative timestamp `12 minutes ago`, and underlined `Read All Messages` footer link).
+
+## Agent memory is backed up — keep it that way
+
+The coding agent's memory lives in `~/.claude/projects/d--Apps-Hudumika/memory/`.
+That is one machine's disk: not in any repo, never pushed, gone if `.claude` is
+wiped. Six files of accumulated project context were sitting there with no copy.
+
+Two layers back it up now:
+
+- **`.claude/memory/` in this repo is the backup of record.** Text, versioned,
+  diffable, pushed with everything else; restoring is a checkout, and it needs
+  no database running. `.gitignore` uses `.claude/*` rather than `.claude/`
+  precisely so the `!.claude/memory/**` negation can work — git cannot
+  re-include a path inside an excluded *directory*.
+- **`claude_agent.memory` in Postgres** mirrors it for anyone who wants the
+  content queryable.
+
+```
+node scripts/memory-sync.mjs push     # home dir -> repo -> postgres
+node scripts/memory-sync.mjs pull     # postgres -> repo (recover)
+node scripts/memory-sync.mjs status   # what is where, and what differs
+```
+
+**The harness only ever reads the home directory.** The repo and database
+copies are backups, not the live store — after a `pull`, copy the files back
+into that directory or the agent will not see them.
+
+The table is in the `claude_agent` schema, not `public`, and is created by that
+script rather than by a migration in `apps/api/src/db/migrations`. Agent memory
+is developer tooling, not tenant data: putting it in the product's migration
+chain would ship a table of Claude's notes to every tenant deployment. It has
+no `tenant_id` for the same reason — a tenant column would imply an isolation
+guarantee that does not apply here. Don't let anything that reads tenant-scoped
+tables touch it.
