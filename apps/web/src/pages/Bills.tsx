@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { MetricsRow, spark } from '../components/MetricCard.js';
+import { FormPage } from '../components/FormPage.js';
 import { Icon } from '../components/Icon.js';
 import { getCompany } from '../data/companyStore.js';
 import { useCurrency } from '../hooks/useCurrency.js';
@@ -336,17 +337,20 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
   const sec: React.CSSProperties = { fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:10 };
 
   return (
-    <>
-      <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.3)', zIndex:400 }} />
-      <div style={{ position:'fixed', top:0, right:0, bottom:0, width:620, background:'var(--white)', zIndex:401, display:'flex', flexDirection:'column', boxShadow:'-8px 0 40px rgba(0,0,0,0.15)' }}>
-        <div style={{ padding:'18px 24px', borderBottom:'1px solid var(--border)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <div>
-            <div style={{ fontWeight:800, fontSize:15, color:'var(--ink)' }}>{initial ? `Edit ${initial.bill_number}` : 'New Bill'}</div>
-            <div style={{ fontSize:12, color:'var(--ink3)', marginTop:2 }}>Supplier bill with line items</div>
-          </div>
-          <button type="button" title="Close" onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', display:'flex', padding:4 }}><Icon name="x" size={18} /></button>
-        </div>
-        <div style={{ flex:1, overflowY:'auto', padding:'18px 24px' }}>
+    <FormPage
+      title={initial ? `Edit ${initial.bill_number}` : 'New Bill'}
+      subtitle="Supplier bill with line items"
+      onCancel={onClose}
+      actions={
+        <>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
+          <button type="button" className="btn btn-primary" onClick={() => { if (!f.supplier_id || !f.due_date) { showAlert('Supplier and due date are required.'); return; } onSave(f); }}>
+            <Icon name="save" size={13} /> {initial ? 'Update Bill' : 'Save Bill'}
+          </button>
+        </>
+      }
+    >
+      <div className="card" style={{ maxWidth: 900 }}>
           <div style={{ ...sec, marginTop:0 }}>Bill Details</div>
           <div style={{ marginBottom:12 }}>
             <EntityPicker
@@ -437,15 +441,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
 
           <div><label style={lbl}>Notes</label><textarea title="Notes" placeholder="Payment terms, references, or other notes…" value={f.notes} onChange={e => setField('notes', e.target.value)} rows={3} style={{ ...inp, resize:'vertical' }} /></div>
         </div>
-        <div style={{ padding:'14px 24px', borderTop:'1px solid var(--border)', display:'flex', gap:8, justifyContent:'flex-end' }}>
-          <button type="button" title="Cancel" onClick={onClose} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-          <button type="button" title="Save as draft" onClick={() => { if (!f.supplier_id || !f.due_date) { showAlert('Supplier and due date are required.'); return; } onSave(f); }}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="save" size={13} /> {initial ? 'Update Bill' : 'Save Bill'}
-          </button>
-        </div>
-      </div>
-    </>
+    </FormPage>
   );
 }
 
@@ -1035,6 +1031,21 @@ export const Bills: React.FC = () => {
 
   const uniqueSups = Array.from(new Set(bills.map(b => b.supplier_id)));
 
+  // Full page rather than a 620px drawer — a bill carries a supplier picker,
+  // dates, a line-item table and totals.
+  if (showBillForm) {
+    return (
+      <BillFormView
+        initial={formBill ?? undefined}
+        allBills={bills}
+        suppliers={suppliers}
+        onSupplierCreated={handleSupplierCreated}
+        onSave={handleSaveBill}
+        onClose={() => { setShowBillForm(false); setFormBill(null); }}
+      />
+    );
+  }
+
   return (
     <div style={{ display:'flex', flexDirection:'column', flex:1, overflow:'hidden' }}>
       {/* Modals */}
@@ -1053,9 +1064,6 @@ export const Bills: React.FC = () => {
             </div>
           </div>
         </div>
-      )}
-      {showBillForm && (
-        <BillFormView initial={formBill ?? undefined} allBills={bills} suppliers={suppliers} onSupplierCreated={handleSupplierCreated} onSave={handleSaveBill} onClose={() => { setShowBillForm(false); setFormBill(null); }} />
       )}
       {showRecurForm && (
         <RecurFormView initial={formRecur ?? undefined} suppliers={suppliers} onSupplierCreated={handleSupplierCreated} onSave={handleSaveRecur} onClose={() => { setShowRecurForm(false); setFormRecur(null); }} />
