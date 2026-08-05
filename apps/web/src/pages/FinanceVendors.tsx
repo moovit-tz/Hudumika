@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
+import { FormPage } from '../components/FormPage.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -265,17 +266,20 @@ function VendorForm({ vendor, onSave, onClose }: {
   const sel: React.CSSProperties = { ...inp, cursor: 'pointer' };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-      onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ width: '100%', maxWidth: 560, background: 'var(--white)', borderRadius: 12, boxShadow: 'var(--elev-lg)', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--navy)' }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{vendor ? 'Edit Vendor' : 'New Vendor'}</span>
-          <button type="button" onClick={onClose} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="x" size={14} color="#fff" />
+    <FormPage
+      title={vendor ? `Edit ${vendor.name}` : 'New Vendor'}
+      subtitle="Contact, payment terms and tax details for a supplier you buy from."
+      onCancel={onClose}
+      actions={
+        <>
+          <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
+          <button type="button" onClick={handleSave} disabled={saving || !form.name.trim()} className="btn btn-primary">
+            <Icon name="check" size={14} color="#fff" /> {saving ? 'Saving…' : vendor ? 'Save Changes' : 'Add Vendor'}
           </button>
-        </div>
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+        </>
+      }
+    >
+      <div className="card" style={{ maxWidth: 780, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <div style={{ gridColumn: '1 / -1' }}>
             <F label="Vendor Name *">
               <input style={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Tanzania Ports Authority" />
@@ -347,18 +351,7 @@ function VendorForm({ vendor, onSave, onClose }: {
           </div>
         </div>
 
-        <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-          <button type="button" onClick={onClose}
-            style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            Cancel
-          </button>
-          <button type="button" onClick={handleSave} disabled={saving || !form.name.trim()}
-            style={{ padding: 'var(--ds-btn-py) 20px', border: 'none', borderRadius: 'var(--r)', background: !form.name.trim() ? 'var(--border)' : 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: form.name.trim() ? 'pointer' : 'default', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="check" size={14} color="#fff" /> {vendor ? 'Save Changes' : 'Add Vendor'}
-          </button>
-        </div>
-      </div>
-    </div>
+    </FormPage>
   );
 }
 
@@ -450,6 +443,19 @@ export function FinanceVendors() {
     apiFetch(`/v1/suppliers/${id}`, { method: 'DELETE' })
       .then(() => { setVendors(prev => prev.filter(v => v.id !== id)); if (selected?.id === id) setSelected(null); })
       .catch(() => {});
+  }
+
+  // The create/edit form replaces the list rather than layering over it, the
+  // same way Quotations already worked. A vendor record is ~14 fields; in a
+  // modal that scrolls inside a box inside the scrolling page behind it.
+  if (showForm) {
+    return (
+      <VendorForm
+        vendor={editVendor}
+        onSave={handleSave}
+        onClose={() => { setShowForm(false); setEditVendor(null); }}
+      />
+    );
   }
 
   return (
@@ -598,13 +604,6 @@ export function FinanceVendors() {
       </div>
 
       {/* Form modal */}
-      {showForm && (
-        <VendorForm
-          vendor={editVendor}
-          onSave={handleSave}
-          onClose={() => { setShowForm(false); setEditVendor(null); }}
-        />
-      )}
     </div>
   );
 }
