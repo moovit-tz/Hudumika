@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
+import { FormPage } from '../components/FormPage.js';
 import { apiFetch } from '../lib/api.js';
 import { useFullLayout } from '../hooks/useFullLayout.js';
 import type { ChartOfAccount, AccountType } from '@hudumika/types';
@@ -268,6 +269,57 @@ export const ChartOfAccounts: React.FC = () => {
     URL.revokeObjectURL(url);
   }
 
+  // Full page, matching Quotations — the form replaces the list instead of
+  // floating over it. Rendering it as an absolutely-positioned layer inside
+  // the page escaped its container and covered the sidebar and top bar.
+  if (showForm) {
+    return (
+      <FormPage
+        title={editing ? `Edit ${editing.code}` : 'New Account'}
+        subtitle="Where this account sits in the chart and how it is classified."
+        onCancel={() => setShowForm(false)}
+        actions={
+          <>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowForm(false)} disabled={saving}>Cancel</button>
+            <button type="button" className="btn btn-primary" onClick={handleSaveAccount} disabled={saving}>{saving ? 'Saving…' : 'Save Account'}</button>
+          </>
+        }
+      >
+        <div className="card" style={{ maxWidth: 560, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Code</label>
+                <input className="input-field" style={{ width: '100%' }} placeholder="e.g. 1150" value={fCode} onChange={e => setFCode(e.target.value)} disabled={!!editing} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Name</label>
+                <input className="input-field" style={{ width: '100%' }} placeholder="Account name" value={fName} onChange={e => setFName(e.target.value)} />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Type</label>
+                <Select value={fType} onValueChange={v => setFType(v as AccountType)} disabled={!!editing}>
+                  <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {TYPE_ORDER.map(t => <SelectItem key={t} value={t}>{TYPE_CFG[t].label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Parent Account</label>
+                <Combobox
+                  options={[{ value: '', label: '— None (top-level) —' }, ...flat.filter(a => a.id !== editing?.id).map(a => ({ value: a.id, label: `${a.code} — ${a.name}` }))]}
+                  value={fParentId} onChange={setFParentId}
+                  placeholder="— None (top-level) —"
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Description</label>
+                <input className="input-field" style={{ width: '100%' }} placeholder="Optional" value={fDescription} onChange={e => setFDescription(e.target.value)} />
+              </div>
+        </div>
+      </FormPage>
+    );
+  }
+
   return (
     <div style={{ padding: '28px 32px', maxWidth: isFullLayout ? 'none' : 1100 }}>
 
@@ -458,51 +510,6 @@ export const ChartOfAccounts: React.FC = () => {
         </div>
       )}
 
-      {/* New / Edit Account modal */}
-      {showForm && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={() => setShowForm(false)}>
-          <div style={{ background: 'var(--white)', borderRadius: 12, padding: '28px 32px', width: 420, boxShadow: 'var(--elev-lg)' }}
-            onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 20 }}>{editing ? 'Edit Account' : 'New Account'}</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Code</label>
-                <input className="input-field" style={{ width: '100%' }} placeholder="e.g. 1150" value={fCode} onChange={e => setFCode(e.target.value)} disabled={!!editing} />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Name</label>
-                <input className="input-field" style={{ width: '100%' }} placeholder="Account name" value={fName} onChange={e => setFName(e.target.value)} />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Type</label>
-                <Select value={fType} onValueChange={v => setFType(v as AccountType)} disabled={!!editing}>
-                  <SelectTrigger className="input-field" style={{ width: '100%' }}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {TYPE_ORDER.map(t => <SelectItem key={t} value={t}>{TYPE_CFG[t].label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Parent Account</label>
-                <Combobox
-                  options={[{ value: '', label: '— None (top-level) —' }, ...flat.filter(a => a.id !== editing?.id).map(a => ({ value: a.id, label: `${a.code} — ${a.name}` }))]}
-                  value={fParentId} onChange={setFParentId}
-                  placeholder="— None (top-level) —"
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 5 }}>Description</label>
-                <input className="input-field" style={{ width: '100%' }} placeholder="Optional" value={fDescription} onChange={e => setFDescription(e.target.value)} />
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 10, marginTop: 24, justifyContent: 'flex-end' }}>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowForm(false)} disabled={saving}>Cancel</button>
-              <button type="button" className="btn btn-primary btn-sm" onClick={handleSaveAccount} disabled={saving}>{saving ? 'Saving…' : 'Save Account'}</button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
