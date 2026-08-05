@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { FormPage } from '../components/FormPage.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
@@ -223,6 +224,81 @@ export const FinancePayments: React.FC = () => {
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   }).length;
 
+  // Full page, matching Quotations: the form replaces the list rather than
+  // floating over it. Submit stays on the <form> so Enter still saves.
+  if (showAdd) {
+    return (
+      <FormPage
+        title="Record Payment"
+        subtitle="Match a received payment against an invoice and attach its proof."
+        onCancel={() => setShowAdd(false)}
+        actions={
+          <>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowAdd(false)} disabled={saving}>Cancel</button>
+            <button type="submit" form="payment-form" className="btn btn-primary" disabled={saving}>{saving ? 'Saving…' : 'Save Payment'}</button>
+          </>
+        }
+      >
+        <form id="payment-form" onSubmit={handleSave} className="card" style={{ maxWidth: 620, display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Select Invoice</label>
+                <Combobox
+                  options={invoices.map(inv => ({ value: inv.id, label: `${inv.invoice_number} - ${inv.client_name || 'Unknown'}` }))}
+                  value={fInvoice} onChange={setFInvoice} placeholder="-- Choose Invoice --"
+                />
+                {selectedInvoice && (
+                  <div style={{ fontSize: 11, color: 'var(--teal)', marginTop: 4 }}>
+                    Linked Client: <strong>{selectedInvoice.client_name || 'Unknown'}</strong>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Amount (TZS)</label>
+                  <input type="number" className="input-field" value={fAmount} onChange={e => setFAmount(e.target.value)} required />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Date</label>
+                  <DatePicker date={parseDateOnly(fDate)} onChange={d => setFDate(toDateOnlyString(d))} />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Payment Mode</label>
+                <Select value={fMode} onValueChange={setFMode}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
+                    <SelectItem value="Cash">Cash</SelectItem>
+                    <SelectItem value="Cheque">Cheque</SelectItem>
+                    <SelectItem value="Mobile Money">Mobile Money</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Internal Note</label>
+                <textarea className="input-field" rows={2} value={fNote} onChange={e => setFNote(e.target.value)}></textarea>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Proof of Payment (Receipt / Docs)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <input type="file" id="fFile" style={{ display: 'none' }} onChange={e => setFFile(e.target.files?.[0] || null)} />
+                  <button type="button" onClick={() => document.getElementById('fFile')?.click()} style={{ padding: 'var(--ds-btn-py) 12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                    <Icon name="upload" size={14} /> {fFile ? 'Change File' : 'Upload File'}
+                  </button>
+                  {fFile && <span style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fFile.name}</span>}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>File will automatically be saved to File Manager &gt; Client Folder &gt; BL Number.</div>
+              </div>
+        </form>
+      </FormPage>
+    );
+  }
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       {/* -- Header -- */}
@@ -315,80 +391,6 @@ export const FinancePayments: React.FC = () => {
         )}
       </div>
 
-      {/* -- Record Payment Modal -- */}
-      {showAdd && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowAdd(false)}>
-          <div className="card" style={{ width: 480, padding: 24, borderRadius: 9 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h2 style={{ margin: 0, fontSize: 16, color: 'var(--navy)' }}>Record Payment</h2>
-              <button type="button" className="dp-close" onClick={() => setShowAdd(false)}><Icon name="x" size={16} /></button>
-            </div>
-
-            <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Select Invoice</label>
-                <Combobox
-                  options={invoices.map(inv => ({ value: inv.id, label: `${inv.invoice_number} - ${inv.client_name || 'Unknown'}` }))}
-                  value={fInvoice} onChange={setFInvoice} placeholder="-- Choose Invoice --"
-                />
-                {selectedInvoice && (
-                  <div style={{ fontSize: 11, color: 'var(--teal)', marginTop: 4 }}>
-                    Linked Client: <strong>{selectedInvoice.client_name || 'Unknown'}</strong>
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Amount (TZS)</label>
-                  <input type="number" className="input-field" value={fAmount} onChange={e => setFAmount(e.target.value)} required />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Date</label>
-                  <DatePicker date={parseDateOnly(fDate)} onChange={d => setFDate(toDateOnlyString(d))} />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Payment Mode</label>
-                <Select value={fMode} onValueChange={setFMode}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                    <SelectItem value="Cash">Cash</SelectItem>
-                    <SelectItem value="Cheque">Cheque</SelectItem>
-                    <SelectItem value="Mobile Money">Mobile Money</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Internal Note</label>
-                <textarea className="input-field" rows={2} value={fNote} onChange={e => setFNote(e.target.value)}></textarea>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Proof of Payment (Receipt / Docs)</label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <input type="file" id="fFile" style={{ display: 'none' }} onChange={e => setFFile(e.target.files?.[0] || null)} />
-                  <button type="button" onClick={() => document.getElementById('fFile')?.click()} style={{ padding: 'var(--ds-btn-py) 12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, color: 'var(--ink)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                    <Icon name="upload" size={14} /> {fFile ? 'Change File' : 'Upload File'}
-                  </button>
-                  {fFile && <span style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{fFile.name}</span>}
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>File will automatically be saved to File Manager &gt; Client Folder &gt; BL Number.</div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 10 }}>
-                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowAdd(false)} disabled={saving}>Cancel</button>
-                <button type="submit" className="btn btn-primary btn-sm" disabled={saving}>{saving ? 'Saving…' : 'Save Payment'}</button>
-              </div>
-
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
