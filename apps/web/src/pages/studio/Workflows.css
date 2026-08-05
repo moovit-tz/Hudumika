@@ -30,7 +30,7 @@
 .wfb-toggle { position:relative; display:inline-block; width:38px; height:21px; flex-shrink:0; cursor:pointer; }
 .wfb-toggle input { position:absolute; opacity:0; width:0; height:0; }
 .wfb-toggle-slider { position:absolute; inset:0; background:var(--border); border-radius:100px; transition:background 0.18s; }
-.wfb-toggle-slider::after { content:''; position:absolute; width:15px; height:15px; top:3px; left:3px; background:white; border-radius:50%; transition:transform 0.18s; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+.wfb-toggle-slider::after { content:''; position:absolute; width:15px; height:15px; top:3px; left:3px; background:white; border-radius:50%; transition:transform 0.18s; box-shadow: var(--elev-sm); }
 .wfb-toggle input:checked + .wfb-toggle-slider { background:var(--teal); }
 .wfb-toggle input:checked + .wfb-toggle-slider::after { transform:translateX(17px); }
 
@@ -133,12 +133,12 @@
   background:var(--white);
   border-radius:12px;
   border:1.5px solid var(--border);
-  box-shadow:0 1px 4px rgba(15,23,42,.06), 0 4px 14px rgba(15,23,42,.04);
+  box-shadow: var(--elev);
   cursor:pointer;
   transition:box-shadow 0.15s, transform 0.15s, border-color 0.15s;
   user-select:none;
 }
-.wfb-node:hover { box-shadow:0 4px 18px rgba(15,23,42,.1), 0 8px 32px rgba(15,23,42,.06); transform:translateY(-2px); }
+.wfb-node:hover { box-shadow: var(--elev-lg); transform:translateY(-2px); }
 .wfb-node.wfb-node-selected { border-color:var(--teal,#0d9488); box-shadow:0 0 0 3px rgba(13,148,136,.12), 0 4px 18px rgba(15,23,42,.1); transform:translateY(-2px); }
 .wfb-node.wfb-node-start { border-top-width:3px; border-top-color:var(--teal,#0d9488); }
 
@@ -159,11 +159,11 @@
   background:var(--white); border:1.5px solid var(--border2); border-radius:50%;
   display:flex; align-items:center; justify-content:center;
   cursor:pointer; transition:all 0.12s;
-  box-shadow:0 1px 4px rgba(15,23,42,.1);
+  box-shadow: var(--elev-sm);
   color:var(--ink3); font-size:14px; line-height:1; font-weight:700;
   font-family:inherit; padding:0;
 }
-.wfb-add-between:hover { border-color:var(--teal,#0d9488); background:var(--teal,#0d9488); color:white; box-shadow:0 2px 8px rgba(13,148,136,.3); }
+.wfb-add-between:hover { border-color:var(--teal,#0d9488); background:var(--teal,#0d9488); color:white; box-shadow: var(--elev); }
 
 /* Append button after terminal nodes */
 .wfb-append-btn {
@@ -181,7 +181,7 @@
   position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
   background:var(--white); border:1px solid var(--border,#E2E8F0); border-radius:9px;
   padding:4px 6px; display:flex; align-items:center; gap:2px;
-  box-shadow:0 2px 10px rgba(15,23,42,.08); z-index:20; white-space:nowrap;
+  box-shadow: var(--elev); z-index:20; white-space:nowrap;
 }
 .wfb-zoom-btn { width:28px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:6px; border:none; background:none; cursor:pointer; color:var(--ink3); transition:all 0.1s; font-family:inherit; font-size:13px; }
 .wfb-zoom-btn:hover { background:var(--bg); color:var(--navy); }

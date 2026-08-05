@@ -451,7 +451,7 @@ export const CalendarApp: React.FC = () => {
                         fontSize: 12, fontWeight: 600, color: '#fff', cursor: 'grab', zIndex: 10,
                         opacity: draggingEventId === ev.id ? 0.4 : 1,
                         overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: 2,
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
+                        boxShadow: 'var(--elev)'
                       }}
                     >
                       <div style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>{ev.title}</div>
@@ -527,7 +527,7 @@ export const CalendarApp: React.FC = () => {
                           fontSize: 14, color: '#fff', cursor: 'grab', zIndex: 10,
                           opacity: draggingEventId === ev.id ? 0.4 : 1,
                           display: 'flex', flexDirection: 'column', gap: 4, overflow: 'hidden',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                          boxShadow: 'var(--elev)'
                         }}
                       >
                         <div style={{ fontWeight: 700 }}>{ev.title}</div>
@@ -599,7 +599,7 @@ export const CalendarApp: React.FC = () => {
       {/* Create Modal */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.4)' }}>
-          <div style={{ background: 'var(--white)', borderRadius: 16, width: 'min(440px, 92vw)', padding: isMobile ? 18 : 24, boxShadow: '0 12px 40px rgba(0,0,0,.2)' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 16, width: 'min(440px, 92vw)', padding: isMobile ? 18 : 24, boxShadow: 'var(--elev-lg)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 style={{ fontSize: 18, fontWeight: 600 }}>{editingEvent ? 'Edit Event' : 'Create Event'}</h2>
               {editingEvent && (
@@ -654,7 +654,7 @@ export const CalendarApp: React.FC = () => {
             <div style={{
               position: 'fixed', top: Math.min(popover.y, window.innerHeight - 200), left: Math.min(popover.x, window.innerWidth - 300),
               width: 280, background: 'var(--white)', borderRadius: 12, padding: 16, zIndex: 901,
-              boxShadow: '0 8px 30px rgba(0,0,0,0.15)', border: '1px solid var(--border)'
+              boxShadow: 'var(--elev-lg)', border: '1px solid var(--border)'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                 <div style={{ width: 12, height: 12, borderRadius: '50%', background: cfg.color, marginTop: 4 }} />

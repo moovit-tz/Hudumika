@@ -374,7 +374,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
       </div>
 
       {toast && (
-        <div style={{ position: 'fixed', bottom: 160, left: 16, right: 16, background: 'var(--ink)', color: '#fff', borderRadius: 9, padding: '12px 16px', fontSize: 13, fontWeight: 600, zIndex: 400, textAlign: 'center', boxShadow: '0 8px 24px rgba(0,0,0,0.2)' }}>
+        <div style={{ position: 'fixed', bottom: 160, left: 16, right: 16, background: 'var(--ink)', color: '#fff', borderRadius: 9, padding: '12px 16px', fontSize: 13, fontWeight: 600, zIndex: 400, textAlign: 'center', boxShadow: 'var(--elev-lg)' }}>
           {toast}
         </div>
       )}

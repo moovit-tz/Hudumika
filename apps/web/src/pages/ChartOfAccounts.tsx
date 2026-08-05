@@ -402,7 +402,7 @@ export const ChartOfAccounts: React.FC = () => {
         <div style={{
           position: 'fixed', bottom: 24, right: 24, width: 320,
           background: 'var(--white)', border: '1px solid var(--border)',
-          borderRadius: 12, boxShadow: '0 4px 6px rgba(0,0,0,.08), 0 12px 40px rgba(0,0,0,.14)',
+          borderRadius: 12, boxShadow: 'var(--elev-lg)',
           zIndex: 200, overflow: 'hidden',
         }}>
           <div style={{
@@ -462,7 +462,7 @@ export const ChartOfAccounts: React.FC = () => {
       {showForm && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => setShowForm(false)}>
-          <div style={{ background: 'var(--white)', borderRadius: 12, padding: '28px 32px', width: 420, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}
+          <div style={{ background: 'var(--white)', borderRadius: 12, padding: '28px 32px', width: 420, boxShadow: 'var(--elev-lg)' }}
             onClick={e => e.stopPropagation()}>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 20 }}>{editing ? 'Edit Account' : 'New Account'}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

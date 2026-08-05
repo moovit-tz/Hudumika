@@ -6,7 +6,7 @@
   border-radius: 12px;
   overflow: hidden;
   border: 1px solid var(--border);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  box-shadow: var(--elev);
 }
 
 .create-shipment-sidebar {
@@ -143,7 +143,7 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 32px;
-  box-shadow: 0 4px 12px rgba(11,37,64,0.03);
+  box-shadow: var(--elev);
 }
 
 .create-shipment-footer {

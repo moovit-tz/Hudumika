@@ -693,7 +693,7 @@ export const PurchaseOrders: React.FC = () => {
               borderRadius: 9,
               background: 'var(--white)',
               borderLeft: `5px solid ${t.type === 'success' ? 'var(--green)' : t.type === 'info' ? 'var(--blue)' : 'var(--red)'}`,
-              boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+              boxShadow: 'var(--elev)',
               display: 'flex',
               alignItems: 'center',
               gap: 12,
@@ -970,7 +970,7 @@ export const PurchaseOrders: React.FC = () => {
                         display: 'flex',
                         flexDirection: 'column',
                         gap: 12,
-                        boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
+                        boxShadow: 'var(--elev-sm)',
                         transition: 'transform 0.15s ease, box-shadow 0.15s ease',
                         cursor: 'default'
                       }}

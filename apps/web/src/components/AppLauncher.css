@@ -13,7 +13,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--elev);
 }
 .app-lnch-custom-icon-img {
   width: 76%;
@@ -27,7 +27,7 @@
   display: block;
   border-radius: 12px;
   flex-shrink: 0;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--elev);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -49,7 +49,7 @@
   background: #ffffff;
   border: 1px solid rgba(226, 232, 240, 0.8);
   border-radius: 20px;
-  box-shadow: 0 20px 48px -6px rgba(15, 23, 42, 0.16), 0 4px 16px -2px rgba(15, 23, 42, 0.06);
+  box-shadow: var(--elev-lg);
   z-index: 499;
   display: flex;
   flex-direction: column;
@@ -226,7 +226,7 @@
 
 .app-lnch-panel-item:hover .app-lnch-svg-icon,
 .app-lnch-panel-item:hover .app-lnch-custom-icon {
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
+  box-shadow: var(--elev);
 }
 
 .app-lnch-panel-item--over {
@@ -326,7 +326,7 @@
 [data-theme="dark"] .app-lnch-panel {
   background: #18181b;
   border-color: #27272a;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--elev-lg);
 }
 
 [data-theme="dark"] .app-lnch-panel-title {

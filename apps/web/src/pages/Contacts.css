@@ -38,13 +38,13 @@
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  box-shadow: 0 1px 3px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+  box-shadow: var(--elev-sm);
   transition: box-shadow .15s;
   white-space: nowrap;
   width: 100%;
 }
 .csb-create-btn:hover {
-  box-shadow: 0 1px 3px 0 rgba(60,64,67,.3), 0 4px 8px 3px rgba(60,64,67,.15);
+  box-shadow: var(--elev);
 }
 
 /* Main nav */
@@ -214,7 +214,7 @@
   border-radius: 8px;
   width: 320px;
   max-width: 90%;
-  box-shadow: 0 8px 32px rgba(0,0,0,.2);
+  box-shadow: var(--elev-lg);
 }
 .csb-modal-title {
   font-size: 15px;
@@ -257,7 +257,7 @@
 }
 .cts-search-wrap--focused {
   background: var(--white);
-  box-shadow: 0 1px 3px rgba(60,64,67,.3), 0 4px 8px rgba(60,64,67,.15);
+  box-shadow: var(--elev);
   width: 100%;
 }
 .cts-search-icon {
@@ -461,10 +461,10 @@
 [data-theme="dark"] .csb-create-btn {
   background: var(--surface2, #2a2a3e);
   color: var(--ink, #e2e8f0);
-  box-shadow: 0 1px 3px 0 rgba(0,0,0,.5), 0 1px 3px 1px rgba(0,0,0,.3);
+  box-shadow: var(--elev-sm);
 }
 [data-theme="dark"] .csb-create-btn:hover {
-  box-shadow: 0 1px 3px 0 rgba(0,0,0,.5), 0 4px 8px 3px rgba(0,0,0,.3);
+  box-shadow: var(--elev);
 }
 [data-theme="dark"] .csb-nav-item { color: var(--ink2, #94a3b8); }
 [data-theme="dark"] .csb-nav-item:hover { background: var(--surface2, #2a2a3e); }

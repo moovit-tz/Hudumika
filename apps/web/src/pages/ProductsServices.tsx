@@ -268,7 +268,7 @@ function StatusPill({ status }: { status: 'active' | 'inactive' }) {
 function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: () => void; onCancel: () => void }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 400, boxShadow: '0 24px 64px rgba(0,0,0,0.2)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 400, boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Delete Service</div>
         <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 20 }}>
           Are you sure you want to delete <strong>{name}</strong>? This cannot be undone and may affect invoices or quotations referencing this item.

@@ -215,7 +215,7 @@ export function ComplianceOverview() {
 
   const cardStyle: React.CSSProperties = {
     background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14,
-    boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
+    boxShadow: 'var(--elev-lg)',
   };
 
   return (

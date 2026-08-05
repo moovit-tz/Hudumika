@@ -39,7 +39,7 @@
   -webkit-backdrop-filter: blur(20px);
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--elev-lg);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -181,7 +181,7 @@
   padding: 12px 20px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--elev-lg);
   display: flex;
   flex-direction: column;
   min-width: 120px;
@@ -223,7 +223,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: var(--elev);
   transition: all 0.2s;
 }
 .trk-mc-btn:hover { background: #fff; transform: translateY(-2px); }
@@ -242,7 +242,7 @@
   background: rgba(255, 255, 255, 0.95);
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.14);
+  box-shadow: var(--elev-lg);
   min-width: 110px;
 }
 .trk-layers-menu-item {
@@ -289,7 +289,7 @@
   -webkit-backdrop-filter: blur(20px);
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.4);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--elev-lg);
   display: flex;
   flex-direction: column;
   transform: translateX(110%);
@@ -418,7 +418,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: var(--elev);
   position: relative;
   z-index: 2;
   transition: transform 0.2s;
@@ -436,7 +436,7 @@
 
 .trk-marker-wrap.selected .trk-marker-icon {
   transform: scale(1.2);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  box-shadow: var(--elev-lg);
 }
 
 .trk-marker-arrow {
@@ -475,7 +475,7 @@
 [data-theme="dark"] .trk-mc-btn {
   background: rgba(30, 41, 59, 0.85);
   border-color: rgba(255, 255, 255, 0.1);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--elev-lg);
 }
 
 [data-theme="dark"] .trk-search-box input {

@@ -173,7 +173,7 @@ html[data-expanded="true"] .app-sidebar {
   border: 1px solid rgba(0, 0, 0, 0.16);
   border-radius: 50%;
   background: var(--white);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--elev);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -186,7 +186,7 @@ html[data-expanded="true"] .app-sidebar {
 
 .app-sb-toggle:hover {
   background: var(--bg);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--elev);
   transform: scale(1.08);
 }
 
@@ -373,7 +373,7 @@ html[data-expanded="true"] .app-sidebar {
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+  box-shadow: var(--elev);
 }
 
 .app-sb-sub-header {
@@ -589,7 +589,7 @@ html[data-expanded="true"] .app-sidebar {
 [data-theme="dark"] .app-sb-theme-pill--active {
   background: #1e2433;
   color: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--elev-sm);
 }
 
 [data-theme="dark"] .app-sb-footer-icon-btn {
@@ -683,7 +683,7 @@ html[data-expanded="true"] .app-sidebar {
   border-radius: 18px;
   background: #fff;
   border: none;
-  box-shadow: 0 1px 4px rgba(0,0,0,.14), 0 1px 2px rgba(0,0,0,.08);
+  box-shadow: var(--elev-sm);
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
@@ -701,13 +701,13 @@ html[data-expanded="true"] .app-sidebar {
   height: 48px;
 }
 .em-shell-compose-btn:hover {
-  box-shadow: 0 2px 8px rgba(0,0,0,.18);
+  box-shadow: var(--elev);
 }
 
 [data-theme="dark"] .em-shell-compose-btn {
   background: rgba(255,255,255,.08);
   color: rgba(255,255,255,.85);
-  box-shadow: 0 1px 4px rgba(0,0,0,.4);
+  box-shadow: var(--elev-sm);
 }
 [data-theme="dark"] .em-shell-compose-btn:hover {
   background: rgba(255,255,255,.12);

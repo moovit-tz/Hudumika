@@ -219,7 +219,7 @@ function RejectModal({ onConfirm, onCancel }: { onConfirm:(r:string)=>void; onCa
   const [reason, setReason] = useState('');
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ background:'var(--white)', borderRadius: 9, padding:28, width:440, boxShadow:'0 24px 64px rgba(0,0,0,0.22)' }}>
+      <div style={{ background:'var(--white)', borderRadius: 9, padding:28, width:440, boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize:16, fontWeight:700, color:'var(--ink)', marginBottom:6 }}>Reject Quotation</div>
         <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:16 }}>Provide a reason. This will be logged on the quote record.</div>
         <textarea title="Rejection reason" placeholder="Enter rejection reason�" value={reason} onChange={e=>setReason(e.target.value)} rows={4}
@@ -241,7 +241,7 @@ function SendModal({ quote, onSend, onCancel }: { quote:Quote; onSend:(email:str
   const [msg, setMsg] = useState(`Dear ${quote.customer_name},\n\nPlease find attached our quotation ${quote.quote_number} for your review. We look forward to your confirmation.\n\nBest regards,\n${getCompany().name}`);
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ background:'var(--white)', borderRadius: 9, padding:28, width:480, boxShadow:'0 24px 64px rgba(0,0,0,0.22)' }}>
+      <div style={{ background:'var(--white)', borderRadius: 9, padding:28, width:480, boxShadow: 'var(--elev-lg)' }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
           <div style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Send Quotation to Customer</div>
           <button type="button" title="Close" onClick={onCancel} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)' }}><Icon name="x" size={18}/></button>

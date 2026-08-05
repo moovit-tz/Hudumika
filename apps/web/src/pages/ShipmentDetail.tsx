@@ -733,7 +733,7 @@ function AdvanceStageModal({ job, onClose, onAdvance }: {
   // Inline panel, not a popup — pushed into normal document flow directly
   // under the header instead of a darkened full-screen overlay.
   return (
-    <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', boxShadow: '0 6px 20px rgba(0,0,0,0.06)' }}>
+    <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', boxShadow: 'var(--elev-lg)' }}>
       <div style={{ maxWidth: 560, margin: '0 auto' }}>
         <div style={{ padding: '16px 20px 0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Advance Stage</div>

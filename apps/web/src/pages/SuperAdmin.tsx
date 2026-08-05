@@ -1846,7 +1846,7 @@ export function SettingsView() {
   const SAToggle = ({ value, onChange, label }: { value:boolean; onChange:(v:boolean)=>void; label:string }) => (
     <button type="button" title={`Toggle ${label}`} onClick={() => onChange(!value)}
       style={{ width:38, height:22, borderRadius:99, border:'none', cursor:'pointer', background:value?'var(--teal)':'var(--border)', position:'relative', transition:'background .2s', flexShrink:0 }}>
-      <span style={{ position:'absolute', top:3, left:value?18:3, width:16, height:16, borderRadius:99, background:'#fff', transition:'left .2s', display:'block', boxShadow:'0 1px 3px rgba(0,0,0,.2)' }} />
+      <span style={{ position:'absolute', top:3, left:value?18:3, width:16, height:16, borderRadius:99, background:'#fff', transition:'left .2s', display:'block', boxShadow: 'var(--elev-sm)' }} />
     </button>
   );
 

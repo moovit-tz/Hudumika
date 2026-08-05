@@ -36,7 +36,7 @@ function AddProviderModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 460, maxWidth: '92vw', boxShadow: '0 16px 48px rgba(0,0,0,0.2)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 460, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Add identity provider</div>
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>Configuration only — connecting this provider to real sign-in is a follow-on step.</div>
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

@@ -545,7 +545,7 @@ export const OrgChart: React.FC = () => {
           proOptions={{ hideAttribution: true }}
         >
           <Background color="#e2e8f0" gap={24} size={1.5} />
-          <Controls style={{ boxShadow: '0 2px 12px rgba(0,0,0,0.1)', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)' }} />
+          <Controls style={{ boxShadow: 'var(--elev)', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)' }} />
           <MiniMap
             nodeColor={(n) => (n.data as any).color ?? '#0891b2'}
             style={{ borderRadius: 10, border: '1px solid var(--border)', background: 'var(--white)' }}
@@ -556,7 +556,7 @@ export const OrgChart: React.FC = () => {
           {/* Legend */}
           <Panel position="top-left">
             <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)',
-              padding: '10px 14px', boxShadow: '0 2px 12px rgba(0,0,0,0.07)', maxWidth: 220 }}>
+              padding: '10px 14px', boxShadow: 'var(--elev)', maxWidth: 220 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>Departments</div>
               {Object.entries(DEPT_COLORS).slice(0, 6).map(([dept, color]) => (
                 <div key={dept} style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 5 }}>
@@ -589,7 +589,7 @@ export const OrgChart: React.FC = () => {
         <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.4)',
           display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ background: 'var(--white)', borderRadius: 14, padding: '24px 28px', width: 420,
-            boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            boxShadow: 'var(--elev-lg)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
               <div style={{ width: 36, height: 36, borderRadius: 9, background: addForm.color + '18',
                 display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

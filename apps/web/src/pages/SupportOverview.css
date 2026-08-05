@@ -101,7 +101,7 @@
   border-radius: 9px;
   padding: 16px 18px;
   border: 1px solid var(--border);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  box-shadow: var(--elev-sm);
   flex: 1 1 170px;
   min-width: 150px;
 }
@@ -146,7 +146,7 @@
   border-radius: 9px;
   padding: 18px 20px;
   border: 1px solid var(--border);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  box-shadow: var(--elev-sm);
   min-width: 0;
 }
 

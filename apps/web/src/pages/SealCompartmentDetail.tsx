@@ -142,7 +142,7 @@ export function SealCompartmentDetail() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             {c.logo_url ? (
-              <div style={{ width: 56, height: 56, borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', padding: 4, background: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+              <div style={{ width: 56, height: 56, borderRadius: 12, border: '1px solid var(--border)', overflow: 'hidden', padding: 4, background: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--elev-sm)' }}>
                 <img src={c.logo_url} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
               </div>
             ) : (

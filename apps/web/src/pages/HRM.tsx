@@ -84,7 +84,7 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
       <div className="no-print" onClick={onClose}
         style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1800, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div id="payslip-root" onClick={e => e.stopPropagation()}
-          style={{ background: '#fff', borderRadius: 8, width: 640, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.25)', fontFamily: 'Arial, sans-serif' }}>
+          style={{ background: '#fff', borderRadius: 8, width: 640, maxWidth: '95vw', maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--elev-lg)', fontFamily: 'Arial, sans-serif' }}>
 
           {/* Actions bar */}
           <div className="no-print" style={{ padding: '12px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
@@ -1722,7 +1722,7 @@ export function AttendancePage() {
                         </div>
                         
                         {activeCell?.empId === emp.id && activeCell.date === dStr && (
-                          <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', zIndex: 100, padding: 12, width: 220, marginTop: 4, textAlign: 'left' }} onClick={e => e.stopPropagation()}>
+                          <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: 'var(--elev-lg)', zIndex: 100, padding: 12, width: 220, marginTop: 4, textAlign: 'left' }} onClick={e => e.stopPropagation()}>
                             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Edit Attendance</div>
                             <form onSubmit={async (e) => {
                               e.preventDefault();
@@ -2125,7 +2125,7 @@ export function ShiftsPage() {
                       
                       {/* Active Cell Modal (Popover) */}
                       {activeCell?.empId === emp.id && activeCell.date === dStr && (
-                        <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: '0 4px 20px rgba(0,0,0,0.15)', zIndex: 100, padding: 12, width: 220, marginTop: 4 }}>
+                        <div style={{ position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: 'var(--elev-lg)', zIndex: 100, padding: 12, width: 220, marginTop: 4 }}>
                           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Assign Shift</div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                             {shiftTypes.map(st => (

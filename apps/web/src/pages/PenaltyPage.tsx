@@ -368,7 +368,7 @@ export const PenaltyPage: React.FC = () => {
 
           {/* Result breakdown */}
           {result && (
-            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+            <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', boxShadow: 'var(--elev-lg)' }}>
               <div style={{ padding: '14px 22px', background: 'var(--teal-l, rgba(13, 148, 136, 0.08))', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <Icon name="alertCircle" size={16} color="var(--teal, #0d9488)" />
                 <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>Penalty Breakdown</span>

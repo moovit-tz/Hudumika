@@ -109,7 +109,7 @@
   background: var(--white);
   border-radius: 12px;
   padding: 16px 20px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: var(--elev-sm);
   display: flex;
   flex-direction: column;
 }
@@ -178,7 +178,7 @@
   background: var(--white);
   border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: var(--elev-sm);
   margin-bottom: 24px;
 }
 
@@ -284,7 +284,7 @@
   background: var(--white);
   border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: var(--elev-sm);
   border: 1px solid var(--border);
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
@@ -294,7 +294,7 @@
 
 .trk-vcard:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+  box-shadow: var(--elev);
 }
 
 .trk-vcard-top {
@@ -423,7 +423,7 @@
   background: var(--white);
   border-radius: 12px;
   padding: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: var(--elev-sm);
   border: 1px solid var(--border);
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s;
@@ -435,7 +435,7 @@
 
 .trk-vlist-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+  box-shadow: var(--elev);
 }
 
 .trk-vlist-img-container {

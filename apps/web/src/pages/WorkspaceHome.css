@@ -173,7 +173,7 @@
       transparent 114deg, transparent 360deg
     ) border-box;
   animation: wh-border-draw 2s linear infinite;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.08);
+  box-shadow: var(--elev-lg);
   transform: translateY(-2px);
 }
 
@@ -312,7 +312,7 @@
     ) border-box;
   animation: wh-border-draw 2s linear infinite;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--elev);
 }
 
 .wh-create-btn {
@@ -345,7 +345,7 @@
     ) border-box;
   animation: wh-border-draw 2s linear infinite;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
+  box-shadow: var(--elev);
 }
 
 /* ── SETTINGS BUTTON (outlined, distinct from teal filled) ── */
@@ -380,7 +380,7 @@
   background: var(--white);
   border: 0.5px solid var(--border);
   border-radius: 9px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+  box-shadow: var(--elev-lg);
   min-width: 220px;
   z-index: 50;
   overflow: hidden;
@@ -582,7 +582,7 @@
       transparent 114deg, transparent 360deg
     ) border-box;
   animation: wh-border-draw 2s linear infinite;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.08);
+  box-shadow: var(--elev-lg);
   transform: translateY(-2px);
 }
 
@@ -941,7 +941,7 @@
 [data-theme="dark"] .wh-filter-dropdown {
   background: #1e1e1f;
   border-color: #3c4043;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--elev-lg);
 }
 
 [data-theme="dark"] .wh-filter-header {

@@ -229,7 +229,7 @@ export const QuickComplianceCheck: React.FC = () => {
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : 'minmax(280px, 380px) 1fr', gap: 24, alignItems: 'start' }}>
         {/* LEFT: input card + ComplyOS cross-sell */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+        <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 24, boxShadow: 'var(--elev-lg)' }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="shield" size={18} color="var(--teal)" /> Shipment Details
           </div>
@@ -257,7 +257,7 @@ export const QuickComplianceCheck: React.FC = () => {
               )}
 
               {hsResults.length > 0 && !hsSelected && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 12, zIndex: 1000, boxShadow: '0 8px 30px rgba(0,0,0,0.25)', overflow: 'hidden', marginTop: 6, maxHeight: 260, overflowY: 'auto' }}>
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 12, zIndex: 1000, boxShadow: 'var(--elev-lg)', overflow: 'hidden', marginTop: 6, maxHeight: 260, overflowY: 'auto' }}>
                   {hsResults.map(r => (
                     <div key={r.code} onClick={() => { setHs(r.code); setHsSelected(r); setHsResults([]); }}
                       style={{ padding: '10px 14px', cursor: 'pointer', fontSize: 13, borderBottom: '1px solid var(--border)' }}

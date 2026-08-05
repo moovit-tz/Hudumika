@@ -51,7 +51,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
       <div style={{
         position: 'absolute', top: 3, left: value ? 22 : 3,
         width: 18, height: 18, borderRadius: '50%', background: 'var(--white)',
-        transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+        transition: 'left 0.2s', boxShadow: 'var(--elev-sm)',
       }} />
     </button>
   );

@@ -321,7 +321,7 @@
 [data-theme="dark"] .notif-panel {
   background: #16181f;
   border-color: rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--elev-lg);
 }
 
 [data-theme="dark"] .notif-panel-item {

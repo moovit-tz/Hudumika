@@ -87,7 +87,7 @@
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(236, 72, 153, 0.3);
+  box-shadow: var(--elev);
   transition: opacity 0.2s;
 }
 .aia-btn-try-ai:hover {
@@ -133,7 +133,7 @@
   top: 2px;
   left: 2px;
   transition: left 0.15s;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+  box-shadow: var(--elev-sm);
 }
 .aia-toggle.on .aia-toggle-knob {
   left: 18px;
@@ -198,7 +198,7 @@
   padding: 6px 14px;
   border-radius: 20px;
   z-index: 20;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  box-shadow: var(--elev);
 }
 
 /* ── Workflow Tabs ─────────────────────────────────────────────────── */
@@ -287,7 +287,7 @@
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+  box-shadow: var(--elev-sm);
   display: flex;
   flex-direction: column;
   min-width: 140px;
@@ -348,13 +348,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  box-shadow: var(--elev);
   margin: 0 auto;
   transition: transform 0.12s, box-shadow 0.12s;
 }
 .aia-node-wrapper:hover .aia-node-action {
   transform: translateY(-1px);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  box-shadow: var(--elev);
 }
 .aia-node-action.selected {
   box-shadow: 0 0 0 2px var(--blue);
@@ -382,7 +382,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  box-shadow: var(--elev-sm);
 }
 .aia-node-status.success {
   background: #10b981;
@@ -407,7 +407,7 @@
   align-items: center;
   justify-content: center;
   color: var(--ink2);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: var(--elev-sm);
   transition: transform 0.1s;
 }
 .edgebutton:hover {
@@ -468,7 +468,7 @@
 }
 .aia-sidebar-tabs button.active {
   background: var(--white);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: var(--elev-sm);
   font-weight: 600;
   color: var(--ink);
 }

@@ -112,7 +112,7 @@
 .ds-tabs-trigger[data-variant="segmented"][data-state="active"] {
   background: var(--card-bg, var(--white));
   color: var(--ink);
-  box-shadow: 0 1px 2px rgba(16, 24, 40, .07), 0 1px 3px rgba(16, 24, 40, .06);
+  box-shadow: var(--elev-sm);
 }
 
 @media (max-width: 560px) {

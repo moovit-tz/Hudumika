@@ -978,7 +978,7 @@ export const FinanceReportingMaster: React.FC = () => {
       {/* ── Drill-down Modal ── */}
       {modalData && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: 'var(--white)', width: '100%', maxWidth: 920, maxHeight: '90vh', borderRadius: 9, display: 'flex', flexDirection: 'column', boxShadow: '0 16px 48px rgba(0,0,0,0.22)' }}>
+          <div style={{ background: 'var(--white)', width: '100%', maxWidth: 920, maxHeight: '90vh', borderRadius: 9, display: 'flex', flexDirection: 'column', boxShadow: 'var(--elev-lg)' }}>
             <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
               <div>
                 <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--navy)' }}>{modalData.title} Transactions</div>

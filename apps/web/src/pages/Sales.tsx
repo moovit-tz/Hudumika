@@ -86,7 +86,7 @@ function Toast({ msg, kind, onClose }: { msg: string; kind: 'success' | 'error';
       position: 'fixed', bottom: 24, right: 24, zIndex: 3000,
       background: kind === 'success' ? 'var(--green)' : 'var(--red)',
       color: '#fff', borderRadius: 8, padding: '10px 18px',
-      fontSize: 13, fontWeight: 600, boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+      fontSize: 13, fontWeight: 600, boxShadow: 'var(--elev)',
       display: 'flex', alignItems: 'center', gap: 10,
     }}>
       <Icon name={kind === 'success' ? 'check' : 'x'} size={16} />
@@ -100,7 +100,7 @@ function Toast({ msg, kind, onClose }: { msg: string; kind: 'success' | 'error';
 function ConfirmDialog({ msg, onConfirm, onCancel }: { msg: string; onConfirm: () => void; onCancel: () => void }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
-      <div style={{ background: 'var(--white)', borderRadius: 12, padding: 28, width: 380, boxShadow: '0 8px 32px rgba(0,0,0,0.18)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 12, padding: 28, width: 380, boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 10 }}>Confirm</div>
         <div style={{ fontSize: 13, color: 'var(--ink3)', marginBottom: 22 }}>{msg}</div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -479,7 +479,7 @@ function QuoteModal({
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1500 }}>
-      <div style={{ background: 'var(--white)', borderRadius: 12, width: 720, maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 8px 40px rgba(0,0,0,0.2)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 12, width: 720, maxHeight: '92vh', overflowY: 'auto', boxShadow: 'var(--elev-lg)' }}>
         {/* Modal header */}
         <div style={{ padding: '16px 22px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'var(--white)', zIndex: 2 }}>
           <div style={{ fontWeight: 700, fontSize: 15 }}>{isEdit ? 'Edit Quotation' : 'New Quotation'}</div>

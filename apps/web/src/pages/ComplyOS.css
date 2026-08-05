@@ -1004,7 +1004,7 @@
   border-radius: 14px;
   width: 520px;
   max-width: 100%;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  box-shadow: var(--elev-lg);
   border: 1px solid var(--border);
   overflow: hidden;
 }
@@ -1276,7 +1276,7 @@
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 999px;
-  box-shadow: var(--cos-shadow-card, 0 2px 10px -4px rgba(15,23,42,0.06));
+  box-shadow: var(--elev);
   position: sticky;
   /* .comply-topbar (64px, sticky top:0) already lives outside the scrolling
      .complyos-body, so it never contributes scroll offset in here — this bar
@@ -1416,13 +1416,13 @@
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--white);
-  box-shadow: var(--cos-shadow-card, 0 2px 10px -4px rgba(15,23,42,0.06));
+  box-shadow: var(--elev);
   transition: var(--comply-transition, all 0.15s ease);
   animation: complyResultIn 0.25s ease both;
 }
 .comply-result-card:hover {
   border-color: var(--comply);
-  box-shadow: 0 8px 20px -8px var(--comply-edge);
+  box-shadow: var(--elev-lg);
   transform: translateY(-2px);
 }
 /* Sponsored slot — same card shape and layout as an organic result, just a

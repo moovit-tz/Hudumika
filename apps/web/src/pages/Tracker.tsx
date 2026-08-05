@@ -285,7 +285,7 @@ export const SnapshotCard = React.forwardRef<HTMLDivElement, { result: TrackingR
       background: `linear-gradient(150deg, ${NAVY} 0%, ${NAVY2} 100%)`,
       borderRadius: 18, padding: '22px 22px 18px', color: 'var(--bg)',
       fontFamily: 'var(--font)', border: '1px solid rgba(255,255,255,.06)',
-      boxShadow: '0 24px 64px rgba(0,0,0,.4)', position: 'relative', overflow: 'hidden',
+      boxShadow: 'var(--elev-lg)', position: 'relative', overflow: 'hidden',
     }}>
       {/* glow blobs */}
       <div style={{ position: 'absolute', top: -50, right: -50, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(232,70,26,.14) 0%, transparent 70%)', pointerEvents: 'none' }} />
@@ -677,7 +677,7 @@ export const Tracker: React.FC = () => {
                 <div style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, border: '2px solid var(--border)', borderTopColor: 'var(--teal)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
               )}
               {showSugg && suggestions.length > 0 && (
-                <div style={{ position: 'absolute', top: 54, left: 0, right: 0, zIndex: 40, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 12px 32px rgba(0,0,0,.14)', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: 54, left: 0, right: 0, zIndex: 40, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: 'var(--elev-lg)', overflow: 'hidden' }}>
                   {suggestions.map((s, i) => (
                     <button
                       key={`${s.kind}-${s.number}-${i}`}
@@ -760,7 +760,7 @@ export const Tracker: React.FC = () => {
             background: `linear-gradient(150deg,${NAVY},${NAVY2})`,
             borderRadius: 16, border: '1px solid rgba(255,255,255,.06)',
             padding: isMobile ? '20px 18px' : '24px 30px', marginBottom: 16, color: 'var(--bg)',
-            boxShadow: '0 8px 32px rgba(0,0,0,.2)',
+            boxShadow: 'var(--elev-lg)',
           }}>
             {/* Top row: carrier + BL + status */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 10 }}>

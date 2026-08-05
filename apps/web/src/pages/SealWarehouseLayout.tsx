@@ -500,7 +500,7 @@ export function SealWarehouseLayout() {
                               position: 'relative',
                               cursor: 'pointer',
                               transition: 'transform 0.12s ease, box-shadow 0.12s ease',
-                              boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+                              boxShadow: 'var(--elev-sm)',
                             }}
                             onClick={() => openLocationDetails(loc)}
                             onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}

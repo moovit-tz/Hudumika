@@ -335,7 +335,7 @@ export const SystemUpdate: React.FC = () => {
       {/* Confirm modal */}
       {showConfirm && (
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:600, display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <div style={{ background:'var(--white)', borderRadius: 9, padding:'28px 32px', width:420, boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}>
+          <div style={{ background:'var(--white)', borderRadius: 9, padding:'28px 32px', width:420, boxShadow: 'var(--elev-lg)' }}>
             <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
               <div style={{ width:40, height:40, borderRadius: 9, background:'#fef3c7', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <Icon name="alertTriangle" size={20} color="#d97706" />

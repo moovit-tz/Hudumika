@@ -452,7 +452,7 @@ export const Chat: React.FC = () => {
                       <Icon name="smile" size={15} />
                     </button>
                     {showEmoji && (
-                      <div style={{ position: 'absolute', bottom: 'calc(100% + 8px)', left: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 8, display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.12)', zIndex: 100 }}>
+                      <div style={{ position: 'absolute', bottom: 'calc(100% + 8px)', left: 0, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 8, display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 2, boxShadow: 'var(--elev-lg)', zIndex: 100 }}>
                         {EMOJIS.map(em => (
                           <button type="button" key={em} onClick={() => { setInput(p => p + em); setShowEmoji(false); inputRef.current?.focus(); }}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, padding: '5px', borderRadius: 'var(--r)', lineHeight: 1 }}>

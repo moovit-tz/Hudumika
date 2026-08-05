@@ -88,7 +88,7 @@
   background: var(--white);
   border-radius: 12px;
   padding: 32px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: var(--elev-sm);
   margin: 0 auto;
 }
 

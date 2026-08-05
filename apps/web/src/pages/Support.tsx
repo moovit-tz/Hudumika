@@ -49,7 +49,7 @@ function SendToComplyOSModal({ ticket, onClose }: { ticket: Ticket; onClose: () 
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
-      <div style={{ background: 'var(--white)', borderRadius: 14, width: 440, maxWidth: '100%', border: '1px solid var(--border)', boxShadow: '0 20px 40px rgba(0,0,0,0.15)' }} onClick={e => e.stopPropagation()}>
+      <div style={{ background: 'var(--white)', borderRadius: 14, width: 440, maxWidth: '100%', border: '1px solid var(--border)', boxShadow: 'var(--elev-lg)' }} onClick={e => e.stopPropagation()}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Send to ComplyOS</div>

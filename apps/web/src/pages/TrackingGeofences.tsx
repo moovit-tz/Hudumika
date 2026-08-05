@@ -42,7 +42,7 @@ function AddGeofenceModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 520, maxWidth: '92vw', boxShadow: '0 16px 48px rgba(0,0,0,0.2)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 9, padding: 28, width: 520, maxWidth: '92vw', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Create a geofence</div>
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>Click the map to set the center point</div>
         <div style={{ height: 220, borderRadius: 9, overflow: 'hidden', border: '1px solid var(--border)', marginBottom: 14 }}>

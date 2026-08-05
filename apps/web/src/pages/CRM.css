@@ -26,7 +26,7 @@
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 10px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  box-shadow: var(--elev-sm);
   overflow: hidden;
 }
 

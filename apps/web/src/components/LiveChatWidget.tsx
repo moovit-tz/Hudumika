@@ -30,7 +30,7 @@ export const LiveChatWidget: React.FC = () => {
           background: 'var(--teal)',
           border: 'none',
           color: '#fff',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+          boxShadow: 'var(--elev)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -53,7 +53,7 @@ export const LiveChatWidget: React.FC = () => {
           height: 500,
           background: 'var(--white)',
           borderRadius: 12,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+          boxShadow: 'var(--elev-lg)',
           display: 'flex',
           flexDirection: 'column',
           zIndex: 9999,
@@ -86,7 +86,7 @@ export const LiveChatWidget: React.FC = () => {
                     color: msg.from === 'user' ? '#fff' : 'var(--ink)',
                     padding: '12px 16px',
                     borderRadius: msg.from === 'user' ? '12px 12px 0 12px' : '12px 12px 12px 0',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                    boxShadow: 'var(--elev-sm)',
                     fontSize: 14,
                     lineHeight: 1.5
                   }}>

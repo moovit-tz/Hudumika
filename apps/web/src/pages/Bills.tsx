@@ -218,7 +218,7 @@ function PayModal({ bill, onPay, onClose }: {
   const lbl: React.CSSProperties = { fontSize:12, fontWeight:600, color:'var(--ink2)', display:'block', marginBottom:5 };
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.45)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ background:'var(--white)', borderRadius: 9, padding:28, width:440, boxShadow:'0 24px 64px rgba(0,0,0,0.22)' }}>
+      <div style={{ background:'var(--white)', borderRadius: 9, padding:28, width:440, boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize:16, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>Record Payment</div>
         <div style={{ fontSize:13, color:'var(--ink3)', marginBottom:20 }}>{bill.bill_number} · Balance: <strong>{fmt(balance, bill.currency)}</strong></div>
         <div style={{ marginBottom:14 }}>

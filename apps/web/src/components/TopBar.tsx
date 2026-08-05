@@ -98,7 +98,7 @@ function AISearchModal({ onClose }: { onClose: () => void }) {
         width: '100%', maxWidth: 600,
         background: 'var(--white)', borderRadius: 9,
         border: '1px solid var(--border)',
-        boxShadow: '0 24px 64px rgba(0,0,0,.22)',
+        boxShadow: 'var(--elev-lg)',
         overflow: 'hidden',
       }}>
         {/* Input row */}
@@ -290,7 +290,7 @@ function ClockInModal({ onClose, onConfirm }: {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 900, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ width: 520, background: 'var(--white)', borderRadius: 9, boxShadow: '0 24px 64px rgba(0,0,0,.22)', overflow: 'hidden' }}>
+      <div style={{ width: 520, background: 'var(--white)', borderRadius: 9, boxShadow: 'var(--elev-lg)', overflow: 'hidden' }}>
 
         {/* Header */}
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--teal)' }}>

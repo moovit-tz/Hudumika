@@ -1173,7 +1173,7 @@ export function Contacts() {
                 <div style={{
                   position: 'absolute', top: 90, zIndex: 10, width: 280,
                   background: 'var(--white)', borderRadius: 8, padding: 16,
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.2)', border: '1px solid var(--border)'
+                  boxShadow: 'var(--elev-lg)', border: '1px solid var(--border)'
                 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 8 }}>Choose Preset Portrait</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 16 }}>

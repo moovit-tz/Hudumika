@@ -104,7 +104,7 @@ export function TradeWizard() {
         borderRadius: 16,
         marginTop: 8,
         marginBottom: 18,
-        boxShadow: '0 4px 18px rgba(0,0,0,0.03)'
+        boxShadow: 'var(--elev-lg)'
       }}>
         {STEP_ITEMS.map((item, i) => {
           const isDone = i + 1 < step;
@@ -162,7 +162,7 @@ export function TradeWizard() {
         
         {/* LEFT SIDEBAR: "What do you want to do?" Cards */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 20, boxShadow: '0 4px 18px rgba(0,0,0,0.04)' }}>
+          <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 20, boxShadow: 'var(--elev-lg)' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.6px', marginBottom: 14 }}>
               What do you want to do?
             </div>
@@ -255,7 +255,7 @@ export function TradeWizard() {
               <div style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 4 }}>You've used all {usage!.limit} Trade Compliance Wizard searches included on your plan this month. Upgrade your plan for more searches.</div>
             </div>
           ) : (
-            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 24, boxShadow: '0 4px 18px rgba(0,0,0,0.03)' }}>
+            <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 16, padding: 24, boxShadow: 'var(--elev-lg)' }}>
               {step === 1 && <StepGoal {...stepProps} />}
               {step === 2 && <StepPrecheck {...stepProps} />}
               {step === 3 && <StepResults {...stepProps} />}

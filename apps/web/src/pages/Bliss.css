@@ -758,7 +758,7 @@
   border: 1px solid var(--border);
   border-radius: 9px;
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  box-shadow: var(--elev-sm);
 }
 .spt-note-card-hdr {
   padding: 7px 14px;
@@ -812,7 +812,7 @@
   font-size: 13px;
   line-height: 1.6;
   border: 1px solid var(--border);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  box-shadow: var(--elev-sm);
 }
 .spt-msg--officer .spt-bubble {
   border-radius: 12px 2px 12px 12px;
@@ -1337,7 +1337,7 @@
   padding: 28px;
   width: 90%;
   max-width: 520px;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.18);
+  box-shadow: var(--elev-lg);
 }
 .spt-modal-hdr {
   display: flex;

@@ -227,7 +227,7 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 background: 'var(--white)', border: '1px solid var(--border)', borderRadius:'var(--badge-radius)',
-                padding: collapsed ? '10px' : '10px 20px', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,.12)',
+                padding: collapsed ? '10px' : '10px 20px', cursor: 'pointer', boxShadow: 'var(--elev-sm)',
                 fontSize:'var(--text-md)', fontWeight: 600, color: 'var(--ink)',
               }}
             >

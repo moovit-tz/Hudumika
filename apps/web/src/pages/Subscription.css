@@ -532,7 +532,7 @@
   border-radius: 12px;
   width: 400px;
   max-width: 100%;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  box-shadow: var(--elev-lg);
 }
 
 .sub-modal-hdr {
@@ -661,7 +661,7 @@
   font-size: 13px;
   font-weight: 600;
   z-index: 2000;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+  box-shadow: var(--elev-lg);
   display: flex;
   align-items: center;
   gap: 9px;

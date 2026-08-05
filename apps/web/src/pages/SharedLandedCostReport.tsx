@@ -81,7 +81,7 @@ export const SharedLandedCostReport: React.FC = () => {
 
   const shell = (children: React.ReactNode) => (
     <div style={{ minHeight: '100vh', background: '#F3F5F7', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-      <div style={{ width: '100%', maxWidth: 520, background: '#fff', borderRadius: 16, border: '1px solid #E5E9EC', boxShadow: '0 10px 40px rgba(20,25,30,.08)', padding: '28px 26px' }}>
+      <div style={{ width: '100%', maxWidth: 520, background: '#fff', borderRadius: 16, border: '1px solid #E5E9EC', boxShadow: 'var(--elev-lg)', padding: '28px 26px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
           <div style={{ width: 34, height: 34, borderRadius: 10, background: '#FF5E1A', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Icon name="package" size={18} color="#fff" />

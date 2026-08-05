@@ -168,7 +168,7 @@
   background: var(--white);
   border-radius: 14px;
   border: 1px solid var(--border);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  box-shadow: var(--elev-sm);
   overflow: hidden;
   cursor: pointer;
   transition: all 0.2s;
@@ -178,7 +178,7 @@
 
 .drv-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+  box-shadow: var(--elev-lg);
   border-color: #cbd5e1;
 }
 
@@ -202,7 +202,7 @@
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid var(--white);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: var(--elev);
   margin-bottom: 8px;
 }
 

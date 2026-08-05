@@ -60,7 +60,7 @@
 /* Toggle */
 .s-tog          { width: 40px; height: 22px; border-radius: 11px; border: none; cursor: pointer; background: var(--border); position: relative; transition: background .2s; flex-shrink: 0; }
 .s-tog--on      { background: var(--teal); }
-.s-tog-thumb    { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .2s; display: block; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.s-tog-thumb    { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .2s; display: block; box-shadow: var(--elev-sm); }
 .s-tog--on .s-tog-thumb { left: 21px; }
 
 /* Field */

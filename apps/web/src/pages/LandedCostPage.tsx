@@ -657,7 +657,7 @@ function FormattedLandedCostBreakdown({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* ── Card 1: CIF VALUE ── */}
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: 'var(--elev)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
           CIF VALUE
         </div>
@@ -666,7 +666,7 @@ function FormattedLandedCostBreakdown({
       </div>
 
       {/* ── Card 2: DUTIES & TAXES ── */}
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: 'var(--elev)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
           DUTIES &amp; TAXES
         </div>
@@ -678,7 +678,7 @@ function FormattedLandedCostBreakdown({
            own card with its own subtotal, matching the same buckets the
            Export PDF report uses so what's on screen and what's printed
            always agree. ── */}
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: 'var(--elev)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
           TPA CHARGES
         </div>
@@ -690,7 +690,7 @@ function FormattedLandedCostBreakdown({
         </div>
       </div>
 
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: 'var(--elev)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
           ICD CHARGES
         </div>
@@ -703,7 +703,7 @@ function FormattedLandedCostBreakdown({
         </div>
       </div>
 
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: 'var(--elev)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
           CLEARANCE CHARGES <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>(documentation, verification &amp; TASAC agency fee)</span>
         </div>
@@ -715,7 +715,7 @@ function FormattedLandedCostBreakdown({
         </div>
       </div>
 
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: 'var(--elev)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
           TBS CHARGES
         </div>
@@ -727,7 +727,7 @@ function FormattedLandedCostBreakdown({
         </div>
       </div>
 
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: 'var(--elev)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 14 }}>
           SHIPPING LINE CHARGES
         </div>
@@ -740,7 +740,7 @@ function FormattedLandedCostBreakdown({
       </div>
 
       {/* ── ADDITIONAL PORT / TPA / TASAC CHARGES (optional, user-selected) ── */}
-      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
+      <div style={{ background: 'var(--card-bg, var(--white))', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 24px', boxShadow: 'var(--elev)' }}>
         <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 4 }}>
           ADDITIONAL PORT / TPA / TASAC CHARGES <span style={{ fontWeight: 500, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
         </div>
@@ -3972,7 +3972,7 @@ export const LandedCostPage: React.FC = () => {
     if (!el) return;
     el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     el.animate(
-      [{ boxShadow: '0 0 0 0 var(--teal-m, rgba(0,0,0,.2))' }, { boxShadow: '0 0 0 5px var(--teal-m, rgba(0,0,0,.2))' }, { boxShadow: '0 0 0 0 transparent' }],
+      [{ boxShadow: '0 0 0 0 var(--teal-m, rgba(0,0,0,.2))' }, { boxShadow: '0 0 0 5px var(--teal-m, rgba(0,0,0,.2))' }, { boxShadow: 'var(--elev-sm)' }],
       { duration: 1100, easing: 'ease-out' },
     );
   }

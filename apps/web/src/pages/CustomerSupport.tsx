@@ -240,7 +240,7 @@ function TicketThread({ ticket, onBack, onReply }: {
                 fontSize: 14,
                 lineHeight: 1.5,
                 border: isMe ? 'none' : '1px solid var(--border)',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+                boxShadow: 'var(--elev-sm)',
               }}>
                 {msg.body}
               </div>

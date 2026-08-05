@@ -122,13 +122,13 @@
 .ertm-ai-trigger {
   background: linear-gradient(135deg, #0284c7 0%, #0d7a6b 100%) !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35), 0 0 0 2px rgba(2, 132, 199, 0.15);
+  box-shadow: var(--elev);
   border-radius: 12px;
 }
 
 .ertm-ai-trigger:hover {
   transform: scale(1.06) translateY(-1px) !important;
-  box-shadow: 0 6px 16px rgba(2, 132, 199, 0.45), 0 0 0 3px rgba(2, 132, 199, 0.25);
+  box-shadow: var(--elev);
 }
 
 .ertm-ai-trigger--active {
@@ -150,7 +150,7 @@
   opacity: 0;
   transform: translateX(6px);
   transition: all 0.15s ease;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  box-shadow: var(--elev);
   z-index: 100;
 }
 
@@ -297,7 +297,7 @@
   align-items: center;
   justify-content: center;
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 198, 255, 0.35);
+  box-shadow: var(--elev);
   flex-shrink: 0;
 }
 
@@ -335,7 +335,7 @@
   height: 7px;
   border-radius: 50%;
   background: #10b981;
-  box-shadow: 0 0 8px #10b981;
+  box-shadow: var(--elev);
   animation: ertm-pulse 1.8s infinite;
 }
 
@@ -541,13 +541,13 @@
   align-items: center;
   gap: 5px;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3);
+  box-shadow: var(--elev);
   transition: transform 0.15s, box-shadow 0.15s;
 }
 
 .ertm-send-btn:hover {
   transform: scale(1.03);
-  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.45);
+  box-shadow: var(--elev);
 }
 
 /* ── Tasks Panel Styling ──────────────────────────────────────────────── */

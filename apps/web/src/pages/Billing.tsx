@@ -556,7 +556,7 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, onImport, onClose }: {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: 20 }}>
-      <div style={{ background: 'var(--white)', borderRadius: 12, width: '100%', maxWidth: 500, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '90vh', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 12, width: '100%', maxWidth: 500, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '90vh', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg)' }}>
           <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>Import Timesheets</span>
           <button type="button" onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><Icon name="x" size={16} color="var(--ink2)" /></button>

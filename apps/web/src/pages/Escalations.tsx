@@ -153,7 +153,7 @@ function EscalateModal({ onClose, onSubmit }: {
     }}>
       <div style={{
         background: 'var(--white)', borderRadius: 9, padding: 28, width: 460, maxWidth: '92vw',
-        boxShadow: '0 16px 48px rgba(0,0,0,0.2)',
+        boxShadow: 'var(--elev-lg)',
       }}>
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 20 }}>
           Escalate Case to Senior

@@ -149,7 +149,7 @@ function ProductForm({ product, onSave, onClose }: {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div style={{ width: '100%', maxWidth: 540, background: 'var(--white)', borderRadius: 12, boxShadow: '0 24px 64px rgba(0,0,0,.20)', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ width: '100%', maxWidth: 540, background: 'var(--white)', borderRadius: 12, boxShadow: 'var(--elev-lg)', overflow: 'hidden', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'var(--navy)' }}>
           <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{product ? 'Edit Item' : 'New Product / Service'}</span>
           <button type="button" onClick={onClose} style={{ background: 'rgba(255,255,255,.15)', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

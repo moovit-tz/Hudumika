@@ -158,7 +158,7 @@ export function StepGoal({ draft, update, onNext }: StepProps) {
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  boxShadow: '0 2px 10px rgba(0,0,0,0.03)',
+                  boxShadow: 'var(--elev)',
                   transition: 'all 0.18s ease',
                 }}
                 onMouseEnter={e => {

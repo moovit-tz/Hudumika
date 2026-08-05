@@ -99,7 +99,7 @@ function ModuleSummaryCard({ icon, title, color, bg, to, children }: {
     <div style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border)', background: bg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 1px 3px rgba(0,0,0,0.07)' }}>
+          <div style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: 'var(--elev-sm)' }}>
             <Icon name={icon} size={14} color={color} />
           </div>
           <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{title}</span>
