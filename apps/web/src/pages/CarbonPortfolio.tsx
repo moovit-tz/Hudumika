@@ -92,32 +92,41 @@ export const CarbonPortfolio: React.FC = () => {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 12, minHeight: 60,
-        background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0,
-      }}>
-        <FeaturedIcon variant="success" size="sm" shape="square">
+      {/* The date picker and Refresh go through PageHeader's own `actions`
+          slot. They used to be siblings of the header in a flex-wrap row, so
+          the title's own width pushed both onto lines of their own — and the
+          date picker, with nothing to size it, then stretched the full page.
+          The title itself is untouched. */}
+      <div style={{ padding: '0 0 16px', display: 'flex', alignItems: 'flex-start', gap: 12, borderBottom: '1px solid var(--border)' }}>
+        <FeaturedIcon variant="brand" size="md" shape="square">
           <Icon name="globe" size={18} strokeWidth={1.75} />
         </FeaturedIcon>
-        <div>
+        <div style={{ flex: 1, minWidth: 0 }}>
           <PageHeader
             crumbs={['ClearOS', 'Carbon Portfolio']}
             titlePlain="Carbon"
             titleEm="portfolio"
+            actions={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                {/* DateRangePicker's trigger carries `w-full`, so without a
+                    width of its own it fills whatever it is put in — a whole
+                    page row here, and once moved into the actions slot it took
+                    the slot and pushed Refresh onto a second line. */}
+                <DateRangePicker range={dateRange} onChange={setDateRange} placeholder="All time" triggerClassName="w-48" />
+                <Button variant="outline" size="sm" onClick={load} title="Refresh data" disabled={loading}>
+                  <Icon name="refresh" size={13} />
+                  Refresh
+                </Button>
+              </div>
+            }
           />
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1 }}>
             {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}` : 'Loading…'}
           </div>
         </div>
-        <div style={{ flex: 1 }} />
-        <DateRangePicker range={dateRange} onChange={setDateRange} placeholder="All time" />
-        <Button variant="outline" size="sm" onClick={load} title="Refresh data" disabled={loading}>
-          <Icon name="refresh" size={13} />
-          Refresh
-        </Button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 0' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
           {error && (
             <div style={{ padding: 16, background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--red)', borderRadius: 'var(--r)' }}>
