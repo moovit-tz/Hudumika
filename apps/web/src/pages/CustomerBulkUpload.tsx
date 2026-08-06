@@ -118,7 +118,7 @@ export const CustomerBulkUpload: React.FC = () => {
                   )}
                 </div>
                 {summary.inserted > 0 && (
-                  <Link to="/customers" style={{ marginLeft: 'auto', padding: '7px 16px', borderRadius: 9, border: 'none', background: '#059669', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}>
+                  <Link to="/customers" style={{ marginLeft: 'auto', padding: '7px 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', textDecoration: 'none' }}>
                     View List
                   </Link>
                 )}

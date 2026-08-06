@@ -172,6 +172,18 @@ export function WorkspaceApp({ appId, children }: WorkspaceAppProps) {
       '--sidebar-primary-foreground': fgHsl,
       '--sidebar-ring': primaryHsl,
 
+      /**
+       * --accent-foreground is the *highlighted row* colour, and it was the
+       * last one still global. useDesignSystem sets it from the tenant brand
+       * on :root; nothing scoped it per app. Twelve ui/ components style their
+       * hover/selected state with `focus:text-accent-foreground` — Select,
+       * DropdownMenu, ContextMenu, Menubar, Command, Accordion, Toggle,
+       * filter-dropdown and the rest — so the selected row of every menu in
+       * every app painted the tenant's orange. In FinOps that put an #ea580c
+       * "10 per page" inside a menu opened from a #0284c7 page.
+       */
+      '--accent-foreground': primaryHsl,
+
       // Tailwind v4 resolves its @theme variables where they are declared, so
       // `--color-primary: hsl(var(--primary))` captured the value of --primary
       // at :root and never re-reads it. Overriding --primary on a descendant is
@@ -180,6 +192,7 @@ export function WorkspaceApp({ appId, children }: WorkspaceAppProps) {
       '--color-primary': `hsl(${primaryHsl})`,
       '--color-primary-foreground': `hsl(${fgHsl})`,
       '--color-ring': `hsl(${primaryHsl})`,
+      '--color-accent-foreground': `hsl(${primaryHsl})`,
     };
 
     /**

@@ -505,9 +505,9 @@ export const EmailApp: React.FC = () => {
               const isToday = monthOffset === 0 && dd === now.getDate();
               const hasEvents = eventDaysWithCount.has(dd);
               return (
-                <div key={dd} style={{ position: 'relative', fontSize: 11, fontWeight: isToday ? 800 : 500, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: isToday ? '#0b57d0' : 'transparent', color: isToday ? '#fff' : 'var(--ink)', cursor: 'pointer' }}>
+                <div key={dd} style={{ position: 'relative', fontSize: 11, fontWeight: isToday ? 800 : 500, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: isToday ? 'var(--teal)' : 'transparent', color: isToday ? '#fff' : 'var(--ink)', cursor: 'pointer' }}>
                   {dd}
-                  {hasEvents && !isToday && <span style={{ position: 'absolute', bottom: 1, width: 3, height: 3, borderRadius: '50%', background: '#0b57d0' }} />}
+                  {hasEvents && !isToday && <span style={{ position: 'absolute', bottom: 1, width: 3, height: 3, borderRadius: '50%', background: 'var(--teal)' }} />}
                 </div>
               );
             })}
@@ -518,8 +518,8 @@ export const EmailApp: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Today's Schedule</span>
             {!showAddEvent && (
-              <button type="button" onClick={() => setShowAddEvent(true)} style={{ background: 'none', border: 'none', color: '#0b57d0', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
-                <Icon name="plus" size={12} color="#0b57d0" /> Add
+              <button type="button" onClick={() => setShowAddEvent(true)} style={{ background: 'none', border: 'none', color: 'var(--teal)', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3 }}>
+                <Icon name="plus" size={12} color="var(--teal)" /> Add
               </button>
             )}
           </div>
@@ -529,7 +529,7 @@ export const EmailApp: React.FC = () => {
               <input type="text" placeholder="Time (e.g. 10:00)" value={newEventTime} onChange={e => setNewEventTime(e.target.value)} style={{ padding: '6px 10px', borderRadius: 9, border: '0.5px solid var(--border)', fontSize: 12, outline: 'none', background: 'var(--white)' }} />
               <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                 <button type="button" onClick={() => setShowAddEvent(false)} style={{ background: 'none', border: 'none', fontSize: 11, cursor: 'pointer', color: 'var(--ink3)' }}>Cancel</button>
-                <button type="button" onClick={handleAddEvent} style={{ background: '#0b57d0', color: '#fff', border: 'none', padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Save</button>
+                <button type="button" onClick={handleAddEvent} style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Save</button>
               </div>
             </div>
           )}
@@ -537,7 +537,7 @@ export const EmailApp: React.FC = () => {
             {events.map(ev => (
               <div key={ev.id} style={{ display: 'flex', gap: 10, padding: '8px 10px', borderRadius: 9, border: '0.5px solid var(--border)', background: 'var(--white)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 45, flexShrink: 0 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#0b57d0' }}>{ev.time}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)' }}>{ev.time}</span>
                 </div>
                 <div style={{ flex: 1, fontSize: 12, color: 'var(--ink)', fontWeight: 500, display: 'flex', alignItems: 'center' }}>{ev.title}</div>
                 <button type="button" onClick={() => deleteEvent(ev.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.5, display: 'flex', alignSelf: 'center' }}>
@@ -564,7 +564,7 @@ export const EmailApp: React.FC = () => {
             onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg)'; }}
             onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              {t.completed ? <Icon name="checkCircle" size={16} color="#0b57d0" /> : <span style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid var(--ink3)', display: 'inline-block' }} />}
+              {t.completed ? <Icon name="checkCircle" size={16} color="var(--teal)" /> : <span style={{ width: 14, height: 14, borderRadius: '50%', border: '1.5px solid var(--ink3)', display: 'inline-block' }} />}
             </div>
             <span style={{ fontSize: 13, color: t.completed ? 'var(--ink3)' : 'var(--ink)', textDecoration: t.completed ? 'line-through' : 'none', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</span>
             <button type="button" onClick={e => deleteTask(t.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignSelf: 'center' }}>
@@ -597,7 +597,7 @@ export const EmailApp: React.FC = () => {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div style={{ display: 'flex', borderBottom: '0.5px solid var(--border)', margin: '0 -16px 10px', padding: '0 16px' }}>
           {(['thread', 'all'] as const).map(tab => (
-            <button key={tab} type="button" onClick={() => setContactTab(tab)} style={{ flex: 1, padding: 'var(--ds-btn-py) 0', fontSize: 13, fontWeight: contactTab === tab ? 600 : 500, color: contactTab === tab ? '#0b57d0' : 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer', borderBottom: `2px solid ${contactTab === tab ? '#0b57d0' : 'transparent'}`, marginBottom: -1, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <button key={tab} type="button" onClick={() => setContactTab(tab)} style={{ flex: 1, padding: 'var(--ds-btn-py) 0', fontSize: 13, fontWeight: contactTab === tab ? 600 : 500, color: contactTab === tab ? 'var(--teal)' : 'var(--ink3)', background: 'none', border: 'none', cursor: 'pointer', borderBottom: `2px solid ${contactTab === tab ? 'var(--teal)' : 'transparent'}`, marginBottom: -1, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               {tab === 'thread' ? 'In this thread' : 'Contacts'}
             </button>
           ))}
@@ -645,7 +645,7 @@ export const EmailApp: React.FC = () => {
               </div>
               <div style={{ display: 'flex', gap: 6 }}>
                 <button type="button" onClick={() => setShowAddNote(false)} style={{ background: 'none', border: 'none', fontSize: 11, cursor: 'pointer', color: 'var(--ink3)' }}>Cancel</button>
-                <button type="button" onClick={handleAddNote} style={{ background: '#0b57d0', color: '#fff', border: 'none', padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Done</button>
+                <button type="button" onClick={handleAddNote} style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>Done</button>
               </div>
             </div>
           </div>
@@ -792,7 +792,7 @@ export const EmailApp: React.FC = () => {
               </button>
               <div style={{ flex: 1 }} />
               <button type="button" className="em-icon-btn em-icon-btn--primary" onClick={aiSummarise} disabled={aiLoading}>
-                {aiLoading ? <Icon name="refresh" size={14} color="#0b57d0" /> : <Icon name="zap" size={14} color="#0b57d0" />}
+                {aiLoading ? <Icon name="refresh" size={14} color="var(--teal)" /> : <Icon name="zap" size={14} color="var(--teal)" />}
                 AI Summary
               </button>
             </div>
@@ -835,13 +835,13 @@ export const EmailApp: React.FC = () => {
               {aiPanelOpen && (
                 <div className="em-ai-panel">
                   <div className="em-ai-panel-hdr" onClick={() => setAiPanelOpen(v => !v)}>
-                    <Icon name="zap" size={15} color="#0b57d0" />
+                    <Icon name="zap" size={15} color="var(--teal)" />
                     <span>AI Summary</span>
-                    <Icon name={aiPanelOpen ? 'chevronUp' : 'chevronDown'} size={13} color="#0b57d0" />
+                    <Icon name={aiPanelOpen ? 'chevronUp' : 'chevronDown'} size={13} color="var(--teal)" />
                   </div>
                   <div className="em-ai-panel-body">
                     {aiLoading
-                      ? <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink3)', fontSize: 13 }}><Icon name="refresh" size={15} color="#0b57d0" /> Generating summary…</div>
+                      ? <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink3)', fontSize: 13 }}><Icon name="refresh" size={15} color="var(--teal)" /> Generating summary…</div>
                       : <p style={{ margin: 0, fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.65 }}>{aiSummary}</p>
                     }
                   </div>
