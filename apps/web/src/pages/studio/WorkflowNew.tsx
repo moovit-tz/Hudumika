@@ -70,7 +70,7 @@ export function WorkflowNew() {
     .filter(g => g.rows.length > 0);
 
   return (
-    <div style={{ maxWidth: 820, margin: '0 auto' }}>
+    <div style={{ maxWidth: 820, }}>
       <button type="button" className="studio-icon-btn" style={{ border: '1px solid var(--border)', marginBottom: 14 }} onClick={() => navigate('/studio/workflows')}>
         <Icon name="arrowLeft" size={13} /> Workflows
       </button>

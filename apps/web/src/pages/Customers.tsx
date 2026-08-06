@@ -474,7 +474,7 @@ export const Customers: React.FC = () => {
     }
 
     return (
-      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '14px 16px' : '24px 28px', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '14px 0' : '24px 0', background: 'var(--bg)', fontFamily: 'var(--font)' }}>
 
         <PageHeader
           crumbs={['CRM', 'Customers']}

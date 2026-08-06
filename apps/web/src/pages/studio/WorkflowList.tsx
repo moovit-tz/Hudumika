@@ -118,7 +118,7 @@ export function WorkflowList() {
   );
 
   return (
-    <div style={{ maxWidth: 1320, margin: '0 auto' }}>
+    <div>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap', marginBottom: 18 }}>
         <div style={{ flex: 1, minWidth: 240 }}>
           <PageHeader

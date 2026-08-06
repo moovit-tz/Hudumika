@@ -36,7 +36,7 @@ export function RunsPage() {
   const visible = useMemo(() => runs.filter(r => status === 'ALL' || r.status === status), [runs, status]);
 
   return (
-    <div style={{ maxWidth: 1320, margin: '0 auto' }}>
+    <div>
       <div style={{ marginBottom: 16 }}>
         <PageHeader
           crumbs={['Studio', 'Runs']}

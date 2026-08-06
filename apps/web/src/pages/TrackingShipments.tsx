@@ -78,7 +78,7 @@ export const TrackingShipments: React.FC = () => {
   });
 
   return (
-    <div style={{ padding: 24, background: '#f8fafc', minHeight: '100%', fontFamily: 'var(--font)' }}>
+    <div style={{ padding: '24px 0', background: 'var(--bg)', minHeight: '100%', fontFamily: 'var(--font)' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <PageHeader

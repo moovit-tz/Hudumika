@@ -1,5 +1,6 @@
 .sa-shell-content {
-  padding: 24px 32px;
+  padding: 24px 0;
+  /* Side gutter comes from .app-shell-content, not twice. */
   height: 100%;
   overflow-y: auto;
   box-sizing: border-box;

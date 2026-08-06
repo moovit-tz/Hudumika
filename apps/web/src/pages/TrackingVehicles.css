@@ -1,5 +1,6 @@
 .trk-dashboard {
-  padding: 24px;
+  /* Vertical only — the side gutter is .app-shell-content's. */
+  padding: 24px 0;
   background: var(--bg);
   min-height: calc(100vh - 60px);
   color: var(--ink);

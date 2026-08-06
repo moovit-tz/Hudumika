@@ -132,7 +132,7 @@ export const FinanceLedger: React.FC = () => {
   if (loading) return <div style={{ textAlign: 'center', color: 'var(--ink3)' }}>Loading ledger…</div>;
 
   return (
-    <div style={{ padding: isMobile ? '14px 16px' : '28px 32px', maxWidth: isFullLayout ? 'none' : 1100 }}>
+    <div style={{ padding: isMobile ? '14px 0' : '28px 0', maxWidth: isFullLayout ? 'none' : 1100 }}>
       {/* Header */}
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom: 24 }}>
         <div>

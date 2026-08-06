@@ -32,7 +32,7 @@
 
 /* Widen dashboard default */
 [data-clearos] .app-shell-content {
-  max-width: 1760px;
+  max-width: 100%;
 }
 
 /* ── Modern Layout Classes ────────────────────────────────────────── */

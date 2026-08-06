@@ -47,7 +47,7 @@ export const SuperAdminIntelligence: React.FC = () => {
     .slice(0, 12);
 
   const Empty = ({ what }: { what: string }) => (
-    <div style={{ padding: '28px 18px', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5, lineHeight: 1.6 }}>
+    <div style={{ padding: '28px 0',textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5, lineHeight: 1.6 }}>
       No {what} reported yet. This fills in as tenants use the apps and report
       back — nothing is inferred in the meantime.
     </div>

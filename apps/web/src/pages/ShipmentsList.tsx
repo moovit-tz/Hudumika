@@ -341,7 +341,7 @@ export const ShipmentsList: React.FC = () => {
     <div>
 
       {/* -- action bar -- */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'var(--white)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0',borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'var(--white)' }}>
         <Link to="/shipments/new"
           style={{ padding: '11px 22px', fontSize: 14, fontWeight: 700, borderRadius: 10, border: 'none', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', gap: 7, textDecoration: 'none' }}>
           <Icon name="plus" size={14} strokeWidth={2.5} /> New Shipment

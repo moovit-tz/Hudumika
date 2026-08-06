@@ -52,21 +52,17 @@
    gutter either side rather than running edge-to-edge against the sidebar
    rail / browser edge. */
 [data-layout="full"] .app-shell-content {
-  max-width: 100%;
-  /* Only the width cap changes in full mode. This used to reset the gutter to
-     `0 16px`, and since full-width became the default that reset applied
-     everywhere — which is why tokenising the gutter above appeared to do
-     nothing at all. The page margin is one value in both layouts. */
+  max-width: 100% !important;
   padding: var(--page-pad-y, 16px) var(--page-pad-x, 16px);
 }
 
-/* .page-layout (the white content card most pages/apps render into) has its
-   own fixed max-width + auto-centering — without this override it stays
-   capped and centered even once .app-shell-content above has reclaimed the
-   sidebar's width, leaving idle gutters on both sides instead of the content
-   actually growing. */
+/* .page-layout (the white content card most pages/apps render into) expands
+   to full width so the page content fills the available space with a uniform
+   16px gutter on top, left (sidebar rail), and right edge. */
 [data-layout="full"] .page-layout {
-  max-width: 100%;
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
 }
 
 /* ── Skin: Bordered — set from /admin/design-system's Layout Customizer ──
