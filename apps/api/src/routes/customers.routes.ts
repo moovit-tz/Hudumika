@@ -134,7 +134,8 @@ export async function customerRoutes(fastify: FastifyInstance) {
       // Create the customer's root folder in file storage
       MinioIntegration.ensureCustomerFolder(user.tenant_id, customer.id, customer.name);
 
-      reply.status(211);
+      // 201 Created — was 211, which is not a registered HTTP status.
+      reply.status(201);
       return customer;
     });
   });

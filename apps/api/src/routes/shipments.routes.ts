@@ -443,7 +443,11 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         assigned_to: preferredAssignee,
       });
 
-      return reply.status(211).send(created);
+      // 201 Created. This read 211, which is not a registered HTTP status at
+      // all — anything checking `res.status === 201`, and any proxy or client
+      // that treats an unknown 2xx conservatively, was being told something
+      // meaningless about a request that had in fact created a record.
+      return reply.status(201).send(created);
     } catch (error: any) {
       return reply.status(400).send({ error: error.message || 'Failed to create shipment case' });
     }

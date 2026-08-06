@@ -40,7 +40,8 @@ export async function financeRoutes(fastify: FastifyInstance) {
         recorded_by: user.sub,
       });
 
-      return reply.status(211).send(recorded);
+      // 201 Created — was 211, which is not a registered HTTP status.
+      return reply.status(201).send(recorded);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message || 'Failed to record fee line' });
     }
