@@ -12,6 +12,8 @@ export default
     "darkMode": "Badilisha kuwa hali ya giza",
     "fullWidth": "Muonekano wa upana kamili",
     "compact": "Muonekano mdogo",
+    "fullPage": "Ukurasa mzima",
+    "exitFullPage": "Ondoka ukurasa mzima",
     "myProfile": "Wasifu wangu",
     "adminPanel": "Paneli ya msimamizi",
     "signOut": "Toka",

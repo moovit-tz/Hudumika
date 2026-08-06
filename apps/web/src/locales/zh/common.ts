@@ -12,6 +12,8 @@ export default
     "darkMode": "切换到深色模式",
     "fullWidth": "全宽视图",
     "compact": "紧凑视图",
+    "fullPage": "全屏页面",
+    "exitFullPage": "退出全屏页面",
     "myProfile": "我的资料",
     "adminPanel": "管理面板",
     "signOut": "退出登录",

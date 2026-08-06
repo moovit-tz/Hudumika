@@ -12,6 +12,8 @@ export default
     "darkMode": "Passer au mode sombre",
     "fullWidth": "Vue pleine largeur",
     "compact": "Vue compacte",
+    "fullPage": "Plein écran",
+    "exitFullPage": "Quitter le plein écran",
     "myProfile": "Mon profil",
     "adminPanel": "Panneau d'administration",
     "signOut": "Déconnexion",

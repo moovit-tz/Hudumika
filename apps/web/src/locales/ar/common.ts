@@ -12,6 +12,8 @@ export default
     "darkMode": "التبديل إلى الوضع الداكن",
     "fullWidth": "عرض كامل العرض",
     "compact": "عرض مضغوط",
+    "fullPage": "صفحة كاملة",
+    "exitFullPage": "إنهاء الصفحة الكاملة",
     "myProfile": "ملفي الشخصي",
     "adminPanel": "لوحة الإدارة",
     "signOut": "تسجيل الخروج",

@@ -128,8 +128,52 @@ export function AppHeader({
     if (direction) document.documentElement.setAttribute('dir', direction);
   }, []);
 
-  function toggleFullLayout() {
-    setIsFullLayout(prev => !prev);
+  // ── Full page ──
+  // This button carries the maximise/minimise glyph, which everywhere else on
+  // the web means "fill the screen". It used to only flip the boxed/full-width
+  // layout, and since full-width became the default that came to almost
+  // nothing: pressing it moved the page by 8px (1408px → 1400px) while the
+  // shell stayed exactly as wide. It now does what the icon says — browser
+  // fullscreen, plus full-width layout while in it, so the page really does
+  // take the whole screen.
+  //
+  // State is read back from the document rather than kept locally: Esc and F11
+  // leave fullscreen without going through this handler, and an icon that
+  // still showed "minimise" after that would be lying about where you are.
+  const [isFs, setIsFs] = useState(() => !!document.fullscreenElement);
+  useEffect(() => {
+    const onChange = () => {
+      const now = !!document.fullscreenElement;
+      setIsFs(now);
+      // Restore whatever layout the tenant had once the page is no longer
+      // filling the screen — entering fullscreen forces full-width, so exiting
+      // must not leave that behind as if it had been chosen.
+      if (!now) {
+        const saved = localStorage.getItem('layout');
+        setIsFullLayout(saved ? saved === 'full' : true);
+      }
+    };
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  async function toggleFullPage() {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen();
+        // Full-width only for the duration; localStorage keeps the real
+        // preference, and the fullscreenchange handler above puts it back.
+        document.documentElement.setAttribute('data-layout', 'full');
+        window.dispatchEvent(new CustomEvent('hudumika-layout-updated'));
+      }
+    } catch {
+      // Fullscreen can be refused (permissions policy in an iframe, a browser
+      // that has it disabled). Fall back to the layout toggle it used to be so
+      // the button still does something rather than nothing.
+      setIsFullLayout(prev => !prev);
+    }
   }
 
   // ── Notifications ──
@@ -343,14 +387,15 @@ export function AppHeader({
           {/* Right actions */}
           <div className="app-header-actions">
 
-            {/* Layout toggle (Circle 3 button) */}
+            {/* Full page */}
             <button
               type="button"
               className="app-header-icon-btn app-header-layout-toggle"
-              onClick={toggleFullLayout}
-              title={isFullLayout ? t('header.compact') : t('header.fullWidth')}
+              onClick={toggleFullPage}
+              title={isFs ? t('header.exitFullPage') : t('header.fullPage')}
+              aria-pressed={isFs}
             >
-              <Icon name={isFullLayout ? 'minimize' : 'maximize'} size={19} color="var(--ink)" />
+              <Icon name={isFs ? 'minimize' : 'maximize'} size={19} color="var(--ink)" />
             </button>
 
             {/* Filter / collapse panel toggle (app-specific) */}
