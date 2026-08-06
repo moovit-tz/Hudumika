@@ -31,7 +31,7 @@ Splitting the title: put the noun the page is *about* in `titleEm`, the qualifie
 
 Sizing, spacing and the 768/480 breakpoints live in `.page-header*` in `index.css`. Do not set a page's own `<h1>`, `fontSize`, or margin above the header — if something looks wrong, fix the CSS so every app gets the fix.
 
-`PageHeader` is defined once. `HRM.tsx` and `SuperAdmin.tsx` grew private `PageHdr` copies; those are being removed, so do not add a third.
+`PageHeader` is defined once. `HRM.tsx` and `SuperAdmin.tsx` grew private `PageHdr` copies; both now **delegate** to the real `PageHeader` rather than re-implementing it — each is a thin adapter that derives the crumbs and splits the last word off the title, so ~40 call sites keep their short `title`/`sub` props and still get the house style. Leave those two as they are; do not add a third, and do not re-implement a title block anywhere else.
 
 **Full-screen app surfaces are excluded, deliberately.** Email, Drive, Calendar, Tasks and the Studio workflow builder are not list pages — their roots are `height:100%` / `flex:1; overflow:hidden` layouts, and a 43px title block does not sit *above* that content, it lands *inside* it. Adding one to Email put the title in the message-list column beside the mail, not over the app; the same was reverted for Drive. Do not add `PageHeader` to these apps. If they should carry the house identity, it needs a compact variant sized for an app toolbar row — a design decision, not a conversion.
 

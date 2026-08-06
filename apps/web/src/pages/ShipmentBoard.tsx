@@ -11,6 +11,7 @@ import {
 } from './clearanceData.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { FlagChip, ChBadge } from '../components/ClearanceChips.js';
 
 // --- Store hook ---------------------------------------------------------------
 
@@ -47,31 +48,11 @@ function Av({ name, size = 26 }: { name: string; size?: number }) {
   );
 }
 
-export function FlagChip({ flag, hero }: { flag: Flag; hero?: boolean }) {
-  const cfg = FLAG_CFG[flag];
-  if (!cfg) return null;
-  if (hero) {
-    return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 20, fontSize: 10.5, fontWeight: 700, background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid rgba(255,255,255,0.35)', whiteSpace: 'nowrap', letterSpacing: '0.04em', backdropFilter: 'blur(4px)' }}>
-        <Icon name={cfg.icon as IconName} size={10} color={cfg.color} />{cfg.label}
-      </span>
-    );
-  }
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 700, background: cfg.color + '18', color: cfg.color, border: `1px solid ${cfg.color}44`, whiteSpace: 'nowrap', letterSpacing: '0.04em' }}>
-      <Icon name={cfg.icon as IconName} size={10} />{cfg.label}
-    </span>
-  );
-}
-
-export function ChBadge({ ch }: { ch: Channel }) {
-  const cfg = CH_CFG[ch];
-  return (
-    <span style={{ display: 'inline-block', padding: '1px 6px', borderRadius: 3, fontSize: 10, fontWeight: 700, background: cfg.bg, color: cfg.color, border: `1px solid ${cfg.color}55` }}>
-      {cfg.label}
-    </span>
-  );
-}
+// FlagChip and ChBadge now live in components/ClearanceChips.tsx. They are
+// imported (this file's own JSX uses them) and re-exported for any older
+// import path. ShipmentDetail takes them from the component file directly —
+// it should not have been reaching into a page that no route renders.
+export { FlagChip, ChBadge };
 
 // --- Summary Panel ------------------------------------------------------------
 

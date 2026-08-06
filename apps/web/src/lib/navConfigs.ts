@@ -64,7 +64,9 @@ const clearosNav: NavCategory[] = [
 ];
 
 // ── FinOps ────────────────────────────────────────────────────
-// Nav is handled by FinOpsSidebar — HorizontalNav is suppressed for finops.
+// Nav is handled by AppSidebar (see FinOpsShell) — HorizontalNav is
+// suppressed for finops. The comment used to name FinOpsSidebar, which was
+// never mounted by anything and has been removed.
 
 // ── onePI ─────────────────────────────────────────────────────
 

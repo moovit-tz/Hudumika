@@ -18,7 +18,7 @@ import {
   type ThreadMsg, type TimelineEvent, type ShipDoc, type LedgerEntry, type DocType,
   type InternalTask, type TimeEntry, type ActivityEvent, type TaskStatus, type Listener,
 } from './clearanceData.js';
-import { FlagChip, ChBadge } from './ShipmentBoard.js';
+import { FlagChip, ChBadge } from '../components/ClearanceChips.js';
 import { EMPLOYEES, empInitials, empAvatarColor } from '../data/staffData.js';
 import type { Employee } from '../data/staffData.js';
 import { CUSTOMER_MILESTONES, MILESTONE_LABELS, STAGE_TO_MILESTONE } from '@hudumika/types';

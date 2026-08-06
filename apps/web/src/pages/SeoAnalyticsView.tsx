@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { SwitchRow } from '../components/ui/list-item-row.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { readSeoSettings, pushSeoSettings, type SeoSettings } from '../hooks/useSeoAnalytics.js';
 
@@ -40,14 +41,16 @@ export function SeoAnalyticsView() {
   };
 
   return (
-    <div className="flex flex-col w-full max-w-6xl mx-auto p-6 gap-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">SEO & Analytics</h1>
-        <p className="text-muted-foreground mt-2">
-          Configure tracking and search-verification tags for the whole platform — applied on every page,
-          including pre-login screens.
-        </p>
-      </div>
+    /* No max-w / mx-auto / p-6 here: .app-shell-content and .page-layout own
+       the page gutter, and re-centring inside them put this page's content at
+       a different left edge from every other Admin screen. */
+    <div className="flex flex-col w-full gap-6">
+      <PageHeader
+        crumbs={['Admin', 'SEO & Analytics']}
+        titlePlain="SEO &"
+        titleEm="analytics"
+        subtitle="Configure tracking and search-verification tags for the whole platform — applied on every page, including pre-login screens."
+      />
 
       <Card>
         <CardContent className="pt-6">
