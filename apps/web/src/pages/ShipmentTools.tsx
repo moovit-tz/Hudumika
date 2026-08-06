@@ -188,9 +188,9 @@ td{padding:7px 10px;border-bottom:1px solid #e5e7eb;font-size:13px}
 td:last-child{text-align:right;font-weight:600}
 tr.total td{background:#0b72640d;font-weight:800;font-size:14px}
 .badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700}
-.req{background:var(--red-l);color:#dc2626}
+.req{background:var(--red-l);color:var(--red)}
 .ok{background:var(--green-l);color:#059669}
-.red{color:#dc2626}
+.red{color:var(--red)}
 .basis{background:var(--gold-l);padding:14px;border-radius:8px;border:1px solid #fed7aa;margin-top:8px;font-size:12px;line-height:1.9}
 pre{white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:8px;font-size:13px;line-height:1.7;border:1px solid #e2e8f0}
 .footer{margin-top:40px;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px}
@@ -615,7 +615,7 @@ export const ShipmentTools: React.FC = () => {
               <RRow label="Total Estimated Penalty" value={`TZS ${fmt(pResult.total)}`} hi red />
               {pResult.basis.length > 0 && (
                 <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 8, border: '1px solid #fecaca', background: '#fef2f208' }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>Legal Basis</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 6 }}>Legal Basis</div>
                   {pResult.basis.map((b, i) => (
                     <div key={i} style={{ fontSize: 11.5, color: 'var(--ink2)', paddingLeft: 10, borderLeft: '2px solid #fecaca', marginBottom: 5, lineHeight: 1.5 }}>{b}</div>
                   ))}

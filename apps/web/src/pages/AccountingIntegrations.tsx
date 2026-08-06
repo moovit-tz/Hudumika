@@ -240,7 +240,7 @@ export function AccountingIntegrations() {
                           <button type="button" className="btn btn-secondary btn-sm" disabled={syncingProvider === p.provider} onClick={() => handleSyncNow(p.provider)}>
                             {syncingProvider === p.provider ? 'Syncing…' : 'Sync CoA'}
                           </button>
-                          <button type="button" style={{ fontSize: 13, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} onClick={() => handleDisconnect(p.provider)}>
+                          <button type="button" style={{ fontSize: 13, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }} onClick={() => handleDisconnect(p.provider)}>
                             Disconnect
                           </button>
                         </>

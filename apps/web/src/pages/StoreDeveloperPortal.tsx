@@ -74,7 +74,7 @@ export const StoreDeveloperPortal: React.FC = () => {
       </div>
 
       <div style={{ background: 'var(--surface)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border)', marginTop: '20px' }}>
-        {error && <div style={{ background: 'var(--red-l)', color: '#dc2626', padding: '12px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #fca5a5' }}>{error}</div>}
+        {error && <div style={{ background: 'var(--red-l)', color: 'var(--red)', padding: '12px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #fca5a5' }}>{error}</div>}
 
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>

@@ -183,13 +183,13 @@ function StatusBadge({ status }: { status: string }) {
   // strings (Paid/Open/High…) and the real API's UPPER_SNAKE enums (OPEN, IN_PROGRESS,
   // due/paid/overdue/cancelled) without needing two lookup tables.
   const cfg: Record<string, { bg: string; color: string }> = {
-    PAID:     { bg: '#ecfdf5', color: '#059669' }, DUE:        { bg: '#fef9c3', color: '#ca8a04' },
-    OVERDUE:  { bg: '#fee2e2', color: '#dc2626' }, CANCELLED:  { bg: '#f1f5f9', color: '#64748b' },
-    OPEN:     { bg: '#dbeafe', color: '#2563eb' }, IN_PROGRESS:{ bg: '#fef9c3', color: '#ca8a04' },
-    RESOLVED: { bg: '#ecfdf5', color: '#059669' }, CLOSED:     { bg: '#f1f5f9', color: '#64748b' },
-    HIGH:     { bg: '#fee2e2', color: '#dc2626' }, URGENT:     { bg: '#fee2e2', color: '#dc2626' },
-    NORMAL:   { bg: '#fef9c3', color: '#ca8a04' }, MEDIUM:     { bg: '#fef9c3', color: '#ca8a04' }, LOW: { bg: '#f1f5f9', color: '#64748b' },
-    ACTIVE:   { bg: '#ecfdf5', color: '#059669' },
+    PAID:     { bg: 'var(--green-l)', color: '#059669' }, DUE:        { bg: 'var(--gold-l)', color: 'var(--gold)' },
+    OVERDUE:  { bg: 'var(--red-l)', color: 'var(--red)' }, CANCELLED:  { bg: '#f1f5f9', color: '#64748b' },
+    OPEN:     { bg: 'var(--blue-l)', color: '#2563eb' }, IN_PROGRESS:{ bg: 'var(--gold-l)', color: 'var(--gold)' },
+    RESOLVED: { bg: 'var(--green-l)', color: '#059669' }, CLOSED:     { bg: '#f1f5f9', color: '#64748b' },
+    HIGH:     { bg: 'var(--red-l)', color: 'var(--red)' }, URGENT:     { bg: 'var(--red-l)', color: 'var(--red)' },
+    NORMAL:   { bg: 'var(--gold-l)', color: 'var(--gold)' }, MEDIUM:     { bg: 'var(--gold-l)', color: 'var(--gold)' }, LOW: { bg: '#f1f5f9', color: '#64748b' },
+    ACTIVE:   { bg: 'var(--green-l)', color: '#059669' },
   };
   const c = cfg[status.toUpperCase()] || cfg.LOW;
   return <span style={{ padding: '2px 9px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: c.bg, color: c.color, whiteSpace: 'nowrap' }}>{status}</span>;

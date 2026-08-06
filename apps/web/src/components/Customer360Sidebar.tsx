@@ -153,7 +153,7 @@ export function Customer360Sidebar({
             </span>
           )}
           {totalDue > 0 && (
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', background: 'var(--red-l)', padding: '2px 8px', borderRadius: 10 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', padding: '2px 8px', borderRadius: 10 }}>
               ${(totalDue / 1000).toFixed(0)}K Due
             </span>
           )}
@@ -231,7 +231,7 @@ export function Customer360Sidebar({
                           </div>
                         )}
                         {a.metadata?.expires_at && (
-                          <div style={{ fontSize: 10, color: '#ef4444', marginTop: 2 }}>⏱ Expires: {new Date(a.metadata.expires_at).toLocaleDateString()}</div>
+                          <div style={{ fontSize: 10, color: 'var(--red)', marginTop: 2 }}>⏱ Expires: {new Date(a.metadata.expires_at).toLocaleDateString()}</div>
                         )}
                       </div>
                     );
@@ -375,8 +375,8 @@ export function Customer360Sidebar({
                 { icon: 'tag', label: 'Ticket opened', time: 'Today, 11:31', color: '#6366f1' },
                 { icon: 'mail', label: 'Message sent by customer', time: 'Today, 11:31', color: '#3b82f6' },
                 { icon: 'user', label: 'Agent replied', time: 'Today, 12:01', color: '#10b981' },
-                { icon: 'ship', label: 'Linked shipment CLR-2026-0001 updated', time: 'Yesterday', color: '#f59e0b' },
-                { icon: 'fileText', label: 'Invoice INV-2026-0008 sent', time: '3 days ago', color: '#ef4444' },
+                { icon: 'ship', label: 'Linked shipment CLR-2026-0001 updated', time: 'Yesterday', color: 'var(--gold)' },
+                { icon: 'fileText', label: 'Invoice INV-2026-0008 sent', time: '3 days ago', color: 'var(--red)' },
               ] as { icon: IconName; label: string; time: string; color: string }[]).map((e, i) => (
                 <div key={i} style={{ position: 'relative', paddingBottom: 16, paddingLeft: 16 }}>
                   <div style={{ position: 'absolute', left: -6, top: 2, width: 12, height: 12, borderRadius: '50%', background: e.color, border: '2px solid var(--white)' }} />

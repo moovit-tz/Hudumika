@@ -489,7 +489,7 @@ export const OrgChart: React.FC = () => {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {dirty && (
-            <span style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 11, color: 'var(--gold)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
               <Icon name="clock" size={11} color="#f59e0b" /> Auto-saving…
             </span>
           )}

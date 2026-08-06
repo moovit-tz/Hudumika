@@ -1197,10 +1197,10 @@ export const Customers: React.FC = () => {
 
       const INV_STATUS: Record<string, { bg: string; color: string }> = {
         paid:     { bg: 'var(--green-l)', color: 'var(--green)' },
-        unpaid:   { bg: '#fef3c7',        color: '#d97706'       },
+        unpaid:   { bg: 'var(--gold-l)',        color: 'var(--gold)'       },
         overdue:  { bg: 'var(--red-l)',   color: 'var(--red)'    },
         draft:    { bg: 'var(--bg)',      color: 'var(--ink3)'   },
-        partial:  { bg: '#ede9fe',        color: '#7c3aed'       },
+        partial:  { bg: 'var(--purple-l)',        color: '#7c3aed'       },
       };
 
       return (
@@ -1465,7 +1465,7 @@ export const Customers: React.FC = () => {
       ];
 
       const TICKET_STATUS: Record<string, { bg: string; color: string }> = {
-        open:        { bg: '#dbeafe', color: '#2563eb' },
+        open:        { bg: 'var(--blue-l)', color: '#2563eb' },
         in_progress: { bg: '#ccfbf1', color: '#0d9488' },
         resolved:    { bg: 'var(--green-l)', color: 'var(--green)' },
         closed:      { bg: 'var(--bg)', color: 'var(--ink3)' },

@@ -145,7 +145,7 @@
 .rtbl-r         { text-align: right; }
 .rtbl-c         { text-align: center; }
 .rtbl-mono      { font-family: var(--mono); font-weight: 600; }
-.rtbl-rm        { background: none; border: none; cursor: pointer; color: #dc2626; font-size: 12px; padding: 4px 8px; }
+.rtbl-rm        { background: none; border: none; cursor: pointer; color: var(--red); font-size: 12px; padding: 4px 8px; }
 .rtbl-add       { background: var(--bg); }
 .rtbl-in-r      { font-size: 13px; text-align: right; max-width: 120px; }
 .rtbl-bold      { font-weight: 600; }
@@ -193,8 +193,8 @@
 .s-gw-info      { flex: 1; min-width: 0; }
 .s-gw-name      { font-size: 13.5px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 7px; }
 .s-gw-pill      { font-size: var(--badge-fs-sm); font-weight: 700; padding: var(--badge-py-sm) var(--badge-px-sm); border-radius: 9px; }
-.s-gw-pill--sbx { background: var(--gold-l); color: #92400e; }
-.s-gw-pill--live{ background: var(--green-l); color: #065f46; }
+.s-gw-pill--sbx { background: var(--gold-l); color: var(--gold); }
+.s-gw-pill--live{ background: var(--green-l); color: var(--green); }
 .s-gw-gdesc     { font-size: 11.5px; color: var(--ink3); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .s-gw-ctrls     { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .s-gw-exp-btn   { background: none; border: none; cursor: pointer; color: var(--ink3); display: flex; align-items: center; padding: 4px; }
@@ -203,11 +203,11 @@
 .s-gw-mode--sbx { background: var(--gold-l); border: 1px solid #fde68a; }
 .s-gw-mode--live{ background: var(--green-l); border: 1px solid #a7f3d0; }
 .s-gw-mode-lbl  { font-size: 12.5px; font-weight: 600; }
-.s-gw-mode-lbl--sbx { color: #92400e; }
-.s-gw-mode-lbl--live{ color: #065f46; }
+.s-gw-mode-lbl--sbx { color: var(--gold); }
+.s-gw-mode-lbl--live{ color: var(--green); }
 .s-gw-mode-sub  { font-size: 11.5px; margin-top: 1px; }
-.s-gw-mode-sub--sbx { color: #b45309; }
-.s-gw-mode-sub--live{ color: #047857; }
+.s-gw-mode-sub--sbx { color: var(--gold); }
+.s-gw-mode-sub--live{ color: var(--green); }
 .s-gw-fields    { display: grid; gap: 10px 14px; grid-template-columns: 1fr; }
 .s-gw-fields--2 { grid-template-columns: 1fr 1fr; }
 .s-gw-fspan     { grid-column: 1 / -1; }

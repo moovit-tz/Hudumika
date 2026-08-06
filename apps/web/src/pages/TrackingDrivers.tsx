@@ -306,7 +306,7 @@ export const TrackingDrivers: React.FC = () => {
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
-              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(20px, -30px)', background: 'rgba(220,38,38,0.12)', color: '#dc2626', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
+              <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(20px, -30px)', background: 'rgba(220,38,38,0.12)', color: 'var(--red)', fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4 }}>
                 {metrics.total_delays} Delays
               </div>
             </div>

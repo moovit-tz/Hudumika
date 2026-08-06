@@ -93,7 +93,7 @@ export const TrackingMaintenanceNew: React.FC = () => {
           <div style={{ flex: 1 }}><label style={labelStyle}>Service date (previous)</label><DatePicker date={parseDateOnly(serviceDate)} onChange={d => setServiceDate(toDateOnlyString(d))} /></div>
           <div style={{ flex: 1 }}><label style={labelStyle}>Next due date (expected)</label><DatePicker date={parseDateOnly(nextDueDate)} onChange={d => setNextDueDate(toDateOnlyString(d))} /></div>
         </div>
-        {error && <div style={{ fontSize: 12, color: '#dc2626' }}>{error}</div>}
+        {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
           <Link to="/tracking/maintenance" style={{ padding: '9px 18px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontSize: 13, textDecoration: 'none' }}>Cancel</Link>
           <button type="submit" disabled={saving || !vehicleId} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>

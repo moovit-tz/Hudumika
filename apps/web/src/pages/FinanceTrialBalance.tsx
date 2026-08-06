@@ -9,10 +9,10 @@ import { PageHeader } from '../components/PageHeader.js';
 
 const TYPE_CFG: Record<AccountType, { label: string; color: string; bg: string }> = {
   ASSET:     { label: 'Assets',      color: '#0891b2', bg: '#ecfeff' },
-  LIABILITY: { label: 'Liabilities', color: '#ef4444', bg: '#fef2f2' },
-  EQUITY:    { label: 'Equity',      color: '#7c3aed', bg: '#ede9fe' },
-  REVENUE:   { label: 'Revenue',     color: '#059669', bg: '#ecfdf5' },
-  EXPENSE:   { label: 'Expenses',    color: '#d97706', bg: '#fef3c7' },
+  LIABILITY: { label: 'Liabilities', color: 'var(--red)', bg: 'var(--red-l)' },
+  EQUITY:    { label: 'Equity',      color: '#7c3aed', bg: 'var(--purple-l)' },
+  REVENUE:   { label: 'Revenue',     color: '#059669', bg: 'var(--green-l)' },
+  EXPENSE:   { label: 'Expenses',    color: 'var(--gold)', bg: 'var(--gold-l)' },
 };
 const TYPE_ORDER: AccountType[] = ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'];
 
@@ -106,7 +106,7 @@ export const FinanceTrialBalance: React.FC = () => {
   }
 
   if (loading) return <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading trial balance…</div>;
-  if (error) return <div style={{ textAlign: 'center', color: '#ef4444' }}>{error}</div>;
+  if (error) return <div style={{ textAlign: 'center', color: 'var(--red)' }}>{error}</div>;
 
   return (
     <div style={{ padding: '0 0 28px', maxWidth: 960 }}>

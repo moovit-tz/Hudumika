@@ -274,7 +274,7 @@ export const TrackingRoutePlanner: React.FC = () => {
             <Icon name="map" size={16} /> {loading ? 'Optimizing Route...' : 'Generate Route'}
           </button>
           
-          {error && <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(220,38,38,0.1)', color: '#dc2626', fontSize: '12px', borderRadius: '8px' }}>{error}</div>}
+          {error && <div style={{ marginTop: '12px', padding: '10px', background: 'rgba(220,38,38,0.1)', color: 'var(--red)', fontSize: '12px', borderRadius: '8px' }}>{error}</div>}
 
           {/* Results & Timeline Area */}
           {(route || waypoints.length > 0) && (

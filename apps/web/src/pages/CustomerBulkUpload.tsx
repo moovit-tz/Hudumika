@@ -99,7 +99,7 @@ export const CustomerBulkUpload: React.FC = () => {
           )}
 
           {error && (
-            <div style={{ background: 'var(--red-l)', border: '1px solid #fecaca', borderRadius: 9, padding: '14px 18px', fontSize: 13, color: '#b91c1c' }}>
+            <div style={{ background: 'var(--red-l)', border: '1px solid #fecaca', borderRadius: 9, padding: '14px 18px', fontSize: 13, color: 'var(--red)' }}>
               {error}
             </div>
           )}
@@ -114,7 +114,7 @@ export const CustomerBulkUpload: React.FC = () => {
                     {summary.inserted} of {summary.total} client{summary.total !== 1 ? 's' : ''} imported
                   </div>
                   {summary.skipped > 0 && (
-                    <div style={{ fontSize: 12, color: '#065f46', marginTop: 2 }}>{summary.skipped} row{summary.skipped !== 1 ? 's' : ''} skipped</div>
+                    <div style={{ fontSize: 12, color: 'var(--green)', marginTop: 2 }}>{summary.skipped} row{summary.skipped !== 1 ? 's' : ''} skipped</div>
                   )}
                 </div>
                 {summary.inserted > 0 && (
@@ -152,7 +152,7 @@ export const CustomerBulkUpload: React.FC = () => {
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
                     <code style={{ fontSize: 11, fontFamily: 'var(--mono)', color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 4 }}>{col as string}</code>
-                    {req && <span style={{ fontSize: 10, color: '#ef4444', fontWeight: 700 }}>required</span>}
+                    {req && <span style={{ fontSize: 10, color: 'var(--red)', fontWeight: 700 }}>required</span>}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{desc as string}</div>
                 </div>

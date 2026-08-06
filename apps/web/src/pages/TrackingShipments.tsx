@@ -23,10 +23,10 @@ interface Customer { id: string; name: string }
 
 const STATUS_COLORS: Record<string, { bg: string; fg: string; dot: string }> = {
   PLANNED:     { bg: '#f1f5f9', fg: '#475569', dot: '#94a3b8' },
-  IN_PROGRESS: { bg: '#ecfdf5', fg: '#059669', dot: '#10b981' },
-  COMPLETED:   { bg: '#eff6ff', fg: '#2563eb', dot: '#3b82f6' },
-  CANCELLED:   { bg: '#fef2f2', fg: '#dc2626', dot: '#ef4444' },
-  DELAYED:     { bg: '#fffbeb', fg: '#d97706', dot: '#f59e0b' },
+  IN_PROGRESS: { bg: 'var(--green-l)', fg: '#059669', dot: '#10b981' },
+  COMPLETED:   { bg: 'var(--blue-l)', fg: '#2563eb', dot: '#3b82f6' },
+  CANCELLED:   { bg: 'var(--red-l)', fg: '#dc2626', dot: '#ef4444' },
+  DELAYED:     { bg: 'var(--gold-l)', fg: '#d97706', dot: '#f59e0b' },
 };
 
 export const TrackingShipments: React.FC = () => {

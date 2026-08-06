@@ -55,7 +55,7 @@ const WORKSPACES = [
   { id: 'skyline', name: 'Skyline Dynamics', color: '#0d1117', shortcut: '' },
   { id: 'vortex', name: 'Vortex Innovations', color: '#0891b2', shortcut: '⌘1' },
   { id: 'proxima', name: 'Proxima Ventures', color: '#6e40c9', shortcut: '⌘2' },
-  { id: 'nexora', name: 'Nexora Labs', color: '#ca8a04', shortcut: '⌘3' },
+  { id: 'nexora', name: 'Nexora Labs', color: 'var(--gold)', shortcut: '⌘3' },
 ];
 
 function WorkspaceAvatar({ color, size = 28 }: { color: string; size?: number }) {

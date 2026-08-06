@@ -41,20 +41,20 @@ const EMPTY_VENDOR: Vendor = {
 
 const BILL_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
   DRAFT:   { bg: '#f1f5f9', color: '#64748b' },
-  POSTED:  { bg: '#dbeafe', color: '#1d4ed8' },
-  PARTIAL: { bg: '#fef3c7', color: '#b45309' },
-  PAID:    { bg: '#ecfdf5', color: '#065f46' },
-  OVERDUE: { bg: '#fee2e2', color: '#dc2626' },
+  POSTED:  { bg: 'var(--blue-l)', color: 'var(--blue)' },
+  PARTIAL: { bg: 'var(--gold-l)', color: 'var(--gold)' },
+  PAID:    { bg: 'var(--green-l)', color: 'var(--green)' },
+  OVERDUE: { bg: 'var(--red-l)', color: 'var(--red)' },
   VOID:    { bg: '#f1f5f9', color: '#64748b' },
 };
 
 /* ── Detail Panel ───────────────────────────────────────────────────────────── */
 const PO_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
   DRAFT:     { bg: '#f1f5f9', color: '#64748b' },
-  SENT:      { bg: '#dbeafe', color: '#1d4ed8' },
-  PARTIAL:   { bg: '#fef3c7', color: '#b45309' },
-  RECEIVED:  { bg: '#ecfdf5', color: '#065f46' },
-  CANCELLED: { bg: '#fee2e2', color: '#dc2626' },
+  SENT:      { bg: 'var(--blue-l)', color: 'var(--blue)' },
+  PARTIAL:   { bg: 'var(--gold-l)', color: 'var(--gold)' },
+  RECEIVED:  { bg: 'var(--green-l)', color: 'var(--green)' },
+  CANCELLED: { bg: 'var(--red-l)', color: 'var(--red)' },
 };
 
 function VendorDetail({ vendor, bills, expenses, purchaseOrders, onClose, onEdit, isMobile }: {

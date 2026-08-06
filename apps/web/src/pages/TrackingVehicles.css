@@ -147,7 +147,7 @@
 
 .trk-kpi-trend.negative {
   background: rgba(220,38,38,0.12);
-  color: #dc2626;
+  color: var(--red);
 }
 
 .trk-kpi-desc {
@@ -323,8 +323,8 @@
 
 .trk-vcard-badge.on_route { color: #059669; background: rgba(22,163,74,0.12); border-color: rgba(22,163,74,0.35); }
 .trk-vcard-badge.in_warehouse { color: var(--ink2); background: var(--bg); border-color: var(--border2); }
-.trk-vcard-badge.loading { color: #d97706; background: rgba(217,119,6,0.12); border-color: rgba(217,119,6,0.35); }
-.trk-vcard-badge.maintenance { color: #dc2626; background: rgba(220,38,38,0.12); border-color: rgba(220,38,38,0.35); }
+.trk-vcard-badge.loading { color: var(--gold); background: rgba(217,119,6,0.12); border-color: rgba(217,119,6,0.35); }
+.trk-vcard-badge.maintenance { color: var(--red); background: rgba(220,38,38,0.12); border-color: rgba(220,38,38,0.35); }
 
 .trk-vcard-img-container {
   height: 100px;

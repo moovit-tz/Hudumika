@@ -2082,7 +2082,7 @@ function LinkedAppsPanel({ shipmentId, isMobile }: { shipmentId: string; isMobil
 
 const TASK_STATUS_CFG: Record<TaskStatus, { label: string; color: string; bg: string }> = {
   not_started:       { label: 'Not Started',       color: 'var(--ink3)', bg: 'var(--bg)' },
-  in_progress:       { label: 'In Progress',       color: 'var(--blue)', bg: '#dbeafe' },
+  in_progress:       { label: 'In Progress',       color: 'var(--blue)', bg: 'var(--blue-l)' },
   testing:           { label: 'Testing',           color: 'var(--purple)', bg: 'var(--purple-l)' },
   awaiting_feedback: { label: 'Awaiting Feedback', color: 'var(--gold)', bg: 'var(--gold-l)' },
   complete:          { label: 'Complete',           color: 'var(--green)', bg: 'var(--green-l)' },

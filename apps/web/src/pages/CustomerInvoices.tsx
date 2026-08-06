@@ -326,7 +326,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
         </Link>
         {inv.status !== 'Paid' && inv.status !== 'Credited' && (
           <button type="button" title="Dispute this invoice" onClick={() => setDisputing(true)}
-            style={{ flex: 1, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'var(--red-l)', color: '#dc2626', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ flex: 1, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'var(--red-l)', color: 'var(--red)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="alertCircle" size={15} color="#dc2626" />
             Dispute
           </button>
@@ -380,9 +380,9 @@ export const CustomerInvoices: React.FC = () => {
         {!loading && invoices.length > 0 && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
             {[
-              { label: 'Overdue',  count: invoices.filter(i => i.status === 'Overdue').length,  color: '#dc2626', bg: '#fee2e2' },
-              { label: 'Unpaid',   count: invoices.filter(i => i.status === 'Unpaid').length,   color: '#d97706', bg: '#fef3c7' },
-              { label: 'Paid',     count: invoices.filter(i => i.status === 'Paid').length,     color: '#059669', bg: '#ecfdf5' },
+              { label: 'Overdue',  count: invoices.filter(i => i.status === 'Overdue').length,  color: 'var(--red)', bg: 'var(--red-l)' },
+              { label: 'Unpaid',   count: invoices.filter(i => i.status === 'Unpaid').length,   color: 'var(--gold)', bg: 'var(--gold-l)' },
+              { label: 'Paid',     count: invoices.filter(i => i.status === 'Paid').length,     color: '#059669', bg: 'var(--green-l)' },
             ].map(s => (
               <button key={s.label} type="button" title={`Show ${s.label}`} onClick={() => setFilter(s.label as FilterKey)}
                 style={{ background: 'var(--white)', border: `1.5px solid ${filter === s.label ? s.color : 'var(--border)'}`, borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 8px', cursor: 'pointer', fontFamily: 'var(--font)', textAlign: 'center', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>

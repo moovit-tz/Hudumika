@@ -102,15 +102,15 @@ const parseEvents = (raw: string | TrackingEvent[]): TrackingEvent[] => {
 };
 
 const STATUS: Record<string, { bg: string; fg: string; label: string; icon: IconName }> = {
-  DELIVERED:       { bg: '#ecfdf5', fg: '#059669', label: 'Delivered',       icon: 'checkCircle' },
-  IN_TRANSIT:      { bg: '#dbeafe', fg: '#2563eb', label: 'In Transit',       icon: 'globe'       },
-  TRANSIT:         { bg: '#dbeafe', fg: '#2563eb', label: 'In Transit',       icon: 'globe'       },
-  PICKED_UP:       { bg: '#ede9fe', fg: '#6366f1', label: 'Picked Up',        icon: 'package'     },
-  DEPARTED:        { bg: '#e0f2fe', fg: '#0284c7', label: 'Departed',         icon: 'compass'     },
-  CUSTOMS_CLEARED: { bg: '#fef9c3', fg: '#ca8a04', label: 'Customs Cleared',  icon: 'shield'      },
-  ON_HOLD:         { bg: '#fee2e2', fg: '#dc2626', label: 'On Hold',          icon: 'alertCircle' },
-  DELAYED:         { bg: '#fee2e2', fg: '#dc2626', label: 'Delayed',          icon: 'alertCircle' },
-  ARRIVED:         { bg: '#ecfdf5', fg: '#059669', label: 'Arrived',          icon: 'mapPin'      },
+  DELIVERED:       { bg: 'var(--green-l)', fg: '#059669', label: 'Delivered',       icon: 'checkCircle' },
+  IN_TRANSIT:      { bg: 'var(--blue-l)', fg: '#2563eb', label: 'In Transit',       icon: 'globe'       },
+  TRANSIT:         { bg: 'var(--blue-l)', fg: '#2563eb', label: 'In Transit',       icon: 'globe'       },
+  PICKED_UP:       { bg: 'var(--purple-l)', fg: '#6366f1', label: 'Picked Up',        icon: 'package'     },
+  DEPARTED:        { bg: 'var(--blue-l)', fg: '#0284c7', label: 'Departed',         icon: 'compass'     },
+  CUSTOMS_CLEARED: { bg: 'var(--gold-l)', fg: '#ca8a04', label: 'Customs Cleared',  icon: 'shield'      },
+  ON_HOLD:         { bg: 'var(--red-l)', fg: '#dc2626', label: 'On Hold',          icon: 'alertCircle' },
+  DELAYED:         { bg: 'var(--red-l)', fg: '#dc2626', label: 'Delayed',          icon: 'alertCircle' },
+  ARRIVED:         { bg: 'var(--green-l)', fg: '#059669', label: 'Arrived',          icon: 'mapPin'      },
 };
 const getStatus = (code?: string) =>
   STATUS[code?.toUpperCase() ?? ''] ?? { bg: 'var(--bg)', fg: '#64748b', label: code ?? 'Unknown', icon: 'info' as IconName };

@@ -383,7 +383,7 @@ html[data-expanded="true"] .app-sidebar {
 
 .app-sb-badge--free {
   background: var(--green-l);
-  color: #065f46;
+  color: var(--green);
 }
 
 .app-sb-badge--soon {
@@ -530,7 +530,7 @@ html[data-expanded="true"] .app-sidebar {
 
 .app-sb-footer-signout:hover {
   background: var(--red-l);
-  color: #dc2626;
+  color: var(--red);
 }
 
 .app-sidebar--collapsed .app-sb-footer-signout {

@@ -30,11 +30,11 @@ export const FinanceAgedPayables: React.FC = () => {
   const asOf = report?.as_of ?? '';
 
   function urgencyBadge(row: AgedRow) {
-    if (row.days_90_plus > 0) return { label: 'Urgent',   color: 'var(--red)',   bg: '#fef2f2' };
-    if (row.days_61_90 > 0)   return { label: 'Overdue',  color: 'var(--red)',   bg: '#fef2f2' };
-    if (row.days_31_60 > 0)   return { label: 'Late',     color: '#f59e0b',      bg: '#fffbeb' };
-    if (row.days_1_30 > 0)    return { label: 'Due Soon', color: '#f59e0b',      bg: '#fffbeb' };
-    if (row.current > 0)      return { label: 'Current',  color: 'var(--green)', bg: '#ecfdf5' };
+    if (row.days_90_plus > 0) return { label: 'Urgent',   color: 'var(--red)',   bg: 'var(--red-l)' };
+    if (row.days_61_90 > 0)   return { label: 'Overdue',  color: 'var(--red)',   bg: 'var(--red-l)' };
+    if (row.days_31_60 > 0)   return { label: 'Late',     color: 'var(--gold)',      bg: 'var(--gold-l)' };
+    if (row.days_1_30 > 0)    return { label: 'Due Soon', color: 'var(--gold)',      bg: 'var(--gold-l)' };
+    if (row.current > 0)      return { label: 'Current',  color: 'var(--green)', bg: 'var(--green-l)' };
     return                           { label: 'Cleared', color: 'var(--ink3)', bg: 'var(--bg)' };
   }
 
@@ -72,17 +72,17 @@ export const FinanceAgedPayables: React.FC = () => {
       {loading ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading aged payables…</div>
       ) : error ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: '#ef4444' }}>{error}</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Summary */}
         <div style={{ display: 'flex', gap: 14 }}>
           {[
-            { label: 'Total Payable',     value: `${cur} ${(totals.total / 1_000_000).toFixed(1)}M`,       color: 'var(--blue)',  bg: '#eff6ff',       icon: 'dollarSign'   },
-            { label: 'Current',           value: `${cur} ${(totals.current / 1_000_000).toFixed(1)}M`,     color: 'var(--green)', bg: '#ecfdf5',       icon: 'checkCircle'  },
-            { label: 'Total Overdue',     value: `${cur} ${(overdue / 1_000_000).toFixed(1)}M`,            color: 'var(--red)',   bg: '#fef2f2',       icon: 'alertTriangle'},
-            { label: '90+ Days',          value: `${cur} ${(totals.days_90_plus / 1_000_000).toFixed(1)}M`, color: '#7c3aed',      bg: '#f5f3ff',       icon: 'clock'        },
+            { label: 'Total Payable',     value: `${cur} ${(totals.total / 1_000_000).toFixed(1)}M`,       color: 'var(--blue)',  bg: 'var(--blue-l)',       icon: 'dollarSign'   },
+            { label: 'Current',           value: `${cur} ${(totals.current / 1_000_000).toFixed(1)}M`,     color: 'var(--green)', bg: 'var(--green-l)',       icon: 'checkCircle'  },
+            { label: 'Total Overdue',     value: `${cur} ${(overdue / 1_000_000).toFixed(1)}M`,            color: 'var(--red)',   bg: 'var(--red-l)',       icon: 'alertTriangle'},
+            { label: '90+ Days',          value: `${cur} ${(totals.days_90_plus / 1_000_000).toFixed(1)}M`, color: '#7c3aed',      bg: 'var(--purple-l)',       icon: 'clock'        },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -102,7 +102,7 @@ export const FinanceAgedPayables: React.FC = () => {
           <div style={{ display: 'flex', gap: 16 }}>
             {[
               { label: 'Current',    value: totals.current,      color: 'var(--green)'  },
-              { label: '1–30 Days',  value: totals.days_1_30,    color: '#f59e0b'       },
+              { label: '1–30 Days',  value: totals.days_1_30,    color: 'var(--gold)'       },
               { label: '31–60 Days', value: totals.days_31_60,   color: 'var(--red)'    },
               { label: '61–90 Days', value: totals.days_61_90,   color: 'var(--red)'    },
               { label: '90+ Days',   value: totals.days_90_plus, color: '#7c3aed'       },
@@ -148,7 +148,7 @@ export const FinanceAgedPayables: React.FC = () => {
                     <tr key={s.entity_id} style={{ borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none' }}>
                       <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 600, whiteSpace: 'nowrap' }}>{s.entity_name}</td>
                       <td style={{ padding: '10px 16px', color: 'var(--green)',  fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.current)}</td>
-                      <td style={{ padding: '10px 16px', color: '#f59e0b',       fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_1_30)}</td>
+                      <td style={{ padding: '10px 16px', color: 'var(--gold)',       fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_1_30)}</td>
                       <td style={{ padding: '10px 16px', color: 'var(--red)',    fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_31_60)}</td>
                       <td style={{ padding: '10px 16px', color: 'var(--red)',    fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_61_90)}</td>
                       <td style={{ padding: '10px 16px', color: '#7c3aed',       fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(s.days_90_plus)}</td>
@@ -162,7 +162,7 @@ export const FinanceAgedPayables: React.FC = () => {
                 <tr style={{ background: 'var(--bg)' }}>
                   <td style={{ padding: '10px 16px', fontWeight: 700, color: 'var(--ink)', borderTop: '2px solid var(--border)' }}>Total</td>
                   <td style={{ padding: '10px 16px', color: 'var(--green)',  fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.current)}</td>
-                  <td style={{ padding: '10px 16px', color: '#f59e0b',       fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_1_30)}</td>
+                  <td style={{ padding: '10px 16px', color: 'var(--gold)',       fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_1_30)}</td>
                   <td style={{ padding: '10px 16px', color: 'var(--red)',    fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_31_60)}</td>
                   <td style={{ padding: '10px 16px', color: 'var(--red)',    fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_61_90)}</td>
                   <td style={{ padding: '10px 16px', color: '#7c3aed',       fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_90_plus)}</td>

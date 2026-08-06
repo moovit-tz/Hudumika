@@ -118,7 +118,7 @@ export const TrackingAnalytics: React.FC = () => {
 
   const vehicleStatusItems: { label: string; value: number; color: string }[] = [
     { label: 'Active', value: data.vehicle_status_breakdown.active, color: '#7c3aed' },
-    { label: 'Out of Service', value: data.vehicle_status_breakdown.out_of_service, color: '#ca8a04' },
+    { label: 'Out of Service', value: data.vehicle_status_breakdown.out_of_service, color: 'var(--gold)' },
     { label: 'Rented', value: data.vehicle_status_breakdown.rented, color: '#059669' },
   ];
 

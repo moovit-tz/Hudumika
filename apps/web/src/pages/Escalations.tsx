@@ -52,9 +52,9 @@ export function escalateCase(params: {
 
 // -- UI helpers -------------------------------------------------
 const STATUS_CFG = {
-  PENDING:     { label: 'Pending',     bg: '#fef3c7', color: '#92400e' },
-  IN_PROGRESS: { label: 'In Progress', bg: '#dbeafe', color: '#1e40af' },
-  RESOLVED:    { label: 'Resolved',    bg: '#ecfdf5', color: '#065f46' },
+  PENDING:     { label: 'Pending',     bg: 'var(--gold-l)', color: 'var(--gold)' },
+  IN_PROGRESS: { label: 'In Progress', bg: 'var(--blue-l)', color: 'var(--blue)' },
+  RESOLVED:    { label: 'Resolved',    bg: 'var(--green-l)', color: 'var(--green)' },
 };
 
 const REASONS = [

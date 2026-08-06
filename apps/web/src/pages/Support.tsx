@@ -132,10 +132,10 @@ const STATUS_CFG: Record<StatusKey, { bg: string; color: string; label: string }
 
 const CHANNEL_CFG: Record<ChannelId, { label: string; icon: IconName; color: string; bg: string; border: string; btnLabel: string }> = {
   inapp:    { label: 'Reply',    icon: 'message',    color: 'var(--teal)', bg: 'var(--teal-l)', border: 'var(--teal)', btnLabel: 'Send Reply'        },
-  email:    { label: 'Email',    icon: 'mail',       color: '#2563eb',     bg: '#eff6ff',       border: '#2563eb',     btnLabel: 'Send Email'        },
-  whatsapp: { label: 'WhatsApp', icon: 'chatBubble', color: '#047857',     bg: '#ecfdf5',       border: '#047857',     btnLabel: 'Send via WhatsApp' },
-  sms:      { label: 'SMS',      icon: 'smartphone', color: '#7c3aed',     bg: '#f5f3ff',       border: '#7c3aed',     btnLabel: 'Send SMS'          },
-  note:     { label: 'Note',     icon: 'fileText',   color: '#92400e',     bg: '#fefce8',       border: '#92400e',     btnLabel: 'Save Note'         },
+  email:    { label: 'Email',    icon: 'mail',       color: '#2563eb',     bg: 'var(--blue-l)',       border: '#2563eb',     btnLabel: 'Send Email'        },
+  whatsapp: { label: 'WhatsApp', icon: 'chatBubble', color: 'var(--green)',     bg: 'var(--green-l)',       border: '#047857',     btnLabel: 'Send via WhatsApp' },
+  sms:      { label: 'SMS',      icon: 'smartphone', color: '#7c3aed',     bg: 'var(--purple-l)',       border: '#7c3aed',     btnLabel: 'Send SMS'          },
+  note:     { label: 'Note',     icon: 'fileText',   color: 'var(--gold)',     bg: 'var(--gold-l)',       border: '#92400e',     btnLabel: 'Save Note'         },
 };
 
 const CATEGORIES = ['Clearance Delay', 'Document Issue', 'Demurrage Dispute', 'Duty Assessment', 'System Error', 'General Query', 'Complaint'];
@@ -145,9 +145,9 @@ const STATUS_ORDER: Record<StatusKey, number> = { OPEN: 0, IN_PROGRESS: 1, RESOL
 type MsgFilter = 'all' | 'whatsapp' | 'email' | 'note' | 'autosent' | 'sms';
 const MSG_TABS: { key: MsgFilter; label: string; color: string }[] = [
   { key: 'all',      label: 'All',       color: 'var(--ink2)'  },
-  { key: 'whatsapp', label: 'WhatsApp',  color: '#047857'      },
+  { key: 'whatsapp', label: 'WhatsApp',  color: 'var(--green)'      },
   { key: 'email',    label: 'Email',     color: '#2563eb'      },
-  { key: 'note',     label: 'Internal',  color: '#92400e'      },
+  { key: 'note',     label: 'Internal',  color: 'var(--gold)'      },
   { key: 'autosent', label: 'Auto-sent', color: 'var(--ink3)'  },
   { key: 'sms',      label: 'SMS',       color: '#7c3aed'      },
 ];
@@ -1619,7 +1619,7 @@ export const Support: React.FC = () => {
                   })}
                 </div>
                 {csatScore !== null && (
-                  <span style={{ fontSize: 11.5, fontWeight: 600, color: '#f59e0b' }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--gold)' }}>
                     {csatScore === 5 ? 'Excellent!' : csatScore === 4 ? 'Very Good' : csatScore === 3 ? 'Satisfactory' : csatScore === 2 ? 'Needs Improvement' : 'Unsatisfactory'}
                   </span>
                 )}

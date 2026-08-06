@@ -103,7 +103,7 @@ export const SharedLandedCostReport: React.FC = () => {
   if (loadError) return shell(
     <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '14px 16px', borderRadius: 10, background: 'rgba(220,38,38,.07)', border: '1px solid rgba(220,38,38,.25)' }}>
       <Icon name="alertCircle" size={17} color="#DC2626" />
-      <div style={{ fontSize: 13.5, color: '#991B1B', lineHeight: 1.6 }}>{loadError}</div>
+      <div style={{ fontSize: 13.5, color: 'var(--red)', lineHeight: 1.6 }}>{loadError}</div>
     </div>
   );
 
@@ -174,7 +174,7 @@ export const SharedLandedCostReport: React.FC = () => {
         </div>
 
         {submitError && (
-          <div style={{ marginBottom: 14, padding: '11px 14px', borderRadius: 9, background: 'rgba(220,38,38,.07)', border: '1px solid rgba(220,38,38,.25)', color: '#991B1B', fontSize: 13 }}>
+          <div style={{ marginBottom: 14, padding: '11px 14px', borderRadius: 9, background: 'rgba(220,38,38,.07)', border: '1px solid rgba(220,38,38,.25)', color: 'var(--red)', fontSize: 13 }}>
             {submitError}
           </div>
         )}

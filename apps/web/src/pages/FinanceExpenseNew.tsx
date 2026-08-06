@@ -189,7 +189,7 @@ export const FinanceExpenseNew: React.FC = () => {
           Record as Revenue / Income instead
         </label>
 
-        {error && <div style={{ fontSize: 12, color: '#dc2626' }}>{error}</div>}
+        {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
 
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 6 }}>
           <Link to="/finance/expenses" style={{ padding: '9px 18px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', fontSize: 13, textDecoration: 'none' }}>Cancel</Link>

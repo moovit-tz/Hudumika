@@ -42,9 +42,9 @@ interface Quote {
 /* ── Status config ── */
 const STATUS_CFG: Record<QuoteStatus, { label: string; color: string; bg: string }> = {
   DRAFT:     { label: 'Draft',     color: '#64748b', bg: '#f1f5f9' },
-  PENDING:   { label: 'Pending',   color: '#d97706', bg: '#fef3c7' },
-  APPROVED:  { label: 'Accepted',  color: '#059669', bg: '#ecfdf5' },
-  REJECTED:  { label: 'Rejected',  color: '#dc2626', bg: '#fee2e2' },
+  PENDING:   { label: 'Pending',   color: 'var(--gold)', bg: 'var(--gold-l)' },
+  APPROVED:  { label: 'Accepted',  color: '#059669', bg: 'var(--green-l)' },
+  REJECTED:  { label: 'Rejected',  color: 'var(--red)', bg: 'var(--red-l)' },
   CONVERTED: { label: 'Converted', color: '#0891b2', bg: '#ecfeff' },
   EXPIRED:   { label: 'Expired',   color: '#9ca3af', bg: '#f3f4f6' },
 };
@@ -239,7 +239,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
         {expiring && canAct && (
           <div style={{ background: 'var(--gold-l)', border: '1px solid #fde68a', borderRadius: 9, padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="alertTriangle" size={16} color="#d97706" />
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#92400e' }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--gold)' }}>
               Expires {fmtDate(quote.valid_until)} — accept before it lapses
             </span>
           </div>
@@ -339,7 +339,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', gap: 10 }}>
               <button type="button" title="Reject this quote" onClick={() => setRejecting(true)} disabled={saving}
-                style={{ flex: 1, padding: 'var(--ds-btn-py-lg) 0', border: '1.5px solid #dc2626', borderRadius: 'var(--r)', background: '#fff', color: '#dc2626', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                style={{ flex: 1, padding: 'var(--ds-btn-py-lg) 0', border: '1.5px solid #dc2626', borderRadius: 'var(--r)', background: '#fff', color: 'var(--red)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 'var(--ctl-h-lg)', boxSizing: 'border-box', lineHeight: 1.25}}>
                 <Icon name="x" size={15} color="#dc2626" />
                 Reject
               </button>
@@ -412,7 +412,7 @@ function QuoteCard({ quote, onClick }: { quote: Quote; onClick: () => void }) {
       </div>
       {canAct && (
         <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--bg)', display: 'flex', gap: 6 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#d97706', background: 'var(--gold-l)', borderRadius: 20, padding: '3px 10px' }}>Action required</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold)', background: 'var(--gold-l)', borderRadius: 20, padding: '3px 10px' }}>Action required</span>
         </div>
       )}
     </button>

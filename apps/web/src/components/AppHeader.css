@@ -263,7 +263,7 @@
 
 .app-header-user-action--signout:hover {
   background: var(--red-l);
-  color: #dc2626;
+  color: var(--red);
 }
 
 /* ── Language dropdown ── */

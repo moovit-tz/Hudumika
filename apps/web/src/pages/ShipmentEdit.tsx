@@ -193,7 +193,7 @@ export const ShipmentEdit: React.FC = () => {
         )}
         <div className="create-shipment-content" style={{ maxWidth: 800, marginTop: isMobile ? 0 : 24 }}>
           {error && (
-            <div style={{ padding: '11px 14px', background: 'var(--red-l)', border: '1px solid #fca5a5', borderRadius: 10, fontSize: 13, color: '#dc2626', marginBottom: 24 }}>
+            <div style={{ padding: '11px 14px', background: 'var(--red-l)', border: '1px solid #fca5a5', borderRadius: 10, fontSize: 13, color: 'var(--red)', marginBottom: 24 }}>
               {error}
             </div>
           )}
@@ -280,7 +280,7 @@ export const ShipmentEdit: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
             {currentStep === 4 ? (
               <button type="button" onClick={handleDelete} disabled={deleting}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid rgba(220,38,38,0.3)', background: 'rgba(220,38,38,0.06)', color: '#dc2626', fontSize: 13, fontWeight: 700, cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid rgba(220,38,38,0.3)', background: 'rgba(220,38,38,0.06)', color: 'var(--red)', fontSize: 13, fontWeight: 700, cursor: deleting ? 'default' : 'pointer', opacity: deleting ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                 <Icon name="trash" size={14} /> {deleting ? 'Deleting…' : 'Delete'}
               </button>
             ) : (

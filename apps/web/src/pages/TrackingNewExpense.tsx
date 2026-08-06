@@ -105,7 +105,7 @@ export const TrackingNewExpense: React.FC = () => {
 
       <div className="exp-form-container">
         {error && (
-          <div style={{ padding: 16, background: 'rgba(220,38,38,0.08)', color: '#dc2626', borderRadius: 8, marginBottom: 24, fontSize: 13, border: '1px solid rgba(220,38,38,0.25)' }}>
+          <div style={{ padding: 16, background: 'rgba(220,38,38,0.08)', color: 'var(--red)', borderRadius: 8, marginBottom: 24, fontSize: 13, border: '1px solid rgba(220,38,38,0.25)' }}>
             {error}
           </div>
         )}

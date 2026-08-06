@@ -37,8 +37,8 @@ function periodRange(key: string): { from: string; to: string } {
  *  Taxable base is derived (taxAmt / rate) since only the tax amount itself is
  *  posted to the GL — there's no separately stored taxable-base figure. */
 const TAX_TYPES = [
-  { code: '2200', label: 'Value Added Tax (VAT)', short: 'VAT', rate: 18, color: 'var(--blue)', bg: '#eff6ff' },
-  { code: '2300', label: 'Withholding Tax (WHT)',  short: 'WHT', rate: 5,  color: '#f59e0b',     bg: '#fffbeb' },
+  { code: '2200', label: 'Value Added Tax (VAT)', short: 'VAT', rate: 18, color: 'var(--blue)', bg: 'var(--blue-l)' },
+  { code: '2300', label: 'Withholding Tax (WHT)',  short: 'WHT', rate: 5,  color: 'var(--gold)',     bg: 'var(--gold-l)' },
 ];
 
 interface TaxTxn { ref: string; description: string; date: string; taxType: string; taxable: number; taxAmt: number; rate: number; color: string; bg: string }
@@ -145,17 +145,17 @@ export const FinanceTaxReport: React.FC = () => {
       {loading ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading tax report…</div>
       ) : error ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: '#ef4444' }}>{error}</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Summary cards */}
         <div style={{ display: 'flex', gap: 14 }}>
           {[
-            { label: 'Total Taxable Base (est.)', value: fmtFull(totalTaxable), icon: 'dollarSign', color: 'var(--blue)',   bg: '#eff6ff' },
+            { label: 'Total Taxable Base (est.)', value: fmtFull(totalTaxable), icon: 'dollarSign', color: 'var(--blue)',   bg: 'var(--blue-l)' },
             { label: 'Total Tax Accrued',         value: fmtFull(totalTax),     icon: 'percent',    color: 'var(--teal)',   bg: 'var(--teal-l)' },
-            { label: 'Effective Tax Rate',         value: totalTaxable > 0 ? `${((totalTax / totalTaxable) * 100).toFixed(1)}%` : '—', icon: 'barChart2', color: '#f59e0b', bg: '#fffbeb' },
-            { label: 'Taxable Transactions',       value: String(totalInv),      icon: 'file',       color: 'var(--purple)', bg: '#f5f3ff' },
+            { label: 'Effective Tax Rate',         value: totalTaxable > 0 ? `${((totalTax / totalTaxable) * 100).toFixed(1)}%` : '—', icon: 'barChart2', color: 'var(--gold)', bg: 'var(--gold-l)' },
+            { label: 'Taxable Transactions',       value: String(totalInv),      icon: 'file',       color: 'var(--purple)', bg: 'var(--purple-l)' },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

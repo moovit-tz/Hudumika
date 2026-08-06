@@ -151,7 +151,7 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
 
               {/* Deductions */}
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#ef4444', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8, padding: '6px 12px', background: 'rgba(239,68,68,0.06)', borderRadius: 4 }}>Deductions</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8, padding: '6px 12px', background: 'rgba(239,68,68,0.06)', borderRadius: 4 }}>Deductions</div>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <tbody>
                     {[
@@ -161,12 +161,12 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
                     ].map(r => (
                       <tr key={r.label} style={{ borderBottom: '1px solid #f1f5f9' }}>
                         <td style={{ padding: '7px 4px', fontSize: 13, color: '#374151' }}>{r.label}{r.note ? <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 4 }}>{r.note}</span> : null}</td>
-                        <td style={{ padding: '7px 4px', fontSize: 13, fontWeight: 600, color: '#ef4444', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>TZS {r.amount.toLocaleString()}</td>
+                        <td style={{ padding: '7px 4px', fontSize: 13, fontWeight: 600, color: 'var(--red)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>TZS {r.amount.toLocaleString()}</td>
                       </tr>
                     ))}
                     <tr>
                       <td style={{ padding: '10px 4px', fontSize: 13, fontWeight: 700, color: '#1e293b', borderTop: '2px solid #e2e8f0' }}>Total Deductions</td>
-                      <td style={{ padding: '10px 4px', fontSize: 14, fontWeight: 800, color: '#ef4444', textAlign: 'right', borderTop: '2px solid #e2e8f0', fontVariantNumeric: 'tabular-nums' }}>TZS {row.ded.toLocaleString()}</td>
+                      <td style={{ padding: '10px 4px', fontSize: 14, fontWeight: 800, color: 'var(--red)', textAlign: 'right', borderTop: '2px solid #e2e8f0', fontVariantNumeric: 'tabular-nums' }}>TZS {row.ded.toLocaleString()}</td>
                     </tr>
                   </tbody>
                 </table>

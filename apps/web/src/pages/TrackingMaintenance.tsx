@@ -129,7 +129,7 @@ export const TrackingMaintenance: React.FC = () => {
         </div>
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '14px 16px' }}>
           <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', fontWeight: 700 }}>Upcoming (expected)</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#ca8a04', marginTop: 4 }}>{upcomingCount}</div>
+          <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--gold)', marginTop: 4 }}>{upcomingCount}</div>
         </div>
         <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '14px 16px' }}>
           <div style={{ fontSize: 11, color: 'var(--ink3)', textTransform: 'uppercase', fontWeight: 700 }}>Overdue</div>
@@ -174,7 +174,7 @@ export const TrackingMaintenance: React.FC = () => {
                       </div>
                     )}
                     {due.length > 0 && (
-                      <div style={{ fontSize: 9.5, fontWeight: 700, borderRadius: 4, padding: '1px 5px', background: 'rgba(202,138,4,0.14)', color: '#ca8a04' }}>
+                      <div style={{ fontSize: 9.5, fontWeight: 700, borderRadius: 4, padding: '1px 5px', background: 'rgba(202,138,4,0.14)', color: 'var(--gold)' }}>
                         {due.length} due
                       </div>
                     )}
@@ -214,7 +214,7 @@ export const TrackingMaintenance: React.FC = () => {
             )}
             {selectedDue.length > 0 && (
               <div>
-                <div style={{ fontSize: 10.5, fontWeight: 700, color: '#ca8a04', textTransform: 'uppercase', marginBottom: 6 }}>Expected / due</div>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--gold)', textTransform: 'uppercase', marginBottom: 6 }}>Expected / due</div>
                 {selectedDue.map(r => (
                   <div key={r.id} style={{ padding: '8px 0', borderTop: '1px solid var(--border)', fontSize: 12 }}>
                     <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{vehicleName(r.vehicle_id)}</div>

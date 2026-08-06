@@ -141,12 +141,12 @@ export const CarbonCreditsPage: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
           <div style={{ background: 'var(--white)', padding: 24, borderRadius: 12, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--green-l)', color: '#065f46', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--green-l)', color: 'var(--green)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="leaf" size={18} />
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)' }}>TOTAL CREDITS SAVED</span>
             </div>
-            <div style={{ fontSize: 36, fontWeight: 800, color: '#065f46', letterSpacing: '-0.02em' }}>
+            <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--green)', letterSpacing: '-0.02em' }}>
               {totalCredits.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Metric tonnes of CO₂ equivalent avoided.</div>
@@ -167,12 +167,12 @@ export const CarbonCreditsPage: React.FC = () => {
 
           <div style={{ background: 'var(--white)', padding: 24, borderRadius: 12, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--gold-l)', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--gold-l)', color: 'var(--gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="package" size={18} />
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)' }}>OFFSET SHIPMENTS</span>
             </div>
-            <div style={{ fontSize: 36, fontWeight: 800, color: '#b45309', letterSpacing: '-0.02em' }}>
+            <div style={{ fontSize: 36, fontWeight: 800, color: 'var(--gold)', letterSpacing: '-0.02em' }}>
               {records.length}
             </div>
             <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Total shipments with calculated carbon credits.</div>
@@ -213,7 +213,7 @@ export const CarbonCreditsPage: React.FC = () => {
                     </td>
                     <td style={{ padding: '12px 20px', textAlign: 'right', color: 'var(--ink2)' }}>{r.distance_km.toLocaleString()} km</td>
                     <td style={{ padding: '12px 20px', textAlign: 'right', color: 'var(--ink)' }}>{r.co2_emissions_kg.toLocaleString()} kg</td>
-                    <td style={{ padding: '12px 20px', textAlign: 'right', fontWeight: 700, color: '#065f46' }}>{r.carbon_credits_saved.toFixed(4)}</td>
+                    <td style={{ padding: '12px 20px', textAlign: 'right', fontWeight: 700, color: 'var(--green)' }}>{r.carbon_credits_saved.toFixed(4)}</td>
                   </tr>
                 ))
               )}

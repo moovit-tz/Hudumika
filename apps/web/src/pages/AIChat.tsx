@@ -100,7 +100,7 @@ export const AIChat: React.FC = () => {
         )}
 
         {error && (
-          <div style={{ padding: '10px 14px', borderRadius: 9, background: 'var(--red-l)', color: '#ef4444', fontSize: 12.5, marginBottom: 12 }}>{error}</div>
+          <div style={{ padding: '10px 14px', borderRadius: 9, background: 'var(--red-l)', color: 'var(--red)', fontSize: 12.5, marginBottom: 12 }}>{error}</div>
         )}
       </div>
 

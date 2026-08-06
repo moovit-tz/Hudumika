@@ -145,7 +145,7 @@ export const OneIdSSO: React.FC = () => {
                 <td style={{ padding: '10px 14px', color: 'var(--ink3)' }}>{new Date(p.created_at).toLocaleDateString()}</td>
                 <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                   <button type="button" title="Remove" onClick={() => remove(p.id)}
-                    style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: 'pointer', color: '#dc2626', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                    style={{ border: '1px solid var(--border)', background: 'var(--bg)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
                     <Icon name="trash" size={13} />
                   </button>
                 </td>

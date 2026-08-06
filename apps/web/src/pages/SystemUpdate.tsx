@@ -81,10 +81,10 @@ const SYS_REQS = [
 /* -- Badge helpers -- */
 type BadgeType = 'major' | 'minor' | 'patch' | 'security';
 const TYPE_COLORS: Record<BadgeType, { bg: string; color: string }> = {
-  major:    { bg: '#fee2e2', color: '#dc2626' },
-  minor:    { bg: '#dbeafe', color: '#2563eb' },
-  patch:    { bg: '#ecfdf5', color: '#059669' },
-  security: { bg: '#fef3c7', color: '#d97706' },
+  major:    { bg: 'var(--red-l)', color: 'var(--red)' },
+  minor:    { bg: 'var(--blue-l)', color: '#2563eb' },
+  patch:    { bg: 'var(--green-l)', color: '#059669' },
+  security: { bg: 'var(--gold-l)', color: 'var(--gold)' },
 };
 
 function TypeBadge({ type }: { type: BadgeType }) {
@@ -198,8 +198,8 @@ export const SystemUpdate: React.FC = () => {
             <div style={{ background:'var(--green-l)', border:'1px solid #a7f3d0', borderRadius: 9, padding:'16px 20px', display:'flex', alignItems:'center', gap:12 }}>
               <Icon name="checkCircle" size={20} color="#059669" />
               <div>
-                <div style={{ fontSize:14, fontWeight:700, color:'#047857' }}>Successfully updated to v{LATEST_VERSION}</div>
-                <div style={{ fontSize:12, color:'#065f46', marginTop:2 }}>All modules are running the latest version. A page reload may be required.</div>
+                <div style={{ fontSize:14, fontWeight:700, color:'var(--green)' }}>Successfully updated to v{LATEST_VERSION}</div>
+                <div style={{ fontSize:12, color:'var(--green)', marginTop:2 }}>All modules are running the latest version. A page reload may be required.</div>
               </div>
             </div>
           )}
@@ -222,7 +222,7 @@ export const SystemUpdate: React.FC = () => {
               <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:8 }}>
                 <span style={{ fontSize:30, fontWeight:800, color: HAS_UPDATE && !updateDone ? '#2563eb' : 'var(--ink)', letterSpacing:'-0.04em' }}>v{LATEST_VERSION}</span>
                 {HAS_UPDATE && !updateDone
-                  ? <span style={{ padding:'2px 8px', borderRadius:20, background:'var(--blue-l)', color:'#1d4ed8', fontSize:11, fontWeight:700 }}>Update Available</span>
+                  ? <span style={{ padding:'2px 8px', borderRadius:20, background:'var(--blue-l)', color:'var(--blue)', fontSize:11, fontWeight:700 }}>Update Available</span>
                   : <span style={{ padding:'2px 8px', borderRadius:20, background:'var(--green-l)', color:'#059669', fontSize:11, fontWeight:700 }}>Up to Date</span>
                 }
               </div>

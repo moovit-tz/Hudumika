@@ -11,11 +11,11 @@ interface Issue {
 }
 
 const SEVERITY_CFG: Record<string, { color: string; bg: string }> = {
-  LOW: { color: '#059669', bg: 'rgba(22,163,74,0.14)' }, MEDIUM: { color: '#ca8a04', bg: 'rgba(202,138,4,0.14)' },
-  HIGH: { color: '#ea580c', bg: 'rgba(234,88,12,0.14)' }, CRITICAL: { color: '#dc2626', bg: 'rgba(220,38,38,0.14)' },
+  LOW: { color: '#059669', bg: 'rgba(22,163,74,0.14)' }, MEDIUM: { color: 'var(--gold)', bg: 'rgba(202,138,4,0.14)' },
+  HIGH: { color: '#ea580c', bg: 'rgba(234,88,12,0.14)' }, CRITICAL: { color: 'var(--red)', bg: 'rgba(220,38,38,0.14)' },
 };
 const STATUS_CFG: Record<string, { color: string; bg: string }> = {
-  OPEN: { color: '#dc2626', bg: 'rgba(220,38,38,0.14)' }, IN_PROGRESS: { color: '#2563eb', bg: 'rgba(37,99,235,0.14)' }, RESOLVED: { color: '#059669', bg: 'rgba(22,163,74,0.14)' },
+  OPEN: { color: 'var(--red)', bg: 'rgba(220,38,38,0.14)' }, IN_PROGRESS: { color: '#2563eb', bg: 'rgba(37,99,235,0.14)' }, RESOLVED: { color: '#059669', bg: 'rgba(22,163,74,0.14)' },
 };
 const STATUS_FILTERS = ['All', 'OPEN', 'IN_PROGRESS', 'RESOLVED'];
 

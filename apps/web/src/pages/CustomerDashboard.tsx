@@ -19,11 +19,11 @@ function fmtAmt(n: number) {
 
 const STAGE_CFG: Record<string, { label: string; color: string; bg: string; step: number }> = {
   INTAKE:      { label: 'Received',       color: '#0891b2', bg: '#ecfeff', step: 1 },
-  DOCS:        { label: 'Docs Check',     color: '#7c3aed', bg: '#ede9fe', step: 2 },
-  CUSTOMS:     { label: 'Customs',        color: '#d97706', bg: '#fef3c7', step: 3 },
-  DUTY:        { label: 'Duty Payment',   color: '#ea580c', bg: '#fff7ed', step: 4 },
+  DOCS:        { label: 'Docs Check',     color: '#7c3aed', bg: 'var(--purple-l)', step: 2 },
+  CUSTOMS:     { label: 'Customs',        color: 'var(--gold)', bg: 'var(--gold-l)', step: 3 },
+  DUTY:        { label: 'Duty Payment',   color: '#ea580c', bg: 'var(--gold-l)', step: 4 },
   RELEASE:     { label: 'Port Release',   color: '#0d7a6b', bg: '#ccfbf1', step: 5 },
-  DELIVERY:    { label: 'Delivery',       color: '#059669', bg: '#ecfdf5', step: 6 },
+  DELIVERY:    { label: 'Delivery',       color: '#059669', bg: 'var(--green-l)', step: 6 },
   CLOSED:      { label: 'Completed',      color: '#6b7280', bg: '#f3f4f6', step: 7 },
 };
 const TOTAL_STEPS = 7;
@@ -74,7 +74,7 @@ function ShipmentCard({ s }: { s: ShipmentCase & { active_risk_types?: string[] 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', flex: 1 }}>{s.ref_number}</span>
         {atRisk && (
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', background: 'var(--red-l)', borderRadius: 20, padding: '2px 8px' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 20, padding: '2px 8px' }}>
             At Risk
           </span>
         )}
@@ -288,8 +288,8 @@ export const CustomerDashboard: React.FC = () => {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 10 }}>
             {[
-              { label: 'Pending',  value: finLoading ? '…' : fmtAmt(totalPending), icon: 'clock',      color: '#d97706', bg: '#fef3c7' },
-              { label: 'Paid',     value: finLoading ? '…' : fmtAmt(totalPaid),    icon: 'checkCircle', color: '#059669', bg: '#ecfdf5' },
+              { label: 'Pending',  value: finLoading ? '…' : fmtAmt(totalPending), icon: 'clock',      color: 'var(--gold)', bg: 'var(--gold-l)' },
+              { label: 'Paid',     value: finLoading ? '…' : fmtAmt(totalPaid),    icon: 'checkCircle', color: '#059669', bg: 'var(--green-l)' },
             ].map(c => (
               <div key={c.label} style={{
                 background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9,

@@ -70,7 +70,7 @@ function AddGeofenceModal({ onClose, onAdded }: { onClose: () => void; onAdded: 
             </div>
             <div style={{ width: 120 }}><label style={labelStyle}>Radius (km)</label><input type="number" step="0.1" value={radiusKm} onChange={e => setRadiusKm(e.target.value)} style={inputStyle} /></div>
           </div>
-          {error && <div style={{ fontSize: 12, color: '#dc2626' }}>{error}</div>}
+          {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
             <button type="submit" disabled={saving || !name} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>

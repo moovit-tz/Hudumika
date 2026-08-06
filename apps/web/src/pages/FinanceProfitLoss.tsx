@@ -205,7 +205,7 @@ export const FinanceProfitLoss: React.FC = () => {
       {loading ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading profit &amp; loss…</div>
       ) : error ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: '#ef4444' }}>{error}</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -213,10 +213,10 @@ export const FinanceProfitLoss: React.FC = () => {
         <div style={{ display: 'flex', gap: 14 }}>
           {[
             { label: 'Total Revenue',   value: fmtM(revenueTotal),  color: 'var(--teal)',   bg: 'var(--teal-l)', icon: 'trendingUp'   },
-            { label: 'Gross Profit',    value: fmtM(grossProfit),   color: 'var(--blue)',   bg: '#eff6ff',       icon: 'dollarSign'   },
-            { label: 'Net Profit',      value: fmtM(netProfit),     color: 'var(--green)',  bg: '#ecfdf5',       icon: 'checkCircle'  },
-            { label: 'Gross Margin',    value: `${grossMargin}%`,   color: '#f59e0b',       bg: '#fffbeb',       icon: 'percent'      },
-            { label: 'Net Margin',      value: `${netMargin}%`,     color: 'var(--purple)', bg: '#f5f3ff',       icon: 'pieChart'     },
+            { label: 'Gross Profit',    value: fmtM(grossProfit),   color: 'var(--blue)',   bg: 'var(--blue-l)',       icon: 'dollarSign'   },
+            { label: 'Net Profit',      value: fmtM(netProfit),     color: 'var(--green)',  bg: 'var(--green-l)',       icon: 'checkCircle'  },
+            { label: 'Gross Margin',    value: `${grossMargin}%`,   color: 'var(--gold)',       bg: 'var(--gold-l)',       icon: 'percent'      },
+            { label: 'Net Margin',      value: `${netMargin}%`,     color: 'var(--purple)', bg: 'var(--purple-l)',       icon: 'pieChart'     },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ width: 38, height: 38, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

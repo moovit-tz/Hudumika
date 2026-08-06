@@ -24,7 +24,7 @@ const PRIORITIES: { key: string; color: string; label: string; sub: string }[] =
   { key: 'low',    color: '#22c55e', label: 'Low',    sub: '5-7 business days' },
   { key: 'medium', color: '#eab308', label: 'Medium', sub: '2-3 business days' },
   { key: 'high',   color: '#f97316', label: 'High',   sub: '24 hours' },
-  { key: 'urgent', color: '#ef4444', label: 'Urgent', sub: '< 4 hours' },
+  { key: 'urgent', color: 'var(--red)', label: 'Urgent', sub: '< 4 hours' },
 ];
 
 const QUICK_LINKS: { icon: IconName; title: string; desc: string; href: string }[] = [
@@ -145,7 +145,7 @@ export const SupportTicket: React.FC = () => {
               </div>
               <div>
                 <div className="st-form-card-title">Create Support Ticket</div>
-                <div className="st-form-card-sub">All fields marked <span style={{ color: '#B91C1C' }}>*</span> are required</div>
+                <div className="st-form-card-sub">All fields marked <span style={{ color: 'var(--red)' }}>*</span> are required</div>
               </div>
             </div>
 

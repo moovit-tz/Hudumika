@@ -471,7 +471,7 @@ export const TrackingCargoLoading: React.FC = () => {
                   <span>Weight</span><strong>{packResult.weight_utilization_pct}%</strong>
                 </div>
                 {packResult.unplaced_items.length > 0 && (
-                  <div style={{ marginTop: 10, padding: '8px 10px', background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 8, fontSize: 11, color: '#dc2626' }}>
+                  <div style={{ marginTop: 10, padding: '8px 10px', background: 'rgba(220,38,38,0.08)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 8, fontSize: 11, color: 'var(--red)' }}>
                     Didn't fit: {packResult.unplaced_items.map(u => `${u.label} ×${u.count}`).join(', ')}
                   </div>
                 )}

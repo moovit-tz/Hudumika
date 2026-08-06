@@ -70,7 +70,7 @@ function AddDocModal({ vehicles, onClose, onAdded }: { vehicles: Vehicle[]; onCl
             <div style={{ flex: 1 }}><label style={labelStyle}>Issued date</label><DatePicker date={parseDateOnly(issuedDate)} onChange={d => setIssuedDate(toDateOnlyString(d))} /></div>
             <div style={{ flex: 1 }}><label style={labelStyle}>Expiry date</label><DatePicker date={parseDateOnly(expiryDate)} onChange={d => setExpiryDate(toDateOnlyString(d))} /></div>
           </div>
-          {error && <div style={{ fontSize: 12, color: '#dc2626' }}>{error}</div>}
+          {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
             <button type="submit" disabled={saving || !vehicleId} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
@@ -104,9 +104,9 @@ export const TrackingDocuments: React.FC = () => {
   function expiryStatus(date: string | null): { label: string; bg: string; fg: string } | null {
     if (!date) return null;
     const days = (new Date(date).getTime() - Date.now()) / 86_400_000;
-    if (days < 0) return { label: 'EXPIRED', bg: '#fee2e2', fg: '#dc2626' };
-    if (days < 30) return { label: 'EXPIRING SOON', bg: '#fef9c3', fg: '#ca8a04' };
-    return { label: 'VALID', bg: '#ecfdf5', fg: '#065f46' };
+    if (days < 0) return { label: 'EXPIRED', bg: 'var(--red-l)', fg: '#dc2626' };
+    if (days < 30) return { label: 'EXPIRING SOON', bg: 'var(--gold-l)', fg: '#ca8a04' };
+    return { label: 'VALID', bg: 'var(--green-l)', fg: '#065f46' };
   }
 
   async function remove(id: string) {

@@ -491,8 +491,8 @@ export const Leads: React.FC = () => {
                 {/* KPI cards */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, alignContent: 'start' }}>
                   {[
-                    { label: 'Pipeline Value',   value: fmtValue(sel.value),   icon: 'dollarSign' as IconName, color: '#2563eb', bg: '#dbeafe' },
-                    { label: 'Days in Pipeline', value: `${days} days`,         icon: 'timer'      as IconName, color: '#d97706', bg: '#fef3c7' },
+                    { label: 'Pipeline Value',   value: fmtValue(sel.value),   icon: 'dollarSign' as IconName, color: '#2563eb', bg: 'var(--blue-l)' },
+                    { label: 'Days in Pipeline', value: `${days} days`,         icon: 'timer'      as IconName, color: 'var(--gold)', bg: 'var(--gold-l)' },
                     { label: 'Priority',         value: priCfg.label,           icon: 'alertCircle'as IconName, color: priCfg.color, bg: priCfg.bg },
                     { label: 'Lead Source',      value: sel.source,             icon: 'target'     as IconName, color: '#0d9488', bg: '#ccfbf1' },
                   ].map(kpi => (

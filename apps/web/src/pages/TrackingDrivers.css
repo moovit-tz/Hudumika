@@ -229,7 +229,7 @@
   white-space: nowrap;
 }
 
-.drv-status.on-route { background: rgba(220,38,38,0.14); color: #dc2626; } /* Reddish */
+.drv-status.on-route { background: rgba(220,38,38,0.14); color: var(--red); } /* Reddish */
 .drv-status.available { background: rgba(22,163,74,0.14); color: #059669; } /* Greenish */
 .drv-status.off-duty { background: var(--bg); color: var(--ink2); } /* Grayish */
 
@@ -286,7 +286,7 @@
   flex-shrink: 0;
 }
 
-.drv-vehicle-icon.red { background: rgba(220,38,38,0.1); color: #dc2626; }
+.drv-vehicle-icon.red { background: rgba(220,38,38,0.1); color: var(--red); }
 .drv-vehicle-icon.gray { background: var(--bg); color: var(--ink2); }
 
 .drv-vehicle-details {
@@ -362,7 +362,7 @@
 }
 
 .drv-trk-icon {
-  color: #ef4444;
+  color: var(--red);
   background: rgba(239,68,68,0.12);
   border-radius: 6px;
   padding: 4px;

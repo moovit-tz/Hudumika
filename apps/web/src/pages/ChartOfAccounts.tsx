@@ -21,10 +21,10 @@ function flattenTree(tree: ChartOfAccount[]): ChartOfAccount[] {
 
 const TYPE_CFG: Record<AccountType, { label: string; color: string; bg: string }> = {
   ASSET:     { label: 'Asset',     color: '#0891b2', bg: '#ecfeff' },
-  LIABILITY: { label: 'Liability', color: '#ef4444', bg: '#fef2f2' },
-  EQUITY:    { label: 'Equity',    color: '#7c3aed', bg: '#ede9fe' },
-  REVENUE:   { label: 'Revenue',   color: '#059669', bg: '#ecfdf5' },
-  EXPENSE:   { label: 'Expense',   color: '#d97706', bg: '#fef3c7' },
+  LIABILITY: { label: 'Liability', color: 'var(--red)', bg: 'var(--red-l)' },
+  EQUITY:    { label: 'Equity',    color: '#7c3aed', bg: 'var(--purple-l)' },
+  REVENUE:   { label: 'Revenue',   color: '#059669', bg: 'var(--green-l)' },
+  EXPENSE:   { label: 'Expense',   color: 'var(--gold)', bg: 'var(--gold-l)' },
 };
 
 const TYPE_ORDER: AccountType[] = ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'];

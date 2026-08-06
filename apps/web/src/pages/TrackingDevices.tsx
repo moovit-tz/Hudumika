@@ -82,7 +82,7 @@ export const TrackingDevices: React.FC = () => {
         </div>
 
         {syncError && (
-          <div style={{ fontSize: 12, color: '#dc2626', marginTop: 8 }}>{syncError}</div>
+          <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 8 }}>{syncError}</div>
         )}
 
         {configured && lastSync && (

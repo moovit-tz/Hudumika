@@ -166,7 +166,7 @@ export const FinanceBalanceSheet: React.FC = () => {
       {loading ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading balance sheet…</div>
       ) : error ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: '#ef4444' }}>{error}</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
@@ -174,9 +174,9 @@ export const FinanceBalanceSheet: React.FC = () => {
         <div style={{ display: 'flex', gap: 14 }}>
           {[
             { label: 'Total Assets',              value: fmt(totalAssets),      color: 'var(--teal)',  bg: 'var(--teal-l)', icon: 'layers'      },
-            { label: 'Total Liabilities',         value: fmt(totalLiabilities), color: 'var(--red)',   bg: '#fef2f2',       icon: 'receipt'     },
-            { label: 'Total Equity',              value: fmt(totalEquity),      color: 'var(--green)', bg: '#ecfdf5',       icon: 'dollarSign'  },
-            { label: 'Debt to Equity Ratio',      value: totalEquity !== 0 ? `${(totalLiabilities / totalEquity).toFixed(2)}x` : '—', color: 'var(--blue)', bg: '#eff6ff', icon: 'barChart2' },
+            { label: 'Total Liabilities',         value: fmt(totalLiabilities), color: 'var(--red)',   bg: 'var(--red-l)',       icon: 'receipt'     },
+            { label: 'Total Equity',              value: fmt(totalEquity),      color: 'var(--green)', bg: 'var(--green-l)',       icon: 'dollarSign'  },
+            { label: 'Debt to Equity Ratio',      value: totalEquity !== 0 ? `${(totalLiabilities / totalEquity).toFixed(2)}x` : '—', color: 'var(--blue)', bg: 'var(--blue-l)', icon: 'barChart2' },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -191,7 +191,7 @@ export const FinanceBalanceSheet: React.FC = () => {
         </div>
 
         {Math.abs(totalAssets - (totalLiabilities + totalEquity)) > 1 && (
-          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 16px', borderRadius:9, background:'var(--red-l)', border:'1px solid #ef444440', fontSize:12, fontWeight:600, color:'#ef4444' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 16px', borderRadius:9, background:'var(--red-l)', border:'1px solid #ef444440', fontSize:12, fontWeight:600, color:'var(--red)' }}>
             <Icon name="alertTriangle" size={14} color="#ef4444" />
             Assets do not equal Liabilities + Equity — difference of {fmt(Math.abs(totalAssets - (totalLiabilities + totalEquity)))}
           </div>

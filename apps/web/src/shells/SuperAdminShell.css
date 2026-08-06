@@ -29,7 +29,7 @@
 .sa-shell-banner-label {
   font-size: 11px;
   font-weight: 800;
-  color: #ef4444;
+  color: var(--red);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }

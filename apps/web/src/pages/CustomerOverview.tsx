@@ -113,27 +113,27 @@ export const CustomerOverview: React.FC = () => {
   }, []);
 
   if (loading) return <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading overview…</div>;
-  if (error || !data) return <div style={{ padding: '48px 0', textAlign: 'center', color: '#ef4444' }}>{error ?? 'Failed to load overview'}</div>;
+  if (error || !data) return <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error ?? 'Failed to load overview'}</div>;
 
   const shipmentTotal = Object.values(data.shipment_status).reduce((a, b) => a + b, 0) || 1;
   const SHIPMENT_STATUSES = [
-    { label: 'In Transit',          count: data.shipment_status.IN_TRANSIT,   color: 'var(--blue)',   bg: '#eff6ff' },
-    { label: 'At Port / Terminal',  count: data.shipment_status.AT_PORT,      color: 'var(--purple)', bg: '#f5f3ff' },
-    { label: 'Customs Hold',        count: data.shipment_status.CUSTOMS_HOLD, color: '#f59e0b',       bg: '#fffbeb' },
-    { label: 'Cleared & Delivered', count: data.shipment_status.CLEARED,      color: 'var(--green)',  bg: '#ecfdf5' },
+    { label: 'In Transit',          count: data.shipment_status.IN_TRANSIT,   color: 'var(--blue)',   bg: 'var(--blue-l)' },
+    { label: 'At Port / Terminal',  count: data.shipment_status.AT_PORT,      color: 'var(--purple)', bg: 'var(--purple-l)' },
+    { label: 'Customs Hold',        count: data.shipment_status.CUSTOMS_HOLD, color: 'var(--gold)',       bg: 'var(--gold-l)' },
+    { label: 'Cleared & Delivered', count: data.shipment_status.CLEARED,      color: 'var(--green)',  bg: 'var(--green-l)' },
   ].map(s => ({ ...s, pct: Math.round((s.count / shipmentTotal) * 100) }));
 
   const DECL_ROWS = [
-    { label: 'Filed Today',       count: data.declarations_today.filed,         color: 'var(--blue)',  bg: '#eff6ff' },
-    { label: 'Approved Today',    count: data.declarations_today.approved,      color: 'var(--green)', bg: '#ecfdf5' },
-    { label: 'Pending Review',    count: data.declarations_today.pending_review, color: '#f59e0b',      bg: '#fffbeb' },
-    { label: 'Cancelled Today',   count: data.declarations_today.cancelled,     color: 'var(--red)',   bg: '#fef2f2' },
+    { label: 'Filed Today',       count: data.declarations_today.filed,         color: 'var(--blue)',  bg: 'var(--blue-l)' },
+    { label: 'Approved Today',    count: data.declarations_today.approved,      color: 'var(--green)', bg: 'var(--green-l)' },
+    { label: 'Pending Review',    count: data.declarations_today.pending_review, color: 'var(--gold)',      bg: 'var(--gold-l)' },
+    { label: 'Cancelled Today',   count: data.declarations_today.cancelled,     color: 'var(--red)',   bg: 'var(--red-l)' },
   ];
 
   const FINANCE_ROWS = [
     { label: 'Total Invoiced (Month)', amount: data.finance_summary.total_invoiced_mtd, pct: 100, color: 'var(--blue)' },
     { label: 'Collected', amount: data.finance_summary.collected_mtd, pct: data.finance_summary.total_invoiced_mtd > 0 ? Math.round((data.finance_summary.collected_mtd / data.finance_summary.total_invoiced_mtd) * 100) : 0, color: 'var(--green)' },
-    { label: 'Outstanding', amount: data.finance_summary.outstanding_mtd, pct: data.finance_summary.total_invoiced_mtd > 0 ? Math.round((data.finance_summary.outstanding_mtd / data.finance_summary.total_invoiced_mtd) * 100) : 0, color: '#f59e0b' },
+    { label: 'Outstanding', amount: data.finance_summary.outstanding_mtd, pct: data.finance_summary.total_invoiced_mtd > 0 ? Math.round((data.finance_summary.outstanding_mtd / data.finance_summary.total_invoiced_mtd) * 100) : 0, color: 'var(--gold)' },
     { label: 'Overdue (>30 days)', amount: data.finance_summary.overdue_30d, pct: data.finance_summary.total_invoiced_mtd > 0 ? Math.round((data.finance_summary.overdue_30d / data.finance_summary.total_invoiced_mtd) * 100) : 0, color: 'var(--red)' },
   ];
 

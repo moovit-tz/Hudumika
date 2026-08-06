@@ -280,7 +280,7 @@
 .auth-alert-ok {
   background: var(--green-l);
   border-color: #d1fae5;
-  color: #065f46;
+  color: var(--green);
 }
 
 .auth-field {

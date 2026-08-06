@@ -40,12 +40,12 @@ function formatDate(d: string | null | undefined): string {
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
   ACTIVE:   { bg: 'rgba(16,185,129,.12)',  color: 'var(--green)', label: 'Active'   },
   INACTIVE: { bg: 'rgba(148,163,184,.12)', color: 'var(--ink3)',  label: 'Inactive' },
-  ON_LEAVE: { bg: 'rgba(245,158,11,.12)',  color: '#f59e0b',      label: 'On Leave' },
+  ON_LEAVE: { bg: 'rgba(245,158,11,.12)',  color: 'var(--gold)',      label: 'On Leave' },
 };
 
 const LEAVE_BADGE: Record<string, { bg: string; color: string }> = {
   APPROVED:  { bg: 'rgba(16,185,129,.12)',  color: 'var(--green)' },
-  PENDING:   { bg: '#fffbeb',               color: '#f59e0b'      },
+  PENDING:   { bg: 'var(--gold-l)',               color: 'var(--gold)'      },
   REJECTED:  { bg: 'rgba(239,68,68,.12)',   color: 'var(--red)'   },
   CANCELLED: { bg: 'var(--bg)',             color: 'var(--ink3)'  },
 };
@@ -306,7 +306,7 @@ export const StaffDetail: React.FC = () => {
                 <div style={{ fontSize: 9, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Days Present</div>
               </div>
               <div style={{ padding: '12px 8px', textAlign: 'center' }}>
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#f59e0b' }}>{staff.stats.approved_leaves}</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--gold)' }}>{staff.stats.approved_leaves}</div>
                 <div style={{ fontSize: 9, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Leave Days</div>
               </div>
             </div>

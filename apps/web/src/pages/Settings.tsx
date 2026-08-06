@@ -1013,7 +1013,7 @@ const GATEWAYS: GatewayDef[] = [
   },
   {
     id: 'selcom', name: 'Selcom', desc: 'Tanzania payment aggregator � USSD, cards & wallets.',
-    color: '#1d4ed8', bg: '#eff6ff', abbr: 'SC', region: 'East Africa', sandbox: true,
+    color: 'var(--blue)', bg: 'var(--blue-l)', abbr: 'SC', region: 'East Africa', sandbox: true,
     fields: [
       { key: 'apiKey',    label: 'API Key'   },
       { key: 'apiSecret', label: 'API Secret', type: 'password' },
@@ -1022,7 +1022,7 @@ const GATEWAYS: GatewayDef[] = [
   },
   {
     id: 'halotel', name: 'Halotel (HaloPesa)', desc: 'Viettel Tanzania mobile money integration.',
-    color: '#7c3aed', bg: '#f5f3ff', abbr: 'HP', region: 'East Africa', sandbox: false,
+    color: '#7c3aed', bg: 'var(--purple-l)', abbr: 'HP', region: 'East Africa', sandbox: false,
     fields: [
       { key: 'merchantId', label: 'Merchant ID'  },
       { key: 'apiKey',     label: 'API Key',       type: 'password' },
@@ -1250,9 +1250,9 @@ const ExpensesCategoriesSection: React.FC = () => {
   const [cats, setCats] = useState([
     { id: '1', name: 'Port Charges',       color: '#2563eb' },
     { id: '2', name: 'Customs Clearance',  color: '#059669' },
-    { id: '3', name: 'Transport & Haulage',color: '#d97706' },
+    { id: '3', name: 'Transport & Haulage',color: 'var(--gold)' },
     { id: '4', name: 'Agency Fees',        color: '#7c3aed' },
-    { id: '5', name: 'Demurrage',          color: '#dc2626' },
+    { id: '5', name: 'Demurrage',          color: 'var(--red)' },
     { id: '6', name: 'Office & Admin',     color: '#0891b2' },
     { id: '7', name: 'Staff & Salaries',   color: '#059669' },
     { id: '8', name: 'Miscellaneous',      color: '#6b7280' },

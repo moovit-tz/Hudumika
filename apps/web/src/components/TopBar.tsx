@@ -384,7 +384,7 @@ function ClockInModal({ onClose, onConfirm }: {
                 })}
               </div>
               {selectedSteps.length >= 3 && (
-                <div style={{ fontSize: 12, color: '#ca8a04', background: 'var(--gold-l)', padding: '7px 12px', borderRadius: 7, marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: 'var(--gold)', background: 'var(--gold-l)', padding: '7px 12px', borderRadius: 7, marginBottom: 12 }}>
                   Maximum 3 steps selected. Deselect one to change.
                 </div>
               )}
@@ -435,9 +435,9 @@ function relTime(dateStr: string): string {
 
 const NOTIF_TYPE_CFG: Record<string, { icon: 'check' | 'bell' | 'shield' | 'info' | 'messageSquare' | 'alertTriangle'; bg: string; fg: string }> = {
   task:         { icon: 'check',         bg: '#ccfbf1', fg: '#0d9488' },
-  tag:          { icon: 'bell',          bg: '#dbeafe', fg: '#2563eb' },
-  security:     { icon: 'shield',        bg: '#fee2e2', fg: '#dc2626' },
-  announcement: { icon: 'bell',          bg: '#fef3c7', fg: '#d97706' },
+  tag:          { icon: 'bell',          bg: 'var(--blue-l)', fg: '#2563eb' },
+  security:     { icon: 'shield',        bg: 'var(--red-l)', fg: '#dc2626' },
+  announcement: { icon: 'bell',          bg: 'var(--gold-l)', fg: '#d97706' },
   support:      { icon: 'messageSquare', bg: '#fce7f3', fg: '#db2777' },
   info:         { icon: 'info',          bg: '#f1f5f9', fg: '#64748b' },
 };

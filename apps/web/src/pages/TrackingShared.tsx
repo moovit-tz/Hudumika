@@ -45,15 +45,15 @@ function fmtTime(iso: string): string {
 }
 
 const STATUS_COLORS: Record<string, { bg: string; fg: string }> = {
-  DELIVERED:       { bg: '#ecfdf5', fg: '#059669' },
-  IN_TRANSIT:      { bg: '#dbeafe', fg: '#2563eb' },
-  TRANSIT:         { bg: '#dbeafe', fg: '#2563eb' },
-  PICKED_UP:       { bg: '#ede9fe', fg: '#6366f1' },
-  DEPARTED:        { bg: '#e0f2fe', fg: '#0284c7' },
-  CUSTOMS_CLEARED: { bg: '#fef9c3', fg: '#ca8a04' },
-  ON_HOLD:         { bg: '#fee2e2', fg: '#dc2626' },
-  DELAYED:         { bg: '#fee2e2', fg: '#dc2626' },
-  ARRIVED:         { bg: '#ecfdf5', fg: '#059669' },
+  DELIVERED:       { bg: 'var(--green-l)', fg: '#059669' },
+  IN_TRANSIT:      { bg: 'var(--blue-l)', fg: '#2563eb' },
+  TRANSIT:         { bg: 'var(--blue-l)', fg: '#2563eb' },
+  PICKED_UP:       { bg: 'var(--purple-l)', fg: '#6366f1' },
+  DEPARTED:        { bg: 'var(--blue-l)', fg: '#0284c7' },
+  CUSTOMS_CLEARED: { bg: 'var(--gold-l)', fg: '#ca8a04' },
+  ON_HOLD:         { bg: 'var(--red-l)', fg: '#dc2626' },
+  DELAYED:         { bg: 'var(--red-l)', fg: '#dc2626' },
+  ARRIVED:         { bg: 'var(--green-l)', fg: '#059669' },
 };
 
 export const TrackingShared: React.FC = () => {

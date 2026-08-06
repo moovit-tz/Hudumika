@@ -22,13 +22,13 @@ const labelStyle: React.CSSProperties = { color: 'var(--ink3)', flexShrink: 0 };
 const valueStyle: React.CSSProperties = { color: 'var(--ink)', fontWeight: 600, textAlign: 'right' };
 
 const SEVERITY_CFG: Record<string, { color: string; bg: string }> = {
-  LOW: { color: '#059669', bg: '#ecfdf5' }, MEDIUM: { color: '#ca8a04', bg: '#fef9c3' },
-  HIGH: { color: '#ea580c', bg: '#ffedd5' }, CRITICAL: { color: '#dc2626', bg: '#fee2e2' },
+  LOW: { color: '#059669', bg: 'var(--green-l)' }, MEDIUM: { color: 'var(--gold)', bg: 'var(--gold-l)' },
+  HIGH: { color: '#ea580c', bg: 'var(--gold-l)' }, CRITICAL: { color: 'var(--red)', bg: 'var(--red-l)' },
 };
 const STATUS_CFG: Record<string, { color: string; bg: string; icon: IconName }> = {
-  OPEN: { color: '#dc2626', bg: '#fee2e2', icon: 'alertTriangle' },
-  IN_PROGRESS: { color: '#2563eb', bg: '#dbeafe', icon: 'clock' },
-  RESOLVED: { color: '#059669', bg: '#ecfdf5', icon: 'checkCircle' },
+  OPEN: { color: 'var(--red)', bg: 'var(--red-l)', icon: 'alertTriangle' },
+  IN_PROGRESS: { color: '#2563eb', bg: 'var(--blue-l)', icon: 'clock' },
+  RESOLVED: { color: '#059669', bg: 'var(--green-l)', icon: 'checkCircle' },
 };
 
 function fdate(iso?: string | null) {

@@ -167,9 +167,9 @@
 }
 .spt-ch-pill-sm[data-ch="inapp"]    { background: var(--teal-l); color: var(--teal); border-color: var(--teal); }
 .spt-ch-pill-sm[data-ch="email"]    { background: var(--blue-l);       color: #2563eb;     border-color: #2563eb88; }
-.spt-ch-pill-sm[data-ch="whatsapp"] { background: var(--green-l);       color: #047857;     border-color: #04785788; }
+.spt-ch-pill-sm[data-ch="whatsapp"] { background: var(--green-l);       color: var(--green);     border-color: #04785788; }
 .spt-ch-pill-sm[data-ch="sms"]      { background: var(--purple-l);       color: #7c3aed;     border-color: #7c3aed88; }
-.spt-ch-pill-sm[data-ch="note"]     { background: var(--gold-l);       color: #92400e;     border-color: #92400e88; }
+.spt-ch-pill-sm[data-ch="note"]     { background: var(--gold-l);       color: var(--gold);     border-color: #92400e88; }
 
 /* Shared icon button */
 .spt-icon-btn {
@@ -750,7 +750,7 @@
   border-radius: 6px;
   font-size: var(--badge-fs);
   font-weight: 700;
-  color: #92400e;
+  color: var(--gold);
 }
 .spt-note-card {
   margin-left: 39px;
@@ -778,7 +778,7 @@
   align-items: center;
   gap: 5px;
   font-size: 11px;
-  color: #92400e;
+  color: var(--gold);
 }
 
 /* Message bubbles */
@@ -858,9 +858,9 @@
   white-space: nowrap;
   transition: all 0.12s;
 }
-.spt-ch-pill--active[data-ch="whatsapp"] { border-color: #047857; background: var(--green-l); color: #047857; }
-.spt-ch-pill--active[data-ch="email"]    { border-color: #1d4ed8; background: var(--blue-l); color: #1d4ed8; }
-.spt-ch-pill--active[data-ch="note"]     { border-color: #92400e; background: var(--gold-l); color: #92400e; }
+.spt-ch-pill--active[data-ch="whatsapp"] { border-color: #047857; background: var(--green-l); color: var(--green); }
+.spt-ch-pill--active[data-ch="email"]    { border-color: #1d4ed8; background: var(--blue-l); color: var(--blue); }
+.spt-ch-pill--active[data-ch="note"]     { border-color: #92400e; background: var(--gold-l); color: var(--gold); }
 .spt-ch-pill--active[data-ch="inapp"]    { border-color: var(--teal); background: var(--teal-l); color: var(--teal); }
 .spt-ch-pill--active[data-ch="sms"]      { border-color: #7c3aed; background: var(--purple-l); color: #7c3aed; }
 
@@ -930,7 +930,7 @@
 .spt-compose-area { padding: 10px 14px 4px; }
 .spt-note-warning {
   font-size: 11px;
-  color: #92400e;
+  color: var(--gold);
   font-weight: 600;
   margin-bottom: 5px;
   display: flex;
@@ -1053,7 +1053,7 @@
 
 .spt-broadcast-btn[data-ch="inapp"].spt-broadcast-btn--active    { background: var(--teal-l); color: var(--teal); border-color: var(--teal); }
 .spt-broadcast-btn[data-ch="email"].spt-broadcast-btn--active    { background: var(--blue-l);       color: #2563eb;     border-color: #2563eb; }
-.spt-broadcast-btn[data-ch="whatsapp"].spt-broadcast-btn--active { background: var(--green-l);       color: #047857;     border-color: #047857; }
+.spt-broadcast-btn[data-ch="whatsapp"].spt-broadcast-btn--active { background: var(--green-l);       color: var(--green);     border-color: #047857; }
 .spt-broadcast-btn[data-ch="sms"].spt-broadcast-btn--active      { background: var(--purple-l);       color: #7c3aed;     border-color: #7c3aed; }
 
 .spt-note-toggle-btn {
@@ -1070,7 +1070,7 @@
   align-items: center;
   gap: 5px;
 }
-.spt-note-toggle-btn--active { background: var(--gold-l); color: #92400e; border-color: #92400e; }
+.spt-note-toggle-btn--active { background: var(--gold-l); color: var(--gold); border-color: #92400e; }
 
 /* ══════════════════════════════════════════════════════════════════
    DetailsPanel — right column

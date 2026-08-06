@@ -67,11 +67,11 @@ export const TrackingDashboard: React.FC = () => {
 
   const kpis = [
     { label: 'Vehicles moving', value: activeSummary.vehicles.moving, icon: 'compass', color: '#10b981', link: '/tracking/map' },
-    { label: 'Vehicles stopped', value: activeSummary.vehicles.stopped, icon: 'mapPin', color: '#ca8a04', link: '/tracking/map' },
+    { label: 'Vehicles stopped', value: activeSummary.vehicles.stopped, icon: 'mapPin', color: 'var(--gold)', link: '/tracking/map' },
     { label: 'Vehicles offline', value: activeSummary.vehicles.offline, icon: 'alertTriangle', color: '#94a3b8', link: '/tracking/vehicles' },
     { label: 'In maintenance', value: activeSummary.vehicles.in_maintenance, icon: 'clipboardList', color: '#6366f1', link: '/tracking/maintenance' },
-    { label: 'Documents expiring (30d)', value: activeSummary.expiring_documents, icon: 'shield', color: '#dc2626', link: '/tracking/documents' },
-    { label: 'Reminders due (30d)', value: activeSummary.pending_reminders, icon: 'bell', color: '#d97706', link: '/tracking/reminders' },
+    { label: 'Documents expiring (30d)', value: activeSummary.expiring_documents, icon: 'shield', color: 'var(--red)', link: '/tracking/documents' },
+    { label: 'Reminders due (30d)', value: activeSummary.pending_reminders, icon: 'bell', color: 'var(--gold)', link: '/tracking/reminders' },
   ];
 
   const fleetStatusData = {

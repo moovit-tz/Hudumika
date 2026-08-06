@@ -125,11 +125,11 @@ export function genRefCode(id: string, version: number): string {
 
 export const STATUS_STYLE: Record<Status, { bg: string; color: string; label: string }> = {
   Draft:    { bg: '#e5e7eb', color: '#374151', label: 'Draft'          },
-  Partial:  { bg: '#dbeafe', color: '#1d4ed8', label: 'Partially paid' },
+  Partial:  { bg: 'var(--blue-l)', color: 'var(--blue)', label: 'Partially paid' },
   Paid:     { bg: '#1e293b', color: '#f1f5f9', label: 'Fully paid'     },
   Credited: { bg: '#fce7f3', color: '#be185d', label: 'Credited'       },
-  Unpaid:   { bg: '#fef3c7', color: '#b45309', label: 'Not paid'       },
-  Overdue:  { bg: '#fee2e2', color: '#dc2626', label: 'Overdue'        },
+  Unpaid:   { bg: 'var(--gold-l)', color: 'var(--gold)', label: 'Not paid'       },
+  Overdue:  { bg: 'var(--red-l)', color: 'var(--red)', label: 'Overdue'        },
 };
 
 const UNIT_OPTIONS = ['PER BIL', 'PER BILL', 'PER CONT', 'PER CONTAINER', 'BASIC RATE', 'FLAT', 'PER DAY', 'PER TON', 'PER CBM'];
@@ -377,7 +377,7 @@ th{padding:4px 6px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;l
 td{padding:4px 6px;border-bottom:1px solid #f3f4f6;vertical-align:top;font-size:10.5px}
 .subtotal{display:flex;justify-content:space-between;padding:4px 8px;background:#f9fafb;font-weight:700;font-size:11px;border-top:2px solid #e5e7eb}
 .grand{display:flex;justify-content:flex-end;gap:32px;align-items:center;margin:8px 0;padding:8px 10px;background:#0b1e3a;color:#fff;border-radius:6px;font-size:12px;font-weight:800}
-.due{display:flex;justify-content:flex-end;gap:32px;margin-bottom:12px;font-size:12px;font-weight:700;color:#dc2626}
+.due{display:flex;justify-content:flex-end;gap:32px;margin-bottom:12px;font-size:12px;font-weight:700;color:var(--red)}
 .terms{padding-top:8px;border-top:1px solid #e5e7eb}
 .terms h4{font-size:10px;font-weight:700;margin-bottom:4px;color:#374151}
 .terms p{font-size:10px;color:#6b7280;line-height:1.6}
@@ -405,7 +405,7 @@ td{padding:4px 6px;border-bottom:1px solid #f3f4f6;vertical-align:top;font-size:
     <div style="font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;font-size:9px">Invoice Details</div>
     <div style="margin-bottom:4px;display:flex;justify-content:flex-end;gap:12px"><span>Invoice #:</span><strong style="color:#0d9488">${inv.id}</strong></div>
     <div style="margin-bottom:4px;display:flex;justify-content:flex-end;gap:12px"><span>Invoice Date:</span><strong style="color:#111">${inv.billDate}</strong></div>
-    ${inv.dueDate ? `<div style="margin-bottom:4px;display:flex;justify-content:flex-end;gap:12px"><span>Due Date:</span><strong style="${inv.status === 'Overdue' ? 'color:#dc2626' : 'color:#111'}">${inv.dueDate}</strong></div>` : ''}
+    ${inv.dueDate ? `<div style="margin-bottom:4px;display:flex;justify-content:flex-end;gap:12px"><span>Due Date:</span><strong style="${inv.status === 'Overdue' ? 'color:var(--red)' : 'color:#111'}">${inv.dueDate}</strong></div>` : ''}
     <div style="margin-bottom:4px;display:flex;justify-content:flex-end;gap:12px"><span>Agent:</span><strong style="color:#111">${inv.saleAgent}</strong></div>
   </div>
 </div>

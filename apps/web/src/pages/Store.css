@@ -278,7 +278,7 @@
 .store-app-rating {
   font-size: 12px;
   font-weight: 700;
-  color: #b45309;
+  color: var(--gold);
 }
 
 .store-app-sep {
@@ -368,7 +368,7 @@
 .store-detail-rating {
   font-size: 13px;
   font-weight: 700;
-  color: #b45309;
+  color: var(--gold);
 }
 
 .store-detail-sep {
@@ -539,7 +539,7 @@
 
 .store-rating-stars {
   font-size: 13px;
-  color: #b45309;
+  color: var(--gold);
   font-weight: 700;
   margin: 2px 0;
 }
@@ -631,7 +631,7 @@
 
 .store-review-stars {
   font-size: 11px;
-  color: #b45309;
+  color: var(--gold);
   margin-bottom: 6px;
 }
 

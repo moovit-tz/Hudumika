@@ -64,7 +64,7 @@ function AddPartModal({ vendors, onClose, onAdded }: { vendors: Vendor[]; onClos
               value={vendorId} onChange={setVendorId} placeholder="— None —"
             />
           </div>
-          {error && <div style={{ fontSize: 12, color: '#dc2626' }}>{error}</div>}
+          {error && <div style={{ fontSize: 12, color: 'var(--red)' }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
             <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontFamily: 'var(--font)', cursor: 'pointer', fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
             <button type="submit" disabled={saving || !partName} style={{ padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontFamily: 'var(--font)', fontWeight: 600, cursor: 'pointer', fontSize: 13, opacity: saving ? 0.6 : 1, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
@@ -138,7 +138,7 @@ export const TrackingPartsStock: React.FC = () => {
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{p.category || '—'}</td>
                   <td style={{ padding: '10px 14px' }}>
                     <span style={{ fontWeight: 700, color: low ? '#dc2626' : 'var(--ink)' }}>{p.quantity}</span>
-                    {low && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '2px 8px', background: 'var(--red-l)', color: '#dc2626' }}>LOW STOCK</span>}
+                    {low && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '2px 8px', background: 'var(--red-l)', color: 'var(--red)' }}>LOW STOCK</span>}
                   </td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{p.unit_cost != null ? p.unit_cost.toLocaleString() : '—'}</td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{vendorName(p.vendor_id)}</td>

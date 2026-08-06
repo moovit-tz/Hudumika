@@ -525,8 +525,8 @@
 }
 
 .tag-live { background: var(--green-l); color: #059669; }
-.tag-beta { background: var(--gold-l); color: #d97706; }
-.tag-tancis { background: var(--blue-l); color: #1d4ed8; }
+.tag-beta { background: var(--gold-l); color: var(--gold); }
+.tag-tancis { background: var(--blue-l); color: var(--blue); }
 .tag-ledger { background: var(--purple-l); color: #7c3aed; }
 .tag-payroll { background: #fdf2f8; color: #db2777; }
 .tag-helpdesk { background: #f0fdfa; color: #0d9488; }
@@ -964,13 +964,13 @@
   color: rgba(255, 255, 255, 0.2);
 }
 [data-theme="dark"] .wh-star-td[data-starred="true"] {
-  color: #f59e0b;
+  color: var(--gold);
 }
 [data-theme="dark"] .wh-star-btn {
   color: rgba(255, 255, 255, 0.2);
 }
 [data-theme="dark"] .wh-star-btn[data-starred="true"] {
-  color: #f59e0b;
+  color: var(--gold);
 }
 
 /* Stat cells */
