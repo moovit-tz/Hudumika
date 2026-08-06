@@ -615,26 +615,36 @@ export const CommandCenter: React.FC = () => {
   const kpiCell = (cell: (typeof kpiCells)[number]) => {
     const clickable = cell.metric !== null;
     const active = clickable && selectedMetric === cell.metric;
+    // Raised = one of the two risk figures, and only while it is non-zero.
+    const raised = cell.cell === 'alert' && cell.value !== '0' && cell.value !== '—';
     const cls = [
       'cc-kpi-card',
       clickable ? 'cc-kpi-card--clickable' : '',
       active ? 'cc-kpi-card--active' : '',
       cell.cell === 'alert' ? 'r' : '',
+      raised ? 'cc-kpi-card--raised' : '',
     ].filter(Boolean).join(' ');
 
     const inner = (
       <>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          <span className="cc-kpi-cell-label">
-            {cell.cell === 'alert' && <span className="cc-kpi-dot" />}
-            {cell.label}
-          </span>
-          <div style={{ width: 26, height: 26, borderRadius: 6, background: cell.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Icon name={cell.icon as any} size={13} color={cell.color} />
-          </div>
-        </div>
-        <span className="cc-kpi-cell-value" style={{ color: cell.cell === 'alert' && cell.value !== '0' && cell.value !== '—' ? 'var(--red)' : cell.metric === 'active' ? 'var(--teal)' : 'var(--ink)' }}>
-          {cell.value}
+        <span className="cc-kpi-cell-label">
+          {/* Inline with the label, at label size. It was a 26px pastel square
+              in the corner — repeating what the label already said, in a tint
+              that mapped to nothing, and forcing the card taller than its own
+              content. */}
+          <Icon name={cell.icon as any} size={12} strokeWidth={2} />
+          {cell.label}
+        </span>
+        <span className="cc-kpi-cell-value">{cell.value}</span>
+        {/* Four of these seven filter the list and three do not, and they were
+            indistinguishable. This says which — on hover, so it does not add a
+            permanent seventh line of text to the row.
+
+            Rendered on every card, empty where there is nothing to say, so the
+            line is reserved and a clickable card is not taller than the one
+            beside it. */}
+        <span className="cc-kpi-hint" aria-hidden={!clickable}>
+          {clickable ? (active ? 'Filtering — click to clear' : 'Click to filter') : ' '}
         </span>
       </>
     );

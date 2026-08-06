@@ -2600,79 +2600,104 @@ select.input-field { cursor: pointer; }
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 6px;
-  padding: 12px 14px;
+  align-items: flex-start;
+  gap: 8px;
+  /* Sized by its content rather than stretched by space-between, which held
+     the card open around a 26px icon that is no longer there. */
+  padding: 12px 14px 11px;
   background: var(--white);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r);
   text-align: left;
   font-family: var(--font);
-  transition: all 0.15s ease;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  transition: border-color 0.15s var(--ease, ease), box-shadow 0.15s var(--ease, ease), background 0.15s var(--ease, ease);
+  box-shadow: var(--elev-sm);
 }
 .cc-kpi-card--clickable { cursor: pointer; }
-.cc-kpi-card--clickable:hover { border-color: var(--teal); background: var(--white); transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,0,0,0.05); }
-.cc-kpi-card--active { border: 1.5px solid var(--teal) !important; background: var(--teal-l) !important; box-shadow: 0 0 0 2px var(--teal-l); }
-.cc-kpi-card--active.r { border-color: var(--red) !important; background: var(--red-l) !important; }
+/* No translateY on hover. Seven cards that each jump 1px under the pointer is
+   motion for its own sake on a row you sweep across; the border and shadow
+   already say "pressable". */
+.cc-kpi-card--clickable:hover { border-color: var(--teal); box-shadow: var(--elev); }
+.cc-kpi-card--clickable:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.cc-kpi-card--active { border-color: var(--teal); background: var(--teal-l); box-shadow: 0 0 0 2px var(--teal-l); }
+.cc-kpi-card--active.r { border-color: var(--red); background: var(--red-l); box-shadow: 0 0 0 2px var(--red-l); }
+
+/* A risk figure that is actually non-zero. The card carries the state, not
+   just the number — a red 58 on a white card beside six other white cards is
+   easy to sweep past. Zero stays plain, because zero demurrage risk is good
+   news and should not be dressed as a warning. */
+.cc-kpi-card--raised { border-color: var(--red-m, var(--red-l)); background: var(--red-l); }
+.cc-kpi-card--raised .cc-kpi-cell-label { color: var(--red); }
+.cc-kpi-card--raised .cc-kpi-cell-value { color: var(--red); }
+
+/* Says which of these seven do something when clicked — four filter the list,
+   three are read-only, and they were indistinguishable. Held back until hover
+   or focus so it does not add a seventh line of permanent text to the row. */
+.cc-kpi-hint {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink3);
+  opacity: 0;
+  transition: opacity 0.12s var(--ease, ease);
+  margin-top: -2px;
+}
+.cc-kpi-card--clickable:hover .cc-kpi-hint,
+.cc-kpi-card--clickable:focus-visible .cc-kpi-hint { opacity: 1; }
+.cc-kpi-card--active .cc-kpi-hint { opacity: 1; color: var(--teal); }
+.cc-kpi-card--active.r .cc-kpi-hint { color: var(--red); }
 
 /* Labels read like the table headers below them — same case, same tracking. */
 .cc-kpi-cell-label {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 10px;
+  gap: 5px;
+  font-size: 9.5px;
   font-weight: 700;
   letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--ink3);
+  line-height: 1.35;
+  /* Two lines' worth, always. "Active Shipments" wraps where "This Month"
+     does not, and without a floor the cards in one grid row came out at
+     different heights depending on which labels happened to wrap. */
+  min-height: 2.7em;
+  align-items: flex-start;
 }
+.cc-kpi-cell-label svg { margin-top: 1px; }
+/* The icon is a label-sized glyph, not a tinted chip: it inherits the label's
+   colour so it moves with the card's state instead of carrying a hue of its
+   own that mapped to nothing. */
+.cc-kpi-cell-label svg { flex-shrink: 0; opacity: 0.7; }
 .cc-kpi-cell-value {
-  font-size: 22px;
+  /* Scales with the card so "56.4M TZS" does not wrap or clip when the grid
+     drops to two columns on a phone. */
+  font-size: clamp(19px, 1.55vw, 24px);
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.4px;
   color: var(--ink);
+  white-space: nowrap;
 }
 
-/* Colour marks a state, not a category.
-   Every cell used to be tinted — teal, red, green, gold, ink — so five of the
-   seven figures were coloured and the two that actually mean "act now" did not
-   stand out at all. Only the alert cells carry colour now; the rest are ink,
-   and the labels do the distinguishing. */
-.cc-kpi-cell.r .cc-kpi-cell-value { color: var(--red); }
-.cc-kpi-cell.a .cc-kpi-cell-value { color: var(--gold); }
-.cc-kpi-cell.t .cc-kpi-cell-value,
-.cc-kpi-cell.g .cc-kpi-cell-value,
-.cc-kpi-cell.n .cc-kpi-cell-value { color: var(--ink); }
+/* The per-letter value colours (.cc-kpi-cell.t/.r/.g/.a/.n) went with the
+   .cc-kpi-cell class. Value colour is decided by --raised now: ink unless
+   the figure is a live risk. */
 
-/* Attention emphasis: `cell: 'alert'` (demurrage / SLA breach — needs action
-   now) gets a small pulsing dot next to the label; `cell: 'warn'` (penalty
-   exposure — worth noting, not urgent) gets a quieter left-border accent. */
-.cc-kpi-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--red);
-  flex-shrink: 0;
-  box-shadow: 0 0 0 2px var(--red-l);
-  /* No pulse. It blinked forever on a figure that does not change while you
-     look at it, which is motion for its own sake — and it is beside a red
-     number that already says the same thing. */
-}
+/* .cc-kpi-dot is gone with the markup that used it. The alert cards carry
+   their state in the card itself now (.cc-kpi-card--raised), which is
+   readable at a glance across a row of seven. */
 /* The gold bar down the left of Penalty Exposure is gone. The figure is
    already gold and already labelled; a coloured rule beside it added emphasis
    without adding information, and it was the only cell in the row with one. */
 .cc-kpi-cell--warn { border-left: none; }
 
-/* Active (currently applied) filter — border + ring tinted to the cell's own
-   semantic color, so it's visible at a glance which KPI is driving the list. */
-.cc-kpi-cell.t.cc-kpi-cell--active { background: var(--white); border-color: var(--teal);  box-shadow: 0 0 0 2px var(--teal-l); }
-.cc-kpi-cell.r.cc-kpi-cell--active { background: var(--white); border-color: var(--red);   box-shadow: 0 0 0 2px var(--red-l); }
-.cc-kpi-cell.g.cc-kpi-cell--active { background: var(--white); border-color: var(--green); box-shadow: 0 0 0 2px var(--green-l); }
+/* The .cc-kpi-cell--active variants above targeted a class the markup no
+   longer uses; .cc-kpi-card--active carries the applied-filter state now. */
 
-[data-theme="dark"] .cc-kpi-cell { background: rgba(255,255,255,0.03); }
-[data-theme="dark"] .cc-kpi-cell--clickable:hover { background: rgba(255,255,255,0.06); }
+[data-theme="dark"] .cc-kpi-card { background: rgba(255,255,255,0.03); }
+[data-theme="dark"] .cc-kpi-card--clickable:hover { background: rgba(255,255,255,0.06); border-color: var(--teal); }
+[data-theme="dark"] .cc-kpi-card--raised { background: var(--red-l); border-color: var(--red-l); }
 
 @media (max-width: 767px) {
   .cc-kpi-row { padding: 10px 14px; gap: 8px; }
