@@ -125,7 +125,7 @@ export const FinanceExpensesReport: React.FC = () => {
         subtitle="What was spent, by category and period."
       />
 
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 0', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Expenses Report</div>
           <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Operational costs by category and period</div>
@@ -150,14 +150,14 @@ export const FinanceExpensesReport: React.FC = () => {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Summary cards */}
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           {[
-            { label: `Total Expenses (${period})`, value: fmtM(totalExpenses),      icon: 'receipt',  color: 'var(--red)',    bg: '#fef2f2' },
-            { label: 'Largest Category',            value: largestCategory,          icon: 'package',  color: 'var(--purple)', bg: '#f5f3ff' },
-            { label: 'This Month',                  value: fmtM(thisMonthTotal),      icon: 'calendar', color: 'var(--blue)',   bg: '#eff6ff' },
+            { label: `Total Expenses (${period})`, value: fmtM(totalExpenses),      icon: 'receipt',  color: 'var(--red)',    bg: 'var(--red-l)' },
+            { label: 'Largest Category',            value: largestCategory,          icon: 'package',  color: 'var(--purple)', bg: 'var(--purple-l)' },
+            { label: 'This Month',                  value: fmtM(thisMonthTotal),      icon: 'calendar', color: 'var(--blue)',   bg: 'var(--blue-l)' },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

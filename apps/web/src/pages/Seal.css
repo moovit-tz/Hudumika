@@ -28,7 +28,15 @@
   gap: 16px;
   margin-bottom: 24px;
 }
-.seal-page-title { font-size: 22px; font-weight: 800; color: var(--ink); margin: 0 0 4px; }
+.seal-page-title {
+  font-family: var(--font);
+  font-size: clamp(26px, 2.8vw, 34px);
+  font-weight: 300;
+  color: var(--ink);
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
 .seal-page-sub { font-size: 13px; color: var(--ink3); margin: 0; max-width: 640px; }
 
 .seal-kpi-strip {

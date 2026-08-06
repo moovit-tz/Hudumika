@@ -189,7 +189,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Linked Client</div>
             {client ? (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#065f46', background: 'var(--green-l)', padding: '4px 8px', borderRadius: 6 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: 'var(--green)', background: 'var(--green-l)', padding: '4px 8px', borderRadius: 6 }}>
                 <Icon name="building" size={12} /> {client.name}
               </div>
             ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>—</div>}
@@ -346,7 +346,7 @@ export const Expenses: React.FC = () => {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'var(--white)' }}>
-      <div style={{ padding: '0 20px' }}>
+      <div>
         <PageHeader
           crumbs={['Finance', 'Expenses']}
           titlePlain="Expense"
@@ -356,7 +356,7 @@ export const Expenses: React.FC = () => {
       </div>
 
       {/* Action bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'var(--white)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0', borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'var(--white)' }}>
         <Link to="/finance/expenses/new"
           style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '11px 22px', borderRadius: 10, border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'none' }}>
           <Icon name="plus" size={15} color="#fff" /> Add Expense
@@ -460,7 +460,7 @@ export const Expenses: React.FC = () => {
                     ) : (
                       <>
                         {e.shipment_id && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--navy)', background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, width: 'fit-content', marginBottom: 2 }}><Icon name="package" size={10} /> Job Link</div>}
-                        {e.customer_id && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#065f46', background: 'var(--green-l)', padding: '2px 6px', borderRadius: 4, width: 'fit-content' }}><Icon name="building" size={10} /> Client Link</div>}
+                        {e.customer_id && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--green)', background: 'var(--green-l)', padding: '2px 6px', borderRadius: 4, width: 'fit-content' }}><Icon name="building" size={10} /> Client Link</div>}
                       </>
                     )}
                   </div>

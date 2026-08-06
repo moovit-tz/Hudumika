@@ -16,26 +16,39 @@ async function getGeminiApiKey(): Promise<string | null> {
   return settings?.ocr?.geminiApiKey || process.env.GEMINI_API_KEY || null;
 }
 
-const SYSTEM_PROMPT = `You are a freight / customs document OCR specialist. Extract structured data from shipping and customs documents.
+const SYSTEM_PROMPT = `You are a logistics, customs, and payment document OCR specialist. Extract structured data from shipping, customs, and payment documents.
 
 Supported document types:
 - BL: Bill of Lading
 - INVOICE: Commercial Invoice
 - PACKING_LIST: Packing List
 - AWB: Air Waybill
-- TANSAD: Tanzania Revenue Authority Assessment Document (TRA / TANCIS customs declaration, often headed "TANSAD" or "UNITED REPUBLIC OF TANZANIA — CUSTOMS AND EXCISE DEPARTMENT")
+- TANSAD: Tanzania Revenue Authority Assessment Document (TRA / TANCIS customs declaration)
+- PAYMENT_RECEIPT: Bank transfer receipt, mobile payment, CRDB / NMB / M-Pesa payment advice
 - CERTIFICATE: Certificate of Origin or other certificates
 - OTHER: Any other document
 
 Return ONLY valid JSON matching this exact schema — no markdown, no explanation:
 {
-  "doc_type": "BL | INVOICE | PACKING_LIST | AWB | TANSAD | CERTIFICATE | OTHER",
+  "doc_type": "BL | INVOICE | PACKING_LIST | AWB | TANSAD | PAYMENT_RECEIPT | CERTIFICATE | OTHER",
   "confidence": 0.0-1.0,
   "overview": {
     "bl_number": "",
     "tansad_number": "",
     "declaration_type": "",
     "processing_office": "",
+    "bank_name": "",
+    "transaction_status": "",
+    "from_account": "",
+    "account_owner": "",
+    "beneficiary_name": "",
+    "phone_number": "",
+    "amount_tzs": "",
+    "company_category": "",
+    "company_type": "",
+    "transfer_date": "",
+    "reference_number": "",
+    "created_by": "",
     "vessel": "",
     "voyage": "",
     "origin_port": "",

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { format } from "date-fns"
+import { format, subDays, startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear } from "date-fns"
 import type { DateRange } from "react-day-picker"
 import { Calendar as CalendarIcon, X } from "lucide-react"
 
@@ -48,12 +48,7 @@ export function DatePicker({ date: controlledDate, defaultDate, onChange, name, 
   function handleSelect(d: Date | undefined) {
     if (!isControlled) setInternalDate(d)
     onChange?.(d)
-    setOpen(false)
-  }
-  function handleClear(e: React.MouseEvent | React.KeyboardEvent) {
-    e.stopPropagation()
-    if (!isControlled) setInternalDate(undefined)
-    onChange?.(undefined)
+    if (d) setOpen(false)
   }
 
   return (
@@ -66,8 +61,7 @@ export function DatePicker({ date: controlledDate, defaultDate, onChange, name, 
             <span
               role="button"
               tabIndex={-1}
-              onClick={handleClear}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleClear(e) }}
+              onClick={(e) => { e.stopPropagation(); handleSelect(undefined) }}
               className="rounded-full p-0.5 text-muted-foreground/70 hover:bg-destructive/10 hover:text-destructive"
             >
               <X className="h-3.5 w-3.5" />
@@ -76,6 +70,7 @@ export function DatePicker({ date: controlledDate, defaultDate, onChange, name, 
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className={cn("w-auto p-2", className)}>
+        {name && <input type="hidden" name={name} value={toDateOnlyString(date)} />}
         <Calendar
           mode="single"
           selected={date}
@@ -83,7 +78,6 @@ export function DatePicker({ date: controlledDate, defaultDate, onChange, name, 
           autoFocus
         />
       </PopoverContent>
-      {name && <input type="hidden" name={name} value={toDateOnlyString(date)} />}
     </Popover>
   )
 }
@@ -95,16 +89,40 @@ export interface DateRangePickerProps {
   disabled?: boolean
   className?: string
   triggerClassName?: string
+  numberOfMonths?: number
 }
 
-/** Range picker — "Jan 4 – Jan 12" trigger, two-month calendar popover. */
-export function DateRangePicker({ range, onChange, placeholder = "Pick a date range", disabled, className, triggerClassName }: DateRangePickerProps) {
+const PRESETS: Array<{ label: string; getRange: () => DateRange | undefined }> = [
+  { label: "All time", getRange: () => undefined },
+  { label: "Today", getRange: () => ({ from: new Date(), to: new Date() }) },
+  { label: "Yesterday", getRange: () => { const d = subDays(new Date(), 1); return { from: d, to: d }; } },
+  { label: "This Week", getRange: () => ({ from: startOfWeek(new Date(), { weekStartsOn: 1 }), to: endOfWeek(new Date(), { weekStartsOn: 1 }) }) },
+  { label: "This Month", getRange: () => ({ from: startOfMonth(new Date()), to: endOfMonth(new Date()) }) },
+  { label: "Last 30 Days", getRange: () => ({ from: subDays(new Date(), 30), to: new Date() }) },
+  { label: "This Year", getRange: () => ({ from: startOfYear(new Date()), to: endOfYear(new Date()) }) },
+]
+
+/** Range picker — compact trigger pill, preset shortcuts column + compact calendar. */
+export function DateRangePicker({
+  range,
+  onChange,
+  placeholder = "Pick a date range",
+  disabled,
+  className,
+  triggerClassName,
+  numberOfMonths = 1,
+}: DateRangePickerProps) {
   const [open, setOpen] = React.useState(false)
   const label = range?.from
     ? range.to
       ? `${format(range.from, "d MMM yyyy")} – ${format(range.to, "d MMM yyyy")}`
       : format(range.from, "d MMM yyyy")
     : placeholder
+
+  function selectPreset(preset: typeof PRESETS[number]) {
+    onChange(preset.getRange())
+    setOpen(false)
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -124,14 +142,32 @@ export function DateRangePicker({ range, onChange, placeholder = "Pick a date ra
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="start" className={cn("w-auto p-2", className)}>
-        <Calendar
-          mode="range"
-          selected={range}
-          onSelect={onChange}
-          numberOfMonths={2}
-          autoFocus
-        />
+      <PopoverContent align="start" className={cn("w-auto p-0 flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-border shadow-xl rounded-xl overflow-hidden", className)}>
+        {/* Preset shortcuts column */}
+        <div className="flex flex-col gap-0.5 p-2 bg-muted/30 min-w-[120px] text-xs">
+          <div className="px-2 py-1 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Presets</div>
+          {PRESETS.map((p) => (
+            <button
+              key={p.label}
+              type="button"
+              onClick={() => selectPreset(p)}
+              className="px-2.5 py-1.5 rounded-md text-left font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Compact Calendar */}
+        <div className="p-1.5">
+          <Calendar
+            mode="range"
+            selected={range}
+            onSelect={onChange}
+            numberOfMonths={numberOfMonths}
+            autoFocus
+          />
+        </div>
       </PopoverContent>
     </Popover>
   )

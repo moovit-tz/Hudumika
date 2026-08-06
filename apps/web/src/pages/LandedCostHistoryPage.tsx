@@ -207,7 +207,7 @@ export const LandedCostHistoryPage: React.FC = () => {
   return (
     <div className="lch-page">
       <style>{`
-        .lch-page { padding: 24px 32px; }
+        .lch-page { padding: 0; }
         .lch-card { min-width: 0; background: var(--card-bg, var(--white)); border: 1px solid var(--border);
                     border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); overflow: hidden; }
         .lch-card { --ctl-h: 44px; }

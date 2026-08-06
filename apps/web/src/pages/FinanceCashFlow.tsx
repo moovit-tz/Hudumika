@@ -93,7 +93,7 @@ export const FinanceCashFlow: React.FC = () => {
         subtitle="Money in and out over the period."
       />
 
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 0', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Cash Flow Statement</div>
           <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Monthly cash inflows and outflows</div>
@@ -114,17 +114,17 @@ export const FinanceCashFlow: React.FC = () => {
       {loading ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading cash flow…</div>
       ) : error ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: '#ef4444' }}>{error}</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Summary */}
         <div style={{ display: 'flex', gap: 14 }}>
           {[
             { label: 'Total Cash In',  value: fmtM(totalIn),  color: 'var(--teal)',  bg: 'var(--teal-l)', icon: 'trendingUp'   },
-            { label: 'Total Cash Out', value: fmtM(totalOut), color: 'var(--red)',   bg: '#fef2f2',       icon: 'trendingDown' },
-            { label: 'Net Cash Flow',  value: fmtM(totalNet), color: 'var(--green)', bg: '#ecfdf5',       icon: 'activity'     },
-            { label: 'Closing Balance',value: fmtM(closing),  color: 'var(--blue)',  bg: '#eff6ff',       icon: 'dollarSign'   },
+            { label: 'Total Cash Out', value: fmtM(totalOut), color: 'var(--red)',   bg: 'var(--red-l)',       icon: 'trendingDown' },
+            { label: 'Net Cash Flow',  value: fmtM(totalNet), color: 'var(--green)', bg: 'var(--green-l)',       icon: 'activity'     },
+            { label: 'Closing Balance',value: fmtM(closing),  color: 'var(--blue)',  bg: 'var(--blue-l)',       icon: 'dollarSign'   },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

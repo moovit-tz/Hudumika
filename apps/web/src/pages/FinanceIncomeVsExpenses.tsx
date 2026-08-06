@@ -104,7 +104,7 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
         subtitle="Earned against spent, side by side."
       />
 
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 0', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Income vs Expenses</div>
           <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Comparative revenue and cost analysis</div>
@@ -127,7 +127,7 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Summary cards */}
         <div style={{ display: 'flex', gap: 14 }}>

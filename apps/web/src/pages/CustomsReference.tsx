@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -230,27 +231,22 @@ export const CustomsReference: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex: 1, overflowY: 'auto' }}>
+    <div style={{ padding: '0 0 32px', flex: 1, overflowY: 'auto' }}>
       <input ref={fileInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleFileChange} />
 
       {/* Header */}
-      <div style={{ marginBottom: '20px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--ink)', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Icon name="layers" size={22} color="var(--teal)" />
-            Customs Reference
-          </h1>
-          <p style={{ color: 'var(--ink2)', fontSize: '14px', margin: 0 }}>
-            Licensed ICD operators, TASAC clearing-agent registry (GN 83/2026), EAC excise duty schedules, and the TPA/TASAC port & agency tariff book.
-          </p>
-        </div>
-        {canEdit && tab !== 'tariff' && (
+      <PageHeader
+        crumbs={['ClearOS', 'Reference Data']}
+        titlePlain="Customs"
+        titleEm="reference"
+        subtitle="Licensed ICD operators, TASAC clearing-agent registry (GN 83/2026), EAC excise duty schedules, and the TPA/TASAC port & agency tariff book."
+        actions={canEdit && tab !== 'tariff' ? (
           <button type="button" onClick={() => handleUploadClick(tab)} disabled={importBusy !== null}
             style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: importBusy ? 'wait' : 'pointer', opacity: importBusy ? 0.7 : 1, flexShrink: 0, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="upload" size={15} /> {importBusy === tab ? 'Uploading…' : `Upload fresh ${TABS.find(t => t.key === tab)?.label} list`}
           </button>
-        )}
-      </div>
+        ) : undefined}
+      />
 
       {!canEdit && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>

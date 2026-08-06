@@ -35,9 +35,13 @@
 }
 
 .exp-page-title {
-  font-size: 24px;
-  font-weight: 700;
+  font-family: var(--font);
+  font-size: clamp(26px, 2.8vw, 34px);
+  font-weight: 300;
   color: var(--ink);
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
 .exp-actions {
@@ -116,7 +120,7 @@
 }
 
 .exp-label .required {
-  color: #dc2626;
+  color: var(--red);
   margin-left: 2px;
 }
 

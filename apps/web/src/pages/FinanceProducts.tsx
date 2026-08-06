@@ -333,7 +333,7 @@ export function FinanceProducts() {
       ]} />
 
       {/* Toolbar */}
-      <div style={{ padding: '16px 20px', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ padding: '16px 0', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
           <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
           <input value={search} onChange={e => setSearch(e.target.value)}
@@ -371,7 +371,7 @@ export function FinanceProducts() {
       </div>
 
       {/* Split body */}
-      <div style={{ display: 'flex', margin: '0 20px 20px' }}>
+      <div style={{ display: 'flex', margin: '0 0 20px' }}>
         {/* Table */}
         <div style={{ flex: 1, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'auto', minWidth: 0 }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>

@@ -820,7 +820,7 @@ export const DeliveryNotes: React.FC = () => {
       />
 
       {/* ── Stats ── */}
-      <div style={{ padding: '16px 28px', display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : isSplit ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)', gap: 10 }}>
+      <div style={{ padding: '16px 0', display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : isSplit ? 'repeat(3, 1fr)' : 'repeat(5, 1fr)', gap: 10 }}>
         {[
           { label: 'Total Notes',       value: total,     color: 'var(--navy)', filter: 'all' },
           { label: 'Fully Delivered',   value: fullyDone, color: 'var(--green)',     filter: 'fully_delivered'     },
@@ -830,17 +830,17 @@ export const DeliveryNotes: React.FC = () => {
         ].map(s => (
           <div
             key={s.label}
-            onClick={() => setFilterStatus(s.filter)}
-            style={{ background: 'var(--white)', border: `1.5px solid ${filterStatus === s.filter ? s.color : 'var(--border)'}`, borderRadius: 9, padding: '14px 16px', cursor: 'pointer', transition: 'border-color 0.15s' }}
+            onClick={() => setFilterStatus(filterStatus === s.filter ? 'all' : s.filter)}
+            style={{ padding: '12px 14px', borderRadius: 9, border: `1.5px solid ${filterStatus === s.filter ? 'var(--teal)' : 'var(--border)'}`, background: filterStatus === s.filter ? 'var(--teal-l)' : 'var(--white)', cursor: 'pointer', transition: 'all 0.15s' }}
           >
-            <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 3 }}>{s.label}</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</div>
+            <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2, fontWeight: 600 }}>{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* ── Filter bar ── */}
-      <div style={{ padding: '0 28px 14px', display: 'flex', gap: 10, alignItems: 'center' }}>
+      <div style={{ padding: '0 0 14px', display: 'flex', gap: 10, alignItems: 'center' }}>
         <div style={{ position: 'relative', flex: 1 }}>
           <Icon name="search" size={14} strokeWidth={2} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)', pointerEvents: 'none' } as React.CSSProperties} />
           <input
@@ -858,13 +858,13 @@ export const DeliveryNotes: React.FC = () => {
           </SelectContent>
         </Select>
         <button type="button" onClick={exportCsv}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          style={{ display: 'flex', alignItems: 'center', gap: 5, padding: 'var(--ds-btn-py) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font)', flexShrink: 0, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
           <Icon name="download" size={13} /> Export CSV
         </button>
       </div>
 
       {/* ── Table ── */}
-      <div style={{ margin: '0 28px 28px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+      <div style={{ margin: '0 0 28px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr>

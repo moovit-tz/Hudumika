@@ -190,7 +190,7 @@ export const ReportIssuePage: React.FC = () => {
   return (
     <div className="ri-page">
       <style>{`
-        .ri-page { padding: 24px 32px; }
+        .ri-page { padding: 0; }
         .ri-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start; margin-top: 12px; }
         .ri-card { min-width: 0; background: var(--card-bg, var(--white)); border: 1px solid var(--border);
                    border-radius: 16px; padding: 24px; box-shadow: 0 4px 20px rgba(0,0,0,0.04); --ctl-h: 44px; }

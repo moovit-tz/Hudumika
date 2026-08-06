@@ -4266,7 +4266,7 @@ export const LandedCostPage: React.FC = () => {
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .spin { animation: spin 1.2s linear infinite; }
 
-        .lcp-page { padding: 24px 32px; }
+        .lcp-page { padding: 0; }
         /* minmax(0, 1fr), not 1fr: a grid track defaults to min-width:auto, so a wide
            child — the invoice mapper's preview table — stretched the track and the
            whole page sideways instead of scrolling inside its own box. */

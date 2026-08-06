@@ -64,7 +64,7 @@ export function TradeWizard() {
   };
 
   return (
-    <div style={{ padding: isMobile ? '12px 16px 24px 16px' : '16px 32px 32px 32px', flex: 1, overflowY: 'auto' }}>
+    <div style={{ padding: '0 0 32px', flex: 1, overflowY: 'auto' }}>
       {/* Page Header with Redesigned Quota Button */}
       <PageHeader
         crumbs={['ClearOS', 'Compliance']}

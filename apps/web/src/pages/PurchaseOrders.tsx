@@ -103,7 +103,7 @@ function openPOPrintWindow(
     const taxable = base - disc;
     const taxAmt = prod ? prod.taxRates.reduce((s, t) => s + taxable * (t.rate / 100), 0) : 0;
     return `<tr>
-      <td>${prod?.name || 'Item'}<br><span style="color:#9ca3af;font-size:9px">${prod?.sku || ''}</span></td>
+      <td>${prod?.name || 'Item'}<br><span style="color:var(--ink3);font-size:9px">${prod?.sku || ''}</span></td>
       <td style="text-align:center">${item.qty}</td>
       <td style="text-align:right;font-family:monospace">${fmt(item.unitPrice)}</td>
       <td style="text-align:right;font-family:monospace">${item.discountPct > 0 ? `-${fmt(disc)}` : '—'}</td>
@@ -163,7 +163,7 @@ td{padding:6px 8px;border-bottom:1px solid #f3f4f6;vertical-align:top}
 </tr></thead><tbody>${rows || '<tr><td colspan="6" style="color:#9ca3af;font-style:italic">No items</td></tr>'}</tbody></table>
 <div class="totals">
   <div><span>Subtotal</span><span style="font-family:monospace">${fmt(totals.subtotal)}</span></div>
-  ${totals.discount > 0 ? `<div><span>Discount</span><span style="font-family:monospace;color:#dc2626">-${fmt(totals.discount)}</span></div>` : ''}
+  ${totals.discount > 0 ? `<div><span>Discount</span><span style="font-family:monospace;color:var(--red)">-${fmt(totals.discount)}</span></div>` : ''}
   <div><span>Tax</span><span style="font-family:monospace">${fmt(totals.tax)}</span></div>
   <div class="grand"><span>Total</span><span style="font-family:monospace">${fmt(totals.total)}</span></div>
 </div>
@@ -738,7 +738,7 @@ export const PurchaseOrders: React.FC = () => {
 
 
       {/* CORE WORKSPACE */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 0 }}>
         
         {/* PAGE HEADER — list mode */}
         {viewMode === 'LIST' && (

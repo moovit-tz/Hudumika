@@ -1,4 +1,4 @@
-﻿/* ═══════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════
    ClearOS Workflows — Workflows.css
    Workflow List Page + Visual Canvas Builder
    ═══════════════════════════════════════════════════════ */
@@ -45,7 +45,15 @@
 .wf-page { display:flex; flex-direction:column; height:100%; overflow:hidden; }
 
 .wf-page-header { display:flex; align-items:center; justify-content:space-between; padding:18px 24px 14px; border-bottom:1px solid var(--border); background:var(--white); flex-shrink:0; gap:14px; flex-wrap:wrap; }
-.wf-page-title { font-size:17px; font-weight:800; color:var(--navy,#0f172a); margin:0; }
+.wf-page-title {
+  font-family: var(--font);
+  font-size: clamp(26px, 2.8vw, 34px);
+  font-weight: 300;
+  color: var(--ink);
+  margin: 0 0 8px;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
 .wf-page-sub { font-size:12px; color:var(--ink3,#64748b); margin-top:2px; }
 .wf-header-actions { display:flex; gap:8px; align-items:center; }
 
@@ -228,7 +236,7 @@
 .wfb-comm-card { background:var(--bg); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
 .wfb-comm-card-head { display:flex; align-items:center; gap:7px; padding:8px 10px; border-bottom:1px solid var(--border); }
 .wfb-comm-card-body { padding:8px 10px; display:flex; flex-direction:column; gap:6px; }
-.wfb-comm-ch-badge { font-size:var(--badge-fs-sm); font-weight:700; padding:var(--badge-py-sm) var(--badge-px-sm); border-radius:100px; color:#334155; }
+.wfb-comm-ch-badge { font-size:var(--badge-fs-sm); font-weight:700; padding:var(--badge-py-sm) var(--badge-px-sm); border-radius:100px; color:var(--ink); }
 
 .wfb-var-chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:3px; }
 .wfb-var-chip { font-size:var(--badge-fs-sm); font-family:'Courier New',monospace; background:var(--bg); border:1px solid var(--border); border-radius:3px; padding:var(--badge-py-sm) var(--badge-px-sm); color:var(--teal); cursor:pointer; transition:all 0.1s; }

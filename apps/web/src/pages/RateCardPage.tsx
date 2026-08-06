@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
@@ -257,16 +258,13 @@ export const RateCardPage: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex: 1, overflowY: 'auto' }}>
-      <div style={{ marginBottom: 20 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', margin: '0 0 4px 0', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Icon name="sliders" size={22} color="var(--teal)" />
-          Rate Card
-        </h1>
-        <p style={{ color: 'var(--ink2)', fontSize: 14, margin: 0 }}>
-          Your own per-consignment ICD and clearing-agent charges, split by container/mode. The Landed Cost Calculator preloads these as its defaults for the matching card — leave a rate at 0 to keep it editable per-shipment instead.
-        </p>
-      </div>
+    <div style={{ padding: '0 0 32px', flex: 1, overflowY: 'auto' }}>
+      <PageHeader
+        crumbs={['ClearOS', 'Rate Card']}
+        titlePlain="Rate"
+        titleEm="card"
+        subtitle="Your own per-consignment ICD and clearing-agent charges, split by container/mode. The Landed Cost Calculator preloads these as its defaults for the matching card."
+      />
 
       {!canEdit && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, fontSize: 12.5, color: 'var(--ink3)', marginBottom: 16 }}>

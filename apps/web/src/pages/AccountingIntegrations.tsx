@@ -189,7 +189,7 @@ export function AccountingIntegrations() {
       />
 
       {/* Page header + tabs */}
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '20px 24px 0', flexShrink: 0 }}>
+      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '20px 0 0', flexShrink: 0 }}>
         <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: '0 0 4px' }}>Integrations</h2>
         <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '0 0 16px' }}>Connect ClearOS with your accounting platforms and payment providers.</p>
         <div style={{ display: 'flex', gap: 0, borderTop: '1px solid var(--border)', marginTop: 4 }}>
@@ -204,7 +204,7 @@ export function AccountingIntegrations() {
         </div>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 0' }}>
 
         {/* ── Connected tab ── */}
         {activeTab === 'connected' && (

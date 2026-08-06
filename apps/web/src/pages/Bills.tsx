@@ -1084,7 +1084,7 @@ export const Bills: React.FC = () => {
           isMobile={isMobile}
         />
       ) : (
-        <div style={{ flex:1, overflowY:'auto', padding: isMobile ? '16px' : '24px 32px' }}>
+        <div style={{ flex:1, overflowY:'auto', padding: 0 }}>
           <PageHeader
             crumbs={['Finance', 'Bills']}
             titlePlain="Supplier"

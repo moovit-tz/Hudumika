@@ -15,7 +15,7 @@
   position: relative;
   background: var(--white);
   border-bottom: 1px solid var(--border);
-  padding: 12px 20px;
+  padding: 12px 0;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -61,7 +61,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px;
+  padding: 8px 0;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   flex-wrap: wrap;
@@ -215,9 +215,9 @@
 .inv-cell-due--overdue { color: var(--red); font-weight: 700; }
 
 .inv-mode-badge { padding: var(--badge-py) var(--badge-px); border-radius: 4px; font-size: var(--badge-fs); font-weight: 700; }
-.inv-mode-badge[data-mode="SEA"]  { background: var(--blue-l); color: #1d4ed8; }
+.inv-mode-badge[data-mode="SEA"]  { background: var(--blue-l); color: var(--blue); }
 .inv-mode-badge[data-mode="AIR"]  { background: #fce7f3; color: #be185d; }
-.inv-mode-badge[data-mode="ROAD"] { background: var(--green-l); color: #047857; }
+.inv-mode-badge[data-mode="ROAD"] { background: var(--green-l); color: var(--green); }
 
 .inv-status-badge { padding: var(--badge-py) var(--badge-px); border-radius: 20px; font-size: var(--badge-fs); font-weight: 700; white-space: nowrap; }
 
