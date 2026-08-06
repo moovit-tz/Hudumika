@@ -11,7 +11,6 @@ import {
 } from '../components/ui/dropdown-menu.js';
 import 'leaflet/dist/leaflet.css';
 import './Tracking.css';
-import { PageHeader } from '../components/PageHeader.js';
 
 interface VehicleWithPosition {
   id: string; name: string; plate_number: string | null; status: string;
@@ -250,13 +249,15 @@ export const TrackingLiveMap: React.FC = () => {
   const avgBattery = vehicles.length ? Math.round(vehicles.reduce((acc, v) => acc + (v.battery || 0), 0) / vehicles.length) : 0;
 
   return (
+    /* No PageHeader here, deliberately — see CLAUDE.md's full-screen app
+       surface exclusion. This shell is `flex: 1; overflow: hidden` and
+       everything in it (.trk-sidebar, .trk-top-kpi-bar, .trk-map-controls) is
+       absolutely positioned against it, so an in-flow title block does not sit
+       *above* the map, it lands underneath the floating panels while pushing
+       the map's `height: 100%` past the bottom of the window. That is exactly
+       what it did: the breadcrumb and title showed through the gaps in the
+       vehicle panel, and the panel's `bottom: 16px` fell below the fold. */
     <div className="trk-livemap-shell">
-      <PageHeader
-        crumbs={['HuduFreight', 'Live Map']}
-        titlePlain="Live vehicle"
-        titleEm="map"
-        subtitle="Where every vehicle is right now, and where it has been."
-      />
       {/* TOP KPI BAR */}
       <div className="trk-top-kpi-bar">
         <div className="trk-kpi-item">
@@ -334,7 +335,10 @@ export const TrackingLiveMap: React.FC = () => {
       {/* FLOATING SIDEBAR */}
       <div className="trk-sidebar">
         <div className="trk-sidebar-header">
-          <div className="trk-sidebar-title">TrackOS Dashboard</div>
+          {/* Names the panel and carries the page's identity now that there is
+              no PageHeader above it. "TrackOS" was the only occurrence of that
+              word anywhere in the platform — the app is HuduFreight. */}
+          <div className="trk-sidebar-title">Live map</div>
           <div className="trk-search-box">
             <Icon name="search" size={14} />
             <input 
