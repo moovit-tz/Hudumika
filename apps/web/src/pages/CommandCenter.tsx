@@ -441,9 +441,19 @@ export const CommandCenter: React.FC = () => {
 
   const [selectedMetric, setSelectedMetric] = useState<Metric>(null);
   const [sortBy, setSortBy] = useState<'urgency' | 'created' | 'eta' | 'days'>('urgency');
-  const [viewMode, setViewMode] = useState<'list' | 'board'>(
-    () => (localStorage.getItem('ops_viewMode') as 'list' | 'board') ?? 'list'
-  );
+  /**
+   * Board is the default. Ops Command is a "what is stuck and who is on it"
+   * screen, and the board answers that at a glance — a column per stage, with
+   * the pile-ups visible as column height — where the list answers "find me
+   * this one shipment", which is the rarer question here.
+   *
+   * A stored choice still wins: this only decides what someone sees who has
+   * never touched the toggle. Anyone who has picked List keeps List.
+   */
+  const [viewMode, setViewMode] = useState<'list' | 'board'>(() => {
+    const saved = localStorage.getItem('ops_viewMode');
+    return saved === 'list' || saved === 'board' ? saved : 'board';
+  });
   const [expanded, setExpanded] = useState(true);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -691,7 +701,7 @@ export const CommandCenter: React.FC = () => {
       <div className="cc-main">
 
         {/* ── Enterprise Page Header ── */}
-        <div className="cc-page-header" style={{ padding: '16px 20px', borderBottom: expanded ? 'none' : '1px solid var(--border)' }}>
+        <div className="cc-page-header" style={{ padding: '0 0 12px 0', borderBottom: expanded ? 'none' : '1px solid var(--border)' }}>
           <div className="cc-page-header-left">
             <div className="cc-breadcrumb">
               <span className="cc-breadcrumb-root">Dashboard</span>
