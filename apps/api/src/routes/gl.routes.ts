@@ -1,6 +1,7 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireRole } from '../middleware/rbac.js';
 import type { FastifyInstance } from 'fastify';
+import { CostPostingService } from '../services/cost-posting.service.js';
 import { GLService } from '../services/gl.service.js';
 import { db } from '../db/client.js';
 import { toDateParam } from '../utils/dates.js';
@@ -118,6 +119,26 @@ export async function glRoutes(fastify: FastifyInstance) {
     await db.deleteFrom('chart_of_accounts').where('id', '=', id).where('tenant_id', '=', tenantId).execute();
     reply.status(204);
     return null;
+  });
+
+  /**
+   * Post operational costs that live in another app into the ledger.
+   *
+   * Demurrage charges sat in container_tracking, visible in the Demurrage app
+   * and invisible to every finance report, because nothing ever turned them
+   * into a journal entry. `?dry_run=1` reports what would post without
+   * writing — worth using before the first real run.
+   */
+  fastify.post('/post-costs/demurrage', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request: any, reply) => {
+    const tenantId = request.user.tenant_id;
+    const dryRun = request.query?.dry_run === '1' || request.query?.dry_run === 'true';
+    try {
+      const result = await CostPostingService.postDemurrage(tenantId, request.user.sub ?? null, dryRun);
+      return { dry_run: dryRun, posted_count: result.posted.length, skipped_count: result.skipped.length, ...result };
+    } catch (err: any) {
+      reply.status(400);
+      return { error: err?.message ?? 'Failed to post demurrage costs' };
+    }
   });
 
   // Journal Entries
