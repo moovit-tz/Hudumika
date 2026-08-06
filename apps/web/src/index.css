@@ -5793,10 +5793,20 @@ html:not([data-theme="dark"]) .page-layout {
   background: none; border: none; padding: 5px; border-radius: 6px; display: flex;
 }
 .mc-refresh-btn:hover { background: var(--bg); color: var(--ink); }
-.mc-value-row  { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-.mc-value      { font-size: 26px; font-weight: 800; color: var(--navy); letter-spacing: -0.5px; line-height: 1; white-space: nowrap; }
-.mc-sub-row    { display: flex; gap: 18px; margin-bottom: 12px; }
-.mc-sub-label  { font-size: 9.5px; font-weight: 700; color: var(--ink3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 2px; white-space: nowrap; }
+.mc-value-row  { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; min-width: 0; }
+/* `white-space: nowrap` on a fixed 26px inside `.mc-card { overflow: hidden }`
+   means a long value is silently cut off rather than shrunk — "295,622.81 kg"
+   already needs 240px of a 285px card at 1024px wide, and a tenant an order of
+   magnitude larger would lose digits with no sign anything was hidden. The
+   size now scales with the viewport down to 19px, and the element may shrink,
+   so the number stays whole. */
+.mc-value      { font-size: clamp(19px, 1.55vw, 26px); font-weight: 800; color: var(--navy); letter-spacing: -0.5px; line-height: 1.05; white-space: nowrap; min-width: 0; }
+/* Two sub-columns with nowrap labels ("NOT YET CALCULATED", "SHIPMENTS CALC.")
+   overflowed a narrow card side by side. They wrap to a second line now, and
+   the 18px gap only applies between columns on the same line. */
+.mc-sub-row    { display: flex; gap: 6px 18px; margin-bottom: 12px; flex-wrap: wrap; min-width: 0; }
+.mc-sub-row > div { min-width: 0; }
+.mc-sub-label  { font-size: 9.5px; font-weight: 700; color: var(--ink3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 2px; }
 .mc-sub-value  { font-size: 12.5px; font-weight: 700; color: var(--ink2); white-space: nowrap; }
 .mc-spark-wrap { margin: auto -20px -20px; line-height: 0; }
 .mc-sparkline-svg { display: block; overflow: visible; flex-shrink: 0; }

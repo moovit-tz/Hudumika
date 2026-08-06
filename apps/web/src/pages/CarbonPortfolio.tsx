@@ -97,11 +97,12 @@ export const CarbonPortfolio: React.FC = () => {
           the title's own width pushed both onto lines of their own — and the
           date picker, with nothing to size it, then stretched the full page.
           The title itself is untouched. */}
-      <div style={{ padding: '0 0 16px', display: 'flex', alignItems: 'flex-start', gap: 12, borderBottom: '1px solid var(--border)' }}>
-        <FeaturedIcon variant="brand" size="md" shape="square">
-          <Icon name="globe" size={18} strokeWidth={1.75} />
-        </FeaturedIcon>
-        <div style={{ flex: 1, minWidth: 0 }}>
+      {/* No leading icon. The house style is a plain face paired with a
+          Cormorant Garamond italic final word; an icon in front of that is a
+          different design, and it also pushed this page's title to 89px from
+          the rail where every other page starts at 37px. */}
+      <div style={{ padding: '0 0 16px', borderBottom: '1px solid var(--border)' }}>
+        <div>
           <PageHeader
             crumbs={['ClearOS', 'Carbon Portfolio']}
             titlePlain="Carbon"
@@ -153,10 +154,19 @@ export const CarbonPortfolio: React.FC = () => {
               onMenuClick: load, menuTitle: 'Refresh emissions data',
             },
             {
+              // The value carried no unit at all — "73.9" of what. A carbon
+              // credit is one tonne of CO2e, so it reads tCO2e now.
+              //
+              // It is also worth knowing what this number is: co2.service.ts
+              // derives it as emissions x 25% / 1000 against an assumed
+              // "25% less efficient baseline". It is therefore a fixed
+              // multiple of the emissions figure beside it and rises as
+              // emissions rise. The sub-label says so rather than letting the
+              // card imply a measured saving against a real counterfactual.
               title: 'Credits Saved (est.)',
-              value: `${(data?.total_credits ?? 0).toLocaleString('en')}`,
-              sub1Label: 'MODES TRACKED', sub1Value: String(data?.by_mode.length ?? 0),
-              sub2Label: 'CUSTOMERS',      sub2Value: String(data?.by_customer.length ?? 0),
+              value: `${(data?.total_credits ?? 0).toLocaleString('en')} tCO₂e`,
+              sub1Label: 'VS ASSUMED BASELINE', sub1Value: '+25%',
+              sub2Label: 'MODES TRACKED',       sub2Value: String(data?.by_mode.length ?? 0),
               icon: 'checkCircle',
               bars: creditsBars, barHighlight: 'var(--green)',
               onMenuClick: load, menuTitle: 'Refresh credits data',
