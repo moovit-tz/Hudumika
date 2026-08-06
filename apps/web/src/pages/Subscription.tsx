@@ -184,11 +184,11 @@ function StatusBadge({ status }: { status: string }) {
   // due/paid/overdue/cancelled) without needing two lookup tables.
   const cfg: Record<string, { bg: string; color: string }> = {
     PAID:     { bg: 'var(--green-l)', color: '#059669' }, DUE:        { bg: 'var(--gold-l)', color: 'var(--gold)' },
-    OVERDUE:  { bg: 'var(--red-l)', color: 'var(--red)' }, CANCELLED:  { bg: '#f1f5f9', color: '#64748b' },
+    OVERDUE:  { bg: 'var(--red-l)', color: 'var(--red)' }, CANCELLED:  { bg: '#f1f5f9', color: 'var(--ink2)' },
     OPEN:     { bg: 'var(--blue-l)', color: '#2563eb' }, IN_PROGRESS:{ bg: 'var(--gold-l)', color: 'var(--gold)' },
-    RESOLVED: { bg: 'var(--green-l)', color: '#059669' }, CLOSED:     { bg: '#f1f5f9', color: '#64748b' },
+    RESOLVED: { bg: 'var(--green-l)', color: '#059669' }, CLOSED:     { bg: '#f1f5f9', color: 'var(--ink2)' },
     HIGH:     { bg: 'var(--red-l)', color: 'var(--red)' }, URGENT:     { bg: 'var(--red-l)', color: 'var(--red)' },
-    NORMAL:   { bg: 'var(--gold-l)', color: 'var(--gold)' }, MEDIUM:     { bg: 'var(--gold-l)', color: 'var(--gold)' }, LOW: { bg: '#f1f5f9', color: '#64748b' },
+    NORMAL:   { bg: 'var(--gold-l)', color: 'var(--gold)' }, MEDIUM:     { bg: 'var(--gold-l)', color: 'var(--gold)' }, LOW: { bg: '#f1f5f9', color: 'var(--ink2)' },
     ACTIVE:   { bg: 'var(--green-l)', color: '#059669' },
   };
   const c = cfg[status.toUpperCase()] || cfg.LOW;

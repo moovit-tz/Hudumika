@@ -193,7 +193,7 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
           <div className="app-lnch-adobe-footer-divider" />
 
           <Link to="/" className="app-lnch-adobe-footer-item" onClick={closeLauncher}>
-            <Icon name="grid" size={17} style={{ color: '#475569' }} />
+            <Icon name="grid" size={17} style={{ color: 'var(--ink2)' }} />
             <span className="app-lnch-adobe-footer-label">All apps</span>
           </Link>
         </div>

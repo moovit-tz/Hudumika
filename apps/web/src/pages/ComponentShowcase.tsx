@@ -52,7 +52,7 @@ const STATUS_OPTIONS: FilterOption[] = [
 ];
 
 const WORKSPACES = [
-  { id: 'skyline', name: 'Skyline Dynamics', color: '#0d1117', shortcut: '' },
+  { id: 'skyline', name: 'Skyline Dynamics', color: 'var(--ink)', shortcut: '' },
   { id: 'vortex', name: 'Vortex Innovations', color: '#0891b2', shortcut: '⌘1' },
   { id: 'proxima', name: 'Proxima Ventures', color: '#6e40c9', shortcut: '⌘2' },
   { id: 'nexora', name: 'Nexora Labs', color: 'var(--gold)', shortcut: '⌘3' },

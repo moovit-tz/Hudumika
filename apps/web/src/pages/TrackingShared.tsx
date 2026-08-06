@@ -92,7 +92,7 @@ export const TrackingShared: React.FC = () => {
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: 16 }}>
             <div style={{ width: 36, height: 36, border: `3px solid #e2e8f0`, borderTopColor: BRAND, borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
-            <div style={{ fontSize: 13, color: '#94a3b8' }}>Loading tracking information…</div>
+            <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Loading tracking information…</div>
             <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           </div>
         )}
@@ -102,8 +102,8 @@ export const TrackingShared: React.FC = () => {
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--red-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <Icon name="alertCircle" size={28} color="#dc2626" />
             </div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>Snapshot not found</div>
-            <div style={{ fontSize: 14, color: '#64748b' }}>This tracking link may have expired or been removed.</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Snapshot not found</div>
+            <div style={{ fontSize: 14, color: 'var(--ink2)' }}>This tracking link may have expired or been removed.</div>
           </div>
         )}
 
@@ -166,7 +166,7 @@ export const TrackingShared: React.FC = () => {
             {/* Events */}
             {events.length > 0 && (
               <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', padding: '22px 24px' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b', marginBottom: 18 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>
                   Tracking Events ({events.length})
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
@@ -183,11 +183,11 @@ export const TrackingShared: React.FC = () => {
                           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
                             <div>
                               <div style={{ fontSize: 13, fontWeight: isFirst ? 700 : 500, color: isFirst ? '#1e293b' : '#334155' }}>{ev.description}</div>
-                              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{ev.location}</div>
+                              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{ev.location}</div>
                             </div>
                             <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                              <div style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>{fmtDate(ev.timestamp)}</div>
-                              <div style={{ fontSize: 11, color: '#94a3b8' }}>{fmtTime(ev.timestamp)}</div>
+                              <div style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600 }}>{fmtDate(ev.timestamp)}</div>
+                              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{fmtTime(ev.timestamp)}</div>
                             </div>
                           </div>
                         </div>
@@ -199,7 +199,7 @@ export const TrackingShared: React.FC = () => {
             )}
 
             {/* Footer */}
-            <div style={{ marginTop: 32, textAlign: 'center', fontSize: 12, color: '#94a3b8' }}>
+            <div style={{ marginTop: 32, textAlign: 'center', fontSize: 12, color: 'var(--ink3)' }}>
               Tracking data is a saved snapshot · last updated {fmtDate(snap.created_at)}<br />
               <span style={{ color: BRAND, fontWeight: 600 }}>Hudumika ClearOS</span> — Freight Management Platform
             </div>

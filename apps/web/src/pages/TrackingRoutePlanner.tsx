@@ -151,7 +151,7 @@ export const TrackingRoutePlanner: React.FC = () => {
           <ClickToAddWaypoint onAdd={addWaypoint} />
           {waypoints.map((pos, i) => <Marker key={i} position={pos} icon={stopMarkerIcon} />)}
           {route && <Polyline positions={route.geometry} pathOptions={{ color: '#2563eb', weight: 5, opacity: 0.8 }} />}
-          {!route && waypoints.length > 1 && <Polyline positions={waypoints} pathOptions={{ color: '#94a3b8', weight: 3, dashArray: '8 8' }} />}
+          {!route && waypoints.length > 1 && <Polyline positions={waypoints} pathOptions={{ color: 'var(--ink3)', weight: 3, dashArray: '8 8' }} />}
         </MapContainer>
 
         <div className="rp-map-controls">

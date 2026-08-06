@@ -83,7 +83,7 @@ export const CarbonCreditsPage: React.FC = () => {
       <head>
         <title>Carbon Offset Certificate</title>
         <style>
-          body { font-family: system-ui, sans-serif; text-align: center; padding: 40px; color: #1e293b; background: var(--green-l); }
+          body { font-family: system-ui, sans-serif; text-align: center; padding: 40px; color: #1e293b; background: #ecfdf5; }
           .cert-container { background: #fff; padding: 60px; border: 8px solid #059669; border-radius: 12px; max-width: 800px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
           h1 { color: #064e3b; font-size: 42px; margin: 0 0 10px 0; font-weight: 900; letter-spacing: -0.02em; }
           h2 { color: #059669; font-size: 24px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 40px; }

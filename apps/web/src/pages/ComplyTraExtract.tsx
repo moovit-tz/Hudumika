@@ -246,7 +246,7 @@ export function ComplyTraExtract() {
         {status !== 'completed' && (
           <div className="comply-card" style={{ background: '#0F172A', color: '#38BDF8', border: '1px solid #1E293B', borderRadius: 12 }}>
             <div className="comply-card-hdr" style={{ borderBottom: '1px solid #1E293B', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.05em', color: '#94A3B8', fontFamily: 'monospace' }}>AGENT SESSION TERMINAL</span>
+              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--ink3)', fontFamily: 'monospace' }}>AGENT SESSION TERMINAL</span>
               <div style={{ display: 'flex', gap: 6 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#EF4444' }} />
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#F59E0B' }} />
@@ -255,11 +255,11 @@ export function ComplyTraExtract() {
             </div>
             <div style={{ padding: 20, height: 320, overflowY: 'auto', fontFamily: 'monospace', fontSize: 12.5, lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {terminalLogs.length === 0 ? (
-                <div style={{ color: '#64748B', fontStyle: 'italic' }}>Terminal awaiting connection...</div>
+                <div style={{ color: 'var(--ink2)', fontStyle: 'italic' }}>Terminal awaiting connection...</div>
               ) : (
                 terminalLogs.map(log => (
                   <div key={log.id} style={{ display: 'flex', gap: 10 }}>
-                    <span style={{ color: '#64748B' }}>[{log.time}]</span>
+                    <span style={{ color: 'var(--ink2)' }}>[{log.time}]</span>
                     <span style={{ 
                       color: log.type === 'error' ? '#EF4444' : 
                              log.type === 'success' ? '#34D399' : 
@@ -274,7 +274,7 @@ export function ComplyTraExtract() {
               {status === 'otp_required' && (
                 <div style={{ background: '#1E293B', border: '1px solid #334155', borderRadius: 8, padding: 14, marginTop: 12, color: 'var(--white)' }}>
                   <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: '#FBBF24' }}>🔑 Verification Code Needed</div>
-                  <div style={{ fontSize: 11.5, color: '#94A3B8', marginBottom: 12 }}>Enter the OTP code received on taxpayer's registered phone number to authorize secure data pull.</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 12 }}>Enter the OTP code received on taxpayer's registered phone number to authorize secure data pull.</div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <input 
                       type="text" 

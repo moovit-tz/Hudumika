@@ -1033,7 +1033,7 @@ const GATEWAYS: GatewayDef[] = [
   // -- Bank & Manual ------------------------------------------
   {
     id: 'bank', name: 'Bank Transfer', desc: 'Manual bank transfers � CRDB, NMB, NBC and others.',
-    color: '#475569', bg: '#f1f5f9', abbr: 'BK', region: 'Bank / Manual', sandbox: false,
+    color: 'var(--ink2)', bg: '#f1f5f9', abbr: 'BK', region: 'Bank / Manual', sandbox: false,
     fields: [
       { key: 'bankName',   label: 'Bank Name',         placeholder: 'e.g. CRDB Bank' },
       { key: 'accountNo',  label: 'Account Number',    placeholder: 'e.g. 0150614123600' },
@@ -1255,7 +1255,7 @@ const ExpensesCategoriesSection: React.FC = () => {
     { id: '5', name: 'Demurrage',          color: 'var(--red)' },
     { id: '6', name: 'Office & Admin',     color: '#0891b2' },
     { id: '7', name: 'Staff & Salaries',   color: '#059669' },
-    { id: '8', name: 'Miscellaneous',      color: '#6b7280' },
+    { id: '8', name: 'Miscellaneous',      color: 'var(--ink2)' },
   ]);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');

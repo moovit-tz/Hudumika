@@ -124,7 +124,7 @@ export function genRefCode(id: string, version: number): string {
 }
 
 export const STATUS_STYLE: Record<Status, { bg: string; color: string; label: string }> = {
-  Draft:    { bg: '#e5e7eb', color: '#374151', label: 'Draft'          },
+  Draft:    { bg: '#e5e7eb', color: 'var(--ink)', label: 'Draft'          },
   Partial:  { bg: 'var(--blue-l)', color: 'var(--blue)', label: 'Partially paid' },
   Paid:     { bg: '#1e293b', color: '#f1f5f9', label: 'Fully paid'     },
   Credited: { bg: '#fce7f3', color: '#be185d', label: 'Credited'       },
@@ -333,7 +333,7 @@ export function openPrintWindow(inv: Invoice) {
         <td style="text-align:right;font-family:monospace;font-weight:700">${fmt(lineSub + lineTax)}</td>
       </tr>`;
     }).join('');
-    const emptyRow = `<tr><td colspan="6" style="color:#9ca3af;font-style:italic;padding:10px 12px">No charges</td><td style="text-align:right;font-family:monospace">0</td></tr>`;
+    const emptyRow = `<tr><td colspan="6" style="color:var(--ink3);font-style:italic;padding:10px 12px">No charges</td><td style="text-align:right;font-family:monospace">0</td></tr>`;
     return `
       <div class="section">
         <div class="sec-hdr">${title}</div>
@@ -377,7 +377,7 @@ th{padding:4px 6px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;l
 td{padding:4px 6px;border-bottom:1px solid #f3f4f6;vertical-align:top;font-size:10.5px}
 .subtotal{display:flex;justify-content:space-between;padding:4px 8px;background:#f9fafb;font-weight:700;font-size:11px;border-top:2px solid #e5e7eb}
 .grand{display:flex;justify-content:flex-end;gap:32px;align-items:center;margin:8px 0;padding:8px 10px;background:#0b1e3a;color:#fff;border-radius:6px;font-size:12px;font-weight:800}
-.due{display:flex;justify-content:flex-end;gap:32px;margin-bottom:12px;font-size:12px;font-weight:700;color:var(--red)}
+.due{display:flex;justify-content:flex-end;gap:32px;margin-bottom:12px;font-size:12px;font-weight:700;color:#dc2626}
 .terms{padding-top:8px;border-top:1px solid #e5e7eb}
 .terms h4{font-size:10px;font-weight:700;margin-bottom:4px;color:#374151}
 .terms p{font-size:10px;color:#6b7280;line-height:1.6}
@@ -401,7 +401,7 @@ td{padding:4px 6px;border-bottom:1px solid #f3f4f6;vertical-align:top;font-size:
     <img src="https://api.qrserver.com/v1/create-qr-code/?size=64x64&data=${encodeURIComponent(JSON.stringify({ ref: inv.refCode, inv: inv.id, amt: T.grandTotalTZS }))}" alt="QR" style="width:64px;height:64px;border:1px solid #e5e7eb;padding:2px;border-radius:6px">
     <div class="qr-lbl">Ref: ${inv.refCode}<br>v${inv.version}</div>
   </div>
-  <div style="text-align:right;font-size:12px;color:#6b7280">
+  <div style="text-align:right;font-size:12px;color:var(--ink2)">
     <div style="font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px;font-size:9px">Invoice Details</div>
     <div style="margin-bottom:4px;display:flex;justify-content:flex-end;gap:12px"><span>Invoice #:</span><strong style="color:#0d9488">${inv.id}</strong></div>
     <div style="margin-bottom:4px;display:flex;justify-content:flex-end;gap:12px"><span>Invoice Date:</span><strong style="color:#111">${inv.billDate}</strong></div>
@@ -419,20 +419,20 @@ ${sectionHtml('Clearing Charges — Paid in TZS', 'TZS', T.cl, T.sub(T.cl), T.ta
 ${sectionHtml('Shipping Line Charges — Paid in USD', 'USD', T.sh, T.sub(T.sh), T.tax(T.sh), T.shippingTotal)}
 ${sectionHtml('Other Charges — Paid in TZS', 'TZS', T.ot, T.sub(T.ot), T.tax(T.ot), T.otherTotal)}
 <div class="grand"><span>GRAND TOTAL</span><span>${fmtTZS(T.grandTotalTZS)}</span></div>
-${inv.exchangeRate > 0 && T.shippingTotal > 0 ? `<div style="text-align:right;font-size:11px;color:#6b7280;margin-bottom:12px">USD shipping converted at 1 USD = TZS ${inv.exchangeRate.toLocaleString()}</div>` : ''}
+${inv.exchangeRate > 0 && T.shippingTotal > 0 ? `<div style="text-align:right;font-size:11px;color:var(--ink2);margin-bottom:12px">USD shipping converted at 1 USD = TZS ${inv.exchangeRate.toLocaleString()}</div>` : ''}
 ${inv.received > 0 ? `<div class="due"><span>Less: Amount Received</span><span style="color:#059669">(${fmtTZS(inv.received)})</span></div>` : ''}
 <div class="due"><span>Amount Due</span><span>${fmtTZS(Math.max(0, due))}</span></div>
 ${inv.shipmentCarbon ? `
-<div style="margin-top:12px;padding:12px;background:var(--green-l);border-radius:6px;font-size:10px;color:#374151;border:1px solid #a7f3d0">
+<div style="margin-top:12px;padding:12px;background:var(--green-l);border-radius:6px;font-size:10px;color:var(--ink);border:1px solid #a7f3d0">
   <div style="font-weight:800;text-transform:uppercase;margin-bottom:6px;color:#111">Carbon Footprint (Estimate)</div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;line-height:1.6">
     <div><strong>CO₂ Emissions:</strong> ${Number(inv.shipmentCarbon.co2_emissions_kg).toLocaleString()} kg</div>
     <div><strong style="color:#059669">Credits Saved:</strong> ${Number(inv.shipmentCarbon.carbon_credits_saved).toFixed(2)}</div>
     ${inv.shipmentCarbon.distance_km ? `<div><strong>Distance:</strong> ${inv.shipmentCarbon.distance_km} km</div>` : ''}
   </div>
-  <div style="font-size:8.5px;color:#9ca3af;margin-top:6px;font-style:italic">GLEC v3.2 / ISO 14083 methodology. Internal ESG estimate — not a registry-issued or tradeable carbon credit.</div>
+  <div style="font-size:8.5px;color:var(--ink3);margin-top:6px;font-style:italic">GLEC v3.2 / ISO 14083 methodology. Internal ESG estimate — not a registry-issued or tradeable carbon credit.</div>
 </div>` : ''}
-<div style="margin-top:20px;padding:12px;background:#f9fafb;border-radius:6px;font-size:10px;color:#374151;border:1px solid #e5e7eb">
+<div style="margin-top:20px;padding:12px;background:#f9fafb;border-radius:6px;font-size:10px;color:var(--ink);border:1px solid #e5e7eb">
   <div style="font-weight:800;text-transform:uppercase;margin-bottom:6px;color:#111">Payment Information</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;line-height:1.6">
     <div>

@@ -41,12 +41,12 @@ interface Quote {
 
 /* ── Status config ── */
 const STATUS_CFG: Record<QuoteStatus, { label: string; color: string; bg: string }> = {
-  DRAFT:     { label: 'Draft',     color: '#64748b', bg: '#f1f5f9' },
+  DRAFT:     { label: 'Draft',     color: 'var(--ink2)', bg: '#f1f5f9' },
   PENDING:   { label: 'Pending',   color: 'var(--gold)', bg: 'var(--gold-l)' },
   APPROVED:  { label: 'Accepted',  color: '#059669', bg: 'var(--green-l)' },
   REJECTED:  { label: 'Rejected',  color: 'var(--red)', bg: 'var(--red-l)' },
   CONVERTED: { label: 'Converted', color: '#0891b2', bg: '#ecfeff' },
-  EXPIRED:   { label: 'Expired',   color: '#9ca3af', bg: '#f3f4f6' },
+  EXPIRED:   { label: 'Expired',   color: 'var(--ink3)', bg: '#f3f4f6' },
 };
 
 /* ── Mock quotes for fallback ── */

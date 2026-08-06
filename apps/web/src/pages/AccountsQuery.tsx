@@ -49,7 +49,7 @@ function StatusBadge({ status }: { status: string }) {
   if (s === 'paid') { bg = 'var(--green)'; color = '#fff'; }
   else if (s === 'unpaid') { bg = 'var(--red)'; color = '#fff'; }
   else if (s === 'partial') { bg = 'var(--gold)'; color = '#fff'; }
-  else if (s === 'draft') { bg = '#e2e8f0'; color = '#475569'; }
+  else if (s === 'draft') { bg = '#e2e8f0'; color = 'var(--ink2)'; }
   return (
     <span style={{
       display: 'inline-block',

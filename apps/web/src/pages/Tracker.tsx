@@ -133,9 +133,9 @@ function generatePDF(result: TrackingResult) {
 
   const evtRows = result.events.map(ev => `
     <tr>
-      <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:12px;color:#1e293b;font-weight:600">${ev.description}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:12px;color:#64748b">${ev.location || '—'}</td>
-      <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:12px;color:#64748b;white-space:nowrap">${fmtDate(ev.timestamp)} ${fmtTime(ev.timestamp)}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:12px;color:var(--ink);font-weight:600">${ev.description}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:12px;color:var(--ink2)">${ev.location || '—'}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0;font-size:12px;color:var(--ink2);white-space:nowrap">${fmtDate(ev.timestamp)} ${fmtTime(ev.timestamp)}</td>
     </tr>`).join('');
 
   const html = `<!DOCTYPE html>

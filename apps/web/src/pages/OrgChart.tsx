@@ -182,7 +182,7 @@ function toFlow(apiNodes: OrgNode[]): { nodes: FlowNode[]; edges: FlowEdge[] } {
       type: 'smoothstep',
       animated: false,
       style: { stroke: '#cbd5e1', strokeWidth: 2 },
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8', width: 16, height: 16 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--ink3)', width: 16, height: 16 },
     }));
   return { nodes, edges };
 }
@@ -539,7 +539,7 @@ export const OrgChart: React.FC = () => {
           defaultEdgeOptions={{
             type: 'smoothstep',
             style: { stroke: '#cbd5e1', strokeWidth: 2 },
-            markerEnd: { type: MarkerType.ArrowClosed, color: '#94a3b8', width: 14, height: 14 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: 'var(--ink3)', width: 14, height: 14 },
           }}
           style={{ background: '#f8fafc' }}
           proOptions={{ hideAttribution: true }}

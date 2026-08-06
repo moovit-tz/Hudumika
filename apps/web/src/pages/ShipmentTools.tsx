@@ -188,10 +188,10 @@ td{padding:7px 10px;border-bottom:1px solid #e5e7eb;font-size:13px}
 td:last-child{text-align:right;font-weight:600}
 tr.total td{background:#0b72640d;font-weight:800;font-size:14px}
 .badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700}
-.req{background:var(--red-l);color:var(--red)}
-.ok{background:var(--green-l);color:#059669}
-.red{color:var(--red)}
-.basis{background:var(--gold-l);padding:14px;border-radius:8px;border:1px solid #fed7aa;margin-top:8px;font-size:12px;line-height:1.9}
+.req{background:#fee2e2;color:#dc2626}
+.ok{background:#ecfdf5;color:#059669}
+.red{color:#dc2626}
+.basis{background:#fff7ed;padding:14px;border-radius:8px;border:1px solid #fed7aa;margin-top:8px;font-size:12px;line-height:1.9}
 pre{white-space:pre-wrap;background:#f8fafc;padding:16px;border-radius:8px;font-size:13px;line-height:1.7;border:1px solid #e2e8f0}
 .footer{margin-top:40px;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:12px}
 @media print{body{padding:16px}}

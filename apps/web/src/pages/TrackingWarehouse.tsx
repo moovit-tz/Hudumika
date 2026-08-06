@@ -289,7 +289,7 @@ export const TrackingWarehouse: React.FC = () => {
                       <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{a.reference || '—'}</td>
                       <td style={{ padding: '10px 14px', color: 'var(--ink3)', fontSize: 12 }}>{new Date(a.scheduled_at).toLocaleString()}</td>
                       <td style={{ padding: '10px 14px' }}>
-                        <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 10px', background: '#f1f5f9', color: '#64748b' }}>{a.status.replace('_', ' ')}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '2px 10px', background: '#f1f5f9', color: 'var(--ink2)' }}>{a.status.replace('_', ' ')}</span>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                         {a.status === 'SCHEDULED' && <button type="button" onClick={() => setAppointmentStatus(a.id, 'check-in')} style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', marginRight: 8 }}>Check in</button>}

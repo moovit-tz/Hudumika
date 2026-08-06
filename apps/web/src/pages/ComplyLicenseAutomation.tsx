@@ -208,7 +208,7 @@ export function ComplyLicenseAutomation() {
           {/* Right Panel: Extraction Log */}
           <div className="comply-card" style={{ display: 'flex', flexDirection: 'column', gap: 16, background: '#0F172A', border: '1px solid #1E293B', borderRadius: 12, minHeight: 440 }}>
             <div className="comply-card-hdr" style={{ borderBottom: '1px solid #1E293B', padding: '12px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.05em', color: '#94A3B8', fontFamily: 'monospace' }}>COMPLYOS EXTRACTION AGENT</span>
+              <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.05em', color: 'var(--ink3)', fontFamily: 'monospace' }}>COMPLYOS EXTRACTION AGENT</span>
               <span style={{ fontSize: 11, color: uploading ? '#FBBF24' : '#10B981', display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: uploading ? '#FBBF24' : '#10B981', display: 'inline-block' }} /> {uploading ? 'EXTRACTING' : 'READY'}
               </span>
@@ -218,7 +218,7 @@ export function ComplyLicenseAutomation() {
             <div style={{ padding: '0 20px', flex: 1, overflowY: 'auto', maxHeight: 240, fontFamily: 'monospace', fontSize: 12, lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: 6 }}>
               {terminalLogs.map(log => (
                 <div key={log.id} style={{ display: 'flex', gap: 8 }}>
-                  <span style={{ color: '#64748B' }}>[{log.time}]</span>
+                  <span style={{ color: 'var(--ink2)' }}>[{log.time}]</span>
                   <span style={{
                     color: log.type === 'observe' ? '#F472B6' :
                            log.type === 'agent' ? '#38BDF8' :
@@ -234,16 +234,16 @@ export function ComplyLicenseAutomation() {
 
             {/* Extracted Summary */}
             <div style={{ padding: 18, borderTop: '1px solid #1E293B', background: '#090D16', borderBottomLeftRadius: 10, borderBottomRightRadius: 10 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Extracted Summary</div>
+              <div style={{ fontSize: 10, fontWeight: 800, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>Extracted Summary</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, fontSize: 11.5, fontFamily: 'monospace' }}>
                 <div style={{ background: '#1E293B', padding: '6px 10px', borderRadius: 4, color: '#E2E8F0' }}>
-                  <span style={{ color: '#64748B' }}>NIN:</span> —
+                  <span style={{ color: 'var(--ink2)' }}>NIN:</span> —
                 </div>
                 <div style={{ background: '#1E293B', padding: '6px 10px', borderRadius: 4, color: '#E2E8F0' }}>
-                  <span style={{ color: '#64748B' }}>TIN:</span> —
+                  <span style={{ color: 'var(--ink2)' }}>TIN:</span> —
                 </div>
                 <div style={{ background: '#1E293B', padding: '6px 10px', borderRadius: 4, color: '#E2E8F0', gridColumn: 'span 2' }}>
-                  <span style={{ color: '#64748B' }}>COUNCIL:</span> —
+                  <span style={{ color: 'var(--ink2)' }}>COUNCIL:</span> —
                 </div>
               </div>
             </div>

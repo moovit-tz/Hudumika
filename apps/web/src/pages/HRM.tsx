@@ -100,13 +100,13 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
             {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28, paddingBottom: 20, borderBottom: '2px solid #0891b2' }}>
               <div>
-                <div style={{ fontSize: 22, fontWeight: 900, color: '#0f172a', letterSpacing: '-0.03em' }}>Moovit Logistics Ltd</div>
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Plot 15 Haile Selassie Road, Dar es Salaam</div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>TIN: 100-200-300</div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--ink)', letterSpacing: '-0.03em' }}>Moovit Logistics Ltd</div>
+                <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 2 }}>Plot 15 Haile Selassie Road, Dar es Salaam</div>
+                <div style={{ fontSize: 12, color: 'var(--ink2)' }}>TIN: 100-200-300</div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: 18, fontWeight: 800, color: '#0891b2', letterSpacing: '0.05em' }}>PAYSLIP</div>
-                <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>{monthLabel}</div>
+                <div style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 2 }}>{monthLabel}</div>
               </div>
             </div>
 
@@ -119,8 +119,8 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
                 ['Payment Mode', 'Bank Transfer'],
               ].map(([l, v]) => (
                 <div key={l}>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>{l}</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{v}</div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 2 }}>{l}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{v}</div>
                 </div>
               ))}
             </div>
@@ -137,12 +137,12 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
                       { label: 'Allowances',      amount: row.allow },
                     ].map(r => (
                       <tr key={r.label} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '7px 4px', fontSize: 13, color: '#374151' }}>{r.label}</td>
-                        <td style={{ padding: '7px 4px', fontSize: 13, fontWeight: 600, color: '#1e293b', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>TZS {r.amount.toLocaleString()}</td>
+                        <td style={{ padding: '7px 4px', fontSize: 13, color: 'var(--ink)' }}>{r.label}</td>
+                        <td style={{ padding: '7px 4px', fontSize: 13, fontWeight: 600, color: 'var(--ink)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>TZS {r.amount.toLocaleString()}</td>
                       </tr>
                     ))}
                     <tr>
-                      <td style={{ padding: '10px 4px', fontSize: 13, fontWeight: 700, color: '#1e293b', borderTop: '2px solid #e2e8f0' }}>Gross Pay</td>
+                      <td style={{ padding: '10px 4px', fontSize: 13, fontWeight: 700, color: 'var(--ink)', borderTop: '2px solid #e2e8f0' }}>Gross Pay</td>
                       <td style={{ padding: '10px 4px', fontSize: 14, fontWeight: 800, color: '#0891b2', textAlign: 'right', borderTop: '2px solid #e2e8f0', fontVariantNumeric: 'tabular-nums' }}>TZS {gross.toLocaleString()}</td>
                     </tr>
                   </tbody>
@@ -160,12 +160,12 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
                       ...(other > 0 ? [{ label: 'Other', amount: other }] : []),
                     ].map(r => (
                       <tr key={r.label} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '7px 4px', fontSize: 13, color: '#374151' }}>{r.label}{r.note ? <span style={{ fontSize: 10, color: '#94a3b8', marginLeft: 4 }}>{r.note}</span> : null}</td>
+                        <td style={{ padding: '7px 4px', fontSize: 13, color: 'var(--ink)' }}>{r.label}{r.note ? <span style={{ fontSize: 10, color: 'var(--ink3)', marginLeft: 4 }}>{r.note}</span> : null}</td>
                         <td style={{ padding: '7px 4px', fontSize: 13, fontWeight: 600, color: 'var(--red)', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>TZS {r.amount.toLocaleString()}</td>
                       </tr>
                     ))}
                     <tr>
-                      <td style={{ padding: '10px 4px', fontSize: 13, fontWeight: 700, color: '#1e293b', borderTop: '2px solid #e2e8f0' }}>Total Deductions</td>
+                      <td style={{ padding: '10px 4px', fontSize: 13, fontWeight: 700, color: 'var(--ink)', borderTop: '2px solid #e2e8f0' }}>Total Deductions</td>
                       <td style={{ padding: '10px 4px', fontSize: 14, fontWeight: 800, color: 'var(--red)', textAlign: 'right', borderTop: '2px solid #e2e8f0', fontVariantNumeric: 'tabular-nums' }}>TZS {row.ded.toLocaleString()}</td>
                     </tr>
                   </tbody>
@@ -193,17 +193,17 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 40, marginTop: 32, paddingTop: 20, borderTop: '1px solid #e2e8f0' }}>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ height: 40, borderBottom: '1px solid #94a3b8', marginBottom: 6 }} />
-                <div style={{ fontSize: 11, color: '#64748b' }}>Employee Signature</div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#1e293b', marginTop: 2 }}>{row.emp}</div>
+                <div style={{ fontSize: 11, color: 'var(--ink2)' }}>Employee Signature</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginTop: 2 }}>{row.emp}</div>
               </div>
               <div style={{ textAlign: 'center' }}>
                 <div style={{ height: 40, borderBottom: '1px solid #94a3b8', marginBottom: 6 }} />
-                <div style={{ fontSize: 11, color: '#64748b' }}>Authorised By</div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#1e293b', marginTop: 2 }}>HR / Finance Manager</div>
+                <div style={{ fontSize: 11, color: 'var(--ink2)' }}>Authorised By</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', marginTop: 2 }}>HR / Finance Manager</div>
               </div>
             </div>
 
-            <div style={{ textAlign: 'center', marginTop: 24, fontSize: 10, color: '#94a3b8' }}>
+            <div style={{ textAlign: 'center', marginTop: 24, fontSize: 10, color: 'var(--ink3)' }}>
               This is a computer-generated payslip — Moovit ClearOS — Generated on {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
             </div>
           </div>

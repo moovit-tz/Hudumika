@@ -40,17 +40,17 @@ const EMPTY_VENDOR: Vendor = {
 };
 
 const BILL_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
-  DRAFT:   { bg: '#f1f5f9', color: '#64748b' },
+  DRAFT:   { bg: '#f1f5f9', color: 'var(--ink2)' },
   POSTED:  { bg: 'var(--blue-l)', color: 'var(--blue)' },
   PARTIAL: { bg: 'var(--gold-l)', color: 'var(--gold)' },
   PAID:    { bg: 'var(--green-l)', color: 'var(--green)' },
   OVERDUE: { bg: 'var(--red-l)', color: 'var(--red)' },
-  VOID:    { bg: '#f1f5f9', color: '#64748b' },
+  VOID:    { bg: '#f1f5f9', color: 'var(--ink2)' },
 };
 
 /* ── Detail Panel ───────────────────────────────────────────────────────────── */
 const PO_STATUS_COLOR: Record<string, { bg: string; color: string }> = {
-  DRAFT:     { bg: '#f1f5f9', color: '#64748b' },
+  DRAFT:     { bg: '#f1f5f9', color: 'var(--ink2)' },
   SENT:      { bg: 'var(--blue-l)', color: 'var(--blue)' },
   PARTIAL:   { bg: 'var(--gold-l)', color: 'var(--gold)' },
   RECEIVED:  { bg: 'var(--green-l)', color: 'var(--green)' },

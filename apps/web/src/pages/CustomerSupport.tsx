@@ -73,11 +73,11 @@ const STATUS_CFG: Record<Ticket['status'], { label: string; color: string; bg: s
   OPEN:        { label: 'Open',        color: '#0891b2', bg: '#ecfeff' },
   IN_PROGRESS: { label: 'In Progress', color: 'var(--gold)', bg: 'var(--gold-l)' },
   RESOLVED:    { label: 'Resolved',    color: '#059669', bg: 'var(--green-l)' },
-  CLOSED:      { label: 'Closed',      color: '#6b7280', bg: '#f3f4f6' },
+  CLOSED:      { label: 'Closed',      color: 'var(--ink2)', bg: '#f3f4f6' },
 };
 
 const PRIORITY_CFG: Record<string, { label: string; color: string }> = {
-  LOW:    { label: 'Low',    color: '#6b7280' },
+  LOW:    { label: 'Low',    color: 'var(--ink2)' },
   NORMAL: { label: 'Normal', color: '#0891b2' },
   MEDIUM: { label: 'Medium', color: '#0891b2' },
   HIGH:   { label: 'High',   color: 'var(--gold)' },

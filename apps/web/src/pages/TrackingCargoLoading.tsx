@@ -52,7 +52,7 @@ function ContainerWireframe({ l, w, h }: { l: number; w: number; h: number }) {
   return (
     <mesh position={[0, 0, 0]}>
       <boxGeometry args={[l, h, w]} />
-      <meshBasicMaterial color="#94a3b8" wireframe />
+      <meshBasicMaterial color="var(--ink3)" wireframe />
     </mesh>
   );
 }

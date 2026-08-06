@@ -268,7 +268,7 @@
 }
 .trk-status-badge.moving { background: rgba(16,185,129,0.15); color: #10b981; }
 .trk-status-badge.stopped { background: rgba(245,158,11,0.15); color: var(--gold); }
-.trk-status-badge.offline { background: rgba(148,163,184,0.15); color: #64748b; }
+.trk-status-badge.offline { background: rgba(148,163,184,0.15); color: var(--ink2); }
 
 .trk-v-micro-metrics { display: flex; gap: 16px; margin-top: 12px; }
 .trk-v-metric-bar-wrap { flex: 1; }

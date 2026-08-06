@@ -24,7 +24,7 @@ const STAGE_CFG: Record<string, { label: string; color: string; bg: string; step
   DUTY:        { label: 'Duty Payment',   color: '#ea580c', bg: 'var(--gold-l)', step: 4 },
   RELEASE:     { label: 'Port Release',   color: '#0d7a6b', bg: '#ccfbf1', step: 5 },
   DELIVERY:    { label: 'Delivery',       color: '#059669', bg: 'var(--green-l)', step: 6 },
-  CLOSED:      { label: 'Completed',      color: '#6b7280', bg: '#f3f4f6', step: 7 },
+  CLOSED:      { label: 'Completed',      color: 'var(--ink2)', bg: '#f3f4f6', step: 7 },
 };
 const TOTAL_STEPS = 7;
 

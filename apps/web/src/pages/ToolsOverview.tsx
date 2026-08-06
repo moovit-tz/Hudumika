@@ -343,7 +343,7 @@ export const ToolsOverview: React.FC = () => {
         {/* Settings */}
         <ModuleSummaryCard
           icon="settings" title="Settings"
-          color="#64748b" bg="rgba(100,116,139,0.05)"
+          color="var(--ink2)" bg="rgba(100,116,139,0.05)"
           to="/settings"
         >
           <div style={{ flex: 1 }}>

@@ -208,15 +208,15 @@ export function SealZoneHeatGrid() {
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 10px', fontSize: 11.5 }}>
-                          <div style={{ color: '#94a3b8' }}>Occupancy:</div>
+                          <div style={{ color: 'var(--ink3)' }}>Occupancy:</div>
                           <div style={{ color: '#f8fafc', fontWeight: 700, textAlign: 'right' }}>
-                            {loc.occupancyPct}% <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 400 }}>({loc.lotCount}/{loc.capacityUnits})</span>
+                            {loc.occupancyPct}% <span style={{ fontSize: 10, color: 'var(--ink3)', fontWeight: 400 }}>({loc.lotCount}/{loc.capacityUnits})</span>
                           </div>
                         </div>
 
                         {loc.lots.length > 0 && (
                           <div style={{ marginTop: 8, paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.08)', fontSize: 11 }}>
-                            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#94a3b8', marginBottom: 4, fontWeight: 700 }}>
+                            <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--ink3)', marginBottom: 4, fontWeight: 700 }}>
                               Stored Lots ({loc.lots.length})
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -226,7 +226,7 @@ export function SealZoneHeatGrid() {
                                 </div>
                               ))}
                               {loc.lots.length > 2 && (
-                                <div style={{ color: '#94a3b8', fontSize: 10, fontStyle: 'italic' }}>
+                                <div style={{ color: 'var(--ink3)', fontSize: 10, fontStyle: 'italic' }}>
                                   +{loc.lots.length - 2} more items…
                                 </div>
                               )}

@@ -122,12 +122,12 @@ const SERVICE_GROUPS: { label: string; items: ServiceItem[] }[] = [
 // -- Constants -----------------------------------------------------------------
 
 const STATUS_CFG: Record<StatusKey, { bg: string; color: string; label: string }> = {
-  DRAFT:     { bg: 'rgba(100,116,139,0.1)', color: '#64748b',        label: 'Draft'     },
+  DRAFT:     { bg: 'rgba(100,116,139,0.1)', color: 'var(--ink2)',        label: 'Draft'     },
   PENDING:   { bg: 'rgba(245,158,11,0.12)', color: 'var(--gold)',    label: 'Pending'   },
   APPROVED:  { bg: 'rgba(16,185,129,0.12)', color: 'var(--green)',   label: 'Approved'  },
   REJECTED:  { bg: 'rgba(239,68,68,0.1)',   color: 'var(--red)',     label: 'Rejected'  },
   CONVERTED: { bg: 'rgba(59,130,246,0.12)', color: 'var(--blue)',    label: 'Converted' },
-  EXPIRED:   { bg: 'rgba(107,114,128,0.1)', color: '#6b7280',        label: 'Expired'   },
+  EXPIRED:   { bg: 'rgba(107,114,128,0.1)', color: 'var(--ink2)',        label: 'Expired'   },
 };
 
 const CATEGORIES = ['FREIGHT','CLEARANCE','HANDLING','TRANSPORT','DUTY','INSURANCE','OTHER'];
@@ -275,14 +275,14 @@ function printQuote(q: Quote) {
 
   const rowsHtml = lines.map((l,i)=>`
     <tr style="border-bottom:1px solid #e2e8f0">
-      <td style="padding:8px 10px;color:#94a3b8;font-size:12px">${i+1}</td>
+      <td style="padding:8px 10px;color:var(--ink3);font-size:12px">${i+1}</td>
       <td style="padding:8px 10px">
         <div style="font-weight:600;font-size:13px">${l.description}</div>
-        <div style="font-size:11px;color:#94a3b8;margin-top:2px">${CAT_LABEL[l.category]??l.category}</div>
+        <div style="font-size:11px;color:var(--ink3);margin-top:2px">${CAT_LABEL[l.category]??l.category}</div>
       </td>
       <td style="padding:8px 10px;text-align:right;font-size:13px">${l.quantity}</td>
       <td style="padding:8px 10px;text-align:right;font-size:13px">${fmt(l.unit_price,q.currency)}</td>
-      <td style="padding:8px 10px;text-align:right;font-size:12px;color:#94a3b8">${l.tax_rate}%</td>
+      <td style="padding:8px 10px;text-align:right;font-size:12px;color:var(--ink3)">${l.tax_rate}%</td>
       <td style="padding:8px 10px;text-align:right;font-size:13px;font-weight:700">${fmt(l.line_total,q.currency)}</td>
     </tr>`).join('');
 
@@ -303,7 +303,7 @@ function printQuote(q: Quote) {
     .box-val{font-size:14px;font-weight:700;color:#1e293b;margin-bottom:6px}
     .box-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;color:#475569}
     .box-row span:last-child{font-weight:600;color:#1e293b}
-    .route{display:flex;align-items:center;gap:12px;background:var(--green-l);border:1px solid #a7f3d0;border-radius:10px;padding:16px;margin-bottom:32px}
+    .route{display:flex;align-items:center;gap:12px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:16px;margin-bottom:32px}
     .route-port{flex:1} .route-lbl{font-size:10px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
     .route-val{font-size:15px;font-weight:800;color:#064e3b}
     .route-arrow{font-size:20px;color:#059669;font-weight:700}
@@ -313,7 +313,7 @@ function printQuote(q: Quote) {
     .totals-wrap{display:flex;justify-content:flex-end;margin-bottom:32px}
     .totals{width:260px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}
     .trow{display:flex;justify-content:space-between;padding:9px 14px;font-size:13px;border-bottom:1px solid #e2e8f0}
-    .trow:last-child{border:none;background:var(--green-l);font-weight:800;font-size:15px;color:#059669}
+    .trow:last-child{border:none;background:#ecfdf5;font-weight:800;font-size:15px;color:#059669}
     .trow span:last-child{font-weight:600}
     .section{margin-bottom:24px}
     .section h4{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e2e8f0}
@@ -335,7 +335,7 @@ function printQuote(q: Quote) {
     <div class="box">
       <div class="box-lbl">Bill To</div>
       <div class="box-val">${q.customer_name}</div>
-      ${q.customer_company?`<div style="font-size:12px;color:#64748b;margin-bottom:8px">${q.customer_company}</div>`:''}
+      ${q.customer_company?`<div style="font-size:12px;color:var(--ink2);margin-bottom:8px">${q.customer_company}</div>`:''}
       ${q.customer_email?`<div class="box-row"><span>Email</span><span>${q.customer_email}</span></div>`:''}
       ${q.customer_phone?`<div class="box-row"><span>Phone</span><span>${q.customer_phone}</span></div>`:''}
     </div>
@@ -358,7 +358,7 @@ function printQuote(q: Quote) {
   </table>
   <div class="totals-wrap"><div class="totals">
     <div class="trow"><span>Subtotal</span><span>${fmt(q.subtotal,q.currency)}</span></div>
-    <div class="trow"><span style="color:#94a3b8">Tax</span><span style="color:#94a3b8">${fmt(q.tax_amount,q.currency)}</span></div>
+    <div class="trow"><span style="color:var(--ink3)">Tax</span><span style="color:var(--ink3)">${fmt(q.tax_amount,q.currency)}</span></div>
     <div class="trow"><span>Total</span><span>${fmt(q.total_amount,q.currency)}</span></div>
   </div></div>
   ${q.notes?`<div class="section"><h4>Notes</h4><p>${q.notes}</p></div>`:''}
