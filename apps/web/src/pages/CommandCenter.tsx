@@ -12,12 +12,17 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
+import { AiExtractedCard } from '../components/AiExtractedCard.js';
 import { showAlert } from '../lib/alert.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
 import type { ShipmentCase, ShipmentType, Workflow } from '@hudumika/types';
 import { CLEARANCE_STAGES, STAGE_LABELS } from '@hudumika/types';
 import type { ClearanceStage } from '@hudumika/types';
 import { Icon } from '../components/Icon.js';
+import {
+  DECLARATION_STATUSES, LANES, LANE, STATUS_VARIANT, declMoney,
+} from '../lib/declarationMeta.js';
 
 /* ── @ Mention Officer Picker ─────────────────────────────────────────────── */
 function OfficerMentionInput({
@@ -441,9 +446,48 @@ export const CommandCenter: React.FC = () => {
   }, []);
   const activeWorkflow = selectedWorkflowId === 'legacy' ? null : (workflows.find(w => w.id === selectedWorkflowId) ?? null);
 
-  const { groupedShipments, kpis, loading, refresh } = useShipments(
-    showOnlyMyCases ? { assigned_to: user?.id } : {}
-  );
+  /**
+   * Declaration filters, folded in from /clearos/declarations.
+   *
+   * Every one of these is resolved by the API, which is what that page did and
+   * Ops did not — Ops filtered whatever it had already loaded. `__all__` is the
+   * Radix sentinel (SelectItem cannot take an empty-string value) and is
+   * translated to "no filter" here rather than sent.
+   */
+  const [declStatus, setDeclStatus] = useState(() => urlParams.get('declaration_status') || '__all__');
+  const [lane, setLane] = useState(() => urlParams.get('lane') || '__all__');
+  // `?declared=1` is what /clearos/declarations redirects to, so an old
+  // bookmark lands on the lodged shipments rather than on everything.
+  const [declPresence, setDeclPresence] = useState(() =>
+    urlParams.get('declared') === '1' ? 'yes'
+      : urlParams.get('declared') === '0' ? 'no'
+      : '__all__');   // __all__ | yes | no
+
+  /**
+   * The existing FilterBar search is promoted to the server rather than a
+   * second box being added. It used to filter the loaded array on ref, goods
+   * and BL only; the API now also matches AWB, the TANCIS ref, the TANSAD
+   * number and the importer name — the identifiers /clearos/declarations
+   * searched, and the ones a customs officer actually has to hand.
+   *
+   * Debounced, because it is a request per change now rather than a filter.
+   */
+  const [serverSearch, setServerSearch] = useState('');
+  useEffect(() => {
+    const t = setTimeout(() => setServerSearch(searchQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
+
+  const declFiltersActive = declStatus !== '__all__' || lane !== '__all__'
+    || declPresence !== '__all__';
+
+  const { groupedShipments, kpis, loading, refresh } = useShipments({
+    ...(showOnlyMyCases ? { assigned_to: user?.id } : {}),
+    ...(declStatus !== '__all__' ? { declaration_status: declStatus } : {}),
+    ...(lane !== '__all__' ? { selectivity_channel: lane } : {}),
+    ...(declPresence !== '__all__' ? { has_declaration: declPresence === 'yes' } : {}),
+    ...(serverSearch ? { search: serverSearch } : {}),
+  });
 
   const [opsSummary, setOpsSummary] = useState<{ checked_in: number; active_shipments: number; pending_tasks: number } | null>(null);
 
@@ -460,12 +504,9 @@ export const CommandCenter: React.FC = () => {
   const filteredGroupedShipments = groupedShipments
     .map(group => {
       let ships = group.shipments.filter((s: ShipmentCase) => {
-        if (searchQuery) {
-          const q = searchQuery.toLowerCase();
-          if (!s.ref_number.toLowerCase().includes(q) &&
-              !s.goods_desc.toLowerCase().includes(q) &&
-              !(s.bl_number?.toLowerCase().includes(q))) return false;
-        }
+        // No search test here — the API resolves it now, over a wider set of
+        // fields than this could see (AWB, TANCIS ref, TANSAD number, importer
+        // name). Re-filtering the response would only be able to narrow it.
         if (selectedType !== 'ALL' && s.type !== selectedType) return false;
         if (selectedRiskOnly && (!s.active_risk_types || s.active_risk_types.length === 0)) return false;
         if (selectedMetric === 'demurrage' && !s.active_risk_types?.includes('DEMURRAGE')) return false;
@@ -505,6 +546,41 @@ export const CommandCenter: React.FC = () => {
 
   const canCreate = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER'].includes(user?.role || '');
   const isJunior  = user?.role === 'JUNIOR' || user?.role === 'OFFICER';
+
+  // AI Document Scan Dialog State
+  const [aiScanOpen, setAiScanOpen] = useState(false);
+  const [aiScanning, setAiScanning] = useState(false);
+  const [aiFile, setAiFile] = useState<File | null>(null);
+  const [aiPreview, setAiPreview] = useState<string | null>(null);
+  const [aiResult, setAiResult] = useState<any | null>(null);
+  const [aiSimulated, setAiSimulated] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
+  const handleAiScanFile = async (file: File) => {
+    setAiFile(file);
+    setAiScanning(true);
+    setAiError(null);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target?.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      setAiPreview(dataUrl);
+      const image_base64 = dataUrl.split(',')[1];
+      const res = await apiFetch('/v1/ocr/scan', {
+        method: 'POST',
+        body: JSON.stringify({ image_base64, media_type: file.type }),
+      });
+      setAiResult(res.result);
+      setAiSimulated(!!res.simulated);
+    } catch (err: any) {
+      setAiError(err?.message || 'Document scan failed.');
+    } finally {
+      setAiScanning(false);
+    }
+  };
 
   // KPI cells config — values show an em-dash while the underlying
   // useShipments() fetch is in flight, instead of flashing "0" for a beat.
@@ -612,6 +688,53 @@ export const CommandCenter: React.FC = () => {
             <div className="cc-page-header-scroll">
               {!isMobile && <span className="cc-date-chip">{todayLabel}</span>}
 
+              {/* ── Declaration filters (from /clearos/declarations) ──
+                  Server-side: each change refetches rather than narrowing a
+                  loaded array. The search that feeds them is FilterBar's
+                  existing one, promoted to the API — not a second box. */}
+              <Select value={declPresence} onValueChange={setDeclPresence}>
+                <SelectTrigger style={{ height: 32, fontSize: 12.5, minWidth: 132, width: 'auto' }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Any declaration</SelectItem>
+                  {/* The gap list: what has not been lodged yet. */}
+                  <SelectItem value="no">Not declared</SelectItem>
+                  <SelectItem value="yes">Declared</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={declStatus} onValueChange={setDeclStatus}>
+                <SelectTrigger style={{ height: 32, fontSize: 12.5, minWidth: 128, width: 'auto' }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All statuses</SelectItem>
+                  {DECLARATION_STATUSES.map(s => (
+                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={lane} onValueChange={setLane}>
+                <SelectTrigger style={{ height: 32, fontSize: 12.5, minWidth: 112, width: 'auto' }}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">Any lane</SelectItem>
+                  {LANES.map(l => (
+                    <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {declFiltersActive && (
+                <Button size="sm" variant="ghost" className="h-8 text-xs"
+                  onClick={() => { setDeclStatus('__all__'); setLane('__all__'); setDeclPresence('__all__'); }}>
+                  Clear
+                </Button>
+              )}
+
               {/* List / Board toggle */}
               <div className="cc-view-toggle">
                 {(['list', 'board'] as const).map(m => (
@@ -649,6 +772,10 @@ export const CommandCenter: React.FC = () => {
 
             {/* Primary actions — always fully visible, never scrolled/clipped. */}
             <div className="cc-page-header-actions">
+              <Button size="sm" variant="outline" className="gap-1.5 border-[var(--teal)] text-[var(--teal)] hover:bg-[var(--teal-l)]" onClick={() => setAiScanOpen(true)}>
+                <Icon name="sparkle" size={13} color="var(--teal)" />
+                AI Scan
+              </Button>
               {canCreate && (
                 <Button size="sm" style={{ background: 'var(--teal)', color: '#fff' }} onClick={() => navigate('/clearos/ops/new')}>
                   <Icon name="plus" size={13} color="currentColor" />
@@ -785,6 +912,69 @@ export const CommandCenter: React.FC = () => {
         )}
       </div>
 
+      {/* AI Document Scan Dialog Modal */}
+      <Dialog open={aiScanOpen} onOpenChange={open => { setAiScanOpen(open); if (!open) { setAiFile(null); setAiPreview(null); setAiResult(null); setAiError(null); } }}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-[var(--ink)]">
+              <Icon name="sparkle" size={18} color="var(--teal)" />
+              AI Document Scanner &amp; OCR
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-2 space-y-4">
+            {aiError && (
+              <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs flex justify-between items-center">
+                <span>{aiError}</span>
+                <button type="button" onClick={() => setAiError(null)} className="font-bold">×</button>
+              </div>
+            )}
+
+            {!aiFile && !aiScanning && (
+              <div
+                className="border-2 border-dashed border-border hover:border-[var(--teal)] rounded-xl p-10 text-center bg-muted/20 hover:bg-[var(--teal-l)]/20 cursor-pointer transition-colors"
+                onClick={() => {
+                  const inp = document.createElement('input');
+                  inp.type = 'file';
+                  inp.accept = 'image/*,.pdf';
+                  inp.onchange = (ev: any) => { const f = ev.target.files?.[0]; if (f) void handleAiScanFile(f); };
+                  inp.click();
+                }}
+              >
+                <Icon name="fileText" size={42} className="mx-auto mb-3 text-[var(--ink3)]" />
+                <div className="font-bold text-sm text-[var(--ink)] mb-1">
+                  Upload Payment Receipt, Invoice, B/L, or TANSAD
+                </div>
+                <p className="text-xs text-[var(--ink3)]">
+                  Supports CRDB / NMB Mobile Payment receipts, Bills of Lading, Commercial Invoices, Air Waybills, and TANSAD declarations (PNG, JPG, WEBP, PDF)
+                </p>
+              </div>
+            )}
+
+            {aiScanning && (
+              <div className="text-center py-10 space-y-3">
+                <div className="w-10 h-10 border-3 border-[var(--teal-l)] border-t-[var(--teal)] rounded-full animate-spin mx-auto" />
+                <div className="font-bold text-sm text-[var(--ink)]">Analyzing document with AI…</div>
+                <p className="text-xs text-[var(--ink3)]">Extracting structured transaction fields and line data.</p>
+              </div>
+            )}
+
+            {aiResult && !aiScanning && (
+              <AiExtractedCard
+                ocrResult={aiResult}
+                previewUrl={aiPreview}
+                simulated={aiSimulated}
+                onRescan={() => { setAiFile(null); setAiPreview(null); setAiResult(null); }}
+                onApply={() => {
+                  setAiScanOpen(false);
+                  navigate('/clearos/ops/new');
+                }}
+                applyLabel="Create Shipment from Scan"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
     </div>
   );

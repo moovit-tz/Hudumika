@@ -3,7 +3,18 @@ import { apiFetch } from '../lib/api.js';
 import { useWebSocket } from './useWebSocket.js';
 import type { CustomerShipmentGroup, ShipmentCase, KPIResponse } from '@hudumika/types';
 
-export function useShipments(filters: { assigned_to?: string; stage?: string; workflow_id?: string } = {}) {
+/**
+ * `declaration_status`, `selectivity_channel`, `has_declaration` and `search`
+ * are resolved by the API, not in the browser — they came over from
+ * /clearos/declarations, which pushed them to the server, and Ops replaces
+ * that page. Filtering a loaded array instead would have quietly stopped
+ * working once a tenant passes a few hundred shipments.
+ */
+export function useShipments(filters: {
+  assigned_to?: string; stage?: string; workflow_id?: string;
+  declaration_status?: string; selectivity_channel?: string;
+  has_declaration?: boolean; search?: string;
+} = {}) {
   const [groupedShipments, setGroupedShipments] = useState<CustomerShipmentGroup[]>([]);
   const [kpis, setKpis] = useState<KPIResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -15,6 +26,10 @@ export function useShipments(filters: { assigned_to?: string; stage?: string; wo
       if (filters.assigned_to) params.append('assigned_to', filters.assigned_to);
       if (filters.stage) params.append('stage', filters.stage);
       if (filters.workflow_id) params.append('workflow_id', filters.workflow_id);
+      if (filters.declaration_status) params.append('declaration_status', filters.declaration_status);
+      if (filters.selectivity_channel) params.append('selectivity_channel', filters.selectivity_channel);
+      if (filters.has_declaration !== undefined) params.append('has_declaration', String(filters.has_declaration));
+      if (filters.search) params.append('search', filters.search);
 
       const queryString = params.toString() ? `?${params.toString()}` : '';
       const response = await apiFetch(`/v1/shipments/grouped${queryString}`);
@@ -24,7 +39,9 @@ export function useShipments(filters: { assigned_to?: string; stage?: string; wo
       console.error('Error fetching grouped shipments:', err);
       setError(err.message || 'Failed to load shipments');
     }
-  }, [filters.assigned_to, filters.stage, filters.workflow_id]);
+  }, [filters.assigned_to, filters.stage, filters.workflow_id,
+      filters.declaration_status, filters.selectivity_channel,
+      filters.has_declaration, filters.search]);
 
   const fetchKPIs = useCallback(async () => {
     try {

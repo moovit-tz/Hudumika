@@ -28,7 +28,6 @@ import { CarriersPage }     from '../pages/CarriersPage.js';
 import { FreightRateCardsPage } from '../pages/FreightRateCardsPage.js';
 import { FreightBookingsPage } from '../pages/FreightBookingsPage.js';
 import { CreateFreightBookingPage } from '../pages/CreateFreightBookingPage.js';
-import { ClearOSDeclarations } from '../pages/ClearOSDeclarations.js';
 import { ProductsServices } from '../pages/ProductsServices.js';
 import { RateCardPage } from '../pages/RateCardPage.js';
 
@@ -66,7 +65,6 @@ const NAV: SidebarSection[] = [
     title: 'OPERATIONS',
     items: [
       { label: 'Ops Command',   icon: 'monitor',    path: '/clearos/ops' },
-      { label: 'Declarations',  icon: 'fileText',   path: '/clearos/declarations' },
       { label: 'Landed Cost',   icon: 'package',    path: '/clearos/customs-tools', exact: true, children: [
         { label: 'Calculator', icon: 'calculator', path: '/clearos/customs-tools', exact: true },
         { label: 'History',    icon: 'clock',      path: '/clearos/customs-tools/history' },
@@ -130,7 +128,13 @@ export function ClearOSShell() {
                 <Route path="clearance/:id/edit" element={<RequireRoles roles={OPS_ROLES}><ShipmentEdit /></RequireRoles>} />
                 <Route path="tracker"         element={<Navigate to="/cargotracker/track" replace />} />
                 <Route path="demurrage"       element={<Navigate to="/cargotracker/demurrage" replace />} />
-                <Route path="declarations"    element={<RequireRoles roles={[...OPS_ROLES, 'FINANCE']}><ClearOSDeclarations /></RequireRoles>} />
+                {/* Declarations is folded into Ops Command. Everything that
+                    screen did is there now — the filing status and TRA lane on
+                    each row, status/lane/"not declared" filters resolved by the
+                    API rather than in the browser, and the declared value and
+                    item count. A bookmark keeps working; it lands on the list
+                    scoped to shipments that have been lodged. */}
+                <Route path="declarations"    element={<Navigate to="/clearos/ops?declared=1" replace />} />
                 {/* These two paths used to serve SEAL ex-warehouse entries, so a
                     bookmarked :id is a seal_customs_entries id — it belongs in
                     SEAL, not on a TANSAD screen that would 404 on it. */}

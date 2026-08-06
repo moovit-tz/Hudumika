@@ -149,6 +149,14 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     if (query.workflow_id === 'legacy') filters.workflow_id = null;
     else if (query.workflow_id) filters.workflow_id = query.workflow_id;
 
+    // Declaration filters, carried over from /clearos/declarations so Ops can
+    // replace it. All resolved in SQL — see listGroupedByCustomer.
+    if (query.declaration_status) filters.declaration_status = query.declaration_status;
+    if (query.selectivity_channel) filters.selectivity_channel = query.selectivity_channel;
+    if (query.has_declaration === 'true') filters.has_declaration = true;
+    else if (query.has_declaration === 'false') filters.has_declaration = false;
+    if (query.search) filters.search = String(query.search).trim();
+
     const groupedData = await ShipmentService.listGroupedByCustomer(user.tenant_id, filters);
     return { data: groupedData };
   });

@@ -181,7 +181,12 @@ export class ShipmentService {
   /**
    * Fetch all shipments grouped by customer for the command center
    */
-  static async listGroupedByCustomer(tenantId: string, filters: { assigned_to?: string; stage?: string; customer_id?: string; workflow_id?: string | null }) {
+  static async listGroupedByCustomer(tenantId: string, filters: {
+    assigned_to?: string; stage?: string; customer_id?: string; workflow_id?: string | null;
+    /** Folded in from /clearos/declarations, which is being removed. */
+    declaration_status?: string; selectivity_channel?: string;
+    has_declaration?: boolean; search?: string;
+  }) {
     return withTenant(tenantId, async (trx) => {
       // Explicit tenant filter on every query below — RLS doesn't protect
       // these tables (the DB connection role owns them and bypasses RLS
@@ -216,6 +221,71 @@ export class ShipmentService {
           ? shipmentsQuery.where('workflow_id', 'is', null)
           : shipmentsQuery.where('workflow_id', '=', filters.workflow_id);
       }
+
+      /**
+       * Declaration filters, applied in SQL rather than in the browser.
+       *
+       * These carry over from /clearos/declarations, which is being folded
+       * into Ops. That page pushed status/lane/search to the API; Ops filtered
+       * whatever it had already loaded, which stops working at a few hundred
+       * shipments. Doing it here keeps the behaviour the declarations page had.
+       *
+       * A shipment has zero or one declaration, so these are EXISTS subqueries
+       * rather than a join — a join would be fine today but would silently
+       * duplicate rows the day a shipment can be re-lodged.
+       */
+      if (filters.declaration_status) {
+        shipmentsQuery = shipmentsQuery.where((eb) => eb.exists(
+          eb.selectFrom('declarations').select('id')
+            .whereRef('declarations.shipment_id', '=', 'shipment_cases.id')
+            .where('declarations.tenant_id', '=', tenantId)
+            .where('declarations.status', '=', filters.declaration_status as any)
+        ));
+      }
+      if (filters.selectivity_channel) {
+        shipmentsQuery = shipmentsQuery.where((eb) => eb.exists(
+          eb.selectFrom('declarations').select('id')
+            .whereRef('declarations.shipment_id', '=', 'shipment_cases.id')
+            .where('declarations.tenant_id', '=', tenantId)
+            .where('declarations.selectivity_channel', '=', filters.selectivity_channel as any)
+        ));
+      }
+      if (filters.has_declaration !== undefined) {
+        // The gap list: shipments not lodged yet. /clearos/declarations built
+        // this client-side by loading 500 shipments and subtracting the ones
+        // with a declaration_id; as a NOT EXISTS it is correct at any size.
+        const exists = (eb: any) => eb.exists(
+          eb.selectFrom('declarations').select('id')
+            .whereRef('declarations.shipment_id', '=', 'shipment_cases.id')
+            .where('declarations.tenant_id', '=', tenantId)
+        );
+        shipmentsQuery = filters.has_declaration
+          ? shipmentsQuery.where((eb) => exists(eb))
+          : shipmentsQuery.where((eb) => eb.not(exists(eb)));
+      }
+      if (filters.search) {
+        // Ops searched ref/goods/BL/AWB. The declarations page also searched
+        // the TANCIS ref, the TANSAD number and the importer name, and those
+        // are the identifiers a customs officer actually has to hand.
+        const term = `%${filters.search}%`;
+        shipmentsQuery = shipmentsQuery.where((eb) => eb.or([
+          eb('ref_number', 'ilike', term),
+          eb('goods_desc', 'ilike', term),
+          eb('bl_number', 'ilike', term),
+          eb('awb_number', 'ilike', term),
+          eb.exists(
+            eb.selectFrom('declarations').select('id')
+              .whereRef('declarations.shipment_id', '=', 'shipment_cases.id')
+              .where('declarations.tenant_id', '=', tenantId)
+              .where((d: any) => d.or([
+                d('declarations.tancis_ref', 'ilike', term),
+                d('declarations.tansad_number', 'ilike', term),
+                d('declarations.importer_name', 'ilike', term),
+              ]))
+          ),
+        ]));
+      }
+
       const shipments = await shipmentsQuery.execute();
 
       // Batch-resolve officer names from users table
@@ -261,6 +331,25 @@ export class ShipmentService {
       // workflow (ProgressSegments/DetailPanel can't index into the fixed
       // CLEARANCE_STAGES array for these, since `stage` is a step UUID) and
       // generalizes the "is this shipment done/terminal" check below.
+      /**
+       * The declaration facts Ops now shows in place of /clearos/declarations:
+       * the TANCIS ref, the filing status, the TRA selectivity lane, the item
+       * count and the declared customs value. One batched query, not N+1.
+       *
+       * Only the columns the list needs — the full declaration stays behind
+       * GET /v1/declarations/:id for the detail view.
+       */
+      const declRows = shipmentIds.length > 0
+        ? await trx.selectFrom('declarations')
+            .select(['id', 'shipment_id', 'tancis_ref', 'tansad_number', 'status',
+                     'selectivity_channel', 'no_of_items', 'total_customs_value',
+                     'importer_name', 'declared_at'])
+            .where('tenant_id', '=', tenantId)
+            .where('shipment_id', 'in', shipmentIds)
+            .execute()
+        : [];
+      const declByShipment = new Map(declRows.map((d) => [d.shipment_id, d]));
+
       const workflowIds = [...new Set(shipments.map((s) => s.workflow_id).filter(Boolean))] as string[];
       const stepRows = workflowIds.length > 0
         ? await trx.selectFrom('workflow_steps')
@@ -280,8 +369,24 @@ export class ShipmentService {
         const mappedShipments = custShipments.map((s) => {
           const sFlags = riskFlags.filter((f) => f.shipment_id === s.id);
           const customStep = s.workflow_step_id ? stepInfoById.get(s.workflow_step_id) : undefined;
+          const decl = declByShipment.get(s.id);
           return {
             ...s,
+            // null when nothing has been lodged — that absence is itself the
+            // "not declared yet" state Ops surfaces.
+            declaration: decl
+              ? {
+                  id: decl.id,
+                  tancis_ref: decl.tancis_ref,
+                  tansad_number: decl.tansad_number,
+                  status: decl.status,
+                  selectivity_channel: decl.selectivity_channel,
+                  no_of_items: decl.no_of_items,
+                  total_customs_value: decl.total_customs_value,
+                  importer_name: decl.importer_name,
+                  declared_at: decl.declared_at,
+                }
+              : null,
             assigned_officer_name: s.assigned_to ? (officerNameMap.get(s.assigned_to) ?? null) : null,
             containers: (typeof s.containers === 'string' ? JSON.parse(s.containers) : s.containers) as Container[],
             risk_flags: sFlags,

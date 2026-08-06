@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import type { ShipmentCase } from '@hudumika/types';
 import { StatusPill, ProgressSegments } from '@hudumika/ui';
 import { Icon } from './Icon.js';
+import { Badge } from './ui/badge.js';
+import { LANE, STATUS_VARIANT, declMoney } from '../lib/declarationMeta.js';
 
 interface ShipmentRowProps {
   shipment: ShipmentCase;
@@ -28,6 +30,15 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
 
   // Determine if late
   const isLate = shipment.active_risk_types && shipment.active_risk_types.length > 0;
+
+  // Attached by ShipmentService.listGroupedByCustomer; null when nothing has
+  // been lodged for this shipment yet.
+  const decl = (shipment as any).declaration as {
+    tancis_ref: string | null; tansad_number: string | null; status: string;
+    selectivity_channel: string | null; no_of_items: number | null;
+    total_customs_value: string | number | null;
+  } | null | undefined;
+  const laneMeta = decl?.selectivity_channel ? LANE[decl.selectivity_channel] : null;
 
   const getInitials = (name?: string) => {
     if (!name) return '??';
@@ -61,6 +72,38 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
       {/* Type */}
       <div className="sr-type" style={{ width: '80px', flexShrink: 0, fontFamily: 'var(--mono)', fontSize: '11px' }}>
         {shipment.type.replace('_', ' ')}
+      </div>
+
+      {/* Declaration — TANCIS ref, filing status, TRA lane, declared value and
+          item count. Carried over from /clearos/declarations, which this list
+          replaces. "Not declared" is a real state, not missing data, so it is
+          said plainly rather than left as an em-dash. */}
+      <div className="sr-decl" style={{ width: '196px', flexShrink: 0, paddingRight: 12, minWidth: 0 }}>
+        {decl ? (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+              <Badge variant={STATUS_VARIANT[decl.status] ?? 'gray'}>
+                {decl.status.charAt(0) + decl.status.slice(1).toLowerCase()}
+              </Badge>
+              {laneMeta && (
+                <span title={laneMeta.hint}>
+                  <Badge variant={laneMeta.variant}>{laneMeta.label}</Badge>
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 3, fontFamily: 'var(--mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {decl.tancis_ref || decl.tansad_number || '—'}
+              {decl.no_of_items ? ` · ${decl.no_of_items} item${decl.no_of_items === 1 ? '' : 's'}` : ''}
+            </div>
+            {Number(decl.total_customs_value ?? 0) > 0 && (
+              <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 1 }}>
+                {declMoney(decl.total_customs_value)}
+              </div>
+            )}
+          </>
+        ) : (
+          <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>Not declared</span>
+        )}
       </div>
 
       {/* Description */}
