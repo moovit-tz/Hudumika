@@ -19,7 +19,7 @@ export const TrackingDriverChat: React.FC = () => {
   const driver = drivers.find(d => d.id === driverId);
 
   return (
-    <div style={{ padding: 24, display: 'flex', gap: 20, height: 'calc(100vh - 140px)', boxSizing: 'border-box' }}>
+    <div style={{ padding: '0 0 24px', display: 'flex', gap: 20, height: 'calc(100vh - 140px)', boxSizing: 'border-box' }}>
       <PageHeader
         crumbs={['HuduFreight', 'Driver Chat']}
         titlePlain="Driver"

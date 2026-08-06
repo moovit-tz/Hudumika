@@ -123,7 +123,7 @@ export const TrackingReminders: React.FC = () => {
   const overdue = (date: string) => new Date(date).getTime() < Date.now();
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: '0 0 24px'}}>
       {showAdd && <AddReminderModal vehicles={vehicles} drivers={drivers} onClose={() => setShowAdd(false)} onAdded={reload} />}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>

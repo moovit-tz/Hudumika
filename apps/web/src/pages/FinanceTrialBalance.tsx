@@ -109,7 +109,7 @@ export const FinanceTrialBalance: React.FC = () => {
   if (error) return <div style={{ textAlign: 'center', color: '#ef4444' }}>{error}</div>;
 
   return (
-    <div style={{ padding: isMobile ? '14px 16px' : '28px 32px', maxWidth: 960 }}>
+    <div style={{ padding: '0 0 28px', maxWidth: 960 }}>
       {/* Header */}
       <div style={{ display:'flex', flexWrap:'wrap', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom: 24 }}>
         <div>

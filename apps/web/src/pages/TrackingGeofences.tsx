@@ -146,7 +146,7 @@ export const TrackingGeofences: React.FC = () => {
   const mapCenter: [number, number] = geofences.length ? [geofences[0].center_lat, geofences[0].center_lon] : DEFAULT_CENTER;
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: '0 0 24px'}}>
       {showAdd && <AddGeofenceModal onClose={() => setShowAdd(false)} onAdded={reload} />}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>

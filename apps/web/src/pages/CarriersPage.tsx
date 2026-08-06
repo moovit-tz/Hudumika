@@ -116,7 +116,7 @@ export function CarriersPage() {
   }
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 32px', flex: 1, overflowY: 'auto' }}>
+    <div style={{ padding: '0 0 24px', flex: 1, overflowY: 'auto' }}>
       <PageHeader
         crumbs={['CargoTracker', 'Carriers']}
         titlePlain="Carrier"

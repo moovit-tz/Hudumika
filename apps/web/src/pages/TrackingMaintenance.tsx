@@ -105,7 +105,7 @@ export const TrackingMaintenance: React.FC = () => {
   const selectedDue = selectedDate ? (dueByDate.get(selectedDate) ?? []) : [];
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: '0 0 24px'}}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <PageHeader

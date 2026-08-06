@@ -671,7 +671,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
   const {subtotal,tax,total} = calcTotals(f.lines);
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 32px', flex:1, overflowY:'auto' }}>
+    <div style={{ padding: '0 0 24px', flex:1, overflowY:'auto' }}>
       {/* Header */}
       <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:24, flexWrap:'wrap' }}>
         <button type="button" title="Back" onClick={onCancel} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink2)', display:'flex', padding:4 }}>
@@ -902,7 +902,7 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
       {showReject&&<RejectModal onConfirm={r=>{setShowReject(false);act('reject',()=>onStatusChange('REJECTED',r));}} onCancel={()=>setShowReject(false)}/>}
       {showSend&&<SendModal quote={quote} onSend={(e,m)=>{setShowSend(false);act('send',()=>onSend(e,m));}} onCancel={()=>setShowSend(false)}/>}
 
-      <div style={{ padding: isMobile ? '16px' : '24px 32px', flex:1, overflowY:'auto' }}>
+      <div style={{ padding: '0 0 24px', flex:1, overflowY:'auto' }}>
         <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:20 }}>
           <button type="button" title="Back" onClick={onBack} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--teal)', fontSize:13, fontWeight:600, display:'flex', alignItems:'center', gap:4, padding:0 }}>
             <Icon name="arrowLeft" size={14}/> Quotations
@@ -1196,7 +1196,7 @@ export const Quotations: React.FC = () => {
   if(view==='detail'&&selected) return <QuoteDetailView quote={selected} onBack={()=>{setView('list');setSelected(null);}} onEdit={()=>setView('edit')} onStatusChange={(s,r)=>handleStatusChange(selected.id,s,r)} onConvert={()=>handleConvert(selected.id)} onSend={(e,m)=>handleSend(selected.id,e,m)} onDelete={()=>handleDelete(selected.id)} onDuplicate={()=>handleDuplicate(selected.id)} isMobile={isMobile}/>;
 
   return (
-    <div style={{ padding: isMobile ? '16px' : '24px 32px', flex:1, overflowY:'auto' }}>
+    <div style={{ padding: '0 0 24px', flex:1, overflowY:'auto' }}>
       <PageHeader
         crumbs={['Finance', 'Quotations']}
         titlePlain="Sales"

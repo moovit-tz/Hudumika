@@ -212,29 +212,33 @@ export const TrackingVehicles: React.FC = () => {
 
   return (
     <div className="trk-dashboard" style={{ '--trk-brand': brandColor } as React.CSSProperties}>
-      {/* Header */}
-      <div className="trk-header">
-        <PageHeader
-            crumbs={['HuduFreight', 'Vehicles']}
-            titlePlain="Fleet"
-            titleEm="vehicles"
-          />
-        <div className="trk-actions">
-          <div className="trk-search-bar">
-            <Icon name="search" size={14} style={{color: 'var(--ink3)'}} />
-            <input placeholder="Search for Fleet ID.." value={search} onChange={e => setSearch(e.target.value)} />
+      {/* Header. The search/range/refresh controls go through PageHeader's own
+          `actions` slot rather than sitting beside it in a flex row: as a flex
+          child the header shrank to its own text, so the title block was 450px
+          wide on a 1680px window and its right edge fell 1186px short of the
+          page's. */}
+      <PageHeader
+        crumbs={['HuduFreight', 'Vehicles']}
+        titlePlain="Fleet"
+        titleEm="vehicles"
+        actions={
+          <div className="trk-actions">
+            <div className="trk-search-bar">
+              <Icon name="search" size={14} style={{color: 'var(--ink3)'}} />
+              <input placeholder="Search for Fleet ID.." value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
+            <Select defaultValue="30d">
+              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="30d">Last 30 days</SelectItem>
+                <SelectItem value="7d">Last 7 days</SelectItem>
+                <SelectItem value="today">Today</SelectItem>
+              </SelectContent>
+            </Select>
+            <button className="trk-icon-btn" title="Refresh" onClick={reload}><Icon name="refresh" size={16} /></button>
           </div>
-          <Select defaultValue="30d">
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="today">Today</SelectItem>
-            </SelectContent>
-          </Select>
-          <button className="trk-icon-btn" title="Refresh" onClick={reload}><Icon name="refresh" size={16} /></button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Performance Overview */}
       <div className="trk-section-header">

@@ -32,7 +32,7 @@ export function SealExWarehouseEntries() {
   }, [status]);
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: '0 0 24px'}}>
       <PageHeader
         crumbs={['ClearOS', 'Ops Command']}
         titlePlain="Ex-Warehouse"

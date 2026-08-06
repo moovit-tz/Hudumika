@@ -204,7 +204,7 @@ export const TrackingWarehouse: React.FC = () => {
   if (locked) return <UpgradeEmptyState feature="Warehouse" />;
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: '0 0 24px'}}>
       {showAddLocation && <AddLocationModal onClose={() => setShowAddLocation(false)} onAdded={reload} />}
       {showAddAppointment && <AddAppointmentModal vehicles={vehicles} onClose={() => setShowAddAppointment(false)} onAdded={reload} />}
 

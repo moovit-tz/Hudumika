@@ -133,7 +133,7 @@ export const TrackingShipmentNew: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: 24, maxWidth: 760 }}>
+    <div style={{ padding: '0 0 24px', maxWidth: 760 }}>
       <Link to="/tracking/vehicles" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
         <Icon name="arrowLeft" size={12} /> Vehicles
       </Link>

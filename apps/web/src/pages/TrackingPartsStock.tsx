@@ -102,7 +102,7 @@ export const TrackingPartsStock: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: '0 0 24px'}}>
       {showAdd && <AddPartModal vendors={vendors} onClose={() => setShowAdd(false)} onAdded={reload} />}
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>

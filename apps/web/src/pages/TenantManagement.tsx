@@ -47,7 +47,7 @@ export const TenantManagement: React.FC = () => {
   const filteredCompanies = companies.filter(c => c.name.toLowerCase().includes(filter.toLowerCase()));
 
   return (
-    <div style={{ padding: '24px 0',}}>
+    <div style={{ padding: '0 0 24px',}}>
       <PageHeader
         crumbs={['Admin', 'Tenants']}
         titlePlain="Tenant"

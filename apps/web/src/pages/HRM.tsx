@@ -382,7 +382,7 @@ export function EmployeesPage() {
   function statusBar(s: EmpStatus) { return s === 'ACTIVE' ? '#10b981' : s === 'ON_LEAVE' ? 'var(--gold)' : 'var(--ink3)'; }
 
   return (
-    <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex: 1, overflowY: 'auto' }}>
+    <div style={{ padding: '0 0 24px', flex: 1, overflowY: 'auto' }}>
       <PageHeader icon="users" title="Manage Staff" sub={`${employees.filter(e => e.status === 'ACTIVE').length} active — ${employees.length} total`} backTo="/nexushr">
         <PrimaryBtn label="Invite User" icon="userPlus" onClick={() => setShowOnboard(true)} />
       </PageHeader>
@@ -1627,7 +1627,7 @@ export function AttendancePage() {
   };
 
   return (
-    <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex:1, overflowY:'auto', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ padding: '0 0 24px', flex:1, overflowY:'auto', display: 'flex', flexDirection: 'column' }}>
       <PageHeader icon="clock" title="Staff Attendance" sub="Daily staff attendance and clock records" backTo="/nexushr">
         <button type="button" className="btn btn-secondary" onClick={() => { setBulkEmpIds([]); setShowBulk(true); }} style={{ display:'flex', alignItems:'center', gap:6 }}>
           <Icon name="tasks" size={14} /> Mark Attendance
@@ -2019,7 +2019,7 @@ export function ShiftsPage() {
   const getDayFormat = (d: Date) => d.toISOString().split('T')[0];
 
   return (
-    <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex:1, overflowY:'auto', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ padding: '0 0 24px', flex:1, overflowY:'auto', display: 'flex', flexDirection: 'column' }}>
       <PageHeader icon="timer" title="Shift Roster" sub="Manage employee shift schedules" backTo="/nexushr">
         <button type="button" className="btn btn-secondary" onClick={() => { setBulkEmpIds([]); setShowBulk(true); }} style={{ display:'flex', alignItems:'center', gap:6 }}>
           <Icon name="users" size={14} /> Assign Bulk Shifts

@@ -36,7 +36,7 @@ export const TrackingIssues: React.FC = () => {
   for (const s of ['OPEN', 'IN_PROGRESS', 'RESOLVED']) counts[s] = issues.filter(i => i.status === s).length;
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: '0 0 24px'}}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <PageHeader

@@ -1,5 +1,7 @@
 .sa-shell-content {
-  padding: 24px 0;
+  /* Top gutter comes from .app-shell-content + .page-layout, not a third
+     time here; only the trailing space is this shell's own. */
+  padding: 0 0 24px;
   /* Side gutter comes from .app-shell-content, not twice. */
   height: 100%;
   overflow-y: auto;
@@ -37,9 +39,14 @@
   color: var(--ink3);
 }
 
-/* ── Space before page headers across every admin page ── */
+/* ── Space before Admin's own legacy title blocks ──
+   .page-header is deliberately NOT in this list. It is the platform header,
+   and an admin-only `margin-top: 20px !important` on it is exactly what put
+   /admin/cms-pages and /admin/domains 20px lower than every other app's
+   page while their left gutters matched. The classes below are the private
+   title blocks Admin still has of its own; they keep their spacing until
+   they are migrated onto PageHeader. */
 .sa-shell-content .sa-page-hdr,
-.sa-shell-content .page-header,
 .sa-shell-content .sar-title,
 .sa-shell-content .qb-title,
 .sa-shell-content .ds-title,

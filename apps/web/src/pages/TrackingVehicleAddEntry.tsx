@@ -119,7 +119,7 @@ export const TrackingVehicleAddEntry: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: '0 0 24px'}}>
       <PageHeader
         crumbs={['HuduFreight', 'Add Entry']}
         titlePlain="Add an"

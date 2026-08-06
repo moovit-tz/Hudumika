@@ -84,7 +84,7 @@ export const TrackingDashboard: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: '0 0 24px'}}>
       <div style={{ marginBottom: 20 }}>
         <PageHeader
           crumbs={['HuduFreight', 'Dashboard']}

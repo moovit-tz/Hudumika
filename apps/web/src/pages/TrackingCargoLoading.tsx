@@ -362,7 +362,7 @@ export const TrackingCargoLoading: React.FC = () => {
   if (locked) return <UpgradeEmptyState feature="Cargo / CBM Loading Tool" />;
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: '0 0 24px'}}>
       {showAddManifest && <AddManifestModal onClose={() => setShowAddManifest(false)} onAdded={id => reloadManifests(id)} />}
       {showImportModal && manifest && <ImportShipmentModal manifestId={manifest.id} onClose={() => setShowImportModal(false)} onImported={() => { reloadItems(); reloadManifests(); }} />}
       {showDispatchModal && manifest && <DispatchModal manifestId={manifest.id} onClose={() => setShowDispatchModal(false)} onDispatched={() => reloadManifests()} />}

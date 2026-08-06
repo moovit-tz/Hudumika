@@ -82,7 +82,7 @@ export default function ComponentShowcase() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>();
 
   return (
-    <div style={{ padding: '0 24px 48px' }}>
+    <div style={{ padding: '0 0 48px' }}>
       <PageHeader
         crumbs={['Admin', 'Design System']}
         titlePlain="Component"

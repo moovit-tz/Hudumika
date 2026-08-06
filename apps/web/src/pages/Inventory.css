@@ -5,9 +5,10 @@
 
 .inv-page {
   width: 100%;
-  /* Vertical only — the side gutter belongs to .app-shell-content, and
-     this clamp was adding up to 48px more on top of it. */
-  padding: clamp(20px, 3vw, 36px) 0;
+  /* Trailing space only — the side gutter belongs to .app-shell-content and
+     the top one to .page-layout. This clamp was adding up to 36px more on
+     top of both, which put /inventory/items 36px below its neighbours. */
+  padding: 0 0 clamp(20px, 3vw, 36px);
   max-width: 1400px;
   margin: 0 auto;
   box-sizing: border-box;

@@ -166,6 +166,14 @@
   --border: #e1e4e8;
   --border2:#c9cdd4;
 
+  /* The vertical tree line down the left of a nav sub-group. Its own token
+     because neither --border nor --border2 is right in both themes: --border
+     is too faint on a dark sidebar, --border2 too heavy on a light one. Three
+     sidebars draw this line (.app-sb-children-group, .fnav-group-items,
+     .lnav-sub-group) and they must agree, so it is defined once here, once in
+     the dark block, and once on the semi-dark sidebar — never per rule. */
+  --nav-guide: rgba(0, 0, 0, 0.12);
+
   --teal:   #e8461a;
   --teal-l: #fef0ec;
   --teal-m: #fdd5c8;
@@ -294,6 +302,7 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
   --white:  #111218;
   --border: rgba(255,255,255,0.07);
   --border2:rgba(255,255,255,0.13);
+  --nav-guide: rgba(255, 255, 255, 0.14);
 
   --navy:          #d8e4f4;
   --navy2:         #b8ccdf;
@@ -1155,7 +1164,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  border-left: 1.5px solid var(--border);
+  border-left: 1.5px solid var(--nav-guide);
   overflow: hidden;
   max-height: 0;
   transition: max-height 0.26s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1166,17 +1175,12 @@ body {
   position: relative;
   margin-left: 21px;
   padding-left: 6px;
-  border-left: 1.5px solid var(--border, rgba(0, 0, 0, 0.12));
+  border-left: 1.5px solid var(--nav-guide);
   display: flex;
   flex-direction: column;
   gap: 2px;
   margin-top: 2px;
   margin-bottom: 6px;
-}
-
-[data-theme="dark"] .fnav-group-items,
-[data-semi-dark="true"] .fnav-group-items {
-  border-left-color: rgba(255, 255, 255, 0.14);
 }
 
 .fnav-subitem {
@@ -3899,7 +3903,13 @@ select.input-field { cursor: pointer; }
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
-  padding: 0 20px 0;
+  /* Top matches the sides. The brief was "the same padding from left and
+     top": .app-shell-content contributes --page-pad-* equally on both axes,
+     but this card only padded its sides, so content sat 37px from the left
+     and 17px from the top of the same box. Keeping the two in step here is
+     what makes the two distances equal on every page at every breakpoint —
+     bottom stays 0 because pages own their own trailing space. */
+  padding: 20px 20px 0;
   box-sizing: border-box;
   background: var(--white);
   border: 1px solid var(--border);
@@ -3919,13 +3929,13 @@ html:not([data-theme="dark"]) .page-layout {
   overflow-x: hidden;
 }
 @media (max-width: 1100px) {
-  .page-layout { padding: 0 20px 0; }
+  .page-layout { padding: 20px 20px 0; }
 }
 @media (max-width: 768px) {
-  .page-layout { padding: 0 16px 0; }
+  .page-layout { padding: 16px 16px 0; }
 }
 @media (max-width: 480px) {
-  .page-layout { padding: 0 12px 0; }
+  .page-layout { padding: 12px 12px 0; }
 }
 
 /* ShipmentDetail's cover/hero band bleeds out of .page-layout's own
@@ -3938,12 +3948,15 @@ html:not([data-theme="dark"]) .page-layout {
 .shipdetail-cover-bleed {
   margin-left: -20px;
   margin-right: -20px;
+  /* Also cancels .page-layout's top padding, so the cover still starts flush
+     against the card's top edge rather than floating 20px below it. */
+  margin-top: -20px;
 }
 @media (max-width: 768px) {
-  .shipdetail-cover-bleed { margin-left: -16px; margin-right: -16px; }
+  .shipdetail-cover-bleed { margin-left: -16px; margin-right: -16px; margin-top: -16px; }
 }
 @media (max-width: 480px) {
-  .shipdetail-cover-bleed { margin-left: -12px; margin-right: -12px; }
+  .shipdetail-cover-bleed { margin-left: -12px; margin-right: -12px; margin-top: -12px; }
 }
 
 /* ── Page footer ── */
@@ -4051,12 +4064,16 @@ html:not([data-theme="dark"]) .page-layout {
   font-family: var(--font);
 }
 
+/* The header gets tighter on a narrow screen, not looser. These steps read
+   26px/22px against a desktop base of 8px — three times the space on the
+   screen with the least of it, which on mobile pushed the title well below
+   the gutter every other page starts at. */
 @media (max-width: 768px) {
-  .page-header { padding: 26px 0 22px; margin-bottom: 24px; }
+  .page-header { padding: 6px 0 8px; margin-bottom: 10px; }
   .page-header-sub { font-size: 13px; }
 }
 @media (max-width: 480px) {
-  .page-header { padding: 22px 0 18px; }
+  .page-header { padding: 4px 0 6px; margin-bottom: 8px; }
 }
 
 /* ── Responsive tables ── */
@@ -6352,13 +6369,25 @@ html[data-expanded="true"] .fin-shell {
    .app-shell-content owns the page margin (--page-pad-*), and .page-layout
    adds its own 20px inside that. Anything further is a third helping: it is
    what left /seal/equipment at 101px from the shell edge while /crm/leads sat
-   at 53px, on pages that are supposed to look identical. Vertical padding is
-   left alone — that is the page's own rhythm, not the left margin. */
+   at 53px, on pages that are supposed to look identical.
+
+   padding-top is zeroed for the same reason. It was originally left alone as
+   "the page's own rhythm", but these wrappers carried 24px (.lch-page,
+   .trk-dashboard) or 36px (.seal-page, .comply-page) while most pages carried
+   none, so the first thing on the page started 17px, 41px or 53px below the
+   card depending only on which app you were in. Bottom padding is untouched —
+   that is trailing space, not a gutter, and nothing has to line up with it.
+
+   .trk-dashboard, not .trk-page: HuduFreight's wrapper is .trk-dashboard
+   (TrackingVehicles.css:1). No element in the app has ever had class
+   .trk-page — only .trk-page-btn — so the old selector matched nothing and
+   tracking pages kept both gutters. */
 .app-shell-content .lch-page,
 .app-shell-content .seal-page,
-.app-shell-content .trk-page,
+.app-shell-content .trk-dashboard,
 .app-shell-content .comply-page,
 .app-shell-content .fin-page {
   padding-left: 0;
   padding-right: 0;
+  padding-top: 0;
 }

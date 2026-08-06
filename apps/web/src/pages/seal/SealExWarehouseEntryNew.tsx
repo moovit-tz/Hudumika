@@ -94,7 +94,7 @@ export function SealExWarehouseEntryNew() {
   }
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: '0 0 24px'}}>
       <PageHeader crumbs={['ClearOS', 'Ops Command', 'Declarations']} titlePlain="New" titleEm="Declaration" subtitle="Every number below traces to a stored HS tariff line — the computation panel updates live as you type." />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'flex-start', marginTop: 16 }}>

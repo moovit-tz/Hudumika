@@ -99,7 +99,7 @@ export const TrackingIssueDetail: React.FC = () => {
     ? Math.max(0, Math.round((issue.resolved_odometer_km - issue.odometer_km) * 10) / 10) : null;
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: '0 0 24px'}}>
       <PageHeader
         crumbs={['HuduFreight', 'Issue']}
         titlePlain="Issue"

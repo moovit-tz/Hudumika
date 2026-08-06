@@ -86,6 +86,7 @@
   --white: #111218;
   --border: rgba(255, 255, 255, 0.07);
   --border2: rgba(255, 255, 255, 0.13);
+  --nav-guide: rgba(255, 255, 255, 0.14);
   color-scheme: dark;
 }
 
@@ -338,17 +339,12 @@ html[data-expanded="true"] .app-sidebar {
   position: relative;
   margin-left: 21px;
   padding-left: 6px;
-  border-left: 1.5px solid rgba(0, 0, 0, 0.12);
+  border-left: 1.5px solid var(--nav-guide);
   display: flex;
   flex-direction: column;
   gap: 2px;
   margin-top: 2px;
   margin-bottom: 6px;
-}
-
-[data-theme="dark"] .app-sb-children-group,
-[data-semi-dark="true"] .app-sb-children-group {
-  border-left-color: rgba(255, 255, 255, 0.14);
 }
 
 .app-sb-children-group .app-sb-item--child {

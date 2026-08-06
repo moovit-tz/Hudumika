@@ -6,14 +6,9 @@
   color: var(--ink);
 }
 
-.trk-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 16px;
-}
+/* .trk-header is gone: PageHeader owns the title row and its own actions
+   slot now, and wrapping it in a flex row was what stopped the header from
+   filling the page width. */
 
 .trk-title {
   font-size: 24px;

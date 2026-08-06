@@ -227,7 +227,7 @@ export const Demurrage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex: 1, overflowY: 'auto' }}>
+    <div style={{ padding: '0 0 24px', flex: 1, overflowY: 'auto' }}>
       <PageHeader
         crumbs={['CargoTracker', 'Demurrage & Detention']}
         titlePlain="Demurrage"

@@ -53,7 +53,7 @@ function HealthGauge({ score }: { score: number }) {
 
 function UpgradeEmptyState({ feature }: { feature: string }) {
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: '0 0 24px'}}>
       <div style={{ background: 'var(--white)', border: '1px dashed var(--border)', borderRadius: 9, padding: '60px 20px', textAlign: 'center' }}>
         <Icon name="lock" size={28} color="var(--ink3)" />
         <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginTop: 12 }}>{feature} is an Enterprise feature</div>
