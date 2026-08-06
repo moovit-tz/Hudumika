@@ -53,15 +53,48 @@ const _listeners = new Set<() => void>();
 function notify() { _listeners.forEach(l => l()); }
 function subscribe(cb: () => void) { _listeners.add(cb); return () => _listeners.delete(cb); }
 
-function loadFromApi() {
-  apiFetch('/v1/products')
-    .then((data: any) => { _products = Array.isArray(data) ? data.map(mapApiProduct) : []; notify(); })
-    .catch(() => { _products = []; notify(); });
-}
-loadFromApi();
+/**
+ * Loaded on first use, not at import.
+ *
+ * This module used to call loadFromApi() at the top level, so the request went
+ * out the moment anything imported it — which happens on pages that have
+ * nothing to do with products, and before the auth token is available. The
+ * result was a 401 on /v1/products on essentially every page load, swallowed
+ * by the .catch() and therefore invisible except in the network log.
+ *
+ * `_loaded` makes it fire once, from the first component that actually reads
+ * the store. `_inFlight` keeps several mounting at once from each firing their
+ * own request.
+ */
+let _loaded = false;
+let _inFlight: Promise<void> | null = null;
 
-export function useProducts()  { return useSyncExternalStore(subscribe, () => _products); }
-export function getProducts()  { return _products; }
+function loadFromApi(): Promise<void> {
+  if (_inFlight) return _inFlight;
+  _inFlight = apiFetch('/v1/products')
+    .then((data: any) => { _products = Array.isArray(data) ? data.map(mapApiProduct) : []; notify(); })
+    .catch(() => { _products = []; notify(); })
+    .finally(() => { _inFlight = null; });
+  return _inFlight;
+}
+
+function ensureLoaded() {
+  if (_loaded) return;
+  _loaded = true;
+  loadFromApi();
+}
+
+/** Re-fetch on demand — e.g. after an import, or when a page wants fresh data. */
+export function refreshProducts() { _loaded = true; return loadFromApi(); }
+
+export function useProducts() {
+  // Subscribing is the signal that something is actually rendering products.
+  return useSyncExternalStore(
+    (cb) => { ensureLoaded(); return subscribe(cb); },
+    () => _products,
+  );
+}
+export function getProducts()  { ensureLoaded(); return _products; }
 
 export function addProduct(p: Product) {
   _products = [p, ..._products];

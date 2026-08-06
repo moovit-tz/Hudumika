@@ -9,6 +9,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox } from '../components/ui/combobox.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { AiExtractedCard } from '../components/AiExtractedCard.js';
 import { showAlert } from '../lib/alert.js';
 import { readXlsxSheets } from '../lib/xlsx-read.js';
 import './CreateShipmentPage.css';
@@ -144,14 +145,32 @@ export function CreateShipmentPage() {
   const [excelReport, setExcelReport] = useState<{ ok: boolean; text: string; filled: string[] } | null>(null);
   const [excelBusy, setExcelBusy] = useState(false);
 
+  /** The fields marked `*` on step 3, and the single source for both the
+   *  Create button's disabled state and the message next to it. */
+  const REQUIRED: { key: 'customer_id' | 'goods_desc' | 'vessel' | 'origin_port' | 'dest_port'; label: string }[] = [
+    { key: 'customer_id', label: 'Customer' },
+    { key: 'goods_desc',  label: 'Goods description' },
+    { key: 'vessel',      label: 'Vessel / flight' },
+    { key: 'origin_port', label: 'Origin port' },
+    { key: 'dest_port',   label: 'Destination port' },
+  ];
+
   const [createForm, setCreateForm] = useState({
     customer_id: '',
     type: 'SEA_FCL' as ShipmentType,
     goods_desc: '',
     bl_number: '',
     vessel: '',
-    origin_port: 'Port of Shanghai',
-    dest_port: 'Port of Dar es Salaam',
+    // Blank, not a plausible route — the same reason container_number is
+    // blank below. These defaulted to 'Port of Shanghai' → 'Port of Dar es
+    // Salaam', so a shipment saved without the fields being touched claimed a
+    // journey it never made. That is not cosmetic: co2.service.ts computes
+    // emissions from the great-circle distance between exactly these two
+    // values, so an untouched default silently books a 9,663 km leg against
+    // the tenant's carbon portfolio. Both labels already say required; the
+    // Create button now enforces it.
+    origin_port: '',
+    dest_port: '',
     eta: '',
     free_time_end: '',
     assigned_to: '',
@@ -169,6 +188,10 @@ export function CreateShipmentPage() {
   });
   
   const [createLoading, setCreateLoading] = useState(false);
+
+  const missingRequired = REQUIRED
+    .filter(f => !String((createForm as any)[f.key] ?? '').trim())
+    .map(f => f.label);
 
   /**
    * Feedback on the container number as it is typed.
@@ -527,9 +550,9 @@ export function CreateShipmentPage() {
             {currentStep === 1 && (
               <div>
                 {ocrError && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 9, padding: '12px 16px', marginBottom: 16 }}>
-                    <div style={{ fontSize: 13, color: '#991b1b' }}>{ocrError}</div>
-                    <button type="button" title="Dismiss" onClick={() => setOcrError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#991b1b', fontWeight: 700, fontSize: 13 }}>×</button>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, background: 'var(--red-l)', border: '1px solid #fecaca', borderRadius: 9, padding: '12px 16px', marginBottom: 16 }}>
+                    <div style={{ fontSize: 13, color: 'var(--red)' }}>{ocrError}</div>
+                    <button type="button" title="Dismiss" onClick={() => setOcrError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontWeight: 700, fontSize: 13 }}>×</button>
                   </div>
                 )}
                 {!ocrFile && !ocrScanning && (
@@ -553,51 +576,14 @@ export function CreateShipmentPage() {
                     <div style={{ fontSize: 13, color: 'var(--ink3)', marginTop: 8 }}>Our AI is extracting shipment data and line items.</div>
                   </div>
                 )}
-                {ocrResult && !ocrScanning && (() => {
-                  const ov = ocrResult.overview || {};
-                  const conf = Math.round((ocrResult.confidence || 0.9) * 100);
-                  return (
-                    <div style={{ display: 'flex', gap: 24 }}>
-                      {ocrPreview && (
-                        <div style={{ flexShrink: 0 }}>
-                          <img src={ocrPreview} alt="Scanned document" style={{ width: 200, height: 260, objectFit: 'cover', borderRadius: 12, border: '1px solid var(--border)' }} />
-                        </div>
-                      )}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontSize: 13, background: 'var(--teal)', color: '#fff', padding: '4px 10px', borderRadius: 20, fontWeight: 700 }}>{ocrResult.doc_type}</span>
-                            {ocrSimulated && <span style={{ fontSize: 12, background: '#fef3c7', color: '#d97706', border: '1px solid #fde68a', padding: '3px 10px', borderRadius: 20, fontWeight: 600 }}>Demo data</span>}
-                            <span style={{ fontSize: 12, color: conf >= 85 ? 'var(--green)' : 'var(--gold)', fontWeight: 600 }}>{conf}% confidence</span>
-                          </div>
-                          <button type="button" className="btn btn-secondary" title="Re-scan a different document" style={{ fontSize: 12, padding: 'var(--ds-btn-py-xs) 12px', minHeight: 32, height: 32 }}
-                            onClick={() => { setOcrFile(null); setOcrPreview(null); setOcrResult(null); }}>
-                            Re-scan
-                          </button>
-                        </div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Extracted Overview</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px', marginBottom: 20 }}>
-                          {[
-                            ['B/L Number', ov.bl_number], ['Vessel', ov.vessel],
-                            ['Origin Port', ov.origin_port], ['Dest Port', ov.dest_port],
-                            ['ETA', ov.eta], ['Container', ov.container_number],
-                          ].filter(([, v]) => v).map(([k, v]) => (
-                            <div key={k as string} style={{ display: 'flex', flexDirection: 'column', padding: '12px 16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.01)' }}>
-                              <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>{k}</span>
-                              <span style={{ fontSize: 14, color: 'var(--ink)', fontWeight: 700 }}>{v}</span>
-                            </div>
-                          ))}
-                        </div>
-                        {ov.goods_desc && (
-                          <div style={{ padding: '14px 16px', background: 'var(--teal-l)', border: '1px solid var(--teal-m)', borderRadius: 10, fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.5 }}>
-                            <span style={{ fontWeight: 700, color: 'var(--teal-d)', display: 'block', marginBottom: 4, textTransform: 'uppercase', fontSize: 11, letterSpacing: '0.04em' }}>Goods Description</span>
-                            {ov.goods_desc}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })()}
+                {ocrResult && !ocrScanning && (
+                  <AiExtractedCard
+                    ocrResult={ocrResult}
+                    previewUrl={ocrPreview}
+                    simulated={ocrSimulated}
+                    onRescan={() => { setOcrFile(null); setOcrPreview(null); setOcrResult(null); }}
+                  />
+                )}
               </div>
             )}
 
@@ -813,9 +799,25 @@ export function CreateShipmentPage() {
               )}
               
               {currentStep === 4 && (
-                <button type="button" className="btn btn-primary" onClick={handleCreateCase} disabled={createLoading || !createForm.customer_id || !createForm.vessel || !createForm.goods_desc}>
-                  {createLoading ? 'Creating...' : 'Create Shipment'}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  {/* Say what is missing. A disabled button on the last step of
+                      a four-step wizard, with the fields two steps back, is
+                      otherwise a dead end. */}
+                  {missingRequired.length > 0 && (
+                    <span style={{ fontSize: 12, color: 'var(--ink3)' }}>
+                      Still needed: <strong style={{ color: 'var(--ink2)' }}>{missingRequired.join(', ')}</strong>
+                      {' · '}
+                      <button type="button" onClick={() => setCurrentStep(3)}
+                        style={{ background: 'none', border: 'none', padding: 0, color: 'var(--teal)', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}>
+                        Go back
+                      </button>
+                    </span>
+                  )}
+                  <button type="button" className="btn btn-primary" onClick={handleCreateCase}
+                    disabled={createLoading || missingRequired.length > 0}>
+                    {createLoading ? 'Creating...' : 'Create Shipment'}
+                  </button>
+                </div>
               )}
             </div>
 
