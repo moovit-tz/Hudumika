@@ -84,6 +84,7 @@ import { FinanceBalanceSheet }    from '../pages/FinanceBalanceSheet.js';
 import { FinanceProfitLoss }      from '../pages/FinanceProfitLoss.js';
 import { FinanceAgedReceivables } from '../pages/FinanceAgedReceivables.js';
 import { FinanceAgedPayables }    from '../pages/FinanceAgedPayables.js';
+import { FinanceReportsHub } from '../pages/FinanceReportsHub.js';
 import { FinanceSalesReport }          from '../pages/FinanceSalesReport.js';
 import { FinanceExpensesReport }       from '../pages/FinanceExpensesReport.js';
 import { FinanceIncomeVsExpenses }     from '../pages/FinanceIncomeVsExpenses.js';
@@ -137,6 +138,9 @@ export function FinOpsShell() {
 
           {/* Reports */}
           <Route path="reports">
+            {/* Without this index, /finance/reports matched the parent and
+                rendered nothing — a blank page while every child worked. */}
+            <Route index                     element={<RequireRoles roles={FIN_ROLES}><FinanceReportsHub /></RequireRoles>} />
             <Route path="sales"              element={<RequireRoles roles={FIN_ROLES}><FinanceSalesReport /></RequireRoles>} />
             <Route path="expenses"           element={<RequireRoles roles={FIN_ROLES}><FinanceExpensesReport /></RequireRoles>} />
             <Route path="income-vs-expenses" element={<RequireRoles roles={FIN_ROLES}><FinanceIncomeVsExpenses /></RequireRoles>} />
