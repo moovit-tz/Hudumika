@@ -149,9 +149,9 @@ interface DensityPreset { pagePadding: number; contentGap: number; btnPy: number
  * a button on the same toolbar row are the same height.
  */
 export const DENSITY_PRESETS: Record<DensityId, DensityPreset> = {
-  compact:     { pagePadding: 12, contentGap: 10, btnPy: 5, inputPy: 5, cellPy: 7  },
-  default:     { pagePadding: 16, contentGap: 16, btnPy: 7, inputPy: 7, cellPy: 11 },
-  comfortable: { pagePadding: 24, contentGap: 22, btnPy: 9, inputPy: 9, cellPy: 14 },
+  compact:     { pagePadding: 6,  contentGap: 10, btnPy: 5, inputPy: 5, cellPy: 7  },
+  default:     { pagePadding: 8,  contentGap: 16, btnPy: 7, inputPy: 7, cellPy: 11 },
+  comfortable: { pagePadding: 16, contentGap: 22, btnPy: 9, inputPy: 9, cellPy: 14 },
 };
 
 // Two-layer shadows (tight contact shadow + wide soft ambient one) — cards

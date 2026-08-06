@@ -196,8 +196,8 @@
   /* The single page gutter — see .app-shell-content. Matches what
      /clearos/customs-tools/history already used (24px 32px), which is the
      page this was standardised against. */
-  --page-pad-x: 16px;
-  --page-pad-y: 16px;
+  --page-pad-x: 8px;
+  --page-pad-y: 8px;
 
   --ds-btn-py:   7px;
   --ds-btn-py-xs: 3px;
@@ -246,7 +246,7 @@
   --badge-fs-sm: 10px;
   --badge-min-h-sm: 16px;
 
-  --page-padding: 16px;
+  --page-padding: 8px;
   --content-gap:  16px;
 
   --dur-fast: 80ms;
@@ -3991,8 +3991,8 @@ html:not([data-theme="dark"]) .page-layout {
    Matches the hub welcome band style: transparent, no border
    ════════════════════════════════════════════════════════════ */
 .page-header {
-  margin: 0 0 20px;
-  padding: 16px 0 18px;
+  margin: 0 0 12px;
+  padding: 8px 0 10px;
   background: transparent;
   position: relative;
 }
@@ -6303,8 +6303,8 @@ html[data-expanded="true"] .hnav-subs-inner {
 }
 html[data-expanded="true"] .page-layout {
   max-width: none;
-  padding-left: var(--page-pad-x, 16px);
-  padding-right: var(--page-pad-x, 16px);
+  padding-left: var(--page-pad-x, 8px);
+  padding-right: var(--page-pad-x, 8px);
 }
 html[data-expanded="true"] .fin-shell {
   max-width: none;
