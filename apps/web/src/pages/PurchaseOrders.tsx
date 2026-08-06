@@ -218,12 +218,15 @@ function apiToPO(apiPo: any, lines: any[], products: Product[]): PurchaseOrder {
   };
 }
 
+// Tints come from the derived -l tokens, not a hand-mixed rgba(): the text
+// colour already read var(--blue)/var(--gold)/..., so a tenant switching theme
+// moved the text and left the background on the old hue behind it.
 const STATUS_THEME: Record<POStatus, { bg: string; color: string }> = {
-  Draft:     { bg: 'var(--bg)', color: 'var(--ink2)' },
-  Sent:      { bg: 'rgba(59, 130, 246, 0.12)', color: 'var(--blue)' },
-  Partial:   { bg: 'rgba(245, 158, 11, 0.12)', color: 'var(--gold)' },
-  Received:  { bg: 'rgba(16, 185, 129, 0.12)', color: 'var(--green)' },
-  Cancelled: { bg: 'rgba(239, 68, 68, 0.12)', color: 'var(--red)' },
+  Draft:     { bg: 'var(--bg)',     color: 'var(--ink2)' },
+  Sent:      { bg: 'var(--blue-l)', color: 'var(--blue)' },
+  Partial:   { bg: 'var(--gold-l)', color: 'var(--gold)' },
+  Received:  { bg: 'var(--green-l)', color: 'var(--green)' },
+  Cancelled: { bg: 'var(--red-l)',  color: 'var(--red)' },
 };
 
 // Formatting Helper
@@ -790,7 +793,7 @@ export const PurchaseOrders: React.FC = () => {
                       top: 4,
                       bottom: 4,
                       padding: '0 12px',
-                      background: '#059669',
+                      background: 'var(--teal)',
                       border: 'none',
                       borderRadius: 'var(--r)',
                       color: '#fff',
@@ -813,7 +816,7 @@ export const PurchaseOrders: React.FC = () => {
                       style={{
                         padding: 6,
                         border: 'none',
-                        background: !isCardView ? '#059669' : 'transparent',
+                        background: !isCardView ? 'var(--teal)' : 'transparent',
                         color: !isCardView ? '#fff' : 'var(--ink3)',
                         borderRadius: 'var(--r)',
                         cursor: 'pointer',
@@ -830,7 +833,7 @@ export const PurchaseOrders: React.FC = () => {
                       style={{
                         padding: 6,
                         border: 'none',
-                        background: isCardView ? '#059669' : 'transparent',
+                        background: isCardView ? 'var(--teal)' : 'transparent',
                         color: isCardView ? '#fff' : 'var(--ink3)',
                         borderRadius: 'var(--r)',
                         cursor: 'pointer',
@@ -865,9 +868,9 @@ export const PurchaseOrders: React.FC = () => {
                       padding: 'var(--ds-btn-py) 12px',
                       borderRadius: 'var(--r)',
                       border: '1px solid var(--border)',
-                      background: showFiltersPanel || filterStatus || filterVendor ? 'rgba(5, 150, 105, 0.08)' : 'var(--white)',
-                      borderColor: showFiltersPanel || filterStatus || filterVendor ? '#059669' : 'var(--border)',
-                      color: showFiltersPanel || filterStatus || filterVendor ? '#059669' : 'var(--ink2)',
+                      background: showFiltersPanel || filterStatus || filterVendor ? 'var(--teal-l)' : 'var(--white)',
+                      borderColor: showFiltersPanel || filterStatus || filterVendor ? 'var(--teal)' : 'var(--border)',
+                      color: showFiltersPanel || filterStatus || filterVendor ? 'var(--teal)' : 'var(--ink2)',
                       fontSize: 12,
                       fontWeight: 600,
                       cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
@@ -981,11 +984,11 @@ export const PurchaseOrders: React.FC = () => {
                       }}
                       onMouseEnter={e => {
                         e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 6px 12px -2px rgba(0,0,0,0.05)';
+                        e.currentTarget.style.boxShadow = 'var(--elev)';
                       }}
                       onMouseLeave={e => {
                         e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.02)';
+                        e.currentTarget.style.boxShadow = 'var(--elev-sm)';
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -1052,7 +1055,7 @@ export const PurchaseOrders: React.FC = () => {
                             borderRadius: 'var(--r)',
                             border: '1px solid var(--border)',
                             background: 'var(--white)',
-                            color: '#e28743',
+                            color: 'var(--ink2)',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -1090,7 +1093,7 @@ export const PurchaseOrders: React.FC = () => {
                                 borderRadius: 'var(--r)',
                                 border: '1px solid var(--border)',
                                 background: 'var(--white)',
-                                color: '#7c3aed',
+                                color: 'var(--ink2)',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -1283,7 +1286,7 @@ export const PurchaseOrders: React.FC = () => {
                                     borderRadius: 'var(--r)',
                                     border: '1px solid var(--border)',
                                     background: 'var(--white)',
-                                    color: '#e28743',
+                                    color: 'var(--ink2)',
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -1321,7 +1324,7 @@ export const PurchaseOrders: React.FC = () => {
                                         borderRadius: 'var(--r)',
                                         border: '1px solid var(--border)',
                                         background: 'var(--white)',
-                                        color: '#7c3aed',
+                                        color: 'var(--ink2)',
                                         cursor: 'pointer',
                                         display: 'flex',
                                         alignItems: 'center',
@@ -1412,7 +1415,7 @@ export const PurchaseOrders: React.FC = () => {
                       height: 32,
                       borderRadius: 'var(--r)',
                       border: 'none',
-                      background: currentPage === pageNum ? '#059669' : 'transparent',
+                      background: currentPage === pageNum ? 'var(--teal)' : 'transparent',
                       color: currentPage === pageNum ? '#fff' : 'var(--ink2)',
                       fontSize: 13,
                       fontWeight: 600,
@@ -1598,7 +1601,7 @@ export const PurchaseOrders: React.FC = () => {
                         padding: 'var(--ds-btn-py) 16px',
                         borderRadius: 'var(--r)',
                         border: 'none',
-                        background: '#059669',
+                        background: 'var(--teal)',
                         color: '#fff',
                         fontSize: 13,
                         fontWeight: 600,
@@ -1794,7 +1797,7 @@ export const PurchaseOrders: React.FC = () => {
                     padding: 'var(--ds-btn-py-sm) 12px',
                     borderRadius: 'var(--r)',
                     border: 'none',
-                    background: '#059669',
+                    background: 'var(--teal)',
                     color: '#fff',
                     fontSize: 12,
                     fontWeight: 600,
@@ -1994,7 +1997,7 @@ export const PurchaseOrders: React.FC = () => {
                     padding: 'var(--ds-btn-py) 20px',
                     borderRadius: 'var(--r)',
                     border: 'none',
-                    background: '#059669',
+                    background: 'var(--teal)',
                     color: '#fff',
                     fontSize: 13,
                     fontWeight: 600,
