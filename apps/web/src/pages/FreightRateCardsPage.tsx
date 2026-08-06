@@ -62,7 +62,7 @@ export function FreightRateCardsPage() {
   }
 
   return (
-    <div style={{ padding: '24px 32px', flex: 1, overflowY: 'auto' }}>
+    <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
         crumbs={['Freight Booking', 'Rate Cards']}
         titlePlain="Rate"

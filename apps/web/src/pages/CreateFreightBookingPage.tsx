@@ -55,7 +55,7 @@ export function CreateFreightBookingPage() {
   }
 
   return (
-    <div style={{ padding: '24px 32px', flex: 1, overflowY: 'auto' }}>
+    <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader crumbs={['Freight Booking', 'New']} titlePlain="New booking" titleEm="request" subtitle="Vessel, voyage and BL/AWB are entered later once the carrier confirms — this just captures what the customer wants shipped." />
 
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '28px 32px', maxWidth: 720 }}>

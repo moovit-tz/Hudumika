@@ -106,7 +106,7 @@ export const FinanceTrialBalance: React.FC = () => {
   }
 
   if (loading) return <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading trial balance…</div>;
-  if (error) return <div style={{ padding: '48px 0', textAlign: 'center', color: '#ef4444' }}>{error}</div>;
+  if (error) return <div style={{ textAlign: 'center', color: '#ef4444' }}>{error}</div>;
 
   return (
     <div style={{ padding: isMobile ? '14px 16px' : '28px 32px', maxWidth: 960 }}>

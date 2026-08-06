@@ -6,6 +6,7 @@ import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
 import { LauncherAppSvg as AppIcon, LAUNCHER_APPS } from '../components/LauncherApps.js';
 import { Icon } from '../components/Icon.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
+import { SkeletonPage } from '../components/ui/skeleton.js';
 import './WorkspaceHome.css';
 
 interface HudumikaApp {
@@ -180,6 +181,8 @@ export function WorkspaceHome({ externalSearch }: WorkspaceHomeProps) {
   const isSuperAdmin = (user as { role?: string } | null)?.role === 'SUPER_ADMIN';
   const enabledApps = useEnabledApps();
   const q = (externalSearch ?? '').toLowerCase();
+
+  if (!enabledApps) return <SkeletonPage variant="cards" />;
 
   const enabledAndAllowedApps = apps.filter(app => {
     if (app.superAdminOnly && !isSuperAdmin) return false;

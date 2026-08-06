@@ -37,7 +37,13 @@
   max-width: 1380px;
   width: 100%;
   margin: 0 auto;
-  padding: 0 24px;
+  /* One gutter for every page, set here rather than by each page's own
+     wrapper. The header and the content below it share this element, so
+     aligning the header means aligning this — shifting the header alone
+     would misalign it from its own page. Pages measured 37 / 61 / 69 / 85px
+     from the shell edge before this, depending on whether their wrapper
+     added anything and how much. */
+  padding: var(--page-pad-y, 24px) var(--page-pad-x, 32px);
   box-sizing: border-box;
   transition: max-width 0.25s ease, padding 0.25s ease;
 }
@@ -47,7 +53,11 @@
    rail / browser edge. */
 [data-layout="full"] .app-shell-content {
   max-width: 100%;
-  padding: 0 16px;
+  /* Only the width cap changes in full mode. This used to reset the gutter to
+     `0 16px`, and since full-width became the default that reset applied
+     everywhere — which is why tokenising the gutter above appeared to do
+     nothing at all. The page margin is one value in both layouts. */
+  padding: var(--page-pad-y, 24px) var(--page-pad-x, 32px);
 }
 
 /* .page-layout (the white content card most pages/apps render into) has its

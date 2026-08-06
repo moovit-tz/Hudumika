@@ -129,7 +129,7 @@ export const FinanceLedger: React.FC = () => {
     document.body.removeChild(a); URL.revokeObjectURL(url);
   }
 
-  if (loading) return <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading ledger…</div>;
+  if (loading) return <div style={{ textAlign: 'center', color: 'var(--ink3)' }}>Loading ledger…</div>;
 
   return (
     <div style={{ padding: isMobile ? '14px 16px' : '28px 32px', maxWidth: isFullLayout ? 'none' : 1100 }}>

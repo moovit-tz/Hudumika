@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator, DropdownMenuCheckboxItem,
 } from '../components/ui/dropdown-menu.js';
 import { showConfirm } from '../lib/confirm.js';
+import { SkeletonPage } from '../components/ui/skeleton.js';
 
 /* ── Types ── */
 interface Customer {
@@ -453,6 +454,10 @@ export const Customers: React.FC = () => {
   /* ══════════════════════════════
      LIST VIEW
   ══════════════════════════════ */
+  if (loading && view === 'list') {
+    return <SkeletonPage variant="table" />;
+  }
+
   if (view === 'list') {
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     const safePage = Math.min(page, totalPages);

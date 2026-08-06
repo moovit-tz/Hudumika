@@ -14,6 +14,7 @@ import { CUSTOMS_STATUS_VARIANT } from '../lib/sealStatus.js';
 import { CUSTOMS_STATUS_LABELS, type CustomsStatus } from '@hudumika/types';
 import './Seal.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { SkeletonPage } from '../components/ui/skeleton.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip);
 
@@ -72,6 +73,8 @@ export function SealDashboard() {
   }, [compartmentId]);
 
   const activityDays = metricsData?.dailyActivity?.filter((_, i) => i % 3 === 0 || i === (metricsData?.dailyActivity?.length ?? 0) - 1) ?? [];
+
+  if (loading) return <SkeletonPage variant="dashboard" />;
 
   return (
     <div className="seal-page">

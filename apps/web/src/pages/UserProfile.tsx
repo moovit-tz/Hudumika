@@ -9,6 +9,7 @@ import type { IconName } from '../components/Icon.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
+import { SkeletonPage } from '../components/ui/skeleton.js';
 
 /* ── Avatar ── */
 const AV_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30'];
@@ -92,17 +93,22 @@ export const UserProfile: React.FC = () => {
   const [params, setParams] = useSearchParams();
   const activeTab = params.get('tab') || 'personal';
 
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
   /* Personal info form */
   const buildInitialForm = () => ({
-    name:      user?.name || '',
-    phone:     user?.phone || '',
-    bio:       user?.profile?.bio || '',
-    job_title: user?.profile?.job_title || ROLE_LABELS[user?.role || ''] || '',
-    city:      user?.profile?.city || '',
-    country:   user?.profile?.country || 'Tanzania',
-    timezone:  user?.profile?.timezone || 'Africa/Dar_es_Salaam',
-    language:  user?.profile?.language || 'en',
-    website:   user?.profile?.website || '',
+    name:       user?.name || '',
+    phone:      user?.phone || '',
+    avatar_url: user?.avatar_url || '',
+    cover_url:  user?.profile?.cover_url || '',
+    bio:        user?.profile?.bio || '',
+    job_title:  user?.profile?.job_title || ROLE_LABELS[user?.role || ''] || '',
+    city:       user?.profile?.city || '',
+    country:    user?.profile?.country || 'Tanzania',
+    timezone:   user?.profile?.timezone || 'Africa/Dar_es_Salaam',
+    language:   user?.profile?.language || 'en',
+    website:    user?.profile?.website || '',
   });
   const [form, setForm] = useState(buildInitialForm);
   const [saving, setSaving] = useState(false);
@@ -135,9 +141,11 @@ export const UserProfile: React.FC = () => {
         body: JSON.stringify({
           name: form.name,
           phone: form.phone,
+          avatar_url: form.avatar_url || null,
           profile: {
             bio: form.bio, job_title: form.job_title, city: form.city,
             country: form.country, timezone: form.timezone, language: form.language, website: form.website,
+            cover_url: form.cover_url || null,
           },
         }),
       });
@@ -147,6 +155,58 @@ export const UserProfile: React.FC = () => {
     } catch (err: any) {
       setSaveError(err?.message || 'Failed to save changes.');
     } finally { setSaving(false); }
+  };
+
+  const persistImagePatch = async (avatarUrl?: string | null, coverUrl?: string | null) => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const payload: Record<string, any> = {};
+      if (avatarUrl !== undefined) payload.avatar_url = avatarUrl;
+      if (coverUrl !== undefined) payload.profile = { cover_url: coverUrl };
+
+      const res = await apiFetch('/v1/auth/me', {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+      if (res?.user) updateUser(res.user);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err: any) {
+      setSaveError(err?.message || 'Failed to save image.');
+    } finally { setSaving(false); }
+  };
+
+  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showAlert('Profile picture must be under 5MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataUrl = evt.target?.result as string;
+      setForm(p => ({ ...p, avatar_url: dataUrl }));
+      persistImagePatch(dataUrl, undefined);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleCoverFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showAlert('Cover image must be under 5MB');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const dataUrl = evt.target?.result as string;
+      setForm(p => ({ ...p, cover_url: dataUrl }));
+      persistImagePatch(undefined, dataUrl);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handlePwSave = async (e: React.FormEvent) => {
@@ -161,7 +221,7 @@ export const UserProfile: React.FC = () => {
     } catch (err: any) { showAlert(err.message || 'Failed to change password.'); } finally { setPwSaving(false); }
   };
 
-  if (!user) return null;
+  if (!user) return <SkeletonPage variant="detail" />;
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', background: 'var(--bg)', fontFamily: 'var(--font)', padding: isMobile ? '16px' : '32px' }}>
@@ -183,25 +243,86 @@ export const UserProfile: React.FC = () => {
       <div className="profile-container">
         {/* ── Profile header card ── */}
         <div style={{ borderBottom: '1px solid var(--border)', marginBottom: 24 }}>
-        {/* Cover gradient */}
-        <div style={{ height: 120, background: 'linear-gradient(135deg, var(--navy) 0%, var(--teal) 100%)', position: 'relative' }}>
-          <button style={{ position: 'absolute', top: 12, right: 16, display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 14px', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.12)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="camera" size={13} strokeWidth={2} />
-            Change Cover
-          </button>
+        {/* Cover banner */}
+        <div style={{
+          height: 150,
+          background: form.cover_url ? `url("${form.cover_url}") center/cover no-repeat` : 'linear-gradient(135deg, var(--navy) 0%, var(--teal) 100%)',
+          position: 'relative',
+          transition: 'background 0.3s ease',
+        }}>
+          <div style={{ position: 'absolute', top: 12, right: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+            {form.cover_url && (
+              <button
+                type="button"
+                onClick={() => {
+                  setForm(p => ({ ...p, cover_url: '' }));
+                  persistImagePatch(undefined, null);
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 'var(--r)', background: 'rgba(0,0,0,0.45)', color: '#fff', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25, backdropFilter: 'blur(4px)' }}
+              >
+                <Icon name="trash" size={12} strokeWidth={2} />
+                Remove Cover
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => coverInputRef.current?.click()}
+              style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 14px', border: '1px solid rgba(255,255,255,0.35)', borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.2)', color: '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25, backdropFilter: 'blur(4px)' }}
+            >
+              <Icon name="camera" size={13} strokeWidth={2} />
+              {form.cover_url ? 'Change Cover' : 'Upload Cover'}
+            </button>
+          </div>
+          <input
+            type="file"
+            ref={coverInputRef}
+            onChange={handleCoverFile}
+            accept="image/*"
+            style={{ display: 'none' }}
+          />
         </div>
 
         <div style={{ padding: '0 28px 20px', position: 'relative' }}>
           {/* Avatar */}
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: -36 }}>
-            <div style={{ position: 'relative' }}>
-              <div style={{ width: 80, height: 80, borderRadius: '50%', background: avColor(user.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 800, border: '3px solid #fff', boxShadow: 'var(--elev)' }}>
-                {initials(user.name)}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: -42 }}>
+            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => avatarInputRef.current?.click()} title="Click to change profile picture">
+              <div style={{ width: 88, height: 88, borderRadius: '50%', background: avColor(user.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, fontWeight: 800, border: '4px solid #fff', boxShadow: 'var(--elev)', overflow: 'hidden' }}>
+                {form.avatar_url ? (
+                  <img src={form.avatar_url} alt={form.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  initials(form.name || user.name)
+                )}
               </div>
-              <button style={{ position: 'absolute', bottom: 2, right: 2, width: 24, height: 24, borderRadius: '50%', background: 'var(--teal)', border: '2px solid #fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="camera" size={10} strokeWidth={2.5} style={{ color: '#fff' } as React.CSSProperties} />
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); avatarInputRef.current?.click(); }}
+                title="Upload profile picture"
+                style={{ position: 'absolute', bottom: 2, right: 2, width: 28, height: 28, borderRadius: '50%', background: 'var(--teal)', border: '2px solid #fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.18)' }}
+              >
+                <Icon name="camera" size={12} strokeWidth={2.5} style={{ color: '#fff' } as React.CSSProperties} />
               </button>
+              {form.avatar_url && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setForm(p => ({ ...p, avatar_url: '' }));
+                    persistImagePatch(null, undefined);
+                  }}
+                  title="Remove profile picture"
+                  style={{ position: 'absolute', top: 0, right: 0, width: 22, height: 22, borderRadius: '50%', background: 'var(--red)', border: '2px solid #fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 6px rgba(0,0,0,0.18)' }}
+                >
+                  <Icon name="x" size={11} strokeWidth={3} style={{ color: '#fff' } as React.CSSProperties} />
+                </button>
+              )}
             </div>
+            <input
+              type="file"
+              ref={avatarInputRef}
+              onChange={handleAvatarFile}
+              accept="image/*"
+              style={{ display: 'none' }}
+            />
             <div style={{ display: 'flex', gap: 8, paddingBottom: 4 }}>
               <Link to="/subscription" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', border: '1.5px solid var(--border)', borderRadius: 9, background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink)', textDecoration: 'none' }}>
                 <Icon name="creditCard" size={13} strokeWidth={2} />

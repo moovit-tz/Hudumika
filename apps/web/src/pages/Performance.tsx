@@ -92,7 +92,7 @@ export function Performance() {
   if (loading) return <div style={{ padding: 30, color: 'var(--ink3)' }}>Loading performance…</div>;
 
   return (
-    <div style={{ padding: '24px 32px', flex: 1, overflowY: 'auto' }}>
+    <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
         crumbs={['NexusHR', 'Performance']}
         titlePlain="Goals &"

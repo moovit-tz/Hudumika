@@ -10,6 +10,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import './Inventory.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { SkeletonPage } from '../components/ui/skeleton.js';
 
 interface StockLevel {
   itemId: string; locationId: string; batchNo: string | null; expiryDate: string | null; qtyOnHand: number;
@@ -111,6 +112,8 @@ export function InventoryStock() {
       setSaving(false);
     }
   }
+
+  if (loading) return <SkeletonPage variant="table" />;
 
   return (
     <div className="inv-page">

@@ -55,7 +55,7 @@ export function SuperAdminTradeWizardAnalytics() {
     })();
   }, []);
 
-  if (loading) return <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)' }}>Loading trade wizard analytics…</div>;
+  if (loading) return <div style={{ textAlign: 'center', color: 'var(--ink3)' }}>Loading trade wizard analytics…</div>;
 
   const maxTermCount = Math.max(1, ...topTerms.map(t => t.count));
   const maxProcCount = Math.max(1, ...topProcedures.map(p => p.run_count));

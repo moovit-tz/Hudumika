@@ -40,7 +40,7 @@ export function CatalogPage() {
   const byKind = (kind: string) => shownTriggers.filter(t => t.kind === kind);
 
   return (
-    <div style={{ padding: '20px 22px', maxWidth: 1320, margin: '0 auto' }}>
+    <div style={{ maxWidth: 1320, margin: '0 auto' }}>
       <div style={{ marginBottom: 16 }}>
         <PageHeader
           crumbs={['Studio', 'Triggers & actions']}

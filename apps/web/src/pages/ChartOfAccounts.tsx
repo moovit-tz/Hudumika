@@ -321,7 +321,7 @@ export const ChartOfAccounts: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: isFullLayout ? 'none' : 1100 }}>
+    <div style={{ maxWidth: isFullLayout ? 'none' : 1100 }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>

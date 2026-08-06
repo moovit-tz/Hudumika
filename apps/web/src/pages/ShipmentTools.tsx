@@ -435,7 +435,7 @@ export const ShipmentTools: React.FC = () => {
   const hasResult = !!(lcResult || ccResult || pResult);
 
   return (
-    <div style={{ padding: '24px 32px', flex: 1, overflowY: 'auto' }}>
+    <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
         crumbs={['Shipments', 'Customs Tools']}
         titlePlain="Customs"

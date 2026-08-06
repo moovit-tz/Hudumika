@@ -82,7 +82,7 @@ export function HrDocuments() {
   if (loading) return <div style={{ padding: 30, color: 'var(--ink3)' }}>Loading documents…</div>;
 
   return (
-    <div style={{ padding: '24px 32px', flex: 1, overflowY: 'auto' }}>
+    <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
         crumbs={['NexusHR', 'Records']}
         titlePlain="Employee"

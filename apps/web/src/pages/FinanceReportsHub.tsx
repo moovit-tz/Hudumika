@@ -124,7 +124,7 @@ function Section({ title, hint, items }: { title: string; hint: string; items: R
 }
 
 export const FinanceReportsHub: React.FC = () => (
-  <div style={{ padding: 'var(--page-padding, 24px) 32px' }}>
+  <div>
     <PageHeader
       crumbs={['FinOps', 'Reports']}
       titlePlain="Financial"

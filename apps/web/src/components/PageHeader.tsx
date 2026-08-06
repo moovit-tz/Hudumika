@@ -1,8 +1,13 @@
 import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
+
+/** A crumb is a bare label, or a label with an explicit destination when the
+ *  one derived from the URL would be wrong. */
+export type Crumb = string | { label: string; to?: string };
 
 interface PageHeaderProps {
   /** e.g. ['Finance', 'Dashboard'] → "FINANCE · DASHBOARD" */
-  crumbs: string[];
+  crumbs: Crumb[];
   /** Plain part before the italic word, e.g. "Finance" */
   titlePlain?: string;
   /** Italic brand-colored word, e.g. "overview" */
@@ -37,16 +42,46 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
     em = (words.length > 1 ? words.pop()! : title).toLowerCase();
     plain = words.join(' ');
   }
+  /**
+   * Crumbs carry no path of their own — 153 call sites pass bare strings —
+   * so a destination is derived from the URL: crumb i maps to the first i+1
+   * segments of the current path.
+   *
+   * That is only sound when the crumbs line up with the segments, and often
+   * they do not: ['ClearOS','Compliance','Overview'] is three crumbs over the
+   * two segments of /clearos/compliance. So a crumb is only linked when its
+   * derived path is a genuine prefix of where we already are — a path the
+   * router demonstrably resolves, because we are standing on it. Anything
+   * else stays plain text rather than becoming a link to nowhere.
+   *
+   * The last crumb is never a link: it is the page you are on.
+   */
+  const { pathname } = useLocation();
+  const segments = pathname.split('/').filter(Boolean);
+
+  function hrefFor(c: Crumb, i: number): string | null {
+    if (typeof c !== 'string' && c.to) return c.to;
+    if (i >= crumbs.length - 1) return null;      // current page
+    if (i >= segments.length - 1) return null;    // would be the current path
+    return '/' + segments.slice(0, i + 1).join('/');
+  }
+
   return (
   <div className="page-header">
     {/* Breadcrumb */}
     <div className="page-header-crumb">
-      {crumbs.map((c, i) => (
-        <React.Fragment key={c}>
-          {i > 0 && <span className="page-header-crumb-sep">·</span>}
-          <span>{c}</span>
-        </React.Fragment>
-      ))}
+      {crumbs.map((c, i) => {
+        const label = typeof c === 'string' ? c : c.label;
+        const href = hrefFor(c, i);
+        return (
+          <React.Fragment key={label}>
+            {i > 0 && <span className="page-header-crumb-sep">·</span>}
+            {href
+              ? <Link to={href} className="page-header-crumb-link">{label}</Link>
+              : <span>{label}</span>}
+          </React.Fragment>
+        );
+      })}
     </div>
 
     {/* Title row */}

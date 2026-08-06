@@ -72,7 +72,7 @@ export function StudioDashboard() {
   const statuses = Object.entries(stats.runs.byStatusLast30d).sort((a, b) => b[1] - a[1]);
 
   return (
-    <div style={{ padding: '20px 22px', maxWidth: 1320, margin: '0 auto' }}>
+    <div style={{ maxWidth: 1320, margin: '0 auto' }}>
       <PageHeader
         crumbs={['Studio', 'Studio']}
         titlePlain="Workflow"

@@ -13,7 +13,6 @@ export const AdminDashboard: React.FC = () => {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '40px',
       }}
     >
       <PageHeader

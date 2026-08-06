@@ -47,7 +47,7 @@ export function TemplateGallery() {
   }
 
   return (
-    <div style={{ padding: '20px 22px', maxWidth: 1320, margin: '0 auto' }}>
+    <div style={{ maxWidth: 1320, margin: '0 auto' }}>
       <PageHeader
         crumbs={['Studio', 'Templates']}
         titlePlain="Workflow"

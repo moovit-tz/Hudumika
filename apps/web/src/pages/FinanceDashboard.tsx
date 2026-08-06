@@ -7,6 +7,7 @@ import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useLocale } from '../hooks/useLocale.js';
 import { mapApiInvoice, invoiceTotals, STATUS_STYLE } from './Billing.js';
+import { SkeletonPage } from '../components/ui/skeleton.js';
 
 /* -- Helpers -- */
 function pct(n: number) { return (n > 0 ? '+' : '') + n.toFixed(2) + '%'; }
@@ -170,6 +171,8 @@ export const FinanceDashboard: React.FC = () => {
     { title: t('finance.totalDisbursements'), value: fmt(derived.totalWithdraw, 'TZS'), sub1Value: fmt(derived.monthWithdraw, 'TZS'), sub2Value: fmt(derived.weekWithdraw, 'TZS'),    barHighlight: 'var(--red)', invertTrend: true },
     { title: t('finance.balanceInAccount'),   value: fmt(derived.balance, 'TZS'),       sub1Value: fmt(derived.monthBalance, 'TZS'),  sub2Value: fmt(derived.weekBalance, 'TZS'), barHighlight: 'var(--green)' },
   ];
+
+  if (loadingData) return <SkeletonPage variant="dashboard" />;
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', fontFamily: 'var(--font)' }}>

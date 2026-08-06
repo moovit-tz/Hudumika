@@ -10,6 +10,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, toDateOnlyString } from '../components/ui/date-picker.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { SkeletonPage } from '../components/ui/skeleton.js';
 
 /**
  * Company assets and who is holding them.
@@ -73,10 +74,10 @@ export function HrAssets() {
 
   const out = useMemo(() => assets.filter(a => a.out).length, [assets]);
 
-  if (loading) return <div style={{ padding: 30, color: 'var(--ink3)' }}>Loading assets…</div>;
+  if (loading) return <SkeletonPage variant="table" />;
 
   return (
-    <div style={{ padding: '24px 32px', flex: 1, overflowY: 'auto' }}>
+    <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
         crumbs={['NexusHR', 'Records']}
         titlePlain="Company"

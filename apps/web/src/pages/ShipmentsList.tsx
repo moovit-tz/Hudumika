@@ -11,6 +11,7 @@ import {
 } from 'chart.js';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { apiFetch } from '../lib/api.js';
+import { SkeletonPage } from '../components/ui/skeleton.js';
 import type { ShipmentCase, ShipmentType, OfficerPerformance, StageBottleneck } from '@hudumika/types';
 
 ChartJS.register(
@@ -333,6 +334,8 @@ export const ShipmentsList: React.FC = () => {
       </div>
     </div>
   );
+
+  if (loading) return <SkeletonPage variant="dashboard" />;
 
   return (
     <div>

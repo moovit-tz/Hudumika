@@ -54,7 +54,7 @@ export const CompliancePage: React.FC = () => {
   if (segment === 'advanced') return <Outlet />;
 
   return (
-    <div style={{ padding: '24px 32px', flex: 1, overflowY: 'auto' }}>
+    <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader
         crumbs={['ClearOS', 'Compliance', section.crumb]}
         titlePlain={section.titlePlain}

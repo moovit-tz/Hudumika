@@ -13,6 +13,7 @@ import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { showAlert } from '../lib/alert.js';
+import { SkeletonPage } from '../components/ui/skeleton.js';
 import type { ShipmentCase, ShipmentType, Workflow } from '@hudumika/types';
 import { CLEARANCE_STAGES, STAGE_LABELS } from '@hudumika/types';
 import type { ClearanceStage } from '@hudumika/types';
@@ -571,6 +572,8 @@ export const CommandCenter: React.FC = () => {
       {label}
     </button>
   );
+
+  if (loading) return <SkeletonPage variant="dashboard" />;
 
   return (
     <div className="cc-frame">

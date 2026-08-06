@@ -4,6 +4,7 @@ import { Icon } from '../components/Icon.js';
 import { useComplyDashboard, useComplyApplications, useComplyProfile } from '../hooks/useComply.js';
 import './ComplyOS.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { SkeletonPage } from '../components/ui/skeleton.js';
 
 // agency-code → class name mapping (gov | tax | social | reg | fin)
 const AGENCY_CLASS: Record<string, string> = {
@@ -58,8 +59,10 @@ export function ComplyDashboard() {
   const score = data?.health_score ?? 0;
   const recentApps = apps.slice(0, 5);
 
+  if (loading) return <SkeletonPage variant="dashboard" />;
+
   return (
-    <div className="comply-page">
+    <div className="comply-container">
       {/* Header */}
       <PageHeader
         crumbs={['ComplyOS', 'Compliance Overview']}

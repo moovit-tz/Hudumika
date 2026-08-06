@@ -93,7 +93,7 @@ export const CarbonPortfolio: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
 
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 12, minHeight: 60, padding: '10px 20px',
+        display: 'flex', alignItems: 'center', gap: 12, minHeight: 60,
         background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0,
       }}>
         <FeaturedIcon variant="success" size="sm" shape="square">
