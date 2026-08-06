@@ -1197,6 +1197,14 @@ export interface ContainerTrackingTable {
   demurrage_cost: number;
   demurrage_currency: string;
   status: string;
+  /** Who carries the demurrage charge — see migration 175. CUSTOMER (the
+   *  default) means it is recoverable and recharged on the shipment's
+   *  invoice; COMPANY means we were late and absorb it as an expense. */
+  liable_party: Generated<string>;
+  liability_reason: string | null;
+  /** Set once a recoverable charge has been billed, so it cannot be
+   *  recharged twice. Absorbed charges never get one. */
+  recharged_invoice_id: string | null;
   notes: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
