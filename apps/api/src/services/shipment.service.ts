@@ -353,15 +353,15 @@ export class ShipmentService {
       const workflowIds = [...new Set(shipments.map((s) => s.workflow_id).filter(Boolean))] as string[];
       const stepRows = workflowIds.length > 0
         ? await trx.selectFrom('workflow_steps')
-            .select(['id', 'workflow_id', 'step_order', 'is_terminal'])
+            .select(['id', 'workflow_id', 'step_order', 'is_terminal', 'name'])
             .where('workflow_id', 'in', workflowIds)
             .execute()
         : [];
       const stepCountByWorkflow = new Map<string, number>();
-      const stepInfoById = new Map<string, { order: number; isTerminal: boolean }>();
+      const stepInfoById = new Map<string, { order: number; isTerminal: boolean; name: string }>();
       for (const row of stepRows) {
         stepCountByWorkflow.set(row.workflow_id, (stepCountByWorkflow.get(row.workflow_id) ?? 0) + 1);
-        stepInfoById.set(row.id, { order: row.step_order, isTerminal: row.is_terminal });
+        stepInfoById.set(row.id, { order: row.step_order, isTerminal: row.is_terminal, name: row.name });
       }
 
       const grouped = customers.map((cust) => {
@@ -393,6 +393,11 @@ export class ShipmentService {
             active_risk_types: sFlags.map((f) => f.type),
             document_count: docCountMap.get(s.id) ?? 0,
             message_count: msgCountMap.get(s.id) ?? 0,
+            // The step's own name. Without it the list printed
+            // shipment.stage raw, and for a shipment on a custom workflow
+            // that value is a workflow_steps UUID — so the Status column read
+            // "5e9ef8f3-ec93-4bb3-92c7-6d86084dc8cc" to the user.
+            workflow_step_name: customStep?.name ?? null,
             workflow_step_order: customStep?.order,
             workflow_step_count: s.workflow_id ? stepCountByWorkflow.get(s.workflow_id) : undefined,
             _isTerminal: s.workflow_id ? (customStep?.isTerminal ?? false) : (s.stage === 'CLOSED' || s.stage === 'DELIVERY'),

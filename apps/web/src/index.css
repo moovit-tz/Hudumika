@@ -1108,13 +1108,28 @@ body {
 .badge-grey   { background: var(--white); color: var(--ink2); border: 1px solid var(--border2); }
 
 /* ── PROGRESS SEGMENTS ── */
+/* One track, not eighteen dots.
+   Each of the 18 clearance stages was a 5px block with a 3px gap, so at column
+   width it read as a dotted line and you could not tell progress from decoration.
+   The segments now butt together inside a rounded track: the boundary between
+   the filled part and the empty part *is* the progress, and the gold tick is
+   where the shipment is. The stage count is still there — the ticks are just
+   dividers now rather than the whole graphic. */
+.progress-segments {
+  height: 6px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--border);
+  align-items: stretch;
+}
 .progress-segment-item {
   flex: 1;
-  height: 5px;
-  border-radius: 2px;
+  min-width: 0;
   transition: background-color 0.2s;
+  border-right: 1px solid var(--white);
 }
-.ps-pending { background: var(--border2); }
+.progress-segment-item:last-child { border-right: none; }
+.ps-pending { background: transparent; }
 .ps-done    { background: var(--teal); }
 .ps-active  { background: var(--gold); }
 
@@ -1249,6 +1264,30 @@ select.input-field { cursor: pointer; }
 }
 .fc:hover  { color: var(--ink2); border-color: var(--border2); }
 .fc.on     { background: var(--teal-l); color: var(--teal); border-color: var(--teal-m); }
+
+/* "Filter by" — the declaration filters, as one chip in the same row as the
+   type chips rather than three loose Selects in the page header. It sits with
+   the controls that do the same job, and carries a count so an applied filter
+   is visible with the menu shut. */
+.fc-filterby {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.fc-filterby .fc-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  border-radius: 20px;
+  background: var(--teal);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1;
+}
 .fc.red-on { background: var(--red-l);  color: var(--red);  border-color: rgba(207,34,46,0.3); }
 
 /* ── COLUMN HEADERS ── */
@@ -1286,19 +1325,25 @@ select.input-field { cursor: pointer; }
 .th-days    { width: 50px;  flex-shrink: 0; text-align: right; }
 .th-arrow   { width: 24px;  flex-shrink: 0; }
 
-/* ── URGENCY STRIP ── */
+/* ── URGENCY STRIP ──
+   Removed. It painted a coloured bar down the left of every row, and since
+   .urg-teal was the default state every row got one — so the colour marked
+   nothing. The two states that matter (demurrage, SLA breach) already say so
+   in words, in the risk badges on the row. Kept as a plain indent so the
+   columns still line up. */
 .sr-urgency {
   width: 3px;
   height: 36px;
-  border-radius: 2px;
   flex-shrink: 0;
   margin-right: 12px;
+  background: transparent;
 }
-.urg-red   { background: var(--red); }
-.urg-amber { background: var(--gold); }
-.urg-teal  { background: var(--teal); }
-.urg-green { background: var(--green); }
-.urg-grey  { background: var(--border2); }
+/* Only a genuine problem gets a mark, and only these two. */
+.urg-red   { background: var(--red); border-radius: 2px; }
+.urg-amber { background: var(--gold); border-radius: 2px; }
+.urg-teal,
+.urg-green,
+.urg-grey  { background: transparent; }
 
 /* ── CUSTOMER GROUP ── */
 .cust-group { border-bottom: 1px solid var(--border); }
@@ -1319,15 +1364,20 @@ select.input-field { cursor: pointer; }
 }
 .cust-header:hover { background: var(--border); }
 
+/* A real 22px target with a hover state, rather than a 9px text glyph. */
 .ch-chevron {
-  font-size: 9px;
-  color: var(--ink3);
-  transition: transform 0.2s;
-  width: 14px;
+  width: 22px;
+  height: 22px;
   flex-shrink: 0;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+  color: var(--ink3);
+  transition: transform 0.18s var(--ease, ease), background 0.12s, color 0.12s;
 }
-.ch-chevron.open { transform: rotate(90deg); }
+.cust-header:hover .ch-chevron { background: var(--white); color: var(--ink); }
+.ch-chevron.open { transform: rotate(90deg); color: var(--ink2); }
 
 .ch-ava {
   width: 28px;
@@ -1344,18 +1394,27 @@ select.input-field { cursor: pointer; }
 .ch-name { font-size: 13px; font-weight: 600; color: var(--ink); flex: 1; }
 .ch-meta { font-size: 11.5px; color: var(--ink3); flex-shrink: 0; }
 
-.ch-tags { display: flex; gap: 5px; align-items: center; flex-shrink: 0; }
+/* Group risk tags. These were monospace at weight 500 with a 4px radius —
+   three ways of differing from the Badge used everywhere else in the app for
+   exactly this job. Same pill shape, same weight, same face now; only the
+   tint separates them, and the count leads so the eye lands on the number. */
+.ch-tags { display: flex; gap: 6px; align-items: center; flex-shrink: 0; }
 .ch-tag {
-  font-family: var(--mono);
+  font-family: var(--font);
   font-size: var(--badge-fs-sm);
-  font-weight: 500;
+  font-weight: 600;
+  line-height: 1.4;
   padding: var(--badge-py-sm) var(--badge-px-sm);
-  border-radius: 4px;
+  border-radius: 20px;
+  white-space: nowrap;
+  border: 1px solid transparent;
 }
-.ct-def   { background: var(--bg);     color: var(--ink3);  border: 1px solid var(--border); }
-.ct-red   { background: var(--red-l);  color: var(--red); }
-.ct-amber { background: var(--gold-l); color: var(--gold); }
-.ct-green { background: var(--green-l);color: var(--green); }
+.ch-tag svg { opacity: 0.85; }
+/* "N Active" is a count, not a state — it recedes. */
+.ct-def   { background: transparent; color: var(--ink3); border-color: var(--border); }
+.ct-red   { background: var(--red-l);   color: var(--red); }
+.ct-amber { background: var(--gold-l);  color: var(--gold); }
+.ct-green { background: var(--green-l); color: var(--green); }
 
 /* ── SHIPMENT ROWS ── */
 .ship-row {
@@ -2568,7 +2627,10 @@ select.input-field { cursor: pointer; }
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.45; }
 }
-.cc-kpi-cell--warn { border-left: 3px solid var(--gold); padding-left: 12px; }
+/* The gold bar down the left of Penalty Exposure is gone. The figure is
+   already gold and already labelled; a coloured rule beside it added emphasis
+   without adding information, and it was the only cell in the row with one. */
+.cc-kpi-cell--warn { border-left: none; }
 
 /* Active (currently applied) filter — border + ring tinted to the cell's own
    semantic color, so it's visible at a glance which KPI is driving the list. */

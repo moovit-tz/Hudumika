@@ -123,7 +123,11 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
 
       {/* Status Pill */}
       <div className="sr-status" style={{ width: '140px', flexShrink: 0 }}>
-        <StatusPill stage={shipment.stage} />
+        {/* A shipment on a custom workflow has a workflow_steps UUID in
+            `stage`, so passing it straight through printed
+            "5e9ef8f3-ec93-4bb3-92c7-6d86084dc8cc" in the Status column. The
+            step's own name is carried on the row for exactly this. */}
+        <StatusPill stage={(shipment as any).workflow_step_name || shipment.stage} />
       </div>
 
       {/* Officer assigned */}

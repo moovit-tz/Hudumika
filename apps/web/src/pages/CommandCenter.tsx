@@ -13,6 +13,10 @@ import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover
 import { Button } from '../components/ui/button.js';
 import { Badge } from '../components/ui/badge.js';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog.js';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel,
+  DropdownMenuSeparator, DropdownMenuItem, DropdownMenuCheckboxItem,
+} from '../components/ui/dropdown-menu.js';
 import { AiExtractedCard } from '../components/AiExtractedCard.js';
 import { showAlert } from '../lib/alert.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
@@ -686,55 +690,6 @@ export const CommandCenter: React.FC = () => {
                 space is tight, so the primary action button (below) never
                 gets pushed off-screen. */}
             <div className="cc-page-header-scroll">
-              {!isMobile && <span className="cc-date-chip">{todayLabel}</span>}
-
-              {/* ── Declaration filters (from /clearos/declarations) ──
-                  Server-side: each change refetches rather than narrowing a
-                  loaded array. The search that feeds them is FilterBar's
-                  existing one, promoted to the API — not a second box. */}
-              <Select value={declPresence} onValueChange={setDeclPresence}>
-                <SelectTrigger style={{ height: 32, fontSize: 12.5, minWidth: 132, width: 'auto' }}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Any declaration</SelectItem>
-                  {/* The gap list: what has not been lodged yet. */}
-                  <SelectItem value="no">Not declared</SelectItem>
-                  <SelectItem value="yes">Declared</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select value={declStatus} onValueChange={setDeclStatus}>
-                <SelectTrigger style={{ height: 32, fontSize: 12.5, minWidth: 128, width: 'auto' }}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">All statuses</SelectItem>
-                  {DECLARATION_STATUSES.map(s => (
-                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <Select value={lane} onValueChange={setLane}>
-                <SelectTrigger style={{ height: 32, fontSize: 12.5, minWidth: 112, width: 'auto' }}>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all__">Any lane</SelectItem>
-                  {LANES.map(l => (
-                    <SelectItem key={l.value} value={l.value}>{l.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {declFiltersActive && (
-                <Button size="sm" variant="ghost" className="h-8 text-xs"
-                  onClick={() => { setDeclStatus('__all__'); setLane('__all__'); setDeclPresence('__all__'); }}>
-                  Clear
-                </Button>
-              )}
-
               {/* List / Board toggle */}
               <div className="cc-view-toggle">
                 {(['list', 'board'] as const).map(m => (
@@ -772,10 +727,6 @@ export const CommandCenter: React.FC = () => {
 
             {/* Primary actions — always fully visible, never scrolled/clipped. */}
             <div className="cc-page-header-actions">
-              <Button size="sm" variant="outline" className="gap-1.5 border-[var(--teal)] text-[var(--teal)] hover:bg-[var(--teal-l)]" onClick={() => setAiScanOpen(true)}>
-                <Icon name="sparkle" size={13} color="var(--teal)" />
-                AI Scan
-              </Button>
               {canCreate && (
                 <Button size="sm" style={{ background: 'var(--teal)', color: '#fff' }} onClick={() => navigate('/clearos/ops/new')}>
                   <Icon name="plus" size={13} color="currentColor" />
@@ -831,6 +782,65 @@ export const CommandCenter: React.FC = () => {
                 setShowOnlyMyCases={setShowOnlyMyCases}
                 selectedRiskOnly={selectedRiskOnly}
                 setSelectedRiskOnly={setSelectedRiskOnly}
+                declarationFilter={
+                  /* One "Filter by" menu instead of three loose Selects in the
+                     page header. Those sat in a different place doing the same
+                     job as the chips beside this, so the page had two filter
+                     controls in two styles. The count on the trigger is what
+                     tells you a filter is on once the menu is shut. */
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button type="button" className={`fc fc-filterby${declFiltersActive ? ' on' : ''}`}>
+                        <Icon name="sliders" size={12} />
+                        Filter by
+                        {declFiltersActive && (
+                          <span className="fc-count">
+                            {[declPresence, declStatus, lane].filter(v => v !== '__all__').length}
+                          </span>
+                        )}
+                        <Icon name="chevronDown" size={11} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuLabel>Declaration</DropdownMenuLabel>
+                      {[
+                        { v: '__all__', l: 'Any declaration' },
+                        { v: 'no',      l: 'Not declared' },
+                        { v: 'yes',     l: 'Declared' },
+                      ].map(o => (
+                        <DropdownMenuCheckboxItem key={o.v} checked={declPresence === o.v}
+                          onCheckedChange={() => setDeclPresence(o.v)}>{o.l}</DropdownMenuCheckboxItem>
+                      ))}
+
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>Filing status</DropdownMenuLabel>
+                      <DropdownMenuCheckboxItem checked={declStatus === '__all__'}
+                        onCheckedChange={() => setDeclStatus('__all__')}>All statuses</DropdownMenuCheckboxItem>
+                      {DECLARATION_STATUSES.map(s => (
+                        <DropdownMenuCheckboxItem key={s.value} checked={declStatus === s.value}
+                          onCheckedChange={() => setDeclStatus(s.value)}>{s.label}</DropdownMenuCheckboxItem>
+                      ))}
+
+                      <DropdownMenuSeparator />
+                      <DropdownMenuLabel>TRA lane</DropdownMenuLabel>
+                      <DropdownMenuCheckboxItem checked={lane === '__all__'}
+                        onCheckedChange={() => setLane('__all__')}>Any lane</DropdownMenuCheckboxItem>
+                      {LANES.map(l => (
+                        <DropdownMenuCheckboxItem key={l.value} checked={lane === l.value}
+                          onCheckedChange={() => setLane(l.value)}>{l.label}</DropdownMenuCheckboxItem>
+                      ))}
+
+                      {declFiltersActive && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onSelect={() => {
+                            setDeclStatus('__all__'); setLane('__all__'); setDeclPresence('__all__');
+                          }}>Clear declaration filters</DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                }
               />
             </div>
           </div>

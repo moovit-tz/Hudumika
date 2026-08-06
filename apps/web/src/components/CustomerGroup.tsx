@@ -27,16 +27,17 @@ export const CustomerGroup: React.FC<CustomerGroupProps> = ({ group, shipmentHre
           borderBottom: '1px solid var(--border)',
         }}
       >
-        {/* Collapse Chevron Arrow */}
+        {/* Collapse toggle. Was a bare ▶ glyph — a text character, so its
+            weight and baseline came from the font rather than the icon set
+            every other control here uses. Now the same chevron as the rest of
+            the app, in a proper hit target that shows it is pressable. */}
         <span
           className={`ch-chevron ${isOpen ? 'open' : ''}`}
-          style={{
-            display: 'inline-block',
-            transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
-            transition: 'transform 0.2s ease',
-          }}
+          role="button"
+          aria-expanded={isOpen}
+          aria-label={isOpen ? 'Collapse customer' : 'Expand customer'}
         >
-          ▶
+          <Icon name="chevronRight" size={13} strokeWidth={2.4} />
         </span>
 
         {/* Customer Avatar */}

@@ -14,7 +14,7 @@ export interface ProgressSegmentsProps {
 export const ProgressSegments: React.FC<ProgressSegmentsProps> = ({ currentStage, workflowStepOrder, workflowStepCount }) => {
   if (workflowStepCount !== undefined && workflowStepOrder !== undefined) {
     return (
-      <div className="progress-segments" style={{ display: 'flex', gap: '3px', width: '100%' }}>
+      <div className="progress-segments" style={{ display: 'flex', width: '100%' }}>
         {Array.from({ length: workflowStepCount }, (_, idx) => {
           let stateClass = 'ps-pending';
           if (idx < workflowStepOrder) stateClass = 'ps-done';
@@ -28,7 +28,7 @@ export const ProgressSegments: React.FC<ProgressSegmentsProps> = ({ currentStage
   const currentIndex = CLEARANCE_STAGES.indexOf(currentStage as any);
 
   return (
-    <div className="progress-segments" style={{ display: 'flex', gap: '3px', width: '100%' }}>
+    <div className="progress-segments" style={{ display: 'flex', width: '100%' }}>
       {CLEARANCE_STAGES.map((stage, idx) => {
         let stateClass = 'ps-pending';
 

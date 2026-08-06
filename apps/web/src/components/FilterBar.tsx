@@ -10,6 +10,13 @@ interface FilterBarProps {
   setShowOnlyMyCases: (val: boolean) => void;
   selectedRiskOnly: boolean;
   setSelectedRiskOnly: (val: boolean) => void;
+  /**
+   * The declaration filters, rendered as one "Filter by" menu at the end of
+   * this row. They used to be three loose Selects up in the page header, a
+   * second filter control in a different place doing the same kind of job as
+   * these chips. One row filters the list; this is that row.
+   */
+  declarationFilter?: React.ReactNode;
 }
 
 const TYPES: (ShipmentType | 'ALL')[] = ['ALL', 'SEA_FCL', 'SEA_LCL', 'AIR', 'ROAD', 'RAIL', 'BULK'];
@@ -25,6 +32,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   selectedType, setSelectedType,
   showOnlyMyCases, setShowOnlyMyCases,
   selectedRiskOnly, setSelectedRiskOnly,
+  declarationFilter,
 }) => {
   const [local, setLocal]     = useState(searchQuery);
   const [pending, setPending] = useState(false);
@@ -92,6 +100,12 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             {TYPE_LABELS[type] ?? type}
           </button>
         ))}
+        {declarationFilter && (
+          <>
+            <div className="filter-divider" />
+            {declarationFilter}
+          </>
+        )}
       </div>
     </div>
   );
