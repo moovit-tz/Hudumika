@@ -12,15 +12,19 @@ interface ShipmentRowProps {
 }
 
 export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
-  // Determine urgency color
-  let urgencyClass = 'urg-teal';
-  if (shipment.active_risk_types?.includes('DEMURRAGE')) {
-    urgencyClass = 'urg-red';
-  } else if (shipment.active_risk_types?.includes('SLA_BREACH')) {
-    urgencyClass = 'urg-amber';
-  } else if (shipment.stage === 'DELIVERY' || shipment.stage === 'CLOSED') {
-    urgencyClass = 'urg-green';
-  }
+  /**
+   * Risk marker. Two states get one, and only because they cost money:
+   * demurrage accruing, and an SLA already breached.
+   *
+   * There used to be four — teal for "in progress" and green for "done" as
+   * well — so every row carried a coloured bar and the colour distinguished
+   * nothing. And it was a floating 3px pill with margin around it, which read
+   * as a stray mark beside the row rather than part of it; it is an inset rule
+   * flush to the row's edge now.
+   */
+  const risk = shipment.active_risk_types?.includes('DEMURRAGE') ? ' risk-red'
+    : shipment.active_risk_types?.includes('SLA_BREACH') ? ' risk-amber'
+    : '';
 
   // Calculate days elapsed
   const createdDate = new Date(shipment.created_at);
@@ -48,7 +52,7 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
   return (
     <Link
       to={to}
-      className="ship-row"
+      className={`ship-row${risk}`}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -61,9 +65,6 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
         color: 'inherit',
       }}
     >
-      {/* Urgency indicator strip */}
-      <div className={`sr-urgency ${urgencyClass}`} />
-
       {/* Ref Number */}
       <div className="sr-ref" style={{ width: '130px', flexShrink: 0, fontFamily: 'var(--mono)', fontSize: '12px' }}>
         {shipment.ref_number}
@@ -111,7 +112,7 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
         <div className="sr-goods" style={{ fontWeight: 600, fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {shipment.goods_desc}
         </div>
-        <div className="sr-vessel" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '11px', color: 'var(--ink3)', marginTop: '2px' }}>
+        <div className="sr-vessel" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '10.5px', color: 'var(--ink3)', marginTop: '2px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           <Icon name="ship" size={11} /> {shipment.vessel || 'N/A'} • {shipment.origin_port || 'Origin'} ➔ {shipment.dest_port || 'Dest'}
         </div>
       </div>

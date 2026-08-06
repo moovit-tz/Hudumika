@@ -492,6 +492,8 @@ export const CommandCenter: React.FC = () => {
     const t = setTimeout(() => setServerSearch(searchQuery.trim()), 300);
     return () => clearTimeout(t);
   }, [searchQuery]);
+  // The box is gone from the toolbar, but /clearos/ops?search=… still works —
+  // it is what the global header search links to.
 
   const declFiltersActive = declStatus !== '__all__' || lane !== '__all__'
     || declPresence !== '__all__' || selectedType !== 'ALL';
@@ -597,41 +599,45 @@ export const CommandCenter: React.FC = () => {
     }
   };
 
-  // KPI cells config — values show an em-dash while the underlying
-  // useShipments() fetch is in flight, instead of flashing "0" for a beat.
+  // KPI cells config — restyled as individual design-system cards
   const kpiCells = [
-    { key: 'active',    label: 'Active Shipments',   value: loading ? '—' : fmt(kpis?.active_cases),           cls: 't', cell: '',      metric: 'active' as Metric },
-    { key: 'dem',       label: 'Demurrage Risk',      value: loading ? '—' : fmt(kpis?.demurrage_risk),          cls: 'r', cell: 'alert', metric: 'demurrage' as Metric },
-    { key: 'sla',       label: 'SLA Breached',        value: loading ? '—' : fmt(kpis?.sla_breached),                cls: 'r', cell: 'alert', metric: 'sla' as Metric },
-    { key: 'del',       label: 'Delivered Today',     value: loading ? '—' : fmt(kpis?.delivered_today),             cls: 'g', cell: '',      metric: 'delivered' as Metric },
-    { key: 'penalty',   label: 'Penalty Exposure',    value: loading ? '—' : `${fmtM(kpis?.penalty_exposure_tzs)} TZS`, cls: 'a', cell: 'warn', metric: null },
-    { key: 'ontime',    label: 'On-Time Rate',        value: loading || kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`,     cls: 'g', cell: '',      metric: null },
-    { key: 'month',     label: 'This Month',          value: loading ? '—' : fmt(kpis?.cases_this_month),        cls: 'n', cell: '',      metric: null },
+    { key: 'active',    label: 'Active Shipments',   value: loading ? '—' : fmt(kpis?.active_cases),           icon: 'package',       color: 'var(--teal)',  bg: 'var(--teal-l)',  metric: 'active' as Metric },
+    { key: 'dem',       label: 'Demurrage Risk',      value: loading ? '—' : fmt(kpis?.demurrage_risk),          icon: 'alertTriangle', color: 'var(--red)',   bg: 'var(--red-l)',   cell: 'alert', metric: 'demurrage' as Metric },
+    { key: 'sla',       label: 'SLA Breached',        value: loading ? '—' : fmt(kpis?.sla_breached),            icon: 'clock',         color: 'var(--red)',   bg: 'var(--red-l)',   cell: 'alert', metric: 'sla' as Metric },
+    { key: 'del',       label: 'Delivered Today',     value: loading ? '—' : fmt(kpis?.delivered_today),         icon: 'checkCircle',   color: 'var(--green)', bg: '#ecfdf5',        metric: 'delivered' as Metric },
+    { key: 'penalty',   label: 'Penalty Exposure',    value: loading ? '—' : `${fmtM(kpis?.penalty_exposure_tzs)} TZS`, icon: 'dollarSign', color: 'var(--gold)',  bg: '#fffbeb',        cell: 'warn', metric: null },
+    { key: 'ontime',    label: 'On-Time Rate',        value: loading || kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`, icon: 'trendingUp', color: 'var(--blue)',  bg: '#eff6ff',        metric: null },
+    { key: 'month',     label: 'This Month',          value: loading ? '—' : fmt(kpis?.cases_this_month),        icon: 'calendar',      color: 'var(--navy)',  bg: 'var(--bg)',      metric: null },
   ];
 
-  // Renders one KPI strip cell — a real <button> (toggles selectedMetric,
-  // clearing back to null on a second click of the same cell) for anything
-  // with a `metric`, or a plain non-interactive <div> for informational-only
-  // cells (penalty exposure, on-time rate, this month) so they don't get a
-  // pointer cursor/hover/focus affordance that implies they do something.
+  // Renders one KPI card — interactive button for filter metrics or div for informational numbers.
   const kpiCell = (cell: (typeof kpiCells)[number]) => {
     const clickable = cell.metric !== null;
     const active = clickable && selectedMetric === cell.metric;
     const cls = [
-      'cc-kpi-cell', cell.cls,
-      clickable ? 'cc-kpi-cell--clickable' : '',
-      active ? 'cc-kpi-cell--active' : '',
-      cell.cell ? `cc-kpi-cell--${cell.cell}` : '',
+      'cc-kpi-card',
+      clickable ? 'cc-kpi-card--clickable' : '',
+      active ? 'cc-kpi-card--active' : '',
+      cell.cell === 'alert' ? 'r' : '',
     ].filter(Boolean).join(' ');
+
     const inner = (
       <>
-        <span className="cc-kpi-cell-label">
-          {cell.cell === 'alert' && <span className="cc-kpi-dot" />}
-          {cell.label}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <span className="cc-kpi-cell-label">
+            {cell.cell === 'alert' && <span className="cc-kpi-dot" />}
+            {cell.label}
+          </span>
+          <div style={{ width: 26, height: 26, borderRadius: 6, background: cell.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Icon name={cell.icon as any} size={13} color={cell.color} />
+          </div>
+        </div>
+        <span className="cc-kpi-cell-value" style={{ color: cell.cell === 'alert' && cell.value !== '0' && cell.value !== '—' ? 'var(--red)' : cell.metric === 'active' ? 'var(--teal)' : 'var(--ink)' }}>
+          {cell.value}
         </span>
-        <span className="cc-kpi-cell-value">{cell.value}</span>
       </>
     );
+
     return clickable ? (
       <button
         key={cell.key}
@@ -701,24 +707,6 @@ export const CommandCenter: React.FC = () => {
                 space is tight, so the primary action button (below) never
                 gets pushed off-screen. */}
             <div className="cc-page-header-scroll">
-              {/* Search. It lives here rather than mid-row among the filter
-                  chips — it is the page's primary way in, not one filter
-                  among several, and it was sitting between two chip groups. */}
-              <div className="cc-search">
-                <Icon name="search" size={14} color="var(--ink3)" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Escape') setSearchQuery(''); }}
-                  placeholder={isMobile ? 'Search…' : 'Search ref, BL/AWB, TANCIS or importer…'}
-                  aria-label="Search shipments"
-                />
-                {searchQuery && (
-                  <button type="button" onClick={() => setSearchQuery('')} aria-label="Clear search">×</button>
-                )}
-              </div>
-
               {/* List / Board toggle */}
               <div className="cc-view-toggle">
                 {(['list', 'board'] as const).map(m => (
