@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuItem, DropdownMenuCheckboxItem,
+  DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent,
 } from '../components/ui/dropdown-menu.js';
 import { AiExtractedCard } from '../components/AiExtractedCard.js';
 import { showAlert } from '../lib/alert.js';
@@ -818,44 +819,79 @@ export const CommandCenter: React.FC = () => {
                         <Icon name="chevronDown" size={11} />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56 max-h-[70vh] overflow-y-auto">
-                      {/* Shipment type — was seven always-visible chips in the
-                          row outside. One single-choice field does not need
-                          seven permanent buttons. */}
-                      <DropdownMenuLabel>Shipment type</DropdownMenuLabel>
-                      {SHIPMENT_TYPES.map(t => (
-                        <DropdownMenuCheckboxItem key={t.value} checked={selectedType === t.value}
-                          onCheckedChange={() => setSelectedType(t.value)}>{t.label}</DropdownMenuCheckboxItem>
-                      ))}
+                    {/* Three submenus, not twenty-seven rows.
+                        Flat, this menu listed 7 types + 3 presence + 11 filing
+                        statuses + 5 lanes + Clear, which overran the viewport
+                        and had to scroll. Each group is one row now, showing
+                        its current value, and opens on hover. */}
+                    <DropdownMenuContent align="end" className="w-60">
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <span className="flex-1">Shipment type</span>
+                          <span className="text-[11px] text-muted-foreground mr-1">
+                            {SHIPMENT_TYPES.find(t => t.value === selectedType)?.label ?? 'All types'}
+                          </span>
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent className="w-48">
+                          {SHIPMENT_TYPES.map(t => (
+                            <DropdownMenuCheckboxItem key={t.value} checked={selectedType === t.value}
+                              onCheckedChange={() => setSelectedType(t.value)}>{t.label}</DropdownMenuCheckboxItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
 
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel>Declaration</DropdownMenuLabel>
-                      {[
-                        { v: '__all__', l: 'Any declaration' },
-                        { v: 'no',      l: 'Not declared' },
-                        { v: 'yes',     l: 'Declared' },
-                      ].map(o => (
-                        <DropdownMenuCheckboxItem key={o.v} checked={declPresence === o.v}
-                          onCheckedChange={() => setDeclPresence(o.v)}>{o.l}</DropdownMenuCheckboxItem>
-                      ))}
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <span className="flex-1">Declaration</span>
+                          <span className="text-[11px] text-muted-foreground mr-1">
+                            {declPresence === 'no' ? 'Not declared' : declPresence === 'yes' ? 'Declared' : 'Any'}
+                          </span>
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent className="w-48">
+                          {[
+                            { v: '__all__', l: 'Any declaration' },
+                            { v: 'no',      l: 'Not declared' },
+                            { v: 'yes',     l: 'Declared' },
+                          ].map(o => (
+                            <DropdownMenuCheckboxItem key={o.v} checked={declPresence === o.v}
+                              onCheckedChange={() => setDeclPresence(o.v)}>{o.l}</DropdownMenuCheckboxItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
 
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel>Filing status</DropdownMenuLabel>
-                      <DropdownMenuCheckboxItem checked={declStatus === '__all__'}
-                        onCheckedChange={() => setDeclStatus('__all__')}>All statuses</DropdownMenuCheckboxItem>
-                      {DECLARATION_STATUSES.map(s => (
-                        <DropdownMenuCheckboxItem key={s.value} checked={declStatus === s.value}
-                          onCheckedChange={() => setDeclStatus(s.value)}>{s.label}</DropdownMenuCheckboxItem>
-                      ))}
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <span className="flex-1">Filing status</span>
+                          <span className="text-[11px] text-muted-foreground mr-1">
+                            {DECLARATION_STATUSES.find(x => x.value === declStatus)?.label ?? 'All'}
+                          </span>
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent className="w-48 max-h-[60vh] overflow-y-auto">
+                          <DropdownMenuCheckboxItem checked={declStatus === '__all__'}
+                            onCheckedChange={() => setDeclStatus('__all__')}>All statuses</DropdownMenuCheckboxItem>
+                          {DECLARATION_STATUSES.map(x => (
+                            <DropdownMenuCheckboxItem key={x.value} checked={declStatus === x.value}
+                              onCheckedChange={() => setDeclStatus(x.value)}>{x.label}</DropdownMenuCheckboxItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
 
-                      <DropdownMenuSeparator />
-                      <DropdownMenuLabel>TRA lane</DropdownMenuLabel>
-                      <DropdownMenuCheckboxItem checked={lane === '__all__'}
-                        onCheckedChange={() => setLane('__all__')}>Any lane</DropdownMenuCheckboxItem>
-                      {LANES.map(l => (
-                        <DropdownMenuCheckboxItem key={l.value} checked={lane === l.value}
-                          onCheckedChange={() => setLane(l.value)}>{l.label}</DropdownMenuCheckboxItem>
-                      ))}
+                      <DropdownMenuSub>
+                        <DropdownMenuSubTrigger>
+                          <span className="flex-1">TRA lane</span>
+                          <span className="text-[11px] text-muted-foreground mr-1">
+                            {LANES.find(l => l.value === lane)?.label ?? 'Any'}
+                          </span>
+                        </DropdownMenuSubTrigger>
+                        <DropdownMenuSubContent className="w-44">
+                          <DropdownMenuCheckboxItem checked={lane === '__all__'}
+                            onCheckedChange={() => setLane('__all__')}>Any lane</DropdownMenuCheckboxItem>
+                          {LANES.map(l => (
+                            <DropdownMenuCheckboxItem key={l.value} checked={lane === l.value}
+                              onCheckedChange={() => setLane(l.value)}>{l.label}</DropdownMenuCheckboxItem>
+                          ))}
+                        </DropdownMenuSubContent>
+                      </DropdownMenuSub>
 
                       {declFiltersActive && (
                         <>
