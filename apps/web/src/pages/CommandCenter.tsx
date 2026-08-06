@@ -137,6 +137,17 @@ function OfficerMentionInput({
 
 type Metric = 'active' | 'demurrage' | 'sla' | 'delivered' | null;
 
+/* Shipment type, for the "Filter by" menu. Was seven chips in the toolbar. */
+const SHIPMENT_TYPES: { value: ShipmentType | 'ALL'; label: string }[] = [
+  { value: 'ALL',     label: 'All types' },
+  { value: 'SEA_FCL', label: 'Sea — FCL' },
+  { value: 'SEA_LCL', label: 'Sea — LCL' },
+  { value: 'AIR',     label: 'Air' },
+  { value: 'ROAD',    label: 'Road' },
+  { value: 'RAIL',    label: 'Rail' },
+  { value: 'BULK',    label: 'Bulk' },
+];
+
 /* ── Stage colour for board columns — column order + label already carry
    "which stage", so this isn't a per-stage hue anymore, just two states:
    still in the customs process (brand teal) vs. released/completed (green). */
@@ -483,7 +494,7 @@ export const CommandCenter: React.FC = () => {
   }, [searchQuery]);
 
   const declFiltersActive = declStatus !== '__all__' || lane !== '__all__'
-    || declPresence !== '__all__';
+    || declPresence !== '__all__' || selectedType !== 'ALL';
 
   const { groupedShipments, kpis, loading, refresh } = useShipments({
     ...(showOnlyMyCases ? { assigned_to: user?.id } : {}),
@@ -690,6 +701,24 @@ export const CommandCenter: React.FC = () => {
                 space is tight, so the primary action button (below) never
                 gets pushed off-screen. */}
             <div className="cc-page-header-scroll">
+              {/* Search. It lives here rather than mid-row among the filter
+                  chips — it is the page's primary way in, not one filter
+                  among several, and it was sitting between two chip groups. */}
+              <div className="cc-search">
+                <Icon name="search" size={14} color="var(--ink3)" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Escape') setSearchQuery(''); }}
+                  placeholder={isMobile ? 'Search…' : 'Search ref, BL/AWB, TANCIS or importer…'}
+                  aria-label="Search shipments"
+                />
+                {searchQuery && (
+                  <button type="button" onClick={() => setSearchQuery('')} aria-label="Clear search">×</button>
+                )}
+              </div>
+
               {/* List / Board toggle */}
               <div className="cc-view-toggle">
                 {(['list', 'board'] as const).map(m => (
@@ -795,13 +824,23 @@ export const CommandCenter: React.FC = () => {
                         Filter by
                         {declFiltersActive && (
                           <span className="fc-count">
-                            {[declPresence, declStatus, lane].filter(v => v !== '__all__').length}
+                            {[declPresence, declStatus, lane, selectedType].filter(v => v !== '__all__' && v !== 'ALL').length}
                           </span>
                         )}
                         <Icon name="chevronDown" size={11} />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuContent align="end" className="w-56 max-h-[70vh] overflow-y-auto">
+                      {/* Shipment type — was seven always-visible chips in the
+                          row outside. One single-choice field does not need
+                          seven permanent buttons. */}
+                      <DropdownMenuLabel>Shipment type</DropdownMenuLabel>
+                      {SHIPMENT_TYPES.map(t => (
+                        <DropdownMenuCheckboxItem key={t.value} checked={selectedType === t.value}
+                          onCheckedChange={() => setSelectedType(t.value)}>{t.label}</DropdownMenuCheckboxItem>
+                      ))}
+
+                      <DropdownMenuSeparator />
                       <DropdownMenuLabel>Declaration</DropdownMenuLabel>
                       {[
                         { v: '__all__', l: 'Any declaration' },
@@ -834,8 +873,9 @@ export const CommandCenter: React.FC = () => {
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onSelect={() => {
-                            setDeclStatus('__all__'); setLane('__all__'); setDeclPresence('__all__');
-                          }}>Clear declaration filters</DropdownMenuItem>
+                            setDeclStatus('__all__'); setLane('__all__');
+                            setDeclPresence('__all__'); setSelectedType('ALL');
+                          }}>Clear all filters</DropdownMenuItem>
                         </>
                       )}
                     </DropdownMenuContent>

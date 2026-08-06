@@ -1265,6 +1265,43 @@ select.input-field { cursor: pointer; }
 .fc:hover  { color: var(--ink2); border-color: var(--border2); }
 .fc.on     { background: var(--teal-l); color: var(--teal); border-color: var(--teal-m); }
 
+/* Ops search, in the page header beside the view toggle. */
+.cc-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 10px;
+  min-width: 190px;
+  flex: 0 1 300px;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--white);
+  transition: border-color var(--dur-fast, 80ms) var(--ease, ease), box-shadow var(--dur-fast, 80ms) var(--ease, ease);
+}
+.cc-search:focus-within { border-color: var(--teal); box-shadow: 0 0 0 2px var(--teal-l); }
+.cc-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font);
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.cc-search input::placeholder { color: var(--ink3); }
+.cc-search button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--ink3);
+  font-size: 15px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.cc-search button:hover { color: var(--ink); }
+
 /* "Filter by" — the declaration filters, as one chip in the same row as the
    type chips rather than three loose Selects in the page header. It sits with
    the controls that do the same job, and carries a count so an applied filter
@@ -2556,11 +2593,19 @@ select.input-field { cursor: pointer; }
    no `--clickable` class, so they never pick up the pointer/hover/active
    styling below. `cls` letters (t/r/g/a/n) reuse the same semantic-color
    convention as `.nav-badge` elsewhere in this file. */
+/* One stat strip, not seven boxes.
+   Each figure used to be its own bordered, grey-filled card, so the row read
+   as seven competing objects with six gutters between them — and the grey fill
+   on white made every one look disabled. It is one surface now, divided by
+   hairlines: the numbers are the content, the container is just a container. */
 .cc-kpi-row {
   display: flex;
-  gap: 10px;
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
+  gap: 0;
+  margin: 12px 20px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  background: var(--white);
   overflow-x: auto;
   scrollbar-width: none;
   flex-shrink: 0;
@@ -2571,44 +2616,53 @@ select.input-field { cursor: pointer; }
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
   flex: 1 1 0;
   min-width: 132px;
-  padding: 10px 14px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg);
+  padding: 12px 16px;
+  border: none;
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
   text-align: left;
   font-family: var(--font);
   cursor: default;
   white-space: nowrap;
-  transition: background 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
+  transition: background 0.12s ease;
 }
+.cc-kpi-cell:last-child { border-right: none; }
 .cc-kpi-cell--clickable { cursor: pointer; }
-.cc-kpi-cell--clickable:hover { background: var(--white); border-color: var(--border2); }
-.cc-kpi-cell--clickable:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+.cc-kpi-cell--clickable:hover { background: var(--bg); }
+.cc-kpi-cell--clickable:focus-visible { outline: 2px solid var(--teal); outline-offset: -2px; }
 
+/* Labels read like the table headers below them — same case, same tracking. */
 .cc-kpi-cell-label {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
   color: var(--ink3);
 }
 .cc-kpi-cell-value {
-  font-size: 19px;
-  font-weight: 800;
-  line-height: 1.15;
-  letter-spacing: -0.3px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.4px;
   color: var(--ink);
 }
 
-/* cls → semantic value color (same letters/colors as .nav-badge) */
-.cc-kpi-cell.t .cc-kpi-cell-value { color: var(--teal); }
+/* Colour marks a state, not a category.
+   Every cell used to be tinted — teal, red, green, gold, ink — so five of the
+   seven figures were coloured and the two that actually mean "act now" did not
+   stand out at all. Only the alert cells carry colour now; the rest are ink,
+   and the labels do the distinguishing. */
 .cc-kpi-cell.r .cc-kpi-cell-value { color: var(--red); }
-.cc-kpi-cell.g .cc-kpi-cell-value { color: var(--green); }
 .cc-kpi-cell.a .cc-kpi-cell-value { color: var(--gold); }
+.cc-kpi-cell.t .cc-kpi-cell-value,
+.cc-kpi-cell.g .cc-kpi-cell-value,
 .cc-kpi-cell.n .cc-kpi-cell-value { color: var(--ink); }
 
 /* Attention emphasis: `cell: 'alert'` (demurrage / SLA breach — needs action
@@ -2621,11 +2675,9 @@ select.input-field { cursor: pointer; }
   background: var(--red);
   flex-shrink: 0;
   box-shadow: 0 0 0 2px var(--red-l);
-  animation: cc-kpi-pulse 2s ease-in-out infinite;
-}
-@keyframes cc-kpi-pulse {
-  0%, 100% { opacity: 1; }
-  50%      { opacity: 0.45; }
+  /* No pulse. It blinked forever on a figure that does not change while you
+     look at it, which is motion for its own sake — and it is beside a red
+     number that already says the same thing. */
 }
 /* The gold bar down the left of Penalty Exposure is gone. The figure is
    already gold and already labelled; a coloured rule beside it added emphasis

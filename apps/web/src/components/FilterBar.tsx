@@ -66,22 +66,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   return (
     <div className="filter-bar">
 
-      {/* ── Search — always-visible, plain input ── */}
-      <div className="filter-search fs-open">
-        <span className="fs-icon-btn"><Icon name="search" size={14} /></span>
-        <input
-          type="text"
-          className="fs-input"
-          placeholder="Search ref, goods, BL…"
-          value={local}
-          onChange={e => handleChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-        />
-        {pending && <span className="ai-thinking" title="Searching…" />}
-        {local && !pending && (
-          <button type="button" className="filter-clear" onMouseDown={e => e.preventDefault()} onClick={clearSearch}>×</button>
-        )}
-      </div>
+      {/* The search box moved to the page header, beside the List/Board
+          toggle. It is not a filter chip — it is the page's primary way in,
+          and it was sitting mid-row between two groups of chips. */}
 
       {/* ── Filter chips ── */}
       <div className="filter-chips">
@@ -94,18 +81,12 @@ export const FilterBar: React.FC<FilterBarProps> = ({
           At Risk
         </button>
         <div className="filter-divider" />
-        {TYPES.map(type => (
-          <button type="button" key={type} className={`fc${selectedType === type ? ' on' : ''}`}
-            onClick={() => setSelectedType(type)}>
-            {TYPE_LABELS[type] ?? type}
-          </button>
-        ))}
-        {declarationFilter && (
-          <>
-            <div className="filter-divider" />
-            {declarationFilter}
-          </>
-        )}
+        {/* The seven type chips (All / FCL / LCL / Air / Road / Rail / Bulk)
+            are inside the "Filter by" menu now. Seven always-visible buttons
+            for one single-choice field is a lot of row for something most
+            sessions never touch, and it sat beside a second filter control
+            doing the same job. */}
+        {declarationFilter}
       </div>
     </div>
   );
