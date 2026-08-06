@@ -39,6 +39,18 @@ function avColor(name?: string | null) { return AV_COLORS[((name ?? '?').charCod
 // of which app is currently open, so the box always finds something and jumps
 // straight to it, on top of whatever page-local filtering (if any) also runs.
 interface GlobalSearchHit { id: string; label: string; sublabel: string | null; path: string }
+/**
+ * The search covers the whole platform, but leads with wherever you are. The
+ * API takes `app`, gives that app's categories more rows and returns `order`
+ * with them first; this renders in that order and marks where the current
+ * app's results stop and the rest of the platform begins.
+ */
+interface GlobalSearchResponse {
+  data: Record<string, GlobalSearchHit[]>;
+  order?: string[];
+  focusedApp?: string | null;
+  categoryApp?: Record<string, string>;
+}
 const SEARCH_CATEGORIES: Record<string, { label: string; icon: IconName }> = {
   shipments: { label: 'Shipments', icon: 'ship' },
   customers: { label: 'Customers', icon: 'users' },
@@ -230,6 +242,8 @@ export function AppHeader({
   const navigate = useNavigate();
   const [resultsOpen, setResultsOpen] = useState(false);
   const [globalResults, setGlobalResults] = useState<Record<string, GlobalSearchHit[]>>({});
+  const [resultOrder, setResultOrder] = useState<string[]>([]);
+  const [categoryApp, setCategoryApp] = useState<Record<string, string>>({});
   const [globalSearching, setGlobalSearching] = useState(false);
   const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -239,13 +253,20 @@ export function AppHeader({
     if (q.length < 2) { setGlobalResults({}); setGlobalSearching(false); return; }
     setGlobalSearching(true);
     searchDebounceRef.current = setTimeout(() => {
-      apiFetch(`/v1/search?q=${encodeURIComponent(q)}`)
-        .then(res => setGlobalResults(res.data || {}))
-        .catch(() => setGlobalResults({}))
+      // `app` never narrows the search — it decides depth and order. See
+      // apps/api/src/routes/search.routes.ts.
+      const scope = activeApp ? `&app=${encodeURIComponent(activeApp)}` : '';
+      apiFetch(`/v1/search?q=${encodeURIComponent(q)}${scope}`)
+        .then((res: GlobalSearchResponse) => {
+          setGlobalResults(res.data || {});
+          setResultOrder(res.order?.length ? res.order : Object.keys(res.data || {}));
+          setCategoryApp(res.categoryApp || {});
+        })
+        .catch(() => { setGlobalResults({}); setResultOrder([]); })
         .finally(() => setGlobalSearching(false));
     }, 250);
     return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
-  }, [searchValue]);
+  }, [searchValue, activeApp]);
 
   function handleSearchFocus() {
     if (searchValue.trim().length >= 2) setResultsOpen(true);
@@ -270,10 +291,29 @@ export function AppHeader({
       {!globalSearching && !hasGlobalResults && (
         <div className="px-3 py-2.5 text-sm font-medium text-muted-foreground">No matches for &ldquo;{searchValue.trim()}&rdquo;</div>
       )}
-      {!globalSearching && Object.entries(globalResults).map(([cat, hits]) => (
+      {!globalSearching && resultOrder.map((cat, i) => {
+        const hits = globalResults[cat];
+        if (!hits?.length) return null;
+        const inThisApp = !!activeApp && categoryApp[cat] === activeApp;
+        // The first result that is NOT from the app you are in — everything
+        // above it is local, everything below is the rest of the platform.
+        const firstAway = !!activeApp && !inThisApp
+          && resultOrder.slice(0, i).some(c => globalResults[c]?.length && categoryApp[c] === activeApp);
+        return (
         <div key={cat} className="mb-1 last:mb-0">
-          <div className="px-2.5 pt-1.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          {firstAway && (
+            <div className="mx-2.5 mt-2 mb-1.5 flex items-center gap-2 border-t border-border pt-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Elsewhere on the platform
+            </div>
+          )}
+          <div className="flex items-center gap-1.5 px-2.5 pt-1.5 pb-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
             {SEARCH_CATEGORIES[cat]?.label || cat}
+            {inThisApp && (
+              <span className="rounded-full px-1.5 py-px text-[9px] font-bold normal-case tracking-normal"
+                    style={{ background: 'var(--teal-l)', color: 'var(--teal)' }}>
+                this app
+              </span>
+            )}
           </div>
           {hits.map(h => (
             <button
@@ -290,7 +330,8 @@ export function AppHeader({
             </button>
           ))}
         </div>
-      ))}
+        );
+      })}
     </>
   );
 
