@@ -138,7 +138,7 @@ export const TrackingPartsStock: React.FC = () => {
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{p.category || '—'}</td>
                   <td style={{ padding: '10px 14px' }}>
                     <span style={{ fontWeight: 700, color: low ? '#dc2626' : 'var(--ink)' }}>{p.quantity}</span>
-                    {low && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '2px 8px', background: '#fee2e2', color: '#dc2626' }}>LOW STOCK</span>}
+                    {low && <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 700, borderRadius: 20, padding: '2px 8px', background: 'var(--red-l)', color: '#dc2626' }}>LOW STOCK</span>}
                   </td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{p.unit_cost != null ? p.unit_cost.toLocaleString() : '—'}</td>
                   <td style={{ padding: '10px 14px', color: 'var(--ink2)' }}>{vendorName(p.vendor_id)}</td>

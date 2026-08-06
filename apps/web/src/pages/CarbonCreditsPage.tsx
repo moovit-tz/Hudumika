@@ -83,7 +83,7 @@ export const CarbonCreditsPage: React.FC = () => {
       <head>
         <title>Carbon Offset Certificate</title>
         <style>
-          body { font-family: system-ui, sans-serif; text-align: center; padding: 40px; color: #1e293b; background: #ecfdf5; }
+          body { font-family: system-ui, sans-serif; text-align: center; padding: 40px; color: #1e293b; background: var(--green-l); }
           .cert-container { background: #fff; padding: 60px; border: 8px solid #059669; border-radius: 12px; max-width: 800px; margin: 0 auto; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
           h1 { color: #064e3b; font-size: 42px; margin: 0 0 10px 0; font-weight: 900; letter-spacing: -0.02em; }
           h2 { color: #059669; font-size: 24px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 40px; }
@@ -141,7 +141,7 @@ export const CarbonCreditsPage: React.FC = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 24 }}>
           <div style={{ background: 'var(--white)', padding: 24, borderRadius: 12, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: '#ecfdf5', color: '#065f46', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--green-l)', color: '#065f46', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="leaf" size={18} />
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)' }}>TOTAL CREDITS SAVED</span>
@@ -167,7 +167,7 @@ export const CarbonCreditsPage: React.FC = () => {
 
           <div style={{ background: 'var(--white)', padding: 24, borderRadius: 12, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--gold-l)', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Icon name="package" size={18} />
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink3)' }}>OFFSET SHIPMENTS</span>

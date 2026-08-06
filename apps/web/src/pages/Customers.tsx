@@ -1496,7 +1496,7 @@ export const Customers: React.FC = () => {
                 const sc = TICKET_STATUS[st] || TICKET_STATUS.open;
                 return (
                   <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 28px', borderBottom: '1px solid var(--border)', background: 'var(--white)' }}>
-                    <div style={{ width: 32, height: 32, borderRadius: 8, background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--blue-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Icon name="headphones" size={14} color="#2563eb" strokeWidth={1.75} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>

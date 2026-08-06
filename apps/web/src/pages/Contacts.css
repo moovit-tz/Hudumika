@@ -72,7 +72,7 @@
 }
 .csb-nav-item:hover { background: var(--bg); }
 .csb-nav-item--on {
-  background: #e8f0fe;
+  background: var(--blue-l);
   color: #1a73e8;
   font-weight: 600;
 }
@@ -137,7 +137,7 @@
   transition: background .12s;
 }
 .csb-label-row:hover { background: var(--bg); }
-.csb-label-row--on { background: #e8f0fe; }
+.csb-label-row--on { background: var(--blue-l); }
 .csb-label-btn {
   flex: 1;
   display: flex;
@@ -194,7 +194,7 @@
   transition: background .12s;
 }
 .csb-sys-item:hover { background: var(--bg); }
-.csb-sys-item--on   { background: #e8f0fe; color: #1a73e8; }
+.csb-sys-item--on   { background: var(--blue-l); color: #1a73e8; }
 .csb-sys-item--icon { padding: 9px 12px; justify-content: center; gap: 0; }
 .csb-file-input     { display: none; }
 
@@ -351,7 +351,7 @@
 }
 .cts-chip:hover { background: #f1f3f4; }
 .cts-chip--on {
-  background: #e8f0fe;
+  background: var(--blue-l);
   border-color: #1a73e8;
   color: #1a73e8;
   font-weight: 600;
@@ -421,7 +421,7 @@
 .cts-list-bar-badge:hover { opacity: .75; }
 
 .cts-list-bar-badge--label {
-  background: #e8f0fe;
+  background: var(--blue-l);
   color: #1a73e8;
 }
 

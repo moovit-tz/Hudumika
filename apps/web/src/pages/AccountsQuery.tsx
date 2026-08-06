@@ -314,7 +314,7 @@ export function AccountsQuery() {
         {/* Error */}
         {error && (
           <div style={{
-            background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8,
+            background: 'var(--red-l)', border: '1px solid #fecaca', borderRadius: 8,
             padding: '12px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 10, color: 'var(--red)',
           }}>
             <Icon name="alertCircle" size={16} color="var(--red)" />

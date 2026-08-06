@@ -63,13 +63,13 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 24 }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Linked Invoice</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#1e40af', background: '#dbeafe', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#1e40af', background: 'var(--blue-l)', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
               {payment.invoice_number}
             </div>
           </div>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Linked Client</div>
-            <div style={{ fontSize: 12, fontWeight: 600, color: '#065f46', background: '#ecfdf5', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
+            <div style={{ fontSize: 12, fontWeight: 600, color: '#065f46', background: 'var(--green-l)', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
               {payment.client_name || 'Unknown'}
             </div>
           </div>
@@ -100,7 +100,7 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
         {payment.note && (
           <div style={{ marginTop: 24 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 8 }}>Internal Note</div>
-            <div style={{ padding: 16, background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: 9, fontSize: 13, color: '#92400e', lineHeight: 1.5 }}>
+            <div style={{ padding: 16, background: 'var(--gold-l)', border: '1px solid #fef3c7', borderRadius: 9, fontSize: 13, color: '#92400e', lineHeight: 1.5 }}>
               {payment.note}
             </div>
           </div>
@@ -356,7 +356,7 @@ export const FinancePayments: React.FC = () => {
                       onMouseEnter={e => { if (selectedPayment?.id !== p.id) e.currentTarget.style.background = '#f8fafc'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = selectedPayment?.id === p.id ? 'var(--bg)' : 'var(--white)'; }}>
                     <td style={{ padding: '12px 16px' }}>
-                      <span style={{ background: '#dbeafe', color: '#1e40af', padding: '3px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
+                      <span style={{ background: 'var(--blue-l)', color: '#1e40af', padding: '3px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
                         {p.invoice_number}
                       </span>
                     </td>

@@ -171,7 +171,7 @@ table{width:100%;border-collapse:collapse;margin-top:4px}
 thead tr{background:#f9fafb;border-bottom:1px solid #e5e7eb}
 th{padding:5px 8px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;letter-spacing:.04em}
 td{padding:5px 8px;border-bottom:1px solid #f3f4f6;font-size:10.5px}
-.carbon-box{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:12px;background:#ecfdf5;border-radius:6px;border:1px solid #a7f3d0}
+.carbon-box{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:12px;background:var(--green-l);border-radius:6px;border:1px solid #a7f3d0}
 .carbon-box .cl{display:block;font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
 .disclosure{font-size:9px;color:#9ca3af;margin-top:6px;font-style:italic}
 .footer{margin-top:24px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:9px;color:#9ca3af;text-align:center}

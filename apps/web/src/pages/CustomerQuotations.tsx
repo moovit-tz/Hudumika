@@ -153,7 +153,7 @@ function AcceptModal({ quote, onClose, onAccept }: {
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ background: 'var(--white)', borderRadius: '20px 20px 0 0', padding: '20px 20px 36px' }}>
         <div style={{ width: 40, height: 4, background: 'var(--border)', borderRadius: 99, margin: '0 auto 20px' }} />
-        <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#ecfdf5', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--green-l)', margin: '0 auto 16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Icon name="checkCircle" size={28} color="#059669" />
         </div>
         <div style={{ textAlign: 'center', marginBottom: 20 }}>
@@ -237,7 +237,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
       <div style={{ padding: '20px 16px 0' }}>
         {/* Expiry warning */}
         {expiring && canAct && (
-          <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 9, padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ background: 'var(--gold-l)', border: '1px solid #fde68a', borderRadius: 9, padding: '10px 14px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
             <Icon name="alertTriangle" size={16} color="#d97706" />
             <span style={{ fontSize: 13, fontWeight: 600, color: '#92400e' }}>
               Expires {fmtDate(quote.valid_until)} — accept before it lapses
@@ -260,7 +260,7 @@ function QuoteDetail({ quote: initial, onBack }: { quote: Quote; onBack: () => v
 
         {/* Rejection reason */}
         {quote.status === 'REJECTED' && quote.rejection_reason && (
-          <div style={{ background: '#fee2e2', borderRadius: 9, padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 10 }}>
+          <div style={{ background: 'var(--red-l)', borderRadius: 9, padding: '12px 16px', marginBottom: 16, display: 'flex', gap: 10 }}>
             <Icon name="x" size={16} color="#dc2626" />
             <span style={{ fontSize: 13, color: '#7f1d1d' }}><strong>Rejection reason:</strong> {quote.rejection_reason}</span>
           </div>
@@ -412,7 +412,7 @@ function QuoteCard({ quote, onClick }: { quote: Quote; onClick: () => void }) {
       </div>
       {canAct && (
         <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--bg)', display: 'flex', gap: 6 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#d97706', background: '#fef3c7', borderRadius: 20, padding: '3px 10px' }}>Action required</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: '#d97706', background: 'var(--gold-l)', borderRadius: 20, padding: '3px 10px' }}>Action required</span>
         </div>
       )}
     </button>

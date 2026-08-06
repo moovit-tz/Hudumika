@@ -278,7 +278,7 @@
   margin-bottom: 16px;
 }
 .auth-alert-ok {
-  background: #ecfdf5;
+  background: var(--green-l);
   border-color: #d1fae5;
   color: #065f46;
 }

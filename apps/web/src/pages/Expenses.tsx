@@ -125,7 +125,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Expense Details</div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button type="button" onClick={handleDelete} disabled={deleting} title="Delete" style={{ background: '#fee2e2', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: deleting ? 'wait' : 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button type="button" onClick={handleDelete} disabled={deleting} title="Delete" style={{ background: 'var(--red-l)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: deleting ? 'wait' : 'pointer', color: 'var(--red)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="trash" size={14} />
           </button>
           <button type="button" onClick={onClose} title="Close" style={{ background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py-sm) 8px', cursor: 'pointer', color: 'var(--ink)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
@@ -189,7 +189,7 @@ function ExpenseDetailPanel({ expense, onClose, onChanged, shipments, customers,
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Linked Client</div>
             {client ? (
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#065f46', background: '#ecfdf5', padding: '4px 8px', borderRadius: 6 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#065f46', background: 'var(--green-l)', padding: '4px 8px', borderRadius: 6 }}>
                 <Icon name="building" size={12} /> {client.name}
               </div>
             ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>—</div>}
@@ -460,7 +460,7 @@ export const Expenses: React.FC = () => {
                     ) : (
                       <>
                         {e.shipment_id && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--navy)', background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, width: 'fit-content', marginBottom: 2 }}><Icon name="package" size={10} /> Job Link</div>}
-                        {e.customer_id && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#065f46', background: '#ecfdf5', padding: '2px 6px', borderRadius: 4, width: 'fit-content' }}><Icon name="building" size={10} /> Client Link</div>}
+                        {e.customer_id && <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#065f46', background: 'var(--green-l)', padding: '2px 6px', borderRadius: 4, width: 'fit-content' }}><Icon name="building" size={10} /> Client Link</div>}
                       </>
                     )}
                   </div>

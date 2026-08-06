@@ -191,7 +191,7 @@ export const FinanceBalanceSheet: React.FC = () => {
         </div>
 
         {Math.abs(totalAssets - (totalLiabilities + totalEquity)) > 1 && (
-          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 16px', borderRadius:9, background:'#fef2f2', border:'1px solid #ef444440', fontSize:12, fontWeight:600, color:'#ef4444' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 16px', borderRadius:9, background:'var(--red-l)', border:'1px solid #ef444440', fontSize:12, fontWeight:600, color:'#ef4444' }}>
             <Icon name="alertTriangle" size={14} color="#ef4444" />
             Assets do not equal Liabilities + Equity — difference of {fmt(Math.abs(totalAssets - (totalLiabilities + totalEquity)))}
           </div>

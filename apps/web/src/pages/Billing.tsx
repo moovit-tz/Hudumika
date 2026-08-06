@@ -423,7 +423,7 @@ ${inv.exchangeRate > 0 && T.shippingTotal > 0 ? `<div style="text-align:right;fo
 ${inv.received > 0 ? `<div class="due"><span>Less: Amount Received</span><span style="color:#059669">(${fmtTZS(inv.received)})</span></div>` : ''}
 <div class="due"><span>Amount Due</span><span>${fmtTZS(Math.max(0, due))}</span></div>
 ${inv.shipmentCarbon ? `
-<div style="margin-top:12px;padding:12px;background:#ecfdf5;border-radius:6px;font-size:10px;color:#374151;border:1px solid #a7f3d0">
+<div style="margin-top:12px;padding:12px;background:var(--green-l);border-radius:6px;font-size:10px;color:#374151;border:1px solid #a7f3d0">
   <div style="font-weight:800;text-transform:uppercase;margin-bottom:6px;color:#111">Carbon Footprint (Estimate)</div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;line-height:1.6">
     <div><strong>CO₂ Emissions:</strong> ${Number(inv.shipmentCarbon.co2_emissions_kg).toLocaleString()} kg</div>

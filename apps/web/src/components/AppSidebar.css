@@ -382,7 +382,7 @@ html[data-expanded="true"] .app-sidebar {
 }
 
 .app-sb-badge--free {
-  background: #d1fae5;
+  background: var(--green-l);
   color: #065f46;
 }
 
@@ -529,7 +529,7 @@ html[data-expanded="true"] .app-sidebar {
 }
 
 .app-sb-footer-signout:hover {
-  background: #fee2e2;
+  background: var(--red-l);
   color: #dc2626;
 }
 

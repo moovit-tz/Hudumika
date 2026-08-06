@@ -74,7 +74,7 @@ function ShipmentCard({ s }: { s: ShipmentCase & { active_risk_types?: string[] 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', flex: 1 }}>{s.ref_number}</span>
         {atRisk && (
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', background: '#fee2e2', borderRadius: 20, padding: '2px 8px' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', background: 'var(--red-l)', borderRadius: 20, padding: '2px 8px' }}>
             At Risk
           </span>
         )}
@@ -262,7 +262,7 @@ export const CustomerDashboard: React.FC = () => {
               background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9,
               padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap',
             }}>
-              <div style={{ width: 36, height: 36, borderRadius: 9, background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 9, background: 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name="globe" size={17} color="#059669" />
               </div>
               <div>

@@ -303,7 +303,7 @@ function printQuote(q: Quote) {
     .box-val{font-size:14px;font-weight:700;color:#1e293b;margin-bottom:6px}
     .box-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;color:#475569}
     .box-row span:last-child{font-weight:600;color:#1e293b}
-    .route{display:flex;align-items:center;gap:12px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:16px;margin-bottom:32px}
+    .route{display:flex;align-items:center;gap:12px;background:var(--green-l);border:1px solid #a7f3d0;border-radius:10px;padding:16px;margin-bottom:32px}
     .route-port{flex:1} .route-lbl{font-size:10px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
     .route-val{font-size:15px;font-weight:800;color:#064e3b}
     .route-arrow{font-size:20px;color:#059669;font-weight:700}
@@ -313,7 +313,7 @@ function printQuote(q: Quote) {
     .totals-wrap{display:flex;justify-content:flex-end;margin-bottom:32px}
     .totals{width:260px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}
     .trow{display:flex;justify-content:space-between;padding:9px 14px;font-size:13px;border-bottom:1px solid #e2e8f0}
-    .trow:last-child{border:none;background:#ecfdf5;font-weight:800;font-size:15px;color:#059669}
+    .trow:last-child{border:none;background:var(--green-l);font-weight:800;font-size:15px;color:#059669}
     .trow span:last-child{font-weight:600}
     .section{margin-bottom:24px}
     .section h4{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e2e8f0}

@@ -262,7 +262,7 @@
 }
 
 .app-header-user-action--signout:hover {
-  background: #fee2e2;
+  background: var(--red-l);
   color: #dc2626;
 }
 

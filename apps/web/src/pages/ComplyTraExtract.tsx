@@ -424,7 +424,7 @@ export function ComplyTraExtract() {
               {/* Tab 3: TCC */}
               {activeTab === 'tcc' && (
                 <div style={{ display: 'flex', gap: 24 }}>
-                  <div style={{ width: 140, height: 140, border: '4px solid #DCFCE7', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#F0FDF4', color: '#166534', flexShrink: 0 }}>
+                  <div style={{ width: 140, height: 140, border: '4px solid #DCFCE7', borderRadius: '50%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--green-l)', color: '#166534', flexShrink: 0 }}>
                     <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>TCC Status</div>
                     <div style={{ fontSize: 18, fontWeight: 900 }}>Compliant</div>
                   </div>

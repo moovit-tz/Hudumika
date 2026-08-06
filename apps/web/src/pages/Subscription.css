@@ -441,7 +441,7 @@
   font-size: var(--badge-fs);
   font-weight: 800;
   color: #059669;
-  background: #ecfdf5;
+  background: var(--green-l);
   padding: var(--badge-py) var(--badge-px);
   border-radius: 12px;
   letter-spacing: 0.03em;

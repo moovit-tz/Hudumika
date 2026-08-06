@@ -72,7 +72,7 @@ export const AIChat: React.FC = () => {
               {m.role === 'assistant' && m.toolCalls && m.toolCalls.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
                   {m.toolCalls.map((tc, ti) => (
-                    <span key={ti} style={{ fontSize: 10.5, fontWeight: 600, color: '#6d28d9', background: '#f5f3ff', padding: '3px 8px', borderRadius: 20, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <span key={ti} style={{ fontSize: 10.5, fontWeight: 600, color: '#6d28d9', background: 'var(--purple-l)', padding: '3px 8px', borderRadius: 20, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                       <Icon name="checkCircle" size={10} color="#6d28d9" /> {TOOL_LABELS[tc.name] ?? tc.name}
                     </span>
                   ))}
@@ -100,7 +100,7 @@ export const AIChat: React.FC = () => {
         )}
 
         {error && (
-          <div style={{ padding: '10px 14px', borderRadius: 9, background: '#fef2f2', color: '#ef4444', fontSize: 12.5, marginBottom: 12 }}>{error}</div>
+          <div style={{ padding: '10px 14px', borderRadius: 9, background: 'var(--red-l)', color: '#ef4444', fontSize: 12.5, marginBottom: 12 }}>{error}</div>
         )}
       </div>
 

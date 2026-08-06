@@ -166,10 +166,10 @@
   border: 1px solid transparent;
 }
 .spt-ch-pill-sm[data-ch="inapp"]    { background: var(--teal-l); color: var(--teal); border-color: var(--teal); }
-.spt-ch-pill-sm[data-ch="email"]    { background: #eff6ff;       color: #2563eb;     border-color: #2563eb88; }
-.spt-ch-pill-sm[data-ch="whatsapp"] { background: #ecfdf5;       color: #047857;     border-color: #04785788; }
-.spt-ch-pill-sm[data-ch="sms"]      { background: #f5f3ff;       color: #7c3aed;     border-color: #7c3aed88; }
-.spt-ch-pill-sm[data-ch="note"]     { background: #fefce8;       color: #92400e;     border-color: #92400e88; }
+.spt-ch-pill-sm[data-ch="email"]    { background: var(--blue-l);       color: #2563eb;     border-color: #2563eb88; }
+.spt-ch-pill-sm[data-ch="whatsapp"] { background: var(--green-l);       color: #047857;     border-color: #04785788; }
+.spt-ch-pill-sm[data-ch="sms"]      { background: var(--purple-l);       color: #7c3aed;     border-color: #7c3aed88; }
+.spt-ch-pill-sm[data-ch="note"]     { background: var(--gold-l);       color: #92400e;     border-color: #92400e88; }
 
 /* Shared icon button */
 .spt-icon-btn {
@@ -745,7 +745,7 @@
   align-items: center;
   gap: 4px;
   padding: var(--badge-py) var(--badge-px);
-  background: #fef9c3;
+  background: var(--gold-l);
   border: 1px solid #fde04788;
   border-radius: 6px;
   font-size: var(--badge-fs);
@@ -762,7 +762,7 @@
 }
 .spt-note-card-hdr {
   padding: 7px 14px;
-  background: #fefce8;
+  background: var(--gold-l);
   border-bottom: 1px solid #fde04766;
   font-size: 10.5px;
   font-weight: 800;
@@ -858,11 +858,11 @@
   white-space: nowrap;
   transition: all 0.12s;
 }
-.spt-ch-pill--active[data-ch="whatsapp"] { border-color: #047857; background: #ecfdf5; color: #047857; }
-.spt-ch-pill--active[data-ch="email"]    { border-color: #1d4ed8; background: #dbeafe; color: #1d4ed8; }
-.spt-ch-pill--active[data-ch="note"]     { border-color: #92400e; background: #fef9c3; color: #92400e; }
+.spt-ch-pill--active[data-ch="whatsapp"] { border-color: #047857; background: var(--green-l); color: #047857; }
+.spt-ch-pill--active[data-ch="email"]    { border-color: #1d4ed8; background: var(--blue-l); color: #1d4ed8; }
+.spt-ch-pill--active[data-ch="note"]     { border-color: #92400e; background: var(--gold-l); color: #92400e; }
 .spt-ch-pill--active[data-ch="inapp"]    { border-color: var(--teal); background: var(--teal-l); color: var(--teal); }
-.spt-ch-pill--active[data-ch="sms"]      { border-color: #7c3aed; background: #ede9fe; color: #7c3aed; }
+.spt-ch-pill--active[data-ch="sms"]      { border-color: #7c3aed; background: var(--purple-l); color: #7c3aed; }
 
 .spt-to-row {
   display: flex;
@@ -951,7 +951,7 @@
   box-sizing: border-box;
   outline: none;
 }
-.spt-compose-ta--note { background: #fefce8; border-top-color: #92400e55; }
+.spt-compose-ta--note { background: var(--gold-l); border-top-color: #92400e55; }
 
 .spt-toolbar {
   display: flex;
@@ -1052,9 +1052,9 @@
 .spt-broadcast-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
 
 .spt-broadcast-btn[data-ch="inapp"].spt-broadcast-btn--active    { background: var(--teal-l); color: var(--teal); border-color: var(--teal); }
-.spt-broadcast-btn[data-ch="email"].spt-broadcast-btn--active    { background: #eff6ff;       color: #2563eb;     border-color: #2563eb; }
-.spt-broadcast-btn[data-ch="whatsapp"].spt-broadcast-btn--active { background: #ecfdf5;       color: #047857;     border-color: #047857; }
-.spt-broadcast-btn[data-ch="sms"].spt-broadcast-btn--active      { background: #f5f3ff;       color: #7c3aed;     border-color: #7c3aed; }
+.spt-broadcast-btn[data-ch="email"].spt-broadcast-btn--active    { background: var(--blue-l);       color: #2563eb;     border-color: #2563eb; }
+.spt-broadcast-btn[data-ch="whatsapp"].spt-broadcast-btn--active { background: var(--green-l);       color: #047857;     border-color: #047857; }
+.spt-broadcast-btn[data-ch="sms"].spt-broadcast-btn--active      { background: var(--purple-l);       color: #7c3aed;     border-color: #7c3aed; }
 
 .spt-note-toggle-btn {
   padding: var(--ds-btn-py-sm) 10px;
@@ -1070,7 +1070,7 @@
   align-items: center;
   gap: 5px;
 }
-.spt-note-toggle-btn--active { background: #fefce8; color: #92400e; border-color: #92400e; }
+.spt-note-toggle-btn--active { background: var(--gold-l); color: #92400e; border-color: #92400e; }
 
 /* ══════════════════════════════════════════════════════════════════
    DetailsPanel — right column

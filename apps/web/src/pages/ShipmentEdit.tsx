@@ -193,7 +193,7 @@ export const ShipmentEdit: React.FC = () => {
         )}
         <div className="create-shipment-content" style={{ maxWidth: 800, marginTop: isMobile ? 0 : 24 }}>
           {error && (
-            <div style={{ padding: '11px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 10, fontSize: 13, color: '#dc2626', marginBottom: 24 }}>
+            <div style={{ padding: '11px 14px', background: 'var(--red-l)', border: '1px solid #fca5a5', borderRadius: 10, fontSize: 13, color: '#dc2626', marginBottom: 24 }}>
               {error}
             </div>
           )}

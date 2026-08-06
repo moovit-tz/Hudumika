@@ -117,7 +117,7 @@ export const OneIdSSO: React.FC = () => {
         </button>
       </div>
 
-      <div style={{ background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 9, padding: '10px 14px', fontSize: 12, color: '#854d0e', marginBottom: 20, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+      <div style={{ background: 'var(--gold-l)', border: '1px solid #fde68a', borderRadius: 9, padding: '10px 14px', fontSize: 12, color: '#854d0e', marginBottom: 20, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
         <Icon name="alertTriangle" size={15} />
         <span>This registry stores provider configuration only. Actually signing users in via a connected provider (SAML assertion validation, OAuth redirect handling) is not implemented yet — enabling a provider here does not change how anyone logs in today.</span>
       </div>

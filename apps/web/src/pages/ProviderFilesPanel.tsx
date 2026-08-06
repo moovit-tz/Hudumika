@@ -158,7 +158,7 @@ export function ProviderFilesPanel({ provider }: { provider: StorageProvider }) 
       )}
 
       {error && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 20px', background: '#fef2f2', borderBottom: '1px solid #fecaca', color: '#991b1b', fontSize:'var(--text-base)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 20px', background: 'var(--red-l)', borderBottom: '1px solid #fecaca', color: '#991b1b', fontSize:'var(--text-base)' }}>
           <span>{error}</span>
           <button onClick={() => setError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#991b1b', padding: 4 }}><Icon name="close" size={14} color="#991b1b" /></button>
         </div>

@@ -104,7 +104,7 @@
 .s-upload-lbl--on   { color: var(--teal); }
 .s-upload-lbl--off  { color: var(--ink); }
 .s-upload-hint      { font-size: 11.5px; color: var(--ink3); }
-.s-upload-rm        { margin-left: auto; background: #fee2e2; border: none; border-radius: 6px; padding: 6px; cursor: pointer; display: flex; }
+.s-upload-rm        { margin-left: auto; background: var(--red-l); border: none; border-radius: 6px; padding: 6px; cursor: pointer; display: flex; }
 
 .s-logo-hist        { display: flex; flex-wrap: wrap; gap: 10px; }
 .s-logo-thumb       { padding: 6px; border-radius: 9px; cursor: pointer; display: flex; align-items: center; justify-content: center; border: 2px solid var(--border); background: var(--bg); }
@@ -193,15 +193,15 @@
 .s-gw-info      { flex: 1; min-width: 0; }
 .s-gw-name      { font-size: 13.5px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 7px; }
 .s-gw-pill      { font-size: var(--badge-fs-sm); font-weight: 700; padding: var(--badge-py-sm) var(--badge-px-sm); border-radius: 9px; }
-.s-gw-pill--sbx { background: #fef9c3; color: #92400e; }
-.s-gw-pill--live{ background: #ecfdf5; color: #065f46; }
+.s-gw-pill--sbx { background: var(--gold-l); color: #92400e; }
+.s-gw-pill--live{ background: var(--green-l); color: #065f46; }
 .s-gw-gdesc     { font-size: 11.5px; color: var(--ink3); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .s-gw-ctrls     { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .s-gw-exp-btn   { background: none; border: none; cursor: pointer; color: var(--ink3); display: flex; align-items: center; padding: 4px; }
 .s-gw-body      { padding: 16px 16px 14px; }
 .s-gw-mode      { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; padding: 8px 12px; border-radius: 7px; }
-.s-gw-mode--sbx { background: #fefce8; border: 1px solid #fde68a; }
-.s-gw-mode--live{ background: #ecfdf5; border: 1px solid #a7f3d0; }
+.s-gw-mode--sbx { background: var(--gold-l); border: 1px solid #fde68a; }
+.s-gw-mode--live{ background: var(--green-l); border: 1px solid #a7f3d0; }
 .s-gw-mode-lbl  { font-size: 12.5px; font-weight: 600; }
 .s-gw-mode-lbl--sbx { color: #92400e; }
 .s-gw-mode-lbl--live{ color: #065f46; }

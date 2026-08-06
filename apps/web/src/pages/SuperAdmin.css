@@ -205,7 +205,7 @@
   font-size: 11px;
   color: #d97706;
   font-weight: 600;
-  background: #fef3c7;
+  background: var(--gold-l);
   padding: 4px 10px;
   border-radius: 20px;
 }

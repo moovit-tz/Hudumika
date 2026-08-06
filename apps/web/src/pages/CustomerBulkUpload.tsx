@@ -99,7 +99,7 @@ export const CustomerBulkUpload: React.FC = () => {
           )}
 
           {error && (
-            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 9, padding: '14px 18px', fontSize: 13, color: '#b91c1c' }}>
+            <div style={{ background: 'var(--red-l)', border: '1px solid #fecaca', borderRadius: 9, padding: '14px 18px', fontSize: 13, color: '#b91c1c' }}>
               {error}
             </div>
           )}

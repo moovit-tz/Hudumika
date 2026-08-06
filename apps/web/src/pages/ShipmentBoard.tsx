@@ -96,7 +96,7 @@ function SummaryPanel({ job, onClose }: { job: ClearanceJob; onClose: () => void
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 8 }}>{job.customer} · {job.mode}</div>
         <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
           {job.flags.map(f => <FlagChip key={f} flag={f} />)}
-          {job.tansad && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: '#dbeafe', color: '#2563eb', border: '1px solid #93c5fd' }}>{job.tansad}</span>}
+          {job.tansad && <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: 'var(--blue-l)', color: '#2563eb', border: '1px solid #93c5fd' }}>{job.tansad}</span>}
         </div>
       </div>
 

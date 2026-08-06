@@ -674,7 +674,7 @@ function PaymentsTab({ onNavigateTab }: { tenant?: any; onNavigateTab: (t: SubTa
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
                     {m.label || m.brand}{m.last4 ? ` •••• ${m.last4}` : ''}
-                    {m.is_default && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9, background: '#ecfdf5', color: '#059669', fontSize: 10, fontWeight: 700 }}>Default</span>}
+                    {m.is_default && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9, background: 'var(--green-l)', color: '#059669', fontSize: 10, fontWeight: 700 }}>Default</span>}
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{m.exp_month && m.exp_year ? `Expires ${String(m.exp_month).padStart(2, '0')}/${m.exp_year}` : (m.type === 'mobile_money' ? 'Mobile money' : '')}</div>
                 </div>
@@ -917,7 +917,7 @@ function SecurityTab() {
         {/* 2FA */}
         <Card>
           <CardHead title="Two-Factor Authentication" sub="Add an extra layer of protection to your account." right={
-            twoFA?.enabled ? <span style={{ padding: '3px 10px', borderRadius: 20, background: '#ecfdf5', color: '#059669', fontSize: 11, fontWeight: 700 }}>Enabled</span> : undefined
+            twoFA?.enabled ? <span style={{ padding: '3px 10px', borderRadius: 20, background: 'var(--green-l)', color: '#059669', fontSize: 11, fontWeight: 700 }}>Enabled</span> : undefined
           } />
           <div style={{ padding: '16px 20px' }}>
             {twoFA === null && <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Loading…</div>}
@@ -991,7 +991,7 @@ function SecurityTab() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
                     {s.device_label || s.user_agent || 'Unknown device'}
-                    {s.is_current && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9, background: '#ecfdf5', color: '#059669', fontSize: 10, fontWeight: 700 }}>This device</span>}
+                    {s.is_current && <span style={{ marginLeft: 8, padding: '1px 7px', borderRadius: 9, background: 'var(--green-l)', color: '#059669', fontSize: 10, fontWeight: 700 }}>This device</span>}
                   </div>
                   <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Last active {relTime(s.last_used_at)}</div>
                 </div>

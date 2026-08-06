@@ -384,7 +384,7 @@ function ClockInModal({ onClose, onConfirm }: {
                 })}
               </div>
               {selectedSteps.length >= 3 && (
-                <div style={{ fontSize: 12, color: '#ca8a04', background: '#fef9c3', padding: '7px 12px', borderRadius: 7, marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: '#ca8a04', background: 'var(--gold-l)', padding: '7px 12px', borderRadius: 7, marginBottom: 12 }}>
                   Maximum 3 steps selected. Deselect one to change.
                 </div>
               )}
@@ -629,7 +629,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
         </button>
 
         {/* Settings — purple */}
-        <button style={{ ...ibStyle(), background: '#ede9fe' }} title="Settings"
+        <button style={{ ...ibStyle(), background: 'var(--purple-l)' }} title="Settings"
           onClick={() => navigate('/settings')}
           onMouseEnter={e => (e.currentTarget.style.background = '#ede9fe')}
           onMouseLeave={e => (e.currentTarget.style.background = '#ede9fe')}>
@@ -883,7 +883,7 @@ export const TopBar: React.FC<TopBarProps> = ({ navCollapsed, onToggleNav, onMob
                 onClick={logout}
                 className="rounded-lg gap-3 py-2.5 px-3 cursor-pointer text-[13px] text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-950/30"
               >
-                <div style={{ width: 28, height: 28, borderRadius: 8, background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--red-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Icon name="externalLink" size={14} color="var(--red)" />
                 </div>
                 Sign Out

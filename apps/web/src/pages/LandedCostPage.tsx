@@ -1968,7 +1968,7 @@ table.ref-t col.c-tot{width:11%}
    figures carry a break opportunity after each comma — but never mid-group. */
 table.ref-t tr.subt td{white-space:normal;word-break:normal;overflow-wrap:normal;line-height:1.3}
 .ref-foot{margin-top:10px;font-size:10px;line-height:1.6;color:var(--ink-700);background:var(--tint);border-left:3px solid var(--acc);border-radius:0 8px 8px 0;padding:9px 12px}
-.ref-foot.bad{background:#FEF2F2;border-left-color:#DC2626;color:#7F1D1D;font-weight:600}
+.ref-foot.bad{background:var(--red-l);border-left-color:#DC2626;color:#7F1D1D;font-weight:600}
 /* ── A4 pagination ───────────────────────────────────────────────────────
    A consignment report is a multi-sheet document: cover and costing, then
    sign-off, then notes, then the per-line reference. Each starts on its own

@@ -215,9 +215,9 @@
 .inv-cell-due--overdue { color: var(--red); font-weight: 700; }
 
 .inv-mode-badge { padding: var(--badge-py) var(--badge-px); border-radius: 4px; font-size: var(--badge-fs); font-weight: 700; }
-.inv-mode-badge[data-mode="SEA"]  { background: #dbeafe; color: #1d4ed8; }
+.inv-mode-badge[data-mode="SEA"]  { background: var(--blue-l); color: #1d4ed8; }
 .inv-mode-badge[data-mode="AIR"]  { background: #fce7f3; color: #be185d; }
-.inv-mode-badge[data-mode="ROAD"] { background: #ecfdf5; color: #047857; }
+.inv-mode-badge[data-mode="ROAD"] { background: var(--green-l); color: #047857; }
 
 .inv-status-badge { padding: var(--badge-py) var(--badge-px); border-radius: 20px; font-size: var(--badge-fs); font-weight: 700; white-space: nowrap; }
 

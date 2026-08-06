@@ -185,7 +185,7 @@ function PayslipModal({ row, monthLabel, onClose }: { row: PayslipRow; monthLabe
             </div>
 
             {/* PAYE Note */}
-            <div style={{ padding: '10px 14px', background: '#fefce8', border: '1px solid #fef08a', borderRadius: 6, marginBottom: 20, fontSize: 11, color: '#713f12' }}>
+            <div style={{ padding: '10px 14px', background: 'var(--gold-l)', border: '1px solid #fef08a', borderRadius: 6, marginBottom: 20, fontSize: 11, color: '#713f12' }}>
               <strong>PAYE calculated per TRA Tanzania rates:</strong> 0% up to TZS 270,000 — 8% (270k—520k) — 20% (520k—760k) — 25% (760k—1M) — 30% above TZS 1,000,000
             </div>
 

@@ -48,7 +48,7 @@ export const AIInsights: React.FC = () => {
       {loading ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Generating digest…</div>
       ) : error ? (
-        <div style={{ padding: '20px', borderRadius: 9, background: '#fef2f2', color: '#ef4444', fontSize: 13 }}>{error}</div>
+        <div style={{ padding: '20px', borderRadius: 9, background: 'var(--red-l)', color: '#ef4444', fontSize: 13 }}>{error}</div>
       ) : data ? (
         <>
           <div className="card" style={{ padding: '20px 22px', marginBottom: 20, borderLeft: '3px solid #6d28d9' }}>
@@ -87,8 +87,8 @@ export const AIInsights: React.FC = () => {
                         <td>{s.customer}</td>
                         <td className="col-hide-sm">{s.stage}</td>
                         <td>
-                          {s.sla_breached && <span style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', background: '#fef2f2', padding: '2px 7px', borderRadius: 5, marginRight: 4 }}>SLA</span>}
-                          {s.demurrage_risk && <span style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', background: '#fffbeb', padding: '2px 7px', borderRadius: 5 }}>Demurrage</span>}
+                          {s.sla_breached && <span style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', background: 'var(--red-l)', padding: '2px 7px', borderRadius: 5, marginRight: 4 }}>SLA</span>}
+                          {s.demurrage_risk && <span style={{ fontSize: 10, fontWeight: 700, color: '#f59e0b', background: 'var(--gold-l)', padding: '2px 7px', borderRadius: 5 }}>Demurrage</span>}
                         </td>
                       </tr>
                     ))}

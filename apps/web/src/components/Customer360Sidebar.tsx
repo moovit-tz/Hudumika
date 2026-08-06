@@ -153,12 +153,12 @@ export function Customer360Sidebar({
             </span>
           )}
           {totalDue > 0 && (
-            <span style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', background: '#fee2e2', padding: '2px 8px', borderRadius: 10 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#ef4444', background: 'var(--red-l)', padding: '2px 8px', borderRadius: 10 }}>
               ${(totalDue / 1000).toFixed(0)}K Due
             </span>
           )}
           {shipments.some(s => s.stage !== 'CLOSED' && s.stage !== 'DELIVERED') && (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: '#3b82f6', background: '#dbeafe', padding: '2px 8px', borderRadius: 10 }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: '#3b82f6', background: 'var(--blue-l)', padding: '2px 8px', borderRadius: 10 }}>
               <Icon name="ship" size={11} /> Active Shipment
             </span>
           )}
@@ -198,7 +198,7 @@ export function Customer360Sidebar({
                   <Icon name="smartphone" size={14} color="var(--ink3)" />
                   <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 500 }}>{customer_wa || customer_phone}</span>
                   <a href={`https://wa.me/${(customer_wa || customer_phone || '').replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
-                    style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: '#25d366', background: '#ecfdf5', padding: '2px 7px', borderRadius: 8, textDecoration: 'none' }}>
+                    style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 700, color: '#25d366', background: 'var(--green-l)', padding: '2px 7px', borderRadius: 8, textDecoration: 'none' }}>
                     WhatsApp ↗
                   </a>
                 </div>
@@ -322,7 +322,7 @@ export function Customer360Sidebar({
                     {aiSentiment === 'negative' ? 'Negative' : aiSentiment === 'positive' ? 'Positive' : 'Neutral'} Sentiment
                   </span>
                   {aiNextAction && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: '#6366f1', background: '#ede9fe', padding: '2px 8px', borderRadius: 10 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#6366f1', background: 'var(--purple-l)', padding: '2px 8px', borderRadius: 10 }}>
                       → {aiNextAction.replace('_', ' ')}
                     </span>
                   )}

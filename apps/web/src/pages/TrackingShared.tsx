@@ -99,7 +99,7 @@ export const TrackingShared: React.FC = () => {
 
         {error && !loading && (
           <div style={{ textAlign: 'center', padding: '80px 0' }}>
-            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--red-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <Icon name="alertCircle" size={28} color="#dc2626" />
             </div>
             <div style={{ fontSize: 18, fontWeight: 700, color: '#1e293b', marginBottom: 8 }}>Snapshot not found</div>

@@ -207,7 +207,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
 
         {/* Carbon segment — live from the linked shipment, not a tradeable credit */}
         {inv.shipmentCarbon && (
-          <div style={{ background: '#ecfdf5', borderRadius: 9, border: '1px solid #a7f3d0', padding: 16, marginBottom: 16 }}>
+          <div style={{ background: 'var(--green-l)', borderRadius: 9, border: '1px solid #a7f3d0', padding: 16, marginBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
               <Icon name="globe" size={13} color="#059669" />
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.07em' }}>CARBON FOOTPRINT</span>
@@ -326,7 +326,7 @@ function InvoiceDetail({ inv, onBack }: { inv: Invoice; onBack: () => void }) {
         </Link>
         {inv.status !== 'Paid' && inv.status !== 'Credited' && (
           <button type="button" title="Dispute this invoice" onClick={() => setDisputing(true)}
-            style={{ flex: 1, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: '#fee2e2', color: '#dc2626', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            style={{ flex: 1, padding: 'var(--ds-btn-py) 0', border: 'none', borderRadius: 'var(--r)', background: 'var(--red-l)', color: '#dc2626', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="alertCircle" size={15} color="#dc2626" />
             Dispute
           </button>
