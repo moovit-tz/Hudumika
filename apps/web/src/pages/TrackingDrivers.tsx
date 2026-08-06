@@ -65,25 +65,25 @@ export const TrackingDrivers: React.FC = () => {
   }), [drivers]);
 
   return (
-    <div className="drv-layout">
+    /* The header sits above .drv-layout, not inside it. .drv-layout is a flex
+       row — list on the left, driver detail on the right — so a PageHeader
+       placed in it became a third column, and the page read as the title in
+       one column beside its own content. */
+    <>
       <PageHeader
         crumbs={['HuduFreight', 'Drivers']}
         titlePlain="Fleet"
         titleEm="drivers"
         subtitle="Everyone licensed to drive, their assignments and their record."
-      />
-      {/* ── Main Area ── */}
-      <div className="drv-main">
-        <div className="drv-header">
-          <div className="drv-title-block">
-            <div className="drv-title">Drivers</div>
-            <div className="drv-breadcrumbs">Dashboard <span>/ Drivers</span></div>
-          </div>
+        actions={
           <Link to="/tracking/drivers/new" className="drv-add-btn">
             <Icon name="plus" size={16} /> Add New Driver
           </Link>
-        </div>
-
+        }
+      />
+    <div className="drv-layout">
+      {/* ── Main Area ── */}
+      <div className="drv-main">
         <div className="drv-filters-row">
           <div className="drv-tabs">
             <div className={`drv-tab ${filter === 'All' ? 'active' : ''}`} onClick={() => setFilter('All')}>All <span className="drv-tab-count">({stats.all})</span></div>
@@ -202,7 +202,7 @@ export const TrackingDrivers: React.FC = () => {
           <div className="drv-sb-header">
             <div className="drv-sb-title">Driver Details</div>
             <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-              <Link to={`/tracking/drivers/${selectedDriver.id}`} style={{ fontSize: 12, fontWeight: 700, color: '#2563eb', textDecoration: 'none', background: 'rgba(37,99,235,0.1)', padding: '6px 12px', borderRadius: 8 }}>
+              <Link to={`/tracking/drivers/${selectedDriver.id}`} style={{ fontSize: 12, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none', background: 'var(--teal-l)', padding: '6px 12px', borderRadius: 'var(--r-sm)' }}>
                 View Full Profile
               </Link>
               <Icon name="x" size={20} className="drv-sb-close" onClick={() => setSelectedDriver(null)} />
@@ -327,5 +327,6 @@ export const TrackingDrivers: React.FC = () => {
       )}
 
     </div>
+    </>
   );
 };

@@ -1,54 +1,38 @@
 /* TrackingDrivers.css */
 
+/* The list/detail row. PageHeader is a sibling above it, not a child — as a
+   child it became a third flex column and the title stood beside the page.
+   min-height was calc(100vh - 60px), which with a header above it added up to
+   more than the shell and scrolled; the row is as tall as its content now. */
 .drv-layout {
   display: flex;
   background: var(--bg);
-  min-height: calc(100vh - 60px);
   color: var(--ink);
   font-family: var(--font);
 }
 
 .drv-main {
   flex: 1;
-  padding: 24px;
+  min-width: 0;
+  /* Trailing space only — .app-shell-content and .page-layout own the gutter. */
+  padding: 0 0 24px;
   overflow-y: auto;
 }
 
-.drv-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 24px;
-}
-
-.drv-title-block {
-  display: flex;
-  flex-direction: column;
-}
-
-.drv-title {
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--ink);
-  margin-bottom: 4px;
-}
-
-.drv-breadcrumbs {
-  font-size: 12px;
-  color: #dc2626; /* Reddish theme from the image */
-  font-weight: 600;
-}
-
-.drv-breadcrumbs span {
-  color: var(--ink3);
-}
+/* .drv-header / .drv-title / .drv-title-block / .drv-breadcrumbs are gone.
+   They drew a second "Drivers" title and a hand-rolled "Dashboard / Drivers"
+   breadcrumb in #dc2626 — a hardcoded red that belonged to no app's palette —
+   directly beneath the real PageHeader saying the same thing. */
 
 .drv-add-btn {
-  background: #1e293b;
+  background: var(--teal);
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--r);
   padding: var(--ds-btn-py) 16px;
+  min-height: var(--ctl-h);
+  box-sizing: border-box;
+  line-height: 1.25;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -179,16 +163,19 @@
 .drv-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--elev-lg);
-  border-color: #cbd5e1;
+  border-color: var(--border2);
 }
 
 .drv-card.selected {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 1px #2563eb;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 1px var(--teal);
 }
 
 .drv-card-top {
-  background: rgba(220,38,38,0.1); /* Light red/pinkish background */
+  /* Was rgba(220,38,38,0.1) — a hand-mixed red that made every driver card
+     read as an alert state in an app whose accent is teal. --teal-l is the
+     canonical soft tint and follows the tenant's own brand. */
+  background: var(--teal-l);
   padding: 16px 12px 12px;
   display: flex;
   flex-direction: column;
@@ -575,13 +562,7 @@
 /* ── Responsive ── */
 @media (max-width: 900px) {
   .drv-main {
-    padding: 16px;
-  }
-
-  .drv-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    padding: 0 0 16px;
   }
 
   .drv-filters-row {
