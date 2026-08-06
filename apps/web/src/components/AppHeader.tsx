@@ -29,6 +29,9 @@ function getInitials(name?: string | null): string {
   return ((parts[0][0] ?? '') + (parts[parts.length - 1][0] ?? '')).toUpperCase();
 }
 
+const AV_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30'];
+function avColor(name?: string | null) { return AV_COLORS[((name ?? '?').charCodeAt(0)) % AV_COLORS.length]; }
+
 // ── Global cross-app search (GET /v1/search, see apps/api/src/routes/search.routes.ts) ──
 // Header search boxes previously only did something on the 2 pages that wired
 // their own onAppSearchChange (Cloud, Contacts) — everywhere else, typing here
@@ -106,17 +109,7 @@ export function AppHeader({
     window.dispatchEvent(new CustomEvent('hudumika-layout-updated'));
   }, [isFullLayout]);
 
-  // Full-width mode also collapses the sidebar (and restores it when
-  // switching back) so the toggle actually reclaims the space it promises.
-  // This runs as its own effect (not inside setIsFullLayout's updater) —
-  // dispatching events / setting another component's state from within a
-  // setState updater runs during React's render phase and can get silently
-  // dropped ("update while rendering a different component").
-  useEffect(() => {
-    if (!activeApp) return;
-    localStorage.setItem(`${activeApp}-sidebar-collapsed`, String(isFullLayout));
-    window.dispatchEvent(new CustomEvent('sidebar-toggled', { detail: { collapsed: isFullLayout } }));
-  }, [isFullLayout, activeApp]);
+
 
   // ── Layout Customizer prefs (navbar type / skin / semi-dark / direction) ──
   // Set from /admin/design-system (DesignSystemView.tsx), which writes these
@@ -447,48 +440,114 @@ export function AppHeader({
             {/* Apps launcher trigger + panel */}
             <AppLauncher />
 
-            {/* User avatar */}
+            {/* User avatar & restyled profile card dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   ref={avatarRef}
                   type="button"
-                  className="app-header-avatar"
+                  className="app-header-avatar-trigger"
                   title={user?.name ?? t('header.account')}
+                  style={{ position: 'relative', width: 36, height: 36, borderRadius: '50%', padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', flexShrink: 0 }}
                 >
-                  {getInitials(user?.name)}
+                  <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: avColor(user?.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, border: '1px solid var(--border)' }}>
+                    {user?.avatar_url ? (
+                      <img src={user.avatar_url} alt={user?.name || 'User'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      getInitials(user?.name)
+                    )}
+                  </div>
+                  {/* Green status indicator dot */}
+                  <span style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: 'var(--green)', border: '2px solid var(--white)' }} />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-64 p-2">
-                <div className="flex flex-col space-y-1 p-2 pb-3">
-                  <span className="text-sm font-semibold tracking-tight">{user?.name ?? '—'}</span>
-                  <span className="text-xs text-muted-foreground truncate">{user?.email ?? '—'}</span>
-                  {user?.role && <span className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1 font-semibold">{user.role}</span>}
+              <DropdownMenuContent align="end" className="w-64 p-3 rounded-xl shadow-2xl border border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-slate-100" style={{ background: 'var(--white)', zIndex: 99999 }}>
+                {/* Header User Identity Block (Compact) */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ position: 'relative', width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: avColor(user?.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, border: '1px solid var(--border)', overflow: 'hidden' }}>
+                    {user?.avatar_url ? (
+                      <img src={user.avatar_url} alt={user?.name || 'User'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      getInitials(user?.name)
+                    )}
+                    <span style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: 'var(--green)', border: '1.5px solid var(--white)' }} />
+                  </div>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
+                      {user?.name ?? '—'}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 2 }}>
+                      {user?.email ?? '—'}
+                    </div>
+                    {user?.role && (
+                      <span style={{ display: 'inline-block', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--teal)', background: 'var(--teal-l)', padding: '1px 6px', borderRadius: 'var(--r)', marginTop: 3 }}>
+                        {user.role}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <DropdownMenuSeparator />
-                <div className="p-1">
+
+                {/* Navigation items (Compact) */}
+                <div style={{ padding: '4px 0 2px', display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <DropdownMenuItem asChild>
-                    <Link to="/profile" className="flex w-full cursor-pointer items-center gap-3">
-                      <Icon name="user" size={16} className="text-muted-foreground" />
+                    <Link to="/profile" style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+                      <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon name="user" size={13} style={{ color: 'var(--teal)' } as React.CSSProperties} />
+                      </div>
                       <span>{t('header.myProfile')}</span>
                     </Link>
                   </DropdownMenuItem>
-                  {/* Gated on the same role /admin/* itself requires (see
-                      SuperAdminShell's RequireRoles), so the menu can never
-                      offer a route the router will bounce. */}
+
+                  <DropdownMenuItem asChild>
+                    <Link to="/studio" style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+                      <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon name="zap" size={13} style={{ color: 'var(--purple)' } as React.CSSProperties} />
+                      </div>
+                      <span>AI Studio</span>
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem asChild>
+                    <Link to="/workspace" style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+                      <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon name="settings" size={13} style={{ color: 'var(--blue)' } as React.CSSProperties} />
+                      </div>
+                      <span>Workspace Settings</span>
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem asChild>
+                    <Link to="/workspace/billing" style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+                      <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <Icon name="creditCard" size={13} style={{ color: 'var(--gold)' } as React.CSSProperties} />
+                      </div>
+                      <span>Billing &amp; Subscription</span>
+                    </Link>
+                  </DropdownMenuItem>
+
                   {user?.role === 'SUPER_ADMIN' && (
                     <DropdownMenuItem asChild>
-                      <Link to="/admin" className="flex w-full cursor-pointer items-center gap-3">
-                        <Icon name="shield" size={16} className="text-muted-foreground" />
+                      <Link to="/admin" style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+                        <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Icon name="lock" size={13} style={{ color: 'var(--red)' } as React.CSSProperties} />
+                        </div>
                         <span>{t('header.adminPanel')}</span>
                       </Link>
                     </DropdownMenuItem>
                   )}
                 </div>
+
                 <DropdownMenuSeparator />
-                <div className="p-1">
-                  <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer" onClick={() => logout()}>
-                    <Icon name="arrowRight" size={16} />
+
+                {/* Logout item (Compact) */}
+                <div style={{ paddingTop: 2 }}>
+                  <DropdownMenuItem
+                    onClick={() => logout()}
+                    style={{ display: 'flex', width: '100%', alignItems: 'center', gap: 9, padding: '6px 8px', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--red)', background: 'transparent', fontSize: 13, fontWeight: 600 }}
+                  >
+                    <div style={{ width: 24, height: 24, borderRadius: 'var(--r-sm)', background: 'var(--red-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon name="arrowRight" size={13} style={{ color: 'var(--red)' } as React.CSSProperties} />
+                    </div>
                     <span>{t('header.signOut')}</span>
                   </DropdownMenuItem>
                 </div>

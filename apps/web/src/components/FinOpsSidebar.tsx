@@ -74,8 +74,9 @@ export function FinOpsSidebar() {
   const nav      = useNavigate();
   const { pathname } = useLocation();
 
+  // Sidebar is open/expanded by default, and only collapses when the user explicitly closes it
   const [collapsed, setCollapsed] = useState(() => {
-    return localStorage.getItem('finops-sidebar-collapsed') === 'true';
+    return localStorage.getItem('finops-sidebar-closed-user') === 'true';
   });
 
   const [open, setOpen] = useState<Set<string>>(() => {
@@ -97,7 +98,7 @@ export function FinOpsSidebar() {
   function toggleCollapse() {
     const next = !collapsed;
     setCollapsed(next);
-    localStorage.setItem('finops-sidebar-collapsed', String(next));
+    localStorage.setItem('finops-sidebar-closed-user', String(next));
   }
 
   const isDashboard = pathname === '/finance' || pathname === '/finance/overview';

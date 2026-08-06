@@ -69,6 +69,7 @@ export interface UserProfileFields {
   timezone?: string;
   language?: string;
   website?: string;
+  cover_url?: string;
 }
 
 export interface User {

@@ -94,9 +94,10 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav }: Pr
   const { logout }  = useAuth();
   const { t }       = useLocale();
   const { mobileOpen, setMobileOpen } = useContext(MobileNavContext);
-  const [collapsed, setCollapsed] = useState(
-    () => localStorage.getItem(`${appId}-sidebar-collapsed`) === 'true'
-  );
+  // Sidebar is open/expanded by default, and only collapses when the user explicitly closes it
+  const [collapsed, setCollapsed] = useState(() => {
+    return localStorage.getItem(`${appId}-sidebar-closed-user`) === 'true';
+  });
   const [openSections, setOpenSections] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     for (const section of sections) {
@@ -176,7 +177,7 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav }: Pr
   function toggleCollapse() {
     const next = !collapsed;
     setCollapsed(next);
-    localStorage.setItem(`${appId}-sidebar-collapsed`, String(next));
+    localStorage.setItem(`${appId}-sidebar-closed-user`, String(next));
     window.dispatchEvent(new CustomEvent('sidebar-toggled', { detail: { collapsed: next } }));
   }
 
@@ -357,22 +358,31 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav }: Pr
                           <span className="app-sb-item-label">{item.label}</span>
                           <span className="app-sb-item-parent-toggle">{isParentOpen ? '−' : '+'}</span>
                         </div>
-                        {isParentOpen && item.children!.map(child => {
-                          const childActive = isActive(child.path, child.exact);
-                          return (
-                            <Link
-                              key={child.path}
-                              to={child.path}
-                              className={`app-sb-item app-sb-item--child${childActive ? ' app-sb-item--active' : ''}`}
-                              onClick={() => setMobileOpen(false)}
-                            >
-                              <span className="app-sb-item-icon">
-                                <Icon name={child.icon} size={14} strokeWidth={childActive ? 2.2 : 1.8} />
-                              </span>
-                              <span className="app-sb-item-label">{child.label}</span>
-                            </Link>
-                          );
-                        })}
+                        {isParentOpen && (
+                          <div className="app-sb-children-group">
+                            {item.children!.map(child => {
+                              const childActive = isActive(child.path, child.exact);
+                              return (
+                                <Link
+                                  key={child.path}
+                                  to={child.path}
+                                  className={`app-sb-item app-sb-item--child${childActive ? ' app-sb-item--active' : ''}`}
+                                  onClick={() => setMobileOpen(false)}
+                                >
+                                  <span className="app-sb-item-icon">
+                                    <Icon name={child.icon} size={13} strokeWidth={childActive ? 2.2 : 1.8} />
+                                  </span>
+                                  <span className="app-sb-item-label">{child.label}</span>
+                                  {child.badge && (
+                                    <span className={`app-sb-badge app-sb-badge--${child.badgeVariant ?? 'tag'}`}>
+                                      {child.badge}
+                                    </span>
+                                  )}
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
                       </React.Fragment>
                     );
                   })}

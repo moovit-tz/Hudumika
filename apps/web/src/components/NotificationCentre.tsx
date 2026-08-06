@@ -35,86 +35,83 @@ export const NotificationCentre: React.FC<NotificationCentreProps> = ({
     ? notifs
     : notifs.filter(n => !n.read);
 
+  const displayBadgeCount = unreadCount > 0 ? unreadCount : notifs.length;
+
   return (
-      <div className="notif-panel">
+    <div className="notif-panel">
 
-        {/* ── Header (navy) ── */}
-        <div className="notif-panel-hdr">
-          <div className="notif-panel-hdr-top">
-            <div className="notif-panel-hdr-left">
-              <span className="notif-panel-title">{t('notif.title')}</span>
-              {unreadCount > 0 && (
-                <span className="notif-panel-badge">{unreadCount}</span>
-              )}
-            </div>
-            <div className="notif-panel-hdr-right">
-              {unreadCount > 0 && (
-                <button type="button" className="notif-panel-mark-all" onClick={onMarkAllRead}>
-                  {t('notif.markAllRead')}
-                </button>
-              )}
-              <button
-                type="button"
-                className="notif-panel-close"
-                onClick={onClose}
-                title={t('notif.title')}
-              >
-                <Icon name="x" size={16} />
+      {/* ── Header ── */}
+      <div className="notif-panel-hdr">
+        <div className="notif-panel-hdr-top">
+          <div className="notif-panel-hdr-left">
+            <span className="notif-panel-title">Notifications</span>
+            {displayBadgeCount > 0 && (
+              <span className="notif-panel-badge">
+                {displayBadgeCount}
+              </span>
+            )}
+          </div>
+          <div className="notif-panel-hdr-right">
+            {unreadCount > 0 && (
+              <button type="button" className="notif-panel-mark-all" onClick={onMarkAllRead}>
+                {t('notif.markAllRead')}
               </button>
-            </div>
-          </div>
-
-          {/* Filter tabs */}
-          <div className="notif-panel-tabs">
+            )}
             <button
               type="button"
-              className={`notif-panel-tab${activeTab === 'all' ? ' notif-panel-tab--active' : ''}`}
-              onClick={() => setActiveTab('all')}
+              className="notif-panel-close"
+              onClick={onClose}
+              title={t('notif.title')}
             >
-              {t('notif.all')}
-              <span className="notif-panel-tab-count">{notifs.length}</span>
-            </button>
-            <button
-              type="button"
-              className={`notif-panel-tab${activeTab === 'unread' ? ' notif-panel-tab--active' : ''}`}
-              onClick={() => setActiveTab('unread')}
-            >
-              {t('notif.unread')}
-              {unreadCount > 0 && (
-                <span className="notif-panel-tab-count">{unreadCount}</span>
-              )}
+              <Icon name="x" size={14} />
             </button>
           </div>
         </div>
 
-        {/* ── Notification list ── */}
-        <div className="notif-panel-scroll">
-          {filtered.length === 0 ? (
-            <div className="notif-panel-empty">
-              <div className="notif-panel-empty-icon">
-                <Icon name="bell" size={26} color="var(--border2)" />
-              </div>
-              <span className="notif-panel-empty-text">{activeTab === 'unread' ? t('notif.noUnread') : t('notif.noNotifications')}</span>
-              <span className="notif-panel-empty-sub">{t('notif.caughtUp')}</span>
-            </div>
-          ) : filtered.map((n: any) => (
-            <NotificationListItem key={n.id} n={n} onMarkRead={onMarkRead} onNavigate={onClose} />
-          ))}
-        </div>
-
-        {/* ── Footer ── */}
-        <div className="notif-panel-footer">
-          <Link
-            to="/bliss/notifications"
-            className="notif-panel-view-all"
-            onClick={() => onClose()}
+        {/* Filter tabs */}
+        <div className="notif-panel-tabs">
+          <button
+            type="button"
+            className={`notif-panel-tab${activeTab === 'all' ? ' notif-panel-tab--active' : ''}`}
+            onClick={() => setActiveTab('all')}
           >
-            {t('notif.openChat')}
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M5 12h14"/><polyline points="12 5 19 12 12 19"/>
-            </svg>
-          </Link>
+            {t('notif.all')} ({notifs.length})
+          </button>
+          <button
+            type="button"
+            className={`notif-panel-tab${activeTab === 'unread' ? ' notif-panel-tab--active' : ''}`}
+            onClick={() => setActiveTab('unread')}
+          >
+            {t('notif.unread')} ({unreadCount})
+          </button>
         </div>
       </div>
+
+      {/* ── Notification list ── */}
+      <div className="notif-panel-scroll">
+        {filtered.length === 0 ? (
+          <div className="notif-panel-empty">
+            <div className="notif-panel-empty-icon">
+              <Icon name="bell" size={26} color="var(--border2)" />
+            </div>
+            <span className="notif-panel-empty-text">{activeTab === 'unread' ? t('notif.noUnread') : t('notif.noNotifications')}</span>
+            <span className="notif-panel-empty-sub">{t('notif.caughtUp')}</span>
+          </div>
+        ) : filtered.map((n: any) => (
+          <NotificationListItem key={n.id} n={n} onMarkRead={onMarkRead} onNavigate={onClose} />
+        ))}
+      </div>
+
+      {/* ── Footer ── */}
+      <div className="notif-panel-footer">
+        <Link
+          to="/bliss/notifications"
+          className="notif-panel-view-all"
+          onClick={() => onClose()}
+        >
+          Read All Messages
+        </Link>
+      </div>
+    </div>
   );
 };

@@ -149,9 +149,9 @@ interface DensityPreset { pagePadding: number; contentGap: number; btnPy: number
  * a button on the same toolbar row are the same height.
  */
 export const DENSITY_PRESETS: Record<DensityId, DensityPreset> = {
-  compact:     { pagePadding: 16, contentGap: 10, btnPy: 5, inputPy: 5, cellPy: 7  },
-  default:     { pagePadding: 24, contentGap: 16, btnPy: 7, inputPy: 7, cellPy: 11 },
-  comfortable: { pagePadding: 32, contentGap: 22, btnPy: 9, inputPy: 9, cellPy: 14 },
+  compact:     { pagePadding: 12, contentGap: 10, btnPy: 5, inputPy: 5, cellPy: 7  },
+  default:     { pagePadding: 16, contentGap: 16, btnPy: 7, inputPy: 7, cellPy: 11 },
+  comfortable: { pagePadding: 24, contentGap: 22, btnPy: 9, inputPy: 9, cellPy: 14 },
 };
 
 // Two-layer shadows (tight contact shadow + wide soft ambient one) — cards
@@ -695,7 +695,10 @@ export function applyDesignTokens(tokens: DesignTokens): void {
 
     '--elev-sm': shadow.light.sm, '--elev': shadow.light.base, '--elev-lg': shadow.light.lg,
 
-    '--page-padding': `${density.pagePadding}px`, '--content-gap': `${density.contentGap}px`,
+    '--page-padding': `${density.pagePadding}px`,
+    '--page-pad-x': `${density.pagePadding}px`,
+    '--page-pad-y': `${density.pagePadding}px`,
+    '--content-gap': `${density.contentGap}px`,
     '--ds-btn-py': `${density.btnPy}px`, '--ds-input-py': `${density.inputPy}px`, '--ds-cell-py': `${density.cellPy}px`,
     // The sm/lg button steps are computed here rather than as a calc() inside a
     // Tailwind arbitrary value. `py-[calc(var(--ds-btn-py,9px)*0.6)]` silently

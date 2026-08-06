@@ -196,8 +196,8 @@
   /* The single page gutter — see .app-shell-content. Matches what
      /clearos/customs-tools/history already used (24px 32px), which is the
      page this was standardised against. */
-  --page-pad-x: 32px;
-  --page-pad-y: 24px;
+  --page-pad-x: 16px;
+  --page-pad-y: 16px;
 
   --ds-btn-py:   7px;
   --ds-btn-py-xs: 3px;
@@ -246,7 +246,7 @@
   --badge-fs-sm: 10px;
   --badge-min-h-sm: 16px;
 
-  --page-padding: 24px;
+  --page-padding: 16px;
   --content-gap:  16px;
 
   --dur-fast: 80ms;
@@ -1155,11 +1155,60 @@ body {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  border-left: 2px solid var(--border);
+  border-left: 1.5px solid var(--border);
   overflow: hidden;
   max-height: 0;
   transition: max-height 0.26s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* FinOps accordion group items with left guide line */
+.fnav-group-items {
+  position: relative;
+  margin-left: 21px;
+  padding-left: 6px;
+  border-left: 1.5px solid var(--border, rgba(0, 0, 0, 0.12));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+  margin-bottom: 6px;
+}
+
+[data-theme="dark"] .fnav-group-items,
+[data-semi-dark="true"] .fnav-group-items {
+  border-left-color: rgba(255, 255, 255, 0.14);
+}
+
+.fnav-subitem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  width: 100%;
+  padding: 0 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink2);
+  border-radius: 6px;
+  transition: background 0.1s ease, color 0.1s ease;
+  box-sizing: border-box;
+}
+
+.fnav-subitem:hover:not(.fnav-subitem--active) {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.fnav-subitem--active {
+  background: color-mix(in srgb, var(--teal, #0d9488) 14%, transparent);
+  color: var(--teal, #0d9488);
+  font-weight: 600;
+}
+
 .lnav-sub-item {
   display: flex;
   align-items: center;
@@ -3942,8 +3991,8 @@ html:not([data-theme="dark"]) .page-layout {
    Matches the hub welcome band style: transparent, no border
    ════════════════════════════════════════════════════════════ */
 .page-header {
-  margin: 0 0 36px;
-  padding: 36px 0 32px;
+  margin: 0 0 20px;
+  padding: 16px 0 18px;
   background: transparent;
   position: relative;
 }

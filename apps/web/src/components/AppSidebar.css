@@ -43,7 +43,7 @@
      would misalign it from its own page. Pages measured 37 / 61 / 69 / 85px
      from the shell edge before this, depending on whether their wrapper
      added anything and how much. */
-  padding: var(--page-pad-y, 24px) var(--page-pad-x, 32px);
+  padding: var(--page-pad-y, 16px) var(--page-pad-x, 16px);
   box-sizing: border-box;
   transition: max-width 0.25s ease, padding 0.25s ease;
 }
@@ -57,7 +57,7 @@
      `0 16px`, and since full-width became the default that reset applied
      everywhere — which is why tokenising the gutter above appeared to do
      nothing at all. The page margin is one value in both layouts. */
-  padding: var(--page-pad-y, 24px) var(--page-pad-x, 32px);
+  padding: var(--page-pad-y, 16px) var(--page-pad-x, 16px);
 }
 
 /* .page-layout (the white content card most pages/apps render into) has its
@@ -337,11 +337,45 @@ html[data-expanded="true"] .app-sidebar {
   text-align: center;
 }
 
-/* ── Child items — indented, slightly smaller ── */
-.app-sb-item--child {
-  height: 38px;
-  padding-left: 40px;
+/* ── Child items container with vertical guide line ── */
+.app-sb-children-group {
+  position: relative;
+  margin-left: 21px;
+  padding-left: 6px;
+  border-left: 1.5px solid rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+  margin-bottom: 6px;
+}
+
+[data-theme="dark"] .app-sb-children-group,
+[data-semi-dark="true"] .app-sb-children-group {
+  border-left-color: rgba(255, 255, 255, 0.14);
+}
+
+.app-sb-children-group .app-sb-item--child {
+  height: 36px;
+  margin: 0;
+  width: 100%;
+  padding: 0 10px;
   font-size: 13px;
+  font-weight: 500;
+  color: var(--ink2);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+
+.app-sb-children-group .app-sb-item--child:hover:not(.app-sb-item--active) {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.app-sb-children-group .app-sb-item--child.app-sb-item--active {
+  background: color-mix(in srgb, var(--sb-color, #64748b) 14%, transparent);
+  color: var(--sb-color, #64748b);
+  font-weight: 600;
 }
 
 /* ── Badges ── */

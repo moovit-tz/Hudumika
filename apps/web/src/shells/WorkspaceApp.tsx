@@ -7,6 +7,7 @@ import type { AppId } from '@hudumika/types';
 import { useBranding } from '../hooks/useBranding.js';
 import { RequireAppEnabled } from '../components/RequireAppEnabled.js';
 import { parseHex, darkenHex, lightenHex, hexToHslTriplet, pickForegroundHsl, enforceContrastFloor } from '../lib/color.js';
+import { SkeletonPage } from '../components/ui/skeleton.js';
 
 // The SuperAdmin platform panel is never gated by a tenant's enabled-apps config —
 // it's how a SuperAdmin fixes their own mistakes, so it can never lock itself out.
@@ -210,7 +211,9 @@ export function WorkspaceApp({ appId, children }: WorkspaceAppProps) {
     <ActiveAppContext.Provider value={appId}>
       <MobileNavContext.Provider value={{ mobileOpen, setMobileOpen }}>
         <div ref={wrapperRef} className="app-color-scope">
-          {children}
+          <React.Suspense fallback={<SkeletonPage />}>
+            {children}
+          </React.Suspense>
         </div>
       </MobileNavContext.Provider>
     </ActiveAppContext.Provider>

@@ -416,7 +416,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
     const actor = request.user;
-    const body = request.body as { name?: string; phone?: string; profile?: Record<string, any> };
+    const body = request.body as { name?: string; phone?: string; avatar_url?: string | null; profile?: Record<string, any> };
 
     const patch: Record<string, any> = { updated_at: new Date() };
     if (typeof body.name === 'string') {
@@ -424,10 +424,19 @@ export async function authRoutes(fastify: FastifyInstance) {
       patch.name = body.name.trim();
     }
     if (typeof body.phone === 'string') patch.phone = body.phone.trim() || null;
+    if (body.avatar_url !== undefined) patch.avatar_url = body.avatar_url ? body.avatar_url.trim() : null;
 
     if (body.profile && typeof body.profile === 'object') {
       const existing = await db.selectFrom('users').select('profile').where('id', '=', actor.sub).executeTakeFirst();
-      const existingProfile = existing?.profile || {};
+      // Guarded: the driver hands JSONB back as a string in some paths, but a
+      // malformed value would throw here and 500 the whole profile update
+      // rather than just losing one field.
+      let existingProfile: Record<string, any> = {};
+      if (typeof existing?.profile === 'string') {
+        try { existingProfile = JSON.parse(existing.profile) || {}; } catch { existingProfile = {}; }
+      } else {
+        existingProfile = (existing?.profile as Record<string, any>) || {};
+      }
       patch.profile = JSON.stringify({ ...existingProfile, ...body.profile });
     }
 

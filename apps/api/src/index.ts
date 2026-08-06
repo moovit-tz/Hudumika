@@ -215,6 +215,7 @@ async function main() {
 
     // 4. REST Routes
     await server.register(authRoutes, { prefix: '/auth' });
+    await server.register(authRoutes, { prefix: '/v1/auth' });
     await server.register(shipmentRoutes, { prefix: '/v1/shipments' });
     await server.register(customerRoutes, { prefix: '/v1/customers' });
     await server.register(leadsRoutes, { prefix: '/v1/leads' });

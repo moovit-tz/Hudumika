@@ -1,16 +1,14 @@
 /* ══════════════════════════════════════════════
-   NotificationCentre — popup panel (launcher-style)
+   NotificationCentre — UBold style notification popup
 ══════════════════════════════════════════════ */
 
-/* Panel — rendered inside a plain fixed-position wrapper (see AppHeader.css's
-   .app-header-notif-panel, and AppHeader.tsx), which owns positioning/z-index;
-   this only sets the panel's own box look. */
 .notif-panel {
-  width: 234px;
-  max-width: calc(100vw - 20px);
-  height: min(480px, calc(100vh - 100px));
+  width: 380px;
+  max-width: calc(100vw - 24px);
   background: var(--white);
-  border-radius: 13px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.25);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -18,17 +16,16 @@
 
 /* ── Header ── */
 .notif-panel-hdr {
-  background: var(--nav-header-bg);
-  border-radius: 13px 13px 0 0;
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  position: relative;
 }
 
 .notif-panel-hdr-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px 12px;
+  padding: 16px 18px 12px;
 }
 
 .notif-panel-hdr-left {
@@ -37,284 +34,272 @@
   gap: 10px;
 }
 
-.notif-panel-hdr-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .notif-panel-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 700;
-  color: #fff;
+  color: var(--navy);
   font-family: var(--font);
+  letter-spacing: -0.01em;
 }
 
 .notif-panel-badge {
-  background: var(--red);
-  color: #fff;
-  font-size: var(--badge-fs-sm);
+  background: var(--teal-l);
+  color: var(--teal);
+  font-size: 11px;
   font-weight: 700;
   border-radius: 10px;
-  padding: var(--badge-py-sm) var(--badge-px-sm);
+  padding: 2px 7px;
   font-family: var(--font);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+.notif-panel-hdr-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .notif-panel-mark-all {
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #fff;
-  border-radius: 6px;
-  padding: 4px 10px;
+  background: transparent;
+  border: none;
+  color: var(--teal);
   cursor: pointer;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   font-family: var(--font);
-  transition: background 0.12s;
+  padding: 2px 4px;
   white-space: nowrap;
 }
 
 .notif-panel-mark-all:hover {
-  background: rgba(255, 255, 255, 0.2);
+  text-decoration: underline;
 }
 
 .notif-panel-close {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.6);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--ink3);
   cursor: pointer;
-  padding: 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  transition: background 0.12s, color 0.12s;
+  transition: all 0.12s;
 }
 
 .notif-panel-close:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: var(--border);
+  color: var(--ink);
 }
 
-/* ── App tabs ── */
+/* ── Filter Tabs ── */
 .notif-panel-tabs {
   display: flex;
-  gap: 2px;
-  overflow-x: auto;
-  padding: 0 12px 1px;
+  gap: 16px;
+  padding: 0 18px 10px;
 }
-
-.notif-panel-tabs::-webkit-scrollbar { display: none; }
 
 .notif-panel-tab {
   background: transparent;
   border: none;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.5);
-  border-bottom: 2px solid transparent;
-  padding: 6px 10px 10px;
-  font-size: 12px;
+  color: var(--ink3);
+  font-size: 12.5px;
   font-weight: 600;
-  white-space: nowrap;
   font-family: var(--font);
-  transition: color 0.12s;
-  display: flex;
-  align-items: center;
-  gap: 5px;
+  padding: 2px 0;
+  border-bottom: 2px solid transparent;
+  transition: all 0.12s;
 }
 
 .notif-panel-tab--active {
-  color: #fff;
+  color: var(--navy);
   border-bottom-color: var(--teal);
 }
 
-.notif-panel-tab:hover:not(.notif-panel-tab--active) {
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.notif-panel-tab-count {
-  background: rgba(255, 255, 255, 0.18);
-  border-radius: 8px;
-  padding: 1px 5px;
-  font-size: 10px;
-}
-
-/* Removed App Styles */
-
-/* ── Notification list ──
-   max-height (not flex: 1) — this panel now lives in-flow inside a Radix
-   DropdownMenuContent instead of a position:fixed box, and a flex:1 +
-   overflow:auto child inside an in-flow auto-height flex column collapses
-   to 0 height (no bounding height for it to grow into). */
+/* ── Scroll Area ── */
 .notif-panel-scroll {
-  max-height: 360px;
+  max-height: 380px;
   overflow-y: auto;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.notif-panel-scroll::-webkit-scrollbar { width: 3px; }
+.notif-panel-scroll::-webkit-scrollbar { width: 4px; }
 .notif-panel-scroll::-webkit-scrollbar-track { background: transparent; }
-.notif-panel-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.notif-panel-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
 .notif-panel-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 220px;
+  height: 180px;
   padding: 24px;
+  text-align: center;
 }
 
 .notif-panel-empty-icon {
-  width: 54px;
-  height: 54px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .notif-panel-empty-text {
-  color: var(--ink);
+  color: var(--navy);
   font-family: var(--font);
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 4px;
 }
 
 .notif-panel-empty-sub {
   color: var(--ink3);
   font-family: var(--font);
-  font-size: 13px;
+  font-size: 12.5px;
+  margin-top: 2px;
 }
 
-/* Notification row */
-.notif-panel-item {
+/* ── Notification Row Item (UBold style with avatar badge overlay) ── */
+.notif-item {
   display: flex;
-  gap: 12px;
-  padding: 11px 16px;
-  border-bottom: 1px solid var(--border);
-  transition: background 0.1s;
-  cursor: default;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
   text-decoration: none;
   color: inherit;
+  transition: background 0.15s ease;
+  position: relative;
 }
 
-.notif-panel-item--unread {
-  background: var(--teal-l);
-}
-
-.notif-panel-item--clickable {
+.notif-item--clickable {
   cursor: pointer;
 }
 
-.notif-panel-item--clickable:hover {
+.notif-item:hover {
   background: var(--bg);
 }
 
-.notif-panel-item--unread.notif-panel-item--clickable:hover {
-  background: #fde8e0;
+.notif-item--unread {
+  background: color-mix(in srgb, var(--teal-l) 40%, transparent);
 }
 
-/* Icon — the tinted chip itself now comes from FeaturedIcon (see
-   NotificationListItem.tsx), which already reads the shared theme tokens for
-   both light and dark; only the avatar-image fallback needs sizing here. */
-.notif-panel-item-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+.notif-item-avatar-wrap {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+}
+
+.notif-item-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   object-fit: cover;
-  display: block;
+  border: 1px solid var(--border);
 }
 
-/* Body */
-.notif-panel-item-body {
+.notif-item-initials {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 15px;
+  border: 1px solid var(--border);
+}
+
+.notif-item-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.notif-item-body {
   flex: 1;
   min-width: 0;
 }
 
-.notif-panel-item-title {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink);
-  font-family: var(--font);
-  line-height: 1.3;
+.notif-item-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--navy);
+  line-height: 1.35;
 }
 
-.notif-panel-item-title--bold {
+.notif-item-title--unread {
   font-weight: 700;
 }
 
-.notif-panel-item-msg {
-  font-size: 12px;
+.notif-item-msg {
+  font-size: 12.5px;
   color: var(--ink2);
   margin-top: 2px;
-  font-family: var(--font);
-  line-height: 1.4;
+  line-height: 1.3;
   word-break: break-word;
-  white-space: pre-wrap;
 }
 
-.notif-panel-item-meta {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  margin-top: 5px;
-  flex-wrap: wrap;
-}
-
-/* Removed App badge */
-
-.notif-panel-item-entity,
-.notif-panel-item-time {
-  font-size: 11px;
+.notif-item-time {
+  font-size: 11.5px;
   color: var(--ink3);
-  font-family: var(--font);
+  margin-top: 4px;
+  font-weight: 500;
 }
 
-/* Unread dot */
-.notif-panel-item-dot {
+.notif-item-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   background: var(--teal);
   flex-shrink: 0;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 /* ── Footer ── */
 .notif-panel-footer {
-  padding: 10px 14px;
+  padding: 14px;
+  text-align: center;
   border-top: 1px solid var(--border);
+  background: var(--white);
   flex-shrink: 0;
-  display: flex;
 }
 
 .notif-panel-view-all {
-  width: 100%;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--ink2);
-  font-size: 10.5px;
-  font-weight: 600;
-  font-family: var(--font);
-  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--navy);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: 2px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: color 0.12s;
 }
 
 .notif-panel-view-all:hover {
-  background: var(--bg);
-  border-color: var(--ink3);
-  color: var(--ink);
+  color: var(--teal);
 }
 
 /* ── Dark mode ── */

@@ -11,31 +11,29 @@ type IconName = React.ComponentProps<typeof Icon>['name'];
 // existed for them), where FeaturedIcon's tokens already do, per CLAUDE.md's
 // design-system rule that icon-in-a-tinted-chip patterns reuse the shared
 // --teal-l/--green-l/etc. tokens rather than inventing their own colors.
-export const NOTIF_TYPE_CFG: Record<string, { icon: IconName; variant: FeaturedIconProps['variant'] }> = {
-  tag:          { icon: 'tag',         variant: 'info'    },
-  support:      { icon: 'headphones',  variant: 'brand'   },
-  announcement: { icon: 'volume2',     variant: 'warning' },
-  security:     { icon: 'shield',      variant: 'error'   },
-  task:         { icon: 'checkCircle', variant: 'success' },
-  info:         { icon: 'info',        variant: 'info'    },
-  chat:         { icon: 'chatBubble',  variant: 'brand'   },
-  mention:      { icon: 'atSign',      variant: 'warning' },
+export const NOTIF_TYPE_CFG: Record<string, { icon: IconName; variant: FeaturedIconProps['variant']; color: string }> = {
+  tag:          { icon: 'tag',         variant: 'info',    color: 'var(--teal)' },
+  support:      { icon: 'headphones',  variant: 'brand',   color: 'var(--blue)' },
+  announcement: { icon: 'volume2',     variant: 'warning', color: 'var(--gold)' },
+  security:     { icon: 'shield',      variant: 'error',   color: 'var(--red)'  },
+  task:         { icon: 'checkCircle', variant: 'success', color: 'var(--green)'},
+  info:         { icon: 'info',        variant: 'info',    color: 'var(--blue)' },
+  chat:         { icon: 'chatBubble',  variant: 'brand',   color: 'var(--purple)'},
+  mention:      { icon: 'atSign',      variant: 'warning', color: 'var(--gold)' },
 };
 
 export function notifRelTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const m = Math.floor(diff / 60000);
   if (m < 1) return 'just now';
-  if (m < 60) return `${m}m ago`;
+  if (m < 60) return `${m} minutes ago`;
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+  if (h < 24) return `${h} hour${h !== 1 ? 's' : ''} ago`;
+  return `${Math.floor(h / 24)} day${Math.floor(h / 24) !== 1 ? 's' : ''} ago`;
 }
 
 /**
- * One notification row — shared by the header dropdown (NotificationCentre.tsx)
- * and the full-page Notification Centre (BlissNotifications.tsx), so both
- * stay visually identical and only ever need one place to change.
+ * UBold / Coderthemes style Notification Row item
  */
 export function NotificationListItem({ n, onMarkRead, onNavigate }: {
   n: any;
@@ -46,29 +44,38 @@ export function NotificationListItem({ n, onMarkRead, onNavigate }: {
   const link = n.link || (n.type === 'chat' ? '/chat' : undefined);
   const isClickable = !!link;
   const className = [
-    'notif-panel-item',
-    n.read ? '' : 'notif-panel-item--unread',
-    isClickable ? 'notif-panel-item--clickable' : '',
+    'notif-item',
+    n.read ? '' : 'notif-item--unread',
+    isClickable ? 'notif-item--clickable' : '',
   ].filter(Boolean).join(' ');
+
+  const avatarSrc = n.avatar_url;
+  const initialLetter = (n.title || '?').trim()[0]?.toUpperCase() ?? '?';
 
   const content = (
     <>
-      {n.avatar_url ? (
-        <img src={n.avatar_url} alt="" className="notif-panel-item-avatar" />
-      ) : (
-        <FeaturedIcon variant={cfg.variant} size="sm" shape="square" className="h-9 w-9">
-          <Icon name={cfg.icon} size={17} strokeWidth={2} />
-        </FeaturedIcon>
-      )}
-      <div className="notif-panel-item-body">
-        <div className={`notif-panel-item-title${n.read ? '' : ' notif-panel-item-title--bold'}`}>{n.title}</div>
-        {n.message && <div className="notif-panel-item-msg">{n.message}</div>}
-        <div className="notif-panel-item-meta">
-          {n.entity_label && <span className="notif-panel-item-entity">{n.entity_label}</span>}
-          <span className="notif-panel-item-time">{notifRelTime(n.created_at)}</span>
+      <div className="notif-item-avatar-wrap">
+        {avatarSrc ? (
+          <img src={avatarSrc} alt="" className="notif-item-avatar" />
+        ) : (
+          <div className="notif-item-initials" style={{ background: cfg.color }}>
+            {initialLetter}
+          </div>
+        )}
+        <div className="notif-item-badge" style={{ color: cfg.color }}>
+          <Icon name={cfg.icon} size={10} strokeWidth={2.2} />
         </div>
       </div>
-      {!n.read && <div className="notif-panel-item-dot" />}
+
+      <div className="notif-item-body">
+        <div className={`notif-item-title${n.read ? '' : ' notif-item-title--unread'}`}>
+          {n.title}
+        </div>
+        {n.message && <div className="notif-item-msg">{n.message}</div>}
+        <div className="notif-item-time">{notifRelTime(n.created_at)}</div>
+      </div>
+
+      {!n.read && <div className="notif-item-dot" />}
     </>
   );
 

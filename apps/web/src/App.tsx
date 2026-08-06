@@ -7,6 +7,7 @@ import type { UserRole } from '@hudumika/types';
 import { MGMT_ROLES, OPS_ROLES, FIN_ROLES } from './lib/permissions.js';
 import { WorkspaceProvider } from './contexts/WorkspaceContext.js';
 import { Icon, type IconName } from './components/Icon.js';
+import { SkeletonPage } from './components/ui/skeleton.js';
 import { Login }           from './pages/Login.js';
 import { OnboardingWizard } from './pages/onboarding/OnboardingWizard.js';
 import { ForgotPassword }  from './pages/ForgotPassword.js';
@@ -102,7 +103,9 @@ const NavShell: React.FC = () => (
     <div className="app-main">
       <AppHeader />
       <div className="app-shell-content">
-        <Outlet />
+        <React.Suspense fallback={<SkeletonPage />}>
+          <Outlet />
+        </React.Suspense>
       </div>
     </div>
   </div>
