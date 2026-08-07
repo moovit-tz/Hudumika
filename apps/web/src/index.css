@@ -3610,7 +3610,13 @@ html:not([data-theme="dark"]) .page-layout {
 
 /* ── Page footer ── */
 .page-footer {
-  padding: 20px 28px 32px;
+  /* No horizontal padding of its own. .page-layout already sets the page
+     gutter, and every other thing on a page — crumbs, title, subtitle,
+     toolbar buttons, table cells — lines up on it. The footer's own 28px
+     sat on top of that gutter, so its text started 28px to the right of
+     the title above it on every page in every app. Vertical padding stays;
+     only the horizontal inset was wrong. */
+  padding: 20px 0 32px;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;
