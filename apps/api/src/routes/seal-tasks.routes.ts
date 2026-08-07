@@ -36,6 +36,7 @@ export async function sealTasksRoutes(fastify: FastifyInstance) {
             'seal_tasks.note', 'seal_tasks.created_by', 'seal_tasks.created_at', 'seal_tasks.updated_at',
             'seal_lots.description as lot_description', 'seal_compartments.name as compartment_name',
           ])
+          .where('seal_tasks.tenant_id', '=', request.user.tenant_id)
           .orderBy('seal_tasks.due_date', 'asc')
           .orderBy('seal_tasks.created_at', 'desc');
         if (compartment_id) q = q.where('seal_tasks.compartment_id', '=', compartment_id);

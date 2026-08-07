@@ -65,6 +65,7 @@ export async function sealWarehouseOpsRoutes(fastify: FastifyInstance) {
             'seal_yard_slots.capacity_teu', 'seal_yard_slots.active',
             fn.count<number>('seal_containers.id').as('occupied_count'),
           ])
+          .where('seal_yard_slots.tenant_id', '=', request.user.tenant_id)
           .where('seal_yard_slots.active', '=', true)
           .groupBy(['seal_yard_slots.id']);
         if (compartment_id) q = q.where('seal_yard_slots.compartment_id', '=', compartment_id);
@@ -117,6 +118,7 @@ export async function sealWarehouseOpsRoutes(fastify: FastifyInstance) {
     try {
       const rows = await withTenant(request.user.tenant_id, trx =>
         trx.selectFrom('vehicles').select(['id', 'name', 'plate_number', 'driver_name', 'status'])
+          .where('tenant_id', '=', request.user.tenant_id)
           .where('status', '=', 'ACTIVE').orderBy('name').execute()
       );
       return rows.map(r => ({ id: r.id, name: r.name, plateNumber: r.plate_number, driverName: r.driver_name, status: r.status }));

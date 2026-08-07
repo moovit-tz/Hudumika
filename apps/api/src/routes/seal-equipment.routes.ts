@@ -56,6 +56,7 @@ export async function sealEquipmentRoutes(fastify: FastifyInstance) {
             'seal_equipment.last_service_date', 'seal_equipment.next_service_due_date', 'seal_equipment.notes',
             'seal_equipment.created_at', 'seal_equipment.updated_at', 'seal_compartments.name as compartment_name',
           ])
+          .where('seal_equipment.tenant_id', '=', request.user.tenant_id)
           .orderBy('seal_equipment.next_service_due_date', 'asc');
         if (compartment_id) q = q.where('seal_equipment.compartment_id', '=', compartment_id);
         return q.execute();

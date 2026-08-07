@@ -42,6 +42,7 @@ export async function sealStockAccountRoutes(fastify: FastifyInstance) {
             'seal_stock_account_periods.submission_reference', 'seal_stock_account_periods.submitted_at',
             'seal_stock_account_periods.created_at',
           ])
+          .where('seal_stock_account_periods.tenant_id', '=', request.user.tenant_id)
           .orderBy('seal_stock_account_periods.period_start', 'desc');
         if (compartment_id) q = q.where('seal_stock_account_periods.compartment_id', '=', compartment_id);
         return q.execute();
@@ -58,6 +59,7 @@ export async function sealStockAccountRoutes(fastify: FastifyInstance) {
         trx.selectFrom('seal_stock_account_periods')
           .leftJoin('seal_compartments', 'seal_compartments.id', 'seal_stock_account_periods.compartment_id')
           .selectAll('seal_stock_account_periods').select('seal_compartments.name as compartment_name')
+          .where('seal_stock_account_periods.tenant_id', '=', request.user.tenant_id)
           .where('seal_stock_account_periods.id', '=', request.params.id).executeTakeFirst()
       );
       if (!period) return reply.status(404).send({ error: 'Stock-account period not found' });
@@ -71,6 +73,7 @@ export async function sealStockAccountRoutes(fastify: FastifyInstance) {
             'seal_stock_account_lines.closing_qty', 'seal_stock_account_lines.closing_customs_status',
             'seal_stock_account_lines.duty_at_risk', 'seal_stock_account_lines.tax_at_risk',
           ])
+          .where('seal_stock_account_lines.tenant_id', '=', request.user.tenant_id)
           .where('seal_stock_account_lines.period_id', '=', request.params.id)
           .execute()
       );

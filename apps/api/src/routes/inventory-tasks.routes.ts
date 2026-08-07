@@ -36,6 +36,7 @@ export async function inventoryTasksRoutes(fastify: FastifyInstance) {
             'inventory_tasks.note', 'inventory_tasks.created_by', 'inventory_tasks.created_at', 'inventory_tasks.updated_at',
             'inventory_items.name as item_name', 'inventory_warehouses.name as warehouse_name',
           ])
+          .where('inventory_tasks.tenant_id', '=', request.user.tenant_id)
           .orderBy('inventory_tasks.due_date', 'asc')
           .orderBy('inventory_tasks.created_at', 'desc');
         if (status) q = q.where('inventory_tasks.status', '=', status);
@@ -46,7 +47,7 @@ export async function inventoryTasksRoutes(fastify: FastifyInstance) {
         // SQL join to avoid a uuid/varchar type-mismatch at the database layer.
         const assigneeIds = [...new Set(taskRows.map(t => t.assigned_to).filter((id): id is string => !!id))];
         const assignees = assigneeIds.length
-          ? await trx.selectFrom('users').select(['id', 'name']).where('id', 'in', assigneeIds).execute()
+          ? await trx.selectFrom('users').select(['id', 'name']).where('tenant_id', '=', request.user.tenant_id).where('id', 'in', assigneeIds).execute()
           : [];
         const nameById = new Map(assignees.map(u => [u.id, u.name]));
 

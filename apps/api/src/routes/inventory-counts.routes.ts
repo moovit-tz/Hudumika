@@ -42,6 +42,7 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
             'inventory_count_sessions.started_at', 'inventory_count_sessions.posted_at', 'inventory_count_sessions.notes',
             'inventory_warehouses.name as warehouse_name',
           ])
+          .where('inventory_count_sessions.tenant_id', '=', request.user.tenant_id)
           .orderBy('inventory_count_sessions.started_at', 'desc');
         if (warehouse_id) q = q.where('inventory_count_sessions.warehouse_id', '=', warehouse_id);
         return q.execute();
@@ -62,6 +63,7 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
             'inventory_count_sessions.started_at', 'inventory_count_sessions.posted_at', 'inventory_count_sessions.notes',
             'inventory_warehouses.name as warehouse_name',
           ])
+          .where('inventory_count_sessions.tenant_id', '=', request.user.tenant_id)
           .where('inventory_count_sessions.id', '=', request.params.id).executeTakeFirst();
         if (!session) return null;
         const lines = await trx.selectFrom('inventory_count_lines')
@@ -74,6 +76,7 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
             'inventory_items.name as item_name', 'inventory_items.sku as item_sku', 'inventory_items.base_uom',
             'inventory_locations.code as location_code',
           ])
+          .where('inventory_count_lines.tenant_id', '=', request.user.tenant_id)
           .where('session_id', '=', request.params.id)
           .execute();
         return { session, lines };
@@ -94,6 +97,17 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
       const b = request.body as any;
       if (!b.warehouseId) return reply.status(400).send({ error: 'warehouseId is required' });
       const session = await withTenant(request.user.tenant_id, async trx => {
+        // warehouseId arrives from the client, so it is checked against this
+        // tenant before anything is snapshotted from it — otherwise a count
+        // session could be opened over another workspace's warehouse and copy
+        // its stock levels into this one's count lines.
+        const warehouse = await trx.selectFrom('inventory_warehouses')
+          .select('id')
+          .where('tenant_id', '=', request.user.tenant_id)
+          .where('id', '=', b.warehouseId)
+          .executeTakeFirst();
+        if (!warehouse) return null;
+
         const row = await trx.insertInto('inventory_count_sessions').values({
           tenant_id: request.user.tenant_id, warehouse_id: b.warehouseId,
           notes: b.notes ?? null, created_by: request.user.sub,
@@ -102,6 +116,7 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
         const stockRows = await trx.selectFrom('inventory_stock_levels')
           .innerJoin('inventory_locations', 'inventory_locations.id', 'inventory_stock_levels.location_id')
           .select(['inventory_stock_levels.item_id', 'inventory_stock_levels.location_id', 'inventory_stock_levels.batch_no', 'inventory_stock_levels.qty_on_hand'])
+          .where('inventory_stock_levels.tenant_id', '=', request.user.tenant_id)
           .where('inventory_locations.warehouse_id', '=', b.warehouseId)
           .execute();
 
@@ -115,6 +130,7 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
         }
         return row;
       });
+      if (!session) return reply.status(404).send({ error: 'Warehouse not found' });
       return mapSession(session);
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
@@ -126,11 +142,14 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
       const b = request.body as any;
       if (b.countedQty == null) return reply.status(400).send({ error: 'countedQty is required' });
       const row = await withTenant(request.user.tenant_id, async trx => {
-        const session = await trx.selectFrom('inventory_count_sessions').select('status').where('id', '=', request.params.id).executeTakeFirstOrThrow();
+        const session = await trx.selectFrom('inventory_count_sessions').select('status')
+          .where('tenant_id', '=', request.user.tenant_id)
+          .where('id', '=', request.params.id).executeTakeFirstOrThrow();
         if (session.status !== 'open') throw new Error(`Cannot record a count — session is ${session.status}.`);
         return trx.updateTable('inventory_count_lines').set({
           counted_qty: String(b.countedQty), counted_at: new Date(), counted_by: request.user.sub,
-        }).where('id', '=', request.params.lineId).where('session_id', '=', request.params.id)
+        }).where('tenant_id', '=', request.user.tenant_id)
+          .where('id', '=', request.params.lineId).where('session_id', '=', request.params.id)
           .returningAll().executeTakeFirstOrThrow();
       });
       return mapLine(row);
@@ -147,7 +166,13 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
   fastify.post('/count-sessions/:id/post', async (request: any, reply) => {
     try {
       const result = await withTenant(request.user.tenant_id, async trx => {
-        const session = await trx.selectFrom('inventory_count_sessions').selectAll().where('id', '=', request.params.id).executeTakeFirstOrThrow();
+        // Tenant-scoped before anything is read from it: posting turns this
+        // session's lines into real count_correction movements, so an
+        // unscoped lookup here would let one workspace apply another's counts
+        // to its own stock ledger.
+        const session = await trx.selectFrom('inventory_count_sessions').selectAll()
+          .where('tenant_id', '=', request.user.tenant_id)
+          .where('id', '=', request.params.id).executeTakeFirstOrThrow();
         if (session.status !== 'open') throw new Error(`Cannot post — session is ${session.status}.`);
 
         const lines = await trx.selectFrom('inventory_count_lines')
@@ -155,6 +180,7 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
           .select(['inventory_count_lines.id', 'inventory_count_lines.item_id', 'inventory_count_lines.location_id',
             'inventory_count_lines.batch_no', 'inventory_count_lines.expected_qty', 'inventory_count_lines.counted_qty',
             'inventory_items.base_uom'])
+          .where('inventory_count_lines.tenant_id', '=', request.user.tenant_id)
           .where('session_id', '=', session.id)
           .execute();
 
@@ -172,6 +198,7 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
         }
 
         const posted = await trx.updateTable('inventory_count_sessions').set({ status: 'posted', posted_at: new Date() })
+          .where('tenant_id', '=', request.user.tenant_id)
           .where('id', '=', session.id).returningAll().executeTakeFirstOrThrow();
         return { posted, corrections };
       });
@@ -184,9 +211,12 @@ export async function inventoryCountsRoutes(fastify: FastifyInstance) {
   fastify.post('/count-sessions/:id/cancel', async (request: any, reply) => {
     try {
       const row = await withTenant(request.user.tenant_id, async trx => {
-        const session = await trx.selectFrom('inventory_count_sessions').select('status').where('id', '=', request.params.id).executeTakeFirstOrThrow();
+        const session = await trx.selectFrom('inventory_count_sessions').select('status')
+          .where('tenant_id', '=', request.user.tenant_id)
+          .where('id', '=', request.params.id).executeTakeFirstOrThrow();
         if (session.status !== 'open') throw new Error(`Cannot cancel — session is ${session.status}.`);
         return trx.updateTable('inventory_count_sessions').set({ status: 'cancelled' })
+          .where('tenant_id', '=', request.user.tenant_id)
           .where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow();
       });
       return mapSession(row);

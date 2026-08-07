@@ -47,6 +47,7 @@ export async function sealExaminationRoutes(fastify: FastifyInstance) {
             'seal_examinations.completed_at', 'seal_examinations.outcome', 'seal_examinations.findings',
             'seal_examinations.created_at',
           ])
+          .where('seal_examinations.tenant_id', '=', request.user.tenant_id)
           .orderBy('seal_examinations.created_at', 'desc');
         if (status) q = q.where('seal_examinations.status', '=', status);
         if (customs_entry_id) q = q.where('seal_examinations.customs_entry_id', '=', customs_entry_id);

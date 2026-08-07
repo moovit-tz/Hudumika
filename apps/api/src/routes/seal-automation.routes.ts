@@ -36,20 +36,20 @@ function mapRun(row: any) {
 }
 
 async function evaluateRules(trx: Transaction<Database>, tenantId: string) {
-  const rules = await trx.selectFrom('seal_automation_rules').selectAll().where('active', '=', true).execute();
+  const rules = await trx.selectFrom('seal_automation_rules').selectAll().where('tenant_id', '=', tenantId).where('active', '=', true).execute();
   const fired: { ruleId: string; subjectId: string; subjectType: string; resultType: string; resultId: string }[] = [];
 
   for (const rule of rules) {
     let candidates: { subjectId: string; description: string; ownerId: string }[] = [];
 
     if (rule.trigger_type === 'lot_flagged') {
-      let q = trx.selectFrom('seal_lots').select(['id', 'description', 'owner_id'])
+      let q = trx.selectFrom('seal_lots').select(['id', 'description', 'owner_id']).where('tenant_id', '=', tenantId)
         .where('customs_status', 'in', ['SEIZED', 'ABANDONED']);
       if (rule.compartment_id) q = q.where('compartment_id', '=', rule.compartment_id);
       candidates = (await q.execute()).map(l => ({ subjectId: l.id, description: l.description, ownerId: l.owner_id }));
     } else if (rule.trigger_type === 'storage_expiring') {
       const days = rule.threshold_value != null ? Number(rule.threshold_value) : DEFAULT_STORAGE_EXPIRING_DAYS;
-      let q = trx.selectFrom('seal_lots').select(['id', 'description', 'owner_id'])
+      let q = trx.selectFrom('seal_lots').select(['id', 'description', 'owner_id']).where('tenant_id', '=', tenantId)
         .where('customs_status', '=', 'FOREIGN_DUTY_SUSPENDED')
         .where('expires_on', 'is not', null)
         .where('expires_on', '<=', toDateParam(new Date(Date.now() + days * 86400000)));
@@ -60,12 +60,13 @@ async function evaluateRules(trx: Transaction<Database>, tenantId: string) {
         .innerJoin('seal_customs_entries', 'seal_customs_entries.id', 'seal_examinations.customs_entry_id')
         .innerJoin('seal_lots', 'seal_lots.id', 'seal_customs_entries.lot_id')
         .select(['seal_examinations.id', 'seal_lots.description', 'seal_lots.owner_id', 'seal_lots.compartment_id'])
+        .where('seal_examinations.tenant_id', '=', tenantId)
         .where('seal_examinations.status', 'in', ['REQUESTED', 'SCHEDULED', 'IN_PROGRESS']);
       if (rule.compartment_id) q = q.where('seal_lots.compartment_id', '=', rule.compartment_id);
       candidates = (await q.execute()).map(e => ({ subjectId: e.id, description: e.description, ownerId: e.owner_id }));
     } else if (rule.trigger_type === 'low_stock') {
       const threshold = rule.threshold_value != null ? Number(rule.threshold_value) : 0;
-      let q = trx.selectFrom('seal_lots').select(['id', 'description', 'owner_id'])
+      let q = trx.selectFrom('seal_lots').select(['id', 'description', 'owner_id']).where('tenant_id', '=', tenantId)
         .where('qty_on_hand', '>', '0')
         .where('qty_on_hand', '<=', String(threshold));
       if (rule.compartment_id) q = q.where('compartment_id', '=', rule.compartment_id);
@@ -76,6 +77,7 @@ async function evaluateRules(trx: Transaction<Database>, tenantId: string) {
 
     for (const candidate of candidates) {
       const existingOpen = await trx.selectFrom('seal_automation_runs').select('id')
+        .where('tenant_id', '=', tenantId)
         .where('rule_id', '=', rule.id).where('subject_id', '=', candidate.subjectId).where('status', '=', 'open')
         .executeTakeFirst();
       if (existingOpen) continue;
@@ -121,7 +123,7 @@ export async function sealAutomationRoutes(fastify: FastifyInstance) {
   fastify.get('/automation-rules', async (request: any, reply) => {
     try {
       const rows = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_automation_rules').selectAll().orderBy('created_at', 'desc').execute()
+        trx.selectFrom('seal_automation_rules').selectAll().where('tenant_id', '=', request.user.tenant_id).orderBy('created_at', 'desc').execute()
       );
       return rows.map(mapRule);
     } catch (err: any) {
@@ -203,6 +205,7 @@ export async function sealAutomationRoutes(fastify: FastifyInstance) {
             'seal_automation_runs.result_id', 'seal_automation_runs.fired_at', 'seal_automation_runs.resolved_at',
             'seal_automation_rules.name as rule_name',
           ])
+          .where('seal_automation_runs.tenant_id', '=', request.user.tenant_id)
           .orderBy('seal_automation_runs.fired_at', 'desc')
           .limit(100)
           .execute()

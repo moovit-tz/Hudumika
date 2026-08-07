@@ -66,6 +66,7 @@ export async function sealDeclarationRoutes(fastify: FastifyInstance) {
             'seal_lots.id', 'seal_lots.description', 'seal_lots.hs_code', 'seal_lots.customs_status',
             'customers.name as owner_name', 'seal_lots.qty_on_hand', 'seal_lots.uom',
           ])
+          .where('seal_lots.tenant_id', '=', request.user.tenant_id)
           .orderBy('seal_lots.created_at', 'desc');
         if (customs_status) query = query.where('seal_lots.customs_status', '=', customs_status);
         if (q) query = query.where('seal_lots.description', 'ilike', `%${q}%`);
@@ -114,6 +115,7 @@ export async function sealDeclarationRoutes(fastify: FastifyInstance) {
             'seal_customs_entries.computation', 'seal_customs_entries.status', 'seal_customs_entries.submission_reference',
             'seal_customs_entries.payment_reference', 'seal_customs_entries.created_at',
           ])
+          .where('seal_customs_entries.tenant_id', '=', request.user.tenant_id)
           .orderBy('seal_customs_entries.created_at', 'desc');
         if (lot_id) q = q.where('seal_customs_entries.lot_id', '=', lot_id);
         if (status) q = q.where('seal_customs_entries.status', '=', status);
@@ -133,6 +135,7 @@ export async function sealDeclarationRoutes(fastify: FastifyInstance) {
           .leftJoin('customers', 'customers.id', 'seal_lots.owner_id')
           .selectAll('seal_customs_entries')
           .select(['seal_lots.description as lot_description', 'seal_lots.owner_id as lot_owner_id', 'customers.name as lot_owner_name'])
+          .where('seal_customs_entries.tenant_id', '=', request.user.tenant_id)
           .where('seal_customs_entries.id', '=', request.params.id)
           .executeTakeFirst()
       );

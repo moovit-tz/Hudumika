@@ -46,6 +46,7 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
             'inventory_items.reorder_point', 'inventory_items.reorder_qty',
             fn.coalesce(fn.sum<string>('inventory_stock_levels.qty_on_hand'), sql.lit('0')).as('total_qty_on_hand'),
           ])
+          .where('inventory_items.tenant_id', '=', request.user.tenant_id)
           .where('inventory_items.active', '=', true)
           .where('inventory_items.reorder_point', 'is not', null)
           .groupBy(['inventory_items.id', 'inventory_items.sku', 'inventory_items.name', 'inventory_items.base_uom', 'inventory_items.reorder_point', 'inventory_items.reorder_qty'])
@@ -71,10 +72,11 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
   fastify.get('/metrics', async (request: any, reply) => {
     try {
       const cutoff = new Date(Date.now() - 30 * 86400000);
-      const result = await withTenant(request.user.tenant_id, async trx => {
+      const tenantId = request.user.tenant_id;
+      const result = await withTenant(tenantId, async trx => {
         const [itemCount, warehouseCount, byWarehouse, recentMovements, lowStock, itemTotals] = await Promise.all([
-          trx.selectFrom('inventory_items').select(({ fn }) => fn.count<number>('id').as('n')).where('active', '=', true).executeTakeFirst(),
-          trx.selectFrom('inventory_warehouses').select(({ fn }) => fn.count<number>('id').as('n')).where('active', '=', true).executeTakeFirst(),
+          trx.selectFrom('inventory_items').select(({ fn }) => fn.count<number>('id').as('n')).where('tenant_id', '=', tenantId).where('active', '=', true).executeTakeFirst(),
+          trx.selectFrom('inventory_warehouses').select(({ fn }) => fn.count<number>('id').as('n')).where('tenant_id', '=', tenantId).where('active', '=', true).executeTakeFirst(),
           trx.selectFrom('inventory_warehouses')
             .leftJoin('inventory_locations', 'inventory_locations.warehouse_id', 'inventory_warehouses.id')
             .leftJoin('inventory_stock_levels', 'inventory_stock_levels.location_id', 'inventory_locations.id')
@@ -83,11 +85,13 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
               fn.count<number>('inventory_stock_levels.item_id').distinct().as('item_count'),
               fn.coalesce(fn.sum<string>('inventory_stock_levels.qty_on_hand'), sql.lit('0')).as('total_qty'),
             ])
+            .where('inventory_warehouses.tenant_id', '=', tenantId)
             .where('inventory_warehouses.active', '=', true)
             .groupBy(['inventory_warehouses.id', 'inventory_warehouses.name'])
             .execute(),
           trx.selectFrom('inventory_movements')
             .select(['occurred_at', 'movement_type'])
+            .where('tenant_id', '=', tenantId)
             .where('occurred_at', '>=', cutoff)
             .where('movement_type', 'in', ['receipt', 'issue'])
             .execute(),
@@ -98,6 +102,7 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
               'inventory_items.reorder_point',
               fn.coalesce(fn.sum<string>('inventory_stock_levels.qty_on_hand'), sql.lit('0')).as('total_qty_on_hand'),
             ])
+            .where('inventory_items.tenant_id', '=', tenantId)
             .where('inventory_items.active', '=', true)
             .where('inventory_items.reorder_point', 'is not', null)
             .groupBy(['inventory_items.id', 'inventory_items.sku', 'inventory_items.name', 'inventory_items.base_uom', 'inventory_items.reorder_point'])
@@ -108,6 +113,7 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
               'inventory_items.id',
               fn.coalesce(fn.sum<string>('inventory_stock_levels.qty_on_hand'), sql.lit('0')).as('total_qty_on_hand'),
             ])
+            .where('inventory_items.tenant_id', '=', tenantId)
             .where('inventory_items.active', '=', true)
             .groupBy('inventory_items.id')
             .execute(),
@@ -167,6 +173,7 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
             'inventory_items.name as item_name', 'inventory_items.sku as item_sku', 'inventory_items.base_uom',
             'inventory_locations.code as location_code', 'inventory_warehouses.name as warehouse_name',
           ])
+          .where('inventory_stock_levels.tenant_id', '=', request.user.tenant_id)
           .where('inventory_stock_levels.qty_on_hand', '!=', '0')
           .orderBy('inventory_items.name');
         if (item_id) q = q.where('inventory_stock_levels.item_id', '=', item_id);
@@ -196,6 +203,7 @@ export async function inventoryStockRoutes(fastify: FastifyInstance) {
             'inventory_movements.reference', 'inventory_items.name as item_name',
             'from_loc.code as from_location_code', 'to_loc.code as to_location_code',
           ])
+          .where('inventory_movements.tenant_id', '=', request.user.tenant_id)
           .orderBy('inventory_movements.id', 'desc')
           .limit(200);
         if (item_id) q = q.where('inventory_movements.item_id', '=', item_id);

@@ -113,14 +113,15 @@ export async function sealRoutes(fastify: FastifyInstance) {
         // Total compartment count is always tenant-wide context, regardless
         // of which single compartment the switcher has scoped everything
         // else to — "how many warehouses do I have" doesn't change meaning.
-        const compartmentCount = (await trx.selectFrom('seal_compartments').select(({ fn }) => fn.count<number>('id').as('n')).where('active', '=', true).executeTakeFirst())?.n ?? 0;
+        const compartmentCount = (await trx.selectFrom('seal_compartments').select(({ fn }) => fn.count<number>('id').as('n')).where('tenant_id', '=', request.user.tenant_id).where('active', '=', true).executeTakeFirst())?.n ?? 0;
 
-        let byStatusQuery = trx.selectFrom('seal_lots').select(({ fn }) => ['customs_status', fn.count<number>('id').as('count')]).groupBy('customs_status');
+        let byStatusQuery = trx.selectFrom('seal_lots').select(({ fn }) => ['customs_status', fn.count<number>('id').as('count')]).where('tenant_id', '=', request.user.tenant_id).groupBy('customs_status');
         let expiringSoonQuery = trx.selectFrom('seal_lots').select(({ fn }) => fn.count<number>('id').as('n'))
+          .where('tenant_id', '=', request.user.tenant_id)
           .where('expires_on', 'is not', null)
           .where('expires_on', '<=', toDateParam(new Date(Date.now() + 30 * 86400000)))
           .where('customs_status', '=', 'FOREIGN_DUTY_SUSPENDED');
-        let lotCountQuery = trx.selectFrom('seal_lots').select(({ fn }) => fn.count<number>('id').as('n'));
+        let lotCountQuery = trx.selectFrom('seal_lots').select(({ fn }) => fn.count<number>('id').as('n')).where('tenant_id', '=', request.user.tenant_id);
         if (compartment_id) {
           byStatusQuery = byStatusQuery.where('compartment_id', '=', compartment_id);
           expiringSoonQuery = expiringSoonQuery.where('compartment_id', '=', compartment_id);
@@ -156,17 +157,17 @@ export async function sealRoutes(fastify: FastifyInstance) {
 
       const [compartments, lots, locations, recentMovements, lastMovementByLot] = await withTenant(request.user.tenant_id, trx => Promise.all([
         (() => {
-          let q = trx.selectFrom('seal_compartments').select(['id', 'code', 'name']).where('active', '=', true).orderBy('code');
+          let q = trx.selectFrom('seal_compartments').select(['id', 'code', 'name']).where('tenant_id', '=', request.user.tenant_id).where('active', '=', true).orderBy('code');
           if (compartment_id) q = q.where('id', '=', compartment_id);
           return q.execute();
         })(),
         (() => {
-          let q = trx.selectFrom('seal_lots').select(['id', 'compartment_id', 'warehoused_on', 'qty_on_hand', 'customs_status', 'expires_on', 'current_location_id']);
+          let q = trx.selectFrom('seal_lots').select(['id', 'compartment_id', 'warehoused_on', 'qty_on_hand', 'customs_status', 'expires_on', 'current_location_id']).where('tenant_id', '=', request.user.tenant_id);
           if (compartment_id) q = q.where('compartment_id', '=', compartment_id);
           return q.execute();
         })(),
         (() => {
-          let q = trx.selectFrom('seal_locations').select(['id', 'compartment_id', 'capacity_units', 'max_stack_tiers']);
+          let q = trx.selectFrom('seal_locations').select(['id', 'compartment_id', 'capacity_units', 'max_stack_tiers']).where('tenant_id', '=', request.user.tenant_id);
           if (compartment_id) q = q.where('compartment_id', '=', compartment_id);
           return q.execute();
         })(),
@@ -174,12 +175,13 @@ export async function sealRoutes(fastify: FastifyInstance) {
           let q = trx.selectFrom('seal_movements')
             .innerJoin('seal_lots', 'seal_lots.id', 'seal_movements.lot_id')
             .select(['seal_movements.occurred_at', 'seal_movements.movement_type'])
+            .where('seal_movements.tenant_id', '=', request.user.tenant_id)
             .where('seal_movements.occurred_at', '>=', cutoff)
             .where('seal_movements.movement_type', 'in', ['receipt', 'release']);
           if (compartment_id) q = q.where('seal_lots.compartment_id', '=', compartment_id);
           return q.execute();
         })(),
-        trx.selectFrom('seal_movements').select(({ fn }) => ['lot_id', fn.max('occurred_at').as('last_at')]).groupBy('lot_id').execute(),
+        trx.selectFrom('seal_movements').select(({ fn }) => ['lot_id', fn.max('occurred_at').as('last_at')]).where('tenant_id', '=', request.user.tenant_id).groupBy('lot_id').execute(),
       ]));
       if (compartment_id && compartments.length === 0) return reply.status(404).send({ error: 'Compartment not found' });
 
@@ -274,6 +276,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
     try {
       const rows = await withTenant(request.user.tenant_id, trx =>
         trx.selectFrom('geofences').select(['id', 'name', 'zone_type', 'center_lat', 'center_lon', 'radius_km'])
+          .where('tenant_id', '=', request.user.tenant_id)
           .where('active', '=', true).orderBy('name').execute()
       );
       return rows.map(r => ({ ...r, center_lat: Number(r.center_lat), center_lon: Number(r.center_lon), radius_km: Number(r.radius_km) }));
@@ -286,7 +289,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
   fastify.get('/compartments', async (request: any, reply) => {
     try {
       return await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_compartments').selectAll().where('active', '=', true).orderBy('code').execute()
+        trx.selectFrom('seal_compartments').selectAll().where('tenant_id', '=', request.user.tenant_id).where('active', '=', true).orderBy('code').execute()
       );
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
@@ -301,12 +304,12 @@ export async function sealRoutes(fastify: FastifyInstance) {
     try {
       const compartmentId = request.params.id;
       const [compartment, zones, locations, lots] = await withTenant(request.user.tenant_id, trx => Promise.all([
-        trx.selectFrom('seal_compartments').selectAll().where('id', '=', compartmentId).executeTakeFirst(),
-        trx.selectFrom('seal_zones').selectAll().where('compartment_id', '=', compartmentId).orderBy('code').execute(),
-        trx.selectFrom('seal_locations').selectAll().where('compartment_id', '=', compartmentId).orderBy('code').execute(),
+        trx.selectFrom('seal_compartments').selectAll().where('tenant_id', '=', request.user.tenant_id).where('id', '=', compartmentId).executeTakeFirst(),
+        trx.selectFrom('seal_zones').selectAll().where('tenant_id', '=', request.user.tenant_id).where('compartment_id', '=', compartmentId).orderBy('code').execute(),
+        trx.selectFrom('seal_locations').selectAll().where('tenant_id', '=', request.user.tenant_id).where('compartment_id', '=', compartmentId).orderBy('code').execute(),
         trx.selectFrom('seal_lots')
           .select(['id', 'current_location_id', 'customs_status', 'expires_on', 'description'])
-          .where('compartment_id', '=', compartmentId)
+          .where('tenant_id', '=', request.user.tenant_id).where('compartment_id', '=', compartmentId)
           .execute(),
       ]));
       if (!compartment) return reply.status(404).send({ error: 'Compartment not found' });
@@ -364,16 +367,17 @@ export async function sealRoutes(fastify: FastifyInstance) {
       const compartmentId = request.params.id;
       const { compartment, lots, receipts } = await withTenant(request.user.tenant_id, async trx => {
         const [compartment, lots] = await Promise.all([
-          trx.selectFrom('seal_compartments').selectAll().where('id', '=', compartmentId).executeTakeFirst(),
+          trx.selectFrom('seal_compartments').selectAll().where('tenant_id', '=', request.user.tenant_id).where('id', '=', compartmentId).executeTakeFirst(),
           trx.selectFrom('seal_lots')
             .select(['id', 'description', 'qty_on_hand', 'uom', 'warehoused_on', 'destination_label', 'current_location_id'])
-            .where('compartment_id', '=', compartmentId)
+            .where('tenant_id', '=', request.user.tenant_id).where('compartment_id', '=', compartmentId)
             .where('qty_on_hand', '>', '0')
             .execute(),
         ]);
         const lotIds = lots.map(l => l.id);
         const receipts = lotIds.length > 0
           ? await trx.selectFrom('seal_movements').select(['lot_id', 'occurred_at'])
+              .where('tenant_id', '=', request.user.tenant_id)
               .where('lot_id', 'in', lotIds).where('movement_type', '=', 'receipt').execute()
           : [];
         return { compartment, lots, receipts };
@@ -430,25 +434,25 @@ export async function sealRoutes(fastify: FastifyInstance) {
       return await withTenant(request.user.tenant_id, async trx => {
         const compartment = await trx.selectFrom('seal_compartments')
           .selectAll()
-          .where('id', '=', compartmentId)
+          .where('tenant_id', '=', request.user.tenant_id).where('id', '=', compartmentId)
           .executeTakeFirst();
         if (!compartment) return reply.status(404).send({ error: 'Compartment not found' });
 
         const zones = await trx.selectFrom('seal_zones')
           .selectAll()
-          .where('compartment_id', '=', compartmentId)
+          .where('tenant_id', '=', request.user.tenant_id).where('compartment_id', '=', compartmentId)
           .orderBy('code')
           .execute();
 
         const locations = await trx.selectFrom('seal_locations')
           .selectAll()
-          .where('compartment_id', '=', compartmentId)
+          .where('tenant_id', '=', request.user.tenant_id).where('compartment_id', '=', compartmentId)
           .orderBy('code')
           .execute();
 
         const lots = await trx.selectFrom('seal_lots')
           .selectAll()
-          .where('compartment_id', '=', compartmentId)
+          .where('tenant_id', '=', request.user.tenant_id).where('compartment_id', '=', compartmentId)
           .execute();
 
         return {
@@ -525,7 +529,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
     try {
       const compartmentId = request.params.id;
       return await withTenant(request.user.tenant_id, async trx => {
-        const original = await trx.selectFrom('seal_compartments').selectAll().where('id', '=', compartmentId).executeTakeFirst();
+        const original = await trx.selectFrom('seal_compartments').selectAll().where('tenant_id', '=', request.user.tenant_id).where('id', '=', compartmentId).executeTakeFirst();
         if (!original) return reply.status(404).send({ error: 'Compartment not found' });
 
         const newCode = `${original.code}-COPY-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -550,7 +554,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
         }).returningAll().executeTakeFirstOrThrow();
 
         // Clone zones
-        const originalZones = await trx.selectFrom('seal_zones').selectAll().where('compartment_id', '=', compartmentId).execute();
+        const originalZones = await trx.selectFrom('seal_zones').selectAll().where('tenant_id', '=', request.user.tenant_id).where('compartment_id', '=', compartmentId).execute();
         for (const z of originalZones) {
           await trx.insertInto('seal_zones').values({
             tenant_id: request.user.tenant_id,
@@ -572,12 +576,12 @@ export async function sealRoutes(fastify: FastifyInstance) {
     try {
       const compartmentId = request.params.id;
       return await withTenant(request.user.tenant_id, async trx => {
-        const original = await trx.selectFrom('seal_compartments').select(['id', 'active']).where('id', '=', compartmentId).executeTakeFirst();
+        const original = await trx.selectFrom('seal_compartments').select(['id', 'active']).where('tenant_id', '=', request.user.tenant_id).where('id', '=', compartmentId).executeTakeFirst();
         if (!original) return reply.status(404).send({ error: 'Compartment not found' });
 
         return await trx.updateTable('seal_compartments')
           .set({ active: !original.active, updated_at: new Date() })
-          .where('id', '=', compartmentId)
+          .where('tenant_id', '=', request.user.tenant_id).where('id', '=', compartmentId)
           .returningAll()
           .executeTakeFirstOrThrow();
       });
@@ -593,7 +597,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
         // Soft delete / deactivate
         await trx.updateTable('seal_compartments')
           .set({ active: false, updated_at: new Date() })
-          .where('id', '=', compartmentId)
+          .where('tenant_id', '=', request.user.tenant_id).where('id', '=', compartmentId)
           .execute();
         return { success: true, message: 'Compartment deleted' };
       });
@@ -607,7 +611,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
     try {
       const { compartment_id } = request.query as { compartment_id?: string };
       return await withTenant(request.user.tenant_id, trx => {
-        let q = trx.selectFrom('seal_zones').selectAll().orderBy('code');
+        let q = trx.selectFrom('seal_zones').selectAll().where('tenant_id', '=', request.user.tenant_id).orderBy('code');
         if (compartment_id) q = q.where('compartment_id', '=', compartment_id);
         return q.execute();
       });
@@ -637,7 +641,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
     try {
       const { zone_id, compartment_id } = request.query as { zone_id?: string; compartment_id?: string };
       return await withTenant(request.user.tenant_id, trx => {
-        let q = trx.selectFrom('seal_locations').selectAll().orderBy('code');
+        let q = trx.selectFrom('seal_locations').selectAll().where('tenant_id', '=', request.user.tenant_id).orderBy('code');
         if (zone_id) q = q.where('zone_id', '=', zone_id);
         if (compartment_id) q = q.where('compartment_id', '=', compartment_id);
         return q.execute();
@@ -698,13 +702,14 @@ export async function sealRoutes(fastify: FastifyInstance) {
       return await withTenant(request.user.tenant_id, async trx => {
         const occupied = await trx.selectFrom('seal_lots')
           .select(({ fn }) => fn.count<number>('id').as('n'))
+          .where('tenant_id', '=', request.user.tenant_id)
           .where('current_location_id', '=', request.params.id)
           .where('qty_on_hand', '>', '0')
           .executeTakeFirst();
         if (Number(occupied?.n ?? 0) > 0) {
           return reply.status(409).send({ error: 'This rack still has lots stored on it — move or release them before deleting it.' });
         }
-        await trx.deleteFrom('seal_locations').where('id', '=', request.params.id).execute();
+        await trx.deleteFrom('seal_locations').where('tenant_id', '=', request.user.tenant_id).where('id', '=', request.params.id).execute();
         return { success: true };
       });
     } catch (err: any) {
@@ -723,12 +728,12 @@ export async function sealRoutes(fastify: FastifyInstance) {
     try {
       const compartmentId = request.params.id;
       const [compartment, zones, locations, lots] = await withTenant(request.user.tenant_id, trx => Promise.all([
-        trx.selectFrom('seal_compartments').selectAll().where('id', '=', compartmentId).executeTakeFirst(),
-        trx.selectFrom('seal_zones').selectAll().where('compartment_id', '=', compartmentId).orderBy('code').execute(),
-        trx.selectFrom('seal_locations').selectAll().where('compartment_id', '=', compartmentId).orderBy('code').execute(),
+        trx.selectFrom('seal_compartments').selectAll().where('tenant_id', '=', request.user.tenant_id).where('id', '=', compartmentId).executeTakeFirst(),
+        trx.selectFrom('seal_zones').selectAll().where('tenant_id', '=', request.user.tenant_id).where('compartment_id', '=', compartmentId).orderBy('code').execute(),
+        trx.selectFrom('seal_locations').selectAll().where('tenant_id', '=', request.user.tenant_id).where('compartment_id', '=', compartmentId).orderBy('code').execute(),
         trx.selectFrom('seal_lots')
           .select(['id', 'current_location_id', 'stack_tier', 'customs_status', 'description', 'qty_on_hand', 'uom', 'expires_on', 'volume_cbm'])
-          .where('compartment_id', '=', compartmentId)
+          .where('tenant_id', '=', request.user.tenant_id).where('compartment_id', '=', compartmentId)
           .where('qty_on_hand', '>', '0')
           .execute(),
       ]));
@@ -826,11 +831,11 @@ export async function sealRoutes(fastify: FastifyInstance) {
     try {
       const compartmentId = request.params.id;
       return await withTenant(request.user.tenant_id, async trx => {
-        const compartment = await trx.selectFrom('seal_compartments').selectAll().where('id', '=', compartmentId).executeTakeFirst();
+        const compartment = await trx.selectFrom('seal_compartments').selectAll().where('tenant_id', '=', request.user.tenant_id).where('id', '=', compartmentId).executeTakeFirst();
         if (!compartment) return reply.status(404).send({ error: 'Compartment not found' });
 
         // Ensure zones exist
-        let zones = await trx.selectFrom('seal_zones').selectAll().where('compartment_id', '=', compartmentId).execute();
+        let zones = await trx.selectFrom('seal_zones').selectAll().where('tenant_id', '=', request.user.tenant_id).where('compartment_id', '=', compartmentId).execute();
         if (zones.length === 0) {
           const defaultZones = [
             { code: 'Z-RCV', name: 'Receiving Bay', zone_type: 'receiving' },
@@ -848,7 +853,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
               zone_type: z.zone_type,
             }).execute();
           }
-          zones = await trx.selectFrom('seal_zones').selectAll().where('compartment_id', '=', compartmentId).execute();
+          zones = await trx.selectFrom('seal_zones').selectAll().where('tenant_id', '=', request.user.tenant_id).where('compartment_id', '=', compartmentId).execute();
         }
 
         const bulkZone = zones.find(z => z.zone_type === 'bulk') || zones[0];
@@ -873,7 +878,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
         for (const slot of rackSlots) {
           const existing = await trx.selectFrom('seal_locations')
             .select(['id'])
-            .where('compartment_id', '=', compartmentId)
+            .where('tenant_id', '=', request.user.tenant_id).where('compartment_id', '=', compartmentId)
             .where('code', '=', slot.code)
             .executeTakeFirst();
 
@@ -933,6 +938,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
             'seal_lots.requires_reefer', 'seal_lots.reefer_setpoint_c', 'seal_lots.stack_tier', 'seal_lots.created_at',
             'seal_lots.volume_cbm', 'seal_lots.gross_weight_kg', 'seal_lots.destination_label',
           ])
+          .where('seal_lots.tenant_id', '=', request.user.tenant_id)
           .orderBy('seal_lots.created_at', 'desc');
         if (compartment_id) query = query.where('seal_lots.compartment_id', '=', compartment_id);
         if (customs_status) query = query.where('seal_lots.customs_status', '=', customs_status);
@@ -963,6 +969,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
             'seal_lots.requires_reefer', 'seal_lots.reefer_setpoint_c', 'seal_lots.stack_tier', 'seal_lots.created_at',
             'seal_lots.volume_cbm', 'seal_lots.gross_weight_kg', 'seal_lots.destination_label',
           ])
+          .where('seal_lots.tenant_id', '=', request.user.tenant_id)
           .where('seal_lots.id', '=', request.params.id)
           .executeTakeFirst()
       );
@@ -1019,6 +1026,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
     try {
       const rows = await withTenant(request.user.tenant_id, trx =>
         trx.selectFrom('seal_movements').selectAll()
+          .where('tenant_id', '=', request.user.tenant_id)
           .where('lot_id', '=', request.params.id)
           .orderBy('id', 'desc')
           .execute()
@@ -1074,7 +1082,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
   fastify.get('/guarantees', async (request: any, reply) => {
     try {
       const rows = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_guarantees').selectAll().orderBy('created_at', 'desc').execute()
+        trx.selectFrom('seal_guarantees').selectAll().where('tenant_id', '=', request.user.tenant_id).orderBy('created_at', 'desc').execute()
       );
       const withHeadroom = await withTenant(request.user.tenant_id, async trx =>
         Promise.all(rows.map(async g => {
@@ -1133,6 +1141,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
             'seal_consignments.status', 'seal_consignments.expected_arrival', 'seal_consignments.goods_description',
             'seal_consignments.created_at',
           ])
+          .where('seal_consignments.tenant_id', '=', request.user.tenant_id)
           .orderBy('seal_consignments.created_at', 'desc');
         if (status) q = q.where('seal_consignments.status', '=', status);
         return q.execute();
@@ -1168,12 +1177,13 @@ export async function sealRoutes(fastify: FastifyInstance) {
           .leftJoin('customers', 'customers.id', 'seal_consignments.owner_id')
           .selectAll('seal_consignments')
           .select('customers.name as owner_name')
+          .where('seal_consignments.tenant_id', '=', request.user.tenant_id)
           .where('seal_consignments.id', '=', request.params.id)
           .executeTakeFirst()
       );
       if (!consignment) return reply.status(404).send({ error: 'Consignment not found' });
       const containers = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_containers').selectAll().where('consignment_id', '=', request.params.id).execute()
+        trx.selectFrom('seal_containers').selectAll().where('tenant_id', '=', request.user.tenant_id).where('consignment_id', '=', request.params.id).execute()
       );
       return { ...consignment, containers };
     } catch (err: any) {
@@ -1212,7 +1222,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
     try {
       const b = request.body as any;
       const container = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_containers').selectAll().where('id', '=', request.params.id).executeTakeFirst()
+        trx.selectFrom('seal_containers').selectAll().where('tenant_id', '=', request.user.tenant_id).where('id', '=', request.params.id).executeTakeFirst()
       );
       if (!container) return reply.status(404).send({ error: 'Container not found' });
 
@@ -1257,11 +1267,11 @@ export async function sealRoutes(fastify: FastifyInstance) {
       if (lines.length === 0) return reply.status(400).send({ error: 'At least one tally line is required' });
 
       const container = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_containers').selectAll().where('id', '=', request.params.id).executeTakeFirst()
+        trx.selectFrom('seal_containers').selectAll().where('tenant_id', '=', request.user.tenant_id).where('id', '=', request.params.id).executeTakeFirst()
       );
       if (!container) return reply.status(404).send({ error: 'Container not found' });
       const consignment = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_consignments').selectAll().where('id', '=', container.consignment_id).executeTakeFirst()
+        trx.selectFrom('seal_consignments').selectAll().where('tenant_id', '=', request.user.tenant_id).where('id', '=', container.consignment_id).executeTakeFirst()
       );
       if (!consignment) return reply.status(404).send({ error: 'Consignment not found' });
 
@@ -1310,13 +1320,14 @@ export async function sealRoutes(fastify: FastifyInstance) {
 
       const remainingUndevanned = await withTenant(request.user.tenant_id, trx =>
         trx.selectFrom('seal_containers').select(({ fn }) => fn.count<number>('id').as('n'))
+          .where('tenant_id', '=', request.user.tenant_id)
           .where('consignment_id', '=', consignment.id).where('gate_in_at', 'is not', null).where('gate_out_at', 'is', null)
           .executeTakeFirst()
       );
       await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_consignments')
           .set({ status: results.some(r => r.kind === 'lot') ? 'DEVANNED' : 'DEVANNING', updated_at: new Date() })
-          .where('id', '=', consignment.id).execute()
+          .where('tenant_id', '=', request.user.tenant_id).where('id', '=', consignment.id).execute()
       );
 
       return { results };
@@ -1332,7 +1343,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
     try {
       const { container_id } = request.query as { container_id?: string };
       return await withTenant(request.user.tenant_id, trx => {
-        let q = trx.selectFrom('seal_discrepancies').selectAll().orderBy('created_at', 'desc');
+        let q = trx.selectFrom('seal_discrepancies').selectAll().where('tenant_id', '=', request.user.tenant_id).orderBy('created_at', 'desc');
         if (container_id) q = q.where('container_id', '=', container_id);
         return q.execute();
       });
@@ -1358,7 +1369,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
   fastify.get('/appointments', async (request: any, reply) => {
     try {
       return await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_appointments').selectAll().orderBy('scheduled_at', 'asc').execute()
+        trx.selectFrom('seal_appointments').selectAll().where('tenant_id', '=', request.user.tenant_id).orderBy('scheduled_at', 'asc').execute()
       );
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });

@@ -38,6 +38,7 @@ export async function sealSensorsRoutes(fastify: FastifyInstance) {
             'seal_sensor_devices.name', 'seal_sensor_devices.active', 'seal_sensor_devices.created_at',
             'seal_zones.name as zone_name',
           ])
+          .where('seal_sensor_devices.tenant_id', '=', request.user.tenant_id)
           .orderBy('seal_sensor_devices.name');
         if (compartment_id) q = q.where('seal_sensor_devices.compartment_id', '=', compartment_id);
         const devices = await q.execute();

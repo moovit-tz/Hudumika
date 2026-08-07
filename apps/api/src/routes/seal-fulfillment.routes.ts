@@ -41,7 +41,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
   fastify.get('/vehicles', async (request: any, reply) => {
     try {
       const rows = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('vehicles').select(['id', 'name', 'plate_number']).where('status', '=', 'ACTIVE').orderBy('name').execute()
+        trx.selectFrom('vehicles').select(['id', 'name', 'plate_number']).where('tenant_id', '=', request.user.tenant_id).where('status', '=', 'ACTIVE').orderBy('name').execute()
       );
       return rows;
     } catch (err: any) {
@@ -63,6 +63,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
             'seal_fulfillment_orders.packed_at', 'seal_fulfillment_orders.dispatched_at',
             'customers.name as owner_name', 'seal_compartments.name as compartment_name',
           ])
+          .where('seal_fulfillment_orders.tenant_id', '=', request.user.tenant_id)
           .orderBy('seal_fulfillment_orders.created_at', 'desc');
         if (compartment_id) q = q.where('seal_fulfillment_orders.compartment_id', '=', compartment_id);
         if (status) q = q.where('seal_fulfillment_orders.status', '=', status);
@@ -87,6 +88,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
             'seal_fulfillment_orders.packed_at', 'seal_fulfillment_orders.dispatched_at',
             'customers.name as owner_name', 'seal_compartments.name as compartment_name',
           ])
+          .where('seal_fulfillment_orders.tenant_id', '=', request.user.tenant_id)
           .where('seal_fulfillment_orders.id', '=', request.params.id)
           .executeTakeFirst();
         if (!order) return null;
