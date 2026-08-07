@@ -286,13 +286,19 @@ function startIntervalFallback(): void {
   // Set interval timers
   fallbackTimer = setInterval(() => {
     runRiskScanJob().catch(console.error);
-    runMissingDocReminderJob().catch(console.error);
     runSupportRulesJob().catch(console.error);
   }, 10 * 60 * 1000); // Poll every 10 minutes in fallback mode
 
-  // Daily jobs: status + comply renewals — once every 24 hours
+  // Daily jobs: status + comply renewals — once every 24 hours.
+  // The missing-document reminder belongs here, not on the ten-minute timer
+  // above: BullMQ schedules it as `doc-reminder` with repeat every 24h, and
+  // the fallback disagreeing meant it ran 144 times a day in standalone dev,
+  // fanning out a fresh notification to every recipient each time. The job
+  // now also enforces its own cooldown, so the two schedules cannot drift
+  // into that again.
   setInterval(() => {
     runDailyStatusJob().catch(console.error);
+    runMissingDocReminderJob().catch(console.error);
     runComplyRenewalJob().catch(console.error);
     runComplyExpiryReminderJob().catch(console.error);
     runTRAZReportJob().catch(console.error);
