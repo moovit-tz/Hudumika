@@ -1,7 +1,7 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
-import { SealService, IllegalCustomsTransition, BondHeadroomExceeded, DgSegregationViolation } from '../services/seal.service.js';
+import { SealService, IllegalCustomsTransition, BondHeadroomExceeded, DgSegregationViolation, LotNotFound } from '../services/seal.service.js';
 import { toDateParam } from '../utils/dates.js';
 import {
   CUSTOMS_STATUS_ENTRY_POINTS, legalNextCustomsStatuses, validateContainerNumber, type CustomsStatus,
@@ -1024,13 +1024,23 @@ export async function sealRoutes(fastify: FastifyInstance) {
   // ── Movements ──────────────────────────────────────────────────────────
   fastify.get('/lots/:id/movements', async (request: any, reply) => {
     try {
-      const rows = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_movements').selectAll()
+      // Authorised on the lot, then every movement on it — same reasoning as
+      // SealService.verifyChain. Filtering the movements by tenant instead
+      // showed the owner an incomplete history of their own goods while
+      // exposing individual rows to whichever tenant happened to record
+      // them; this returns the whole chain to its owner and nothing at all
+      // to anyone else.
+      const rows = await withTenant(request.user.tenant_id, async trx => {
+        const lot = await trx.selectFrom('seal_lots').select('id')
           .where('tenant_id', '=', request.user.tenant_id)
+          .where('id', '=', request.params.id).executeTakeFirst();
+        if (!lot) return null;
+        return trx.selectFrom('seal_movements').selectAll()
           .where('lot_id', '=', request.params.id)
           .orderBy('id', 'desc')
-          .execute()
-      );
+          .execute();
+      });
+      if (rows === null) return reply.status(404).send({ error: 'Lot not found' });
       return rows.map(mapMovement);
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
@@ -1074,6 +1084,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
     try {
       return await withTenant(request.user.tenant_id, trx => SealService.verifyChain(trx, request.user.tenant_id, request.params.id));
     } catch (err: any) {
+      if (err instanceof LotNotFound) return reply.status(404).send({ error: 'Lot not found' });
       return reply.status(500).send({ error: err.message });
     }
   });

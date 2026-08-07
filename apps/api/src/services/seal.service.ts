@@ -26,6 +26,13 @@ export class DgSegregationViolation extends Error {
   }
 }
 
+export class LotNotFound extends Error {
+  constructor(public lotId: string) {
+    super('Lot not found');
+    this.name = 'LotNotFound';
+  }
+}
+
 export class BondHeadroomExceeded extends Error {
   constructor(
     public guaranteeReference: string,
@@ -339,11 +346,24 @@ export class SealService {
   }
 
   /** Recomputes the hash chain for a lot's movement history from scratch and
-   *  compares it against what's stored — spec §8.3's verify_chain(). */
+   *  compares it against what's stored — spec §8.3's verify_chain().
+   *
+   *  Authorisation is on the **lot**, and the chain is then walked in full.
+   *  It cannot be the other way round: prev_hash links movements by lot_id
+   *  irrespective of which tenant recorded them, so filtering the movements
+   *  themselves by tenant silently truncates the chain — it drops rows and
+   *  then reports the shorter chain "valid", which is a clean bill of health
+   *  over a history that is not all of it. Three real lots in this database
+   *  have a movement recorded under a different tenant (see the tenant
+   *  isolation fixes in this file's git history); their owners were being
+   *  told checked:1 for a two-movement chain. */
   static async verifyChain(trx: Transaction<Database>, tenantId: string, lotId: string): Promise<{ valid: boolean; brokenAtMovementId: string | null; checked: number }> {
+    const lot = await trx.selectFrom('seal_lots').select('id')
+      .where('tenant_id', '=', tenantId).where('id', '=', lotId).executeTakeFirst();
+    if (!lot) throw new LotNotFound(lotId);
+
     const movements = await trx.selectFrom('seal_movements')
       .selectAll()
-      .where('tenant_id', '=', tenantId)
       .where('lot_id', '=', lotId)
       .orderBy('id', 'asc')
       .execute();
