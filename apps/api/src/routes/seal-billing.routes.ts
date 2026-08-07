@@ -17,7 +17,7 @@ export async function sealBillingRoutes(fastify: FastifyInstance) {
 
   fastify.get('/lots/:id/storage-accrual', async (request: any, reply) => {
     try {
-      const accrual = await withTenant(request.user.tenant_id, trx => SealBillingService.previewAccrual(trx, request.params.id));
+      const accrual = await withTenant(request.user.tenant_id, trx => SealBillingService.previewAccrual(trx, request.user.tenant_id, request.params.id));
       return accrual;
     } catch (err: any) {
       if (err instanceof LotHasNoVolume) return reply.status(422).send({ error: err.message });

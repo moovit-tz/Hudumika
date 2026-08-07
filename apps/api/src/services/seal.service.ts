@@ -168,14 +168,15 @@ export class SealService {
    *  secured by this instrument (spec §2.4). Returns null if the compartment
    *  has no guarantee attached — headroom simply isn't checked in that case
    *  (Increment 1 compartments have none, by design). */
-  static async getHeadroom(trx: Transaction<Database>, guaranteeId: string) {
-    const guarantee = await trx.selectFrom('seal_guarantees').selectAll().where('id', '=', guaranteeId).executeTakeFirstOrThrow();
+  static async getHeadroom(trx: Transaction<Database>, tenantId: string, guaranteeId: string) {
+    const guarantee = await trx.selectFrom('seal_guarantees').selectAll().where('tenant_id', '=', tenantId).where('id', '=', guaranteeId).executeTakeFirstOrThrow();
     const row = await trx.selectFrom('seal_lots')
       .innerJoin('seal_compartments', 'seal_compartments.id', 'seal_lots.compartment_id')
       .select(({ fn }) => [
         fn.sum<string>('seal_lots.duty_at_risk').as('duty_sum'),
         fn.sum<string>('seal_lots.tax_at_risk').as('tax_sum'),
       ])
+      .where('seal_lots.tenant_id', '=', tenantId)
       .where('seal_compartments.guarantee_id', '=', guaranteeId)
       .where('seal_lots.customs_status', '=', 'FOREIGN_DUTY_SUSPENDED')
       .executeTakeFirst();
@@ -189,10 +190,10 @@ export class SealService {
    *  has no guarantee attached at all. */
   static async checkHeadroom(trx: Transaction<Database>, tenantId: string, compartmentId: string, requestedAtRisk: number, override?: { actorId: string | null; reason: string }) {
     if (requestedAtRisk <= 0) return;
-    const compartment = await trx.selectFrom('seal_compartments').select('guarantee_id').where('id', '=', compartmentId).executeTakeFirst();
+    const compartment = await trx.selectFrom('seal_compartments').select('guarantee_id').where('tenant_id', '=', tenantId).where('id', '=', compartmentId).executeTakeFirst();
     if (!compartment?.guarantee_id) return; // no instrument attached — nothing to check against yet
 
-    const { guarantee, faceValue, currentlyAtRisk, headroom, currency } = await SealService.getHeadroom(trx, compartment.guarantee_id);
+    const { guarantee, faceValue, currentlyAtRisk, headroom, currency } = await SealService.getHeadroom(trx, tenantId, compartment.guarantee_id);
     if (requestedAtRisk <= headroom) return;
 
     if (override) {

@@ -1086,7 +1086,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
       );
       const withHeadroom = await withTenant(request.user.tenant_id, async trx =>
         Promise.all(rows.map(async g => {
-          const h = await SealService.getHeadroom(trx, g.id);
+          const h = await SealService.getHeadroom(trx, request.user.tenant_id, g.id);
           return { ...g, face_value: Number(g.face_value), currently_at_risk: h.currentlyAtRisk, headroom: h.headroom };
         }))
       );
@@ -1121,7 +1121,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
 
   fastify.get('/guarantees/:id/headroom', async (request: any, reply) => {
     try {
-      const h = await withTenant(request.user.tenant_id, trx => SealService.getHeadroom(trx, request.params.id));
+      const h = await withTenant(request.user.tenant_id, trx => SealService.getHeadroom(trx, request.user.tenant_id, request.params.id));
       return { faceValue: h.faceValue, currentlyAtRisk: h.currentlyAtRisk, headroom: h.headroom, currency: h.currency };
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });

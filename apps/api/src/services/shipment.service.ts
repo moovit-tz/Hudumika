@@ -35,6 +35,7 @@ export class ShipmentService {
       const countResult = await trx
         .selectFrom('shipment_cases')
         .select(trx.fn.count('id').as('cnt'))
+        .where('tenant_id', '=', tenantId)
         .executeTakeFirst();
       const currentCount = Number(countResult?.cnt ?? 0) + 1;
       const refNumber = `CLR-2026-${String(currentCount).padStart(4, '0')}`;

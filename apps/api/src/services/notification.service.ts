@@ -134,9 +134,14 @@ export class NotificationService {
               email: officer.email || undefined,
             });
           } else if (recipientRole === 'MANAGER' || recipientRole === 'FINANCE') {
+            // Tenant-scoped: without this the MANAGER/FINANCE fan-out
+            // resolves to every tenant's managers, and each one is sent a
+            // real SMS/email about a shipment in a workspace they have no
+            // access to.
             const staff = await trx
               .selectFrom('users')
               .selectAll()
+              .where('tenant_id', '=', tenantId)
               .where('role', '=', recipientRole)
               .where('active', '=', true)
               .execute();

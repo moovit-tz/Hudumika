@@ -85,7 +85,12 @@ export class NothingToBill extends Error {
 }
 
 export class SealBillingService {
-  static async previewAccrual(trx: Transaction<Database>, lotId: string, asOfDate?: Date) {
+  /** `tenantId` is required, not optional: `lotId` arrives from the URL, so
+   *  without it any workspace can price — and, through
+   *  generateStorageInvoice below, bill itself for — another workspace's
+   *  bonded goods, and move that workspace's storage_billed_through
+   *  watermark while doing it. */
+  static async previewAccrual(trx: Transaction<Database>, tenantId: string, lotId: string, asOfDate?: Date) {
     const lot = await trx.selectFrom('seal_lots')
       .innerJoin('seal_compartments', 'seal_compartments.id', 'seal_lots.compartment_id')
       .select([
@@ -93,6 +98,7 @@ export class SealBillingService {
         'seal_compartments.storage_fee_per_day', 'seal_compartments.storage_fee_currency', 'seal_compartments.handling_fee_flat',
         'seal_compartments.storage_fee_per_cbm_per_day', 'seal_compartments.billing_method',
       ])
+      .where('seal_lots.tenant_id', '=', tenantId)
       .where('seal_lots.id', '=', lotId)
       .executeTakeFirstOrThrow();
 
@@ -118,8 +124,8 @@ export class SealBillingService {
    *  entirely inside FinOps's own POST /v1/invoices flow, not duplicated
    *  here, so there's exactly one place that logic lives. */
   static async generateStorageInvoice(trx: Transaction<Database>, tenantId: string, actorId: string | null, lotId: string) {
-    const lot = await trx.selectFrom('seal_lots').selectAll().where('id', '=', lotId).executeTakeFirstOrThrow();
-    const accrual = await SealBillingService.previewAccrual(trx, lotId);
+    const lot = await trx.selectFrom('seal_lots').selectAll().where('tenant_id', '=', tenantId).where('id', '=', lotId).executeTakeFirstOrThrow();
+    const accrual = await SealBillingService.previewAccrual(trx, tenantId, lotId);
     if (accrual.days <= 0 || accrual.totalAmount <= 0) throw new NothingToBill();
 
     const invoice = await trx.insertInto('sales_invoices').values({
@@ -166,7 +172,7 @@ export class SealBillingService {
     await trx.insertInto('sales_invoice_lines').values(lines).execute();
 
     await trx.updateTable('seal_lots').set({ storage_billed_through: new Date(accrual.toDate), updated_at: new Date() })
-      .where('id', '=', lotId).execute();
+      .where('tenant_id', '=', tenantId).where('id', '=', lotId).execute();
 
     return { invoice, accrual };
   }

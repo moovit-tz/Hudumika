@@ -39,22 +39,26 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
       const [financeRows, vehicleExpenseRows, fuelRows, maintenanceRows] = await Promise.all([
         trx.selectFrom('finance_expenses')
           .select(['id', 'name', 'amount', 'expense_date', 'category', 'is_revenue', 'shipment_id', 'customer_id', 'supplier_id'])
+          .where('tenant_id', '=', user.tenant_id)
           .orderBy('expense_date', 'desc')
           .execute(),
         trx.selectFrom('vehicle_expenses')
           .leftJoin('vehicles', 'vehicles.id', 'vehicle_expenses.vehicle_id')
           .select(['vehicle_expenses.id', 'vehicle_expenses.vehicle_id', 'vehicle_expenses.category', 'vehicle_expenses.description', 'vehicle_expenses.amount', 'vehicle_expenses.expense_date',
             'vehicles.name as vehicle_name', 'vehicles.plate_number as vehicle_plate'])
+          .where('vehicle_expenses.tenant_id', '=', user.tenant_id)
           .execute(),
         trx.selectFrom('fuel_logs')
           .leftJoin('vehicles', 'vehicles.id', 'fuel_logs.vehicle_id')
           .select(['fuel_logs.id', 'fuel_logs.vehicle_id', 'fuel_logs.cost', 'fuel_logs.station', 'fuel_logs.logged_at',
             'vehicles.name as vehicle_name', 'vehicles.plate_number as vehicle_plate'])
+          .where('fuel_logs.tenant_id', '=', user.tenant_id)
           .execute(),
         trx.selectFrom('maintenance_records')
           .leftJoin('vehicles', 'vehicles.id', 'maintenance_records.vehicle_id')
           .select(['maintenance_records.id', 'maintenance_records.vehicle_id', 'maintenance_records.service_type', 'maintenance_records.cost', 'maintenance_records.service_date',
             'vehicles.name as vehicle_name', 'vehicles.plate_number as vehicle_plate'])
+          .where('maintenance_records.tenant_id', '=', user.tenant_id)
           .execute(),
       ]);
 

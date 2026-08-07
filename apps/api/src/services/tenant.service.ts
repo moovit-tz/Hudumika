@@ -25,7 +25,7 @@ export interface UpdateCompanyDto {
 export class TenantService {
   static async list(tenantId: string, filters?: { name?: string }) {
     return withTenant(tenantId, async (trx) => {
-      let query = trx.selectFrom('tenant_companies').selectAll();
+      let query = trx.selectFrom('tenant_companies').selectAll().where('tenant_id', '=', tenantId);
       if (filters?.name) {
         query = query.where('name', 'ilike', `%${filters.name}%`);
       }

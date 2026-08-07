@@ -31,7 +31,11 @@ async function runSlaEscalation(): Promise<void> {
 
   for (const [tenantId, tenantRules] of rulesByTenant) {
     await withTenant(tenantId, async (trx) => {
+      // Scoped to the tenant whose rules we are currently applying —
+      // otherwise every tenant's SLA rule escalates every other tenant's
+      // tickets and fires notifications about them.
       const tickets = await trx.selectFrom('support_tickets').selectAll()
+        .where('tenant_id', '=', tenantId)
         .where('status', 'in', ['OPEN', 'IN_PROGRESS'])
         .where('sla_deadline', 'is not', null)
         .where('sla_escalated_at', 'is', null)
@@ -98,6 +102,7 @@ async function runStatusAutomation(): Promise<void> {
     await withTenant(rule.tenant_id, async (trx) => {
       const cutoff = new Date(Date.now() - config.autoCloseAfterDays * 86400_000);
       const stale = await trx.selectFrom('support_tickets').selectAll()
+        .where('tenant_id', '=', rule.tenant_id)
         .where('status', '=', 'RESOLVED')
         .where('resolved_at', 'is not', null)
         .where('resolved_at', '<=', cutoff)
@@ -106,6 +111,7 @@ async function runStatusAutomation(): Promise<void> {
       for (const ticket of stale) {
         await trx.updateTable('support_tickets')
           .set({ status: 'CLOSED', updated_at: new Date() })
+          .where('tenant_id', '=', rule.tenant_id)
           .where('id', '=', ticket.id)
           .execute();
         await fireNotificationTrigger(trx, rule.tenant_id, 'status_changed', ticket as any);

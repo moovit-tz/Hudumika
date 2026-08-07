@@ -353,6 +353,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         const countResult = await trx
           .selectFrom('shipment_cases')
           .select(trx.fn.count('id').as('cnt'))
+          .where('tenant_id', '=', user.tenant_id)
           .executeTakeFirst();
         const currentCount = Number(countResult?.cnt ?? 0) + imported.length + 1;
         const refNumber = `CLR-2026-${String(currentCount).padStart(4, '0')}`;
@@ -938,6 +939,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       const members = await trx
         .selectFrom('users')
         .select(['id', 'name', 'email', 'role'])
+        .where('tenant_id', '=', user.tenant_id)
         .where('active', '=', true)
         .orderBy('name', 'asc')
         .execute();
@@ -1580,6 +1582,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       const cases = await trx
         .selectFrom('shipment_cases')
         .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
         .where('created_at', '>=', cutoff)
         .execute();
 

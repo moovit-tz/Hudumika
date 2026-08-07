@@ -323,7 +323,7 @@ Limit to at most 6 steps.`;
 
     const declStatus = await withTenant(user.tenant_id, async (trx) => {
       const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-      const rows = await trx.selectFrom('declarations').select(['status']).where('created_at', '>=', monthStart).execute();
+      const rows = await trx.selectFrom('declarations').select(['status']).where('tenant_id', '=', user.tenant_id).where('created_at', '>=', monthStart).execute();
       const pending = rows.filter(r => ['VALIDATED', 'SAVED', 'TRANSFERRED', 'ASSESSED'].includes(r.status)).length;
       return { total_this_month: rows.length, pending };
     });

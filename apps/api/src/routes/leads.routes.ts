@@ -32,7 +32,7 @@ export async function leadsRoutes(fastify: FastifyInstance) {
   fastify.get('/', async (request: any, reply) => {
     try {
       const rows = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('leads').selectAll().orderBy('created_at', 'desc').execute()
+        trx.selectFrom('leads').selectAll().where('tenant_id', '=', request.user.tenant_id).orderBy('created_at', 'desc').execute()
       );
       return rows.map(mapLead);
     } catch (err: any) {
