@@ -3544,6 +3544,25 @@ select.input-field { cursor: pointer; }
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 0 0 9px 9px;
+
+  /* Eleven app stylesheets set exactly this trio on .page-layout so their
+     footer would sit at the bottom of a short page. Stating it once means
+     the apps that never got their own stylesheet behave the same, instead
+     of leaving .page-footer's `margin-top: auto` in a block container,
+     where auto computes to 0 and the footer has no separation at all. */
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  /* The gap between the page's content and the footer. It has to be gap
+     rather than a margin on either side: the footer's own margin-top is
+     `auto` so it can be pushed down on short pages, and an auto margin
+     resolves to 0 as soon as content fills the column — which is why the
+     footer's divider was landing flush against the card above it. A flex
+     container applies row-gap regardless, so the separation holds whether
+     the page is short or long. 40px is the figure .page-footer already
+     declared before every app overrode it. */
+  row-gap: 40px;
 }
 /* Light mode: scope --bg to white inside page-layout so page root containers
    that use var(--bg) as their background become white too */
@@ -3598,7 +3617,18 @@ html:not([data-theme="dark"]) .page-layout {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 10px 8px;
-  margin-top: 40px;
+  /* `auto` pins the footer to the bottom of a short page. It used to read
+     40px here, but eleven app stylesheets each overrode it with `auto`
+     anyway, so `auto` was the real behaviour everywhere and the 40px was
+     dead. Stating it once means every app agrees, including the ones with
+     no stylesheet of their own.
+
+     `auto` alone gives no separation, though: the moment the content fills
+     the column it resolves to 0 and the footer's top border sits flush
+     against the card above it. The breathing room therefore comes from
+     row-gap on .page-layout, which a flex container always applies and an
+     auto margin can never swallow. */
+  margin-top: auto;
 }
 .page-footer-copyright,
 .page-footer-powered {
