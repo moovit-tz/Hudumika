@@ -2,6 +2,9 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { AI_TOOL_DEFINITIONS, runAiTool } from '../services/ai-tools.service.js';
+import {
+  loadMemory, memoryPromptSection, resolveConversation, saveTurn, loadHistory, parseRememberCommand,
+} from '../services/ai-memory.service.js';
 
 const CHAT_SYSTEM_PROMPT = `You are the Hudumika assistant, embedded in a freight-clearance and finance SaaS.
 Answer questions about the tenant's own operational data (shipments, customers, receivables) using the
@@ -11,6 +14,12 @@ returned by tools, not vague summaries).`;
 
 const MAX_TOOL_ROUNDS = 4;
 
+/** Postgres raises 22P02 on a malformed uuid, which Fastify turns into a 500
+ *  carrying the driver's own error text. A bad id is a "not found", not an
+ *  internal error, and the client has no business seeing a database code. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID_RE.test(v);
+
 interface ChatToolCallLog { name: string; input: Record<string, any>; result: any }
 
 /** Agentic loop: lets the model call read-only tools (ai-tools.service.ts) and
@@ -19,10 +28,13 @@ interface ChatToolCallLog { name: string; input: Record<string, any>; result: an
  *  each provider gets its own loop rather than forcing a shared shape. */
 async function runAgenticChat(
   tenantId: string, apiKey: string, model: string, provider: string,
-  history: { role: 'user' | 'assistant'; content: string }[]
+  history: { role: 'user' | 'assistant'; content: string }[],
+  /** Facts the user asked to be remembered, appended to the system prompt. */
+  memorySection = ''
 ): Promise<{ reply: string; toolCalls: ChatToolCallLog[] }> {
   const toolCalls: ChatToolCallLog[] = [];
   const isAnthropic = provider === 'anthropic' || model.startsWith('claude');
+  const systemPrompt = CHAT_SYSTEM_PROMPT + memorySection;
 
   if (isAnthropic) {
     const messages: any[] = history.map(m => ({ role: m.role, content: m.content }));
@@ -32,7 +44,7 @@ async function runAgenticChat(
       const res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-        body: JSON.stringify({ model, max_tokens: 1024, temperature: 0.3, system: CHAT_SYSTEM_PROMPT, messages, tools }),
+        body: JSON.stringify({ model, max_tokens: 1024, temperature: 0.3, system: systemPrompt, messages, tools }),
       });
       if (!res.ok) { const err: any = await res.json(); throw new Error(err.error?.message || `Anthropic error ${res.status}`); }
       const data: any = await res.json();
@@ -56,7 +68,7 @@ async function runAgenticChat(
   }
 
   // OpenAI function-calling path
-  const messages: any[] = [{ role: 'system', content: CHAT_SYSTEM_PROMPT }, ...history];
+  const messages: any[] = [{ role: 'system', content: systemPrompt }, ...history];
   const tools = AI_TOOL_DEFINITIONS.map(t => ({ type: 'function', function: { name: t.name, description: t.description, parameters: t.input_schema } }));
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
@@ -272,11 +284,50 @@ Limit to at most 6 steps.`;
    * Conversational assistant with tool-calling access to real tenant data
    * (ai-tools.service.ts). Body: { messages: {role:'user'|'assistant', content:string}[] }
    */
+  /**
+   * POST /v1/ai/chat
+   *
+   * Takes the new message and a conversation id, not the whole transcript:
+   * history now comes from the database, so a reload, a different device or a
+   * new browser continues the same thread. The old shape — a client-supplied
+   * `messages` array — is still accepted so nothing breaks mid-deploy, but it
+   * is only used to pull out the latest user turn.
+   */
   fastify.post('/chat', async (request, reply) => {
     const user = request.user;
-    const { messages } = request.body as { messages?: { role: 'user' | 'assistant'; content: string }[] };
-    if (!Array.isArray(messages) || messages.length === 0) {
-      return reply.status(400).send({ error: 'messages is required' });
+    const body = request.body as {
+      message?: string;
+      conversation_id?: string | null;
+      messages?: { role: 'user' | 'assistant'; content: string }[];
+    };
+
+    const incoming = (body.message ?? [...(body.messages ?? [])].reverse().find(m => m.role === 'user')?.content ?? '').trim();
+    if (!incoming) return reply.status(400).send({ error: 'message is required' });
+
+    if (body.conversation_id && !isUuid(body.conversation_id)) {
+      return reply.status(404).send({ error: 'Conversation not found' });
+    }
+
+    // "Remember that …" is handled before the AI-configured check on purpose:
+    // it is answered by this code, not by a model, so it needs no API key.
+    // Gating it behind one would mean a workspace that has not set up a
+    // provider cannot record anything — and confirming a save is only honest
+    // if the code that performed the save is what says so.
+    const remember = parseRememberCommand(incoming);
+    if (remember) {
+      const saved = await withTenant(user.tenant_id, async (trx) => {
+        const conversationId = await resolveConversation(trx, user.tenant_id, user.sub, body.conversation_id ?? null, incoming);
+        if (!conversationId) return null;
+        await trx.insertInto('ai_memory').values({
+          tenant_id: user.tenant_id, user_id: user.sub, content: remember,
+          source: 'user', source_conversation_id: conversationId,
+        }).execute();
+        const text = `Saved. I'll remember: ${remember}`;
+        await saveTurn(trx, user.tenant_id, conversationId, incoming, text, []);
+        return { conversationId, text };
+      });
+      if (!saved) return reply.status(404).send({ error: 'Conversation not found' });
+      return { reply: saved.text, toolCalls: [], conversation_id: saved.conversationId, remembered: remember };
     }
 
     const settings = await withTenant(user.tenant_id, async (trx) => {
@@ -289,14 +340,120 @@ Limit to at most 6 steps.`;
       return reply.status(400).send({ error: 'AI is not configured. Enable it in Settings > Integrations > AI Integration.' });
     }
 
+    // The thread, memory and history are resolved before the model is called,
+    // so a provider failure cannot leave a half-written conversation.
+    const prepared = await withTenant(user.tenant_id, async (trx) => {
+      const conversationId = await resolveConversation(trx, user.tenant_id, user.sub, body.conversation_id ?? null, incoming);
+      if (!conversationId) return null;
+      const facts = await loadMemory(trx, user.tenant_id, user.sub);
+      const history = await loadHistory(trx, user.tenant_id, conversationId);
+      return { conversationId, facts, history };
+    });
+    if (!prepared) return reply.status(404).send({ error: 'Conversation not found' });
+
     try {
       const { reply: text, toolCalls } = await runAgenticChat(
-        user.tenant_id, aiCfg.apiKey, aiCfg.model || 'claude-sonnet-4-6', aiCfg.provider || 'anthropic', messages
+        user.tenant_id, aiCfg.apiKey, aiCfg.model || 'claude-sonnet-4-6', aiCfg.provider || 'anthropic',
+        [...prepared.history, { role: 'user', content: incoming }],
+        memoryPromptSection(prepared.facts),
       );
-      return { reply: text, toolCalls };
+      await withTenant(user.tenant_id, trx =>
+        saveTurn(trx, user.tenant_id, prepared.conversationId, incoming, text, toolCalls));
+      return { reply: text, toolCalls, conversation_id: prepared.conversationId };
     } catch (e: any) {
       return reply.status(500).send({ error: e.message });
     }
+  });
+
+  // ── Conversations ────────────────────────────────────────────────────────
+
+  fastify.get('/conversations', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx.selectFrom('ai_conversations')
+        .select(['id', 'title', 'created_at', 'updated_at'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', user.sub)
+        .orderBy('updated_at', 'desc')
+        .limit(50)
+        .execute();
+      return { data: rows };
+    });
+  });
+
+  fastify.get('/conversations/:id', async (request: any, reply) => {
+    const user = request.user;
+    if (!isUuid(request.params.id)) return reply.status(404).send({ error: 'Conversation not found' });
+    const result = await withTenant(user.tenant_id, async (trx) => {
+      const convo = await trx.selectFrom('ai_conversations')
+        .select(['id', 'title', 'created_at', 'updated_at'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', user.sub)
+        .where('id', '=', request.params.id)
+        .executeTakeFirst();
+      if (!convo) return null;
+      const messages = await trx.selectFrom('ai_messages')
+        .select(['id', 'role', 'content', 'tool_calls', 'created_at'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('conversation_id', '=', convo.id)
+        .orderBy('created_at', 'asc')
+        .execute();
+      return { ...convo, messages };
+    });
+    if (!result) return reply.status(404).send({ error: 'Conversation not found' });
+    return result;
+  });
+
+  fastify.delete('/conversations/:id', async (request: any, reply) => {
+    const user = request.user;
+    if (!isUuid(request.params.id)) return reply.status(404).send({ error: 'Conversation not found' });
+    // ai_messages cascades on the FK, so the transcript goes with the thread.
+    const deleted = await withTenant(user.tenant_id, trx =>
+      trx.deleteFrom('ai_conversations')
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', user.sub)
+        .where('id', '=', request.params.id)
+        .executeTakeFirst());
+    if (!Number(deleted.numDeletedRows)) return reply.status(404).send({ error: 'Conversation not found' });
+    return reply.status(204).send();
+  });
+
+  // ── Memory ───────────────────────────────────────────────────────────────
+  // Readable and deletable by the person it belongs to. Memory that shapes
+  // every answer but cannot be inspected or removed is not a feature.
+
+  fastify.get('/memory', async (request) => {
+    const user = request.user;
+    const facts = await withTenant(user.tenant_id, trx => loadMemory(trx, user.tenant_id, user.sub));
+    return { data: facts };
+  });
+
+  fastify.post('/memory', async (request: any, reply) => {
+    const user = request.user;
+    const content = String(request.body?.content ?? '').trim();
+    if (!content) return reply.status(400).send({ error: 'content is required' });
+    // scope:'workspace' shares it with everyone in the tenant; default is personal.
+    const shared = request.body?.scope === 'workspace';
+    const row = await withTenant(user.tenant_id, trx =>
+      trx.insertInto('ai_memory').values({
+        tenant_id: user.tenant_id, user_id: shared ? null : user.sub,
+        content, source: 'user', source_conversation_id: null,
+      }).returning(['id', 'content']).executeTakeFirstOrThrow());
+    return reply.status(201).send(row);
+  });
+
+  fastify.delete('/memory/:id', async (request: any, reply) => {
+    const user = request.user;
+    if (!isUuid(request.params.id)) return reply.status(404).send({ error: 'Not found' });
+    const deleted = await withTenant(user.tenant_id, trx =>
+      trx.deleteFrom('ai_memory')
+        .where('tenant_id', '=', user.tenant_id)
+        // Their own, or the workspace's — never another person's personal memory.
+        .where(eb => eb.or([eb('user_id', 'is', null), eb('user_id', '=', user.sub)]))
+        .where('id', '=', request.params.id)
+        .executeTakeFirst());
+    if (!Number(deleted.numDeletedRows)) return reply.status(404).send({ error: 'Not found' });
+    return reply.status(204).send();
   });
 
   /**

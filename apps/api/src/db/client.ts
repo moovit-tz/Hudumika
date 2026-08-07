@@ -2641,6 +2641,9 @@ export interface Database {
   user_totp: UserTotpTable;
   workflow_studio_apps: WorkflowStudioAppsTable;
   workflow_studio_runs: WorkflowStudioRunsTable;
+  ai_conversations: AiConversationsTable;
+  ai_messages: AiMessagesTable;
+  ai_memory: AiMemoryTable;
   payment_methods: PaymentMethodsTable;
   subscription_invoices: SubscriptionInvoicesTable;
   invoice_sequences: InvoiceSequencesTable;
@@ -4648,6 +4651,41 @@ export interface WorkflowStudioAppsTable {
   targeting:      Generated<string>;
   created_at:     Generated<Date>;
   updated_at:     Generated<Date>;
+}
+
+/** The assistant's transcript and its durable memory — migration 176. */
+export interface AiConversationsTable {
+  id:         Generated<string>;
+  tenant_id:  string;
+  /** Threads are per-person, not per-workspace. */
+  user_id:    string;
+  title:      string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface AiMessagesTable {
+  id:              Generated<string>;
+  tenant_id:       string;
+  conversation_id: string;
+  role:            'user' | 'assistant';
+  content:         string;
+  /** What the assistant looked up to answer, so the answer can be audited. */
+  tool_calls:      string | null;
+  created_at:      Generated<Date>;
+}
+
+export interface AiMemoryTable {
+  id:         Generated<string>;
+  tenant_id:  string;
+  /** NULL = the whole workspace remembers it; set = one person's own. */
+  user_id:    string | null;
+  content:    string;
+  /** 'user' stated it outright; 'assistant' inferred it. Never conflated. */
+  source:     Generated<'user' | 'assistant'>;
+  source_conversation_id: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 export interface WorkflowStudioRunsTable {
