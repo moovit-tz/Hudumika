@@ -14,6 +14,23 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { showConfirm } from '../lib/confirm.js';
 
 function newId() { return 'PRD-' + Date.now().toString(36).toUpperCase(); }
+
+/** Same page size the rest of the platform uses (landed-cost history, Bliss
+ *  notifications), so a page of rows is a page of rows wherever you are. */
+const PAGE_SIZE = 25;
+
+/** Padding and radius come from the density tokens rather than fixed pixels,
+ *  so these two sit on the same ladder as every other control in the app. */
+const pagerBtn = (disabled: boolean): React.CSSProperties => ({
+  display: 'inline-flex', alignItems: 'center', gap: 5,
+  padding: 'var(--ds-btn-py-sm) 12px',
+  minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25,
+  border: '1px solid var(--border)', borderRadius: 'var(--r)',
+  background: 'var(--white)', color: 'var(--ink2)',
+  fontSize: 11.5, fontWeight: 700, fontFamily: 'var(--font)',
+  cursor: disabled ? 'not-allowed' : 'pointer',
+  opacity: disabled ? 0.45 : 1,
+});
 function autoCode(name: string) { return 'SVC-' + name.trim().toUpperCase().replace(/\s+/g, '-').slice(0, 8); }
 
 const EMPTY_PRODUCT: Product = {
@@ -248,6 +265,7 @@ export function FinanceProducts() {
   const [selected, setSelected]         = useState<Product | null>(null);
   const [showForm, setShowForm]         = useState(false);
   const [editProduct, setEditProduct]   = useState<Product | null>(null);
+  const [page, setPage]                 = useState(1);
 
   /* fin:new-doc listener */
   useEffect(() => {
@@ -265,6 +283,17 @@ export function FinanceProducts() {
     const q = search.toLowerCase();
     return !q || p.name.toLowerCase().includes(q) || p.code.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
   }), [products, search, filterType, filterCat, filterStatus]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  // Filtering can shrink the list under the page you are standing on — narrow
+  // a 200-item list to 3 while on page 5 and you would be looking at an empty
+  // table with no clue why. Clamping keeps the last page reachable instead.
+  const currentPage = Math.min(page, pageCount);
+  const offset = (currentPage - 1) * PAGE_SIZE;
+  const paged = useMemo(() => filtered.slice(offset, offset + PAGE_SIZE), [filtered, offset]);
+
+  // Any change to what is being filtered starts again from the first page.
+  useEffect(() => { setPage(1); }, [search, filterType, filterCat, filterStatus]);
 
   const stats = useMemo(() => ({
     total:    products.length,
@@ -386,7 +415,7 @@ export function FinanceProducts() {
               {filtered.length === 0 && (
                 <tr><td colSpan={9} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--ink3)', fontSize: 13 }}>No items found</td></tr>
               )}
-              {filtered.map(p => {
+              {paged.map(p => {
                 const tc = PRODUCT_TYPE_COLOR[p.type];
                 const isActive = selected?.id === p.id;
                 return (
@@ -431,6 +460,35 @@ export function FinanceProducts() {
               })}
             </tbody>
           </table>
+
+          {/* Pager. Same shape as the landed-cost history footer: what you are
+              looking at on the left, the controls on the right. Hidden when
+              everything already fits on one page — a pager that can only ever
+              say "Page 1 of 1" is noise. */}
+          {filtered.length > PAGE_SIZE && (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+              flexWrap: 'wrap', padding: '14px 18px', borderTop: '1px solid var(--border)',
+              fontSize: 12.5, color: 'var(--ink3)',
+            }}>
+              <span>
+                {offset + 1}–{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length.toLocaleString()} item{filtered.length === 1 ? '' : 's'}
+              </span>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button type="button" disabled={currentPage === 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  style={pagerBtn(currentPage === 1)}>
+                  <Icon name="arrowLeft" size={12} /> Previous
+                </button>
+                <span style={{ minWidth: 70, textAlign: 'center' }}>Page {currentPage} of {pageCount}</span>
+                <button type="button" disabled={currentPage === pageCount}
+                  onClick={() => setPage(p => Math.min(pageCount, p + 1))}
+                  style={pagerBtn(currentPage === pageCount)}>
+                  Next <Icon name="arrowRight" size={12} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Detail panel */}
