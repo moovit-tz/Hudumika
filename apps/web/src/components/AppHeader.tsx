@@ -193,6 +193,21 @@ export function AppHeader({
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifs, setNotifs] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  /** Live platform/tenant notices for the pill. Separate from notifications:
+   *  the server decides what is live and undismissed, so there is nothing to
+   *  filter here. */
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+
+  useEffect(() => {
+    const load = () => apiFetch('/v1/announcements/active')
+      .then(res => setAnnouncements(res.data ?? []))
+      .catch(() => { /* the pill simply falls back to notifications */ });
+    load();
+    // Slower than the notification poll: an announcement is written by hand
+    // and lives for hours or days, so a minute of lag is immaterial.
+    const t = setInterval(load, 5 * 60 * 1000);
+    return () => clearInterval(t);
+  }, []);
 
   const loadNotifs = useCallback(async () => {
     try {
@@ -225,17 +240,35 @@ export function AppHeader({
   const pillItems = useMemo(() => {
     const seen = new Set<string>();
     const out: any[] = [];
+    // Announcements lead. A person wrote them and chose to say them to
+    // everybody, which makes them more deliberate than anything the system
+    // generated about a single shipment.
+    for (const a of announcements) {
+      out.push({ id: a.id, title: a.title, message: a.body, link: a.link, badge: a.badge, kind: 'announcement' });
+      if (out.length === 3) break;
+    }
     for (const n of notifs) {
       if (n.read || !n.title) continue;
       const key = `${n.title}|${n.shipment_id ?? n.entity_id ?? ''}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      out.push(n);
+      out.push({ ...n, kind: 'notification' });
       if (out.length === 5) break;
     }
     return out;
-  }, [notifs]);
+  }, [notifs, announcements]);
 
+
+  /** Announcements dismiss per person, notifications mark read — same gesture
+   *  in the pill, different verbs underneath. */
+  function handlePillDismiss(item: any) {
+    if (item.kind === 'announcement') {
+      setAnnouncements(prev => prev.filter(a => a.id !== item.id));
+      apiFetch(`/v1/announcements/${item.id}/dismiss`, { method: 'POST' }).catch(() => {});
+      return;
+    }
+    handleMarkRead(item.id);
+  }
 
   function handleMarkRead(id: string, _link?: string) {
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
@@ -454,10 +487,13 @@ export function AppHeader({
             <HeaderPill
               items={pillItems}
               onOpen={item => {
-                handleMarkRead(item.id);
+                // Opening an announcement dismisses it for this person too —
+                // having read it is the point, and leaving it rotating after
+                // the click would be nagging.
+                handlePillDismiss(item);
                 if (item.link) navigate(item.link);
               }}
-              onDismiss={item => handleMarkRead(item.id)}
+              onDismiss={handlePillDismiss}
               onExpandSearch={openSearch}
             />
           )}

@@ -30,6 +30,7 @@ import { SuperAdminTradeWizardAnalytics } from '../pages/SuperAdminTradeWizardAn
 import ComponentShowcase from '../pages/ComponentShowcase.js';
 import { AdminCMSPages } from '../pages/AdminCMSPages.js';
 import { SuperAdminIssues } from '../pages/SuperAdminIssues.js';
+import { SuperAdminAnnouncements } from '../pages/SuperAdminAnnouncements.js';
 import { SuperAdminCalculations } from '../pages/SuperAdminCalculations.js';
 import { SuperAdminIntelligence } from '../pages/SuperAdminIntelligence.js';
 
@@ -53,6 +54,7 @@ const NAV: SidebarSection[] = [
     title: 'PLATFORM',
     items: [
       { label: 'Reported Issues',   icon: 'alertCircle', path: '/admin/issues'      },
+      { label: 'Announcements',     icon: 'bell',      path: '/admin/announcements' },
       { label: 'Landed Cost Activity', icon: 'package', path: '/admin/calculations' },
       { label: 'Intelligence',      icon: 'sparkle',  path: '/admin/intelligence' },
       { label: 'App Status',        icon: 'shield',   path: '/admin/app-status'     },
@@ -89,6 +91,7 @@ function AdminContent() {
           <Route path="domains"       element={<DomainsView />} />
           <Route path="activity"      element={<ActivityView />} />
           <Route path="issues"        element={<SuperAdminIssues />} />
+          <Route path="announcements" element={<SuperAdminAnnouncements />} />
           <Route path="calculations" element={<SuperAdminCalculations />} />
           <Route path="intelligence" element={<SuperAdminIntelligence />} />
           <Route path="app-status"    element={<AppStatusView />} />

@@ -2641,6 +2641,8 @@ export interface Database {
   user_totp: UserTotpTable;
   workflow_studio_apps: WorkflowStudioAppsTable;
   workflow_studio_runs: WorkflowStudioRunsTable;
+  announcements: AnnouncementsTable;
+  announcement_dismissals: AnnouncementDismissalsTable;
   ai_conversations: AiConversationsTable;
   ai_messages: AiMessagesTable;
   ai_memory: AiMemoryTable;
@@ -4651,6 +4653,29 @@ export interface WorkflowStudioAppsTable {
   targeting:      Generated<string>;
   created_at:     Generated<Date>;
   updated_at:     Generated<Date>;
+}
+
+/** Human-written platform notices for the header pill — migration 177. */
+export interface AnnouncementsTable {
+  id:         Generated<string>;
+  /** NULL = every workspace sees it. Never filter this with a bare equals. */
+  tenant_id:  string | null;
+  title:      string;
+  body:       string | null;
+  link:       string | null;
+  badge:      Generated<string>;
+  starts_at:  Generated<Date>;
+  ends_at:    Date | null;
+  active:     Generated<boolean>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface AnnouncementDismissalsTable {
+  announcement_id: string;
+  user_id:         string;
+  dismissed_at:    Generated<Date>;
 }
 
 /** The assistant's transcript and its durable memory — migration 176. */

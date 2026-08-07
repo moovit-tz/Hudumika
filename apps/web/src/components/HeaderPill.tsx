@@ -23,6 +23,10 @@ export interface PillItem {
   message?: string | null;
   link?: string | null;
   app?: string | null;
+  /** Announcements choose their own word — NEW, MAINTENANCE, RELEASE. A
+   *  notification has no author to choose one, so it falls back to NEW. */
+  badge?: string | null;
+  kind?: 'announcement' | 'notification';
   created_at?: string;
 }
 
@@ -130,7 +134,7 @@ export const HeaderPill: React.FC<Props> = ({ items, onOpen, onDismiss, onExpand
         onClick={() => onOpen(item)}
         title={item.message ? `${item.title} — ${item.message}` : item.title}
       >
-        <span className="app-header-pill-badge">NEW</span>
+        <span className="app-header-pill-badge">{item.badge || 'NEW'}</span>
         <span className="app-header-pill-title">{item.title}</span>
         {item.message && <span className="app-header-pill-sub">{item.message}</span>}
       </button>
