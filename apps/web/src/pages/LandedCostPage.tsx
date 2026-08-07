@@ -2335,7 +2335,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
       <label style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.5px', display: 'block', marginBottom: 6 }}>
         {label}
       </label>
-      {hint && <div style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 6 }}>{hint}</div>}
+      {hint && <div className="lcp-hint" style={{ fontSize: 11, color: 'var(--ink3)', marginBottom: 6 }}>{hint}</div>}
       {children}
     </div>
   );
@@ -4279,9 +4279,32 @@ export const LandedCostPage: React.FC = () => {
            into a lone full-width button. */
         .lcp-btn-row-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
         @media (max-width: 480px) { .lcp-btn-row-3 { grid-template-columns: 1fr; } }
-        /* Port + ICD operator + Advanced toggle. Drops to two columns before
-           one, so the pair that belong together stay side by side longest. */
-        .lcp-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; align-items: start; }
+        /* Port + ICD operator + Advanced toggle, on one row.
+           Flex rather than a fixed three-column grid because the ICD Operator
+           field only renders when the tenant actually has ICD operators — with
+           a fixed 1fr 1fr 1fr those tenants got two fields and a third of the
+           row as dead space. flex:1 divides whatever is present, so the row is
+           full-width at two fields or three, and the basis lets it wrap on its
+           own instead of needing a breakpoint per column count. */
+        .lcp-row-3 { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; }
+        .lcp-row-3 > * { flex: 1 1 260px; min-width: 0; }
+        /* The three hints are different lengths, and a hint that wraps to two
+           lines pushes its own control half a line below the other two. Giving
+           the hint a two-line floor inside this row keeps all three controls on
+           one line without hard-coding anything about the text itself. */
+        .lcp-row-3 .lcp-hint { line-height: 1.45; min-height: 2.9em; }
+        /* One height for all three. The Advanced toggle and the Select trigger
+           used to be pinned at 44px while the Combobox beside them is
+           padding-driven, so at narrow widths the Combobox grew to 46 and the
+           other two stayed at 44. Giving all three the same floor and letting
+           padding drive them keeps them equal at every width.
+           Note they settle at 44, not --ctl-h's 40: ui/combobox.tsx sizes
+           itself from min-h-9 plus --ds-input-py rather than reading --ctl-h,
+           so 44 is the Combobox's height everywhere in the app. Matching it
+           here is right; making it read --ctl-h is a platform-level change to
+           the shared component, not something one page should force. */
+        .lcp-row-3 .lcp-ctl,
+        .lcp-row-3 [role="combobox"] { min-height: var(--ctl-h); box-sizing: border-box; }
 
         /* A 200-line invoice made the page itself thousands of pixels tall, so
            the step's own Continue button was unreachable without a long scroll.
@@ -4375,13 +4398,8 @@ export const LandedCostPage: React.FC = () => {
         .lcp-step-mobile { display: none; }
         .lcp-step-desktop { display: flex; flex-direction: column; gap: 20px; }
 
-        @media (max-width: 1120px) {
-          .lcp-row-3 { grid-template-columns: 1fr 1fr; }
-        }
-        /* Three fields at phone width would be ~130px each — unusable. */
-        @media (max-width: 700px) {
-          .lcp-row-3 { grid-template-columns: 1fr; }
-        }
+        /* No per-column-count breakpoints here any more: the 260px flex basis
+           drops the row from three across to two, then to one, on its own. */
         @media (max-width: 860px) {
           .lcp-page { padding: 14px; }
           /* minmax(0, …) here too — a bare 1fr reintroduces min-width:auto and
@@ -4397,7 +4415,6 @@ export const LandedCostPage: React.FC = () => {
         }
         @media (max-width: 380px) {
           .lcp-btn-row { grid-template-columns: 1fr; }
-          .lcp-row-3 { grid-template-columns: 1fr; }
         }
       `}</style>
 
@@ -5030,7 +5047,7 @@ export const LandedCostPage: React.FC = () => {
                   {icdOperatorOptions.length > 0 && (
                     <Field label="ICD Operator" hint="Optional — uses your Rate Card's generic default otherwise.">
                       <Select value={icdOperatorId ?? '__generic__'} onValueChange={v => setIcdOperatorId(v === '__generic__' ? null : v)}>
-                        <SelectTrigger style={{ height: 44 }}><SelectValue /></SelectTrigger>
+                        <SelectTrigger className="lcp-ctl"><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="__generic__">Generic default</SelectItem>
                           {icdOperatorOptions.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
@@ -5040,8 +5057,8 @@ export const LandedCostPage: React.FC = () => {
                   )}
 
                   <Field label="Advanced Settings" hint="Replace a sourced rate. Blank uses the tariff or TPA figure.">
-                    <button type="button" onClick={() => setShowAdvanced(v => !v)}
-                      style={{ width: '100%', height: 44, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 14px', background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', cursor: 'pointer', color: 'var(--ink2)', fontSize: 13, fontWeight: 700 }}>
+                    <button type="button" className="lcp-ctl" onClick={() => setShowAdvanced(v => !v)}
+                      style={{ width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 14px', background: 'var(--surface, rgba(255,255,255,0.03))', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', cursor: 'pointer', color: 'var(--ink2)', fontSize: 13, fontWeight: 700 }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Icon name="settings" size={15} color="var(--ink3)" />
                         {overrideCount > 0
