@@ -178,8 +178,8 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
         }
       }
 
-      await trx.updateTable('purchase_orders').set(updates).where('id', '=', id).execute();
-      const po = await trx.selectFrom('purchase_orders').selectAll().where('id', '=', id).executeTakeFirst();
+      await trx.updateTable('purchase_orders').set(updates).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+      const po = await trx.selectFrom('purchase_orders').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       return po;
     });
   });

@@ -565,7 +565,7 @@ export class ShipmentService {
       const shipment = await trx
         .selectFrom('shipment_cases')
         .selectAll()
-        .where('id', '=', shipmentId)
+        .where('id', '=', shipmentId).where('tenant_id', '=', tenantId)
         .executeTakeFirst();
 
       if (!shipment) return;
@@ -583,7 +583,7 @@ export class ShipmentService {
         // Kill switch — resolve any pre-existing flags and stop; no new ones
         // are raised while a tenant has turned off automatic risk detection.
         await trx.updateTable('risk_flags').set({ resolved: true, resolved_at: new Date() })
-          .where('shipment_id', '=', shipmentId).where('resolved', '=', false).execute();
+          .where('shipment_id', '=', shipmentId).where('tenant_id', '=', tenantId).where('resolved', '=', false).execute();
         return;
       }
 
@@ -606,7 +606,7 @@ export class ShipmentService {
         await trx
           .updateTable('risk_flags')
           .set({ resolved: true, resolved_at: new Date() })
-          .where('shipment_id', '=', shipmentId)
+          .where('shipment_id', '=', shipmentId).where('tenant_id', '=', tenantId)
           .where('resolved', '=', false)
           .execute();
         return;
@@ -665,7 +665,7 @@ export class ShipmentService {
       const requiredDocs = await trx
         .selectFrom('case_documents')
         .selectAll()
-        .where('shipment_id', '=', shipmentId)
+        .where('shipment_id', '=', shipmentId).where('tenant_id', '=', tenantId)
         .where('status', '=', 'REQUIRED')
         .execute();
 
@@ -682,7 +682,7 @@ export class ShipmentService {
       const existingFlags = await trx
         .selectFrom('risk_flags')
         .selectAll()
-        .where('shipment_id', '=', shipmentId)
+        .where('shipment_id', '=', shipmentId).where('tenant_id', '=', tenantId)
         .where('resolved', '=', false)
         .execute();
 

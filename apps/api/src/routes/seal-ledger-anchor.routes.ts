@@ -58,7 +58,7 @@ export async function sealLedgerAnchorRoutes(fastify: FastifyInstance) {
   fastify.post('/anchors/:id/check', async (request: any, reply) => {
     try {
       const anchor = await withTenant(request.user.tenant_id, trx =>
-        SealAnchorService.checkAnchorConfirmation(trx, request.params.id)
+        SealAnchorService.checkAnchorConfirmation(trx, request.user.tenant_id, request.params.id)
       );
       return mapAnchor(anchor);
     } catch (err: any) {

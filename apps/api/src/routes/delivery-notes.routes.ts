@@ -134,8 +134,8 @@ export async function deliveryNoteRoutes(fastify: FastifyInstance) {
         }
       }
 
-      await trx.updateTable('delivery_notes').set(updates).where('id', '=', id).execute();
-      const dn = await trx.selectFrom('delivery_notes').selectAll().where('id', '=', id).executeTakeFirst();
+      await trx.updateTable('delivery_notes').set(updates).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+      const dn = await trx.selectFrom('delivery_notes').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       return dn;
     });
   });

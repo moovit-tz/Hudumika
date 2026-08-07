@@ -168,7 +168,7 @@ export async function traRoutes(fastify: FastifyInstance) {
           efd_verified_at: new Date(),
           efd_verification_data: result.data ?? { error: result.error },
           updated_at: new Date(),
-        }).where('id', '=', bill_id).execute();
+        }).where('id', '=', bill_id).where('tenant_id', '=', user.tenant_id).execute();
       }
 
       return result;

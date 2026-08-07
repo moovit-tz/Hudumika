@@ -204,7 +204,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       const deleted = await trx
         .updateTable('shipment_cases')
         .set({ deleted_at: new Date(), deleted_by: user.sub, updated_at: new Date() })
-        .where('id', '=', id)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .where('tenant_id', '=', user.tenant_id)
         .where('deleted_at', 'is', null)
         .returningAll()
@@ -245,12 +245,12 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         trx.selectFrom('container_tracking')
           .select(['id', 'container_number', 'demurrage_days', 'demurrage_cost', 'demurrage_currency', 'status'])
           .where('tenant_id', '=', user.tenant_id)
-          .where('shipment_id', '=', id)
+          .where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id)
           .execute().catch(() => []),
         trx.selectFrom('tracking_snapshots')
           .select(['id', 'tracking_type', 'tracking_number', 'status', 'eta', 'progress_pct'])
           .where('tenant_id', '=', user.tenant_id)
-          .where('shipment_id', '=', id)
+          .where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id)
           .execute().catch(() => []),
         trx.selectFrom('trips')
           .leftJoin('vehicles', 'vehicles.id', 'trips.vehicle_id')
@@ -592,7 +592,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       const updated = await trx
         .updateTable('shipment_cases')
         .set(patch)
-        .where('id', '=', id)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .where('tenant_id', '=', user.tenant_id)
         .returningAll()
         .executeTakeFirst();
@@ -645,7 +645,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
-      const flags = await trx.selectFrom('risk_flags').selectAll().where('shipment_id', '=', id).where('resolved', '=', false).execute();
+      const flags = await trx.selectFrom('risk_flags').selectAll().where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id).where('resolved', '=', false).execute();
       return { data: flags };
     });
   });
@@ -663,7 +663,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       // idempotent — if already active, return existing
       const trxAny2 = trx as any;
       const existing = await trxAny2.selectFrom('risk_flags').selectAll()
-        .where('shipment_id', '=', id).where('type', '=', type).where('resolved', '=', false)
+        .where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id).where('type', '=', type).where('resolved', '=', false)
         .executeTakeFirst();
       if (existing) return existing;
       const flag = await trx.insertInto('risk_flags').values({
@@ -684,7 +684,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       const trxAny = trx as any;
       await trxAny.updateTable('risk_flags')
         .set({ resolved: true, resolved_at: new Date() })
-        .where('shipment_id', '=', id).where('type', '=', flagType).where('resolved', '=', false)
+        .where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id).where('type', '=', flagType).where('resolved', '=', false)
         .execute();
       return reply.status(204).send();
     });
@@ -737,7 +737,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
           eta:         result.eta ? new Date(result.eta) : (shipment.eta ? new Date(shipment.eta) : null),
           updated_at:  new Date(),
         })
-        .where('id', '=', id)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .execute();
 
       // Persist snapshot
@@ -788,7 +788,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
-      const tasks = await trx.selectFrom('shipment_tasks').selectAll().where('shipment_id', '=', id).orderBy('created_at', 'asc').execute();
+      const tasks = await trx.selectFrom('shipment_tasks').selectAll().where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id).orderBy('created_at', 'asc').execute();
       return { data: tasks };
     });
   });
@@ -911,7 +911,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     }
     return withTenant(user.tenant_id, async (trx) => {
       if ('product_id' in body) Object.assign(patch, await snapshotProduct(trx, user.tenant_id, body.product_id));
-      const t = await trx.updateTable('shipment_tasks').set(patch).where('id', '=', taskId).returningAll().executeTakeFirst();
+      const t = await trx.updateTable('shipment_tasks').set(patch).where('id', '=', taskId).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
       if (!t) return reply.status(404).send({ error: 'Task not found' });
       return t;
     });
@@ -924,7 +924,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { taskId } = request.params as { id: string; taskId: string };
     return withTenant(user.tenant_id, async (trx) => {
-      await trx.deleteFrom('shipment_tasks').where('id', '=', taskId).execute();
+      await trx.deleteFrom('shipment_tasks').where('id', '=', taskId).where('tenant_id', '=', user.tenant_id).execute();
       return reply.status(204).send();
     });
   });
@@ -957,7 +957,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       const comments = await trx
         .selectFrom('task_comments')
         .selectAll()
-        .where('task_id', '=', taskId)
+        .where('task_id', '=', taskId).where('tenant_id', '=', user.tenant_id)
         .orderBy('created_at', 'asc')
         .execute();
       return { data: comments };
@@ -1030,13 +1030,13 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       const comment = await trx
         .selectFrom('task_comments')
         .select(['id', 'author_id'])
-        .where('id', '=', commentId)
+        .where('id', '=', commentId).where('tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
       if (!comment) return reply.status(404).send({ error: 'Comment not found' });
       const canDelete = comment.author_id === user.sub ||
         ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'TENANT_ADMIN'].includes(user.role);
       if (!canDelete) return reply.status(403).send({ error: 'Forbidden' });
-      await trx.deleteFrom('task_comments').where('id', '=', commentId).execute();
+      await trx.deleteFrom('task_comments').where('id', '=', commentId).where('tenant_id', '=', user.tenant_id).execute();
       return reply.status(204).send();
     });
   });
@@ -1049,12 +1049,12 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { taskId } = request.params as { id: string; taskId: string };
     return withTenant(user.tenant_id, async (trx) => {
-      const task = await trx.selectFrom('shipment_tasks').selectAll().where('id', '=', taskId).executeTakeFirst();
+      const task = await trx.selectFrom('shipment_tasks').selectAll().where('id', '=', taskId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!task) return reply.status(404).send({ error: 'Task not found' });
       const checklists = await trx
         .selectFrom('task_checklists')
         .selectAll()
-        .where('task_id', '=', taskId)
+        .where('task_id', '=', taskId).where('tenant_id', '=', user.tenant_id)
         .orderBy('position', 'asc')
         .execute();
       const items = checklists.length > 0
@@ -1084,7 +1084,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const { taskId } = request.params as { id: string; taskId: string };
     const { title = 'Checklist' } = request.body as any;
     return withTenant(user.tenant_id, async (trx) => {
-      const count = await trx.selectFrom('task_checklists').select(trx.fn.countAll().as('n')).where('task_id', '=', taskId).executeTakeFirst();
+      const count = await trx.selectFrom('task_checklists').select(trx.fn.countAll().as('n')).where('task_id', '=', taskId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       const position = Number((count as any)?.n ?? 0);
       const cl = await trx.insertInto('task_checklists').values({
         tenant_id: user.tenant_id, task_id: taskId, title, position, created_at: new Date(),
@@ -1100,7 +1100,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { checklistId } = request.params as any;
     return withTenant(user.tenant_id, async (trx) => {
-      await trx.deleteFrom('task_checklists').where('id', '=', checklistId).execute();
+      await trx.deleteFrom('task_checklists').where('id', '=', checklistId).where('tenant_id', '=', user.tenant_id).execute();
       return reply.status(204).send();
     });
   });
@@ -1114,6 +1114,13 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const { title } = request.body as any;
     if (!title?.trim()) return reply.status(400).send({ error: 'title is required' });
     return withTenant(user.tenant_id, async (trx) => {
+      // task_checklist_items carries no tenant_id of its own — it inherits
+      // scope from its checklist, so the checklist is what gets checked.
+      // Without this, checklistId from the URL adds items to any tenant's
+      // checklist.
+      const checklist = await trx.selectFrom('task_checklists').select('id')
+        .where('id', '=', checklistId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!checklist) return reply.status(404).send({ error: 'Checklist not found' });
       const count = await trx.selectFrom('task_checklist_items').select(trx.fn.countAll().as('n')).where('checklist_id', '=', checklistId).executeTakeFirst();
       const position = Number((count as any)?.n ?? 0);
       const item = await trx.insertInto('task_checklist_items').values({
@@ -1141,7 +1148,11 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     if ('assigned_to' in body) patch.assigned_to = body.assigned_to;
     if ('due_date' in body) patch.due_date = body.due_date;
     return withTenant(user.tenant_id, async (trx) => {
-      const item = await trx.updateTable('task_checklist_items').set(patch).where('id', '=', itemId).returningAll().executeTakeFirst();
+      // Scoped through the parent checklist — see the POST handler above.
+      const item = await trx.updateTable('task_checklist_items').set(patch)
+        .where('id', '=', itemId)
+        .where('checklist_id', 'in', eb => eb.selectFrom('task_checklists').select('id').where('tenant_id', '=', user.tenant_id))
+        .returningAll().executeTakeFirst();
       if (!item) return reply.status(404).send({ error: 'Item not found' });
       return item;
     });
@@ -1154,7 +1165,10 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { itemId } = request.params as any;
     return withTenant(user.tenant_id, async (trx) => {
-      await trx.deleteFrom('task_checklist_items').where('id', '=', itemId).execute();
+      await trx.deleteFrom('task_checklist_items')
+        .where('id', '=', itemId)
+        .where('checklist_id', 'in', eb => eb.selectFrom('task_checklists').select('id').where('tenant_id', '=', user.tenant_id))
+        .execute();
       return reply.status(204).send();
     });
   });
@@ -1166,7 +1180,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
-      const entries = await trx.selectFrom('shipment_time_entries').selectAll().where('shipment_id', '=', id).orderBy('log_date', 'asc').execute();
+      const entries = await trx.selectFrom('shipment_time_entries').selectAll().where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id).orderBy('log_date', 'asc').execute();
       return { data: entries };
     });
   });
@@ -1259,14 +1273,14 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       const history = await trx
         .selectFrom('stage_history')
         .selectAll()
-        .where('shipment_id', '=', id)
+        .where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id)
         .orderBy('entered_at', 'asc')
         .execute();
 
       const messages = await trx
         .selectFrom('case_messages')
         .selectAll()
-        .where('shipment_id', '=', id)
+        .where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id)
         .orderBy('created_at', 'asc')
         .execute();
 
@@ -1294,7 +1308,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       const shipment = await trx
         .selectFrom('shipment_cases')
         .selectAll()
-        .where('id', '=', id)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
 
       if (!shipment) {
@@ -1325,7 +1339,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         await trx
           .updateTable('shipment_cases')
           .set(firstReplyFields)
-          .where('id', '=', id)
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
           .execute();
       }
 
@@ -1388,7 +1402,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
       const notes = await trx.selectFrom('shipment_notes').selectAll()
-        .where('shipment_id', '=', id).orderBy('created_at', 'asc').execute();
+        .where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id).orderBy('created_at', 'asc').execute();
       return { data: notes };
     });
   });
@@ -1419,14 +1433,14 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     if (!content?.trim()) return reply.status(400).send({ error: 'content is required' });
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('shipment_notes').select(['id', 'author_id'])
-        .where('id', '=', noteId).executeTakeFirst();
+        .where('id', '=', noteId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Note not found' });
       const canEdit = existing.author_id === user.sub ||
         ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user.role);
       if (!canEdit) return reply.status(403).send({ error: 'Forbidden' });
       const updated = await trx.updateTable('shipment_notes')
         .set({ content: content.trim(), updated_at: new Date() })
-        .where('id', '=', noteId)
+        .where('id', '=', noteId).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirst();
       return updated;
     });
@@ -1437,12 +1451,12 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const { id, noteId } = request.params as { id: string; noteId: string };
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('shipment_notes').select(['id', 'author_id'])
-        .where('id', '=', noteId).executeTakeFirst();
+        .where('id', '=', noteId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Note not found' });
       const canDelete = existing.author_id === user.sub ||
         ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user.role);
       if (!canDelete) return reply.status(403).send({ error: 'Forbidden' });
-      await trx.deleteFrom('shipment_notes').where('id', '=', noteId).execute();
+      await trx.deleteFrom('shipment_notes').where('id', '=', noteId).where('tenant_id', '=', user.tenant_id).execute();
       return reply.status(204).send();
     });
   });
@@ -1456,7 +1470,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
       const row = await trx.selectFrom('shipment_cases').select(['tags'])
-        .where('id', '=', id).executeTakeFirst();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!row) return reply.status(404).send({ error: 'Shipment not found' });
       const tags: string[] = Array.isArray(row.tags) ? row.tags : JSON.parse(row.tags || '[]');
       return { tags };
@@ -1470,13 +1484,13 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     if (!tag?.trim()) return reply.status(400).send({ error: 'tag is required' });
     return withTenant(user.tenant_id, async (trx) => {
       const row = await trx.selectFrom('shipment_cases').select(['tags'])
-        .where('id', '=', id).executeTakeFirst();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!row) return reply.status(404).send({ error: 'Shipment not found' });
       const existing: string[] = Array.isArray(row.tags) ? row.tags : JSON.parse(row.tags || '[]');
       const trimmed = tag.trim();
       if (existing.includes(trimmed)) return { tags: existing };
       const newTags = [...existing, trimmed];
-      await trx.updateTable('shipment_cases').set({ tags: JSON.stringify(newTags), updated_at: new Date() }).where('id', '=', id).execute();
+      await trx.updateTable('shipment_cases').set({ tags: JSON.stringify(newTags), updated_at: new Date() }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       return { tags: newTags };
     });
   });
@@ -1486,11 +1500,11 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const { id, tag } = request.params as { id: string; tag: string };
     return withTenant(user.tenant_id, async (trx) => {
       const row = await trx.selectFrom('shipment_cases').select(['tags'])
-        .where('id', '=', id).executeTakeFirst();
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!row) return reply.status(404).send({ error: 'Shipment not found' });
       const existing: string[] = Array.isArray(row.tags) ? row.tags : JSON.parse(row.tags || '[]');
       const newTags = existing.filter(t => t !== decodeURIComponent(tag));
-      await trx.updateTable('shipment_cases').set({ tags: JSON.stringify(newTags), updated_at: new Date() }).where('id', '=', id).execute();
+      await trx.updateTable('shipment_cases').set({ tags: JSON.stringify(newTags), updated_at: new Date() }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       return { tags: newTags };
     });
   });
@@ -1546,7 +1560,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       await trx.updateTable('shipment_participant_customers')
         .set({ wa_enabled })
-        .where('shipment_id', '=', id)
+        .where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id)
         .where('customer_id', '=', customerId)
         .execute();
       return { ok: true };
@@ -1558,7 +1572,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     const { id, customerId } = request.params as { id: string; customerId: string };
     return withTenant(user.tenant_id, async (trx) => {
       await trx.deleteFrom('shipment_participant_customers')
-        .where('shipment_id', '=', id)
+        .where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id)
         .where('customer_id', '=', customerId)
         .execute();
       return reply.status(204).send();
@@ -1702,7 +1716,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       const existing = await trx
         .selectFrom('shipment_cases')
         .select(['id'])
-        .where('id', '=', id)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
 
       if (!existing) {
@@ -1717,7 +1731,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
           feedback_text: feedback_text || null,
           updated_at: new Date(),
         })
-        .where('id', '=', id)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .execute();
 
       return { success: true };

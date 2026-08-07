@@ -18,7 +18,7 @@ registerSubscriber('shipment.sla_breach', async (tenantId, event) => {
   await withTenant(tenantId, async (trx) => {
     const shipment = await trx.selectFrom('shipment_cases')
       .select(['id', 'ref_number', 'customer_id', 'stage'])
-      .where('id', '=', shipmentId)
+      .where('id', '=', shipmentId).where('tenant_id', '=', tenantId)
       .executeTakeFirst();
     if (!shipment) return;
 

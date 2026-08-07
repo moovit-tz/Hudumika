@@ -20,7 +20,7 @@ registerSubscriber('shipment.stage_advanced', async (tenantId, event) => {
   await withTenant(tenantId, async (trx) => {
     const trips = await trx.selectFrom('trips')
       .select(['id', 'created_by'])
-      .where('shipment_id', '=', shipmentId)
+      .where('shipment_id', '=', shipmentId).where('tenant_id', '=', tenantId)
       .where('job_type', '=', 'CLEARANCE_LINKED')
       .execute();
 

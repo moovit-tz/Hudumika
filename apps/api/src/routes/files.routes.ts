@@ -196,10 +196,10 @@ async function seedSampleFiles(trx: Transaction<Database>, tenantId: string, dri
   for (const folderId of folderIds) {
     const agg = await trx.selectFrom('cloud_files')
       .select(({ fn }) => [fn.countAll<number>().as('n'), fn.sum<string>('size').as('total_size')])
-      .where('parent_id', '=', folderId).executeTakeFirst();
+      .where('parent_id', '=', folderId).where('tenant_id', '=', tenantId).executeTakeFirst();
     await trx.updateTable('cloud_files')
       .set({ file_count: Number(agg?.n ?? 0), size: agg?.total_size != null ? Number(agg.total_size) : 0 })
-      .where('id', '=', folderId).execute();
+      .where('id', '=', folderId).where('tenant_id', '=', tenantId).execute();
   }
 }
 
@@ -473,7 +473,7 @@ export async function filesRoutes(fastify: FastifyInstance) {
         const shareToken = shared?.length
           ? (file.share_token ?? crypto.randomUUID())
           : null;
-        await trx.updateTable('cloud_files').set({ updated_at: new Date(), share_token: shareToken }).where('id', '=', id).execute();
+        await trx.updateTable('cloud_files').set({ updated_at: new Date(), share_token: shareToken }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
         return { shared: shared ?? [], share_token: shareToken };
       });
     } catch (err: any) {

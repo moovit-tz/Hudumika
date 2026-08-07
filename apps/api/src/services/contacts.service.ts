@@ -491,7 +491,7 @@ export class ContactsService {
         await trx
           .updateTable('contacts')
           .set(mergedData)
-          .where('id', '=', primaryId)
+          .where('id', '=', primaryId).where('tenant_id', '=', tenantId)
           .execute();
       }
 

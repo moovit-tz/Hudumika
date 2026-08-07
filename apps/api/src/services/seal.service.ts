@@ -70,8 +70,13 @@ export class SealService {
    * feeds will disagree (spec §4.2's central architectural rule).
    */
   static async recordMovement(trx: Transaction<Database>, tenantId: string, input: RecordMovementInput) {
+    // recordMovement is the only path that may change a lot's location,
+    // quantity or customs_status, and input.lotId arrives from a request
+    // body — so the tenant check belongs here, at the single chokepoint,
+    // rather than being re-derived by each of its callers.
     const lot = await trx.selectFrom('seal_lots')
       .select(['id', 'customs_status', 'current_location_id', 'qty_on_hand', 'is_dangerous_goods', 'imdg_class'])
+      .where('tenant_id', '=', tenantId)
       .where('id', '=', input.lotId)
       .executeTakeFirst();
     if (!lot) throw new Error(`Lot not found: ${input.lotId}`);
@@ -80,12 +85,12 @@ export class SealService {
     const toStatus = input.toCustomsStatus ?? null;
 
     if (input.toLocationId && input.toLocationId !== lot.current_location_id) {
-      await SealService.checkDgSegregation(trx, input.toLocationId, {
+      await SealService.checkDgSegregation(trx, tenantId, input.toLocationId, {
         isDangerousGoods: lot.is_dangerous_goods, imdgClass: lot.imdg_class,
       }, input.lotId);
     }
     if (input.stackTier != null && input.toLocationId) {
-      const targetLocation = await trx.selectFrom('seal_locations').select('max_stack_tiers').where('id', '=', input.toLocationId).executeTakeFirst();
+      const targetLocation = await trx.selectFrom('seal_locations').select('max_stack_tiers').where('tenant_id', '=', tenantId).where('id', '=', input.toLocationId).executeTakeFirst();
       if (targetLocation && input.stackTier > targetLocation.max_stack_tiers) {
         throw new Error(`Location only supports ${targetLocation.max_stack_tiers} stack tier(s) — tier ${input.stackTier} is out of range.`);
       }
@@ -105,6 +110,7 @@ export class SealService {
 
     const last = await trx.selectFrom('seal_movements')
       .select('hash')
+      .where('tenant_id', '=', tenantId)
       .where('lot_id', '=', input.lotId)
       .orderBy('id', 'desc')
       .executeTakeFirst();
@@ -156,6 +162,7 @@ export class SealService {
         ...(input.stackTier != null ? { stack_tier: input.stackTier } : {}),
         updated_at: new Date(),
       })
+      .where('tenant_id', '=', tenantId)
       .where('id', '=', input.lotId)
       .execute();
 
@@ -214,11 +221,12 @@ export class SealService {
    *  deferral from Increment 2). Same-class co-location is always allowed;
    *  an unrated pair (no rule either direction) is treated as compatible —
    *  the rule table is a known-bad list, not a known-good allowlist. */
-  static async checkDgSegregation(trx: Transaction<Database>, locationId: string | null | undefined, lot: { isDangerousGoods: boolean; imdgClass: string | null | undefined }, excludeLotId?: string) {
+  static async checkDgSegregation(trx: Transaction<Database>, tenantId: string, locationId: string | null | undefined, lot: { isDangerousGoods: boolean; imdgClass: string | null | undefined }, excludeLotId?: string) {
     if (!locationId || !lot.isDangerousGoods || !lot.imdgClass) return;
 
     const others = await trx.selectFrom('seal_lots')
       .select(['id', 'imdg_class', 'description'])
+      .where('tenant_id', '=', tenantId)
       .where('current_location_id', '=', locationId)
       .where('is_dangerous_goods', '=', true)
       .where('qty_on_hand', '>', '0')
@@ -266,7 +274,7 @@ export class SealService {
     }
     const stackTier = input.stackTier ?? 1;
     if (input.locationId) {
-      await SealService.checkDgSegregation(trx, input.locationId, {
+      await SealService.checkDgSegregation(trx, tenantId, input.locationId, {
         isDangerousGoods: !!input.isDangerousGoods, imdgClass: input.imdgClass,
       });
       const targetLocation = await trx.selectFrom('seal_locations').select('max_stack_tiers').where('id', '=', input.locationId).executeTakeFirst();
@@ -332,9 +340,10 @@ export class SealService {
 
   /** Recomputes the hash chain for a lot's movement history from scratch and
    *  compares it against what's stored — spec §8.3's verify_chain(). */
-  static async verifyChain(trx: Transaction<Database>, lotId: string): Promise<{ valid: boolean; brokenAtMovementId: string | null; checked: number }> {
+  static async verifyChain(trx: Transaction<Database>, tenantId: string, lotId: string): Promise<{ valid: boolean; brokenAtMovementId: string | null; checked: number }> {
     const movements = await trx.selectFrom('seal_movements')
       .selectAll()
+      .where('tenant_id', '=', tenantId)
       .where('lot_id', '=', lotId)
       .orderBy('id', 'asc')
       .execute();
@@ -370,9 +379,10 @@ export class SealService {
    *  proven-linked hash at this moment). Sorted by lot_id so the same
    *  ledger state always produces the same checkpoint_hash regardless of
    *  query-execution order. */
-  static async buildCompartmentCheckpoint(trx: Transaction<Database>, compartmentId: string): Promise<{ snapshot: { lotId: string; movementId: string; hash: string }[]; checkpointHash: string }> {
+  static async buildCompartmentCheckpoint(trx: Transaction<Database>, tenantId: string, compartmentId: string): Promise<{ snapshot: { lotId: string; movementId: string; hash: string }[]; checkpointHash: string }> {
     const tips = await trx.selectFrom('seal_movements as m')
       .innerJoin('seal_lots as l', 'l.id', 'm.lot_id')
+      .where('l.tenant_id', '=', tenantId)
       .where('l.compartment_id', '=', compartmentId)
       .select(['m.lot_id', 'm.id', 'm.hash'])
       .distinctOn('m.lot_id')

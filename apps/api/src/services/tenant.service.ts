@@ -38,7 +38,7 @@ export class TenantService {
       return trx
         .selectFrom('tenant_companies')
         .selectAll()
-        .where('id', '=', companyId)
+        .where('id', '=', companyId).where('tenant_id', '=', tenantId)
         .executeTakeFirstOrThrow();
     });
   }
@@ -66,7 +66,7 @@ export class TenantService {
       const result = await trx
         .updateTable('tenant_companies')
         .set({ ...data, updated_at: now })
-        .where('id', '=', companyId)
+        .where('id', '=', companyId).where('tenant_id', '=', tenantId)
         .returningAll()
         .executeTakeFirstOrThrow();
       return result;
@@ -77,7 +77,7 @@ export class TenantService {
     return withTenant(tenantId, async (trx) => {
       await trx
         .deleteFrom('tenant_companies')
-        .where('id', '=', companyId)
+        .where('id', '=', companyId).where('tenant_id', '=', tenantId)
         .execute();
       return { success: true };
     });

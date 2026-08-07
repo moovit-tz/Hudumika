@@ -49,7 +49,7 @@ export class WorkflowService {
         const shipment = await trx
           .selectFrom('shipment_cases')
           .select(['id', 'stage', 'workflow_id', 'workflow_step_id', 'created_at', 'resolved_at', 'type', 'origin_port', 'dest_port', 'gross_weight_kg'])
-          .where('id', '=', shipmentId)
+          .where('id', '=', shipmentId).where('tenant_id', '=', tenantId)
           .executeTakeFirst();
 
         if (!shipment) {
@@ -93,10 +93,10 @@ export class WorkflowService {
           const documents = await trx
             .selectFrom('case_documents')
             .select(['type', 'status'])
-            .where('shipment_id', '=', shipmentId)
+            .where('shipment_id', '=', shipmentId).where('tenant_id', '=', tenantId)
             .execute();
 
-          const shipmentRow = await trx.selectFrom('shipment_cases').selectAll().where('id', '=', shipmentId).executeTakeFirstOrThrow();
+          const shipmentRow = await trx.selectFrom('shipment_cases').selectAll().where('id', '=', shipmentId).where('tenant_id', '=', tenantId).executeTakeFirstOrThrow();
           const evalResult = evaluateEntryConditions(shipmentRow as any, documents as any, nextStep.entryConditions);
           journal.conditions = evalResult.outcomes;
           if (!evalResult.valid) {
@@ -115,7 +115,7 @@ export class WorkflowService {
         const currentHistory = await trx
           .selectFrom('stage_history')
           .selectAll()
-          .where('shipment_id', '=', shipmentId)
+          .where('shipment_id', '=', shipmentId).where('tenant_id', '=', tenantId)
           .where('stage', '=', currentStage)
           .where('exited_at', 'is', null)
           .executeTakeFirst();
@@ -166,7 +166,7 @@ export class WorkflowService {
         await trx
           .updateTable('shipment_cases')
           .set(updateFields)
-          .where('id', '=', shipmentId)
+          .where('id', '=', shipmentId).where('tenant_id', '=', tenantId)
           .execute();
 
         if (nextStep.isTerminal && shipment.origin_port && shipment.dest_port && shipment.gross_weight_kg) {

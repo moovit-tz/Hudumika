@@ -42,10 +42,10 @@ export class InventoryService {
   /** Resolves an entered quantity/UOM to the item's canonical base_uom,
    *  looking up the conversion factor from inventory_item_uoms unless the
    *  entered UOM already IS the base unit (factor 1, no lookup needed). */
-  static async toBaseQty(trx: Transaction<Database>, itemId: string, baseUom: string, enteredQty: number, enteredUom: string): Promise<number> {
+  static async toBaseQty(trx: Transaction<Database>, tenantId: string, itemId: string, baseUom: string, enteredQty: number, enteredUom: string): Promise<number> {
     if (enteredUom === baseUom) return enteredQty;
     const conv = await trx.selectFrom('inventory_item_uoms').select('conversion_factor')
-      .where('item_id', '=', itemId).where('uom_code', '=', enteredUom).executeTakeFirst();
+      .where('tenant_id', '=', tenantId).where('item_id', '=', itemId).where('uom_code', '=', enteredUom).executeTakeFirst();
     if (!conv) throw new UnknownUom(enteredUom);
     return enteredQty * Number(conv.conversion_factor);
   }
@@ -60,7 +60,7 @@ export class InventoryService {
       throw new InvalidMovement('This item is batch/lot-tracked — a batch number is required.');
     }
 
-    const baseQty = await InventoryService.toBaseQty(trx, input.itemId, item.base_uom, input.enteredQty, input.enteredUom);
+    const baseQty = await InventoryService.toBaseQty(trx, tenantId, input.itemId, item.base_uom, input.enteredQty, input.enteredUom);
 
     let qtyDelta: number;
     let fromLocationId: string | null = null;

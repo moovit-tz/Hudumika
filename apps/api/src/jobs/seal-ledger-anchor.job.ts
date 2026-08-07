@@ -66,7 +66,7 @@ export async function runSealLedgerAnchorConfirmationSweepJob(): Promise<void> {
 
     for (const anchor of pending) {
       try {
-        const updated = await withTenant(anchor.tenant_id, trx => SealAnchorService.checkAnchorConfirmation(trx, anchor.id));
+        const updated = await withTenant(anchor.tenant_id, trx => SealAnchorService.checkAnchorConfirmation(trx, anchor.tenant_id, anchor.id));
         if (updated.status === 'confirmed') {
           console.log(`✅ SEAL ledger anchor confirmed: ${anchor.id} (block ${updated.bitcoin_block_height})`);
         }

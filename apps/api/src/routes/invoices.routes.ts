@@ -415,7 +415,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
           lines = [];
         }
       }
-      const inv = await trx.selectFrom('sales_invoices').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
+      const inv = await trx.selectFrom('sales_invoices').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirstOrThrow();
 
       if (inv.status !== 'Draft') {
         const alreadyPosted = await trx

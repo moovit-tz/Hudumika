@@ -262,7 +262,7 @@ export const quotationService = {
           converted_shipment_id: shipment.id,
           updated_at: new Date(),
         })
-        .where('id', '=', quoteId)
+        .where('id', '=', quoteId).where('tenant_id', '=', tenantId)
         .execute();
 
       return { quotation: quote, shipment };

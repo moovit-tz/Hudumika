@@ -453,7 +453,7 @@ export class DeclarationService {
       const notices = await trx
         .selectFrom('declaration_notices')
         .selectAll()
-        .where('declaration_id', '=', declarationId)
+        .where('declaration_id', '=', declarationId).where('tenant_id', '=', tenantId)
         .orderBy('notice_date', 'desc')
         .execute();
 
@@ -694,7 +694,7 @@ export class DeclarationService {
   static async verifyChain(tenantId: string, declarationId: string): Promise<{ valid: boolean; brokenAtEventId: string | null; checked: number }> {
     return withTenant(tenantId, async (trx) => {
       const events = await trx.selectFrom('declaration_events').selectAll()
-        .where('declaration_id', '=', declarationId).orderBy('id', 'asc').execute();
+        .where('declaration_id', '=', declarationId).where('tenant_id', '=', tenantId).orderBy('id', 'asc').execute();
 
       let prevHash: string | null = null;
       for (const e of events) {

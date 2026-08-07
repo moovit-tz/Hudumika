@@ -132,12 +132,12 @@ export async function resolveComm(
   comm: AutoComm,
   stepName: string,
 ): Promise<ResolvedComm | null> {
-  const shipment = await db.selectFrom('shipment_cases').selectAll().where('id', '=', shipmentId).executeTakeFirst();
+  const shipment = await db.selectFrom('shipment_cases').selectAll().where('tenant_id', '=', tenantId).where('id', '=', shipmentId).executeTakeFirst();
   if (!shipment) return null;
 
-  const customer = await db.selectFrom('customers').selectAll().where('id', '=', shipment.customer_id).executeTakeFirst();
+  const customer = await db.selectFrom('customers').selectAll().where('tenant_id', '=', tenantId).where('id', '=', shipment.customer_id).executeTakeFirst();
   const officer = shipment.assigned_to
-    ? await db.selectFrom('users').selectAll().where('id', '=', shipment.assigned_to).executeTakeFirst()
+    ? await db.selectFrom('users').selectAll().where('tenant_id', '=', tenantId).where('id', '=', shipment.assigned_to).executeTakeFirst()
     : null;
 
   // Template variables — only include ones we can honestly populate.

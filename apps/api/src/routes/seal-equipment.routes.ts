@@ -152,7 +152,7 @@ export async function sealEquipmentRoutes(fastify: FastifyInstance) {
         if (b.condition !== undefined) patch.condition = b.condition;
         if (b.resultingStatus !== undefined) patch.status = b.resultingStatus;
         const equipment = await trx.updateTable('seal_equipment').set(patch)
-          .where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow();
+          .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirstOrThrow();
 
         return { record, equipment };
       });

@@ -48,7 +48,7 @@ registerSubscriber('shipment.cost_recorded', async (tenantId, event) => {
   await withTenant(tenantId, async (trx) => {
     const shipment = await trx.selectFrom('shipment_cases')
       .select(['id', 'ref_number', 'assigned_to'])
-      .where('id', '=', shipmentId)
+      .where('id', '=', shipmentId).where('tenant_id', '=', tenantId)
       .executeTakeFirst();
     if (!shipment?.assigned_to) return;
 
@@ -92,7 +92,7 @@ registerSubscriber('declaration.released', async (tenantId, event) => {
   await withTenant(tenantId, async (trx) => {
     const shipment = await trx.selectFrom('shipment_cases')
       .select(['id', 'ref_number', 'assigned_to'])
-      .where('id', '=', shipmentId)
+      .where('id', '=', shipmentId).where('tenant_id', '=', tenantId)
       .executeTakeFirst();
     if (!shipment?.assigned_to) return;
 

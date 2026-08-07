@@ -114,7 +114,7 @@ export async function sealStockAccountRoutes(fastify: FastifyInstance) {
       const b = request.body as any;
       if (!b.submissionReference) return reply.status(400).send({ error: 'submissionReference is required' });
       const period = await withTenant(request.user.tenant_id, trx =>
-        SealStockAccountService.submit(trx, request.params.id, b.submissionReference)
+        SealStockAccountService.submit(trx, request.user.tenant_id, request.params.id, b.submissionReference)
       );
       return mapPeriod(period);
     } catch (err: any) {

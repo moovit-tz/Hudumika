@@ -78,8 +78,8 @@ export class SealDeclarationService {
    *  while still DRAFT, and by the reproducibility check (spec §5.7: re-running
    *  a stored declaration's inputs must give the identical number). Never
    *  called automatically past DRAFT — once submitted, `computation` is frozen. */
-  static async recompute(trx: Transaction<Database>, entryId: string) {
-    const entry = await trx.selectFrom('seal_customs_entries').selectAll().where('id', '=', entryId).executeTakeFirstOrThrow();
+  static async recompute(trx: Transaction<Database>, tenantId: string, entryId: string) {
+    const entry = await trx.selectFrom('seal_customs_entries').selectAll().where('tenant_id', '=', tenantId).where('id', '=', entryId).executeTakeFirstOrThrow();
     const computation = await computeDuty({
       hsCode: entry.hs_code, invoiceValue: Number(entry.invoice_value), freight: Number(entry.freight),
       insurance: Number(entry.insurance), currency: entry.currency, fxRate: Number(entry.fx_rate),
@@ -89,14 +89,19 @@ export class SealDeclarationService {
     return { stored, recomputed: computation };
   }
 
-  static async advanceStatus(trx: Transaction<Database>, entryId: string, to: SealDeclarationStatus, reference?: string | null) {
-    const entry = await trx.selectFrom('seal_customs_entries').selectAll().where('id', '=', entryId).executeTakeFirstOrThrow();
+  /** `tenantId` is required on every one of these: `entryId` comes from the
+   *  URL, and without it one workspace can submit, assess, pay and release
+   *  another workspace's customs declaration — release in particular writes
+   *  a real ledger movement and zeroes that lot's duty/tax at risk. */
+  static async advanceStatus(trx: Transaction<Database>, tenantId: string, entryId: string, to: SealDeclarationStatus, reference?: string | null) {
+    const entry = await trx.selectFrom('seal_customs_entries').selectAll().where('tenant_id', '=', tenantId).where('id', '=', entryId).executeTakeFirstOrThrow();
     const from = entry.status as SealDeclarationStatus;
     if (!legalNextSealDeclarationStatuses(from).includes(to)) {
       throw new IllegalDeclarationTransition(from, to);
     }
     if (to === 'ASSESSED') {
       const openExam = await trx.selectFrom('seal_examinations').select(['id', 'selectivity_channel'])
+        .where('tenant_id', '=', tenantId)
         .where('customs_entry_id', '=', entryId)
         .where('status', 'not in', ['COMPLETED', 'WAIVED'])
         .executeTakeFirst();
@@ -106,11 +111,11 @@ export class SealDeclarationService {
       status: to,
       ...(to === 'PAID' && reference ? { payment_reference: reference } : {}),
       updated_at: new Date(),
-    }).where('id', '=', entryId).returningAll().executeTakeFirstOrThrow();
+    }).where('tenant_id', '=', tenantId).where('id', '=', entryId).returningAll().executeTakeFirstOrThrow();
   }
 
-  static async submit(trx: Transaction<Database>, entryId: string, humanProvidedReference: string) {
-    const entry = await trx.selectFrom('seal_customs_entries').selectAll().where('id', '=', entryId).executeTakeFirstOrThrow();
+  static async submit(trx: Transaction<Database>, tenantId: string, entryId: string, humanProvidedReference: string) {
+    const entry = await trx.selectFrom('seal_customs_entries').selectAll().where('tenant_id', '=', tenantId).where('id', '=', entryId).executeTakeFirstOrThrow();
     if (entry.status !== 'DRAFT') throw new Error(`Only a DRAFT declaration can be submitted (this one is ${entry.status}).`);
 
     const adapter = getCustomsAdapter(entry.jurisdiction);
@@ -129,7 +134,7 @@ export class SealDeclarationService {
 
     return trx.updateTable('seal_customs_entries').set({
       status: 'SUBMITTED', submission_reference: receipt.reference, updated_at: new Date(),
-    }).where('id', '=', entryId).returningAll().executeTakeFirstOrThrow();
+    }).where('tenant_id', '=', tenantId).where('id', '=', entryId).returningAll().executeTakeFirstOrThrow();
   }
 
   /** The consequential step (spec Increment 3's exit criterion): releasing a
@@ -137,7 +142,7 @@ export class SealDeclarationService {
    *  same append-only, hash-chained ledger every other movement uses — and
    *  settles its duty/tax-at-risk now that duty has actually been paid. */
   static async release(trx: Transaction<Database>, tenantId: string, actorId: string | null, entryId: string) {
-    const entry = await trx.selectFrom('seal_customs_entries').selectAll().where('id', '=', entryId).executeTakeFirstOrThrow();
+    const entry = await trx.selectFrom('seal_customs_entries').selectAll().where('tenant_id', '=', tenantId).where('id', '=', entryId).executeTakeFirstOrThrow();
     if (entry.status !== 'PAID') throw new Error(`Only a PAID declaration can be released (this one is ${entry.status}).`);
 
     const targetStatus = PROCEDURE_TARGET_STATUS[entry.procedure_code];
@@ -152,9 +157,9 @@ export class SealDeclarationService {
     // Duty is settled (or the lot has left the suspended regime entirely) —
     // it no longer consumes bond headroom.
     await trx.updateTable('seal_lots').set({ duty_at_risk: '0', tax_at_risk: '0', updated_at: new Date() })
-      .where('id', '=', entry.lot_id).execute();
+      .where('tenant_id', '=', tenantId).where('id', '=', entry.lot_id).execute();
 
     return trx.updateTable('seal_customs_entries').set({ status: 'RELEASED', updated_at: new Date() })
-      .where('id', '=', entryId).returningAll().executeTakeFirstOrThrow();
+      .where('tenant_id', '=', tenantId).where('id', '=', entryId).returningAll().executeTakeFirstOrThrow();
   }
 }

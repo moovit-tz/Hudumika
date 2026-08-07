@@ -109,11 +109,11 @@ export class SealStockAccountService {
     }).where('id', '=', period.id).returningAll().executeTakeFirstOrThrow();
   }
 
-  static async submit(trx: Transaction<Database>, periodId: string, submissionReference: string) {
-    const period = await trx.selectFrom('seal_stock_account_periods').selectAll().where('id', '=', periodId).executeTakeFirstOrThrow();
+  static async submit(trx: Transaction<Database>, tenantId: string, periodId: string, submissionReference: string) {
+    const period = await trx.selectFrom('seal_stock_account_periods').selectAll().where('tenant_id', '=', tenantId).where('id', '=', periodId).executeTakeFirstOrThrow();
     if (period.status !== 'DRAFT') throw new Error(`Only a DRAFT stock-account period can be submitted (this one is ${period.status}).`);
     return trx.updateTable('seal_stock_account_periods').set({
       status: 'SUBMITTED', submission_reference: submissionReference, submitted_at: new Date(),
-    }).where('id', '=', periodId).returningAll().executeTakeFirstOrThrow();
+    }).where('tenant_id', '=', tenantId).where('id', '=', periodId).returningAll().executeTakeFirstOrThrow();
   }
 }

@@ -720,7 +720,7 @@ export const TRAService = {
         tra_status: 'failed',
         tra_ack_msg: err.message,
         updated_at: new Date(),
-      }).where('id', '=', invoiceId).execute().catch(() => {});
+      }).where('id', '=', invoiceId).where('tenant_id', '=', tenantId).execute().catch(() => {});
       return { success: false, error: err.message };
     }
   },

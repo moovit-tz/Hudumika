@@ -20,7 +20,7 @@ registerSubscriber('shipment.demurrage_risk', async (tenantId, event) => {
   await withTenant(tenantId, async (trx) => {
     const shipment = await trx.selectFrom('shipment_cases')
       .select(['id', 'ref_number', 'assigned_to', 'free_time_end'])
-      .where('id', '=', shipmentId)
+      .where('id', '=', shipmentId).where('tenant_id', '=', tenantId)
       .executeTakeFirst();
     if (!shipment?.assigned_to) return;
 

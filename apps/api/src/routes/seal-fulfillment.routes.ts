@@ -99,7 +99,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
             'seal_fulfillment_lines.requested_qty', 'seal_fulfillment_lines.picked_qty', 'seal_fulfillment_lines.packed',
             'seal_lots.description as lot_description', 'seal_lots.uom',
           ])
-          .where('order_id', '=', request.params.id)
+          .where('order_id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
           .execute();
         return { order, lines };
       });
@@ -121,7 +121,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
         // checked here (not just trusted from the client) since this is the
         // moment stock gets committed to an outbound promise.
         for (const line of b.lines) {
-          const lot = await trx.selectFrom('seal_lots').select(['id', 'qty_on_hand']).where('id', '=', line.lotId).executeTakeFirst();
+          const lot = await trx.selectFrom('seal_lots').select(['id', 'qty_on_hand']).where('tenant_id', '=', request.user.tenant_id).where('id', '=', line.lotId).executeTakeFirst();
           if (!lot) throw new Error(`Lot not found: ${line.lotId}`);
           if (Number(line.qty) > Number(lot.qty_on_hand)) {
             throw new Error(`Requested qty (${line.qty}) exceeds qty on hand (${lot.qty_on_hand}) for this lot.`);
@@ -165,7 +165,7 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
           throw new Error(`Cannot pick against a ${order.status} order.`);
         }
         const line = await trx.selectFrom('seal_fulfillment_lines').selectAll()
-          .where('id', '=', b.lineId).where('order_id', '=', order.id).executeTakeFirstOrThrow();
+          .where('tenant_id', '=', request.user.tenant_id).where('id', '=', b.lineId).where('order_id', '=', order.id).executeTakeFirstOrThrow();
 
         const remaining = Number(line.requested_qty) - Number(line.picked_qty);
         if (b.qty > remaining) throw new Error(`Cannot pick ${b.qty} — only ${remaining} remains requested on this line.`);

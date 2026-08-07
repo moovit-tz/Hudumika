@@ -21,7 +21,7 @@ registerSubscriber('declaration.released', async (tenantId, event) => {
   await withTenant(tenantId, async (trx) => {
     const lots = await trx.selectFrom('seal_lots')
       .select(['id'])
-      .where('shipment_case_id', '=', shipmentId)
+      .where('shipment_case_id', '=', shipmentId).where('tenant_id', '=', tenantId)
       .where('customs_status', '=', 'FOREIGN_DUTY_SUSPENDED')
       .execute();
 

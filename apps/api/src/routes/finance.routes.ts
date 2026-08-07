@@ -116,7 +116,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
           stage: 'INVOICING',
           updated_at: new Date(),
         })
-        .where('id', '=', id)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .execute();
 
       // Log timeline event
@@ -239,7 +239,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
           stage: 'CLOSED',
           updated_at: new Date(),
         })
-        .where('id', '=', id)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .execute();
 
       // Log event

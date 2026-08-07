@@ -1072,7 +1072,7 @@ export async function sealRoutes(fastify: FastifyInstance) {
 
   fastify.get('/lots/:id/verify-chain', async (request: any, reply) => {
     try {
-      return await withTenant(request.user.tenant_id, trx => SealService.verifyChain(trx, request.params.id));
+      return await withTenant(request.user.tenant_id, trx => SealService.verifyChain(trx, request.user.tenant_id, request.params.id));
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
     }

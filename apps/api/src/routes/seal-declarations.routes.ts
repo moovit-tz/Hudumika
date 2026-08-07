@@ -169,7 +169,7 @@ export async function sealDeclarationRoutes(fastify: FastifyInstance) {
 
   fastify.get('/customs-entries/:id/recompute', async (request: any, reply) => {
     try {
-      const result = await withTenant(request.user.tenant_id, trx => SealDeclarationService.recompute(trx, request.params.id));
+      const result = await withTenant(request.user.tenant_id, trx => SealDeclarationService.recompute(trx, request.user.tenant_id, request.params.id));
       // Postgres's jsonb column round-trips objects through its own internal key
       // order (not insertion order), and computedAt is a freshness timestamp, not
       // part of the reproducible arithmetic — so a naive JSON.stringify comparison
@@ -188,7 +188,7 @@ export async function sealDeclarationRoutes(fastify: FastifyInstance) {
       const b = request.body as any;
       if (!b.submissionReference) return reply.status(400).send({ error: 'submissionReference is required' });
       const entry = await withTenant(request.user.tenant_id, trx =>
-        SealDeclarationService.submit(trx, request.params.id, b.submissionReference)
+        SealDeclarationService.submit(trx, request.user.tenant_id, request.params.id, b.submissionReference)
       );
       return mapDeclaration(entry);
     } catch (err: any) {
@@ -201,7 +201,7 @@ export async function sealDeclarationRoutes(fastify: FastifyInstance) {
       const b = request.body as any;
       if (!b.to) return reply.status(400).send({ error: 'to is required' });
       const entry = await withTenant(request.user.tenant_id, trx =>
-        SealDeclarationService.advanceStatus(trx, request.params.id, b.to, b.reference)
+        SealDeclarationService.advanceStatus(trx, request.user.tenant_id, request.params.id, b.to, b.reference)
       );
       return mapDeclaration(entry);
     } catch (err: any) {

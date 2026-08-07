@@ -279,8 +279,8 @@ export async function billRoutes(fastify: FastifyInstance) {
         }
       }
 
-      await trx.updateTable('supplier_bills').set(updates).where('id', '=', id).execute();
-      const bill = await trx.selectFrom('supplier_bills').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
+      await trx.updateTable('supplier_bills').set(updates).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+      const bill = await trx.selectFrom('supplier_bills').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirstOrThrow();
 
       if (bill.status === 'POSTED') {
         const alreadyPosted = await trx
@@ -358,7 +358,7 @@ export async function billRoutes(fastify: FastifyInstance) {
       }).execute();
 
       // Recalculate paid_amount from all payments
-      const payments = await trx.selectFrom('bill_payments').select('amount').where('bill_id', '=', id).execute();
+      const payments = await trx.selectFrom('bill_payments').select('amount').where('bill_id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
       const billTotal = Number(bill.total) || 0;
 

@@ -40,8 +40,8 @@ export class DeclarationAnchorService {
 
   /** Re-checks a pending anchor's proof against Bitcoin. Never marks an
    *  anchor confirmed unless OpenTimestamps itself reports a block. */
-  static async checkAnchorConfirmation(trx: Transaction<Database>, anchorId: string) {
-    const anchor = await trx.selectFrom('declaration_ledger_anchors').selectAll().where('id', '=', anchorId).executeTakeFirstOrThrow();
+  static async checkAnchorConfirmation(trx: Transaction<Database>, tenantId: string, anchorId: string) {
+    const anchor = await trx.selectFrom('declaration_ledger_anchors').selectAll().where('tenant_id', '=', tenantId).where('id', '=', anchorId).executeTakeFirstOrThrow();
     if (anchor.status !== 'pending') return anchor;
 
     try {
@@ -53,11 +53,11 @@ export class DeclarationAnchorService {
         patch.bitcoin_block_time = bitcoin.blockTime;
       }
       return await trx.updateTable('declaration_ledger_anchors').set(patch)
-        .where('id', '=', anchorId).returningAll().executeTakeFirstOrThrow();
+        .where('tenant_id', '=', tenantId).where('id', '=', anchorId).returningAll().executeTakeFirstOrThrow();
     } catch (err: any) {
       return trx.updateTable('declaration_ledger_anchors')
         .set({ last_checked_at: new Date(), error_message: err.message })
-        .where('id', '=', anchorId).returningAll().executeTakeFirstOrThrow();
+        .where('tenant_id', '=', tenantId).where('id', '=', anchorId).returningAll().executeTakeFirstOrThrow();
     }
   }
 }

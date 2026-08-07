@@ -58,7 +58,7 @@ export async function runDeclarationLedgerAnchorConfirmationSweepJob(): Promise<
 
     for (const anchor of pending) {
       try {
-        const updated = await withTenant(anchor.tenant_id, trx => DeclarationAnchorService.checkAnchorConfirmation(trx, anchor.id));
+        const updated = await withTenant(anchor.tenant_id, trx => DeclarationAnchorService.checkAnchorConfirmation(trx, anchor.tenant_id, anchor.id));
         if (updated.status === 'confirmed') {
           console.log(`✅ Declaration ledger anchor confirmed: ${anchor.id} (block ${updated.bitcoin_block_height})`);
         }

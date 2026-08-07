@@ -20,7 +20,7 @@ registerSubscriber('declaration.released', async (tenantId, event) => {
   await withTenant(tenantId, async (trx) => {
     const notice = await trx.selectFrom('declaration_notices')
       .select(['id', 'paid_amount', 'total_tax_amount', 'bill_number'])
-      .where('declaration_id', '=', declarationId)
+      .where('declaration_id', '=', declarationId).where('tenant_id', '=', tenantId)
       .where((eb) => eb.or([eb('paid_amount', 'is not', null), eb('total_tax_amount', 'is not', null)]))
       .orderBy('created_at', 'desc')
       .executeTakeFirst();
