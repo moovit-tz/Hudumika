@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback, useContext } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useContext, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { NotificationCentre } from './NotificationCentre.js';
+import { HeaderPill } from './HeaderPill.js';
 import { Icon, type IconName } from './Icon.js';
 import { APP_COLORS, ActiveAppContext, MobileNavContext } from '../shells/WorkspaceApp.js';
 import { useBranding } from '../hooks/useBranding.js';
@@ -209,6 +210,33 @@ export function AppHeader({
     return () => clearInterval(interval);
   }, [loadNotifs]);
 
+  /**
+   * Unread, newest first, capped — the pill is a nudge, not an inbox, and the
+   * notification centre remains the place to work through them.
+   *
+   * Deduped by what the row is *about*, because the table is not one row per
+   * event: `Missing document` alone accounts for 224,547 rows across 93
+   * shipments, one shipment/title pair repeating 7,844 times, because the
+   * reminder job re-notifies the same missing document on every run. Without
+   * this the pill would rotate the identical sentence five times over. The
+   * duplicates are a real defect in the job, not something this filter fixes —
+   * it only stops them being displayed as if they were five separate things.
+   */
+  const pillItems = useMemo(() => {
+    const seen = new Set<string>();
+    const out: any[] = [];
+    for (const n of notifs) {
+      if (n.read || !n.title) continue;
+      const key = `${n.title}|${n.shipment_id ?? n.entity_id ?? ''}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      out.push(n);
+      if (out.length === 5) break;
+    }
+    return out;
+  }, [notifs]);
+
+
   function handleMarkRead(id: string, _link?: string) {
     setNotifs(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     setUnreadCount(prev => Math.max(0, prev - 1));
@@ -232,6 +260,39 @@ export function AppHeader({
   // Local search state for app pages (hub page controls via prop)
   const [localSearch, setLocalSearch] = useState('');
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
+  /**
+   * The centre of the header has two resting states. With unread notifications
+   * it shows HeaderPill; otherwise, or once the user asks for search, it shows
+   * the search box. Search is never removed — it is one click or one "/" away,
+   * and it comes back on its own as soon as there is nothing left to announce.
+   */
+  const [searchExpanded, setSearchExpanded] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  /** The pill yields to search the moment the user asks for it, and takes the
+   *  slot back only when there is genuinely something unread to say. */
+  const showPill = !searchExpanded && pillItems.length > 0;
+
+  const openSearch = useCallback(() => {
+    setSearchExpanded(true);
+    // The input mounts in the same tick, so focus after paint.
+    requestAnimationFrame(() => searchInputRef.current?.focus());
+  }, []);
+
+  // "/" is the convention for jumping to search, and it matters more here than
+  // usual because the box is not always on screen. Ignored while typing, so it
+  // cannot hijack a literal slash in a form field.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      e.preventDefault();
+      openSearch();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [openSearch]);
   const isHub = !!onHubSearchChange;
   const isAppSearch = !!onAppSearchChange;
   const searchValue = isHub ? (hubSearch ?? '') : isAppSearch ? (appSearch ?? '') : localSearch;
@@ -387,17 +448,40 @@ export function AppHeader({
             )}
           </div>
 
-          {/* Center: Search — centered in hub; left-anchored expanding right in app mode */}
+          {/* Center: the pill while there is something unread to announce,
+              otherwise the search box. Both occupy the same slot. */}
+          {showPill && (
+            <HeaderPill
+              items={pillItems}
+              onOpen={item => {
+                handleMarkRead(item.id);
+                if (item.link) navigate(item.link);
+              }}
+              onDismiss={item => handleMarkRead(item.id)}
+              onExpandSearch={openSearch}
+            />
+          )}
+
           <Popover open={resultsOpen} onOpenChange={setResultsOpen}>
             <PopoverAnchor asChild>
-              <div className="app-header-hub-search desktop-search">
+              <div className={`app-header-hub-search desktop-search${showPill ? ' app-header-hub-search--hidden' : ''}`}>
                 <Icon name="search" size={15} />
                 <input
+                  ref={searchInputRef}
                   type="text"
                   className="app-header-hub-search-input"
                   placeholder={searchPlaceholder}
                   value={searchValue}
                   onFocus={handleSearchFocus}
+                  onBlur={() => {
+                    // Give the slot back to the pill once the user is plainly
+                    // done — but never while a query or its results are still
+                    // on screen, which would snatch the list away mid-click.
+                    if (!searchValue.trim() && !resultsOpen) setSearchExpanded(false);
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Escape') { handleSearch(''); setResultsOpen(false); setSearchExpanded(false); }
+                  }}
                   onChange={e => handleSearchInput(e.target.value)}
                 />
                 {searchValue && (

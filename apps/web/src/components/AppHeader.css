@@ -961,3 +961,134 @@
 .app-header-mobile-app-icon .app-lnch-svg-icon {
   border-radius: 6px;
 }
+
+/* ── Header announcement pill ──────────────────────────────────────────────
+   Occupies the same slot as the search box and only while there is something
+   unread to say; .desktop-search (above) is what keeps it off phones, where a
+   rotating ticker would be competing with the hamburger, brand and six icon
+   buttons for a 360px row. The bell already carries the count there. */
+.app-header-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 40px;
+  min-width: 0;
+  max-width: 640px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 6px 0 4px;
+  box-sizing: border-box;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  /* Fully rounded, like the reference — this is the one place a pill radius is
+     the point rather than drift from the --r ladder. */
+  border-radius: 999px;
+}
+
+.app-header-pill-search,
+.app-header-pill-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: 999px;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: background .12s, color .12s;
+}
+.app-header-pill-search:hover,
+.app-header-pill-icon:hover { background: var(--white); color: var(--ink); }
+.app-header-pill-icon[aria-pressed="true"] { color: var(--teal); }
+
+/* The announcement itself. min-width:0 on both this and the title is what lets
+   the title ellipsize instead of forcing the pill wider than its container. */
+.app-header-pill-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  height: 30px;
+  padding: 0 4px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font);
+  animation: pill-enter .28s ease;
+}
+
+@keyframes pill-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.app-header-pill-badge {
+  flex-shrink: 0;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--teal-l);
+  color: var(--teal);
+  text-transform: uppercase;
+}
+
+.app-header-pill-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+  max-width: 45%;
+}
+
+/* The supporting line is the first thing to go when the pill is squeezed —
+   it is context, not the message. */
+.app-header-pill-sub {
+  font-size: 12px;
+  color: var(--ink3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.app-header-pill-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.app-header-pill-count {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--ink3);
+  font-variant-numeric: tabular-nums;
+  padding: 0 2px;
+}
+
+/* Below ~1100px the header is carrying too much for a subtitle as well. */
+@media (max-width: 1100px) {
+  .app-header-pill-sub { display: none; }
+  .app-header-pill-title { max-width: 100%; }
+}
+
+/* The rotation is already disabled in JS under reduced motion; this also stops
+   the per-item enter animation, so nothing moves at all. */
+@media (prefers-reduced-motion: reduce) {
+  .app-header-pill-body { animation: none; }
+}
+
+/* While the pill holds the slot the search box stands down. It stays mounted
+   so the Radix popover keeps its anchor. */
+.app-header-hub-search--hidden { display: none !important; }
