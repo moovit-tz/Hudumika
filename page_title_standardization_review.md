@@ -1,26 +1,29 @@
-# Operations KPI Cards & Toolbar Restyling Review
+# Operations Full-Bleed Single Margin Axis Alignment Review
 
-This document records the exact design improvements executed to restyle the KPI metric cards and clean up the Operations search toolbar on `http://localhost:5173/clearos/ops`.
+This document records the exact alignment improvements executed to align all elements on `http://localhost:5173/clearos/ops` flush to the left and right margin bounding lines.
 
 ---
 
-## 1. Design & Layout Restyling Accomplished
+## 1. Full-Bleed Alignment & Layout Realignment
 
-1. **Restyled Operations KPI Metric Cards (`CommandCenter.tsx` & `index.css`)**:
-   - Replaced joined hairline box with individual design-system metric cards (`.cc-kpi-card`).
-   - Integrated icons (`package`, `alertTriangle`, `clock`, `checkCircle`, `dollarSign`, `trendingUp`, `calendar`) with background accent badges.
-   - Preserved alert indicators (pulsing red dot for Demurrage Risk / SLA Breached).
-   - Enhanced active selected filter states (`border: 1.5px solid var(--teal)`, `background: var(--teal-l)`).
-   - Removed `margin: 12px 20px` left offset so cards sit flush on the single left margin axis.
+1. **Eliminated Container Bottleneck (`cc-shell` & `cc-frame`)**:
+   - Removed artificial `max-width: 1400px` and `margin: 0 auto` centering on `.cc-shell`.
+   - Removed `padding: 12px 20px` inner offsets on `.cc-frame`, allowing the page container to span 100% of the viewport width.
 
-2. **Expanded Search Input (`.cc-search`)**:
-   - Expanded `.cc-search` `min-width` to `260px` (`flex: 1 1 320px`), eliminating truncation of `Search ref, BL/AWB, TANCIS or importer…`.
+2. **Left Bounding Line Alignment (Left 0 Axis)**:
+   - Breadcrumbs (`Dashboard > Operations`) and Page Title (`Operations`) align at Left 0.
+   - First KPI Card (`ACTIVE SHIPMENTS`) left edge aligns at Left 0.
+   - First Summary Chip (`Checked In 1`) left edge aligns at Left 0.
+   - Table First Column (`REF NUMBER` header & `CLR-2026-0111` cell) aligns at Left 0.
 
-3. **Toolbar Cleanup**:
-   - Removed redundant transport mode filter pills from the main toolbar row as marked in user guidance, keeping shipment type selection organized inside the `Filter by` dropdown menu.
+3. **Right Bounding Line Alignment (Right 0 Axis)**:
+   - Header actions (`List/Board toggle`, `+ New Shipment`, `(↻)` refresh button) extend to Right 0 (`justify-content: flex-end`).
+   - KPI Cards Grid expands to fill 100% width, placing Card 7 (`THIS MONTH`) right edge at Right 0.
+   - Toolbar Filter Controls (`My Cases`, `At Risk`, `Filter by v`) sit at Right 0 (`justify-content: space-between`).
+   - Table Last Column (`DAYS` header & arrow cells `26d ->`) extends flush to Right 0.
 
 ---
 
 ## 2. Verification
 - **`npm run typecheck`**: Verified 0 compilation errors across `apps/api` and `apps/web`.
-- **Single-Axis Margin Alignment**: Verified all header elements, cards, and toolbars align flush to the left margin line.
+- **Single-Axis Bounding Box Verification**: Verified flush alignment on both left and right edges.

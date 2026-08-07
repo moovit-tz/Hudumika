@@ -2386,23 +2386,24 @@ select.input-field { cursor: pointer; }
   display: flex;
   flex: 1;
   overflow: hidden;
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   width: 100%;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--white);
+  border: none;
+  border-radius: 0;
+  background: transparent;
 }
 
-/* Outer frame that provides the gray workspace behind cc-shell */
+/* Outer frame that provides the workspace behind cc-shell */
 .cc-frame {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
-  padding: 12px 20px;
+  background: transparent;
+  padding: 0;
   overflow: hidden;
   min-height: 0;
+  width: 100%;
 }
 
 /* Primary content column */
@@ -2413,6 +2414,7 @@ select.input-field { cursor: pointer; }
   height: 100%;
   overflow: hidden;
   min-width: 0;
+  width: 100%;
 }
 
 /* ── Page Header ── */
@@ -2420,24 +2422,22 @@ select.input-field { cursor: pointer; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px 8px;
-  background: var(--white);
+  padding: 0 0 12px 0;
+  background: transparent;
   flex-shrink: 0;
   gap: 12px;
   flex-wrap: wrap;
+  width: 100%;
 }
 .cc-page-header-left { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
-/* Always a single row — never wraps into stacked sub-rows. Two zones:
-   .cc-page-header-scroll (date/view-toggle/workflow select) shrinks and
-   scrolls horizontally first when space is tight; .cc-page-header-actions
-   (New Shipment / Refresh) is pinned with flex-shrink: 0 so the primary
-   action button is never pushed off-screen or hidden behind a scroll. */
 .cc-page-header-right {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   flex-wrap: nowrap;
   min-width: 0;
+  flex: 1;
 }
 .cc-page-header-scroll {
   display: flex;
@@ -2488,11 +2488,13 @@ select.input-field { cursor: pointer; }
 .cc-toolbar-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
   padding: 6px 0 12px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   flex-wrap: wrap;
+  width: 100%;
 }
 .cc-summary-chips { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .cc-summary-chip {
@@ -2506,7 +2508,9 @@ select.input-field { cursor: pointer; }
   flex-shrink: 0;
   white-space: nowrap;
 }
-.cc-toolbar-filters { flex: 1; min-width: 240px; }
+.cc-toolbar-filters { display: flex; align-items: center; justify-content: flex-end; flex: 1; min-width: 240px; }
+.cc-toolbar-filters .filter-bar { padding: 0; background: transparent; border: none; width: auto; }
+.cc-toolbar-filters .filter-chips { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 [data-theme="dark"] .cc-summary-chip { background: rgba(255,255,255,0.05); }
 
 /* Responsive: below the platform's mobile breakpoint, stack the toolbar
