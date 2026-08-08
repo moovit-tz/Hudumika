@@ -39,6 +39,12 @@ export interface TenantsTable {
   logo_url: string | null;
   primary_color: string | null;
   subdomain: string | null;
+  /**
+   * ISO 3166-1 alpha-2, the country this tenant operates in. Decides its
+   * holiday calendar. NULL means unknown, and unknown is treated as unknown —
+   * guessing fills the calendar with another country's public holidays.
+   */
+  country: string | null;
   active: Generated<boolean>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -1650,6 +1656,17 @@ export interface HrHolidaysTable {
   date: string;
   name: string;
   type: Generated<string>;
+  /** ISO 3166-1 alpha-2. Which country's calendar this belongs to. */
+  country: string | null;
+  local_name: string | null;
+  /** MANUAL rows are the tenant's own and are never touched by a sync. */
+  source: Generated<'MANUAL' | 'SYNCED' | 'COMPUTED'>;
+  category: Generated<'PUBLIC' | 'RELIGIOUS' | 'INTERNATIONAL' | 'COMPANY'>;
+  /** The date follows a moon sighting and may shift by a day. */
+  is_provisional: Generated<boolean>;
+  /** True means "worth noting, still a working day" — not a day off. */
+  is_working_day: Generated<boolean>;
+  synced_at: Date | null;
   created_at: Generated<Date>;
 }
 

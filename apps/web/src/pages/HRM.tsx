@@ -2430,17 +2430,31 @@ export function ShiftsPage() {
   );
 }
 
-type HolidayRow = { id?: string; date: string; name: string; type: string };
+type HolidayRow = {
+  id?: string; date: string; name: string; type: string;
+  localName?: string | null; country?: string | null; category?: string;
+  /** Follows a moon sighting — the date can still move by a day. */
+  provisional?: boolean;
+  source?: string;
+};
 
 export function HolidaysPage() {
   const [holidays, setHolidays] = useState<HolidayRow[]>([]);
   const [showNew, setShowNew] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  // The outcome of the last sync, kept on the page rather than thrown into an
+  // alert that vanishes. A count nobody can re-read is a count nobody trusts.
+  const [syncNote, setSyncNote] = useState<{ ok: boolean; text: string; problems: string[] } | null>(null);
 
   const load = useCallback(async () => {
     try {
       const res = await apiFetch('/v1/hr/holidays');
       const data = Array.isArray(res) ? res : [];
-      setHolidays(data.map((h: any) => ({ id: h.id, date: String(h.date).slice(0,10), name: h.name, type: h.type })));
+      setHolidays(data.map((h: any) => ({
+        id: h.id, date: String(h.date).slice(0,10), name: h.name, type: h.type,
+        localName: h.local_name, country: h.country, category: h.category,
+        provisional: !!h.is_provisional, source: h.source,
+      })));
     } catch { /* leave the list empty — see note at top of file */ }
   }, []);
   useEffect(() => { load(); }, [load]);
@@ -2450,11 +2464,50 @@ export function HolidaysPage() {
     try { await apiFetch(`/v1/hr/holidays/${id}`, { method: 'DELETE' }); } catch { load(); }
   }
 
-  const grouped = { Public: holidays.filter(h=>h.type==='Public'), Company: holidays.filter(h=>h.type==='Company') };
+  async function handleSync() {
+    setSyncing(true);
+    setSyncNote(null);
+    try {
+      const r = await apiFetch('/v1/hr/holidays/sync', { method: 'POST' });
+      await load();
+      // Report what happened. The previous version said "synchronized
+      // successfully" whatever came back — including a sync that reached no
+      // provider and added nothing at all.
+      const bits: string[] = [];
+      if (r?.added) bits.push(`${r.added} added`);
+      if (r?.updated) bits.push(`${r.updated} updated`);
+      if (r?.preservedManual) bits.push(`${r.preservedManual} of your own left untouched`);
+      setSyncNote({
+        ok: !!r?.ok,
+        text: r?.ok
+          ? `${(r.countries ?? []).join(', ')} · ${(r.years ?? []).join(' and ')} — ${bits.join(', ') || 'already up to date'}`
+          : 'Nothing was synchronised.',
+        problems: Array.isArray(r?.problems) ? r.problems : [],
+      });
+    } catch (e: any) {
+      setSyncNote({ ok: false, text: 'The sync could not run.', problems: [e?.message ?? String(e)] });
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  // Days off first, then observances, then anything the tenant added itself.
+  // An international observance is not a day off and must not sit in the same
+  // list as one.
+  const grouped: Record<string, HolidayRow[]> = {
+    'Public': holidays.filter(h => h.category !== 'INTERNATIONAL' && h.type !== 'Company'),
+    'Company': holidays.filter(h => h.type === 'Company'),
+    'Observances (still working days)': holidays.filter(h => h.category === 'INTERNATIONAL'),
+  };
   return (
     <div style={{ flex:1, overflowY:'auto' }}>
       <PageHeader icon="sun" title="Public Holidays" sub="Public and company-designated holidays" backTo="/nexushr">
-        <PrimaryBtn label="Add Holiday" icon="plus" onClick={() => setShowNew(v => !v)} />
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" className="btn btn-secondary" onClick={handleSync} disabled={syncing}>
+            {syncing ? "Syncing..." : "Sync Public Holidays"}
+          </button>
+          <PrimaryBtn label="Add Holiday" icon="plus" onClick={() => setShowNew(v => !v)} />
+        </div>
       </PageHeader>
 
       {showNew && (
@@ -2495,16 +2548,49 @@ export function HolidaysPage() {
         </Card>
       )}
 
-      {(Object.entries(grouped) as [string, HolidayRow[]][]).map(([type, list]) => (
+      {syncNote && (
+        <div style={{
+          margin: '0 0 16px', padding: '12px 16px', borderRadius: 8, fontSize: 13,
+          background: syncNote.ok ? 'var(--green-l)' : 'var(--gold-l)',
+          border: `1px solid ${syncNote.ok ? 'var(--green)' : 'var(--gold)'}`,
+          color: 'var(--ink)',
+        }}>
+          <strong>{syncNote.ok ? 'Calendar updated' : 'Nothing was synchronised'}</strong>
+          <div style={{ marginTop: 3, color: 'var(--ink2)' }}>{syncNote.text}</div>
+          {syncNote.problems.map((p, i) => (
+            <div key={i} style={{ marginTop: 5, fontSize: 12.5, color: 'var(--ink2)' }}>• {p}</div>
+          ))}
+        </div>
+      )}
+
+      {(Object.entries(grouped) as [string, HolidayRow[]][]).filter(([, l]) => l.length > 0).map(([type, list]) => (
         <div key={type} style={{ marginBottom:20 }}>
-          <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:8 }}>{type} Holidays</div>
+          <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.5px', marginBottom:8 }}>
+            {type === 'Public' || type === 'Company' ? `${type} Holidays` : type}
+          </div>
           <Wrap>
             <thead><tr><TH>Date</TH><TH>Holiday Name</TH><TH>Type</TH><TH right>Actions</TH></tr></thead>
             <tbody>
+              {/* Keyed on id, not date: two holidays can now fall on one date —
+                  Eid has landed on Union Day — and a duplicate key silently
+                  drops the second row. */}
               {list.map(h => (
-                <tr key={h.date} style={{ borderBottom:'1px solid var(--border)' }}>
+                <tr key={h.id ?? `${h.date}-${h.name}`} style={{ borderBottom:'1px solid var(--border)' }}>
                   <TD mono muted>{h.date}</TD>
-                  <TD bold>{h.name}</TD>
+                  <TD bold>
+                    {h.name}
+                    {h.localName && h.localName !== h.name && (
+                      <span style={{ fontWeight:400, color:'var(--ink3)', marginLeft:8 }}>{h.localName}</span>
+                    )}
+                    {h.provisional && (
+                      // Said plainly, because someone will plan around it: the
+                      // date follows a moon sighting and can move by a day.
+                      <span title="Date follows the sighting of the moon and may shift by a day" style={{
+                        marginLeft:8, fontSize:10.5, fontWeight:700, padding:'1px 6px', borderRadius:4,
+                        background:'var(--gold-l)', color:'var(--gold)',
+                      }}>PROVISIONAL</span>
+                    )}
+                  </TD>
                   <TD><span style={{ fontSize:11, padding:'2px 8px', borderRadius:4, background: h.type==='Public'?'rgba(59,130,246,.12)':'rgba(124,58,237,.12)', color: h.type==='Public'?'var(--blue)':'var(--purple)', fontWeight:700 }}>{h.type}</span></TD>
                   <TD right>{h.id && <ActionBtn label="Delete" color="var(--red)" onClick={() => handleDelete(h.id!)} />}</TD>
                 </tr>

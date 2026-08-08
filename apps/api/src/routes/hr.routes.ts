@@ -4,7 +4,9 @@ import crypto from 'crypto';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { EmailIntegration } from '../integrations/email.js';
-import { emitDomainEvent } from '../services/domain-events.service.js';
+import { emitDomainEvent, emitDomainEventStandalone } from '../services/domain-events.service.js';
+import { HolidaysService } from '../services/holidays.service.js';
+import { workingDaysBetween } from '../services/holiday-calendar.service.js';
 import { env } from '../config/env.js';
 
 /**
@@ -344,17 +346,38 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/leaves', async (req) => {
+  fastify.post('/leaves', async (req, reply) => {
     const user = req.user;
     const body = req.body as any;
+    const from = isoDate(body.from_date), to = isoDate(body.to_date);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
+      return reply.status(400).send({ error: 'from_date and to_date are required, as YYYY-MM-DD' });
+    }
+    if (to < from) return reply.status(400).send({ error: 'The end of the leave cannot be before its start' });
+
+    // The day count is computed here rather than taken from the request.
+    // It used to be whatever the client sent, so a request spanning Easter
+    // consumed five days of somebody's entitlement when two were public
+    // holidays and one was a Sunday. The employee pays for that arithmetic,
+    // so the server does it.
+    const closed = await HolidaysService.nonWorkingDates(user.tenant_id, from, to);
+    const { days, excluded } = workingDaysBetween(from, to, closed);
+
+    if (days === 0) {
+      return reply.status(400).send({
+        error: 'That range contains no working days — nothing would be deducted.',
+        excluded,
+      });
+    }
+
     return withTenant(user.tenant_id, async (trx) => {
       const row = await trx.insertInto('hr_leaves').values({
         tenant_id: user.tenant_id,
         user_id: body.user_id || user.sub,
         type: body.type,
-        from_date: body.from_date,
-        to_date: body.to_date,
-        days: Number(body.days),
+        from_date: from,
+        to_date: to,
+        days,
         reason: body.reason || null,
       }).returningAll().executeTakeFirstOrThrow();
 
@@ -367,7 +390,10 @@ export async function hrRoutes(fastify: FastifyInstance) {
                    toDate: isoDate(row.to_date), days: Number(row.days) },
       }).catch(err => console.error('[HR] leave_requested emit failed:', err?.message));
 
-      return row;
+      // The days that were not counted, and why. A request for "20th to 24th"
+      // coming back as 3 days needs to say which two were free, or it reads as
+      // a mistake.
+      return { ...row, excluded_days: excluded };
     });
   });
 
@@ -587,6 +613,28 @@ export async function hrRoutes(fastify: FastifyInstance) {
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
       return { ok: true };
     });
+  });
+
+  fastify.post('/holidays/sync', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (req) => {
+    const user = req.user;
+    const q = req.query as any;
+    const report = await HolidaysService.syncTenantHolidays(user.tenant_id, {
+      // Observances are off by default: they are not days off, and a tenant
+      // should opt into seeing twenty extra rows on its calendar.
+      includeInternational: q.international === 'true' || q.international === '1',
+    });
+
+    await emitDomainEventStandalone(user.tenant_id, {
+      type: 'hr.holidays_synced',
+      sourceApp: 'nexushr',
+      entityType: 'hr_holidays',
+      entityId: null,
+      payload: { countries: report.countries, years: report.years, added: report.added, updated: report.updated },
+    });
+
+    // `ok` reflects whether holidays actually landed, not whether the loop
+    // finished. The previous version returned success after fetching nothing.
+    return { ...report, synced_count: report.added + report.updated };
   });
 
   // ── Task Types ───────────────────────────────────────────────
