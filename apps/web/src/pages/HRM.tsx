@@ -1574,7 +1574,13 @@ export function DeviceManagementPage() {
   );
 }
 
-type LeaveRow = { id: string; emp: string; type: string; from: string; to: string; days: number; reason: string; approvedBy: string; status: LeaveStatus };
+type LeaveRow = {
+  id: string; emp: string; type: string; from: string; to: string; days: number;
+  reason: string; approvedBy: string; status: LeaveStatus;
+  // Carried so a row can be matched to its entitlement. `type` alone cannot:
+  // it is free text on older rows and a display name on newer ones.
+  userId: string; typeCode: string;
+};
 
 function apiLeaveToRow(l: any): LeaveRow {
   return {
@@ -1587,6 +1593,8 @@ function apiLeaveToRow(l: any): LeaveRow {
     reason: l.reason || '',
     approvedBy: l.approved_by_name || l.approvedBy || '-',
     status: l.status as LeaveStatus,
+    userId: l.user_id ?? '',
+    typeCode: String(l.type_code ?? l.type ?? '').toUpperCase(),
   };
 }
 
@@ -1595,6 +1603,13 @@ export function LeavesPage() {
   const [leaves, setLeaves] = useState<LeaveRow[]>([]);
   const [staff, setStaff] = useState<Employee[]>([]);
   const [showNew, setShowNew] = useState(false);
+  // The entitlement ledger. Without it on screen, an approver is still
+  // deciding blind even though the server now knows the answer.
+  const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
+  const [everyBalance, setEveryBalance] = useState<any[]>([]);
+  const [formPerson, setFormPerson] = useState('');
+  const [formType, setFormType] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
 
   const loadLeaves = useCallback(async () => {
     try {
@@ -1606,19 +1621,41 @@ export function LeavesPage() {
   const loadStaff = useCallback(async () => {
     try { setStaff(await apiFetch('/v1/hr/staff')); } catch { /* keep empty */ }
   }, []);
+  const loadEntitlement = useCallback(async () => {
+    try { setLeaveTypes(await apiFetch('/v1/hr/leave-types') ?? []); } catch { setLeaveTypes([]); }
+    try { setEveryBalance(await apiFetch('/v1/hr/leave-balances/all') ?? []); } catch { setEveryBalance([]); }
+  }, []);
 
-  useEffect(() => { loadLeaves(); loadStaff(); }, [loadLeaves, loadStaff]);
+  useEffect(() => { loadLeaves(); loadStaff(); loadEntitlement(); }, [loadLeaves, loadStaff, loadEntitlement]);
+
+  /** What a given person has left of a given type. */
+  const balanceFor = useCallback((userId: string, code: string) =>
+    everyBalance.find(b => b.user_id === userId)?.balances?.find((x: any) => x.code === code),
+    [everyBalance]);
+
+  // The remaining days for whoever the form is currently about.
+  const formBalance = formPerson && formType ? balanceFor(formPerson, formType) : null;
 
   async function handleStatus(id: string, status: LeaveStatus) {
     setLeaves(prev => prev.map(l => l.id === id ? { ...l, status } : l));
     try {
       await apiFetch(`/v1/hr/leaves/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
-      loadLeaves();
+      // Approving moves days from pending to taken, so the balances shown
+      // beside every other request are now stale.
+      loadLeaves(); loadEntitlement();
     } catch { /* local update already applied */ }
   }
 
-  const chips = ['', ...LEAVE_TYPES];
-  const rows = filter ? leaves.filter(l => l.type === filter) : leaves;
+  // Built from the configured types, not the old hardcoded display names.
+  // Rows carry a code ("ANNUAL") while the chips said "Annual Leave", so every
+  // filter matched nothing — visible only once real types replaced the list.
+  const chips: { v: string; l: string }[] = [
+    { v: '', l: 'All Types' },
+    ...(leaveTypes.length
+      ? leaveTypes.map(t => ({ v: t.code as string, l: t.name as string }))
+      : LEAVE_TYPES.map(t => ({ v: t, l: t }))),
+  ];
+  const rows = filter ? leaves.filter(l => l.typeCode === filter || l.type === filter) : leaves;
   return (
     <div style={{ flex:1, overflowY:'auto' }}>
       <PageHeader icon="calendar" title="Leave Management" sub="Employee leave requests and approvals" backTo="/nexushr">
@@ -1636,15 +1673,21 @@ export function LeavesPage() {
             const to_date = fd.get('to_date') as string;
             const reason = fd.get('reason') as string;
             if (!user_id || !from_date || !to_date) return;
-            const days = Math.max(1, Math.round((new Date(to_date).getTime() - new Date(from_date).getTime()) / 86400000) + 1);
+            setFormError(null);
             try {
-              await apiFetch('/v1/hr/leaves', { method: 'POST', body: JSON.stringify({ user_id, type, from_date, to_date, days, reason }) });
-              setShowNew(false); loadLeaves();
-            } catch { /* ignore */ }
+              // No `days` sent. The server computes it, excluding weekends and
+              // public holidays, and refuses if the balance will not cover it.
+              await apiFetch('/v1/hr/leaves', { method: 'POST', body: JSON.stringify({ user_id, type, from_date, to_date, reason }) });
+              setShowNew(false); setFormError(null); loadLeaves(); loadEntitlement();
+            } catch (err: any) {
+              // The refusal was previously swallowed, so a request for more days
+              // than someone had left simply appeared to do nothing.
+              setFormError(err?.message ?? 'The request could not be submitted.');
+            }
           }} style={{ padding: 16, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Employee</label>
-              <Select name="user_id" required>
+              <Select name="user_id" required value={formPerson} onValueChange={setFormPerson}>
                 <SelectTrigger style={{ width: 180 }}><SelectValue placeholder="-- Select --" /></SelectTrigger>
                 <SelectContent>
                   {staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -1653,10 +1696,15 @@ export function LeavesPage() {
             </div>
             <div>
               <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 4 }}>Type</label>
-              <Select name="type" required defaultValue={LEAVE_TYPES[0]}>
-                <SelectTrigger style={{ width: 160 }}><SelectValue /></SelectTrigger>
+              {/* Real configured types, so the value maps to an entitlement.
+                  The old hardcoded list ("Casual Leave", "Emergency Leave")
+                  matched nothing in the ledger and could never be checked. */}
+              <Select name="type" required value={formType} onValueChange={setFormType}>
+                <SelectTrigger style={{ width: 160 }}><SelectValue placeholder="-- Select --" /></SelectTrigger>
                 <SelectContent>
-                  {LEAVE_TYPES.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                  {(leaveTypes.length ? leaveTypes.map(t => ({ v: t.code, l: t.name }))
+                                      : LEAVE_TYPES.map(t => ({ v: t, l: t })))
+                    .map(t => <SelectItem key={t.v} value={t.v}>{t.l}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -1674,25 +1722,62 @@ export function LeavesPage() {
             </div>
             <PrimaryBtn label="Submit" type="submit" />
             <ActionBtn label="Cancel" onClick={() => setShowNew(false)} />
+
+            {/* What they actually have, before anyone commits to a date. */}
+            {formBalance && (
+              <div style={{ flexBasis: '100%', fontSize: 12.5, color: 'var(--ink2)', paddingTop: 4 }}>
+                <strong>{formBalance.remaining} day(s) remaining</strong> of {formBalance.entitled}
+                {formBalance.taken > 0 && ` · ${formBalance.taken} taken`}
+                {formBalance.pending > 0 && ` · ${formBalance.pending} awaiting a decision`}
+                <span style={{ color: 'var(--ink3)' }}> · cycle ends {formBalance.cycle_end}</span>
+                {!formBalance.eligible && (
+                  <span style={{ color: 'var(--gold)', fontWeight: 600 }}> · {formBalance.ineligible_reason}</span>
+                )}
+              </div>
+            )}
+            {formError && (
+              <div style={{
+                flexBasis: '100%', marginTop: 4, padding: '10px 12px', borderRadius: 8, fontSize: 13,
+                background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--ink)',
+              }}>{formError}</div>
+            )}
           </form>
         </Card>
       )}
 
       <MetricsRow cards={[
         { title:'Pending',  value:String(leaves.filter(l=>l.status==='PENDING').length),  sub1Label:'THIS MONTH', sub1Value:String(leaves.length), sub2Label:'APPROVED', sub2Value:String(leaves.filter(l=>l.status==='APPROVED').length),  barHighlight:'var(--gold)'  },
-        { title:'Approved', value:String(leaves.filter(l=>l.status==='APPROVED').length), sub1Label:'REJECTED',   sub1Value:String(leaves.filter(l=>l.status==='REJECTED').length), sub2Label:'TYPES', sub2Value:String(LEAVE_TYPES.length), barHighlight:'var(--green)' },
-        { title:'Days Used (Avg)', value:'3.1', sub1Label:'ANNUAL BALANCE', sub1Value:'18 days', sub2Label:'REMAINING', sub2Value:'15 days', barHighlight:'var(--blue)' },
+        { title:'Approved', value:String(leaves.filter(l=>l.status==='APPROVED').length), sub1Label:'REJECTED',   sub1Value:String(leaves.filter(l=>l.status==='REJECTED').length), sub2Label:'TYPES', sub2Value:String(leaveTypes.length || LEAVE_TYPES.length), barHighlight:'var(--green)' },
+        // Was a hardcoded "3.1 / 18 days / 15 days" shown to every tenant
+        // whatever their data. Derived from the ledger now, and says so when
+        // there is no ledger rather than inventing a figure.
+        (() => {
+          const annual = everyBalance.map(p => p.balances?.find((b: any) => b.code === 'ANNUAL')).filter(Boolean);
+          if (annual.length === 0) {
+            return { title:'Annual Leave', value:'—', sub1Label:'ENTITLEMENT', sub1Value:'not configured',
+                     sub2Label:'PEOPLE', sub2Value:String(everyBalance.length), barHighlight:'var(--blue)' };
+          }
+          const round1 = (n: number) => Math.round(n * 10) / 10;
+          const taken = annual.reduce((t, b: any) => t + Number(b.taken || 0), 0);
+          const remaining = annual.reduce((t, b: any) => t + Number(b.remaining || 0), 0);
+          return {
+            title:'Annual Leave Taken (Avg)', value:String(round1(taken / annual.length)),
+            sub1Label:'ENTITLEMENT', sub1Value:`${annual[0].entitled} days`,
+            sub2Label:'REMAINING (AVG)', sub2Value:`${round1(remaining / annual.length)} days`,
+            barHighlight:'var(--blue)',
+          };
+        })(),
       ]} />
       <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }}>
         {chips.map(c => (
-          <button key={c||'all'} type="button" onClick={()=>setFilter(c)}
-            style={{ padding:'var(--ds-btn-py-sm) 14px', fontSize:12, fontWeight:600, border:'none', borderRadius: 'var(--r)', cursor:'pointer', background:filter===c?'var(--teal)':'var(--bg)', color:filter===c?'#fff':'var(--ink2)', fontFamily:'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            {c || 'All Types'}
+          <button key={c.v||'all'} type="button" onClick={()=>setFilter(c.v)}
+            style={{ padding:'var(--ds-btn-py-sm) 14px', fontSize:12, fontWeight:600, border:'none', borderRadius: 'var(--r)', cursor:'pointer', background:filter===c.v?'var(--teal)':'var(--bg)', color:filter===c.v?'#fff':'var(--ink2)', fontFamily:'var(--font)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            {c.l}
           </button>
         ))}
       </div>
       <Wrap>
-        <thead><tr><TH>Employee</TH><TH>Type</TH><TH>From</TH><TH>To</TH><TH right>Days</TH><TH>Reason</TH><TH>Approved By</TH><TH>Status</TH><TH right>Actions</TH></tr></thead>
+        <thead><tr><TH>Employee</TH><TH>Type</TH><TH>From</TH><TH>To</TH><TH right>Days</TH><TH right>Balance</TH><TH>Reason</TH><TH>Approved By</TH><TH>Status</TH><TH right>Actions</TH></tr></thead>
         <tbody>
           {rows.map(l => (
             <tr key={l.id} style={{ borderBottom:'1px solid var(--border)' }}>
@@ -1701,6 +1786,19 @@ export function LeavesPage() {
               <TD muted>{l.from}</TD>
               <TD muted>{l.to}</TD>
               <TD right bold>{l.days}</TD>
+              {/* The figure the decision actually turns on. Approving without
+                  it is approving an unknown quantity of an unknown allowance. */}
+              <TD right>{(() => {
+                const b = balanceFor(l.userId, l.typeCode);
+                if (!b) return <span style={{ color:'var(--ink3)' }}>—</span>;
+                const short = l.status === 'PENDING' && l.days > b.remaining;
+                return (
+                  <span style={{ color: short ? 'var(--red)' : 'var(--ink2)', fontWeight: short ? 700 : 500 }}
+                        title={`${b.taken} taken, ${b.pending} pending, cycle ends ${b.cycle_end}`}>
+                    {b.remaining} left{short ? ' — short' : ''}
+                  </span>
+                );
+              })()}</TD>
               <TD muted>{l.reason}</TD>
               <TD muted>{l.approvedBy}</TD>
               <TD><Badge status={l.status} /></TD>

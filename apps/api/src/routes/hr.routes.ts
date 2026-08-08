@@ -334,11 +334,19 @@ export async function hrRoutes(fastify: FastifyInstance) {
       let query = trx.selectFrom('hr_leaves as l')
         .innerJoin('users as u', 'u.id', 'l.user_id')
         .leftJoin('users as a', 'a.id', 'l.approved_by')
+        // Left, not inner: rows created before the entitlement ledger have no
+        // leave_type_id, and an inner join would silently hide every one of them.
+        .leftJoin('hr_leave_types as t', 't.id', 'l.leave_type_id')
         .select([
           'l.id', 'l.user_id', 'l.type', 'l.from_date', 'l.to_date',
           'l.days', 'l.reason', 'l.status', 'l.approved_at', 'l.created_at',
+          'l.full_pay_days', 'l.reduced_pay_days',
           'u.name as employee_name',
           'a.name as approved_by_name',
+          // The code the balance is keyed on. `type` is free text and cannot
+          // be matched to an entitlement.
+          't.code as type_code',
+          't.name as type_name',
         ])
         .where('l.tenant_id', '=', user.tenant_id);
       if (q.status)  query = query.where('l.status', '=', q.status);
