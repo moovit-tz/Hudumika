@@ -3,12 +3,26 @@ import { Icon } from '../components/Icon.js';
 import { FormPage } from '../components/FormPage.js';
 import { apiFetch } from '../lib/api.js';
 import { useFullLayout } from '../hooks/useFullLayout.js';
+import { useIsMobile } from '../hooks/useIsMobile.js';
 import type { ChartOfAccount, AccountType } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
+
+/** Top-level accounts per page. Matches the rest of the platform's lists
+ *  (products, landed-cost history, Bliss notifications). */
+const PAGE_SIZE = 25;
+
+/** How many rows one top-level account actually paints, following only the
+ *  branches the user has opened — a collapsed parent is one row however many
+ *  accounts hang beneath it. */
+function countVisible(account: ChartOfAccount, expanded: Set<string>): number {
+  if (!expanded.has(account.id) || !account.children?.length) return 1;
+  return 1 + account.children.reduce((n, c) => n + countVisible(c, expanded), 0);
+}
 
 function flattenTree(tree: ChartOfAccount[]): ChartOfAccount[] {
   const result: ChartOfAccount[] = [];
@@ -19,12 +33,14 @@ function flattenTree(tree: ChartOfAccount[]): ChartOfAccount[] {
   return result;
 }
 
-const TYPE_CFG: Record<AccountType, { label: string; color: string; bg: string }> = {
-  ASSET:     { label: 'Asset',     color: '#0891b2', bg: '#ecfeff' },
-  LIABILITY: { label: 'Liability', color: 'var(--red)', bg: 'var(--red-l)' },
-  EQUITY:    { label: 'Equity',    color: '#7c3aed', bg: 'var(--purple-l)' },
-  REVENUE:   { label: 'Revenue',   color: '#059669', bg: 'var(--green-l)' },
-  EXPENSE:   { label: 'Expense',   color: 'var(--gold)', bg: 'var(--gold-l)' },
+// `plural` is stated rather than derived: the cards and tabs used to append
+// an "s" to the singular, which reads Liabilitys and Equitys.
+const TYPE_CFG: Record<AccountType, { label: string; plural: string; color: string; bg: string }> = {
+  ASSET:     { label: 'Asset',     plural: 'Assets',      color: '#0891b2', bg: '#ecfeff' },
+  LIABILITY: { label: 'Liability', plural: 'Liabilities', color: 'var(--red)', bg: 'var(--red-l)' },
+  EQUITY:    { label: 'Equity',    plural: 'Equity',      color: '#7c3aed', bg: 'var(--purple-l)' },
+  REVENUE:   { label: 'Revenue',   plural: 'Revenue',     color: '#059669', bg: 'var(--green-l)' },
+  EXPENSE:   { label: 'Expense',   plural: 'Expenses',    color: 'var(--gold)', bg: 'var(--gold-l)' },
 };
 
 const TYPE_ORDER: AccountType[] = ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'];
@@ -134,11 +150,13 @@ function AccountRow({
 
 export const ChartOfAccounts: React.FC = () => {
   const isFullLayout = useFullLayout();
+  const isMobile = useIsMobile();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<AccountType | 'ALL'>('ALL');
   const [coaTree, setCoaTree] = useState<ChartOfAccount[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<ChartOfAccount | null>(null);
+  const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -243,6 +261,24 @@ export const ChartOfAccounts: React.FC = () => {
 
   const displayTree = filterTree(coaTree);
 
+  /**
+   * Pages top-level accounts, not rows. A parent carries its whole subtree, so
+   * counting rendered rows would split a parent from its children across a
+   * page boundary — an "Assets" heading on page 1 and half its accounts on
+   * page 2 is worse than no pagination at all.
+   */
+  const pageCount = Math.max(1, Math.ceil(displayTree.length / PAGE_SIZE));
+  // Clamped rather than trusted: filtering to a shorter list while standing on
+  // a later page would otherwise show an empty table with nothing explaining why.
+  const currentPage = Math.min(page, pageCount);
+  const offset = (currentPage - 1) * PAGE_SIZE;
+  const pagedTree = displayTree.slice(offset, offset + PAGE_SIZE);
+  /** Rows actually on screen, counting expanded children — what the footer
+   *  reports, since "25 accounts" would be untrue of a page showing 60. */
+  const rowsOnPage = pagedTree.reduce((n, a) => n + countVisible(a, expanded), 0);
+
+  useEffect(() => { setPage(1); }, [search, typeFilter]);
+
   function toggle(id: string) {
     setExpanded(prev => {
       const next = new Set(prev);
@@ -321,50 +357,61 @@ export const ChartOfAccounts: React.FC = () => {
   }
 
   return (
-    <div style={{ maxWidth: isFullLayout ? 'none' : 1100 }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24 }}>
-        <div>
-          <PageHeader
-            crumbs={['FinOps', 'Chart of Accounts']}
-            titlePlain="Chart of"
-            titleEm="accounts"
-          />
-          <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '4px 0 0' }}>
-            {flat.length} accounts · {TYPE_ORDER.length} types
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={expandAll} title="Expand all">
-            <Icon name="chevronDown" size={13} /> All
-          </button>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={collapseAll} title="Collapse all">
-            <Icon name="chevronUp" size={13} /> Collapse
-          </button>
-          <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv} title="Export CSV">
-            <Icon name="download" size={13} /> Export CSV
-          </button>
-          <button type="button" className="btn btn-primary btn-sm" onClick={openNewAccountForm} title="New account">
-            <Icon name="plus" size={13} color="#fff" /> New Account
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Finance', 'Chart of Accounts']}
+        titlePlain="Chart of"
+        titleEm="accounts"
+        subtitle={`${flat.length} accounts · ${TYPE_ORDER.length} types`}
+        actions={
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={expandAll} title="Expand all">
+              <Icon name="chevronDown" size={13} /> All
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={collapseAll} title="Collapse all">
+              <Icon name="chevronUp" size={13} /> Collapse
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv} title="Export CSV">
+              <Icon name="download" size={13} /> Export CSV
+            </button>
+            <button type="button" className="btn btn-primary btn-sm" onClick={openNewAccountForm} title="New account">
+              <Icon name="plus" size={13} color="#fff" /> New Account
+            </button>
+          </div>
+        }
+      />
 
       {/* Stats cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 12, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)', gap: 12, marginBottom: 20 }}>
         {TYPE_ORDER.map(t => {
           const cfg = TYPE_CFG[t];
           const count = stats[t] ?? 0;
           return (
+            // Selection is shown by the border and a tinted label, not by a
+            // coloured bar across the top and a pastel fill. Five cards each
+            // wearing their own accent read as decoration competing with the
+            // figures; the number is what the card is for. Same treatment the
+            // Ops KPI cards already carry.
             <div
-              key={t} className="card"
-              style={{ padding: '12px 14px', borderTop: `3px solid ${cfg.color}`, cursor: 'pointer',
-                background: typeFilter === t ? cfg.bg : undefined }}
+              key={t}
+              className="card"
+              aria-pressed={typeFilter === t}
+              style={{
+                padding: '12px 14px',
+                cursor: 'pointer',
+                background: 'var(--white)',
+                borderColor: typeFilter === t ? 'var(--teal)' : undefined,
+                boxShadow: typeFilter === t ? 'inset 0 0 0 1px var(--teal)' : undefined,
+              }}
               onClick={() => setTypeFilter(typeFilter === t ? 'ALL' : t)}
             >
-              <div style={{ fontSize: 10, fontWeight: 800, color: cfg.color, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
-                {cfg.label}s
+              <div style={{
+                fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6,
+                color: typeFilter === t ? 'var(--teal)' : 'var(--ink3)',
+              }}>
+                {cfg.plural}
               </div>
               <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>{count}</div>
               <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 2 }}>accounts</div>
@@ -373,35 +420,44 @@ export const ChartOfAccounts: React.FC = () => {
         })}
       </div>
 
-      {/* Filters */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 16, alignItems: 'center' }}>
-        <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: 300 }}>
-          <Icon name="search" size={13} color="var(--ink3)"
-            style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' }} />
-          <input
-            value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by code or name…"
-            className="input-field"
-            style={{ paddingLeft: 32, height: 34, fontSize: 13, width: '100%' }}
-          />
-        </div>
-        <div style={{ display: 'flex', gap: 6 }}>
-          {(['ALL', ...TYPE_ORDER] as const).map(t => (
-            <button key={t} type="button"
-              onClick={() => setTypeFilter(t)}
-              style={{
-                padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 20, border: '1px solid var(--border)',
-                fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)',
-                background: typeFilter === t ? (t === 'ALL' ? 'var(--teal)' : TYPE_CFG[t].color) : 'var(--white)',
-                color: typeFilter === t ? '#fff' : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {t === 'ALL' ? 'All' : TYPE_CFG[t].label + 's'}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Table Card Container */}
+      <div style={{ border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden', background: 'var(--white)' }}>
 
-      {/* Table */}
-      <div style={{ border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+        {/* Toolbar Header: Tabs on Left, Search on Right */}
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <Tabs value={typeFilter} onValueChange={v => setTypeFilter(v as AccountType | 'ALL')} variant="pill">
+            <TabsList>
+              <TabsTrigger value="ALL">All ({flat.length})</TabsTrigger>
+              {TYPE_ORDER.map(t => (
+                <TabsTrigger key={t} value={t}>
+                  {TYPE_CFG[t].plural} ({stats[t] ?? 0})
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+
+          <div style={{ position: 'relative', width: isMobile ? '100%' : 260 }}>
+            <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' } as React.CSSProperties} />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search by code or name…"
+              style={{
+                width: '100%',
+                padding: '8px 12px 8px 32px',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--r, 6px)',
+                fontSize: 13,
+                fontFamily: 'var(--font)',
+                background: 'var(--white)',
+                color: 'var(--ink)',
+                outline: 'none',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+        </div>
 
         {/* Column headers */}
         <div style={{
@@ -435,7 +491,7 @@ export const ChartOfAccounts: React.FC = () => {
             <div style={{ fontSize: 13, marginTop: 4 }}>Try a different search or type filter</div>
           </div>
         ) : (
-          displayTree.map(account => (
+          pagedTree.map(account => (
             <AccountRow
               key={account.id}
               account={account}
@@ -446,6 +502,34 @@ export const ChartOfAccounts: React.FC = () => {
               selected={selected?.id ?? null}
             />
           ))
+        )}
+
+        {/* Hidden when it would only ever read "Page 1 of 1". */}
+        {displayTree.length > PAGE_SIZE && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            flexWrap: 'wrap', padding: '14px 16px', borderTop: '1px solid var(--border)',
+            fontSize: 12.5, color: 'var(--ink3)',
+          }}>
+            <span>
+              {offset + 1}–{Math.min(offset + PAGE_SIZE, displayTree.length)} of {displayTree.length} top-level
+              account{displayTree.length === 1 ? '' : 's'}
+              {/* The two numbers differ whenever anything is expanded, and not
+                  saying so makes the first one look wrong. */}
+              {rowsOnPage !== pagedTree.length && <> · {rowsOnPage} rows shown</>}
+            </span>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button type="button" className="btn btn-secondary btn-sm"
+                disabled={currentPage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+                <Icon name="arrowLeft" size={12} /> Previous
+              </button>
+              <span style={{ minWidth: 70, textAlign: 'center' }}>Page {currentPage} of {pageCount}</span>
+              <button type="button" className="btn btn-secondary btn-sm"
+                disabled={currentPage === pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
+                Next <Icon name="arrowRight" size={12} />
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
