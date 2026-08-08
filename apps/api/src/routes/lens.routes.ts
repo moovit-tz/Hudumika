@@ -5,6 +5,7 @@ import {
   PROVIDERS, type Provider, listIntegrations, testConnection,
   createExternalIssue, notifySlack, latestBuild,
 } from '../services/lens-integration.service.js';
+import { preflight } from '../services/lens-preflight.service.js';
 
 /**
  * Lens — the internal developer record.
@@ -382,6 +383,21 @@ export async function lensRoutes(fastify: FastifyInstance) {
     // be the thing that finds out.
     const test = await testConnection(provider as Provider);
     return { provider, tested: true, ok: test.ok, detail: test.detail, status: test.status };
+  });
+
+  // POST /v1/lens/integrations/:provider/preflight
+  //
+  // The check that matters. A token that authenticates is not a token that
+  // works: the PAT with no repo scope, the Slack bot never invited to the
+  // channel, the mistyped Jira project key all pass a plain auth test and fail
+  // on first real use. This runs the checks in the order they can fail and
+  // stops at the first, with a specific remedy.
+  fastify.post('/integrations/:provider/preflight', async (request, reply) => {
+    const { provider } = request.params as { provider: string };
+    if (!PROVIDERS.includes(provider as Provider)) {
+      return reply.status(400).send({ error: 'Unknown provider' });
+    }
+    return preflight(provider as Provider);
   });
 
   // POST /v1/lens/integrations/:provider/test
