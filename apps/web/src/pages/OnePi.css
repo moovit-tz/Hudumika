@@ -1,13 +1,61 @@
-/* OnePi brand color — set dynamically by WorkspaceApp via useBranding() */
-.app-shell[data-onepi] {}
+/* ══════════════════════════════════════════════════════════════════
+   NexusHR — OnePi.css
+   Layout perfection, page header spacing, card row responsiveness,
+   and single-row action toolbars matching ClearOS / FinOps standard.
+   ══════════════════════════════════════════════════════════════════ */
+
+.app-shell[data-onepi] {
+  font-family: var(--font);
+}
 
 /* ── Larger class-based buttons ─────────────────────────────────── */
 [data-onepi] .btn-primary {
   font-weight: 700;
 }
 [data-onepi] .btn-secondary {
-}
-[data-onepi] .btn-sm {
+  font-weight: 600;
 }
 
-/* ── Section stretching ──────────────────────────────────────────── */
+/* ── Section & Layout Gutters ──────────────────────────────────── */
+.app-shell[data-onepi] .app-shell-content {
+  padding: var(--page-pad-y, 8px) var(--page-pad-x, 8px);
+}
+
+.app-shell[data-onepi] .page-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Card row & metric cards spacing ────────────────────────────── */
+[data-onepi] .mc-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+[data-onepi] .mc-card {
+  flex: 1 1 170px;
+  min-width: 0;
+  padding: 12px 14px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  box-sizing: border-box;
+}
+
+/* ── Toolbar Cards ──────────────────────────────────────────────── */
+[data-onepi] .nhr-toolbar {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}

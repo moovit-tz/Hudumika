@@ -83,6 +83,11 @@ export function HrAssets() {
         titlePlain="Company"
         titleEm="assets"
         subtitle="Company equipment and who is currently holding it."
+        actions={
+          <button type="button" className={adding ? 'btn btn-secondary btn-sm' : 'btn btn-primary btn-sm'} onClick={() => setAdding(a => !a)}>
+            <Icon name={adding ? 'x' : 'plus'} size={13} color={adding ? 'var(--ink2)' : '#fff'} /> {adding ? 'Cancel' : 'Add Asset'}
+          </button>
+        }
       />
 
       {error && (
@@ -90,23 +95,17 @@ export function HrAssets() {
                       color: 'var(--red)', fontSize: 12.5, marginBottom: 14 }}>{error}</div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 16 }}>
+      <div className="mc-row">
         {([
           ['Assets', assets.length, 'var(--ink)'],
           ['Out with someone', out, 'var(--ink)'],
           ['Available', assets.length - out, 'var(--ink)'],
         ] as const).map(([l, v, colour]) => (
-          <div key={l} style={{ ...card, padding: '11px 14px' }}>
+          <div key={l} className="mc-card">
             <div style={label}>{l}</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: colour, marginTop: 3 }}>{v}</div>
           </div>
         ))}
-      </div>
-
-      <div style={{ marginBottom: 14 }}>
-        <Button type="button" variant={adding ? 'outline' : 'default'} onClick={() => setAdding(a => !a)}>
-          {adding ? 'Cancel' : <><Icon name="plus" size={14} color="white" /> Add an asset</>}
-        </Button>
       </div>
 
       {adding && <AssetPane busy={busy}

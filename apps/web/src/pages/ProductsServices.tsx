@@ -769,33 +769,27 @@ export const ProductsServices: React.FC = () => {
       )}
 
       <div style={{ padding: isMobile ? '14px 16px' : '24px 32px', flex: 1, overflowY: 'auto' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <PageHeader
-              crumbs={['FinOps', 'Products & Services']}
-              titlePlain="Products &"
-              titleEm="services"
-              subtitle="Set pricing for clearing and freight services here — they're the catalog invoices are written from in FinOps."
-            />
-          </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {!loading && products.length === 0 && (
-              <button type="button" title="Add starter catalog" disabled={loadingStarter} onClick={handleLoadStarterCatalog}
-                style={{ padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                <Icon name="refresh" size={13} /> {loadingStarter ? 'Adding…' : 'Load Starter Catalog'}
+        <PageHeader
+          crumbs={['Finance', 'Products & Services']}
+          titlePlain="Products &"
+          titleEm="services"
+          subtitle="Set pricing for clearing and freight services here — catalog for invoices."
+          actions={
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+              {!loading && products.length === 0 && (
+                <button type="button" title="Add starter catalog" disabled={loadingStarter} onClick={handleLoadStarterCatalog} className="btn btn-secondary btn-sm">
+                  <Icon name="refresh" size={13} /> {loadingStarter ? 'Adding…' : 'Load Starter Catalog'}
+                </button>
+              )}
+              <button type="button" title="Import from TPA/TASAC tariff reference" onClick={() => setTariffSheetOpen(true)} className="btn btn-secondary btn-sm">
+                <Icon name="layers" size={13} /> Import from Tariff
               </button>
-            )}
-            <button type="button" title="Import from TPA/TASAC tariff reference" onClick={() => setTariffSheetOpen(true)}
-              style={{ padding: 'var(--ds-btn-py) 14px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              <Icon name="layers" size={13} /> Import from Tariff
-            </button>
-            <button type="button" title="Add new service" onClick={() => setEditing('new')}
-              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 18px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              <Icon name="plus" size={14} /> New Service
-            </button>
-          </div>
-        </div>
+              <button type="button" title="Add new service" onClick={() => setEditing('new')} className="btn btn-primary btn-sm">
+                <Icon name="plus" size={13} color="#fff" /> New Service
+              </button>
+            </div>
+          }
+        />
 
         <Sheet open={tariffSheetOpen} onOpenChange={setTariffSheetOpen}>
           <SheetContent side="right" style={{ width: 480, maxWidth: '100vw', display: 'flex', flexDirection: 'column' }}>
@@ -843,30 +837,54 @@ export const ProductsServices: React.FC = () => {
           { title: 'Avg Unit Price', value: avgPrice > 0 ? `$${Math.round(avgPrice)}` : '—', sub1Label: 'CATEGORIES', sub1Value: String(new Set(products.map(p => p.category)).size), sub2Label: 'TOP CAT', sub2Value: products.length ? (CAT_CFG[topCat]?.label ?? '—') : '—', barHighlight: 'var(--gold)' },
         ]} />
 
-        {/* Filters */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-            {[{ key: 'ALL', label: `All (${products.length})` }, ...CATEGORIES.map(c => ({ key: c, label: `${CAT_CFG[c].label} (${products.filter(p => p.category === c).length})` }))].map(t => (
-              <button key={t.key} type="button" title={`Filter: ${t.label}`} onClick={() => { setCatFilter(t.key); setPage(1); }}
-                style={{ padding: 'var(--ds-btn-py-sm) 12px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', transition: 'all 0.1s', background: catFilter === t.key ? 'var(--navy)' : 'var(--bg)', color: catFilter === t.key ? '#fff' : 'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                {t.label}
-              </button>
-            ))}
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: 2, background: 'var(--bg)', padding: 3, borderRadius: 9 }}>
+        {/* Filters Toolbar Card */}
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+            {/* Category Dropdown */}
+            <Select value={catFilter} onValueChange={v => { setCatFilter(v as CatFilter); setPage(1); }}>
+              <SelectTrigger aria-label="Category" style={{ width: 'auto', minWidth: 160, height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">All Categories ({products.length})</SelectItem>
+                {CATEGORIES.map(c => {
+                  const count = products.filter(p => p.category === c).length;
+                  return (
+                    <SelectItem key={c} value={c}>
+                      {CAT_CFG[c].label} ({count})
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+
+            {/* Status Segmented Buttons */}
+            <div style={{ display: 'flex', gap: 2, background: 'var(--bg)', padding: 3, borderRadius: 8, border: '1px solid var(--border)' }}>
               {(['ALL', 'active', 'inactive'] as const).map(s => (
                 <button key={s} type="button" title={`Status: ${s}`} onClick={() => { setStatusFilter(s); setPage(1); }}
-                  style={{ padding: 'var(--ds-btn-py-sm) 10px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', background: statusFilter === s ? 'var(--white)' : 'transparent', color: statusFilter === s ? 'var(--ink)' : 'var(--ink3)', boxShadow: statusFilter === s ? '0 1px 4px rgba(0,0,0,0.08)' : 'none', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                  style={{
+                    padding: '4px 10px', fontSize: 12, fontWeight: 600, border: 'none', borderRadius: 'var(--r, 6px)',
+                    cursor: 'pointer',
+                    background: statusFilter === s ? 'var(--white)' : 'transparent',
+                    color: statusFilter === s ? 'var(--ink)' : 'var(--ink3)',
+                    boxShadow: statusFilter === s ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                    height: 28, display: 'inline-flex', alignItems: 'center', lineHeight: 1
+                  }}>
                   {s === 'ALL' ? 'All Status' : s.charAt(0).toUpperCase() + s.slice(1)}
                 </button>
               ))}
             </div>
-            <div style={{ position: 'relative' }}>
-              <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
-              <input type="text" title="Search services" placeholder="Search services…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
-                style={{ paddingLeft: 32, paddingRight: 12, paddingTop: 8, paddingBottom: 8, border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, outline: 'none', background: 'var(--white)', width: 220, boxSizing: 'border-box' as const }} />
-            </div>
+          </div>
+
+          {/* Search Box */}
+          <div style={{ position: 'relative', width: isMobile ? '100%' : 260 }}>
+            <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
+            <input type="text" title="Search services" placeholder="Search services…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+              style={{
+                width: '100%', padding: '8px 12px 8px 32px', border: '1px solid var(--border)',
+                borderRadius: 'var(--r, 6px)', fontSize: 13, fontFamily: 'var(--font)',
+                background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box'
+              }} />
           </div>
         </div>
 

@@ -98,6 +98,17 @@ export function Performance() {
         titlePlain="Goals &"
         titleEm="reviews"
         subtitle="Goals people are working towards, and the cycles they are reviewed in."
+        actions={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+            {tab === 'goals'
+              ? <button type="button" className="btn btn-primary btn-sm" disabled={people.length === 0} onClick={() => setPane(pane === 'goal' ? 'none' : 'goal')}>
+                  <Icon name="plus" size={13} color="white" /> New Goal
+                </button>
+              : <button type="button" className="btn btn-primary btn-sm" onClick={() => setPane(pane === 'cycle' ? 'none' : 'cycle')}>
+                  <Icon name="plus" size={13} color="white" /> New Cycle
+                </button>}
+          </div>
+        }
       />
 
       {error && (
@@ -129,14 +140,6 @@ export function Performance() {
         <Button type="button" variant={tab === 'reviews' ? 'default' : 'outline'} onClick={() => { setTab('reviews'); setPane('none'); }}>
           <Icon name="star" size={14} color={tab === 'reviews' ? 'white' : undefined} /> Review cycles ({cycles.length})
         </Button>
-        <div style={{ flex: 1 }} />
-        {tab === 'goals'
-          ? <Button type="button" disabled={people.length === 0} onClick={() => setPane(pane === 'goal' ? 'none' : 'goal')}>
-              <Icon name="plus" size={14} color="white" /> New goal
-            </Button>
-          : <Button type="button" onClick={() => setPane(pane === 'cycle' ? 'none' : 'cycle')}>
-              <Icon name="plus" size={14} color="white" /> New cycle
-            </Button>}
       </div>
 
       {pane === 'goal' && (

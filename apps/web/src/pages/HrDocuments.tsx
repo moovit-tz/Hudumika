@@ -95,7 +95,7 @@ export function HrDocuments() {
                       color: 'var(--red)', fontSize: 12.5, marginBottom: 14 }}>{error}</div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 16 }}>
+      <div className="mc-row">
         {([
           ['Documents', docs.length, 'var(--ink)'],
           ['Templates', templates.length, 'var(--ink)'],
@@ -103,7 +103,7 @@ export function HrDocuments() {
           // Filed against nobody: findable here and nowhere else.
           ['Attached to nobody', unattached, unattached > 0 ? 'var(--gold)' : 'var(--ink)'],
         ] as const).map(([l, v, colour]) => (
-          <div key={l} style={{ ...card, padding: '11px 14px' }}>
+          <div key={l} className="mc-card">
             <div style={label}>{l}</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: colour, marginTop: 3 }}>{v}</div>
           </div>

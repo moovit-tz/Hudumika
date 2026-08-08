@@ -266,15 +266,11 @@ function PageHeader({ icon, title, sub, children, backTo }: { icon?: IconName; t
   const titleWords = title.trim().split(/\s+/);
   const titleEm = titleWords.pop() ?? title;
   return (
-    <>
-      {/* The back link stays — it is navigation, not part of the title. The
-          leading icon is dropped: the house style pairs a plain face with a
-          Cormorant Garamond italic final word, and an icon in front of that
-          is a different design. */}
+    <div style={{ marginBottom: 16 }}>
       {backTo !== undefined && (
         <Link to={backTo || '/nexushr'} title="Go back"
           style={{ width:32, height:32, borderRadius:8, border:'1px solid var(--border)', background:'var(--white)', cursor:'pointer',
-            display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginTop:20 }}>
+            display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0, marginBottom: 10 }}>
           <Icon name="arrowLeft" size={15} color="var(--ink2)" />
         </Link>
       )}
@@ -283,9 +279,9 @@ function PageHeader({ icon, title, sub, children, backTo }: { icon?: IconName; t
         titlePlain={titleWords.join(' ')}
         titleEm={titleEm.toLowerCase()}
         subtitle={sub}
-        actions={children}
+        actions={children ? <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>{children}</div> : undefined}
       />
-    </>
+    </div>
   );
 }
 
