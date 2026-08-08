@@ -126,7 +126,7 @@ export function EmploymentRecords() {
       )}
 
       {/* Counts of the real states, not a completion score. */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12, marginBottom: 18 }}>
+      <div className="mc-row">
         {[
           ['Logins', summary?.logins ?? 0, 'var(--ink)'],
           ['With an HR record', summary?.withHrRecord ?? 0, 'var(--ink)'],
@@ -134,7 +134,7 @@ export function EmploymentRecords() {
           ['HR records, no login', summary?.hrRecordsWithoutLogin ?? 0,
             (summary?.hrRecordsWithoutLogin ?? 0) > 0 ? 'var(--gold)' : 'var(--ink)'],
         ].map(([l, v, colour]) => (
-          <div key={String(l)} style={{ ...card, padding: '11px 14px' }}>
+          <div key={String(l)} className="mc-card">
             <div style={label}>{l}</div>
             <div style={{ fontSize: 22, fontWeight: 800, color: colour as string, marginTop: 3 }}>{v as number}</div>
           </div>

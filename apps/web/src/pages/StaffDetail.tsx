@@ -251,22 +251,15 @@ export const StaffDetail: React.FC = () => {
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
 
-      {/* ── Header ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
-        <button type="button" onClick={() => navigate(-1)} title="Go back"
-          style={{ width: 32, height: 32, borderRadius: '50%', border: '1px solid var(--border)', background: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
-          <Icon name="arrowLeft" size={16} color="var(--ink2)" />
-        </button>
-        <div>
-          <PageHeader
-            crumbs={['NexusHR', 'Staff']}
-            titlePlain="Staff"
-            titleEm="profile"
-          />
-          <p style={{ fontSize: 13, color: 'var(--ink3)', margin: 0 }}>Manage {staff.name.split(' ')[0]}'s account and details</p>
-        </div>
-        <span style={{ marginLeft: 'auto', padding: '3px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: ss.bg, color: ss.color }}>{ss.label}</span>
-      </div>
+      <PageHeader
+        crumbs={['NexusHR', 'Staff']}
+        titlePlain="Staff"
+        titleEm="profile"
+        subtitle={`Manage ${staff.name.split(' ')[0]}'s account and details`}
+        actions={
+          <span style={{ padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, background: ss.bg, color: ss.color }}>{ss.label}</span>
+        }
+      />
 
       <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
 
