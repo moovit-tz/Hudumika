@@ -10,6 +10,41 @@ import { TRAService } from '../services/tra.service.js';
 import { getNextDocNumber } from '../lib/doc-numbering.js';
 import { toDateParam } from '../utils/dates.js';
 
+/**
+ * An invoice's grand total, expressed in the invoice's own currency.
+ *
+ * Every line is converted on its own currency against the invoice's, which is
+ * the only thing that actually determines whether conversion is needed. This
+ * used to be decided by `line_group`: anything tagged 'shipping' was treated
+ * as foreign and multiplied by exchange_rate, anything else was assumed to be
+ * base currency. That held only because a freight invoice happens to bill its
+ * ocean leg under that label, and it is wrong twice over —
+ *
+ *   * it couples the finance core to a freight-specific grouping, so any other
+ *     industry billing in a second currency is mis-totalled by construction;
+ *   * there are already 4 USD lines sitting in the 'other' group. They total
+ *     correctly today only because both their invoices carry exchange_rate 1.
+ *     On a 2650 invoice the same line would be understated 2650-fold.
+ *
+ * Lines legitimately differ in currency from their invoice — a USD ocean
+ * freight line on a TZS invoice is the normal shape of the document — so the
+ * line currency stays. What changed is that it is now what gets read.
+ */
+export function invoiceGrandTotal(
+  lines: { qty: unknown; rate: unknown; tax_pct: unknown; currency?: string | null }[],
+  invoiceCurrency: string,
+  exchangeRate: number,
+): number {
+  const base = (invoiceCurrency || 'TZS').toUpperCase();
+  return lines.reduce((sum, l) => {
+    const gross = Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100);
+    // A line with no currency recorded is in the invoice's currency; that is
+    // what the column's default has always meant.
+    const cur = (l.currency || base).toUpperCase();
+    return sum + (cur === base ? gross : gross * exchangeRate);
+  }, 0);
+}
+
 export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   // 'seal' included so a warehouse manager without FinOps access can still
@@ -114,7 +149,9 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         if (invoiceNumbers.length > 0) {
           invRows = await trx
             .selectFrom('sales_invoices')
-            .select(['id', 'invoice_number', 'exchange_rate'])
+            // currency, not just the rate: without it the totaller falls back
+            // to the default and a USD invoice is totalled as shillings.
+            .select(['id', 'invoice_number', 'exchange_rate', 'currency'])
             .where('tenant_id', '=', user.tenant_id)
             .execute();
         }
@@ -126,11 +163,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
           let total_amount = 0;
           if (inv) {
             const lines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', inv.id).execute();
-            const exRate = Number(inv.exchange_rate) || 1;
-            const clearingLines = lines.filter((l: any) => l.line_group === 'clearing' || l.line_group === 'other');
-            const shippingLines = lines.filter((l: any) => l.line_group === 'shipping');
-            total_amount = clearingLines.reduce((s: number, l: any) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0)
-              + shippingLines.reduce((s: number, l: any) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0) * exRate;
+            total_amount = invoiceGrandTotal(lines, inv.currency, Number(inv.exchange_rate) || 1);
           }
           const paid_amount = Number(r.paid_amount) || 0;
           return {
@@ -343,11 +376,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         }));
         await trx.insertInto('sales_invoice_lines').values(itemsToInsert).execute();
 
-        const clearingLines = itemsToInsert.filter((l: any) => l.line_group === 'clearing' || l.line_group === 'other');
-        const shippingLines = itemsToInsert.filter((l: any) => l.line_group === 'shipping');
-        const exRate = Number(inv.exchange_rate) || 1;
-        grandTotal = clearingLines.reduce((s: number, l: any) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0)
-          + shippingLines.reduce((s: number, l: any) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0) * exRate;
+        grandTotal = invoiceGrandTotal(itemsToInsert, inv.currency, Number(inv.exchange_rate) || 1);
       }
 
       if (inv.status !== 'Draft' && grandTotal > 0) {
@@ -428,11 +457,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
           .executeTakeFirst();
 
         if (!alreadyPosted) {
-          const exRate = Number(inv.exchange_rate) || 1;
-          const clearingLines = lines.filter(l => l.line_group === 'clearing' || l.line_group === 'other');
-          const shippingLines = lines.filter(l => l.line_group === 'shipping');
-          const grandTotal = clearingLines.reduce((s, l) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0)
-            + shippingLines.reduce((s, l) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0) * exRate;
+          const grandTotal = invoiceGrandTotal(lines, inv.currency, Number(inv.exchange_rate) || 1);
 
           if (grandTotal > 0) {
             await GLService.post(user.tenant_id, {
@@ -505,11 +530,10 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       const totalPaid = payments.reduce((s, p) => s + Number(p.amount), 0);
       // Get lines to compute grand total
       const lines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', id).execute();
-      const clearingLines = lines.filter(l => l.line_group === 'clearing' || l.line_group === 'other');
-      const shippingLines = lines.filter(l => l.line_group === 'shipping');
-      const exRate = Number(inv.exchange_rate) || 2650;
-      const grandTotal = clearingLines.reduce((s, l) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0)
-        + shippingLines.reduce((s, l) => s + Number(l.qty) * Number(l.rate) * (1 + Number(l.tax_pct) / 100), 0) * exRate;
+      // The old fallback here was `|| 2650` - a hardcoded TZS/USD rate
+      // invented at the point of use. 1 is the only honest default: it means
+      // "no conversion", not "guess".
+      const grandTotal = invoiceGrandTotal(lines, inv.currency, Number(inv.exchange_rate) || 1);
       let newStatus: string;
       if (totalPaid <= 0) newStatus = 'Unpaid';
       else if (totalPaid >= grandTotal) newStatus = 'Paid';

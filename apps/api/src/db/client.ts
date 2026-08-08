@@ -1734,6 +1734,11 @@ export interface SalesInvoicesTable {
   due_date: DateOnlyNull;
   sale_agent: string | null;
   payment_terms: string | null;
+  /** ISO 4217 code the invoice is settled in — migration 179. Lines may carry
+   *  a different currency (a USD freight line on a TZS invoice is normal);
+   *  those convert at exchange_rate. Never infer this from line_group. */
+  currency: Generated<string>;
+  /** Units of the invoice currency per one unit of a foreign line currency. */
   exchange_rate: Generated<number>;
   status: Generated<string>;
   received: Generated<number>;
