@@ -52,6 +52,219 @@ interface Usage {
 }
 
 /* ── Form ───────────────────────────────────────────────────────────────────── */
+interface Component {
+  code: string; name: string; rate: number;
+  basis: 'NET' | 'NET_PLUS_PRIOR'; recoverable: boolean;
+}
+
+/**
+ * Tax codes that are really several taxes.
+ *
+ * Most jurisdictions need none of this — a code with no components is a single
+ * tax at its own rate, which is every code in Tanzania. Ghana is the case that
+ * needs it, and it is why the rate has to be *derived*: 6% of levies on net,
+ * then 15% VAT on net-plus-levies, is 21.9%. Nobody should be typing 21.9,
+ * because a typed rate is one that can stop agreeing with the breakdown meant
+ * to explain it.
+ */
+function ComponentEditor({ taxCodeId, jurisdiction, zeroKind }: {
+  taxCodeId: string; jurisdiction: string; zeroKind: boolean;
+}) {
+  const [rows, setRows] = useState<Component[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+  const [saved, setSaved] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [got, tpl] = await Promise.all([
+          apiFetch(`/v1/tax-codes/${taxCodeId}/components`),
+          apiFetch(`/v1/tax-codes/component-templates?jurisdiction=${encodeURIComponent(jurisdiction || '')}`),
+        ]);
+        if (!alive) return;
+        setRows(got?.components ?? []);
+        setTemplates(tpl ?? []);
+      } catch (e: any) {
+        if (alive) setErr(e?.message ?? 'Could not load components.');
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [taxCodeId, jurisdiction]);
+
+  /**
+   * A preview, computed the same way the server does. The server stays
+   * authoritative — this exists so the effective rate moves while you type
+   * rather than only after saving, which is the whole reason the rate is
+   * derived instead of typed.
+   */
+  const preview = useMemo(() => {
+    let running = 0;
+    const lines = rows.map(r => {
+      const base = r.basis === 'NET_PLUS_PRIOR' ? 100 + running : 100;
+      const amount = base * (Number(r.rate) || 0) / 100;
+      running += amount;
+      return { ...r, base, amount };
+    });
+    return { lines, total: lines.reduce((s, l) => s + l.amount, 0) };
+  }, [rows]);
+
+  const update = (i: number, patch: Partial<Component>) =>
+    setRows(rs => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+
+  async function persist() {
+    setSaving(true); setErr(''); setSaved('');
+    try {
+      const res = await apiFetch(`/v1/tax-codes/${taxCodeId}/components`, {
+        method: 'PUT', body: JSON.stringify({ components: rows }),
+      });
+      setRows(res?.components ?? []);
+      setSaved(res?.derived
+        ? `Saved. This code now charges ${Number(res.effective_rate).toFixed(2)}%.`
+        : 'Saved. This code has no breakdown, so it charges its own rate.');
+    } catch (e: any) {
+      setErr(e?.message ?? 'Could not save the components.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const cell: React.CSSProperties = {
+    padding: '6px 8px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
+    fontSize: 13, fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)',
+    outline: 'none', width: '100%', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box',
+  };
+
+  if (zeroKind) {
+    return (
+      <div className="card" style={{ maxWidth: 780, marginTop: 16, fontSize: 12.5, color: 'var(--ink3)' }}>
+        A zero-rated, exempt or out-of-scope treatment is 0% by definition, so it has no
+        breakdown to build.
+      </div>
+    );
+  }
+
+  return (
+    <div className="card" style={{ maxWidth: 780, marginTop: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Rate breakdown</div>
+        <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>
+          {rows.length === 0 ? 'Single tax at its own rate' : `Works out to ${preview.total.toFixed(2)}%`}
+        </div>
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12, lineHeight: 1.5 }}>
+        Only for a rate that is several taxes at once. Leave empty and this code charges the
+        rate above. The order matters: “on net plus prior” charges on the line value plus
+        everything already added.
+      </div>
+
+      {err && (
+        <div style={{ padding: '9px 12px', background: 'var(--red-l)', border: '1px solid var(--red)',
+                      borderRadius: 'var(--r-sm)', color: 'var(--red)', fontSize: 12.5, fontWeight: 600, marginBottom: 12 }}>{err}</div>
+      )}
+      {saved && !err && (
+        <div style={{ padding: '9px 12px', background: 'var(--green-l)', border: '1px solid var(--border)',
+                      borderRadius: 'var(--r-sm)', color: 'var(--green)', fontSize: 12.5, fontWeight: 600, marginBottom: 12 }}>{saved}</div>
+      )}
+
+      {loading ? (
+        <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '12px 0' }}>Loading…</div>
+      ) : (
+        <>
+          {rows.length > 0 && (
+            <div style={{ overflowX: 'auto', marginBottom: 12 }}>
+              <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: '0 6px', fontSize: 13 }}>
+                <thead>
+                  <tr>
+                    {['Code', 'Name', 'Rate %', 'Charged on', 'Recoverable', 'On', ''].map(h => (
+                      <th key={h} style={{ textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)',
+                                           textTransform: 'uppercase', letterSpacing: '0.06em', padding: '0 8px 4px' }}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, i) => (
+                    <tr key={i}>
+                      <td style={{ width: 110 }}><input style={cell} value={r.code}
+                        onChange={e => update(i, { code: e.target.value.toUpperCase() })} /></td>
+                      <td><input style={cell} value={r.name} onChange={e => update(i, { name: e.target.value })} /></td>
+                      <td style={{ width: 90 }}><input style={cell} type="number" step="0.01" min="0" max="100"
+                        value={r.rate} onChange={e => update(i, { rate: Number(e.target.value) })} /></td>
+                      <td style={{ width: 170 }}>
+                        {/* The first component has nothing before it, so the
+                            compounding option is not offered there at all. */}
+                        <Select value={r.basis} onValueChange={v => update(i, { basis: v as Component['basis'] })}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="NET">Net value</SelectItem>
+                            {i > 0 && <SelectItem value="NET_PLUS_PRIOR">Net plus prior</SelectItem>}
+                          </SelectContent>
+                        </Select>
+                      </td>
+                      <td style={{ width: 90, textAlign: 'center' }}>
+                        <input type="checkbox" checked={r.recoverable}
+                          onChange={e => update(i, { recoverable: e.target.checked })} />
+                      </td>
+                      <td style={{ width: 90, fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
+                        {preview.lines[i]?.base.toFixed(2)}
+                      </td>
+                      <td style={{ width: 32 }}>
+                        <button type="button" title="Remove" onClick={() => setRows(rs => rs.filter((_, j) => j !== i))}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
+                          <Icon name="x" size={14} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <button type="button" className="btn btn-secondary btn-sm"
+              onClick={() => setRows(rs => [...rs, { code: '', name: '', rate: 0, basis: 'NET', recoverable: true }])}>
+              Add a component
+            </button>
+            {templates.map(t => (
+              <button key={t.label} type="button" className="btn btn-secondary btn-sm"
+                title={t.note}
+                onClick={() => setRows(t.components.map((c: any) => ({ ...c })))}>
+                Use {t.label}
+              </button>
+            ))}
+            <button type="button" className="btn btn-primary btn-sm" disabled={saving}
+              style={{ marginLeft: 'auto', background: 'var(--teal)', borderColor: 'var(--teal)', color: '#fff' }}
+              onClick={persist}>
+              {saving ? 'Saving…' : 'Save breakdown'}
+            </button>
+          </div>
+
+          {rows.length > 0 && (
+            <div style={{ marginTop: 12, fontSize: 12, color: 'var(--ink3)', lineHeight: 1.6 }}>
+              {preview.lines.map((l, i) => (
+                <div key={i}>
+                  {l.code || '—'} {Number(l.rate) || 0}% on {l.base.toFixed(2)} = {l.amount.toFixed(3)}
+                </div>
+              ))}
+              <div style={{ marginTop: 4, color: 'var(--ink2)', fontWeight: 600 }}>
+                Effective rate {preview.total.toFixed(2)}% — saved onto the code, not typed.
+              </div>
+              {/* Says it plainly, because the alternative assumption is costly. */}
+              <div style={{ marginTop: 4 }}>Documents already issued keep the rate they were written with.</div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function TaxCodeForm({ code, onClose, onSaved }: {
   code: TaxCode | null; onClose: () => void; onSaved: () => void;
 }) {
@@ -246,6 +459,13 @@ function TaxCodeForm({ code, onClose, onSaved }: {
           </label>
         </F>
       </div>
+
+      {/* Components hang off a saved code, so the breakdown appears once there
+          is something to hang them on rather than as a disabled panel on a new
+          code that has no id yet. */}
+      {code?.id && (
+        <ComponentEditor taxCodeId={code.id} jurisdiction={form.jurisdiction} zeroKind={zeroKind} />
+      )}
     </FormPage>
   );
 }
