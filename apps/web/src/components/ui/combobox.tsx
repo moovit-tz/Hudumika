@@ -66,7 +66,13 @@ export function Combobox({
           data-slot="combobox-trigger"
           disabled={disabled}
           className={cn(
-            "flex min-h-9 w-full items-center justify-between whitespace-nowrap rounded-lg border border-input bg-transparent px-3 py-[var(--ds-input-py,8px)] text-sm font-medium shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+            // min-h comes from --ctl-h, the density ladder, not a fixed
+            // min-h-9 — the same reasoning ui/button.tsx already records. At
+            // the default density padding carries this past either figure, so
+            // nothing moves; the floor only decides when a SuperAdmin picks a
+            // compact density, and a hardcoded 36 there is a number the
+            // density setting cannot reach.
+            "flex min-h-(--ctl-h) w-full items-center justify-between whitespace-nowrap rounded-lg border border-input bg-transparent px-3 py-[var(--ds-input-py,8px)] text-sm font-medium shadow-sm transition-colors hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
             triggerClassName
           )}
         >

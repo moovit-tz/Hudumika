@@ -19,7 +19,11 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex min-h-9 w-full items-center justify-between whitespace-nowrap rounded-lg border border-input bg-transparent px-3 py-[var(--ds-input-py,8px)] text-sm font-medium shadow-sm ring-offset-background transition-colors data-[placeholder]:text-muted-foreground hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
+      // Same floor as Combobox and Button: --ctl-h, the density ladder,
+      // rather than a fixed min-h-9. These two primitives sit side by side all
+      // over the app, so fixing one and not the other would make them disagree
+      // at any density where the floor actually binds.
+      "flex min-h-(--ctl-h) w-full items-center justify-between whitespace-nowrap rounded-lg border border-input bg-transparent px-3 py-[var(--ds-input-py,8px)] text-sm font-medium shadow-sm ring-offset-background transition-colors data-[placeholder]:text-muted-foreground hover:border-primary/40 focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50 [&>span]:line-clamp-1",
       className
     )}
     {...props}
