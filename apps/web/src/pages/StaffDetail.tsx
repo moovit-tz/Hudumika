@@ -95,6 +95,73 @@ const inputSt: React.CSSProperties = {
   boxSizing: 'border-box',
 };
 
+const ATT_TONE: Record<string, { bg: string; fg: string }> = {
+  PRESENT: { bg: 'var(--green-l)', fg: 'var(--green)' },
+  LATE:    { bg: 'var(--gold-l)',  fg: 'var(--gold)'  },
+  ABSENT:  { bg: 'var(--red-l)',   fg: 'var(--red)'   },
+};
+const LEAVE_TONE: Record<string, { bg: string; fg: string }> = {
+  APPROVED: { bg: 'var(--green-l)', fg: 'var(--green)' },
+  PENDING:  { bg: 'var(--gold-l)',  fg: 'var(--gold)'  },
+  REJECTED: { bg: 'var(--red-l)',   fg: 'var(--red)'   },
+};
+function Pill({ text, tone }: { text: string; tone?: { bg: string; fg: string } }) {
+  return (
+    <span style={{
+      fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
+      background: tone?.bg ?? 'var(--bg)', color: tone?.fg ?? 'var(--ink3)',
+    }}>{text}</span>
+  );
+}
+function AttBadge({ status }: { status: string }) { return <Pill text={status} tone={ATT_TONE[status]} />; }
+function LeaveBadge({ status }: { status: string }) { return <Pill text={status} tone={LEAVE_TONE[status]} />; }
+
+/** One table shape for every record tab, so they stay consistent as more land. */
+function TabTable({ loading, rows, head, row, empty, summary }: {
+  loading: boolean;
+  rows: any[];
+  head: string[];
+  row: (r: any) => React.ReactNode[];
+  empty: string;
+  summary?: (rows: any[]) => string;
+}) {
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>Loading…</div>;
+  }
+  if (rows.length === 0) {
+    return <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>{empty}</div>;
+  }
+  return (
+    <div style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
+      {summary && (
+        <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', fontSize: 12.5, color: 'var(--ink2)', fontWeight: 600 }}>
+          {summary(rows)}
+        </div>
+      )}
+      <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+          <thead>
+            <tr style={{ background: 'var(--bg)' }}>
+              {head.map(h => (
+                <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={r.id ?? i} style={{ borderTop: '1px solid var(--border)' }}>
+                {row(r).map((cell, j) => (
+                  <td key={j} style={{ padding: '10px 16px', color: 'var(--ink2)', whiteSpace: j === head.length - 1 ? 'normal' : 'nowrap' }}>{cell}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export const StaffDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -113,6 +180,35 @@ export const StaffDetail: React.FC = () => {
     'Profile', 'Attendance', 'Leaves', 'Tasks', 'Projects', 'Timesheet', 
     'Documents', 'Payroll', 'Tickets', 'Shift Roster', 'Permissions', 'Activity'
   ];
+
+  // Attendance and Leaves are the two tabs with a real endpoint behind them
+  // (/v1/hr/attendance and /v1/hr/leaves both take ?user_id=). Loaded when the
+  // tab is opened rather than with the profile, so viewing someone's details
+  // does not pull eight weeks of rows nobody asked for.
+  const [attendance, setAttendance] = useState<any[]>([]);
+  const [leaves, setLeaves] = useState<any[]>([]);
+  const [tabLoading, setTabLoading] = useState(false);
+
+  const loadTab = useCallback(async (which: string) => {
+    if (!id) return;
+    if (which !== 'Attendance' && which !== 'Leaves') return;
+    setTabLoading(true);
+    try {
+      if (which === 'Attendance') {
+        setAttendance(await apiFetch(`/v1/hr/attendance?user_id=${id}`) ?? []);
+      } else {
+        setLeaves(await apiFetch(`/v1/hr/leaves?user_id=${id}`) ?? []);
+      }
+    } catch {
+      // An empty list and a failed request must not look the same, so the
+      // table says which it was rather than rendering a bare "no records".
+      if (which === 'Attendance') setAttendance([]); else setLeaves([]);
+    } finally {
+      setTabLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => { loadTab(tab); }, [tab, loadTab]);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -406,10 +502,58 @@ export const StaffDetail: React.FC = () => {
           </div>
         )}
 
-        {tab !== 'Profile' && (
+        {tab === 'Attendance' && (
+          <TabTable
+            loading={tabLoading}
+            rows={attendance}
+            empty="No attendance has been recorded for this person."
+            head={['Date', 'Status', 'In', 'Out', 'Note']}
+            row={(a: any) => [
+              formatDate(a.date),
+              <AttBadge key="s" status={a.status} />,
+              a.clock_in ?? '—',
+              a.clock_out ?? '—',
+              a.notes ?? '—',
+            ]}
+            summary={(rows: any[]) => {
+              const n = (st: string) => rows.filter(r => r.status === st).length;
+              // The counts are what a manager actually reads; the list is the
+              // evidence behind them.
+              return `${rows.length} days recorded — ${n('PRESENT')} present, ${n('LATE')} late, ${n('ABSENT')} absent`;
+            }}
+          />
+        )}
+
+        {tab === 'Leaves' && (
+          <TabTable
+            loading={tabLoading}
+            rows={leaves}
+            empty="This person has not requested any leave."
+            head={['Type', 'From', 'To', 'Days', 'Status', 'Reason']}
+            row={(l: any) => [
+              l.type,
+              formatDate(l.from_date),
+              formatDate(l.to_date),
+              String(l.days),
+              <LeaveBadge key="s" status={l.status} />,
+              l.reason ?? '—',
+            ]}
+            summary={(rows: any[]) => {
+              const pending = rows.filter(r => r.status === 'PENDING').length;
+              const taken = rows.filter(r => r.status === 'APPROVED').reduce((t, r) => t + Number(r.days || 0), 0);
+              return `${taken} day(s) approved` + (pending ? `, ${pending} awaiting a decision` : '');
+            }}
+          />
+        )}
+
+        {tab !== 'Profile' && tab !== 'Attendance' && tab !== 'Leaves' && (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>
             <Icon name="clock" size={32} color="var(--border)" />
             <div style={{ marginTop: 12, fontSize: 14, fontWeight: 500, color: 'var(--ink2)' }}>The {tab} module is coming soon</div>
+            {/* Says which, rather than implying every tab is equally close. */}
+            <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink3)' }}>
+              No endpoint backs this tab yet — Attendance and Leaves are live.
+            </div>
           </div>
         )}
       </div>
