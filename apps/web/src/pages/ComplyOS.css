@@ -74,8 +74,10 @@
    its content's preferred (max-content) size happens to be instead of
    filling the page, which is exactly wrong for a page-width container. */
 .comply-page {
+  flex: 1;
+  overflow-y: auto;
   width: 100%;
-  padding: clamp(20px, 3vw, 36px) clamp(20px, 4vw, 48px);
+  padding: 0;
   max-width: 100% !important;
   margin: 0;
   box-sizing: border-box;

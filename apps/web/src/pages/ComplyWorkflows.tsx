@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { useComplyRenewals } from '../hooks/useComply.js';
 import type { CompRenewal, CompRenewalStatus } from '@hudumika/types';
 import { showAlert } from '../lib/alert.js';
@@ -111,20 +112,20 @@ export function ComplyWorkflows() {
     <div className="comply-page">
 
       {/* ── Header ── */}
-      <div className="comply-page-hdr">
-        <div>
-          <h1 className="comply-page-hdr-title">Renewal Workflows</h1>
-          <p className="comply-page-hdr-sub">
-            Certificate renewal automation — review, approve and track submissions.
-          </p>
-        </div>
+      <PageHeader
+        crumbs={['ComplyOS', 'Renewal Workflows']} 
+        titlePlain="Renewal"
+        titleEm="workflows"
+        subtitle="Certificate renewal automation — review, approve and track submissions."
+        actions={
         <div className="comply-action-row">
           <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh">
             <Icon name="refresh" size={14} />
             Refresh
           </button>
         </div>
-      </div>
+        }
+      />
 
       {/* ── KPIs ── */}
       <div className="comply-kpis">

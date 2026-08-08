@@ -162,8 +162,6 @@ export function ComplyLicenseAutomation() {
         titleEm="tool"
         subtitle="Sign in to Tausi (TAMISEMI) yourself, upload your license &amp; levy statement, and let the ComplyOS agent file the results automatically."
       />
-      <div className="comply-page-hdr">
-        </div>
 
       {!resultData ? (
         <div style={{ display: 'grid', gridTemplateColumns: '640px 1fr', gap: 24, alignItems: 'start' }}>

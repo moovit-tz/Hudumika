@@ -166,8 +166,6 @@ export function ComplyTraExtract() {
         titleEm="agent"
         subtitle="Establish a secure session to extract your profile, active obligations, and Tax Compliance Certificates."
       />
-      <div className="comply-page-hdr">
-        </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: status === 'completed' ? '1fr' : '1fr 1fr', gap: 24, alignItems: 'start' }}>
         

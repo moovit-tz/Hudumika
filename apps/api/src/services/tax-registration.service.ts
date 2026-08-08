@@ -131,3 +131,28 @@ export async function jurisdictionReference(db: Db, jurisdiction: string) {
 export async function listJurisdictions(db: Db) {
   return db.selectFrom('tax_jurisdictions').selectAll().orderBy('name', 'asc').execute();
 }
+
+/**
+ * The currency a workspace reports in.
+ *
+ * Their own setting first, then whatever the jurisdiction uses, and only then a
+ * fallback. Every one of these used to be a bare `|| 'TZS'`, which quietly made
+ * a Ghanaian workspace report in Tanzanian shillings.
+ */
+export async function reportingCurrency(db: Db, tenantId: string): Promise<string> {
+  const ts = await db.selectFrom('tenant_settings').select('settings')
+    .where('tenant_id', '=', tenantId).executeTakeFirst();
+  const configured = (ts?.settings as any)?.company?.currency;
+  if (typeof configured === 'string' && /^[A-Za-z]{3}$/.test(configured)) {
+    return configured.toUpperCase();
+  }
+
+  const code = await db.selectFrom('tax_codes').select('jurisdiction')
+    .where('tenant_id', '=', tenantId).where('is_default', '=', true).executeTakeFirst();
+  if (code?.jurisdiction) {
+    const ref = await db.selectFrom('tax_jurisdictions').select('currency')
+      .where('code', '=', code.jurisdiction).executeTakeFirst();
+    if (ref?.currency) return ref.currency.toUpperCase();
+  }
+  return 'TZS';
+}

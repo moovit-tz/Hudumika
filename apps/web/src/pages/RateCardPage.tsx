@@ -273,16 +273,16 @@ export const RateCardPage: React.FC = () => {
         </div>
       )}
 
-      <Tabs value={card} onValueChange={v => setCard(v as CardKey)}>
-        <TabsList className="mb-5 h-11 p-1.5 gap-1.5 bg-muted/60 rounded-xl border border-border">
+      <Tabs value={card} onValueChange={v => setCard(v as CardKey)} variant="segmented" className="mb-5">
+        <TabsList>
           {CARDS.map(c => (
-            <TabsTrigger key={c.key} value={c.key} className="h-8 px-5 text-sm font-bold rounded-lg cursor-pointer transition-all data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <TabsTrigger key={c.key} value={c.key}>
               {c.label}
             </TabsTrigger>
           ))}
         </TabsList>
 
-        {card === 'road' && (
+      {card === 'road' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 9, fontSize: 12.5, color: 'var(--gold)', fontWeight: 600, marginBottom: 16 }}>
             <Icon name="info" size={13} />
             The Landed Cost Calculator doesn't have a road-freight mode yet, so this tab isn't read by it — populate it for your own reference until that's added.

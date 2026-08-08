@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import './ComplyOS.css';
 
 /**
@@ -31,15 +32,12 @@ export function ComplyWizardPage({
 
   return (
     <div className="comply-page">
-      <div className="comply-page-hdr">
-        <div>
-          <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => navigate(backTo)} style={{ marginBottom: 12 }}>
-            <Icon name="chevronLeft" size={13} /> Back
-          </button>
-          <h1 className="comply-page-title">{title}</h1>
-          {subtitle && <p className="comply-page-sub">{subtitle}</p>}
-        </div>
+      <div style={{ marginBottom: 12 }}>
+        <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => navigate(backTo)}>
+          <Icon name="chevronLeft" size={13} /> Back
+        </button>
       </div>
+      <PageHeader crumbs={['ComplyOS', 'Wizard']} title={title} subtitle={subtitle} />
 
       <div className="comply-card comply-wizard-card">
         {/* Step indicator */}

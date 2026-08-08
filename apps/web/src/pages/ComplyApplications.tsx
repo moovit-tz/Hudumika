@@ -138,17 +138,17 @@ export function ComplyApplications() {
         titlePlain="License"
         titleEm="applications"
         subtitle="Track submissions across all government agencies"
+        actions={
+          <div className="comply-action-row">
+            <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh applications">
+              <Icon name="refresh" size={13} />
+            </button>
+            <button type="button" className="comply-btn-primary" onClick={() => navigate('/complyos/applications/new')}>
+              <Icon name="plus" size={14} /> New Application
+            </button>
+          </div>
+        }
       />
-      <div className="comply-page-hdr">
-        <div className="comply-action-row">
-          <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh applications">
-            <Icon name="refresh" size={13} />
-          </button>
-          <button type="button" className="comply-btn-primary" onClick={() => navigate('/complyos/applications/new')}>
-            <Icon name="plus" size={14} /> New Application
-          </button>
-        </div>
-      </div>
 
       {error && <div className="comply-note comply-note--error">Failed to load applications: {error}</div>}
 

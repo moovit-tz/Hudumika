@@ -1843,6 +1843,8 @@ export interface TaxJurisdictionsTable {
   threshold_alt_window_months: number | null;
   registration_label: string | null;
   fiscalisation: string | null;
+  /** True only for Tanzania — tra_* fields are EFDMS-specific. */
+  uses_tra_codes: Generated<boolean>;
   as_of: DateOnly;
   source: string | null;
   created_at: Generated<Date>;

@@ -67,8 +67,7 @@ export function ComplyCalendar() {
         titlePlain="Compliance"
         titleEm="calendar"
         subtitle="Renewal windows, filing deadlines, and penalty dates"
-      />
-      <div className="comply-page-hdr">
+        actions={
         <div style={{ display: 'flex', gap: 10 }}>
           <button type="button" className="comply-btn-secondary" onClick={() => { setMonth(today.getMonth()); setYear(today.getFullYear()); }}>
             Today
@@ -77,7 +76,8 @@ export function ComplyCalendar() {
             <Icon name="plus" size={14} /> Add Reminder
           </button>
         </div>
-      </div>
+        }
+      />
 
       <div className="comply-cal-grid">
         {/* Calendar */}

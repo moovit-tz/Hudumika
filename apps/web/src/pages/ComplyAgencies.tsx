@@ -29,8 +29,6 @@ export function ComplyAgencies() {
         titleEm="agencies"
         subtitle="All regulatory bodies relevant to business compliance in Tanzania"
       />
-      <div className="comply-page-hdr">
-        </div>
 
       <div className="comply-filters">
         {CATEGORIES.map(c => (

@@ -127,15 +127,15 @@ export function ComplyCompanyDirectory() {
         titlePlain="Company"
         titleEm="directory"
         subtitle="Companies captured from BRELA Search. Drafts are a holding layer only you can see here — review and mark a profile complete to move it into the CRM shared across every Hudumika app."
-      />
-      <div className="comply-page-hdr">
+        actions={
         <div className="comply-action-row">
           <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => navigate('/complyos/brela-search')}>
             <Icon name="search" size={13} />
             <span>BRELA Search</span>
           </button>
         </div>
-      </div>
+        }
+      />
 
       {error && (
         <div className="comply-note comply-note--error comply-note--icon comply-mb-24">

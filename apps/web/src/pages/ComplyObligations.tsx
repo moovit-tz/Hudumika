@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Icon, type IconName } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { useComplyObligations, useComplyAgencyDirectory } from '../hooks/useComply.js';
 import type { CompObligation } from '@hudumika/types';
 import { ComplyWizardPage, WizardField } from './ComplyWizardPage.js';
@@ -83,14 +84,13 @@ export function ComplyObligations() {
 
   return (
     <div className="comply-page">
-      <div className="comply-page-hdr">
-        <div>
-          <h1 className="comply-page-title">Compliance Obligations</h1>
-          <p className="comply-page-sub">
-            {obligations.filter(o => o.mandatory).length} mandatory ·{' '}
-            {obligations.filter(o => !o.mandatory).length} optional across {Object.keys(groups).length} agencies
-          </p>
-        </div>
+      <PageHeader
+        crumbs={['ComplyOS', 'Compliance Obligations']} 
+        titlePlain="Compliance"
+        titleEm="obligations"
+        subtitle={<> {obligations.filter(o => o.mandatory).length} mandatory ·{' '}
+            {obligations.filter(o => !o.mandatory).length} optional across {Object.keys(groups).length} agencies </>}
+        actions={
         <div className="comply-action-row">
           <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh obligations">
             <Icon name="refresh" size={13} />
@@ -102,7 +102,8 @@ export function ComplyObligations() {
             <Icon name="plus" size={14} /> New Application
           </Link>
         </div>
-      </div>
+        }
+      />
 
       {error && <div className="comply-note comply-note--error">Failed to load obligations: {error}</div>}
 

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { useComplyLicenseCatalog } from '../hooks/useComply.js';
 import type { CompLicenseCatalogEntry } from '@hudumika/types';
 import { Combobox } from '../components/ui/combobox.js';
@@ -37,12 +38,12 @@ export function ComplyLicenseCatalog() {
 
   return (
     <div className="comply-page">
-      <div className="comply-page-hdr">
-        <div>
-          <h1 className="comply-page-title">Business Licence Catalogue</h1>
-          <p className="comply-page-sub">Tanzania Business Licensing Act fee schedule — {catalog.length} licence options across 37 categories</p>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['ComplyOS', 'Business Licence Catalogue']} 
+        titlePlain="Business Licence"
+        titleEm="catalogue"
+        subtitle={<> Tanzania Business Licensing Act fee schedule — {catalog.length} licence options across 37 categories </>}
+      />
 
       {error && <div className="comply-note comply-note--error">Failed to load the licence catalogue: {error}</div>}
 

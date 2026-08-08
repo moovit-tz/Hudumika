@@ -4,6 +4,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireRole } from '../middleware/rbac.js';
 import { closeVatPeriod, tenantJurisdiction } from '../services/vat-period.service.js';
 import { computeVatReturn } from '../services/vat-return.service.js';
+import { reportingCurrency } from '../services/tax-registration.service.js';
 
 const FIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE'] as const;
 const isDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
@@ -46,9 +47,7 @@ export async function vatPeriodRoutes(fastify: FastifyInstance) {
       // provisional. A closed one returns what was stored — recomputing a filed
       // figure is exactly what must not be able to give a different answer.
       if (row.status === 'open') {
-        const settings = await trx.selectFrom('tenant_settings').select('settings')
-          .where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-        const cur = (settings?.settings as any)?.company?.currency || 'TZS';
+        const cur = await reportingCurrency(trx, user.tenant_id);
         const live = await computeVatReturn(
           trx, user.tenant_id,
           String(row.period_start).slice(0, 10), String(row.period_end).slice(0, 10),
@@ -112,9 +111,7 @@ export async function vatPeriodRoutes(fastify: FastifyInstance) {
       if (!period) return reply.status(404).send({ error: 'Period not found' });
       if (period.status === 'closed') return reply.status(409).send({ error: 'That period is already closed' });
 
-      const settings = await trx.selectFrom('tenant_settings').select('settings')
-        .where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-      const cur = (settings?.settings as any)?.company?.currency || 'TZS';
+      const cur = await reportingCurrency(trx, user.tenant_id);
 
       // Closing on unclassified data files a return with holes in it and then
       // freezes them. That takes an explicit acknowledgement rather than a

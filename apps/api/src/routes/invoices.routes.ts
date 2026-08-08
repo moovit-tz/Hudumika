@@ -136,6 +136,7 @@ function buildInvoiceLines(
   invoiceId: string,
   items: any[],
   codes: Map<string, { id: string; rate: number }>,
+  invoiceCurrency: string,
 ) {
   return items.map((it: any, i: number) => {
     const code = it.tax_code_id ? codes.get(it.tax_code_id) : undefined;
@@ -148,7 +149,11 @@ function buildInvoiceLines(
       tax_pct: code ? code.rate : (it.tax_pct || 0),
       tax_code_id: code ? code.id : null,
       line_group: it.line_group || 'other',
-      currency: it.currency || 'TZS',
+      // A line with no currency is in its invoice's currency — which is what
+      // the column has always meant. It defaulted to 'TZS' here, so a Ghanaian
+      // or Kenyan invoice silently produced Tanzanian-shilling lines and the
+      // totaller then treated them as foreign.
+      currency: it.currency || invoiceCurrency,
       sort_order: i,
     };
   });
@@ -492,7 +497,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       let grandTotal = 0;
       let netAndTax = { net: 0, tax: 0 };
       if (Array.isArray(body.items) && body.items.length > 0) {
-        const itemsToInsert = buildInvoiceLines(inv.id, body.items, resolved.codes);
+        const itemsToInsert = buildInvoiceLines(inv.id, body.items, resolved.codes, inv.currency);
         await trx.insertInto('sales_invoice_lines').values(itemsToInsert).execute();
 
         const fx = Number(inv.exchange_rate) || 1;
@@ -532,9 +537,12 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const body = request.body as any;
     return withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('sales_invoices').select(['id', 'bill_date'])
+      const existing = await trx.selectFrom('sales_invoices').select(['id', 'bill_date', 'currency'])
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Invoice not found' });
+      // Lines inherit the currency this request leaves the invoice in, not the
+      // one it had before it.
+      const invCurrency = body.currency || existing.currency;
 
       // A filed period is frozen. Both the stored date and the incoming one are
       // checked: an invoice must not be able to escape a closed period, nor
@@ -566,7 +574,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         await trx.deleteFrom('sales_invoice_lines').where('invoice_id', '=', id).execute();
         if (body.items.length > 0) {
           await trx.insertInto('sales_invoice_lines')
-            .values(buildInvoiceLines(id, body.items, resolved.codes)).execute();
+            .values(buildInvoiceLines(id, body.items, resolved.codes, invCurrency)).execute();
           lines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', id).execute();
         } else {
           lines = [];

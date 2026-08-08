@@ -199,8 +199,6 @@ export function ComplyLegal() {
         titleEm="marketplace"
         subtitle="Engage vetted legal firms to handle your compliance applications"
       />
-      <div className="comply-page-hdr">
-        </div>
 
       <div className="comply-filters" style={{ marginBottom: 18 }}>
         <button type="button" className={`comply-filter-btn${tab === 'firms' ? ' active' : ''}`} onClick={() => setTab('firms')}>Browse Firms</button>

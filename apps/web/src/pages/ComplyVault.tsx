@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { useComplyCertificates, useComplyRenewals } from '../hooks/useComply.js';
 import type { CompCertificate } from '@hudumika/types';
 import { ComplyWizardPage, WizardField } from './ComplyWizardPage.js';
@@ -112,15 +113,14 @@ export function ComplyVault() {
 
   return (
     <div className="comply-page">
-      <div className="comply-page-hdr">
-        <div>
-          <h1 className="comply-page-title">Certificate Vault</h1>
-          <p className="comply-page-sub">
-            {certs.filter(c => c.status === 'active').length} active ·{' '}
+      <PageHeader
+        crumbs={['ComplyOS', 'Certificate Vault']} 
+        titlePlain="Certificate"
+        titleEm="vault"
+        subtitle={<> {certs.filter(c => c.status === 'active').length} active ·{' '}
             {certs.filter(c => c.status === 'expiring').length} expiring ·{' '}
-            {certs.filter(c => c.status === 'expired').length} expired
-          </p>
-        </div>
+            {certs.filter(c => c.status === 'expired').length} expired </>}
+        actions={
         <div className="comply-action-row">
           <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh certificates">
             <Icon name="refresh" size={13} />
@@ -132,7 +132,8 @@ export function ComplyVault() {
             <Icon name="plus" size={14} /> Add Certificate
           </button>
         </div>
-      </div>
+        }
+      />
 
       {error && <div className="comply-note comply-note--error">Failed to load certificates: {error}</div>}
 

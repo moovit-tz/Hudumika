@@ -434,8 +434,7 @@ export function ComplyBrelaSearch() {
         titlePlain="BRELA"
         titleEm="search"
         subtitle="Search Tanzania's BRELA business registry and capture verified company records into ComplyOS."
-      />
-      <div className="comply-page-hdr">
+        actions={
         <div className="comply-action-row">
           <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={() => navigate('/complyos/brela-search/history')}>
             <Icon name="clock" size={13} />
@@ -451,7 +450,8 @@ export function ComplyBrelaSearch() {
             <span>Open BRELA ORS Portal</span>
           </a>
         </div>
-      </div>
+        }
+      />
 
       {importedStatus && (
         <div className="comply-import-toast">

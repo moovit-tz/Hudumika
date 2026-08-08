@@ -5,6 +5,7 @@ import { FinanceService } from '../services/finance.service.js';
 import { requireRole } from '../middleware/rbac.js';
 import type { RecordExpenseInput } from '@hudumika/types';
 import { computeVatReturn } from '../services/vat-return.service.js';
+import { reportingCurrency } from '../services/tax-registration.service.js';
 
 export async function financeRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -26,10 +27,10 @@ export async function financeRoutes(fastify: FastifyInstance) {
     if (from! > to!) return reply.status(400).send({ error: '`from` must not be after `to`' });
 
     return withTenant(user.tenant_id, async (trx) => {
-      const settings = await trx.selectFrom('tenant_settings').select('settings')
-        .where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-      const configured = (settings?.settings as any)?.company?.currency;
-      return computeVatReturn(trx, user.tenant_id, from!, to!, currency || configured || 'TZS');
+      return computeVatReturn(
+        trx, user.tenant_id, from!, to!,
+        currency || await reportingCurrency(trx, user.tenant_id),
+      );
     });
   });
 

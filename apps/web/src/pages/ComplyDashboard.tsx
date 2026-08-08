@@ -69,26 +69,26 @@ export function ComplyDashboard() {
         titlePlain="Compliance"
         titleEm="overview"
         subtitle="Live data · Tanzania · East Africa"
+        actions={
+          <div className="comply-action-row">
+            <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh">
+              <Icon name="refresh" size={14} />
+            </button>
+            <button type="button" className="comply-btn-secondary" onClick={() => navigate('/complyos/obligation-scan')}>
+              <Icon name="sparkle" size={14} />
+              AI Obligation Scan
+            </button>
+            <Link to="/complyos/brela-search" className="comply-btn-secondary">
+              <Icon name="search" size={14} />
+              BRELA Search
+            </Link>
+            <Link to="/complyos/applications" className="comply-btn-primary">
+              <Icon name="plus" size={14} />
+              New Application
+            </Link>
+          </div>
+        }
       />
-      <div className="comply-page-hdr">
-        <div className="comply-action-row">
-          <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh">
-            <Icon name="refresh" size={14} />
-          </button>
-          <button type="button" className="comply-btn-secondary" onClick={() => navigate('/complyos/obligation-scan')}>
-            <Icon name="sparkle" size={14} />
-            AI Obligation Scan
-          </button>
-          <Link to="/complyos/brela-search" className="comply-btn-secondary">
-            <Icon name="search" size={14} />
-            BRELA Search
-          </Link>
-          <Link to="/complyos/applications" className="comply-btn-primary">
-            <Icon name="plus" size={14} />
-            New Application
-          </Link>
-        </div>
-      </div>
 
       {!profileLoading && !profile && (
         <div className="comply-note" style={{ marginBottom: 16 }}>

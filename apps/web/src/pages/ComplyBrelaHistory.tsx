@@ -28,8 +28,7 @@ export function ComplyBrelaHistory() {
         titlePlain="BRELA Search"
         titleEm="history"
         subtitle="Every BRELA search run by your team, with what it found."
-      />
-      <div className="comply-page-hdr">
+        actions={
         <div className="comply-action-row">
           <button type="button" className="comply-btn-secondary comply-btn-sm" onClick={refresh} title="Refresh">
             <Icon name="refresh" size={13} />
@@ -38,7 +37,8 @@ export function ComplyBrelaHistory() {
             <Icon name="search" size={14} /> New Search
           </button>
         </div>
-      </div>
+        }
+      />
 
       {error && <div className="comply-note comply-note--error">Failed to load search history: {error}</div>}
 

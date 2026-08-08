@@ -141,4 +141,79 @@ export async function orgChartRoutes(fastify: FastifyInstance) {
       return { ok: true };
     });
   });
+
+  // POST /org-chart/sync-staff — import/sync company staff into the org chart
+  fastify.post('/sync-staff', { preHandler: requireRole('MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const staffUsers = await trx.selectFrom('users')
+        .select(['id', 'name', 'email', 'role'])
+        .where('tenant_id', '=', user.tenant_id)
+        .execute();
+
+      const existingNodes = await trx.selectFrom('org_chart_nodes')
+        .select(['id', 'user_id'])
+        .where('tenant_id', '=', user.tenant_id)
+        .execute();
+
+      const existingUserIds = new Set(existingNodes.map(n => n.user_id).filter(Boolean));
+      const topNode = existingNodes.length > 0 ? existingNodes[0].id : null;
+
+      let addedCount = 0;
+      for (const s of staffUsers) {
+        if (!existingUserIds.has(s.id)) {
+          const color = '#0891b2';
+          await trx.insertInto('org_chart_nodes').values({
+            tenant_id: user.tenant_id,
+            user_id: s.id,
+            label: s.name || s.email,
+            job_title: s.role || 'Officer',
+            department: 'Operations',
+            email: s.email,
+            phone: null,
+            avatar_color: color,
+            parent_id: topNode,
+            position_x: 200 + (addedCount % 4) * 240,
+            position_y: 350 + Math.floor(addedCount / 4) * 150,
+            node_type: 'person',
+            color: color,
+          }).execute();
+          addedCount++;
+        }
+      }
+
+      return trx.selectFrom('org_chart_nodes')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .orderBy('created_at')
+        .execute();
+    });
+  });
+
+  // POST /org-chart/reset — reset org chart to default sample structure
+  fastify.post('/reset', { preHandler: requireRole('ADMIN', 'TENANT_ADMIN', 'SUPER_ADMIN') }, async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      await trx.deleteFrom('org_chart_nodes').where('tenant_id', '=', user.tenant_id).execute();
+      const seeds = SEED_NODES(user.tenant_id);
+      const ceo = await trx.insertInto('org_chart_nodes').values({
+        tenant_id: user.tenant_id, ...seeds[0], user_id: null, email: null, phone: null, parent_id: null,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const [coo, cfo] = await Promise.all([
+        trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[1], user_id: null, email: null, phone: null, parent_id: ceo.id }).returningAll().executeTakeFirstOrThrow(),
+        trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[2], user_id: null, email: null, phone: null, parent_id: ceo.id }).returningAll().executeTakeFirstOrThrow(),
+      ]);
+
+      await Promise.all([
+        trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[3], user_id: null, email: null, phone: null, parent_id: coo.id }).returningAll().executeTakeFirstOrThrow(),
+        trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[4], user_id: null, email: null, phone: null, parent_id: coo.id }).returningAll().executeTakeFirstOrThrow(),
+        trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[5], user_id: null, email: null, phone: null, parent_id: cfo.id }).returningAll().executeTakeFirstOrThrow(),
+        trx.insertInto('org_chart_nodes').values({ tenant_id: user.tenant_id, ...seeds[6], user_id: null, email: null, phone: null, parent_id: cfo.id }).returningAll().executeTakeFirstOrThrow(),
+      ]);
+
+      return trx.selectFrom('org_chart_nodes').selectAll()
+        .where('tenant_id', '=', user.tenant_id).orderBy('created_at').execute();
+    });
+  });
 }
