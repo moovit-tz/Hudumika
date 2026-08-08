@@ -18,6 +18,16 @@ import { apiFetch } from '../lib/api.js';
 export type TaxCodeKind =
   | 'STANDARD' | 'REDUCED' | 'ZERO_RATED' | 'EXEMPT' | 'REVERSE_CHARGE' | 'OUT_OF_SCOPE';
 
+/**
+ * Which side of the ledger a code may be used on.
+ *
+ * A sales code and a purchase code answer different questions with the same
+ * word: on a sale, "recoverable" is about whether making this supply lets you
+ * recover tax on its costs; on a purchase it is about whether the tax you were
+ * charged is deductible. Blocked input tax only exists on the purchase side.
+ */
+export type TaxCodeScope = 'SALES' | 'PURCHASE' | 'BOTH';
+
 export interface TaxCode {
   id: string;
   code: string;
@@ -26,6 +36,7 @@ export interface TaxCode {
   rate: number;
   jurisdiction: string;
   inputTaxRecoverable: boolean;
+  appliesTo: TaxCodeScope;
   traTaxCode: number | null;
   isDefault: boolean;
   status: string;
@@ -79,6 +90,7 @@ function mapApi(d: any): TaxCode {
     rate: Number(d.rate) || 0,
     jurisdiction: d.jurisdiction || '',
     inputTaxRecoverable: d.input_tax_recoverable !== false,
+    appliesTo: (d.applies_to || 'BOTH') as TaxCodeScope,
     traTaxCode: d.tra_tax_code === null || d.tra_tax_code === undefined ? null : Number(d.tra_tax_code),
     isDefault: !!d.is_default,
     status: d.status || 'active',
@@ -91,6 +103,7 @@ export function toApiPayload(c: Partial<TaxCode>) {
   return {
     code: c.code, name: c.name, kind: c.kind, rate: c.rate,
     jurisdiction: c.jurisdiction, input_tax_recoverable: c.inputTaxRecoverable,
+    applies_to: c.appliesTo,
     tra_tax_code: c.traTaxCode, is_default: c.isDefault, status: c.status,
     effective_from: c.effectiveFrom || null, effective_to: c.effectiveTo || null,
   };

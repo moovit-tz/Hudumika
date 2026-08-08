@@ -1,7 +1,7 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { quotationService } from '../services/quotation.service.js';
-import { TaxCodeNotFound } from '../services/tax-code.service.js';
+import { isTaxCodeUserError } from '../services/tax-code.service.js';
 import { withTenant } from '../db/client.js';
 
 // Matches the frontend's actual route grant for /quotations (FIN_ROLES +
@@ -47,7 +47,7 @@ export async function quotationRoutes(app: FastifyInstance) {
     } catch (e) {
       // An unknown (or another tenant's) tax code is a bad request, not a
       // server fault.
-      if (e instanceof TaxCodeNotFound) return reply.code(400).send({ error: e.message });
+      if (isTaxCodeUserError(e)) return reply.code(400).send({ error: e.message });
       throw e;
     }
   });

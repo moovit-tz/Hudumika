@@ -1,11 +1,26 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
-import type { IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
-import type { LedgerReport } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { Badge } from '../components/ui/badge.js';
+import { TAX_CODE_KIND_VARIANT, TAX_CODE_KIND_LABEL, type TaxCodeKind } from '../data/taxCodeData.js';
+
+/**
+ * The VAT return.
+ *
+ * What this replaces read a single GL account (2200), kept only its credits,
+ * and recovered a "taxable base" by dividing the tax by a hardcoded 18% — wrong
+ * for any tenant on another rate and meaningless on a mixed-rate invoice. It had
+ * no purchase side at all, so it could not state what the return exists to
+ * state: what is owed, or owed back.
+ *
+ * Every figure here comes from the documents, so it has a source. Where a
+ * figure cannot be produced honestly — an unclassified line, a bill in a
+ * currency with no rate — it is reported as a gap rather than folded into a
+ * total.
+ */
 
 const PERIODS = ['This Month', 'Last Month', 'This Quarter', 'This Year', 'Last Year'];
 
@@ -15,146 +30,153 @@ function periodRange(key: string): { from: string; to: string } {
   const y = now.getFullYear();
   switch (key) {
     case 'Last Month': {
-      const start = new Date(y, now.getMonth() - 1, 1);
-      const end = new Date(y, now.getMonth(), 0);
-      return { from: iso(start), to: iso(end) };
+      return { from: iso(new Date(y, now.getMonth() - 1, 1)), to: iso(new Date(y, now.getMonth(), 0)) };
     }
     case 'This Quarter': {
-      const qStartMonth = Math.floor(now.getMonth() / 3) * 3;
-      return { from: iso(new Date(y, qStartMonth, 1)), to: iso(now) };
+      const q = Math.floor(now.getMonth() / 3) * 3;
+      return { from: iso(new Date(y, q, 1)), to: iso(now) };
     }
     case 'Last Year':
       return { from: iso(new Date(y - 1, 0, 1)), to: iso(new Date(y - 1, 11, 31)) };
     case 'This Year':
       return { from: iso(new Date(y, 0, 1)), to: iso(now) };
-    case 'This Month':
     default:
       return { from: iso(new Date(y, now.getMonth(), 1)), to: iso(now) };
   }
 }
 
-const PAGE_SIZE = 15;
+interface Bucket { kind: TaxCodeKind | 'UNCLASSIFIED'; code: string | null; name: string; net: number; tax: number; lines: number }
+interface VatReturn {
+  from: string; to: string; currency: string;
+  outputs: Bucket[]; outputTax: number;
+  inputs: Bucket[]; inputTax: number; inputTaxClaimable: number; inputTaxBlocked: number;
+  taxableSupplies: number; exemptSupplies: number; recoveryRatePct: number;
+  inputTaxRecoverable: number; inputTaxRestricted: number;
+  netPayable: number;
+  unclassified: { salesLines: number; salesNet: number; salesTax: number; purchaseLines: number; purchaseNet: number; purchaseTax: number };
+  fxSkipped: { invoices: number; bills: number };
+  ledger: { outputTax: number; inputTax: number; netPerLedger: number; difference: number };
+}
 
-const pagerBtn = (disabled: boolean): React.CSSProperties => ({
-  display: 'inline-flex', alignItems: 'center', gap: 5,
-  padding: 'var(--ds-btn-py-sm) 12px',
-  minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25,
-  border: '1px solid var(--border)', borderRadius: 'var(--r)',
-  background: 'var(--white)', color: 'var(--ink2)',
-  fontSize: 11.5, fontWeight: 700, fontFamily: 'var(--font)',
-  cursor: disabled ? 'not-allowed' : 'pointer',
-  opacity: disabled ? 0.45 : 1,
-});
-
-/** Tax accounts from the standard seeded chart of accounts (021_finance_gl.sql).
- *  Taxable base is derived (taxAmt / rate) since only the tax amount itself is
- *  posted to the GL — there's no separately stored taxable-base figure. */
-const TAX_TYPES = [
-  { code: '2200', label: 'Value Added Tax (VAT)', short: 'VAT', rate: 18, color: 'var(--blue)', bg: 'var(--blue-l)' },
-  { code: '2300', label: 'Withholding Tax (WHT)',  short: 'WHT', rate: 5,  color: 'var(--gold)',     bg: 'var(--gold-l)' },
-];
-
-interface TaxTxn { ref: string; description: string; date: string; taxType: string; taxable: number; taxAmt: number; rate: number; color: string; bg: string }
+const card: React.CSSProperties = {
+  background: 'var(--white)', borderRadius: 'var(--r)',
+  border: '1px solid var(--border)', overflow: 'hidden',
+};
+const th: React.CSSProperties = {
+  padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--ink3)',
+  textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap',
+};
+const td: React.CSSProperties = { padding: '10px 16px', color: 'var(--ink2)', whiteSpace: 'nowrap' };
+const num: React.CSSProperties = { ...td, fontFamily: 'var(--mono)', textAlign: 'right', color: 'var(--ink)' };
 
 export const FinanceTaxReport: React.FC = () => {
   const co = useCompany();
-  const cur = co.currency ?? 'TZS';
-  const fmtFull = (n: number) => `${cur} ${n.toLocaleString()}`;
-
   const [period, setPeriod] = useState('This Year');
-  const [ledgers, setLedgers] = useState<Record<string, LedgerReport | null>>({});
+  const [data, setData] = useState<VatReturn | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const range = periodRange(period);
+  const cur = data?.currency ?? co.currency ?? 'TZS';
+  // `|| 0` normalises negative zero: a subtraction row of nothing rendered as
+  // "TZS -0", which reads like a real negative.
+  const fmt = (n: number) => `${cur} ${(Math.round(n) || 0).toLocaleString()}`;
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
-    setError(null);
-    Promise.all(
-      TAX_TYPES.map(t =>
-        apiFetch(`/v1/finance/ledger?account=${t.code}&from=${range.from}&to=${range.to}`)
-          .then((res: LedgerReport) => [t.code, res] as const)
-          .catch(() => [t.code, null] as const)
-      )
-    )
-      .then(pairs => { if (alive) setLedgers(Object.fromEntries(pairs)); })
-      .catch((err: any) => { if (alive) setError(err?.message ?? 'Failed to load tax report'); })
+    setLoading(true); setError(null);
+    apiFetch(`/v1/finance/vat-return?from=${range.from}&to=${range.to}`)
+      .then((r: VatReturn) => { if (alive) setData(r); })
+      .catch((e: any) => { if (alive) setError(e?.message ?? 'Failed to load the return'); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [range.from, range.to]);
 
-  const { summary, transactions } = useMemo(() => {
-    const summaryRows: { name: string; rate: number; taxableAmt: number; taxAmt: number; invoices: number; short: string; color: string; bg: string }[] = [];
-    const txns: TaxTxn[] = [];
-
-    TAX_TYPES.forEach(t => {
-      const ledger = ledgers[t.code];
-      if (!ledger) return;
-      const accrued = ledger.entries.filter(e => e.credit > 0);
-      const taxAmt = accrued.reduce((s, e) => s + e.credit, 0);
-      if (taxAmt <= 0) return;
-      summaryRows.push({
-        name: t.label, rate: t.rate, taxAmt,
-        taxableAmt: taxAmt / (t.rate / 100), invoices: accrued.length, short: t.short, color: t.color, bg: t.bg,
-      });
-      accrued.forEach(e => txns.push({
-        ref: e.entry_number, description: e.description || '—', date: e.date,
-        taxType: t.short, taxAmt: e.credit, taxable: e.credit / (t.rate / 100), rate: t.rate,
-        color: t.color, bg: t.bg,
-      }));
-    });
-
-    txns.sort((a, b) => b.date.localeCompare(a.date));
-    return { summary: summaryRows, transactions: txns };
-  }, [ledgers]);
-
-  const totalTaxable = summary.reduce((a, b) => a + b.taxableAmt, 0);
-  const totalTax = summary.reduce((a, b) => a + b.taxAmt, 0);
-  const totalInv = summary.reduce((a, b) => a + b.invoices, 0);
-
-  const [page, setPage] = useState(1);
-
-  useEffect(() => {
-    setPage(1);
-  }, [period]);
-
-  const pageCount = Math.max(1, Math.ceil(transactions.length / PAGE_SIZE));
-  const currentPage = Math.min(page, pageCount);
-  const offset = (currentPage - 1) * PAGE_SIZE;
-  const pagedTransactions = transactions.slice(offset, offset + PAGE_SIZE);
-
   function exportCsv() {
-    const rows = [
-      ['Ref', 'Description', 'Date', 'Tax Type', 'Taxable Amount', 'Tax Amount', 'Rate'],
-      ...transactions.map(t => [t.ref, t.description, t.date, t.taxType, String(t.taxable), String(t.taxAmt), `${t.rate}%`]),
+    if (!data) return;
+    const rows: (string | number)[][] = [
+      ['Section', 'Treatment', 'Code', 'Net', 'Tax', 'Lines'],
+      ...data.outputs.map(b => ['Sales', b.name, b.code ?? '', b.net, b.tax, b.lines]),
+      ...data.inputs.map(b => ['Purchases', b.name, b.code ?? '', b.net, b.tax, b.lines]),
+      [],
+      ['Output tax', '', '', '', data.outputTax, ''],
+      ['Input tax charged', '', '', '', data.inputTax, ''],
+      ['  of which blocked', '', '', '', data.inputTaxBlocked, ''],
+      ['  of which claimable', '', '', '', data.inputTaxClaimable, ''],
+      ['Recovery rate %', '', '', '', data.recoveryRatePct, ''],
+      ['Restricted by partial exemption', '', '', '', data.inputTaxRestricted, ''],
+      ['Input tax recoverable', '', '', '', data.inputTaxRecoverable, ''],
+      ['NET PAYABLE', '', '', '', data.netPayable, ''],
     ];
     const csv = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
     const a = document.createElement('a');
-    a.href = url; a.download = `tax-report-${period.replace(/\s+/g, '-')}.csv`;
-    document.body.appendChild(a); a.click();
-    document.body.removeChild(a); URL.revokeObjectURL(url);
+    a.href = url; a.download = `vat-return-${data.from}-to-${data.to}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
+  const payable = (data?.netPayable ?? 0) >= 0;
+
+  function BucketTable({ title, buckets, taxLabel }: { title: string; buckets: Bucket[]; taxLabel: string }) {
+    const net = buckets.reduce((s, b) => s + b.net, 0);
+    const tax = buckets.reduce((s, b) => s + b.tax, 0);
+    return (
+      <div style={card}>
+        <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{title}</span>
+        </div>
+        {buckets.length === 0 ? (
+          <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Nothing in this period.</div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ borderCollapse: 'collapse', fontSize: 12.5, width: '100%' }}>
+              <thead><tr style={{ background: 'var(--bg)' }}>
+                {['Treatment', 'Code', 'Net', taxLabel, 'Lines'].map(h => (
+                  <th key={h} style={{ ...th, textAlign: h === 'Net' || h === taxLabel || h === 'Lines' ? 'right' : 'left' }}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {buckets.map(b => (
+                  <tr key={`${b.kind}-${b.code}`} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={td}>
+                      {b.kind === 'UNCLASSIFIED'
+                        ? <Badge variant="warning">No treatment recorded</Badge>
+                        : <Badge variant={TAX_CODE_KIND_VARIANT[b.kind]}>{TAX_CODE_KIND_LABEL[b.kind]}</Badge>}
+                    </td>
+                    <td style={{ ...td, fontFamily: 'var(--mono)', fontSize: 11.5 }}>{b.code ?? '—'}</td>
+                    <td style={num}>{fmt(b.net)}</td>
+                    <td style={{ ...num, fontWeight: 700 }}>{fmt(b.tax)}</td>
+                    <td style={{ ...num, color: 'var(--ink3)' }}>{b.lines}</td>
+                  </tr>
+                ))}
+                <tr style={{ background: 'var(--bg)' }}>
+                  <td colSpan={2} style={{ ...td, fontWeight: 700, color: 'var(--ink)' }}>Total</td>
+                  <td style={{ ...num, fontWeight: 800 }}>{fmt(net)}</td>
+                  <td style={{ ...num, fontWeight: 800 }}>{fmt(tax)}</td>
+                  <td style={num} />
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       <PageHeader
         crumbs={['Finance', 'Tax']}
-        titlePlain="Tax"
-        titleEm="report"
-        subtitle="VAT and withholding tax accrued to the general ledger."
+        titlePlain="VAT"
+        titleEm="return"
+        subtitle="Output tax, input tax, and what is actually recoverable — computed from the documents."
         actions={
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <Select value={period} onValueChange={setPeriod}>
-              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-              </SelectContent>
+              <SelectTrigger aria-label="Period" style={{ width: 'auto', minHeight: 'var(--ctl-h-sm)', padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectContent>{PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
             </Select>
-            <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+            <button type="button" onClick={exportCsv} disabled={!data} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
               <Icon name="download" size={13} /> Export
             </button>
           </div>
@@ -162,148 +184,123 @@ export const FinanceTaxReport: React.FC = () => {
       />
 
       {loading ? (
-        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading tax report…</div>
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Computing the return…</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
-      ) : (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      ) : !data ? null : (
+        <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Summary cards */}
-        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-          {[
-            { label: 'Total Taxable Base (est.)', value: fmtFull(totalTaxable), icon: 'dollarSign', color: 'var(--blue)',   bg: 'var(--blue-l)' },
-            { label: 'Total Tax Accrued',         value: fmtFull(totalTax),     icon: 'percent',    color: 'var(--teal)',   bg: 'var(--teal-l)' },
-            { label: 'Effective Tax Rate',         value: totalTaxable > 0 ? `${((totalTax / totalTaxable) * 100).toFixed(1)}%` : '—', icon: 'barChart2', color: 'var(--gold)', bg: 'var(--gold-l)' },
-            { label: 'Taxable Transactions',       value: String(totalInv),      icon: 'file',       color: 'var(--purple)', bg: 'var(--purple-l)' },
-          ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name={s.icon as IconName} size={18} color={s.color} />
+          {/* The one figure the return exists to produce. */}
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+            {[
+              { label: 'Output tax on sales', value: fmt(data.outputTax), color: 'var(--ink)' },
+              { label: 'Input tax recoverable', value: fmt(data.inputTaxRecoverable), color: 'var(--ink)' },
+              {
+                label: payable ? 'Net payable to the authority' : 'Net repayable to you',
+                value: fmt(Math.abs(data.netPayable)),
+                color: payable ? 'var(--red)' : 'var(--green)',
+                strong: true,
+              },
+            ].map(s => (
+              <div key={s.label} style={{ ...card, flex: 1, minWidth: 200, padding: '16px 18px' }}>
+                <div style={{ fontSize: s.strong ? 24 : 20, fontWeight: 800, color: s.color, letterSpacing: '-0.02em', wordBreak: 'break-word' }}>{s.value}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 3 }}>{s.label}</div>
               </div>
+            ))}
+          </div>
+
+          {/* Gaps, stated rather than absorbed into a total. */}
+          {(data.unclassified.salesLines > 0 || data.unclassified.purchaseLines > 0 ||
+            data.fxSkipped.invoices > 0 || data.fxSkipped.bills > 0) && (
+            <div style={{
+              display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px',
+              background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)',
+              fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55,
+            }}>
+              <Icon name="alertTriangle" size={16} color="var(--gold)" />
               <div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{s.value}</div>
-                <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>{s.label}</div>
+                <strong style={{ color: 'var(--ink)' }}>This return is incomplete.</strong>
+                <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+                  {data.unclassified.salesLines > 0 && (
+                    <li>{data.unclassified.salesLines} sales line{data.unclassified.salesLines === 1 ? '' : 's'} carrying {fmt(data.unclassified.salesTax)} of tax {data.unclassified.salesLines === 1 ? 'has' : 'have'} no treatment recorded, so {data.unclassified.salesLines === 1 ? 'it cannot' : 'they cannot'} be placed in a box.</li>
+                  )}
+                  {data.unclassified.purchaseLines > 0 && (
+                    <li>{data.unclassified.purchaseLines} purchase line{data.unclassified.purchaseLines === 1 ? '' : 's'} carrying {fmt(data.unclassified.purchaseTax)} of tax {data.unclassified.purchaseLines === 1 ? 'has' : 'have'} no treatment recorded. That tax is <strong>not</strong> being claimed — an unrecorded treatment is not a claim.</li>
+                  )}
+                  {(data.fxSkipped.invoices > 0 || data.fxSkipped.bills > 0) && (
+                    <li>{data.fxSkipped.invoices + data.fxSkipped.bills} document line{data.fxSkipped.invoices + data.fxSkipped.bills === 1 ? '' : 's'} in another currency {data.fxSkipped.invoices + data.fxSkipped.bills === 1 ? 'was' : 'were'} excluded: no rate to {cur} is recorded, and a guessed rate on a tax claim is a wrong claim.</li>
+                  )}
+                </ul>
               </div>
             </div>
-          ))}
-        </div>
+          )}
 
-        {/* Tax by type table */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
-          <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Tax Summary by Type</span>
-          </div>
-          {summary.length === 0 ? (
-            <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No tax activity for this period.</div>
-          ) : (
-          <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
-            <thead>
-              <tr style={{ background: 'var(--bg)' }}>
-                {['Tax Name', 'Rate', 'Taxable Base (est.)', 'Tax Accrued', 'Entries', 'Share'].map(h => (
-                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {summary.map((row, i) => {
-                const share = totalTax > 0 ? ((row.taxAmt / totalTax) * 100).toFixed(1) : '0.0';
-                return (
-                  <tr key={row.name} style={{ borderBottom: i < summary.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                    <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 600 }}>{row.name}</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>{row.rate}%</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--ink)', fontFamily: 'var(--mono)' }}>{fmtFull(row.taxableAmt)}</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 700, fontFamily: 'var(--mono)' }}>{fmtFull(row.taxAmt)}</td>
-                    <td style={{ padding: '10px 16px', color: 'var(--ink2)', textAlign: 'center' }}>{row.invoices}</td>
-                    <td style={{ padding: '10px 16px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <div style={{ width: 60, height: 4, borderRadius: 2, background: 'var(--border)', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${share}%`, background: 'var(--teal)', borderRadius: 2 }} />
-                        </div>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)' }}>{share}%</span>
-                      </div>
-                    </td>
+          <BucketTable title={`Sales — output tax (${data.from} to ${data.to})`} buckets={data.outputs} taxLabel="Output tax" />
+          <BucketTable title="Purchases — input tax" buckets={data.inputs} taxLabel="Input tax" />
+
+          {/* How input tax gets from "charged" to "claimable". */}
+          <div style={card}>
+            <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>How much input tax is claimable</span>
+            </div>
+            <table style={{ borderCollapse: 'collapse', fontSize: 12.5, width: '100%' }}>
+              <tbody>
+                {[
+                  { l: 'Input tax charged on purchases', v: data.inputTax },
+                  { l: 'Less: blocked treatments, and purchases with no treatment recorded', v: -data.inputTaxBlocked, muted: true },
+                  { l: 'Input tax on treatments that permit recovery', v: data.inputTaxClaimable, rule: true },
+                  {
+                    l: `Less: restricted by partial exemption — ${data.recoveryRatePct.toFixed(2)}% recovery ` +
+                       `(taxable ${fmt(data.taxableSupplies)} ÷ total supplies ${fmt(data.taxableSupplies + data.exemptSupplies)})`,
+                    v: -data.inputTaxRestricted, muted: true,
+                  },
+                  { l: 'Input tax recoverable', v: data.inputTaxRecoverable, rule: true, strong: true },
+                ].map((r, i) => (
+                  <tr key={i} style={{ borderTop: r.rule ? '2px solid var(--border)' : '1px solid var(--border)' }}>
+                    <td style={{ ...td, whiteSpace: 'normal', color: r.muted ? 'var(--ink3)' : 'var(--ink)', fontWeight: r.strong ? 700 : 500 }}>{r.l}</td>
+                    <td style={{ ...num, fontWeight: r.strong ? 800 : 600, color: r.muted ? 'var(--ink3)' : 'var(--ink)' }}>{fmt(r.v)}</td>
                   </tr>
-                );
-              })}
-              <tr style={{ background: 'var(--bg)' }}>
-                <td colSpan={2} style={{ padding: '10px 16px', fontWeight: 700, color: 'var(--ink)', borderTop: '2px solid var(--border)' }}>Total</td>
-                <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totalTaxable)}</td>
-                <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totalTax)}</td>
-                <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 800, textAlign: 'center', borderTop: '2px solid var(--border)' }}>{totalInv}</td>
-                <td style={{ padding: '10px 16px', borderTop: '2px solid var(--border)' }} />
-              </tr>
-            </tbody>
-          </table></div>
-          )}
-        </div>
-
-        {/* Transaction detail table */}
-        <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
-          <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Taxable Transactions ({transactions.length})</span>
-          </div>
-          {transactions.length === 0 ? (
-            <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No taxable transactions for this period.</div>
-          ) : (
-          <>
-          <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
-            <thead>
-              <tr style={{ background: 'var(--bg)' }}>
-                {['Reference', 'Description', 'Date', 'Tax Type', 'Taxable Base (est.)', 'Tax Amount', 'Rate'].map(h => (
-                  <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
-              </tr>
-            </thead>
-            <tbody>
-              {pagedTransactions.map((tx, i) => (
-                <tr key={`${tx.ref}-${i}`} style={{ borderBottom: i < pagedTransactions.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                  <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 600, fontFamily: 'var(--mono)', fontSize: 11 }}>{tx.ref}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 500 }}>{tx.description}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{new Date(tx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
-                  <td style={{ padding: '10px 16px' }}>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: tx.color, background: tx.bg, borderRadius: 5, padding: '2px 7px' }}>{tx.taxType}</span>
-                  </td>
-                  <td style={{ padding: '10px 16px', color: 'var(--ink)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(tx.taxable)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 600, fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmtFull(tx.taxAmt)}</td>
-                  <td style={{ padding: '10px 16px', color: 'var(--ink2)', fontFamily: 'var(--mono)' }}>{tx.rate}%</td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>
-
-          {/* Pagination Controls */}
-          {transactions.length > PAGE_SIZE && (
-            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, background: 'var(--white)' }}>
-              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-                Showing <strong>{offset + 1}–{Math.min(offset + PAGE_SIZE, transactions.length)}</strong> of <strong>{transactions.length}</strong> transactions
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <button
-                  type="button"
-                  disabled={currentPage <= 1}
-                  onClick={() => setPage(p => Math.max(1, p - 1))}
-                  style={pagerBtn(currentPage <= 1)}
-                >
-                  <Icon name="chevronLeft" size={13} /> Previous
-                </button>
-                <span style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, padding: '0 6px' }}>
-                  Page {currentPage} of {pageCount}
-                </span>
-                <button
-                  type="button"
-                  disabled={currentPage >= pageCount}
-                  onClick={() => setPage(p => Math.min(pageCount, p + 1))}
-                  style={pagerBtn(currentPage >= pageCount)}
-                >
-                  Next <Icon name="chevronRight" size={13} />
-                </button>
-              </div>
+              </tbody>
+            </table>
+            <div style={{ padding: '10px 18px', fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.5, borderTop: '1px solid var(--border)' }}>
+              Recovery is apportioned by turnover (the standard method). Direct attribution would be
+              more precise, but nothing in the data links a purchase to the supply it was made for,
+              so attributing would mean inventing that link.
             </div>
-          )}
-          </>
-          )}
+          </div>
+
+          {/* Books vs return. A difference here is information, not an error. */}
+          <div style={card}>
+            <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Against the ledger</span>
+            </div>
+            <table style={{ borderCollapse: 'collapse', fontSize: 12.5, width: '100%' }}>
+              <tbody>
+                {[
+                  { l: 'VAT Output (Payable) — account 2200', v: data.ledger.outputTax },
+                  { l: 'VAT Input (Recoverable) — account 1150', v: -data.ledger.inputTax },
+                  { l: 'Net per the ledger', v: data.ledger.netPerLedger, rule: true },
+                  { l: 'Net per this return', v: data.netPayable },
+                  { l: 'Difference', v: data.ledger.difference, rule: true, strong: true },
+                ].map((r, i) => (
+                  <tr key={i} style={{ borderTop: r.rule ? '2px solid var(--border)' : '1px solid var(--border)' }}>
+                    <td style={{ ...td, whiteSpace: 'normal', fontWeight: r.strong ? 700 : 500 }}>{r.l}</td>
+                    <td style={{ ...num, fontWeight: r.strong ? 800 : 600 }}>{fmt(r.v)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {Math.abs(data.ledger.difference) > 0.5 && (
+              <div style={{ padding: '10px 18px', fontSize: 11.5, color: 'var(--ink2)', lineHeight: 1.55, borderTop: '1px solid var(--border)', background: 'var(--bg)' }}>
+                A bill posts its whole recoverable tax to account 1150 when it is entered, but this
+                return only allows {data.recoveryRatePct.toFixed(2)}% of it. The difference is a
+                period-end adjustment still to be posted — debit the expense, credit 1150 with{' '}
+                <strong>{fmt(Math.abs(data.ledger.difference))}</strong>. Nothing posts it for you.
+              </div>
+            )}
+          </div>
         </div>
-      </div>
       )}
     </div>
   );

@@ -9,7 +9,7 @@ import { showConfirm } from '../lib/confirm.js';
 import { apiFetch } from '../lib/api.js';
 import {
   useTaxCodes, refreshTaxCodes, toApiPayload,
-  TaxCode, TaxCodeKind, TAX_CODE_KINDS, ZERO_RATE_KINDS,
+  TaxCode, TaxCodeKind, TaxCodeScope, TAX_CODE_KINDS, ZERO_RATE_KINDS,
   TAX_CODE_KIND_LABEL, TAX_CODE_KIND_HINT, TAX_CODE_KIND_VARIANT,
 } from '../data/taxCodeData.js';
 
@@ -25,13 +25,14 @@ import {
 
 const EMPTY: TaxCode = {
   id: '', code: '', name: '', kind: 'STANDARD', rate: 18, jurisdiction: 'TZ',
-  inputTaxRecoverable: true, traTaxCode: null, isDefault: false, status: 'active',
+  inputTaxRecoverable: true, appliesTo: 'BOTH', traTaxCode: null, isDefault: false, status: 'active',
   effectiveFrom: null, effectiveTo: null,
 };
 
 interface Usage {
   invoice_lines: { total: number; unclassified: number };
   products: { total: number; unclassified: number };
+  bill_lines: { total: number; unclassified: number };
 }
 
 /* ── Form ───────────────────────────────────────────────────────────────────── */
@@ -145,8 +146,22 @@ function TaxCodeForm({ code, onClose, onSaved }: {
             onChange={e => set('jurisdiction', e.target.value.toUpperCase())} placeholder="TZ" />
         </F>
 
-        <F label="Input tax recoverable"
-           hint="Whether making this supply lets you recover tax on related purchases. This is the difference between zero-rated and exempt.">
+        <F label="Used on"
+           hint="A blocked-input-tax code is a purchase treatment and nonsense on a sale — the API refuses to attach one to an invoice.">
+          <Select value={form.appliesTo} onValueChange={v => set('appliesTo', v as TaxCodeScope)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="BOTH">Sales and purchases</SelectItem>
+              <SelectItem value="SALES">Sales only</SelectItem>
+              <SelectItem value="PURCHASE">Purchases only</SelectItem>
+            </SelectContent>
+          </Select>
+        </F>
+
+        <F label={form.appliesTo === 'PURCHASE' ? 'Input tax deductible' : 'Input tax recoverable'}
+           hint={form.appliesTo === 'PURCHASE'
+             ? 'Whether the tax charged on this purchase can be reclaimed. Blocked items cannot.'
+             : 'Whether making this supply lets you recover tax on related purchases. This is the difference between zero-rated and exempt.'}>
           <Select value={form.inputTaxRecoverable ? 'yes' : 'no'}
                   onValueChange={v => set('inputTaxRecoverable', v === 'yes')}>
             <SelectTrigger><SelectValue /></SelectTrigger>
@@ -210,7 +225,7 @@ export function FinanceTaxCodes() {
 
   const unclassified = useMemo(() => {
     if (!usage) return null;
-    return usage.invoice_lines.unclassified + usage.products.unclassified;
+    return usage.invoice_lines.unclassified + usage.products.unclassified + usage.bill_lines.unclassified;
   }, [usage]);
 
   async function remove(c: TaxCode) {
@@ -274,7 +289,7 @@ export function FinanceTaxCodes() {
           sub1Label: 'All charge', sub1Value: '0%' },
         { title: 'Unclassified rows', value: unclassified === null ? '—' : String(unclassified),
           sub1Label: 'Invoice lines', sub1Value: usage ? String(usage.invoice_lines.unclassified) : '—',
-          sub2Label: 'Products', sub2Value: usage ? String(usage.products.unclassified) : '—' },
+          sub2Label: 'Bill lines', sub2Value: usage ? String(usage.bill_lines.unclassified) : '—' },
       ]} />
 
       {/* The honest gap, stated rather than papered over. Everything at 0%
@@ -294,7 +309,8 @@ export function FinanceTaxCodes() {
             They were written before tax codes existed, when tax was only a percentage.
             A 0% row could have been zero-rated, exempt, reverse-charge or out of scope,
             and only one of those lets you recover input tax — so nothing was guessed on
-            your behalf. Set a treatment on each as you touch it.
+            your behalf. On the purchase side that means the tax is <strong>not</strong> being
+            claimed: an unrecorded treatment is not a claim. Set a treatment on each as you touch it.
           </div>
         </div>
       )}
@@ -303,14 +319,14 @@ export function FinanceTaxCodes() {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: 'var(--bg)', borderBottom: '2px solid var(--border)' }}>
-              {['Code', 'Name', 'Treatment', 'Rate', 'Input tax', 'TRA', 'Jurisdiction', 'Status', ''].map(h => (
+              {['Code', 'Name', 'Treatment', 'Rate', 'Used on', 'Input tax', 'TRA', 'Jurisdiction', 'Status', ''].map(h => (
                 <th key={h} style={th}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {codes.length === 0 && (
-              <tr><td colSpan={9} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--ink3)' }}>
+              <tr><td colSpan={10} style={{ textAlign: 'center', padding: '48px 20px', color: 'var(--ink3)' }}>
                 No tax codes yet
               </td></tr>
             )}
@@ -325,6 +341,7 @@ export function FinanceTaxCodes() {
                   <Badge variant={TAX_CODE_KIND_VARIANT[c.kind]}>{TAX_CODE_KIND_LABEL[c.kind]}</Badge>
                 </td>
                 <td style={{ ...td, fontFamily: 'var(--mono)' }}>{c.rate}%</td>
+                <td style={td}>{c.appliesTo === 'BOTH' ? 'Sales & purchases' : c.appliesTo === 'SALES' ? 'Sales' : 'Purchases'}</td>
                 <td style={td}>{c.inputTaxRecoverable ? 'Recoverable' : 'Not recoverable'}</td>
                 <td style={td}>
                   {c.traTaxCode === null

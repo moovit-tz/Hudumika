@@ -152,7 +152,9 @@ function ProductForm({ product, onSave, onClose }: {
 }) {
   const [form, setForm] = useState<Product>(product ?? { ...EMPTY_PRODUCT });
   const [saving, setSaving] = useState(false);
-  const taxCodes = useTaxCodes();
+  // Sales-side treatments only — a blocked-input-tax code is a purchase
+  // concept and the API refuses it on an invoice anyway.
+  const taxCodes = useTaxCodes().filter(c => c.appliesTo !== 'PURCHASE');
 
   // A new product starts on the workspace default rather than a literal 18.
   // Only once, and only while the field is still untouched.
@@ -294,7 +296,7 @@ export function FinanceProducts() {
   const { fmt } = useCurrency();
   const isMobile = useIsMobile();
   const products = useProducts();
-  const taxCodes = useTaxCodes();
+  const taxCodes = useTaxCodes().filter(c => c.appliesTo !== 'PURCHASE');
   const codeById = useMemo(() => new Map(taxCodes.map(c => [c.id, c])), [taxCodes]);
 
   const [search, setSearch]             = useState('');

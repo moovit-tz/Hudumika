@@ -1789,6 +1789,8 @@ export interface SalesInvoiceLinesTable {
 export type TaxCodeKind =
   | 'STANDARD' | 'REDUCED' | 'ZERO_RATED' | 'EXEMPT' | 'REVERSE_CHARGE' | 'OUT_OF_SCOPE';
 
+export type TaxCodeScope = 'SALES' | 'PURCHASE' | 'BOTH';
+
 export interface TaxCodesTable {
   id: Generated<string>;
   tenant_id: string;
@@ -1797,7 +1799,13 @@ export interface TaxCodesTable {
   kind: TaxCodeKind;
   rate: Generated<number>;
   jurisdiction: string;
+  /**
+   * On a SALES code: whether making this supply allows recovery of tax on its
+   * costs. On a PURCHASE code: whether the tax charged is deductible.
+   */
   input_tax_recoverable: Generated<boolean>;
+  /** 'SALES' | 'PURCHASE' | 'BOTH' — a blocked-input code has no meaning on a sale. */
+  applies_to: Generated<TaxCodeScope>;
   /** TRA EFDMS <TAXCODE> 1–5, or null where TRA has no equivalent. */
   tra_tax_code: number | null;
   is_default: Generated<boolean>;
@@ -1929,6 +1937,8 @@ export interface SupplierBillsTable {
   due_date: DateOnlyNull;
   status: Generated<string>;
   currency: Generated<string>;
+  /** Units of the reporting currency per one unit of `currency`. 1 = no conversion. */
+  exchange_rate: Generated<number>;
   subtotal: Generated<number>;
   tax_amount: Generated<number>;
   total: Generated<number>;
@@ -1953,6 +1963,8 @@ export interface SupplierBillLinesTable {
   qty: Generated<number>;
   unit_price: Generated<number>;
   tax_rate: Generated<number>;
+  /** Decides whether the tax on this line is claimable. NULL = never recorded. */
+  tax_code_id: string | null;
   sort_order: Generated<number>;
 }
 
@@ -1980,6 +1992,7 @@ export interface RecurringBillsTable {
   currency: Generated<string>;
   amount: Generated<number>;
   tax_rate: Generated<number>;
+  tax_code_id: string | null;
   category: Generated<string>;
   description: string | null;
   payment_terms: string | null;
@@ -3844,6 +3857,7 @@ export interface PurchaseOrdersTable {
   order_date: DateOnlyNull;
   expected_date: DateOnlyNull;
   currency: Generated<string>;
+  exchange_rate: Generated<number>;
   subtotal: Generated<number>;
   tax_amount: Generated<number>;
   total: Generated<number>;
@@ -3864,6 +3878,7 @@ export interface PurchaseOrderLinesTable {
   qty: Generated<number>;
   unit_price: Generated<number>;
   tax_rate: Generated<number>;
+  tax_code_id: string | null;
   tax_amount: Generated<number>;
   line_total: Generated<number>;
   received_qty: Generated<number>;

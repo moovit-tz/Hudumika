@@ -9,7 +9,7 @@ import { AccountingIntegrationService } from '../services/accounting-integration
 import { TRAService } from '../services/tra.service.js';
 import { getNextDocNumber } from '../lib/doc-numbering.js';
 import { toDateParam } from '../utils/dates.js';
-import { TaxCodeNotFound, resolveTaxCode } from '../services/tax-code.service.js';
+import { isTaxCodeUserError, resolveTaxCode } from '../services/tax-code.service.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 
@@ -48,6 +48,43 @@ export function invoiceGrandTotal(
   }, 0);
 }
 
+/** The same conversion as invoiceGrandTotal, split into its net and tax parts. */
+export function invoiceNetAndTax(
+  lines: { qty: unknown; rate: unknown; tax_pct: unknown; currency?: string | null }[],
+  invoiceCurrency: string,
+  exchangeRate: number,
+): { net: number; tax: number } {
+  const base = (invoiceCurrency || 'TZS').toUpperCase();
+  return lines.reduce((acc, l) => {
+    const cur = (l.currency || base).toUpperCase();
+    const fx = cur === base ? 1 : exchangeRate;
+    const net = Number(l.qty) * Number(l.rate) * fx;
+    acc.net += net;
+    acc.tax += net * (Number(l.tax_pct) / 100);
+    return acc;
+  }, { net: 0, tax: 0 });
+}
+
+/**
+ * The journal for an issued invoice.
+ *
+ * Tax charged to a customer is collected on the authority's behalf: a liability,
+ * not revenue. Both posting sites used to credit the *gross* total to revenue
+ * and post nothing to VAT at all — so revenue was overstated by exactly the tax,
+ * the output-tax liability was never recorded, and account 2200 stayed empty
+ * no matter how much VAT had been charged. Found by running a return end to end
+ * and reading the entry it produced.
+ */
+function invoiceJournalLines(grandTotal: number, { net, tax }: { net: number; tax: number }) {
+  return [
+    { accountCode: '1100', debit: grandTotal, credit: 0, description: 'Accounts Receivable' },
+    { accountCode: '4000', debit: 0, credit: net, description: 'Freight Revenue' },
+    ...(tax > 0
+      ? [{ accountCode: '2200', debit: 0, credit: tax, description: 'VAT output tax' }]
+      : []),
+  ];
+}
+
 /**
  * Turn request items into invoice line rows, resolving each line's tax code.
  *
@@ -81,10 +118,10 @@ async function resolveItemTaxCodes(
   const codes = new Map<string, { id: string; rate: number }>();
   for (const cid of codeIds) {
     try {
-      const c = await resolveTaxCode(trx, tenantId, cid);
+      const c = await resolveTaxCode(trx, tenantId, cid, 'SALES');
       codes.set(cid, { id: c.id, rate: Number(c.rate) });
     } catch (e) {
-      if (e instanceof TaxCodeNotFound) return { ok: false as const, error: e.message };
+      if (isTaxCodeUserError(e)) return { ok: false as const, error: e.message };
       throw e;
     }
   }
@@ -436,11 +473,14 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       }).returningAll().execute();
 
       let grandTotal = 0;
+      let netAndTax = { net: 0, tax: 0 };
       if (Array.isArray(body.items) && body.items.length > 0) {
         const itemsToInsert = buildInvoiceLines(inv.id, body.items, resolved.codes);
         await trx.insertInto('sales_invoice_lines').values(itemsToInsert).execute();
 
-        grandTotal = invoiceGrandTotal(itemsToInsert, inv.currency, Number(inv.exchange_rate) || 1);
+        const fx = Number(inv.exchange_rate) || 1;
+        grandTotal = invoiceGrandTotal(itemsToInsert, inv.currency, fx);
+        netAndTax = invoiceNetAndTax(itemsToInsert, inv.currency, fx);
       }
 
       if (inv.status !== 'Draft' && grandTotal > 0) {
@@ -451,10 +491,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
           sourceModule: 'AR',
           sourceId: inv.id,
           createdBy: user.sub,
-          lines: [
-            { accountCode: '1100', debit: grandTotal, credit: 0, description: 'Accounts Receivable' },
-            { accountCode: '4000', debit: 0, credit: grandTotal, description: 'Freight Revenue' },
-          ],
+          lines: invoiceJournalLines(grandTotal, netAndTax),
         });
       }
 
@@ -528,10 +565,10 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
               sourceModule: 'AR',
               sourceId: inv.id,
               createdBy: user.sub,
-              lines: [
-                { accountCode: '1100', debit: grandTotal, credit: 0, description: 'Accounts Receivable' },
-                { accountCode: '4000', debit: 0, credit: grandTotal, description: 'Freight Revenue' },
-              ],
+              lines: invoiceJournalLines(
+                grandTotal,
+                invoiceNetAndTax(lines, inv.currency, Number(inv.exchange_rate) || 1),
+              ),
             });
           }
         }

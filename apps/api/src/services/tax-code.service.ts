@@ -1,5 +1,5 @@
 import type { Kysely, Transaction } from 'kysely';
-import type { Database, TaxCodeKind } from '../db/client.js';
+import type { Database, TaxCodeKind, TaxCodeScope } from '../db/client.js';
 
 type Db = Kysely<Database> | Transaction<Database>;
 
@@ -7,6 +7,16 @@ export class TaxCodeNotFound extends Error {
   constructor(id: string) {
     super(`Tax code ${id} not found in this workspace`);
     this.name = 'TaxCodeNotFound';
+  }
+}
+
+export class TaxCodeWrongScope extends Error {
+  constructor(public readonly code: string, public readonly scope: TaxCodeScope, wanted: TaxCodeScope) {
+    super(
+      `Tax code "${code}" is a ${scope.toLowerCase()} code and cannot be used on a ` +
+      `${wanted.toLowerCase()} document.`,
+    );
+    this.name = 'TaxCodeWrongScope';
   }
 }
 
@@ -18,6 +28,11 @@ export class TaxCodeNotFilable extends Error {
     );
     this.name = 'TaxCodeNotFilable';
   }
+}
+
+/** Both are bad requests from a caller, never a server fault. */
+export function isTaxCodeUserError(e: unknown): e is Error {
+  return e instanceof TaxCodeNotFound || e instanceof TaxCodeWrongScope;
 }
 
 export const TAX_CODE_KINDS: TaxCodeKind[] = [
@@ -36,8 +51,16 @@ export const ZERO_RATE_KINDS: TaxCodeKind[] = [
  * is *yours*. Everything that accepts a tax_code_id from a request body goes
  * through here so a caller cannot attach another workspace's treatment to their
  * own invoice line.
+ *
+ * `scope` additionally refuses a code meant for the other side of the ledger.
+ * A blocked-input-tax code ("standard rate, not recoverable") is a coherent
+ * purchase treatment and nonsense on a sale — without this check it could be
+ * attached to an invoice, where `input_tax_recoverable` means something else
+ * entirely and would silently mis-drive the return.
  */
-export async function resolveTaxCode(db: Db, tenantId: string, taxCodeId: string) {
+export async function resolveTaxCode(
+  db: Db, tenantId: string, taxCodeId: string, scope?: Exclude<TaxCodeScope, 'BOTH'>,
+) {
   const row = await db
     .selectFrom('tax_codes')
     .selectAll()
@@ -45,7 +68,33 @@ export async function resolveTaxCode(db: Db, tenantId: string, taxCodeId: string
     .where('tenant_id', '=', tenantId)
     .executeTakeFirst();
   if (!row) throw new TaxCodeNotFound(taxCodeId);
+  if (scope && row.applies_to !== 'BOTH' && row.applies_to !== scope) {
+    throw new TaxCodeWrongScope(row.code, row.applies_to, scope);
+  }
   return row;
+}
+
+/**
+ * How a purchase line's tax splits for the ledger.
+ *
+ * Recoverable input tax is an asset — money the revenue authority owes you, so
+ * it goes to its own account. Non-recoverable input tax is not an asset and
+ * never becomes one, so it belongs in the cost of whatever was bought. Posting
+ * both to the VAT account (which is what happened before this existed) claims
+ * back tax that cannot be claimed.
+ *
+ * A line with no tax code is treated as NOT recoverable. That is the
+ * conservative direction on purpose: an unrecorded treatment must not produce a
+ * claim nobody authorised.
+ */
+export function splitInputTax(
+  taxAmount: number,
+  code: { input_tax_recoverable: boolean } | null | undefined,
+): { recoverable: number; nonRecoverable: number } {
+  if (!Number.isFinite(taxAmount) || taxAmount <= 0) return { recoverable: 0, nonRecoverable: 0 };
+  return code?.input_tax_recoverable
+    ? { recoverable: taxAmount, nonRecoverable: 0 }
+    : { recoverable: 0, nonRecoverable: taxAmount };
 }
 
 /**
@@ -62,9 +111,10 @@ export async function resolveLineTax(
   tenantId: string,
   input: { tax_code_id?: string | null; tax_pct?: unknown },
   fallbackRate = 0,
+  scope?: Exclude<TaxCodeScope, 'BOTH'>,
 ): Promise<{ tax_code_id: string | null; rate: number }> {
   if (input.tax_code_id) {
-    const code = await resolveTaxCode(db, tenantId, input.tax_code_id);
+    const code = await resolveTaxCode(db, tenantId, input.tax_code_id, scope);
     return { tax_code_id: code.id, rate: Number(code.rate) };
   }
   const rate = input.tax_pct === undefined || input.tax_pct === null
@@ -73,15 +123,16 @@ export async function resolveLineTax(
   return { tax_code_id: null, rate };
 }
 
-/** The tenant's default treatment, if they have one. */
-export async function defaultTaxCode(db: Db, tenantId: string) {
-  return db
+/** The tenant's default treatment for one side of the ledger, if they have one. */
+export async function defaultTaxCode(db: Db, tenantId: string, scope: TaxCodeScope = 'BOTH') {
+  let q = db
     .selectFrom('tax_codes')
     .selectAll()
     .where('tenant_id', '=', tenantId)
     .where('is_default', '=', true)
-    .where('status', '=', 'active')
-    .executeTakeFirst();
+    .where('status', '=', 'active');
+  if (scope !== 'BOTH') q = q.where(eb => eb.or([eb('applies_to', '=', 'BOTH'), eb('applies_to', '=', scope)]));
+  return q.executeTakeFirst();
 }
 
 /**
@@ -111,6 +162,11 @@ export async function ensureTaxCodes(db: Db, tenantId: string, jurisdiction = 'T
       rate: 0, jurisdiction: juris, input_tax_recoverable: true, tra_tax_code: null, is_default: false },
     { tenant_id: tenantId, code: 'OOS', name: 'Out of scope', kind: 'OUT_OF_SCOPE',
       rate: 0, jurisdiction: juris, input_tax_recoverable: false, tra_tax_code: null, is_default: false },
+    // Purchase-only: tax genuinely charged and paid, but blocked from recovery.
+    // Without it a blocked purchase can only be recorded as fully claimable.
+    { tenant_id: tenantId, code: 'STD-NR', name: `Standard rate, not recoverable (${std}%)`,
+      kind: 'STANDARD', rate: std, jurisdiction: juris, input_tax_recoverable: false,
+      tra_tax_code: null, applies_to: 'PURCHASE', is_default: false },
   ]).onConflict(oc => oc.columns(['tenant_id', 'code']).doNothing()).execute();
   return true;
 }

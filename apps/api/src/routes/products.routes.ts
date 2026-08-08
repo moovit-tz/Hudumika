@@ -2,7 +2,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
-import { TaxCodeNotFound, resolveLineTax } from '../services/tax-code.service.js';
+import { isTaxCodeUserError, resolveLineTax } from '../services/tax-code.service.js';
 import crypto from 'crypto';
 
 const FIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'] as const;
@@ -53,9 +53,9 @@ export async function productRoutes(fastify: FastifyInstance) {
       let tax: { tax_code_id: string | null; rate: number };
       try {
         tax = await resolveLineTax(trx, user.tenant_id,
-          { tax_code_id: body.tax_code_id, tax_pct: body.tax_rate });
+          { tax_code_id: body.tax_code_id, tax_pct: body.tax_rate }, 0, 'SALES');
       } catch (e) {
-        if (e instanceof TaxCodeNotFound) return reply.status(400).send({ error: e.message });
+        if (isTaxCodeUserError(e)) return reply.status(400).send({ error: e.message });
         throw e;
       }
       const row = await trx.insertInto('products').values({
@@ -95,11 +95,11 @@ export async function productRoutes(fastify: FastifyInstance) {
       // without the other is how they drift apart.
       if (body.tax_code_id !== undefined) {
         try {
-          const tax = await resolveLineTax(trx, user.tenant_id, { tax_code_id: body.tax_code_id });
+          const tax = await resolveLineTax(trx, user.tenant_id, { tax_code_id: body.tax_code_id }, 0, 'SALES');
           updates.tax_rate = tax.tax_code_id ? tax.rate : (body.tax_rate ?? existing.tax_rate);
           updates.tax_code_id = tax.tax_code_id;
         } catch (e) {
-          if (e instanceof TaxCodeNotFound) return reply.status(400).send({ error: e.message });
+          if (isTaxCodeUserError(e)) return reply.status(400).send({ error: e.message });
           throw e;
         }
       } else if (body.tax_rate !== undefined) {

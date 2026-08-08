@@ -364,7 +364,8 @@ function QuoteModal({
   onSaved: () => void;
 }) {
   const isEdit = Boolean(editQuote);
-  const taxCodes = useTaxCodes();
+  // Sales-side treatments only; a purchase-only code has no meaning on a quote.
+  const taxCodes = useTaxCodes().filter(c => c.appliesTo !== 'PURCHASE');
 
   const [form, setForm] = useState<any>(() => ({
     title:              editQuote?.title ?? '',

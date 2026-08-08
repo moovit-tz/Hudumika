@@ -125,7 +125,7 @@ export const quotationService = {
       const codeIds = [...new Set((data.lines || []).map(l => l.tax_code_id).filter(Boolean))] as string[];
       const codes = new Map<string, number>();
       for (const cid of codeIds) {
-        const c = await resolveTaxCode(trx, tenantId, cid);   // throws TaxCodeNotFound
+        const c = await resolveTaxCode(trx, tenantId, cid, 'SALES');   // throws on unknown / wrong scope
         codes.set(cid, Number(c.rate));
       }
 

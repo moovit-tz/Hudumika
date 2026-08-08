@@ -12,6 +12,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { showAlert } from '../lib/alert.js';
+import { useTaxCodes } from '../data/taxCodeData.js';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -22,7 +23,7 @@ type BillCat    = 'FREIGHT'|'CUSTOMS'|'PORT'|'TRANSPORT'|'WAREHOUSE'|'INSURANCE'
 
 interface BillLine {
   _key: string; description: string; category: BillCat;
-  qty: number; unit_price: number; tax_rate: number;
+  qty: number; unit_price: number; tax_rate: number; tax_code_id: string | null;
 }
 
 interface Bill {
@@ -40,7 +41,7 @@ interface Bill {
 
 interface RecurringBill {
   id: string; name: string; supplier_id: string; supplier_name: string;
-  frequency: RecurFreq; currency: string; amount: number; tax_rate: number;
+  frequency: RecurFreq; currency: string; amount: number; tax_rate: number; tax_code_id: string | null;
   category: BillCat; description: string; payment_terms: string;
   next_due: string; end_date?: string; state: RecurState;
   bills_generated: number; total_spend: number; created_at: string;
@@ -59,7 +60,7 @@ interface BillForm {
 }
 interface RecurForm {
   name: string; supplier_id: string; frequency: RecurFreq; currency: string;
-  amount: number; tax_rate: number; category: BillCat; description: string;
+  amount: number; tax_rate: number; tax_code_id: string | null; category: BillCat; description: string;
   payment_terms: string; next_due: string; end_date: string;
 }
 
@@ -133,6 +134,7 @@ function mapApiBill(d: any): Bill {
       _key: l.id || String(Math.random()), description: l.description || '',
       category: (l.category || 'OTHER') as BillCat,
       qty: Number(l.qty), unit_price: Number(l.unit_price), tax_rate: Number(l.tax_rate),
+      tax_code_id: l.tax_code_id ?? null,
     })) : [],
     created_at: d.created_at || new Date().toISOString(),
   };
@@ -143,7 +145,7 @@ function mapApiRecurring(d: any): RecurringBill {
     id: d.id, name: d.name || '', supplier_id: d.supplier_id || '',
     supplier_name: d.supplier_name || '', frequency: (d.frequency || 'MONTHLY') as RecurFreq,
     currency: d.currency || 'USD', amount: Number(d.amount) || 0,
-    tax_rate: Number(d.tax_rate) || 0, category: (d.category || 'OTHER') as BillCat,
+    tax_rate: Number(d.tax_rate) || 0, tax_code_id: d.tax_code_id ?? null, category: (d.category || 'OTHER') as BillCat,
     description: d.description || '', payment_terms: d.payment_terms || '',
     next_due: d.next_due ? String(d.next_due).split('T')[0] : '',
     end_date: d.end_date ? String(d.end_date).split('T')[0] : undefined,
@@ -261,6 +263,10 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
   onSave: (f: BillForm) => void; onClose: () => void;
 }) {
   const { fmt } = useCurrency();
+  // Purchase-side treatments only: a sales-only code has no meaning on a bill,
+  // and the API refuses one anyway.
+  const purchaseTaxCodes = useTaxCodes().filter(c => c.appliesTo !== 'SALES');
+
   const [f, setF] = useState<BillForm>({
     supplier_id:  initial?.supplier_id  ?? '',
     bill_date:    initial?.bill_date    ?? new Date().toISOString().split('T')[0],
@@ -269,7 +275,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
     po_number:    initial?.po_number    ?? '',
     shipment_ref: initial?.shipment_ref ?? '',
     notes:        initial?.notes        ?? '',
-    lines:        initial?.lines.length ? initial.lines : [{ _key:newKey(), description:'', category:'OTHER', qty:1, unit_price:0, tax_rate:0 }],
+    lines:        initial?.lines.length ? initial.lines : [{ _key:newKey(), description:'', category:'OTHER', qty:1, unit_price:0, tax_rate:0, tax_code_id:null }],
   });
 
   const [supplierItem, setSupplierItem] = useState<PickerItem | null>(() => {
@@ -328,7 +334,13 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
   function updateLine(key: string, field: keyof BillLine, val: BillLine[keyof BillLine]) {
     setF(p => ({ ...p, lines: p.lines.map(l => l._key === key ? { ...l, [field]: val } : l) }));
   }
-  function addLine()    { setF(p => ({ ...p, lines: [...p.lines, { _key:newKey(), description:'', category:'OTHER', qty:1, unit_price:0, tax_rate:0 }] })); }
+  /** The treatment decides the rate, so a line never carries two answers. */
+  function setLineTaxCode(key: string, codeId: string) {
+    const tc = purchaseTaxCodes.find(c => c.id === codeId);
+    setF(p => ({ ...p, lines: p.lines.map(l =>
+      l._key === key ? { ...l, tax_code_id: codeId, tax_rate: tc ? tc.rate : l.tax_rate } : l) }));
+  }
+  function addLine()    { setF(p => ({ ...p, lines: [...p.lines, { _key:newKey(), description:'', category:'OTHER', qty:1, unit_price:0, tax_rate:0, tax_code_id:null }] })); }
   function removeLine(k:string) { setF(p => ({ ...p, lines: p.lines.filter(l => l._key !== k) })); }
 
   const totals = calcTotals(f.lines);
@@ -411,9 +423,23 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
                       <input type="number" title="Unit price" value={ln.unit_price} min={0} step={0.01} onChange={e => updateLine(ln._key, 'unit_price', parseFloat(e.target.value)||0)}
                         style={{ width:90, padding:'6px 8px', border:'1px solid var(--border)', borderRadius:6, fontSize:12, outline:'none', textAlign:'right' }} />
                     </td>
+                    {/* A treatment, not a bare rate. On a purchase the treatment is
+                        what decides whether the tax is claimable at all — a blocked
+                        purchase is charged 18% you never get back, and a rate box
+                        cannot say so. */}
                     <td style={{ padding:'7px 6px' }}>
-                      <input type="number" title="Tax rate" value={ln.tax_rate} min={0} max={100} step={1} onChange={e => updateLine(ln._key, 'tax_rate', parseFloat(e.target.value)||0)}
-                        style={{ width:55, padding:'6px 8px', border:'1px solid var(--border)', borderRadius:6, fontSize:12, outline:'none', textAlign:'right' }} />
+                      <Select value={ln.tax_code_id ?? ''} onValueChange={v => setLineTaxCode(ln._key, v)}>
+                        <SelectTrigger aria-label="Tax treatment" style={{ minWidth:140, height:'auto', padding:'6px 8px', fontSize:12 }}>
+                          <SelectValue placeholder="Not classified" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {purchaseTaxCodes.map(tc => (
+                            <SelectItem key={tc.id} value={tc.id}>
+                              {tc.code} · {tc.rate}%{tc.inputTaxRecoverable ? '' : ' · blocked'}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </td>
                     <td style={{ padding:'7px 10px', fontWeight:700, fontSize:12, textAlign:'right', whiteSpace:'nowrap', color:'var(--ink)' }}>{fmt(lineTotal(ln), f.currency)}</td>
                     <td style={{ padding:'7px 6px' }}>
@@ -452,6 +478,8 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
   onSave: (f: RecurForm) => void; onClose: () => void;
 }) {
   const { fmt } = useCurrency();
+  const recurTaxCodes = useTaxCodes().filter(c => c.appliesTo !== 'SALES');
+
   const [f, setF] = useState<RecurForm>({
     name:          initial?.name          ?? '',
     supplier_id:   initial?.supplier_id   ?? '',
@@ -459,6 +487,7 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
     currency:      initial?.currency      ?? getCompany().currency,
     amount:        initial?.amount        ?? 0,
     tax_rate:      initial?.tax_rate      ?? 0,
+    tax_code_id:   initial?.tax_code_id    ?? null,
     category:      initial?.category      ?? 'OTHER',
     description:   initial?.description   ?? '',
     payment_terms: initial?.payment_terms ?? 'Net 30',
@@ -524,7 +553,22 @@ function RecurFormView({ initial, suppliers, onSupplierCreated, onSave, onClose 
                 <label style={lbl}>Currency {f.currency === getCompany().currency && <span style={{ fontWeight:400, color:'var(--teal)', fontSize:10.5 }}>· company default</span>}</label>
                 <Select value={f.currency} onValueChange={v => set('currency', v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent></Select>
               </div>
-            <div><label style={lbl}>Tax %</label><input type="number" title="Tax rate" value={f.tax_rate} min={0} max={100} step={1} onChange={e => set('tax_rate', parseFloat(e.target.value)||0)} style={inp} /></div>
+            <div>
+              <label style={lbl}>Tax treatment</label>
+              <Select value={f.tax_code_id ?? ''} onValueChange={v => {
+                const tc = recurTaxCodes.find(c => c.id === v);
+                setF(p => ({ ...p, tax_code_id: v, tax_rate: tc ? tc.rate : p.tax_rate }));
+              }}>
+                <SelectTrigger><SelectValue placeholder="Not classified" /></SelectTrigger>
+                <SelectContent>
+                  {recurTaxCodes.map(tc => (
+                    <SelectItem key={tc.id} value={tc.id}>
+                      {tc.code} · {tc.rate}%{tc.inputTaxRecoverable ? '' : ' · blocked'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div style={{ marginBottom:14 }}><label style={lbl}>Description</label><textarea title="Description" placeholder="Description of the recurring charge…" value={f.description} onChange={e => set('description', e.target.value)} rows={2} style={{ ...inp, resize:'vertical' }} /></div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
@@ -924,7 +968,7 @@ export const Bills: React.FC = () => {
       supplier_id: f.supplier_id, supplier_name: supplierMap[f.supplier_id]?.name || f.supplier_id,
       bill_date: f.bill_date, due_date: f.due_date, currency: f.currency,
       po_number: f.po_number || null, shipment_ref: f.shipment_ref || null, notes: f.notes || null,
-      items: f.lines.map((l, i) => ({ description: l.description, category: l.category, qty: l.qty, unit_price: l.unit_price, tax_rate: l.tax_rate, sort_order: i })),
+      items: f.lines.map((l, i) => ({ description: l.description, category: l.category, qty: l.qty, unit_price: l.unit_price, tax_rate: l.tax_rate, tax_code_id: l.tax_code_id, sort_order: i })),
     };
     apiFetch(isEdit ? `/v1/bills/${formBill!.id}` : '/v1/bills', {
       method: isEdit ? 'PATCH' : 'POST', body: JSON.stringify(payload),
@@ -1004,7 +1048,7 @@ export const Bills: React.FC = () => {
       supplier_id: r.supplier_id, supplier_name: r.supplier_name,
       bill_date: r.next_due, due_date: dueDate, status: 'POSTED', currency: r.currency,
       recurring_id: r.id, notes: `Generated from recurring template "${r.name}".`,
-      items: [{ description: `${r.name} — ${fmtDate(r.next_due)}`, category: r.category, qty: 1, unit_price: r.amount, tax_rate: r.tax_rate, sort_order: 0 }],
+      items: [{ description: `${r.name} — ${fmtDate(r.next_due)}`, category: r.category, qty: 1, unit_price: r.amount, tax_rate: r.tax_rate, tax_code_id: r.tax_code_id ?? null, sort_order: 0 }],
     };
     apiFetch('/v1/bills', { method: 'POST', body: JSON.stringify(payload) })
       .then(() => apiFetch(`/v1/bills/recurring/${r.id}`, {

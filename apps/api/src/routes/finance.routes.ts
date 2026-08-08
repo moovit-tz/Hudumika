@@ -4,10 +4,34 @@ import { db, withTenant } from '../db/client.js';
 import { FinanceService } from '../services/finance.service.js';
 import { requireRole } from '../middleware/rbac.js';
 import type { RecordExpenseInput } from '@hudumika/types';
+import { computeVatReturn } from '../services/vat-return.service.js';
 
 export async function financeRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('finops'));
+
+  /**
+   * GET /v1/finance/vat-return?from=&to=
+   *
+   * Output tax, input tax, and what is actually recoverable after partial
+   * exemption — computed from the documents, so every figure has a source.
+   */
+  fastify.get('/vat-return', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+    const user = request.user;
+    const { from, to, currency } = request.query as { from?: string; to?: string; currency?: string };
+    const isDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+    if (!isDate(from) || !isDate(to)) {
+      return reply.status(400).send({ error: 'from and to are required, as YYYY-MM-DD' });
+    }
+    if (from! > to!) return reply.status(400).send({ error: '`from` must not be after `to`' });
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const settings = await trx.selectFrom('tenant_settings').select('settings')
+        .where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const configured = (settings?.settings as any)?.company?.currency;
+      return computeVatReturn(trx, user.tenant_id, from!, to!, currency || configured || 'TZS');
+    });
+  });
 
   /**
    * GET /v1/shipments/:id/pnl

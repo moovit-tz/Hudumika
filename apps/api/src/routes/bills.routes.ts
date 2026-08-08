@@ -5,6 +5,100 @@ import { requireRole } from '../middleware/rbac.js';
 import { GLService } from '../services/gl.service.js';
 import { AccountingIntegrationService } from '../services/accounting-integration.service.js';
 import { TRAService } from '../services/tra.service.js';
+import { isTaxCodeUserError, resolveLineTax, resolveTaxCode, splitInputTax } from '../services/tax-code.service.js';
+import type { Transaction } from 'kysely';
+import type { Database } from '../db/client.js';
+
+/**
+ * Bill lines, with each line's tax split into what can be claimed and what
+ * cannot.
+ *
+ * This is the whole purchase-side point. Input tax is only recoverable if the
+ * treatment says so: a blocked purchase is charged tax you pay and never get
+ * back. The split decides where the money goes in the ledger, so getting it
+ * wrong is not a display bug — it is a wrong claim.
+ *
+ * A line with no tax code counts as NOT recoverable, deliberately. An
+ * unrecorded treatment must not produce a claim nobody made.
+ *
+ * Resolved before any write, for the same reason as the invoice routes: a
+ * reply returned from inside `withTenant` still commits the transaction.
+ */
+async function buildBillLines(
+  trx: Transaction<Database>,
+  tenantId: string,
+  billId: string,
+  items: any[],
+): Promise<
+  | { ok: false; error: string }
+  | { ok: true; lines: any[]; subtotal: number; tax: number; recoverable: number; nonRecoverable: number }
+> {
+  const codeIds = [...new Set(items.map(it => it?.tax_code_id).filter(Boolean))] as string[];
+  const codes = new Map<string, { id: string; rate: number; input_tax_recoverable: boolean }>();
+  for (const cid of codeIds) {
+    try {
+      const c = await resolveTaxCode(trx, tenantId, cid, 'PURCHASE');
+      codes.set(cid, { id: c.id, rate: Number(c.rate), input_tax_recoverable: c.input_tax_recoverable });
+    } catch (e) {
+      if (isTaxCodeUserError(e)) return { ok: false as const, error: e.message };
+      throw e;
+    }
+  }
+
+  let subtotal = 0, tax = 0, recoverable = 0, nonRecoverable = 0;
+  const lines = items.map((it: any, i: number) => {
+    const code = it.tax_code_id ? codes.get(it.tax_code_id) : undefined;
+    // A code, when given, decides the rate — the two can never disagree.
+    const rate = code ? code.rate : (Number(it.tax_rate) || 0);
+    const net = (Number(it.qty) || 1) * (Number(it.unit_price) || 0);
+    const lineTax = net * (rate / 100);
+    const split = splitInputTax(lineTax, code);
+
+    subtotal += net;
+    tax += lineTax;
+    recoverable += split.recoverable;
+    nonRecoverable += split.nonRecoverable;
+
+    return {
+      bill_id: billId,
+      description: it.description || '',
+      category: it.category || 'OTHER',
+      qty: Number(it.qty) || 1,
+      unit_price: Number(it.unit_price) || 0,
+      tax_rate: rate,
+      tax_code_id: code ? code.id : null,
+      sort_order: i,
+    };
+  });
+  return { ok: true as const, lines, subtotal, tax, recoverable, nonRecoverable };
+}
+
+/**
+ * The journal for a posted bill.
+ *
+ * Recoverable input tax goes to `1150 VAT Input (Recoverable)` — an asset,
+ * because it is money the revenue authority owes you. Non-recoverable input tax
+ * is not an asset and never becomes one, so it is added to the cost of what was
+ * bought.
+ *
+ * Before migration 181 both went as a debit to `2200 VAT Payable`, the output
+ * tax liability. That netted the two halves of the return into a single balance
+ * (so neither could be reported), and it reclaimed blocked tax by construction,
+ * understating what was owed.
+ */
+function billJournalLines(args: {
+  subtotal: number; recoverable: number; nonRecoverable: number; total: number; expenseAccount: string;
+}) {
+  const { subtotal, recoverable, nonRecoverable, total, expenseAccount } = args;
+  return [
+    { accountCode: expenseAccount, debit: subtotal + nonRecoverable, credit: 0,
+      description: nonRecoverable > 0 ? 'Purchase (incl. non-recoverable tax)' : 'Purchase' },
+    ...(recoverable > 0
+      ? [{ accountCode: '1150', debit: recoverable, credit: 0, description: 'VAT input tax (recoverable)' }]
+      : []),
+    { accountCode: '2000', debit: 0, credit: total, description: 'Accounts Payable' },
+  ];
+}
 
 export async function billRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -50,6 +144,17 @@ export async function billRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = request.body as any;
     return withTenant(user.tenant_id, async (trx) => {
+      // The treatment is validated here rather than when a bill is generated —
+      // a template carrying a code from another workspace, or a sales-only code,
+      // would otherwise fail silently every cycle.
+      let recTax: { tax_code_id: string | null; rate: number };
+      try {
+        recTax = await resolveLineTax(trx, user.tenant_id,
+          { tax_code_id: body.tax_code_id, tax_pct: body.tax_rate }, 0, 'PURCHASE');
+      } catch (e) {
+        if (isTaxCodeUserError(e)) return reply.status(400).send({ error: e.message });
+        throw e;
+      }
       const rec = await trx.insertInto('recurring_bills').values({
         tenant_id: user.tenant_id,
         name: body.name || null,
@@ -58,7 +163,8 @@ export async function billRoutes(fastify: FastifyInstance) {
         frequency: body.frequency || 'MONTHLY',
         currency: body.currency || 'USD',
         amount: Number(body.amount) || 0,
-        tax_rate: Number(body.tax_rate) || 0,
+        tax_rate: recTax.rate,
+        tax_code_id: recTax.tax_code_id,
         category: body.category || 'OTHER',
         description: body.description || null,
         payment_terms: body.payment_terms || null,
@@ -81,9 +187,21 @@ export async function billRoutes(fastify: FastifyInstance) {
       const existing = await trx.selectFrom('recurring_bills').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Recurring bill not found' });
       const updates: any = { updated_at: new Date() };
-      const fields = ['name', 'supplier_id', 'supplier_name', 'frequency', 'currency', 'amount', 'tax_rate', 'category', 'description', 'payment_terms', 'next_due', 'end_date', 'state', 'bills_generated', 'total_spend'];
+      const fields = ['name', 'supplier_id', 'supplier_name', 'frequency', 'currency', 'amount', 'category', 'description', 'payment_terms', 'next_due', 'end_date', 'state', 'bills_generated', 'total_spend'];
       for (const f of fields) {
         if (body[f] !== undefined) updates[f] = body[f];
+      }
+      // Rate and treatment move together, or they drift apart.
+      if (body.tax_code_id !== undefined || body.tax_rate !== undefined) {
+        try {
+          const t = await resolveLineTax(trx, user.tenant_id,
+            { tax_code_id: body.tax_code_id, tax_pct: body.tax_rate }, 0, 'PURCHASE');
+          updates.tax_rate = t.rate;
+          updates.tax_code_id = t.tax_code_id;
+        } catch (e) {
+          if (isTaxCodeUserError(e)) return reply.status(400).send({ error: e.message });
+          throw e;
+        }
       }
       const rec = await trx.updateTable('recurring_bills').set(updates).where('id', '=', id).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirstOrThrow();
       return rec;
@@ -152,14 +270,11 @@ export async function billRoutes(fastify: FastifyInstance) {
     const body = request.body as any;
     return withTenant(user.tenant_id, async (trx) => {
       const items: any[] = Array.isArray(body.items) ? body.items : [];
-      let subtotal = 0;
-      let tax_amount = 0;
-      for (const it of items) {
-        const lineSubtotal = Number(it.qty || 1) * Number(it.unit_price || 0);
-        const lineTax = lineSubtotal * (Number(it.tax_rate || 0) / 100);
-        subtotal += lineSubtotal;
-        tax_amount += lineTax;
-      }
+      // Resolved before the header insert — an early 400 from inside withTenant
+      // commits the transaction, so validating later leaves an orphan bill.
+      const built = await buildBillLines(trx, user.tenant_id, '', items);
+      if (!built.ok) return reply.status(400).send({ error: built.error });
+      const { subtotal, tax: tax_amount, recoverable, nonRecoverable } = built;
       const total = subtotal + tax_amount;
 
       const bill = await trx.insertInto('supplier_bills').values({
@@ -182,18 +297,9 @@ export async function billRoutes(fastify: FastifyInstance) {
         created_by: user.sub,
       }).returningAll().executeTakeFirstOrThrow();
 
-      if (items.length > 0) {
-        await trx.insertInto('supplier_bill_lines').values(
-          items.map((it: any, i: number) => ({
-            bill_id: bill.id,
-            description: it.description || '',
-            category: it.category || 'OTHER',
-            qty: Number(it.qty) || 1,
-            unit_price: Number(it.unit_price) || 0,
-            tax_rate: Number(it.tax_rate) || 0,
-            sort_order: i,
-          }))
-        ).execute();
+      if (built.lines.length > 0) {
+        await trx.insertInto('supplier_bill_lines')
+          .values(built.lines.map(l => ({ ...l, bill_id: bill.id }))).execute();
       }
 
       if (bill.status === 'POSTED' && total > 0) {
@@ -204,11 +310,9 @@ export async function billRoutes(fastify: FastifyInstance) {
           sourceModule: 'AP',
           sourceId: bill.id,
           createdBy: user.sub,
-          lines: [
-            { accountCode: '5000', debit: subtotal, credit: 0, description: 'Port & Customs Charges' },
-            { accountCode: '2000', debit: 0, credit: total, description: 'Accounts Payable' },
-            ...(tax_amount > 0 ? [{ accountCode: '2200', debit: tax_amount, credit: 0, description: 'VAT Input Tax' }] : []),
-          ],
+          lines: billJournalLines({
+            subtotal, recoverable, nonRecoverable, total, expenseAccount: '5000',
+          }),
         });
       }
 
@@ -249,33 +353,19 @@ export async function billRoutes(fastify: FastifyInstance) {
         if (body[f] !== undefined) updates[f] = body[f];
       }
 
+      // Resolved before the line delete below — the delete is a write, and a
+      // 400 returned afterwards would still commit it, leaving the bill empty.
+      const rebuilt = await buildBillLines(trx, user.tenant_id, id, Array.isArray(body.items) ? body.items : []);
+      if (!rebuilt.ok) return reply.status(400).send({ error: rebuilt.error });
+
       if (Array.isArray(body.items)) {
-        const items: any[] = body.items;
-        let subtotal = 0;
-        let tax_amount = 0;
-        for (const it of items) {
-          const lineSubtotal = Number(it.qty || 1) * Number(it.unit_price || 0);
-          const lineTax = lineSubtotal * (Number(it.tax_rate || 0) / 100);
-          subtotal += lineSubtotal;
-          tax_amount += lineTax;
-        }
-        updates.subtotal = subtotal;
-        updates.tax_amount = tax_amount;
-        updates.total = subtotal + tax_amount;
+        updates.subtotal = rebuilt.subtotal;
+        updates.tax_amount = rebuilt.tax;
+        updates.total = rebuilt.subtotal + rebuilt.tax;
 
         await trx.deleteFrom('supplier_bill_lines').where('bill_id', '=', id).execute();
-        if (items.length > 0) {
-          await trx.insertInto('supplier_bill_lines').values(
-            items.map((it: any, i: number) => ({
-              bill_id: id,
-              description: it.description || '',
-              category: it.category || 'OTHER',
-              qty: Number(it.qty) || 1,
-              unit_price: Number(it.unit_price) || 0,
-              tax_rate: Number(it.tax_rate) || 0,
-              sort_order: i,
-            }))
-          ).execute();
+        if (rebuilt.lines.length > 0) {
+          await trx.insertInto('supplier_bill_lines').values(rebuilt.lines).execute();
         }
       }
 
@@ -295,7 +385,25 @@ export async function billRoutes(fastify: FastifyInstance) {
         if (!alreadyPosted) {
           const totalVal = Number(bill.total) || 0;
           const subtotalVal = Number(bill.subtotal) || 0;
-          const taxVal = Number(bill.tax_amount) || 0;
+
+          // The split has to come from the lines as they now stand, not from
+          // the header's single tax_amount — the header cannot say which part
+          // of it is claimable. A PATCH that did not send items still posts,
+          // so the stored lines are re-read rather than assumed.
+          const stored = await trx
+            .selectFrom('supplier_bill_lines as l')
+            .leftJoin('tax_codes as tc', 'tc.id', 'l.tax_code_id')
+            .select(['l.qty', 'l.unit_price', 'l.tax_rate', 'tc.input_tax_recoverable'])
+            .where('l.bill_id', '=', id)
+            .execute();
+
+          let recoverable = 0, nonRecoverable = 0;
+          for (const l of stored) {
+            const lineTax = (Number(l.qty) || 1) * (Number(l.unit_price) || 0) * ((Number(l.tax_rate) || 0) / 100);
+            const s = splitInputTax(lineTax, l.input_tax_recoverable === null ? null : { input_tax_recoverable: l.input_tax_recoverable });
+            recoverable += s.recoverable;
+            nonRecoverable += s.nonRecoverable;
+          }
 
           if (totalVal > 0) {
             await GLService.post(user.tenant_id, {
@@ -305,11 +413,9 @@ export async function billRoutes(fastify: FastifyInstance) {
               sourceModule: 'AP',
               sourceId: bill.id,
               createdBy: user.sub,
-              lines: [
-                { accountCode: '5000', debit: subtotalVal, credit: 0, description: 'Port & Customs Charges' },
-                { accountCode: '2000', debit: 0, credit: totalVal, description: 'Accounts Payable' },
-                ...(taxVal > 0 ? [{ accountCode: '2200', debit: taxVal, credit: 0, description: 'VAT Input Tax' }] : []),
-              ],
+              lines: billJournalLines({
+                subtotal: subtotalVal, recoverable, nonRecoverable, total: totalVal, expenseAccount: '5000',
+              }),
             });
           }
         }

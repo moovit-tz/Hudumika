@@ -24,6 +24,11 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   { code: '1010', name: 'Bank Account (TZS)', type: 'ASSET', subtype: 'CURRENT_ASSET', parentCode: '1000', normalBalance: 'DEBIT' },
   { code: '1011', name: 'Bank Account (USD)', type: 'ASSET', subtype: 'CURRENT_ASSET', parentCode: '1000', normalBalance: 'DEBIT' },
   { code: '1100', name: 'Accounts Receivable', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
+  // Recoverable input tax is money the revenue authority owes you, so it is an
+  // asset in its own right. It used to be posted as a debit against 2200 (the
+  // output-tax liability), which netted the two halves of a VAT return into one
+  // balance and made neither reportable. See migration 181.
+  { code: '1150', name: 'VAT Input (Recoverable)', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
   { code: '1200', name: 'Prepaid Expenses', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
   { code: '1300', name: 'Inventory', type: 'ASSET', subtype: 'CURRENT_ASSET', normalBalance: 'DEBIT' },
   { code: '1500', name: 'Fixed Assets (net)', type: 'ASSET', subtype: 'FIXED_ASSET', normalBalance: 'DEBIT' },
@@ -32,7 +37,7 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   { code: '1503', name: 'Accumulated Depreciation', type: 'ASSET', subtype: 'FIXED_ASSET', parentCode: '1500', normalBalance: 'CREDIT' },
   { code: '2000', name: 'Accounts Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   { code: '2100', name: 'Accrued Liabilities', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
-  { code: '2200', name: 'VAT Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
+  { code: '2200', name: 'VAT Output (Payable)', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   { code: '2300', name: 'Withholding Tax Payable', type: 'LIABILITY', subtype: 'CURRENT_LIABILITY', normalBalance: 'CREDIT' },
   { code: '2500', name: 'Long-term Loans', type: 'LIABILITY', subtype: 'LONG_TERM_LIABILITY', normalBalance: 'CREDIT' },
   { code: '3000', name: 'Share Capital', type: 'EQUITY', subtype: 'EQUITY', normalBalance: 'CREDIT' },

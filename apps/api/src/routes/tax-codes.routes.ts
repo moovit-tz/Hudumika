@@ -23,6 +23,9 @@ function validate(body: any, partial: boolean): string | null {
   if (body.jurisdiction !== undefined && !/^[A-Za-z]{2}$/.test(String(body.jurisdiction || ''))) {
     return 'jurisdiction must be an ISO 3166-1 alpha-2 country code';
   }
+  if (body.applies_to !== undefined && !['SALES', 'PURCHASE', 'BOTH'].includes(body.applies_to)) {
+    return 'applies_to must be SALES, PURCHASE or BOTH';
+  }
   if (body.rate !== undefined) {
     const r = Number(body.rate);
     if (!Number.isFinite(r) || r < 0 || r >= 100) return 'rate must be between 0 and 100';
@@ -55,7 +58,7 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
   // effective window. `?all=1` is the management view.
   fastify.get('/', async (request) => {
     const user = request.user;
-    const { all, jurisdiction } = request.query as { all?: string; jurisdiction?: string };
+    const { all, jurisdiction, scope } = request.query as { all?: string; jurisdiction?: string; scope?: string };
     return withTenant(user.tenant_id, async (trx) => {
       await ensureTaxCodes(trx, user.tenant_id);
       let q = trx.selectFrom('tax_codes').selectAll().where('tenant_id', '=', user.tenant_id);
@@ -67,6 +70,11 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
           .where(eb => eb.or([eb('effective_to', 'is', null), eb('effective_to', '>=', today as any)]));
       }
       if (jurisdiction) q = q.where('jurisdiction', '=', jurisdiction.toUpperCase());
+      // A picker on an invoice asks for SALES and gets sales + both; a bill
+      // asks for PURCHASE. Blocked-input-tax codes never reach a sales form.
+      if (scope === 'SALES' || scope === 'PURCHASE') {
+        q = q.where(eb => eb.or([eb('applies_to', '=', 'BOTH'), eb('applies_to', '=', scope)]));
+      }
       return q.orderBy('is_default', 'desc').orderBy('rate', 'desc').orderBy('code', 'asc').execute();
     });
   });
@@ -99,6 +107,18 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
         .where('tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
 
+      // Purchases matter more than sales here: an unclassified purchase line
+      // is input tax nobody can claim, because the claim has no basis.
+      const bills = await trx
+        .selectFrom('supplier_bill_lines as l')
+        .innerJoin('supplier_bills as b', 'b.id', 'l.bill_id')
+        .select(({ fn, eb }) => [
+          fn.countAll<string>().as('total'),
+          fn.count<string>(eb.case().when('l.tax_code_id', 'is', null).then(1).end()).as('unclassified'),
+        ])
+        .where('b.tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+
       return {
         invoice_lines: {
           total: Number(lines?.total ?? 0),
@@ -107,6 +127,10 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
         products: {
           total: Number(products?.total ?? 0),
           unclassified: Number(products?.unclassified ?? 0),
+        },
+        bill_lines: {
+          total: Number(bills?.total ?? 0),
+          unclassified: Number(bills?.unclassified ?? 0),
         },
       };
     });
@@ -127,7 +151,8 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
 
       if (body.is_default) {
         await trx.updateTable('tax_codes').set({ is_default: false })
-          .where('tenant_id', '=', user.tenant_id).where('is_default', '=', true).execute();
+          .where('tenant_id', '=', user.tenant_id).where('is_default', '=', true)
+          .where('applies_to', '=', body.applies_to || 'BOTH').execute();
       }
       const row = await trx.insertInto('tax_codes').values({
         tenant_id: user.tenant_id,
@@ -139,6 +164,7 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
         input_tax_recoverable: body.input_tax_recoverable !== false,
         tra_tax_code: body.tra_tax_code === undefined || body.tra_tax_code === null
           ? null : Number(body.tra_tax_code),
+        applies_to: body.applies_to || 'BOTH',
         is_default: !!body.is_default,
         status: body.status || 'active',
         effective_from: body.effective_from || null,
@@ -166,12 +192,16 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
       if (err) return reply.status(400).send({ error: err });
 
       if (body.is_default === true) {
+        // One default per tenant *per side* — a sales default and a purchase
+        // default coexist, so only the matching side is cleared.
+        const side = body.applies_to ?? existing.applies_to;
         await trx.updateTable('tax_codes').set({ is_default: false })
-          .where('tenant_id', '=', user.tenant_id).where('is_default', '=', true).execute();
+          .where('tenant_id', '=', user.tenant_id).where('is_default', '=', true)
+          .where('applies_to', '=', side).execute();
       }
 
       const updates: any = { updated_at: new Date() };
-      for (const f of ['code', 'name', 'kind', 'jurisdiction', 'input_tax_recoverable',
+      for (const f of ['code', 'name', 'kind', 'jurisdiction', 'input_tax_recoverable', 'applies_to',
                        'tra_tax_code', 'is_default', 'status', 'effective_from', 'effective_to']) {
         if (body[f] !== undefined) updates[f] = body[f];
       }
