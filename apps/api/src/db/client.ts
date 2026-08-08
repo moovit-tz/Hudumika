@@ -114,6 +114,8 @@ export interface LeadsTable {
 }
 
 export interface CustomersTable {
+  /** A real logo, when the company has one. Initials are derived, not stored. */
+  logo_url: string | null;
   id: Generated<string>;
   tenant_id: string;
   name: string;

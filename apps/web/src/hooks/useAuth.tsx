@@ -26,6 +26,26 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+/**
+ * Refresh the signed-in user from the server.
+ *
+ * Merged onto the stored copy rather than replacing it, so a field the identity
+ * endpoint does not return cannot be blanked out by a refresh. Failure is
+ * silent on purpose: the cached user is still usable, and an unreachable API
+ * should not sign anybody out.
+ */
+async function hydrateIdentityFromServer(setUser: (u: any) => void): Promise<void> {
+  try {
+    const me = await apiFetch('/v1/identity/me');
+    if (!me?.id) return;
+    setUser((prev: any) => {
+      const merged = { ...(prev ?? {}), ...me };
+      localStorage.setItem(KEYS.user, JSON.stringify(merged));
+      return merged;
+    });
+  } catch { /* keep the cached user */ }
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<SafeUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,7 +56,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const storedUser = localStorage.getItem(KEYS.user);
     const storedToken = localStorage.getItem(KEYS.token);
     if (storedUser && storedToken) {
-      try { setUser(JSON.parse(storedUser)); hydrateCompanyFromServer(); hydrateTasksFromServer(); } catch {
+      try {
+        setUser(JSON.parse(storedUser));
+        hydrateCompanyFromServer();
+        hydrateTasksFromServer();
+        // The stored copy is as old as the session. It was written at login and
+        // never refreshed, so a picture set afterwards — or a name, role or
+        // phone changed by an administrator — appeared nowhere until the person
+        // signed out and back in. NexusHR looked right only because it fetches
+        // staff rows itself; every other app drew initials from stale data.
+        hydrateIdentityFromServer(setUser);
+      } catch {
         localStorage.removeItem(KEYS.user);
         localStorage.removeItem(KEYS.token);
       }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useContext, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
+import { PersonAvatar } from './PersonAvatar.js';
 import { NotificationCentre } from './NotificationCentre.js';
 import { HeaderPill } from './HeaderPill.js';
 import { Icon, type IconName } from './Icon.js';
@@ -656,13 +657,15 @@ export function AppHeader({
                   title={user?.name ?? t('header.account')}
                   style={{ position: 'relative', width: 36, height: 36, borderRadius: '50%', padding: 0, border: 'none', background: 'transparent', cursor: 'pointer', flexShrink: 0 }}
                 >
-                  <div style={{ width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden', background: avColor(user?.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, border: '1px solid var(--border)' }}>
-                    {user?.avatar_url ? (
-                      <img src={user.avatar_url} alt={user?.name || 'User'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      getInitials(user?.name)
-                    )}
-                  </div>
+                  {/* Shared with every other app. The picture is fetched once
+                      from the identity endpoint and cached, rather than being
+                      carried as a 548KB data URI in the session. */}
+                  <PersonAvatar
+                    userId={(user as any)?.id}
+                    name={user?.name ?? 'User'}
+                    size={36}
+                    style={{ border: '1px solid var(--border)' }}
+                  />
                   {/* Green status indicator dot */}
                   <span style={{ position: 'absolute', bottom: 0, right: 0, width: 10, height: 10, borderRadius: '50%', background: 'var(--green)', border: '2px solid var(--white)' }} />
                 </button>
@@ -670,12 +673,13 @@ export function AppHeader({
               <DropdownMenuContent align="end" className="w-64 p-3 rounded-xl shadow-2xl border border-slate-200/80 dark:border-slate-800 text-slate-900 dark:text-slate-100" style={{ background: 'var(--white)', zIndex: 99999 }}>
                 {/* Header User Identity Block (Compact) */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBottom: 10, borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ position: 'relative', width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: avColor(user?.name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 800, border: '1px solid var(--border)', overflow: 'hidden' }}>
-                    {user?.avatar_url ? (
-                      <img src={user.avatar_url} alt={user?.name || 'User'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      getInitials(user?.name)
-                    )}
+                  <div style={{ position: 'relative', width: 38, height: 38, flexShrink: 0 }}>
+                    <PersonAvatar
+                      userId={(user as any)?.id}
+                      name={user?.name ?? 'User'}
+                      size={38}
+                      style={{ border: '1px solid var(--border)' }}
+                    />
                     <span style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: 'var(--green)', border: '1.5px solid var(--white)' }} />
                   </div>
                   <div style={{ minWidth: 0, flex: 1 }}>
