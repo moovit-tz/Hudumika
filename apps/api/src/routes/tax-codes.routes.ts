@@ -11,6 +11,9 @@ import { tenantJurisdiction } from '../services/vat-period.service.js';
 import {
   registrationStatus, jurisdictionReference, listJurisdictions,
 } from '../services/tax-registration.service.js';
+import {
+  COMPONENT_TEMPLATES, applyComponents, componentsFor, effectiveRate,
+} from '../services/tax-component.service.js';
 
 const FIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'] as const;
 
@@ -537,6 +540,153 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
         effective_to: body.effective_to || null,
       }).returningAll().executeTakeFirstOrThrow();
       return reply.status(201).send(row);
+    });
+  });
+
+  // ── Components: tax codes that are more than one tax ─────────────────────
+  //
+  // The table, the arithmetic and the Ghana templates all existed and seeded
+  // themselves when a workspace switched country. What did not exist was any
+  // way to add or edit a component by hand, so a custom stack meant inserting
+  // rows in psql.
+  //
+  // The rule the whole thing turns on: `tax_codes.rate` is *derived* from the
+  // components, never typed. Ghana's pre-2026 21.9% is the result of 6% of
+  // levies on net then 15% VAT on net-plus-levies — a number nobody should be
+  // able to enter, because entering it is how it stops agreeing with the
+  // breakdown that explains it.
+
+  /** GET /v1/tax-codes/:id/components */
+  fastify.get('/:id/components', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const code = await trx.selectFrom('tax_codes').select(['id', 'code', 'name', 'rate'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!code) return reply.status(404).send({ error: 'Tax code not found' });
+
+      const components = await componentsFor(trx, id);
+      const applied = applyComponents(100, components);
+      return {
+        tax_code: code,
+        components,
+        // Shown per 100 so the breakdown reads as percentages without the
+        // caller having to divide anything.
+        effective_rate: components.length ? applied.total : Number(code.rate),
+        derived: components.length > 0,
+        breakdown: applied.lines,
+      };
+    });
+  });
+
+  /** GET /v1/tax-codes/component-templates — reference stacks, dated. */
+  fastify.get('/component-templates', async (request) => {
+    const { jurisdiction } = request.query as { jurisdiction?: string };
+    const juris = (jurisdiction ?? '').toUpperCase();
+    const list = juris ? (COMPONENT_TEMPLATES[juris] ?? []) : Object.values(COMPONENT_TEMPLATES).flat();
+    return list.map(t => ({
+      ...t,
+      // The effective rate is computed here too, so a template can never be
+      // labelled with a rate its own components do not produce.
+      effective_rate: effectiveRate(t.components),
+    }));
+  });
+
+  /**
+   * PUT /v1/tax-codes/:id/components — replace the whole stack.
+   *
+   * Whole-list replace rather than per-component CRUD, because `sequence` is
+   * the compounding order: a NET_PLUS_PRIOR component means "on net plus
+   * everything before me", so editing one row in isolation silently changes
+   * what every later row is charged on. Sending the list makes that order
+   * explicit and reviewable.
+   */
+  fastify.put('/:id/components', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const body = request.body as { components?: any[] };
+    const incoming = Array.isArray(body?.components) ? body.components : null;
+    if (!incoming) return reply.status(400).send({ error: 'components must be an array.' });
+
+    // Validated before the transaction opens: a refusal returned from inside
+    // withTenant returns normally, so the transaction would commit whatever had
+    // already been written.
+    const cleaned: any[] = [];
+    for (const [i, c] of incoming.entries()) {
+      const at = `Component ${i + 1}`;
+      const code = String(c?.code ?? '').trim().toUpperCase();
+      const name = String(c?.name ?? '').trim();
+      if (!code) return reply.status(400).send({ error: `${at} needs a code.` });
+      if (!name) return reply.status(400).send({ error: `${at} needs a name.` });
+      const rate = Number(c?.rate);
+      if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+        return reply.status(400).send({ error: `${at}: rate must be between 0 and 100.` });
+      }
+      const basis = String(c?.basis ?? 'NET').toUpperCase();
+      if (!['NET', 'NET_PLUS_PRIOR'].includes(basis)) {
+        return reply.status(400).send({ error: `${at}: basis must be NET or NET_PLUS_PRIOR.` });
+      }
+      // The first component has nothing prior to compound onto, so asking for
+      // it is a mistake worth naming rather than quietly treating as NET.
+      if (i === 0 && basis === 'NET_PLUS_PRIOR') {
+        return reply.status(400).send({
+          error: 'The first component has nothing before it to compound onto — its basis must be NET.',
+        });
+      }
+      if (cleaned.some(p => p.code === code)) {
+        return reply.status(400).send({ error: `${at}: "${code}" appears twice in this stack.` });
+      }
+      cleaned.push({
+        sequence: i, code, name, rate,
+        basis, recoverable: c?.recoverable !== false,
+        gl_account_code: c?.gl_account_code ? String(c.gl_account_code).trim() : null,
+      });
+    }
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const code = await trx.selectFrom('tax_codes').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!code) return reply.status(404).send({ error: 'Tax code not found' });
+
+      // A zero-rated, exempt or out-of-scope code is 0% by definition, and the
+      // table has a CHECK saying so. Without this the stack is written, the
+      // derived rate fails that CHECK, and the caller gets a 500 naming a
+      // constraint — a real refusal that arrives looking like a crash.
+      if (cleaned.length && ZERO_RATE_KINDS.includes(code.kind)) {
+        const would = effectiveRate(cleaned);
+        return reply.status(400).send({
+          error: `"${code.code}" is a ${String(code.kind).toLowerCase().replace(/_/g, ' ')} code, which is always 0%. ` +
+            `These components work out to ${would.toFixed(2)}% — put them on a standard-rated code instead.`,
+        });
+      }
+
+      await trx.deleteFrom('tax_code_components').where('tax_code_id', '=', id).execute();
+      if (cleaned.length) {
+        await trx.insertInto('tax_code_components')
+          .values(cleaned.map(c => ({ ...c, tax_code_id: id })))
+          .execute();
+      }
+
+      // The rate follows the components. Clearing them leaves whatever rate the
+      // code already had, since a code with no breakdown is a single tax at its
+      // own rate — that is every code outside Ghana.
+      const rate = cleaned.length ? effectiveRate(cleaned) : Number(code.rate);
+      await trx.updateTable('tax_codes')
+        .set({ rate, updated_at: new Date() })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+
+      const components = await componentsFor(trx, id);
+      const applied = applyComponents(100, components);
+      return {
+        tax_code: { ...code, rate },
+        components,
+        effective_rate: cleaned.length ? applied.total : Number(code.rate),
+        derived: cleaned.length > 0,
+        breakdown: applied.lines,
+        // Documents already written keep their own snapshotted tax_pct — a
+        // posted document's tax is a historical fact, not a live lookup.
+        note: 'Documents already issued keep the rate they were written with.',
+      };
     });
   });
 
