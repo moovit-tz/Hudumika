@@ -5,6 +5,8 @@ import { AppHeader } from '../components/AppHeader.js';
 import { PageLayout } from '../components/PageLayout.js';
 import { RequireRoles } from '../components/RequireRoles.js';
 import { Lens } from '../pages/Lens.js';
+import { LensBoard } from '../pages/LensBoard.js';
+import { LensIntegrations } from '../pages/LensIntegrations.js';
 
 /**
  * Lens — the internal developer record.
@@ -19,7 +21,14 @@ const NAV: SidebarSection[] = [
   {
     title: 'Record',
     items: [
-      { label: 'Board', icon: 'list', path: '/lens', exact: true },
+      { label: 'Board', icon: 'columns', path: '/lens', exact: true },
+      { label: 'List',  icon: 'list',    path: '/lens/list' },
+    ],
+  },
+  {
+    title: 'Setup',
+    items: [
+      { label: 'Integrations', icon: 'link', path: '/lens/integrations' },
     ],
   },
 ];
@@ -34,7 +43,9 @@ export function LensShell() {
           <div className="app-shell-content">
             <Routes>
               <Route element={<PageLayout />}>
-                <Route index element={<RequireRoles roles={[...LENS_ROLES]}><Lens /></RequireRoles>} />
+                <Route index element={<RequireRoles roles={[...LENS_ROLES]}><LensBoard /></RequireRoles>} />
+                <Route path="list" element={<RequireRoles roles={[...LENS_ROLES]}><Lens /></RequireRoles>} />
+                <Route path="integrations" element={<RequireRoles roles={[...LENS_ROLES]}><LensIntegrations /></RequireRoles>} />
               </Route>
             </Routes>
           </div>

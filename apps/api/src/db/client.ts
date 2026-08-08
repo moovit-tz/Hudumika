@@ -1828,6 +1828,43 @@ export interface LensItemsTable {
   updated_at: Generated<Date>;
 }
 
+export interface LensIntegrationsTable {
+  id: Generated<string>;
+  provider: 'github' | 'slack' | 'jira' | 'linear' | 'circleci';
+  status: Generated<'disconnected' | 'connected' | 'error'>;
+  config: Generated<unknown>;
+  /** Never returned by the API — endpoints report only whether one is present. */
+  credential: string | null;
+  webhook_secret: string | null;
+  last_sync_at: Date | null;
+  last_error: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface LensLinksTable {
+  id: Generated<string>;
+  item_id: string;
+  provider: 'github' | 'slack' | 'jira' | 'linear' | 'circleci';
+  kind: string;
+  external_id: string;
+  url: string | null;
+  title: string | null;
+  /** Mirrored inward for display. Never closes a Lens item on its own. */
+  external_status: string | null;
+  synced_at: Date | null;
+  created_at: Generated<Date>;
+}
+
+export interface LensColumnsTable {
+  id: string;
+  name: string;
+  status: string;
+  sort_order: Generated<number>;
+  /** Shown, never enforced — a WIP limit is a prompt to a person. */
+  wip_limit: number | null;
+}
+
 export interface LensEventsTable {
   id: Generated<string>;
   item_id: string;
@@ -2791,6 +2828,9 @@ export interface Database {
   lens_areas: LensAreasTable;
   lens_items: LensItemsTable;
   lens_events: LensEventsTable;
+  lens_integrations: LensIntegrationsTable;
+  lens_links: LensLinksTable;
+  lens_columns: LensColumnsTable;
   vat_periods: VatPeriodsTable;
   tax_registrations: TaxRegistrationsTable;
   tax_code_components: TaxCodeComponentsTable;

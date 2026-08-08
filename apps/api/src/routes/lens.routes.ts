@@ -1,6 +1,10 @@
 import type { FastifyInstance } from 'fastify';
 import { db } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import {
+  PROVIDERS, type Provider, listIntegrations, testConnection,
+  createExternalIssue, notifySlack, latestBuild,
+} from '../services/lens-integration.service.js';
 
 /**
  * Lens — the internal developer record.
@@ -241,6 +245,176 @@ export async function lensRoutes(fastify: FastifyInstance) {
       actor_id: user.sub ?? null, actor_name: user.name ?? user.email ?? null,
     }).returningAll().executeTakeFirstOrThrow();
     return reply.status(201).send(ev);
+  });
+
+  // -- Board ----------------------------------------------------------------
+
+  // GET /v1/lens/board - columns with their items, for the kanban view.
+  fastify.get('/board', async (request) => {
+    const { area, kind } = request.query as Record<string, string>;
+
+    const columns = await db.selectFrom('lens_columns').selectAll()
+      .orderBy('sort_order', 'asc').execute();
+
+    let q = db.selectFrom('lens_items as i')
+      .leftJoin('lens_areas as a', 'a.id', 'i.area_id')
+      .select(['i.id', 'i.ref', 'i.kind', 'i.title', 'i.status', 'i.severity',
+               'i.confidence', 'i.waiting_on', 'i.area_id', 'a.name as area_name',
+               'i.updated_at'])
+      // WONTFIX has no column: it is closed, and a board showing abandoned work
+      // beside live work stops meaning anything. It stays in the list view.
+      .where('i.status', '!=', 'WONTFIX');
+    if (area) q = q.where('i.area_id', '=', area);
+    if (KINDS.includes(kind as Kind)) q = q.where('i.kind', '=', kind as Kind);
+    const items = await q.orderBy('i.updated_at', 'desc').execute();
+
+    const links = await db.selectFrom('lens_links')
+      .select(['item_id', 'provider', 'kind', 'external_id', 'url', 'external_status'])
+      .execute();
+    const byItem = new Map<string, typeof links>();
+    for (const l of links) byItem.set(l.item_id, [...(byItem.get(l.item_id) ?? []), l]);
+
+    return columns.map(c => {
+      const inColumn = items.filter(i => i.status === c.status)
+        .map(i => ({ ...i, links: byItem.get(i.id) ?? [] }));
+      return {
+        ...c,
+        items: inColumn,
+        count: inColumn.length,
+        // Reported, never enforced - a WIP limit is a prompt to a person.
+        over_wip: c.wip_limit != null && inColumn.length > c.wip_limit,
+      };
+    });
+  });
+
+  // -- Links ------------------------------------------------------------------
+
+  // POST /v1/lens/items/:ref/links - attach something that already exists.
+  // Needs no integration: pasting a URL is useful on its own.
+  fastify.post('/items/:ref/links', async (request, reply) => {
+    const user = request.user;
+    const { ref } = request.params as { ref: string };
+    const b = (request.body ?? {}) as any;
+    if (!PROVIDERS.includes(b.provider)) {
+      return reply.status(400).send({ error: `provider must be one of ${PROVIDERS.join(', ')}` });
+    }
+    if (!String(b.external_id ?? '').trim()) {
+      return reply.status(400).send({ error: 'external_id is required' });
+    }
+    const item = await db.selectFrom('lens_items').select('id')
+      .where('ref', '=', ref.toUpperCase()).executeTakeFirst();
+    if (!item) return reply.status(404).send({ error: 'Item not found' });
+
+    const link = await db.insertInto('lens_links').values({
+      item_id: item.id,
+      provider: b.provider,
+      kind: b.kind || 'issue',
+      external_id: String(b.external_id).trim(),
+      url: b.url ?? null,
+      title: b.title ?? null,
+      external_status: b.external_status ?? null,
+      synced_at: new Date(),
+    }).onConflict(oc => oc.columns(['item_id', 'provider', 'external_id']).doNothing())
+      .returningAll().executeTakeFirst();
+
+    await db.insertInto('lens_events').values({
+      item_id: item.id, kind: 'linked',
+      detail: `${b.provider} ${b.kind || 'issue'} ${b.external_id}`,
+      actor_id: user.sub ?? null, actor_name: user.name ?? user.email ?? null,
+    }).execute();
+
+    return reply.status(201).send(link ?? { note: 'That link already exists on this item.' });
+  });
+
+  // POST /v1/lens/items/:ref/push - open it in an external tracker.
+  fastify.post('/items/:ref/push', async (request, reply) => {
+    const user = request.user;
+    const { ref } = request.params as { ref: string };
+    const { provider } = (request.body ?? {}) as { provider?: string };
+    if (!['github', 'jira', 'linear'].includes(String(provider))) {
+      return reply.status(400).send({ error: 'provider must be github, jira or linear' });
+    }
+    const item = await db.selectFrom('lens_items').selectAll()
+      .where('ref', '=', ref.toUpperCase()).executeTakeFirst();
+    if (!item) return reply.status(404).send({ error: 'Item not found' });
+
+    const r = await createExternalIssue(provider as 'github' | 'jira' | 'linear', item);
+    // The provider's own words, unedited. A paraphrased failure is a lost one.
+    if (!r.ok) return reply.status(502).send({ error: r.detail, provider_status: r.status });
+
+    await db.insertInto('lens_links').values({
+      item_id: item.id, provider: provider as any, kind: 'issue',
+      external_id: r.external_id!, url: r.url ?? null,
+      title: item.title, synced_at: new Date(),
+    }).onConflict(oc => oc.columns(['item_id', 'provider', 'external_id']).doNothing()).execute();
+
+    await db.insertInto('lens_events').values({
+      item_id: item.id, kind: 'pushed',
+      detail: `Opened in ${provider} as ${r.external_id}`,
+      actor_id: user.sub ?? null, actor_name: user.name ?? user.email ?? null,
+    }).execute();
+
+    return { external_id: r.external_id, url: r.url };
+  });
+
+  // -- Integrations -----------------------------------------------------------
+
+  // GET /v1/lens/integrations - never includes a credential.
+  fastify.get('/integrations', async () => listIntegrations());
+
+  // PUT /v1/lens/integrations/:provider
+  fastify.put('/integrations/:provider', async (request, reply) => {
+    const { provider } = request.params as { provider: string };
+    if (!PROVIDERS.includes(provider as Provider)) {
+      return reply.status(400).send({ error: 'Unknown provider' });
+    }
+    const b = (request.body ?? {}) as any;
+    const values: any = { provider, config: JSON.stringify(b.config ?? {}), updated_at: new Date() };
+    // An absent credential leaves the stored one alone, so saving a config
+    // change does not silently wipe the token.
+    if (typeof b.credential === 'string' && b.credential.trim()) values.credential = b.credential.trim();
+    if (typeof b.webhook_secret === 'string') values.webhook_secret = b.webhook_secret.trim() || null;
+
+    await db.insertInto('lens_integrations').values({ ...values, status: 'disconnected' })
+      .onConflict(oc => oc.column('provider').doUpdateSet(values)).execute();
+
+    // Say immediately whether it works, rather than letting the first real use
+    // be the thing that finds out.
+    const test = await testConnection(provider as Provider);
+    return { provider, tested: true, ok: test.ok, detail: test.detail, status: test.status };
+  });
+
+  // POST /v1/lens/integrations/:provider/test
+  fastify.post('/integrations/:provider/test', async (request, reply) => {
+    const { provider } = request.params as { provider: string };
+    if (!PROVIDERS.includes(provider as Provider)) {
+      return reply.status(400).send({ error: 'Unknown provider' });
+    }
+    const r = await testConnection(provider as Provider);
+    return { ok: r.ok, status: r.status, detail: r.detail };
+  });
+
+  // POST /v1/lens/items/:ref/notify - announce it in Slack.
+  fastify.post('/items/:ref/notify', async (request, reply) => {
+    const { ref } = request.params as { ref: string };
+    const { event } = (request.body ?? {}) as { event?: string };
+    const item = await db.selectFrom('lens_items').selectAll()
+      .where('ref', '=', ref.toUpperCase()).executeTakeFirst();
+    if (!item) return reply.status(404).send({ error: 'Item not found' });
+    const r = await notifySlack(item, event || 'updated');
+    if (!r.ok) return reply.status(502).send({ error: r.detail, provider_status: r.status });
+    return { ok: true };
+  });
+
+  // GET /v1/lens/ci - the latest build, for the board header.
+  fastify.get('/ci', async () => {
+    const r = await latestBuild();
+    if (!r.ok) return { ok: false, detail: r.detail };
+    const p = r.data?.items?.[0];
+    return p ? {
+      ok: true, number: p.number, state: p.state,
+      created_at: p.created_at, vcs: p.vcs?.revision?.slice(0, 8) ?? null,
+    } : { ok: true, empty: true };
   });
 
   // There is no DELETE. An item that turned out to be wrong is closed as
