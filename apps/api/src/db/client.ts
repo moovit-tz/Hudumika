@@ -1834,6 +1834,8 @@ export interface TaxCodesTable {
   applies_to: Generated<TaxCodeScope>;
   /** TRA EFDMS <TAXCODE> 1–5, or null where TRA has no equivalent. */
   tra_tax_code: number | null;
+  /** EFDMS <VATRATE> letter for the VATTOTALS grouping (A–E), or null. */
+  tra_vat_rate: string | null;
   is_default: Generated<boolean>;
   status: Generated<string>;
   effective_from: DateOnlyNull;

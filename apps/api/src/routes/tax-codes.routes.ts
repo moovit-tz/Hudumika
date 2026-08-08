@@ -33,6 +33,9 @@ function validate(body: any, partial: boolean): string | null {
     const r = Number(body.rate);
     if (!Number.isFinite(r) || r < 0 || r >= 100) return 'rate must be between 0 and 100';
   }
+  if (body.tra_vat_rate !== undefined && body.tra_vat_rate !== null && body.tra_vat_rate !== '') {
+    if (!/^[A-E]$/.test(String(body.tra_vat_rate))) return 'tra_vat_rate must be a letter A-E, or blank';
+  }
   if (body.tra_tax_code !== undefined && body.tra_tax_code !== null) {
     const t = Number(body.tra_tax_code);
     if (!Number.isInteger(t) || t < 1 || t > 5) return 'tra_tax_code must be 1-5, or null';
@@ -397,6 +400,7 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
         input_tax_recoverable: body.input_tax_recoverable !== false,
         tra_tax_code: body.tra_tax_code === undefined || body.tra_tax_code === null
           ? null : Number(body.tra_tax_code),
+        tra_vat_rate: body.tra_vat_rate ? String(body.tra_vat_rate).toUpperCase() : null,
         applies_to: body.applies_to || 'BOTH',
         is_default: !!body.is_default,
         status: body.status || 'active',
@@ -435,7 +439,7 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
 
       const updates: any = { updated_at: new Date() };
       for (const f of ['code', 'name', 'kind', 'jurisdiction', 'input_tax_recoverable', 'applies_to',
-                       'tra_tax_code', 'is_default', 'status', 'effective_from', 'effective_to']) {
+                       'tra_tax_code', 'tra_vat_rate', 'is_default', 'status', 'effective_from', 'effective_to']) {
         if (body[f] !== undefined) updates[f] = body[f];
       }
       if (updates.code) updates.code = String(updates.code).trim().toUpperCase();

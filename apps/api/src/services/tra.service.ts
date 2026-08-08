@@ -525,7 +525,8 @@ export const TRAService = {
         .selectFrom('sales_invoice_lines as l')
         .leftJoin('tax_codes as tc', 'tc.id', 'l.tax_code_id')
         .selectAll('l')
-        .select(['tc.code as tc_code', 'tc.kind as tc_kind', 'tc.tra_tax_code as tc_tra'])
+        .select(['tc.code as tc_code', 'tc.kind as tc_kind', 'tc.tra_tax_code as tc_tra',
+                 'tc.tra_vat_rate as tc_vat_rate'])
         .where('l.invoice_id', '=', invoiceId)
         .execute();
 
@@ -603,13 +604,17 @@ export const TRAService = {
         const taxCode = line.tc_tra != null
           ? Number(line.tc_tra)
           : (taxPct >= 18 ? 1 : taxPct > 0 ? 2 : 3);
-        // VATRATE: A=Standard 18%, B=Special rate, C=Zero-rated/exempt.
-        // Special relief (TAXCODE 4) and exempt (5) both bucket under C here.
-        // Some EFDMS specs give them their own D/E letters; that is not
-        // confirmed against this integration's spec, and guessing a letter TRA
-        // may reject is worse than the coarser bucket. The per-item TAXCODE
-        // above is exact either way — this only affects the VATTOTALS grouping.
-        const vatRate = taxCode === 1 ? 'A' : taxCode === 2 ? 'B' : 'C';
+        // VATRATE: the <VATTOTALS> grouping letter. This used to be derived
+        // here as A/B/C, which buckets special relief (TAXCODE 4) and exempt
+        // (5) together — some EFDMS specs give them their own D/E letters, and
+        // that could not be confirmed against this integration's spec.
+        //
+        // So it is configuration now, not a guess: the code carries the letter
+        // (migration 183), seeded to reproduce the old derivation exactly. A
+        // tenant holding the real spec sets D or E without a code change. The
+        // fallback covers lines with no tax code, which have no letter to read.
+        const vatRate = line.tc_vat_rate
+          ?? (taxCode === 1 ? 'A' : taxCode === 2 ? 'B' : 'C');
 
         totalTaxExcl += amtExcl;
         totalTaxIncl += amtIncl;

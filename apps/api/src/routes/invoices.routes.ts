@@ -473,7 +473,9 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
         bl_number: body.bl_number || null,
         origin: body.origin || null,
         destination: body.destination || null,
-        mode: body.mode || 'SEA',
+        // Not defaulted to 'SEA' — an invoice that does not say its transport
+        // mode is not thereby a sea freight invoice. See migration 183.
+        mode: body.mode || null,
         bill_date: body.bill_date || null,
         due_date: body.due_date || null,
         sale_agent: body.sale_agent || null,

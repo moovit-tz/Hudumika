@@ -38,6 +38,8 @@ export interface TaxCode {
   inputTaxRecoverable: boolean;
   appliesTo: TaxCodeScope;
   traTaxCode: number | null;
+  /** EFDMS <VATRATE> letter for the VATTOTALS grouping. Blank falls back to the old A/B/C derivation. */
+  traVatRate: string | null;
   isDefault: boolean;
   status: string;
   effectiveFrom: string | null;
@@ -92,6 +94,7 @@ function mapApi(d: any): TaxCode {
     inputTaxRecoverable: d.input_tax_recoverable !== false,
     appliesTo: (d.applies_to || 'BOTH') as TaxCodeScope,
     traTaxCode: d.tra_tax_code === null || d.tra_tax_code === undefined ? null : Number(d.tra_tax_code),
+    traVatRate: d.tra_vat_rate || null,
     isDefault: !!d.is_default,
     status: d.status || 'active',
     effectiveFrom: d.effective_from ? String(d.effective_from).slice(0, 10) : null,
@@ -104,7 +107,7 @@ export function toApiPayload(c: Partial<TaxCode>) {
     code: c.code, name: c.name, kind: c.kind, rate: c.rate,
     jurisdiction: c.jurisdiction, input_tax_recoverable: c.inputTaxRecoverable,
     applies_to: c.appliesTo,
-    tra_tax_code: c.traTaxCode, is_default: c.isDefault, status: c.status,
+    tra_tax_code: c.traTaxCode, tra_vat_rate: c.traVatRate || null, is_default: c.isDefault, status: c.status,
     effective_from: c.effectiveFrom || null, effective_to: c.effectiveTo || null,
   };
 }
