@@ -4526,8 +4526,8 @@ export interface HrCompensationComponentsTable {
 export interface HrDocumentsTable {
   id: Generated<string>;
   tenant_id: string;
-  person_id: string | null;
-  employment_id: string | null;
+  /** The person the document is about. Was person_id -> hr_people (0 rows). */
+  user_id: string | null;
   name: string;
   type: string;
   storage_key: string;

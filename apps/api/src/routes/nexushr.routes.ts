@@ -176,11 +176,13 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
-  /** Hand an asset over, or take it back with `employment_id: null`. */
+  /** Hand an asset over, or take it back with `user_id: null`. */
   fastify.patch('/assets/:id/assignment', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
     try {
-      const { employment_id, date } = request.body ?? {};
-      return await NexusHRService.assignAsset(request.user.tenant_id, request.params.id, employment_id ?? null, date);
+      // employment_id still accepted so an older client keeps working, but a
+      // user id is what it now means.
+      const { user_id, employment_id, date } = request.body ?? {};
+      return await NexusHRService.assignAsset(request.user.tenant_id, request.params.id, user_id ?? employment_id ?? null, date);
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
     }

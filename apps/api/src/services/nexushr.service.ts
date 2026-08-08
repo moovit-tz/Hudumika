@@ -540,15 +540,15 @@ export class NexusHRService {
     return withTenant(tenantId, async (trx) => {
       const rows = await trx
         .selectFrom('hr_documents')
-        .leftJoin('hr_people as dp', 'dp.id', 'hr_documents.person_id')
-        .leftJoin('hr_employments', 'hr_employments.id', 'hr_documents.employment_id')
-        .leftJoin('hr_people as ep', 'ep.id', 'hr_employments.person_id')
+        // One owner, joined to a table that has people in it. There used to be
+        // two — person_id and employment_id — resolved through three joins
+        // onto tables holding no rows, so every document's owner came back null.
+        .leftJoin('users', 'users.id', 'hr_documents.user_id')
         .select([
-          'hr_documents.id', 'hr_documents.person_id', 'hr_documents.employment_id',
+          'hr_documents.id', 'hr_documents.user_id',
           'hr_documents.name', 'hr_documents.type',
           'hr_documents.storage_key', 'hr_documents.status', 'hr_documents.created_at',
-          'dp.first_name as p_first', 'dp.last_name as p_last',
-          'ep.first_name as e_first', 'ep.last_name as e_last',
+          'users.name as owner_name', 'users.email as owner_email',
         ])
         .where('hr_documents.tenant_id', '=', tenantId)
         .orderBy('hr_documents.created_at', 'desc')
@@ -565,8 +565,11 @@ export class NexusHRService {
       return rows.map(r => ({
         id: r.id, name: r.name, type: r.type, status: r.status,
         storage_key: r.storage_key, created_at: r.created_at,
-        person_id: r.person_id, employment_id: r.employment_id,
-        person_name: r.p_first ? `${r.p_first} ${r.p_last}` : r.e_first ? `${r.e_first} ${r.e_last}` : null,
+        user_id: r.user_id,
+        // One name, from one join. The two-column fallback existed because
+        // neither table it read from had any rows to fall back to.
+        person_name: r.owner_name ?? null,
+        person_email: r.owner_email ?? null,
         signature_status: sigs.find(s => s.document_id === r.id)?.status ?? null,
       }));
     });
@@ -594,20 +597,20 @@ export class NexusHRService {
     return withTenant(tenantId, async (trx) => {
       const rows = await trx
         .selectFrom('hr_assets')
-        .leftJoin('hr_employments', 'hr_employments.id', 'hr_assets.assigned_to')
-        .leftJoin('hr_people', 'hr_people.id', 'hr_employments.person_id')
+        .leftJoin('users', 'users.id', 'hr_assets.assigned_to')
         .select([
           'hr_assets.id', 'hr_assets.name', 'hr_assets.type', 'hr_assets.serial_number',
           'hr_assets.assigned_to', 'hr_assets.assigned_date', 'hr_assets.returned_date',
           'hr_assets.condition_notes', 'hr_assets.created_at',
-          'hr_people.first_name', 'hr_people.last_name',
+          'users.name as holder_name', 'users.email as holder_email',
         ])
         .where('hr_assets.tenant_id', '=', tenantId)
         .orderBy('hr_assets.name', 'asc')
         .execute();
       return rows.map(r => ({
         ...r,
-        holder_name: r.first_name ? `${r.first_name} ${r.last_name}` : null,
+        // "Out" means assigned and not yet returned — the question an asset
+        // register exists to answer.
         out: r.assigned_to != null && r.returned_date == null,
       }));
     });
@@ -629,27 +632,29 @@ export class NexusHRService {
   }
 
   /**
-   * Hands an asset to someone, or takes it back when `employmentId` is null.
+   * Hands an asset to someone, or takes it back when `userId` is null.
    *
    * Assigning an asset that is already out is refused rather than silently
    * reassigned — the previous holder would otherwise stop being recorded as
    * having it while still physically holding it.
    */
-  static async assignAsset(tenantId: string, assetId: string, employmentId: string | null, when?: string) {
+  static async assignAsset(tenantId: string, assetId: string, userId: string | null, when?: string) {
     return withTenant(tenantId, async (trx) => {
       const asset = await trx.selectFrom('hr_assets').selectAll()
         .where('id', '=', assetId).where('tenant_id', '=', tenantId).executeTakeFirst();
       if (!asset) throw new Error('Asset not found');
 
-      if (employmentId) {
-        const emp = await trx.selectFrom('hr_employments').select('id')
-          .where('id', '=', employmentId).where('tenant_id', '=', tenantId).executeTakeFirst();
-        if (!emp) throw new Error('Employment not found');
+      if (userId) {
+        // users, not hr_employments — which holds no rows, so this check could
+        // only ever fail and no asset could be handed to anybody.
+        const holder = await trx.selectFrom('users').select('id')
+          .where('id', '=', userId).where('tenant_id', '=', tenantId).executeTakeFirst();
+        if (!holder) throw new Error('That person is not on this tenant');
         if (asset.assigned_to && !asset.returned_date) {
           throw new Error('This asset is already out — record its return before assigning it to someone else.');
         }
         return trx.updateTable('hr_assets')
-          .set({ assigned_to: employmentId, assigned_date: toDateParam(when ?? new Date()),
+          .set({ assigned_to: userId, assigned_date: toDateParam(when ?? new Date()),
                  returned_date: null, updated_at: new Date() })
           .where('id', '=', assetId).where('tenant_id', '=', tenantId)
           .returningAll().executeTakeFirstOrThrow();
