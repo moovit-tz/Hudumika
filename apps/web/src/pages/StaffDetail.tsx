@@ -512,6 +512,37 @@ export const StaffDetail: React.FC = () => {
     }));
   };
 
+  /**
+   * Upload a document about this person. Multipart, not JSON — the row and the
+   * file are created together server-side, so a document can never be listed
+   * without something behind it.
+   */
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const uploadDocument = async (file: File) => {
+    if (!id) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      // Ordered so the server sees the fields before the file, since it reads
+      // them off the same multipart stream.
+      fd.append('user_id', id);
+      fd.append('name', file.name);
+      fd.append('type', 'OTHER');
+      fd.append('file', file);
+      // nexushr.routes is mounted at /v1/hr, same prefix as hr.routes.
+      await apiFetch('/v1/hr/documents/upload', { method: 'POST', body: fd });
+      setTab('Documents');
+      await loadTab('Documents');
+    } catch (e: any) {
+      showAlert(e?.message || 'The document could not be uploaded.');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   /** Statutory and pay fields are real columns, not profile json. */
   const updateField = (key: keyof StaffData, value: string | null) => {
     setEditForm(prev => ({ ...prev, [key]: value }));
@@ -742,7 +773,7 @@ export const StaffDetail: React.FC = () => {
                 <div style={{ padding: '16px 20px', fontSize: 14, fontWeight: 700, color: 'var(--ink)', borderBottom: '1px solid var(--border)' }}>Quick actions</div>
                 <div>
                   <ActionLink label="Add payroll" />
-                  <ActionLink label="Upload document" />
+                  <ActionLink label="Upload document" onClick={() => { setTab('Documents'); fileInputRef.current?.click(); }} />
                   <ActionLink label="Assign shift" />
                   <div style={{ padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
                     <span style={{ fontSize: 13, color: 'var(--ink2)', fontWeight: 500 }}>View attendance</span>
@@ -947,13 +978,26 @@ export const StaffDetail: React.FC = () => {
         )}
 
         {tab === 'Documents' && !tabDenied && (
-          <TabTable
-            loading={tabLoading}
-            rows={tabRows.Documents ?? []}
-            empty="No documents are on file for this person."
-            head={['Name', 'Type', 'Status', 'Added']}
-            row={r => [r.name, r.type || '—', <StatusChip key="s" value={r.status} />, formatDate(r.created_at)]}
-          />
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="btn btn-primary btn-sm"
+                style={{ background: 'var(--teal)', borderColor: 'var(--teal)', color: '#fff' }}
+              >
+                {uploading ? 'Uploading…' : 'Upload document'}
+              </button>
+            </div>
+            <TabTable
+              loading={tabLoading}
+              rows={tabRows.Documents ?? []}
+              empty="No documents are on file for this person."
+              head={['Name', 'Type', 'Status', 'Added']}
+              row={r => [r.name, r.type || '—', <StatusChip key="s" value={r.status} />, formatDate(r.created_at)]}
+            />
+          </div>
         )}
 
         {tab === 'Tickets' && !tabDenied && (
@@ -1051,6 +1095,16 @@ export const StaffDetail: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Mounted always, not inside the Documents tab: the Profile quick action
+          switches tab and opens the picker in the same handler, and an input
+          that has not rendered yet cannot be clicked. */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        style={{ display: 'none' }}
+        onChange={e => { const f = e.target.files?.[0]; if (f) uploadDocument(f); }}
+      />
 
       {/* Edit Profile Modal */}
       {isEditing && (

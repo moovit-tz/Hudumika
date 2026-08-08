@@ -2,6 +2,8 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { NexusHRService } from '../services/nexushr.service.js';
 import { requireRole } from '../middleware/rbac.js';
+import { withTenant } from '../db/client.js';
+import { MinioIntegration } from '../integrations/minio.js';
 
 export async function nexusHRRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -149,6 +151,61 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
       return reply.status(500).send({ error: err.message });
     }
   });
+
+  /**
+   * POST /v1/nexushr/documents/upload — a real file, stored and recorded.
+   *
+   * Documents could be listed and never created, so `hr_documents` was empty in
+   * every tenant and the Documents tab could only ever show nothing. The one
+   * thing this must not become is a metadata row with no file behind it:
+   * storage_key is NOT NULL precisely so a document row always points at
+   * something, and the upload happens before the insert so a failed write to
+   * disk cannot leave a row claiming a file that was never saved.
+   */
+  fastify.post('/documents/upload',
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    async (request: any, reply) => {
+      const user = request.user;
+      const data = await request.file();
+      if (!data) return reply.status(400).send({ error: 'No file uploaded.' });
+
+      const field = (n: string) => (data.fields?.[n] as any)?.value as string | undefined;
+      const userId = field('user_id') || (request.query as any)?.user_id || null;
+      const name = (field('name') || data.filename || '').trim();
+      const type = (field('type') || 'OTHER').trim().toUpperCase();
+      if (!name) return reply.status(400).send({ error: 'A document name is required.' });
+
+      // Validated before the file is written, so a refusal leaves nothing behind.
+      if (userId) {
+        const owner = await withTenant(user.tenant_id, trx =>
+          trx.selectFrom('users').select('id')
+            .where('id', '=', userId).where('tenant_id', '=', user.tenant_id)
+            .executeTakeFirst());
+        if (!owner) return reply.status(404).send({ error: 'That person is not in this workspace.' });
+      }
+
+      try {
+        const buffer = await data.toBuffer();
+        // Unattached documents are filed under the tenant rather than refused —
+        // a policy or a template belongs to nobody in particular.
+        const up = await MinioIntegration.uploadHrDocument(
+          user.tenant_id, userId ?? 'unattached', data.filename || name, buffer);
+
+        return await withTenant(user.tenant_id, trx =>
+          trx.insertInto('hr_documents').values({
+            tenant_id: user.tenant_id,
+            user_id: userId,
+            name,
+            type,
+            storage_key: up.storageKey,
+            // A freshly uploaded file has not been checked by anyone yet, and
+            // saying otherwise would make the verify step meaningless.
+            status: 'PENDING',
+          }).returningAll().executeTakeFirstOrThrow());
+      } catch (err: any) {
+        return reply.status(500).send({ error: err.message });
+      }
+    });
 
   fastify.get('/documents/templates', async (request: any, reply) => {
     try {

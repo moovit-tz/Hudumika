@@ -111,6 +111,35 @@ export class MinioIntegration {
   }
 
   /**
+   * Stores an HR document about one member of staff — a contract, an ID scan,
+   * a disciplinary letter.
+   *
+   * Deliberately its own tree rather than reusing uploadDocument, whose path is
+   * `.../customers/{customerId}/...`. Filing an employee's contract under a
+   * customer folder would be wrong twice over: the id is not a customer, and
+   * anything that later walks the customer tree to build a client's document
+   * list would sweep up staff records.
+   */
+  static async uploadHrDocument(
+    tenantId: string,
+    userId: string,
+    filename: string,
+    fileBuffer: Buffer
+  ): Promise<{ storageKey: string; size: number }> {
+    const cleanFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_') || 'document';
+    // Prefixed so two uploads of "contract.pdf" for the same person do not
+    // silently overwrite one another — the second would otherwise replace the
+    // first on disk while both rows still claimed to exist.
+    const unique = `${Date.now()}-${cleanFilename}`;
+    const localDir = path.join(UPLOADS_DIR, 'tenants', tenantId, 'hr', userId);
+    fs.mkdirSync(localDir, { recursive: true });
+    const storageKey = `tenants/${tenantId}/hr/${userId}/${unique}`;
+    fs.writeFileSync(path.join(localDir, unique), fileBuffer);
+    console.log(`🗄️ Storage: HR document saved — ${storageKey}`);
+    return { storageKey, size: fileBuffer.length };
+  }
+
+  /**
    * Generates a signed URL for reading/downloading a document.
    */
   static async getSignedUrl(
