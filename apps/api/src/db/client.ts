@@ -124,6 +124,14 @@ export interface LeadsTable {
 export interface CustomersTable {
   /** A real logo, when the company has one. Initials are derived, not stored. */
   logo_url: string | null;
+  /**
+   * Flags rather than one `kind`, because a company is routinely both: a peer
+   * clearing agent who also ships their own consignments is a partner and a
+   * customer, and a single type would force a duplicate record.
+   */
+  is_customer: Generated<boolean>;
+  is_partner: Generated<boolean>;
+  partner_role: string | null;
   id: Generated<string>;
   tenant_id: string;
   name: string;

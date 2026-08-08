@@ -58,6 +58,10 @@ export async function customerRoutes(fastify: FastifyInstance) {
         .selectFrom('customers')
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
+        // Symmetrical with /partners. Filtering only one side left a
+        // partner-only company still showing up as a customer, which is half
+        // the bug this was meant to fix.
+        .where('is_customer', '=', true)
         .orderBy('name', 'asc')
         .execute();
       return { data: list };
@@ -553,10 +557,13 @@ export async function customerRoutes(fastify: FastifyInstance) {
   fastify.get('/partners', async (request, reply) => {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
+      // Filtered. This selected every customer, which is why the Chain
+      // Partners page and the Customers page showed the same records.
       const partners = await trx
         .selectFrom('customers')
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
+        .where('is_partner', '=', true)
         .orderBy('name', 'asc')
         .execute();
 
@@ -568,6 +575,39 @@ export async function customerRoutes(fastify: FastifyInstance) {
    * POST /v1/customers/partners
    * Register a new Logistics & Warehousing Chain Partner
    */
+  /**
+   * Mark an existing company as a partner, or stop.
+   *
+   * Needed because every record predating the flag is a customer and not a
+   * partner, so the partners page starts empty. Re-typing fifty companies to
+   * populate it would be absurd; this promotes the ones that already exist.
+   */
+  fastify.patch('/:id/partner', async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const body = (request.body ?? {}) as any;
+    const isPartner = body.is_partner !== false;
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('customers').select(['id', 'name', 'is_customer'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Company not found' });
+
+      // A record that is neither is unreachable from either page. The CHECK
+      // would refuse it; saying so is more useful than a constraint violation.
+      if (!isPartner && !existing.is_customer) {
+        return reply.status(409).send({
+          error: `${existing.name} is not a customer, so removing the partner flag would hide it from every list. Mark it a customer first, or delete it.`,
+        });
+      }
+
+      return trx.updateTable('customers')
+        .set({ is_partner: isPartner, partner_role: body.partner_role ?? null, updated_at: new Date() } as any)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
   fastify.post('/partners', async (request, reply) => {
     const user = request.user;
     const body = request.body as any;
@@ -582,7 +622,12 @@ export async function customerRoutes(fastify: FastifyInstance) {
           contact_name: body.contactName || null,
           email: body.email || null,
           phone: body.phone || null,
-        })
+          // Marked, so it appears on the partners page and not among customers
+          // unless somebody says it is both.
+          is_partner: true,
+          is_customer: body.isCustomer === true,
+          partner_role: body.partnerRole || null,
+        } as any)
         .returningAll()
         .executeTakeFirstOrThrow();
 

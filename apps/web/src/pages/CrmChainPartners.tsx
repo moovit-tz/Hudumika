@@ -112,7 +112,18 @@ export function CrmChainPartners() {
         {loading ? (
           <div style={{ padding: 30, textAlign: 'center', color: 'var(--ink3)' }}>Loading chain partners…</div>
         ) : partners.length === 0 ? (
-          <div style={{ padding: 30, textAlign: 'center', color: 'var(--ink3)' }}>No chain partners registered yet.</div>
+          <div style={{ padding: '30px 24px', textAlign: 'center', color: 'var(--ink3)' }}>
+            <div style={{ fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>No chain partners yet.</div>
+            {/* This page used to list every customer, because the endpoint had
+                no filter. It does now, so the list is empty until the real
+                partners are marked — an empty list is true, a list of every
+                customer was not. */}
+            <div style={{ fontSize: 12.5, maxWidth: 460, margin: '0 auto', lineHeight: 1.5 }}>
+              This page previously showed every customer. Partners are now a
+              distinct list — add one above, or mark an existing company as a
+              partner from its record. A company can be both.
+            </div>
+          </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, textAlign: 'left' }}>
             <thead>
