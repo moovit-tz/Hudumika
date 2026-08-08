@@ -1,0 +1,353 @@
+import fs from 'fs';
+
+const baseContent = fs.readFileSync('rewrite_lens.ts', 'utf8');
+
+const lensComponent = `
+export function Lens() {
+  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
+  const [items, setItems] = useState<Item[]>([]);
+  const [columns, setColumns] = useState<Column[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [ci, setCi] = useState<any>(null);
+  const [selected, setSelected] = useState<(Item & { events?: Event[] }) | null>(null);
+  const [composing, setComposing] = useState(false);
+  const [notice, setNotice] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+
+  const [fKind, setFKind] = useState('');
+  const [fArea, setFArea] = useState('');
+  const [fConfidence, setFConfidence] = useState('');
+  const [q, setQ] = useState('');
+  const [showClosed, setShowClosed] = useState(false);
+
+  const [dragging, setDragging] = useState<Card | null>(null);
+  const [over, setOver] = useState<string | null>(null);
+  const [closing, setClosing] = useState<{ card: Card; status: string } | null>(null);
+  const [resolution, setResolution] = useState('');
+
+  const load = useCallback(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (fKind) params.set('kind', fKind);
+    if (fArea) params.set('area', fArea);
+    if (fConfidence) params.set('confidence', fConfidence);
+    if (q) params.set('q', q);
+    if (showClosed) params.set('include_closed', '1');
+    Promise.all([
+      apiFetch(\`/v1/lens/items?\${params}\`),
+      apiFetch(\`/v1/lens/board?\${params}\`),
+      apiFetch('/v1/lens/areas'),
+      apiFetch('/v1/lens/stats'),
+    ])
+      .then(([i, b, a, s]: any[]) => { setItems(i ?? []); setColumns(b ?? []); setAreas(a ?? []); setStats(s ?? null); })
+      .catch(() => { setItems([]); setColumns([]); })
+      .finally(() => setLoading(false));
+
+    apiFetch('/v1/lens/ci').then(setCi).catch(() => setCi(null));
+  }, [fKind, fArea, fConfidence, q, showClosed]);
+
+  useEffect(() => { load(); }, [load]);
+
+  async function open(ref: string) {
+    try { setSelected(await apiFetch(\`/v1/lens/items/\${ref}\`)); }
+    catch { setNotice({ kind: 'err', text: \`Could not open \${ref}\` }); }
+  }
+
+  async function patch(ref: string, body: Record<string, unknown>) {
+    try {
+      await apiFetch(\`/v1/lens/items/\${ref}\`, { method: 'PATCH', body: JSON.stringify(body) });
+      await open(ref); load();
+      setNotice({ kind: 'ok', text: \`\${ref} updated.\` });
+    } catch (e: any) {
+      setNotice({ kind: 'err', text: e?.message || 'Could not update that item' });
+    }
+  }
+
+  async function move(card: Card, status: string) {
+    if (card.status === status) return;
+    if (status === 'DONE') { setClosing({ card, status }); setResolution(''); return; }
+
+    const before = columns;
+    setColumns(cols => cols.map(c => ({
+      ...c,
+      items: c.status === status
+        ? [{ ...card, status }, ...c.items.filter(i => i.id !== card.id)]
+        : c.items.filter(i => i.id !== card.id),
+    })).map(c => ({ ...c, count: c.items.length, over_wip: c.wip_limit != null && c.items.length > c.wip_limit })));
+
+    try {
+      await apiFetch(\`/v1/lens/items/\${card.ref}\`, { method: 'PATCH', body: JSON.stringify({ status }) });
+      load();
+    } catch (e: any) {
+      setColumns(before);
+      setNotice({ kind: 'err', text: e?.message || \`Could not move \${card.ref}\` });
+    }
+  }
+
+  async function confirmClose() {
+    if (!closing || !resolution.trim()) return;
+    try {
+      await apiFetch(\`/v1/lens/items/\${closing.card.ref}\`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: closing.status, resolution: resolution.trim() }),
+      });
+      setNotice({ kind: 'ok', text: \`\${closing.card.ref} closed.\` });
+      setClosing(null); load();
+    } catch (e: any) {
+      setNotice({ kind: 'err', text: e?.message || 'Could not close it' });
+    }
+  }
+
+  const grouped = useMemo(() => {
+    const by = new Map<string, Item[]>();
+    for (const it of items) {
+      const k = it.area_name ?? 'Unassigned';
+      by.set(k, [...(by.get(k) ?? []), it]);
+    }
+    return [...by.entries()].sort((a, b) => b[1].length - a[1].length);
+  }, [items]);
+
+  if (composing) {
+    return <Compose areas={areas} onClose={() => setComposing(false)}
+      onSaved={(ref) => { setComposing(false); setNotice({ kind: 'ok', text: \`\${ref} opened.\` }); load(); }} />;
+  }
+
+  return (
+    <div className="page-layout" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <PageHeader
+        crumbs={['Lens']}
+        titlePlain="Developer"
+        titleEm="record"
+        subtitle="What is pending, what is broken, and what was decided — across the whole platform."
+        actions={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {ci?.ok && !ci.empty && (
+              <span title={\`Pipeline #\${ci.number} · \${ci.vcs ?? ''}\`} style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700,
+                padding: '5px 10px', borderRadius: 'var(--r-sm)',
+                background: ci.state === 'created' ? 'var(--blue-l)' : 'var(--bg)',
+                border: '1px solid var(--border)', color: 'var(--ink2)',
+              }}>
+                <Icon name="refresh" size={12} /> CI #{ci.number} · {ci.state}
+              </span>
+            )}
+            
+            <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
+              {(['board', 'list'] as const).map(m => (
+                <button key={m} type="button" onClick={() => setViewMode(m)} style={{
+                  padding: '6px 12px', border: 'none', background: viewMode === m ? 'var(--teal)' : 'var(--white)',
+                  color: viewMode === m ? '#fff' : 'var(--ink3)', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                  fontWeight: 600, fontSize: 12
+                }}>
+                  <Icon name={m === 'board' ? 'columns' : 'list'} size={14} style={{ marginRight: 6 }} color={viewMode === m ? '#fff' : 'var(--ink3)'} />
+                  {m === 'board' ? 'Board' : 'List'}
+                </button>
+              ))}
+            </div>
+
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => setComposing(true)}>
+              <Icon name="plus" size={14} color="#fff" /> New item
+            </button>
+          </div>
+        }
+      />
+
+      {notice && (
+        <div style={{
+          padding: '10px 14px', margin: '0 0 14px', borderRadius: 'var(--r)',
+          fontSize: 12.5, fontWeight: 600,
+          background: notice.kind === 'ok' ? 'var(--green-l)' : 'var(--red-l)',
+          border: \`1px solid \${notice.kind === 'ok' ? 'var(--green)' : 'var(--red)'}\`,
+          color: notice.kind === 'ok' ? 'var(--green)' : 'var(--red)',
+        }}>{notice.text}</div>
+      )}
+
+      {/* Filters */}
+      <div style={{ ...card, padding: '10px 12px', margin: '0 0 16px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
+        <Select value={fKind || '__all__'} onValueChange={v => setFKind(v === '__all__' ? '' : v)}>
+          <SelectTrigger style={{ minWidth: 130 }}><SelectValue placeholder="All kinds" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All kinds</SelectItem>
+            {KINDS.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={fArea || '__all__'} onValueChange={v => setFArea(v === '__all__' ? '' : v)}>
+          <SelectTrigger style={{ minWidth: 160 }}><SelectValue placeholder="All areas" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All areas</SelectItem>
+            {areas.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {viewMode === 'list' && (
+          <Select value={fConfidence || '__all__'} onValueChange={v => setFConfidence(v === '__all__' ? '' : v)}>
+            <SelectTrigger style={{ minWidth: 170 }}><SelectValue placeholder="Any confidence" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Any confidence</SelectItem>
+              {CONFIDENCES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--ink2)' }}>
+          <input type="checkbox" checked={showClosed} onChange={e => setShowClosed(e.target.checked)} />
+          Show closed
+        </label>
+        {viewMode === 'list' && (
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search title, body, evidence…"
+            style={{ ...input, width: 'auto', flex: '1 1 220px', marginLeft: 'auto', minWidth: 200 }} />
+        )}
+      </div>
+
+      {loading ? (
+        <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading…</div>
+      ) : viewMode === 'board' ? (
+        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', overflowX: 'auto', paddingBottom: 8, flex: 1, height: 0 }}>
+          {columns.map(col => (
+            <div key={col.id}
+              onDragOver={e => { e.preventDefault(); setOver(col.status); }}
+              onDragLeave={() => setOver(o => (o === col.status ? null : o))}
+              onDrop={e => { e.preventDefault(); setOver(null); if (dragging) move(dragging, col.status); setDragging(null); }}
+              style={{
+                display: 'flex', flexDirection: 'column',
+                flex: '0 0 280px', height: '100%',
+                background: over === col.status ? 'var(--teal-l)' : '#f1f2f4',
+                border: \`1px solid \${over === col.status ? 'var(--teal)' : '#e2e8f0'}\`,
+                borderRadius: '10px', transition: 'background .12s, border-color .12s',
+              }}>
+              <div style={{ padding: '12px 14px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>
+                  {col.name}
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 700, background: col.over_wip ? 'var(--red)' : '#e2e8f0', color: col.over_wip ? '#fff' : 'var(--ink2)', padding: '2px 6px', borderRadius: 10 }}>
+                  {col.count}{col.wip_limit != null ? \` / \${col.wip_limit}\` : ''}
+                </span>
+              </div>
+
+              {col.over_wip && (
+                <div style={{ margin: '0 10px', padding: '6px 12px', fontSize: 11, color: 'var(--red)', background: 'var(--red-l)', borderRadius: 4, flexShrink: 0 }}>
+                  Over {col.wip_limit} limit — finish something first.
+                </div>
+              )}
+
+              <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1, overflowY: 'auto' }}>
+                {col.items.map(card => (
+                  <div key={card.id}
+                    draggable
+                    onDragStart={() => setDragging(card)}
+                    onDragEnd={() => { setDragging(null); setOver(null); }}
+                    onClick={() => open(card.ref)}
+                    style={{
+                      background: 'var(--white)',
+                      borderRadius: 8, padding: '10px 12px', cursor: 'grab',
+                      opacity: dragging?.id === card.id ? 0.5 : 1,
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.06), 0 1px 1px rgba(0,0,0,0.04)',
+                    }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 6 }}>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 11, fontWeight: 700, color: 'var(--ink3)' }}>{card.ref}</span>
+                      <Badge variant={KIND_VARIANT[card.kind]}>{card.kind}</Badge>
+                      {card.confidence !== 'CONFIRMED' && (
+                        <Badge variant={CONFIDENCE_VARIANT[card.confidence]}>{card.confidence}</Badge>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', lineHeight: 1.4 }}>{card.title}</div>
+                    {card.waiting_on && (
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>⏳ {card.waiting_on}</div>
+                    )}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8, flexWrap: 'wrap' }}>
+                      {card.area_name && (
+                        <span style={{ fontSize: 10, color: 'var(--ink3)' }}>{card.area_name}</span>
+                      )}
+                      {card.links.map(l => (
+                        <a key={\`\${l.provider}-\${l.external_id}\`} href={l.url ?? '#'} target="_blank" rel="noreferrer"
+                          onClick={e => e.stopPropagation()}
+                          title={\`\${l.provider} \${l.external_id}\${l.external_status ? \` — \${l.external_status}\` : ''}\`}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10.5, color: 'var(--ink3)', textDecoration: 'none' }}>
+                          <Icon name={(PROVIDER_ICON[l.provider] ?? 'link') as any} size={11} />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div style={{ overflowY: 'auto', flex: 1, paddingRight: 8 }}>
+          {items.length === 0 ? (
+            <div style={{ ...card, padding: '48px 20px', textAlign: 'center', color: 'var(--ink3)' }}>
+              Nothing matches. {showClosed ? '' : 'Closed items are hidden — tick "Show closed" to include them.'}
+            </div>
+          ) : grouped.map(([area, list]) => (
+            <div key={area} style={{ ...card, overflow: 'hidden', marginBottom: 16 }}>
+              <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                  {area} · {list.length}
+                </span>
+              </div>
+              {list.map(it => (
+                <button key={it.id} type="button" onClick={() => open(it.ref)}
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'left', background: 'none',
+                    border: 'none', borderBottom: '1px solid var(--border)', cursor: 'pointer',
+                    padding: '12px 16px', fontFamily: 'var(--font)',
+                  }}>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 4 }}>
+                    <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)' }}>{it.ref}</span>
+                    <Badge variant={KIND_VARIANT[it.kind]}>{it.kind}</Badge>
+                    <Badge variant={CONFIDENCE_VARIANT[it.confidence]}>{it.confidence}</Badge>
+                    {it.status !== 'OPEN' && <Badge variant="gray">{it.status.replace('_', ' ')}</Badge>}
+                    {(it.severity === 'CRITICAL' || it.severity === 'HIGH') && (
+                      <span style={{ fontSize: 11, fontWeight: 700, color: SEVERITY_COLOR[it.severity] }}>{it.severity}</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.4 }}>{it.title}</div>
+                  {it.waiting_on && (
+                    <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 3 }}>Waiting on: {it.waiting_on}</div>
+                  )}
+                </button>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {selected && (
+        <Detail item={selected} areas={areas} onClose={() => setSelected(null)} onPatch={patch}
+          onDelete={() => { setSelected(null); load(); }} />
+      )}
+
+      {closing && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={() => setClosing(null)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: '#fff', borderRadius: 'var(--r)', width: 420, padding: 20, boxShadow: 'var(--elev-lg)',
+          }}>
+            <h3 style={{ margin: '0 0 16px', fontSize: 16 }}>Close {closing.card.ref}</h3>
+            <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 16, lineHeight: 1.5 }}>
+              Closing an item requires a resolution. What happened here? Was it fixed, proven false, or abandoned?
+            </div>
+            <textarea
+              autoFocus
+              value={resolution} onChange={e => setResolution(e.target.value)}
+              placeholder="e.g. Fixed in #123"
+              style={{ ...input, width: '100%', minHeight: 80, marginBottom: 16, resize: 'vertical' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setClosing(null)}>Cancel</button>
+              <button type="button" className="btn btn-primary" disabled={!resolution.trim()} onClick={confirmClose}>Close {closing.card.ref}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+`;
+
+fs.writeFileSync('apps/web/src/pages/Lens.tsx', baseContent + "\\n" + lensComponent);
+
+// Remove LensBoard
+if (fs.existsSync('apps/web/src/pages/LensBoard.tsx')) {
+  fs.unlinkSync('apps/web/src/pages/LensBoard.tsx');
+}

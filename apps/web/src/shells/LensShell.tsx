@@ -5,7 +5,6 @@ import { AppHeader } from '../components/AppHeader.js';
 import { PageLayout } from '../components/PageLayout.js';
 import { RequireRoles } from '../components/RequireRoles.js';
 import { Lens } from '../pages/Lens.js';
-import { LensBoard } from '../pages/LensBoard.js';
 import { LensIntegrations } from '../pages/LensIntegrations.js';
 
 /**
@@ -21,8 +20,7 @@ const NAV: SidebarSection[] = [
   {
     title: 'Record',
     items: [
-      { label: 'Board', icon: 'columns', path: '/lens', exact: true },
-      { label: 'List',  icon: 'list',    path: '/lens/list' },
+      { label: 'Items', icon: 'columns', path: '/lens', exact: true },
     ],
   },
   {
@@ -43,8 +41,7 @@ export function LensShell() {
           <div className="app-shell-content">
             <Routes>
               <Route element={<PageLayout />}>
-                <Route index element={<RequireRoles roles={[...LENS_ROLES]}><LensBoard /></RequireRoles>} />
-                <Route path="list" element={<RequireRoles roles={[...LENS_ROLES]}><Lens /></RequireRoles>} />
+                <Route index element={<RequireRoles roles={[...LENS_ROLES]}><Lens /></RequireRoles>} />
                 <Route path="integrations" element={<RequireRoles roles={[...LENS_ROLES]}><LensIntegrations /></RequireRoles>} />
               </Route>
             </Routes>
