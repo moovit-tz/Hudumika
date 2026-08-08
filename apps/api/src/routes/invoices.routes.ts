@@ -874,9 +874,13 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { noteId } = request.params as { id: string; noteId: string };
     return withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('invoice_notes').select('id').where('id', '=', noteId).executeTakeFirst();
+      // The note is addressed directly, so it carries its own tenant filter.
+      // The invoice id in the path was never checked against anything.
+      const existing = await trx.selectFrom('invoice_notes').select('id')
+        .where('id', '=', noteId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Note not found' });
-      await trx.deleteFrom('invoice_notes').where('id', '=', noteId).execute();
+      await trx.deleteFrom('invoice_notes')
+        .where('id', '=', noteId).where('tenant_id', '=', user.tenant_id).execute();
       return reply.status(204).send();
     });
   });
@@ -923,7 +927,9 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       if (k in body) patch[k] = body[k];
     }
     return withTenant(user.tenant_id, async (trx) => {
-      const t = await trx.updateTable('invoice_tasks').set(patch).where('id', '=', taskId).returningAll().executeTakeFirst();
+      const t = await trx.updateTable('invoice_tasks').set(patch)
+        .where('id', '=', taskId).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirst();
       if (!t) return reply.status(404).send({ error: 'Task not found' });
       if ('done' in body) {
         await trx.insertInto('invoice_activity_log').values({
@@ -939,7 +945,8 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { taskId } = request.params as { id: string; taskId: string };
     return withTenant(user.tenant_id, async (trx) => {
-      await trx.deleteFrom('invoice_tasks').where('id', '=', taskId).execute();
+      await trx.deleteFrom('invoice_tasks')
+        .where('id', '=', taskId).where('tenant_id', '=', user.tenant_id).execute();
       return reply.status(204).send();
     });
   });
@@ -985,7 +992,9 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       if (k in body) patch[k] = body[k];
     }
     return withTenant(user.tenant_id, async (trx) => {
-      const r = await trx.updateTable('invoice_reminders').set(patch).where('id', '=', reminderId).returningAll().executeTakeFirst();
+      const r = await trx.updateTable('invoice_reminders').set(patch)
+        .where('id', '=', reminderId).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirst();
       if (!r) return reply.status(404).send({ error: 'Reminder not found' });
       return r;
     });
@@ -995,7 +1004,8 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { reminderId } = request.params as { id: string; reminderId: string };
     return withTenant(user.tenant_id, async (trx) => {
-      await trx.deleteFrom('invoice_reminders').where('id', '=', reminderId).execute();
+      await trx.deleteFrom('invoice_reminders')
+        .where('id', '=', reminderId).where('tenant_id', '=', user.tenant_id).execute();
       return reply.status(204).send();
     });
   });

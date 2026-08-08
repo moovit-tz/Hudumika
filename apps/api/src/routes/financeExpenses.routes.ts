@@ -167,7 +167,12 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'No fields to update' });
 
     return withTenant(user.tenant_id, async (trx) => {
-      const row = await trx.updateTable('finance_expenses').set(patch).where('id', '=', id).returningAll().executeTakeFirst();
+      // Scoped. Without the tenant filter this reached any expense in the
+      // database given its id, and RLS does not stop it: the connection owns
+      // the table, and Postgres lets an owner bypass row-level policies.
+      const row = await trx.updateTable('finance_expenses').set(patch)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirst();
       if (!row) return reply.status(404).send({ error: 'Expense not found' });
       return row;
     });
@@ -181,7 +186,9 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
 
     return withTenant(user.tenant_id, async (trx) => {
-      const deleted = await trx.deleteFrom('finance_expenses').where('id', '=', id).returningAll().executeTakeFirst();
+      const deleted = await trx.deleteFrom('finance_expenses')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirst();
       if (!deleted) return reply.status(404).send({ error: 'Expense not found' });
       return reply.status(204).send();
     });
