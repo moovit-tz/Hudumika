@@ -1791,6 +1791,32 @@ export type TaxCodeKind =
 
 export type TaxCodeScope = 'SALES' | 'PURCHASE' | 'BOTH';
 
+/**
+ * A filing period, per tenant per jurisdiction.
+ *
+ * Closing one freezes every document dated inside it and stores the return as
+ * filed. The snapshot is never recomputed — a figure that can change is not a
+ * filed figure.
+ */
+export interface VatPeriodsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  jurisdiction: string;
+  period_start: DateOnly;
+  period_end: DateOnly;
+  status: Generated<'open' | 'closed'>;
+  return_snapshot: unknown | null;
+  adjustment_entry_id: string | null;
+  adjustment_amount: number | null;
+  closed_at: Date | null;
+  closed_by: string | null;
+  reopened_at: Date | null;
+  reopened_by: string | null;
+  reopen_reason: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface TaxCodesTable {
   id: Generated<string>;
   tenant_id: string;
@@ -2650,6 +2676,7 @@ export interface Database {
   invoice_reminders: InvoiceRemindersTable;
   invoice_activity_log: InvoiceActivityLogTable;
   tax_codes: TaxCodesTable;
+  vat_periods: VatPeriodsTable;
   // Suppliers / Vendors
   products: ProductsTable;
   suppliers: SuppliersTable;

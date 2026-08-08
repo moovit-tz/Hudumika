@@ -29,6 +29,8 @@ export interface VatReturn {
   from: string;
   to: string;
   currency: string;
+  /** null when the return merges every jurisdiction (single-country tenant). */
+  jurisdiction: string | null;
 
   /** Sales. `net` is the taxable base; `tax` is output tax charged. */
   outputs: VatBucket[];
@@ -112,8 +114,14 @@ function addTo(map: Map<string, VatBucket>, kind: TaxCodeKind | 'UNCLASSIFIED', 
 
 export async function computeVatReturn(
   db: Db, tenantId: string, from: string, to: string, reportingCurrency = 'TZS',
+  jurisdiction?: string,
 ): Promise<VatReturn> {
   const base = reportingCurrency.toUpperCase();
+  // A tenant operating in two countries files two returns. `tax_codes` has
+  // carried a jurisdiction since migration 180; this is what finally reads it.
+  // Omitting it merges every jurisdiction into one return, which is only
+  // correct for a single-country tenant.
+  const juris = jurisdiction ? jurisdiction.toUpperCase() : null;
 
   // ── Outputs: sales invoice lines ────────────────────────────────────────
   // Draft invoices are excluded: a draft has not been issued, so nothing has
@@ -125,10 +133,12 @@ export async function computeVatReturn(
     .select([
       'l.qty', 'l.rate', 'l.tax_pct', 'l.currency as line_currency', 'l.tax_code_id',
       'si.currency as inv_currency', 'si.exchange_rate',
-      'tc.code as tc_code', 'tc.kind as tc_kind',
+      'tc.code as tc_code', 'tc.kind as tc_kind', 'tc.jurisdiction as tc_jurisdiction',
     ])
     .where('si.tenant_id', '=', tenantId)
-    .where('si.status', '!=', 'Draft')
+    // Draft: never issued, so nothing is due. Void: reversed in the ledger, so
+    // it must stop contributing here too or the return and the books diverge.
+    .where('si.status', 'not in', ['Draft', 'Void'])
     .where('si.bill_date', '>=', from as any)
     .where('si.bill_date', '<=', to as any)
     .execute();
@@ -157,6 +167,10 @@ export async function computeVatReturn(
     // has no rate to the reporting currency anywhere in the schema, and a
     // return must not silently treat 1,000 USD as 1,000 TZS: it is counted as
     // skipped and reported as such.
+    // A line classified under another country's code belongs to that
+    // country's return, not this one. An unclassified line has no
+    // jurisdiction to place it in, so it stays here and is reported as a gap.
+    if (juris && l.tc_jurisdiction && l.tc_jurisdiction.toUpperCase() !== juris) continue;
     if (invCur !== base) { fxSkipped.invoices += 1; continue; }
     let net = (Number(l.qty) || 0) * (Number(l.rate) || 0);
     if (lineCur !== invCur) net *= rate;
@@ -187,9 +201,10 @@ export async function computeVatReturn(
       'l.qty', 'l.unit_price', 'l.tax_rate', 'l.tax_code_id',
       'b.currency as bill_currency', 'b.exchange_rate',
       'tc.code as tc_code', 'tc.kind as tc_kind', 'tc.input_tax_recoverable',
+      'tc.jurisdiction as tc_jurisdiction',
     ])
     .where('b.tenant_id', '=', tenantId)
-    .where('b.status', '!=', 'DRAFT')
+    .where('b.status', 'not in', ['DRAFT', 'VOID'])
     .where('b.bill_date', '>=', from as any)
     .where('b.bill_date', '<=', to as any)
     .execute();
@@ -198,6 +213,7 @@ export async function computeVatReturn(
   let inputTaxClaimable = 0, inputTaxBlocked = 0;
 
   for (const l of billLines) {
+    if (juris && l.tc_jurisdiction && l.tc_jurisdiction.toUpperCase() !== juris) continue;
     const cur = (l.bill_currency || base).toUpperCase();
     const fx = Number(l.exchange_rate) || 1;
     let net = (Number(l.qty) || 0) * (Number(l.unit_price) || 0);
@@ -261,7 +277,7 @@ export async function computeVatReturn(
     ['STANDARD', 'REDUCED', 'ZERO_RATED', 'EXEMPT', 'REVERSE_CHARGE', 'OUT_OF_SCOPE', 'UNCLASSIFIED'].indexOf(b.kind);
 
   return {
-    from, to, currency: base,
+    from, to, currency: base, jurisdiction: juris,
     outputs: [...outputs.values()].sort((a, b) => order(a) - order(b)),
     outputTax,
     inputs: [...inputs.values()].sort((a, b) => order(a) - order(b)),

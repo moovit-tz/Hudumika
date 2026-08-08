@@ -10,6 +10,9 @@ import { TRAService } from '../services/tra.service.js';
 import { getNextDocNumber } from '../lib/doc-numbering.js';
 import { toDateParam } from '../utils/dates.js';
 import { isTaxCodeUserError, resolveTaxCode } from '../services/tax-code.service.js';
+import {
+  DocumentPosted, assertPeriodOpen, isPeriodError, reverseDocumentJournals, tenantJurisdiction,
+} from '../services/vat-period.service.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 
@@ -448,6 +451,18 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       if (!resolved.ok) return reply.status(400).send({ error: resolved.error });
 
       const invoiceNumber = body.invoice_number || await getNextDocNumber(trx, user.tenant_id, 'invoice');
+
+      // Numbers are unique per workspace (migration 182). getNextDocNumber can
+      // never collide, but a caller-supplied `invoice_number` can — and without
+      // this it surfaced as a raw Postgres 23505 and a 500.
+      if (body.invoice_number) {
+        const clash = await trx.selectFrom('sales_invoices').select('id')
+          .where('tenant_id', '=', user.tenant_id).where('invoice_number', '=', invoiceNumber)
+          .executeTakeFirst();
+        if (clash) {
+          return reply.status(409).send({ error: `Invoice number ${invoiceNumber} is already in use.` });
+        }
+      }
       const [inv] = await trx.insertInto('sales_invoices').values({
         tenant_id: user.tenant_id,
         invoice_number: invoiceNumber,
@@ -515,8 +530,21 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const body = request.body as any;
     return withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('sales_invoices').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const existing = await trx.selectFrom('sales_invoices').select(['id', 'bill_date'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Invoice not found' });
+
+      // A filed period is frozen. Both the stored date and the incoming one are
+      // checked: an invoice must not be able to escape a closed period, nor
+      // walk into one.
+      try {
+        const juris = await tenantJurisdiction(trx, user.tenant_id);
+        await assertPeriodOpen(trx, user.tenant_id, existing.bill_date, juris);
+        if (body.bill_date) await assertPeriodOpen(trx, user.tenant_id, body.bill_date, juris);
+      } catch (e) {
+        if (isPeriodError(e)) return reply.status(409).send({ error: e.message });
+        throw e;
+      }
 
       // Before the header update and, critically, before the line delete below:
       // a 400 returned from inside withTenant still commits, so failing later
@@ -588,13 +616,74 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // POST /v1/invoices/:id/void
+  // The replacement for deleting something that has been posted. The invoice
+  // stays, marked void; its journal entries are reversed by posting their mirror
+  // image rather than being removed, so the ledger still shows what happened.
+  fastify.post('/:id/void', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { reason } = (request.body ?? {}) as { reason?: string };
+    if (!String(reason ?? '').trim()) {
+      return reply.status(400).send({ error: 'A reason is required to void a posted invoice.' });
+    }
+    return withTenant(user.tenant_id, async (trx) => {
+      const inv = await trx.selectFrom('sales_invoices')
+        .select(['id', 'status', 'invoice_number', 'bill_date'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!inv) return reply.status(404).send({ error: 'Invoice not found' });
+      if (inv.status === 'Void') return reply.status(409).send({ error: 'That invoice is already void.' });
+
+      try {
+        await assertPeriodOpen(trx, user.tenant_id, inv.bill_date, await tenantJurisdiction(trx, user.tenant_id));
+      } catch (e) {
+        if (isPeriodError(e)) return reply.status(409).send({ error: e.message });
+        throw e;
+      }
+
+      const reversed = await reverseDocumentJournals(
+        trx, user.tenant_id, 'AR', id, user.sub, String(reason).trim());
+
+      await trx.updateTable('sales_invoices')
+        .set({ status: 'Void', notes: null, updated_at: new Date() } as any)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+
+      await trx.insertInto('invoice_activity_log').values({
+        tenant_id: user.tenant_id, invoice_id: id, actor_id: user.sub,
+        action: 'voided', detail: `Voided: ${String(reason).trim()}`, created_at: new Date(),
+      }).execute();
+
+      return { success: true, journals_reversed: reversed };
+    });
+  });
+
   // DELETE /v1/invoices/:id
   fastify.delete('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('sales_invoices').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const existing = await trx.selectFrom('sales_invoices')
+        .select(['id', 'status', 'invoice_number', 'bill_date'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Invoice not found' });
+
+      // A posted invoice has hit the ledger and may already have been filed.
+      // Deleting it leaves the journal entry pointing at nothing — there is one
+      // such orphan in this database from before this check existed. Void it
+      // instead, which reverses the entry and keeps both halves on record.
+      if (existing.status !== 'Draft') {
+        return reply.status(409).send({
+          error: new DocumentPosted('Invoice', existing.invoice_number).message,
+          void_endpoint: `/v1/invoices/${id}/void`,
+        });
+      }
+      try {
+        await assertPeriodOpen(trx, user.tenant_id, existing.bill_date, await tenantJurisdiction(trx, user.tenant_id));
+      } catch (e) {
+        if (isPeriodError(e)) return reply.status(409).send({ error: e.message });
+        throw e;
+      }
+      await trx.deleteFrom('sales_invoice_lines').where('invoice_id', '=', id).execute();
       await trx.deleteFrom('sales_invoices').where('id', '=', id).execute();
       return { success: true };
     });

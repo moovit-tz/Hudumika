@@ -6,6 +6,9 @@ import { GLService } from '../services/gl.service.js';
 import { AccountingIntegrationService } from '../services/accounting-integration.service.js';
 import { TRAService } from '../services/tra.service.js';
 import { isTaxCodeUserError, resolveLineTax, resolveTaxCode, splitInputTax } from '../services/tax-code.service.js';
+import {
+  DocumentPosted, assertPeriodOpen, isPeriodError, reverseDocumentJournals, tenantJurisdiction,
+} from '../services/vat-period.service.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 
@@ -31,7 +34,8 @@ async function buildBillLines(
   items: any[],
 ): Promise<
   | { ok: false; error: string }
-  | { ok: true; lines: any[]; subtotal: number; tax: number; recoverable: number; nonRecoverable: number }
+  | { ok: true; lines: any[]; subtotal: number; tax: number; recoverable: number;
+      nonRecoverable: number; byAccount: Map<string, number> }
 > {
   const codeIds = [...new Set(items.map(it => it?.tax_code_id).filter(Boolean))] as string[];
   const codes = new Map<string, { id: string; rate: number; input_tax_recoverable: boolean }>();
@@ -46,6 +50,9 @@ async function buildBillLines(
   }
 
   let subtotal = 0, tax = 0, recoverable = 0, nonRecoverable = 0;
+  // Cost is accumulated per expense account, so a bill mixing freight and
+  // insurance no longer lands entirely under port charges.
+  const byAccount = new Map<string, number>();
   const lines = items.map((it: any, i: number) => {
     const code = it.tax_code_id ? codes.get(it.tax_code_id) : undefined;
     // A code, when given, decides the rate — the two can never disagree.
@@ -59,6 +66,11 @@ async function buildBillLines(
     recoverable += split.recoverable;
     nonRecoverable += split.nonRecoverable;
 
+    // Non-recoverable tax is part of the cost of *this* line, so it follows the
+    // line's own account rather than being dumped on a default one.
+    const acct = accountForCategory(it.category);
+    byAccount.set(acct, (byAccount.get(acct) ?? 0) + net + split.nonRecoverable);
+
     return {
       bill_id: billId,
       description: it.description || '',
@@ -70,7 +82,36 @@ async function buildBillLines(
       sort_order: i,
     };
   });
-  return { ok: true as const, lines, subtotal, tax, recoverable, nonRecoverable };
+  return { ok: true as const, lines, subtotal, tax, recoverable, nonRecoverable, byAccount };
+}
+
+/**
+ * Which expense account a bill line belongs in.
+ *
+ * Every bill used to debit `5000 Port & Customs Charges` regardless of what was
+ * bought — so insurance, professional fees, utilities and warehouse costs all
+ * landed under port charges and the P&L misattributed everything that was not
+ * freight. The category was already being collected on every line and simply
+ * never read.
+ *
+ * Codes are the ones gl.service.ts's STANDARD_COA actually seeds; anything
+ * without a natural home stays on 5000 rather than posting to an account that
+ * does not exist.
+ */
+const CATEGORY_ACCOUNT: Record<string, string> = {
+  FREIGHT:      '5001',  // Freight Costs
+  CUSTOMS:      '5000',  // Port & Customs Charges
+  PORT:         '5000',
+  TRANSPORT:    '5002',  // Transport Costs
+  WAREHOUSE:    '5003',  // Storage & Demurrage
+  UTILITIES:    '5102',  // Utilities
+  PROFESSIONAL: '5100',  // Salaries & Wages is the closest seeded account
+  INSURANCE:    '5000',
+  OTHER:        '5000',
+};
+
+function accountForCategory(category: string | null | undefined): string {
+  return CATEGORY_ACCOUNT[String(category ?? '').toUpperCase()] ?? '5000';
 }
 
 /**
@@ -87,12 +128,16 @@ async function buildBillLines(
  * understating what was owed.
  */
 function billJournalLines(args: {
-  subtotal: number; recoverable: number; nonRecoverable: number; total: number; expenseAccount: string;
+  byAccount: Map<string, number>; recoverable: number; nonRecoverable: number; total: number;
 }) {
-  const { subtotal, recoverable, nonRecoverable, total, expenseAccount } = args;
+  const { byAccount, recoverable, nonRecoverable, total } = args;
   return [
-    { accountCode: expenseAccount, debit: subtotal + nonRecoverable, credit: 0,
-      description: nonRecoverable > 0 ? 'Purchase (incl. non-recoverable tax)' : 'Purchase' },
+    ...[...byAccount.entries()]
+      .filter(([, amount]) => amount !== 0)
+      .map(([accountCode, amount]) => ({
+        accountCode, debit: amount, credit: 0,
+        description: nonRecoverable > 0 ? 'Purchase (incl. non-recoverable tax)' : 'Purchase',
+      })),
     ...(recoverable > 0
       ? [{ accountCode: '1150', debit: recoverable, credit: 0, description: 'VAT input tax (recoverable)' }]
       : []),
@@ -277,9 +322,19 @@ export async function billRoutes(fastify: FastifyInstance) {
       const { subtotal, tax: tax_amount, recoverable, nonRecoverable } = built;
       const total = subtotal + tax_amount;
 
+      const billNumber = body.bill_number || `BILL-${Date.now()}`;
+      if (body.bill_number) {
+        const clash = await trx.selectFrom('supplier_bills').select('id')
+          .where('tenant_id', '=', user.tenant_id).where('bill_number', '=', billNumber)
+          .executeTakeFirst();
+        if (clash) {
+          return reply.status(409).send({ error: `Bill number ${billNumber} is already in use.` });
+        }
+      }
+
       const bill = await trx.insertInto('supplier_bills').values({
         tenant_id: user.tenant_id,
-        bill_number: body.bill_number || `BILL-${Date.now()}`,
+        bill_number: billNumber,
         supplier_id: body.supplier_id || null,
         supplier_name: body.supplier_name || null,
         shipment_ref: body.shipment_ref || null,
@@ -310,9 +365,7 @@ export async function billRoutes(fastify: FastifyInstance) {
           sourceModule: 'AP',
           sourceId: bill.id,
           createdBy: user.sub,
-          lines: billJournalLines({
-            subtotal, recoverable, nonRecoverable, total, expenseAccount: '5000',
-          }),
+          lines: billJournalLines({ byAccount: built.byAccount, recoverable, nonRecoverable, total }),
         });
       }
 
@@ -344,8 +397,18 @@ export async function billRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const body = request.body as any;
     return withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('supplier_bills').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const existing = await trx.selectFrom('supplier_bills').select(['id', 'bill_date'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Bill not found' });
+
+      try {
+        const juris = await tenantJurisdiction(trx, user.tenant_id);
+        await assertPeriodOpen(trx, user.tenant_id, existing.bill_date, juris);
+        if (body.bill_date) await assertPeriodOpen(trx, user.tenant_id, body.bill_date, juris);
+      } catch (e) {
+        if (isPeriodError(e)) return reply.status(409).send({ error: e.message });
+        throw e;
+      }
 
       const updates: any = { updated_at: new Date() };
       const fields = ['bill_number', 'supplier_id', 'supplier_name', 'shipment_ref', 'po_number', 'bill_date', 'due_date', 'status', 'currency', 'notes', 'recurring_id'];
@@ -393,16 +456,20 @@ export async function billRoutes(fastify: FastifyInstance) {
           const stored = await trx
             .selectFrom('supplier_bill_lines as l')
             .leftJoin('tax_codes as tc', 'tc.id', 'l.tax_code_id')
-            .select(['l.qty', 'l.unit_price', 'l.tax_rate', 'tc.input_tax_recoverable'])
+            .select(['l.qty', 'l.unit_price', 'l.tax_rate', 'l.category', 'tc.input_tax_recoverable'])
             .where('l.bill_id', '=', id)
             .execute();
 
           let recoverable = 0, nonRecoverable = 0;
+          const byAccount = new Map<string, number>();
           for (const l of stored) {
-            const lineTax = (Number(l.qty) || 1) * (Number(l.unit_price) || 0) * ((Number(l.tax_rate) || 0) / 100);
+            const net = (Number(l.qty) || 1) * (Number(l.unit_price) || 0);
+            const lineTax = net * ((Number(l.tax_rate) || 0) / 100);
             const s = splitInputTax(lineTax, l.input_tax_recoverable === null ? null : { input_tax_recoverable: l.input_tax_recoverable });
             recoverable += s.recoverable;
             nonRecoverable += s.nonRecoverable;
+            const acct = accountForCategory(l.category);
+            byAccount.set(acct, (byAccount.get(acct) ?? 0) + net + s.nonRecoverable);
           }
 
           if (totalVal > 0) {
@@ -413,9 +480,7 @@ export async function billRoutes(fastify: FastifyInstance) {
               sourceModule: 'AP',
               sourceId: bill.id,
               createdBy: user.sub,
-              lines: billJournalLines({
-                subtotal: subtotalVal, recoverable, nonRecoverable, total: totalVal, expenseAccount: '5000',
-              }),
+              lines: billJournalLines({ byAccount, recoverable, nonRecoverable, total: totalVal }),
             });
           }
         }
@@ -430,13 +495,67 @@ export async function billRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // POST /v1/bills/:id/void
+  fastify.post('/:id/void', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { reason } = (request.body ?? {}) as { reason?: string };
+    if (!String(reason ?? '').trim()) {
+      return reply.status(400).send({ error: 'A reason is required to void a posted bill.' });
+    }
+    return withTenant(user.tenant_id, async (trx) => {
+      const bill = await trx.selectFrom('supplier_bills')
+        .select(['id', 'status', 'bill_number', 'bill_date'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!bill) return reply.status(404).send({ error: 'Bill not found' });
+      if (bill.status === 'VOID') return reply.status(409).send({ error: 'That bill is already void.' });
+
+      try {
+        await assertPeriodOpen(trx, user.tenant_id, bill.bill_date, await tenantJurisdiction(trx, user.tenant_id));
+      } catch (e) {
+        if (isPeriodError(e)) return reply.status(409).send({ error: e.message });
+        throw e;
+      }
+
+      // Reversing the journal also reverses the input-tax claim: the 1150 debit
+      // is credited back, so a voided bill stops contributing to what is
+      // recoverable. That is the whole reason a void has to touch the ledger.
+      const reversed = await reverseDocumentJournals(
+        trx, user.tenant_id, 'AP', id, user.sub, String(reason).trim());
+
+      await trx.updateTable('supplier_bills')
+        .set({ status: 'VOID', updated_at: new Date() } as any)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+
+      return { success: true, journals_reversed: reversed };
+    });
+  });
+
   // DELETE /v1/bills/:id
   fastify.delete('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('supplier_bills').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const existing = await trx.selectFrom('supplier_bills')
+        .select(['id', 'status', 'bill_number', 'bill_date'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Bill not found' });
+
+      // Same rule as invoices: a posted bill has hit the ledger, and an input
+      // tax claim may already have been made on it. Void, do not delete.
+      if (existing.status !== 'DRAFT') {
+        return reply.status(409).send({
+          error: new DocumentPosted('Bill', existing.bill_number).message,
+          void_endpoint: `/v1/bills/${id}/void`,
+        });
+      }
+      try {
+        await assertPeriodOpen(trx, user.tenant_id, existing.bill_date, await tenantJurisdiction(trx, user.tenant_id));
+      } catch (e) {
+        if (isPeriodError(e)) return reply.status(409).send({ error: e.message });
+        throw e;
+      }
+      await trx.deleteFrom('supplier_bill_lines').where('bill_id', '=', id).execute();
       await trx.deleteFrom('supplier_bills').where('id', '=', id).execute();
       return { success: true };
     });

@@ -3,7 +3,10 @@ import { withTenant } from '../db/client.js';
 import type { TaxCodeKind } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireRole } from '../middleware/rbac.js';
-import { TAX_CODE_KINDS, ZERO_RATE_KINDS, ensureTaxCodes } from '../services/tax-code.service.js';
+import {
+  TAX_CODE_KINDS, ZERO_RATE_KINDS, ensureTaxCodes, isTaxCodeUserError, resolveTaxCode,
+} from '../services/tax-code.service.js';
+import { tenantJurisdiction } from '../services/vat-period.service.js';
 
 const FIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'] as const;
 
@@ -132,6 +135,165 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
           total: Number(bills?.total ?? 0),
           unclassified: Number(bills?.unclassified ?? 0),
         },
+      };
+    });
+  });
+
+  // GET /v1/tax-codes/unclassified?target=sales|purchase|product
+  //
+  // The backlog, with enough context to judge each row. Migration 180 could
+  // only backfill where the rate made the treatment unambiguous; everything at
+  // 0% stayed NULL because the four 0% treatments are indistinguishable in the
+  // old data. This is how a human resolves them without a SQL console.
+  fastify.get('/unclassified', async (request) => {
+    const user = request.user;
+    const { target = 'sales', limit = '50', offset = '0' } = request.query as
+      { target?: string; limit?: string; offset?: string };
+    const take = Math.min(Math.max(parseInt(limit, 10) || 50, 1), 200);
+    const skip = Math.max(parseInt(offset, 10) || 0, 0);
+
+    return withTenant(user.tenant_id, async (trx) => {
+      if (target === 'product') {
+        const rows = await trx.selectFrom('products')
+          .select(['id', 'code', 'name', 'category', 'tax_rate', 'currency'])
+          .where('tenant_id', '=', user.tenant_id).where('tax_code_id', 'is', null)
+          .orderBy('name', 'asc').limit(take).offset(skip).execute();
+        const total = await trx.selectFrom('products').select(({ fn }) => fn.countAll<string>().as('n'))
+          .where('tenant_id', '=', user.tenant_id).where('tax_code_id', 'is', null).executeTakeFirst();
+        return { target, total: Number(total?.n ?? 0), rows };
+      }
+
+      if (target === 'purchase') {
+        const rows = await trx.selectFrom('supplier_bill_lines as l')
+          .innerJoin('supplier_bills as b', 'b.id', 'l.bill_id')
+          .select(['l.id', 'l.description as name', 'l.category', 'l.tax_rate',
+                   'b.bill_number as document', 'b.supplier_name as party',
+                   'b.bill_date as date', 'b.currency', 'b.status'])
+          .where('b.tenant_id', '=', user.tenant_id).where('l.tax_code_id', 'is', null)
+          .orderBy('b.bill_date', 'desc').limit(take).offset(skip).execute();
+        const total = await trx.selectFrom('supplier_bill_lines as l')
+          .innerJoin('supplier_bills as b', 'b.id', 'l.bill_id')
+          .select(({ fn }) => fn.countAll<string>().as('n'))
+          .where('b.tenant_id', '=', user.tenant_id).where('l.tax_code_id', 'is', null).executeTakeFirst();
+        return { target, total: Number(total?.n ?? 0), rows };
+      }
+
+      const rows = await trx.selectFrom('sales_invoice_lines as l')
+        .innerJoin('sales_invoices as si', 'si.id', 'l.invoice_id')
+        .select(['l.id', 'l.name', 'l.line_group as category', 'l.tax_pct as tax_rate',
+                 'si.invoice_number as document', 'si.client_name as party',
+                 'si.bill_date as date', 'l.currency', 'si.status'])
+        .where('si.tenant_id', '=', user.tenant_id).where('l.tax_code_id', 'is', null)
+        .orderBy('si.bill_date', 'desc').limit(take).offset(skip).execute();
+      const total = await trx.selectFrom('sales_invoice_lines as l')
+        .innerJoin('sales_invoices as si', 'si.id', 'l.invoice_id')
+        .select(({ fn }) => fn.countAll<string>().as('n'))
+        .where('si.tenant_id', '=', user.tenant_id).where('l.tax_code_id', 'is', null).executeTakeFirst();
+      return { target: 'sales', total: Number(total?.n ?? 0), rows };
+    });
+  });
+
+  // POST /v1/tax-codes/classify  { target, ids, tax_code_id }
+  //
+  // Sets a treatment on rows that had none. Three things it deliberately will
+  // not do:
+  //
+  //   * change a treatment that is already set — that would silently restate a
+  //     figure someone may already have reported;
+  //   * touch the rate — classifying records what a document always was, it
+  //     does not reprice it, so a code whose rate disagrees with the line is
+  //     refused for that line rather than reconciled;
+  //   * reach into a closed period, where the return has already been filed.
+  //
+  // Each of those is reported back as a count, so a partial result is legible
+  // rather than looking like success.
+  fastify.post('/classify', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const { target, ids, tax_code_id } = (request.body ?? {}) as
+      { target?: string; ids?: string[]; tax_code_id?: string };
+
+    if (!Array.isArray(ids) || ids.length === 0) return reply.status(400).send({ error: 'ids is required' });
+    if (ids.length > 500) return reply.status(400).send({ error: 'At most 500 rows at a time' });
+    if (!tax_code_id) return reply.status(400).send({ error: 'tax_code_id is required' });
+    if (!['sales', 'purchase', 'product'].includes(String(target))) {
+      return reply.status(400).send({ error: 'target must be sales, purchase or product' });
+    }
+    const scope = target === 'purchase' ? ('PURCHASE' as const) : ('SALES' as const);
+
+    return withTenant(user.tenant_id, async (trx) => {
+      let code;
+      try {
+        code = await resolveTaxCode(trx, user.tenant_id, tax_code_id, scope);
+      } catch (e) {
+        if (isTaxCodeUserError(e)) return reply.status(400).send({ error: e.message });
+        throw e;
+      }
+      const codeRate = Number(code.rate);
+
+      if (target === 'product') {
+        const eligible = await trx.selectFrom('products').select(['id', 'tax_rate'])
+          .where('tenant_id', '=', user.tenant_id).where('id', 'in', ids)
+          .where('tax_code_id', 'is', null).execute();
+        const ok = eligible.filter(r => Number(r.tax_rate) === codeRate).map(r => r.id);
+        if (ok.length > 0) {
+          await trx.updateTable('products').set({ tax_code_id: code.id, updated_at: new Date() })
+            .where('tenant_id', '=', user.tenant_id).where('id', 'in', ok).execute();
+        }
+        return {
+          classified: ok.length,
+          skipped_rate_mismatch: eligible.length - ok.length,
+          skipped_closed_period: 0,
+          code_rate: codeRate,
+        };
+      }
+
+      const juris = await tenantJurisdiction(trx, user.tenant_id);
+      const closed = await trx.selectFrom('vat_periods').select(['period_start', 'period_end'])
+        .where('tenant_id', '=', user.tenant_id).where('jurisdiction', '=', juris)
+        .where('status', '=', 'closed').execute();
+      const inClosedPeriod = (d: unknown) => {
+        if (!d) return false;
+        const s = String(d).slice(0, 10);
+        return closed.some(p =>
+          s >= String(p.period_start).slice(0, 10) && s <= String(p.period_end).slice(0, 10));
+      };
+
+      if (target === 'purchase') {
+        const rows = await trx.selectFrom('supplier_bill_lines as l')
+          .innerJoin('supplier_bills as b', 'b.id', 'l.bill_id')
+          .select(['l.id', 'l.tax_rate', 'b.bill_date'])
+          .where('b.tenant_id', '=', user.tenant_id).where('l.id', 'in', ids)
+          .where('l.tax_code_id', 'is', null).execute();
+        const open = rows.filter(r => !inClosedPeriod(r.bill_date));
+        const ok = open.filter(r => Number(r.tax_rate) === codeRate).map(r => r.id);
+        if (ok.length > 0) {
+          await trx.updateTable('supplier_bill_lines').set({ tax_code_id: code.id })
+            .where('id', 'in', ok).execute();
+        }
+        return {
+          classified: ok.length,
+          skipped_rate_mismatch: open.length - ok.length,
+          skipped_closed_period: rows.length - open.length,
+          code_rate: codeRate,
+        };
+      }
+
+      const rows = await trx.selectFrom('sales_invoice_lines as l')
+        .innerJoin('sales_invoices as si', 'si.id', 'l.invoice_id')
+        .select(['l.id', 'l.tax_pct', 'si.bill_date'])
+        .where('si.tenant_id', '=', user.tenant_id).where('l.id', 'in', ids)
+        .where('l.tax_code_id', 'is', null).execute();
+      const open = rows.filter(r => !inClosedPeriod(r.bill_date));
+      const ok = open.filter(r => Number(r.tax_pct) === codeRate).map(r => r.id);
+      if (ok.length > 0) {
+        await trx.updateTable('sales_invoice_lines').set({ tax_code_id: code.id })
+          .where('id', 'in', ok).execute();
+      }
+      return {
+        classified: ok.length,
+        skipped_rate_mismatch: open.length - ok.length,
+        skipped_closed_period: rows.length - open.length,
+        code_rate: codeRate,
       };
     });
   });

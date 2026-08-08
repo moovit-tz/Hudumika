@@ -42,6 +42,7 @@ import { paymentRoutes }  from './routes/payments.routes.js';
 import { chatRoutes } from './routes/chat.routes.js';
 import { productRoutes }  from './routes/products.routes.js';
 import { taxCodeRoutes }  from './routes/tax-codes.routes.js';
+import { vatPeriodRoutes } from './routes/vat-periods.routes.js';
 import { oneidRoutes }    from './routes/oneid.routes.js';
 import { trackingRoutes } from './routes/tracking.routes.js';
 import { fleetOpsRoutes } from './routes/fleetOps.routes.js';
@@ -257,6 +258,7 @@ async function main() {
     await server.register(chatRoutes, { prefix: '/v1/chat' });
     await server.register(productRoutes,  { prefix: '/v1/products' });
     await server.register(taxCodeRoutes,  { prefix: '/v1/tax-codes' });
+    await server.register(vatPeriodRoutes, { prefix: '/v1/vat-periods' });
     await server.register(oneidRoutes,    { prefix: '/v1/oneid' });
     await server.register(trackingRoutes, { prefix: '/v1/tracking' });
     await server.register(fleetOpsRoutes, { prefix: '/v1/tracking' });
