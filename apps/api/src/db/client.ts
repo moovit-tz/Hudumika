@@ -88,6 +88,14 @@ export interface UsersTable {
   health_insurance_no: string | null;
   basic_salary: string | null;
   pay_currency: string | null;
+  /**
+   * When employment began. The leave cycle is counted from this date rather
+   * than the calendar year, so it decides what somebody is owed and when it
+   * resets. Backfilled from created_at, which is a proxy and not the same
+   * thing — anyone hired before this system existed has the wrong anchor until
+   * their real date is entered.
+   */
+  hire_date: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -1619,6 +1627,11 @@ export interface HrLeavesTable {
   status: Generated<string>;
   approved_by: string | null;
   approved_at: Date | null;
+  /** Nullable: rows predating the ledger carry a free-text type only. */
+  leave_type_id: string | null;
+  /** How the approved days should be paid — sick leave is not one rate. */
+  full_pay_days: string | null;
+  reduced_pay_days: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -1648,6 +1661,53 @@ export interface HrAnnouncementsTable {
   category: Generated<string>;
   audience: Generated<string>;
   author_id: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/**
+ * Leave entitlement. `cycle_months` is the field a "days per year" model does
+ * not have: sick leave and maternity run on 36 months, not 12.
+ */
+export interface HrLeaveTypesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  code: string;
+  name: string;
+  days_entitled: string;
+  cycle_months: Generated<number>;
+  /** Days paid in full before the rate drops. null means all days are full pay. */
+  full_pay_days: string | null;
+  reduced_pay_pct: string | null;
+  paid: Generated<boolean>;
+  carry_forward_max: Generated<string>;
+  requires_document: Generated<boolean>;
+  applies_to: Generated<'ALL' | 'FEMALE' | 'MALE'>;
+  min_service_months: Generated<number>;
+  /** True where the entitlement comes from statute, not company policy. */
+  statutory: Generated<boolean>;
+  active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface HrLeaveBalancesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  leave_type_id: string;
+  /** Anchored to the employment anniversary, not the calendar year. */
+  cycle_start: string;
+  cycle_end: string;
+  entitled: Generated<string>;
+  carried_forward: Generated<string>;
+  /** Derived from approved requests, never typed. */
+  taken: Generated<string>;
+  /** Held against the balance so two pending requests cannot both be approved. */
+  pending: Generated<string>;
+  adjustment: Generated<string>;
+  adjustment_note: string | null;
+  recomputed_at: Date | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -2990,6 +3050,8 @@ export interface Database {
   tax_codes: TaxCodesTable;
   // Statutory payroll. Tenant-scoped like everything else here — every query
   // still needs its own explicit tenant_id filter.
+  hr_leave_types: HrLeaveTypesTable;
+  hr_leave_balances: HrLeaveBalancesTable;
   payroll_tax_bands: PayrollTaxBandsTable;
   payroll_contribution_schemes: PayrollContributionSchemesTable;
   payroll_component_types: PayrollComponentTypesTable;

@@ -7,6 +7,7 @@ import { EmailIntegration } from '../integrations/email.js';
 import { emitDomainEvent, emitDomainEventStandalone } from '../services/domain-events.service.js';
 import { HolidaysService } from '../services/holidays.service.js';
 import { workingDaysBetween } from '../services/holiday-calendar.service.js';
+import { checkRequest as checkLeaveRequest, splitPayDays, computeBalances as computeLeaveBalances } from '../services/leave-entitlement.service.js';
 import { env } from '../config/env.js';
 
 /**
@@ -370,14 +371,53 @@ export async function hrRoutes(fastify: FastifyInstance) {
       });
     }
 
-    return withTenant(user.tenant_id, async (trx) => {
+    const subjectId = body.user_id || user.sub;
+
+    // Resolve the leave type, and refuse if there is not enough left.
+    //
+    // This is the whole point of the entitlement ledger. Until now an approver
+    // was deciding on an unknown quantity of an unknown allowance, and nothing
+    // stopped a person taking forty days of a twenty-eight day entitlement.
+    // Checked before the insert, because a request written and then rejected
+    // would still be sitting in the table.
+    let leaveTypeId: string | null = null;
+    let payDays: { full: number; reduced: number } | null = null;
+
+    const type = body.leave_type_id
+      ? await db.selectFrom('hr_leave_types').selectAll()
+          .where('id', '=', String(body.leave_type_id)).where('tenant_id', '=', user.tenant_id).executeTakeFirst()
+      : await db.selectFrom('hr_leave_types').selectAll()
+          .where('tenant_id', '=', user.tenant_id).where('code', '=', String(body.type ?? '').toUpperCase())
+          .executeTakeFirst();
+
+    if (type) {
+      leaveTypeId = type.id;
+      const check = await checkLeaveRequest(user.tenant_id, subjectId, type.id, days);
+      if (!check.ok) {
+        return reply.status(409).send({
+          error: check.reason,
+          balance: check.balance,
+          requested_days: days,
+          excluded_days: excluded,
+        });
+      }
+      // Sick leave is not paid at one rate. Split now, so payroll pays what is
+      // owed rather than treating every approved day as a full day's wage.
+      payDays = splitPayDays(days, check.balance?.taken ?? 0,
+        type.full_pay_days === null || type.full_pay_days === undefined ? null : Number(type.full_pay_days));
+    }
+
+    const created = await withTenant(user.tenant_id, async (trx) => {
       const row = await trx.insertInto('hr_leaves').values({
         tenant_id: user.tenant_id,
-        user_id: body.user_id || user.sub,
+        user_id: subjectId,
         type: body.type,
+        leave_type_id: leaveTypeId,
         from_date: from,
         to_date: to,
         days,
+        full_pay_days: payDays ? String(payDays.full) : null,
+        reduced_pay_days: payDays ? String(payDays.reduced) : null,
         reason: body.reason || null,
       }).returningAll().executeTakeFirstOrThrow();
 
@@ -395,6 +435,16 @@ export async function hrRoutes(fastify: FastifyInstance) {
       // a mistake.
       return { ...row, excluded_days: excluded };
     });
+
+    // Computed after the transaction commits, not inside it. computeBalances
+    // reads through `db` rather than the open transaction, so calling it from
+    // within withTenant returned the balance as it was *before* this request
+    // was inserted — the new days were invisible and the figure looked
+    // unchanged. Caught by asserting the pending total moved.
+    const balanceAfter = leaveTypeId
+      ? (await computeLeaveBalances(user.tenant_id, subjectId)).find(b => b.leave_type_id === leaveTypeId)
+      : undefined;
+    return { ...created, balance_after: balanceAfter };
   });
 
   fastify.patch('/leaves/:id/status', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') }, async (req) => {

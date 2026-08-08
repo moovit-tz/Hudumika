@@ -38,6 +38,7 @@ import { hrRoutes } from './routes/hr.routes.js';
 import { payrollRoutes } from './routes/payroll.routes.js';
 import { identityRoutes } from './routes/identity.routes.js';
 import { calendarRoutes } from './routes/calendar.routes.js';
+import { leaveRoutes } from './routes/leave.routes.js';
 import { orgChartRoutes }   from './routes/org-chart.routes.js';
 import { permissionsRoutes } from './routes/permissions.routes.js';
 import { invoiceRoutes }  from './routes/invoices.routes.js';
@@ -259,6 +260,7 @@ async function main() {
     // Shared across every app: who a person is, and whether the country is open.
     await server.register(identityRoutes, { prefix: '/v1/identity' });
     await server.register(calendarRoutes, { prefix: '/v1/calendar' });
+    await server.register(leaveRoutes, { prefix: '/v1/hr' });
     await server.register(orgChartRoutes,   { prefix: '/v1/org-chart' });
     await server.register(permissionsRoutes, { prefix: '/v1/permissions' });
     await server.register(invoiceRoutes,  { prefix: '/v1/invoices' });
