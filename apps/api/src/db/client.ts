@@ -1810,6 +1810,26 @@ export interface TaxRegistrationsTable {
   updated_at: Generated<Date>;
 }
 
+/**
+ * Optional breakdown of a tax code into separately-named taxes. A code with no
+ * component rows is a single tax at its own rate — which is every code in every
+ * single-rate jurisdiction.
+ */
+export interface TaxCodeComponentsTable {
+  id: Generated<string>;
+  tax_code_id: string;
+  sequence: Generated<number>;
+  code: string;
+  name: string;
+  rate: number;
+  /** NET, or NET_PLUS_PRIOR for a levy that compounds on the ones before it. */
+  basis: Generated<'NET' | 'NET_PLUS_PRIOR'>;
+  recoverable: Generated<boolean>;
+  gl_account_code: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 /** Reference data for onboarding a country. Never authoritative — see `as_of`. */
 export interface TaxJurisdictionsTable {
   code: string;
@@ -2720,6 +2740,7 @@ export interface Database {
   tax_codes: TaxCodesTable;
   vat_periods: VatPeriodsTable;
   tax_registrations: TaxRegistrationsTable;
+  tax_code_components: TaxCodeComponentsTable;
   tax_jurisdictions: TaxJurisdictionsTable;
   // Suppliers / Vendors
   products: ProductsTable;

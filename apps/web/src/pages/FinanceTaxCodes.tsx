@@ -34,7 +34,7 @@ interface Registration {
   status: {
     state: 'registered' | 'not_registered' | 'pending' | 'deregistered' | 'unknown';
     jurisdiction: string; registrationNumber: string | null; registrationLabel: string | null;
-    mayChargeVat: boolean; advisory: string | null;
+    mayChargeVat: boolean; advisory: string | null; notes: string | null;
   };
   reference: {
     name: string; currency: string | null; standard_rate: string | null;
@@ -394,6 +394,17 @@ export function FinanceTaxCodes() {
           {reg.status.advisory && (
             <div style={{ fontSize: 12, color: 'var(--ink2)', lineHeight: 1.55, marginTop: 10 }}>
               {reg.status.advisory}
+            </div>
+          )}
+
+          {/* A seeded test registration says so here rather than passing as real. */}
+          {reg.status.notes && (
+            <div style={{
+              fontSize: 11.5, lineHeight: 1.55, marginTop: 10, padding: '8px 10px',
+              background: 'var(--gold-l)', border: '1px solid var(--gold)',
+              borderRadius: 'var(--r-sm)', color: 'var(--ink2)',
+            }}>
+              {reg.status.notes}
             </div>
           )}
 

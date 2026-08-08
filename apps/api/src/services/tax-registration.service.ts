@@ -36,6 +36,9 @@ export interface RegistrationStatus {
   /** What this jurisdiction calls the number — VRN, KRA PIN, TIN. */
   registrationLabel: string | null;
   basis: string | null;
+  /** Whatever was written against the registration — including, notably, a note
+   *  saying it is test data. Surfaced so seeded test rows announce themselves. */
+  notes: string | null;
   /** True only when VAT may legitimately be charged on the given date. */
   mayChargeVat: boolean;
   /** Present when the state is anything other than a clean 'registered'. */
@@ -70,7 +73,7 @@ export async function registrationStatus(
   if (!row) {
     return {
       state: 'unknown', jurisdiction: juris, regime: ref?.regime ?? 'VAT',
-      registrationNumber: null, registrationLabel: label, basis: null,
+      registrationNumber: null, registrationLabel: label, basis: null, notes: null,
       mayChargeVat: false,
       advisory:
         `No ${juris} VAT registration is recorded for this workspace. ` +
@@ -106,6 +109,7 @@ export async function registrationStatus(
     registrationNumber: row.registration_number,
     registrationLabel: label,
     basis: row.basis,
+    notes: row.notes,
     mayChargeVat: registeredNow,
     advisory,
   };
