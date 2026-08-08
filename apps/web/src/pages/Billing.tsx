@@ -1763,61 +1763,62 @@ export const Billing: React.FC = () => {
   return (
     <div className="inv-shell" onClick={() => showFilters && setShowFilters(false)}>
       <PageHeader
-        crumbs={['FinOps', 'Invoices']}
+        crumbs={['Finance', 'Invoices']}
         titlePlain="Sales"
         titleEm="invoices"
         subtitle="Every invoice raised, what has been received and what is still due."
-      />
-
-      {/* Top bar */}
-      <div className="inv-topbar">
-        <button type="button" className="btn btn-primary" onClick={() => { setSelectedId(null); setMode('create'); }}>
-          <Icon name="plus" size={15} color="#fff" /> Create New Invoice
-        </button>
-        <button type="button" className="btn btn-secondary" onClick={() => setShowBatchPayment(true)} disabled={outstandingInvoices.length === 0} title={outstandingInvoices.length === 0 ? 'No outstanding invoices' : undefined}>
-          <Icon name="creditCard" size={14} color="var(--ink3)" /> Batch Payments
-        </button>
-        <button type="button" className="btn btn-secondary inv-btn--icon" onClick={() => { setSearch(''); setFilterStatus('all'); setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }} title="Reset filters">
-          <Icon name="refresh" size={15} color="var(--ink3)" />
-        </button>
-        <div className="inv-topbar-spacer" />
-        <button type="button" className="btn btn-secondary" onClick={exportCsv}>
-          <Icon name="download" size={14} color="var(--ink3)" /> Export CSV
-        </button>
-        <button type="button" className={`btn btn-secondary${activeFilterCount > 0 ? ' inv-btn--active' : ''}`} onClick={e => { e.stopPropagation(); setShowFilters(v => !v); }}>
-          <Icon name="filter" size={14} color={activeFilterCount > 0 ? 'var(--teal)' : 'var(--ink3)'} /> Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
-        </button>
-        {showFilters && (
-          <div className="inv-filters-popover" onClick={e => e.stopPropagation()}>
-            <div className="inv-filters-field">
-              <label>Mode</label>
-              <Select value={filterMode} onValueChange={v => setFilterMode(v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All modes</SelectItem>
-                  <SelectItem value="SEA">SEA</SelectItem>
-                  <SelectItem value="AIR">AIR</SelectItem>
-                  <SelectItem value="ROAD">ROAD</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="inv-filters-row">
-              <div className="inv-filters-field">
-                <label>From</label>
-                <DatePicker date={parseDateOnly(filterDateFrom)} onChange={d => setFilterDateFrom(toDateOnlyString(d))} />
-              </div>
-              <div className="inv-filters-field">
-                <label>To</label>
-                <DatePicker date={parseDateOnly(filterDateTo)} onChange={d => setFilterDateTo(toDateOnlyString(d))} />
-              </div>
-            </div>
-            <div className="inv-filters-foot">
-              <button type="button" className="btn btn-secondary" onClick={() => { setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }}>Clear</button>
-              <button type="button" className="btn btn-primary" onClick={() => setShowFilters(false)}>Done</button>
+        actions={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => { setSelectedId(null); setMode('create'); }}>
+              <Icon name="plus" size={13} color="#fff" /> Create Invoice
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowBatchPayment(true)} disabled={outstandingInvoices.length === 0} title={outstandingInvoices.length === 0 ? 'No outstanding invoices' : undefined}>
+              <Icon name="creditCard" size={13} /> Batch Payments
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv}>
+              <Icon name="download" size={13} /> Export
+            </button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setSearch(''); setFilterStatus('all'); setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }} title="Reset filters">
+              <Icon name="refresh" size={13} /> Reset
+            </button>
+            <div style={{ position: 'relative' }}>
+              <button type="button" className={`btn btn-secondary btn-sm${activeFilterCount > 0 ? ' inv-btn--active' : ''}`} onClick={e => { e.stopPropagation(); setShowFilters(v => !v); }}>
+                <Icon name="filter" size={13} color={activeFilterCount > 0 ? 'var(--teal)' : 'var(--ink3)'} /> Filters{activeFilterCount > 0 ? ` (${activeFilterCount})` : ''}
+              </button>
+              {showFilters && (
+                <div className="inv-filters-popover" style={{ top: 'calc(100% + 6px)', right: 0 }} onClick={e => e.stopPropagation()}>
+                  <div className="inv-filters-field">
+                    <label>Mode</label>
+                    <Select value={filterMode} onValueChange={v => setFilterMode(v as any)}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All modes</SelectItem>
+                        <SelectItem value="SEA">SEA</SelectItem>
+                        <SelectItem value="AIR">AIR</SelectItem>
+                        <SelectItem value="ROAD">ROAD</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="inv-filters-row">
+                    <div className="inv-filters-field">
+                      <label>From</label>
+                      <DatePicker date={parseDateOnly(filterDateFrom)} onChange={d => setFilterDateFrom(toDateOnlyString(d))} />
+                    </div>
+                    <div className="inv-filters-field">
+                      <label>To</label>
+                      <DatePicker date={parseDateOnly(filterDateTo)} onChange={d => setFilterDateTo(toDateOnlyString(d))} />
+                    </div>
+                  </div>
+                  <div className="inv-filters-foot">
+                    <button type="button" className="btn btn-secondary" onClick={() => { setFilterMode('all'); setFilterDateFrom(''); setFilterDateTo(''); }}>Clear</button>
+                    <button type="button" className="btn btn-primary" onClick={() => setShowFilters(false)}>Done</button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-        )}
-      </div>
+        }
+      />
 
       {/* While creating or editing, the form takes the whole body — the list
           panel is hidden rather than the form being squeezed into the right
