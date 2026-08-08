@@ -150,6 +150,7 @@ export default
       "payments": "المدفوعات",
       "products": "المنتجات",
       "taxCodes": "رموز الضرائب",
+      "vatPeriods": "فترات ضريبة القيمة المضافة",
       "chartOfAccounts": "دليل الحسابات",
       "ledger": "دفتر الأستاذ",
       "trialBalance": "ميزان المراجعة",

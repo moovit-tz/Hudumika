@@ -150,6 +150,7 @@ export default
       "payments": "Malipo",
       "products": "Bidhaa",
       "taxCodes": "Misimbo ya Kodi",
+      "vatPeriods": "Vipindi vya Kuwasilisha",
       "chartOfAccounts": "Chati ya Hesabu",
       "ledger": "Kitabu cha Hesabu",
       "trialBalance": "Salio la Majaribio",

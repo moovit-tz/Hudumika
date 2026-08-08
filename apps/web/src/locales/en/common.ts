@@ -148,6 +148,7 @@ export default
       "payments": "Payments",
       "products": "Products",
       "taxCodes": "Tax Codes",
+      "vatPeriods": "Filing Periods",
       "chartOfAccounts": "Chart of Accounts",
       "ledger": "Ledger",
       "trialBalance": "Trial Balance",

@@ -310,7 +310,12 @@ export function FinanceTaxCodes() {
             A 0% row could have been zero-rated, exempt, reverse-charge or out of scope,
             and only one of those lets you recover input tax — so nothing was guessed on
             your behalf. On the purchase side that means the tax is <strong>not</strong> being
-            claimed: an unrecorded treatment is not a claim. Set a treatment on each as you touch it.
+            claimed: an unrecorded treatment is not a claim.
+            <div style={{ marginTop: 10 }}>
+              <a href="/finance/tax-codes/classify" className="btn btn-primary btn-sm">
+                Work through them
+              </a>
+            </div>
           </div>
         </div>
       )}

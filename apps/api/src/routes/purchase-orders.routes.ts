@@ -3,6 +3,68 @@ import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { getNextDocNumber } from '../lib/doc-numbering.js';
+import { isTaxCodeUserError, resolveTaxCode } from '../services/tax-code.service.js';
+import type { Transaction } from 'kysely';
+import type { Database } from '../db/client.js';
+
+
+/**
+ * Resolve a purchase order's tax codes and build its lines.
+ *
+ * A PO is a commitment, not yet a claim — it posts nothing to the ledger — but
+ * it becomes a bill, and the treatment should not have to be re-entered there.
+ * `purchase_order_lines.tax_code_id` has existed since migration 181 and was
+ * simply never read.
+ *
+ * Same discipline as the bill routes: resolved before any write, because a
+ * reply returned from inside `withTenant` still commits the transaction.
+ */
+async function buildPoLines(
+  trx: Transaction<Database>,
+  tenantId: string,
+  poId: string,
+  items: any[],
+): Promise<
+  | { ok: false; error: string }
+  | { ok: true; lines: any[]; subtotal: number; tax: number }
+> {
+  const codeIds = [...new Set(items.map(it => it?.tax_code_id).filter(Boolean))] as string[];
+  const codes = new Map<string, { id: string; rate: number }>();
+  for (const cid of codeIds) {
+    try {
+      const c = await resolveTaxCode(trx, tenantId, cid, 'PURCHASE');
+      codes.set(cid, { id: c.id, rate: Number(c.rate) });
+    } catch (e) {
+      if (isTaxCodeUserError(e)) return { ok: false as const, error: e.message };
+      throw e;
+    }
+  }
+
+  let subtotal = 0, tax = 0;
+  const lines = items.map((it: any, i: number) => {
+    const code = it.tax_code_id ? codes.get(it.tax_code_id) : undefined;
+    // A code, when given, decides the rate — the two can never disagree.
+    const rate = code ? code.rate : (Number(it.tax_rate) || 0);
+    const lineSub = (Number(it.qty) || 1) * (Number(it.unit_price) || 0);
+    const lineTax = lineSub * (rate / 100);
+    subtotal += lineSub;
+    tax += lineTax;
+    return {
+      po_id: poId,
+      description: it.description || '',
+      category: it.category || null,
+      qty: Number(it.qty) || 1,
+      unit_price: Number(it.unit_price) || 0,
+      tax_rate: rate,
+      tax_code_id: code ? code.id : null,
+      tax_amount: lineTax,
+      line_total: lineSub + lineTax,
+      received_qty: Number(it.received_qty) || 0,
+      sort_order: i,
+    };
+  });
+  return { ok: true as const, lines, subtotal, tax };
+}
 
 export async function purchaseOrderRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -28,14 +90,10 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
     const body = request.body as any;
     return withTenant(user.tenant_id, async (trx) => {
       const items = Array.isArray(body.lines) ? body.lines : [];
-      let subtotal = 0;
-      let tax_amount = 0;
-      for (const it of items) {
-        const lineSub = Number(it.qty || 1) * Number(it.unit_price || 0);
-        const lineTax = lineSub * (Number(it.tax_rate || 0) / 100);
-        subtotal += lineSub;
-        tax_amount += lineTax;
-      }
+      const built = await buildPoLines(trx, user.tenant_id, '', items);
+      if (!built.ok) return reply.status(400).send({ error: built.error });
+      const subtotal = built.subtotal;
+      const tax_amount = built.tax;
       const total = subtotal + tax_amount;
       const poNumber = body.po_number || await getNextDocNumber(trx, user.tenant_id, 'purchase_order');
 
@@ -62,27 +120,10 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
         .returningAll()
         .executeTakeFirstOrThrow();
 
-      if (items.length > 0) {
+      if (built.lines.length > 0) {
         await trx
           .insertInto('purchase_order_lines')
-          .values(
-            items.map((it: any, i: number) => {
-              const lineSub = Number(it.qty || 1) * Number(it.unit_price || 0);
-              const lineTax = lineSub * (Number(it.tax_rate || 0) / 100);
-              return {
-                po_id: po.id,
-                description: it.description || '',
-                category: it.category || null,
-                qty: Number(it.qty) || 1,
-                unit_price: Number(it.unit_price) || 0,
-                tax_rate: Number(it.tax_rate) || 0,
-                tax_amount: lineTax,
-                line_total: lineSub + lineTax,
-                received_qty: Number(it.received_qty) || 0,
-                sort_order: i,
-              };
-            })
-          )
+          .values(built.lines.map(l => ({ ...l, po_id: po.id })))
           .execute();
       }
 
@@ -138,42 +179,22 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
         }
       }
 
+      // Resolved before the delete below — a 400 returned from inside
+      // withTenant still commits, so validating afterwards would leave the
+      // order with no lines at all.
+      const rebuilt = await buildPoLines(trx, user.tenant_id, id, Array.isArray(body.lines) ? body.lines : []);
+      if (!rebuilt.ok) return reply.status(400).send({ error: rebuilt.error });
+
       if (Array.isArray(body.lines)) {
-        const items = body.lines;
-        let subtotal = 0;
-        let tax_amount = 0;
-        for (const it of items) {
-          const lineSub = Number(it.qty || 1) * Number(it.unit_price || 0);
-          const lineTax = lineSub * (Number(it.tax_rate || 0) / 100);
-          subtotal += lineSub;
-          tax_amount += lineTax;
-        }
-        updates.subtotal = subtotal;
-        updates.tax_amount = tax_amount;
-        updates.total = subtotal + tax_amount;
+        updates.subtotal = rebuilt.subtotal;
+        updates.tax_amount = rebuilt.tax;
+        updates.total = rebuilt.subtotal + rebuilt.tax;
 
         await trx.deleteFrom('purchase_order_lines').where('po_id', '=', id).execute();
-        if (items.length > 0) {
+        if (rebuilt.lines.length > 0) {
           await trx
             .insertInto('purchase_order_lines')
-            .values(
-              items.map((it: any, i: number) => {
-                const lineSub = Number(it.qty || 1) * Number(it.unit_price || 0);
-                const lineTax = lineSub * (Number(it.tax_rate || 0) / 100);
-                return {
-                  po_id: id,
-                  description: it.description || '',
-                  category: it.category || null,
-                  qty: Number(it.qty) || 1,
-                  unit_price: Number(it.unit_price) || 0,
-                  tax_rate: Number(it.tax_rate) || 0,
-                  tax_amount: lineTax,
-                  line_total: lineSub + lineTax,
-                  received_qty: Number(it.received_qty) || 0,
-                  sort_order: i,
-                };
-              })
-            )
+            .values(rebuilt.lines)
             .execute();
         }
       }

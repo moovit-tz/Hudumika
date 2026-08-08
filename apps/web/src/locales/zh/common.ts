@@ -150,6 +150,7 @@ export default
       "payments": "付款",
       "products": "产品",
       "taxCodes": "税码",
+      "vatPeriods": "申报期间",
       "chartOfAccounts": "会计科目表",
       "ledger": "总账",
       "trialBalance": "试算平衡表",

@@ -150,6 +150,7 @@ export default
       "payments": "Pagamentos",
       "products": "Produtos",
       "taxCodes": "Códigos Fiscais",
+      "vatPeriods": "Períodos de Declaração",
       "chartOfAccounts": "Plano de Contas",
       "ledger": "Livro Razão",
       "trialBalance": "Balancete",
