@@ -1598,6 +1598,10 @@ export interface HrShiftsTable {
   break_minutes: Generated<number>;
   color: Generated<string>;
   created_at: Generated<Date>;
+  /** Minutes after the start before an arrival is late. */
+  grace_minutes: Generated<number>;
+  is_default: Generated<boolean>;
+  active: Generated<boolean>;
 }
 
 export interface HrShiftAssignmentsTable {
@@ -1621,6 +1625,12 @@ export interface HrAttendanceTable {
   recorded_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  shift_id: string | null;
+  /** Derived, never typed. null means not yet computed — not zero worked. */
+  worked_minutes: number | null;
+  overtime_minutes: number | null;
+  /** How the record came to exist: a machine, or somebody typing. */
+  method: Generated<'MANUAL' | 'WEB' | 'MOBILE' | 'BIOMETRIC' | 'IMPORT'>;
 }
 
 export interface HrLeavesTable {
@@ -1716,6 +1726,31 @@ export interface HrLeaveBalancesTable {
   adjustment: Generated<string>;
   adjustment_note: string | null;
   recomputed_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/**
+ * Overtime, as something somebody approves — hours worked are a fact, hours
+ * paid at a premium are an authorisation.
+ */
+export interface HrOvertimeRequestsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  date: string;
+  hours: string;
+  /** Derived from the calendar, not chosen — nobody picks the cheaper rate. */
+  kind: Generated<'NORMAL' | 'REST_DAY' | 'PUBLIC_HOLIDAY'>;
+  /** The rate that applied on the day worked. A later change must not rewrite it. */
+  rate_multiplier: Generated<string>;
+  reason: string | null;
+  status: Generated<'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED'>;
+  requested_by: string | null;
+  approved_by: string | null;
+  approved_at: Date | null;
+  decision_note: string | null;
+  paid_in_run_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -3058,6 +3093,7 @@ export interface Database {
   tax_codes: TaxCodesTable;
   // Statutory payroll. Tenant-scoped like everything else here — every query
   // still needs its own explicit tenant_id filter.
+  hr_overtime_requests: HrOvertimeRequestsTable;
   hr_leave_types: HrLeaveTypesTable;
   hr_leave_balances: HrLeaveBalancesTable;
   payroll_tax_bands: PayrollTaxBandsTable;
