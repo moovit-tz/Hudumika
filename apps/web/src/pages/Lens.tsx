@@ -230,38 +230,41 @@ export function Lens() {
       )}
 
       {/* Filters */}
-      <div style={{ ...card, padding: '10px 12px', margin: '0 0 16px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
-        <Select value={fKind || '__all__'} onValueChange={v => setFKind(v === '__all__' ? '' : v)}>
-          <SelectTrigger style={{ minWidth: 130 }}><SelectValue placeholder="All kinds" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">All kinds</SelectItem>
-            {KINDS.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={fArea || '__all__'} onValueChange={v => setFArea(v === '__all__' ? '' : v)}>
-          <SelectTrigger style={{ minWidth: 160 }}><SelectValue placeholder="All areas" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">All areas</SelectItem>
-            {areas.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        {viewMode === 'list' && (
-          <Select value={fConfidence || '__all__'} onValueChange={v => setFConfidence(v === '__all__' ? '' : v)}>
-            <SelectTrigger style={{ minWidth: 170 }}><SelectValue placeholder="Any confidence" /></SelectTrigger>
+      <div style={{ ...card, padding: '10px 12px', margin: '0 0 16px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', flexShrink: 0, justifyContent: 'space-between' }}>
+        <div style={{ flex: '1 1 220px', minWidth: 200, maxWidth: 400 }}>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search title, body, evidence…"
+            style={{ ...input, width: '100%' }} />
+        </div>
+        
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Select value={fKind || '__all__'} onValueChange={v => setFKind(v === '__all__' ? '' : v)}>
+            <SelectTrigger style={{ minWidth: 130, width: 'auto' }}><SelectValue placeholder="All kinds" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">Any confidence</SelectItem>
-              {CONFIDENCES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              <SelectItem value="__all__">All kinds</SelectItem>
+              {KINDS.map(k => <SelectItem key={k} value={k}>{k}</SelectItem>)}
             </SelectContent>
           </Select>
-        )}
-        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--ink2)' }}>
-          <input type="checkbox" checked={showClosed} onChange={e => setShowClosed(e.target.checked)} />
-          Show closed
-        </label>
-        {viewMode === 'list' && (
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="Search title, body, evidence…"
-            style={{ ...input, width: 'auto', flex: '1 1 220px', marginLeft: 'auto', minWidth: 200 }} />
-        )}
+          <Select value={fArea || '__all__'} onValueChange={v => setFArea(v === '__all__' ? '' : v)}>
+            <SelectTrigger style={{ minWidth: 160, width: 'auto' }}><SelectValue placeholder="All areas" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All areas</SelectItem>
+              {areas.map(a => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {viewMode === 'list' && (
+            <Select value={fConfidence || '__all__'} onValueChange={v => setFConfidence(v === '__all__' ? '' : v)}>
+              <SelectTrigger style={{ minWidth: 170, width: 'auto' }}><SelectValue placeholder="Any confidence" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Any confidence</SelectItem>
+                {CONFIDENCES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          )}
+          <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: 'var(--ink2)' }}>
+            <input type="checkbox" checked={showClosed} onChange={e => setShowClosed(e.target.checked)} />
+            Show closed
+          </label>
+        </div>
       </div>
 
       {loading ? (
