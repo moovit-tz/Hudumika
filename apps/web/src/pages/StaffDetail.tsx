@@ -62,6 +62,29 @@ function formatDate(d: string | null | undefined): string {
   catch { return String(d); }
 }
 
+/** Minutes as "6h 30m" — the timesheet stores minutes, nobody reads in minutes. */
+function hhmm(mins: number): string {
+  const m = Math.max(0, Math.round(mins || 0));
+  const h = Math.floor(m / 60);
+  return h ? `${h}h${m % 60 ? ` ${m % 60}m` : ''}` : `${m}m`;
+}
+
+/** Soft-tint status pill, on the same semantic colours as the rest of the app. */
+function StatusChip({ value }: { value?: string | null }) {
+  if (!value) return <span style={{ color: 'var(--ink4)' }}>—</span>;
+  const v = String(value).toUpperCase();
+  const tone =
+    /VERIFIED|APPROVED|RESOLVED|CLOSED|ACTIVE|COMPLETE/.test(v) ? { bg: 'var(--green-l)', fg: 'var(--green)' }
+    : /REJECTED|EXPIRED|OVERDUE|FAILED/.test(v) ? { bg: 'var(--red-l)', fg: 'var(--red)' }
+    : /PENDING|OPEN|IN_PROGRESS|MISSING|DRAFT/.test(v) ? { bg: 'var(--gold-l)', fg: 'var(--gold)' }
+    : { bg: 'var(--bg)', fg: 'var(--ink3)' };
+  return (
+    <span style={{ padding: 'var(--badge-py) var(--badge-px)', borderRadius: 'var(--r-sm)', fontSize: 'var(--badge-fs)', fontWeight: 700, background: tone.bg, color: tone.fg, whiteSpace: 'nowrap' }}>
+      {v.replace(/_/g, ' ')}
+    </span>
+  );
+}
+
 const PAY_METHOD_LABEL: Record<string, string> = {
   BANK: 'Bank transfer',
   MOBILE_MONEY: 'Mobile money',
@@ -249,11 +272,32 @@ export const StaffDetail: React.FC = () => {
     Attendance: `/v1/hr/attendance?user_id=${id}`,
     Leaves: `/v1/hr/leaves?user_id=${id}`,
     Payroll: `/v1/payroll/employees/${id}/payslips`,
+    Timesheet: `/v1/hr/staff/${id}/timesheet`,
+    Projects: `/v1/hr/staff/${id}/projects`,
+    Documents: `/v1/hr/staff/${id}/documents`,
+    Tickets: `/v1/hr/staff/${id}/tickets`,
+    'Shift Roster': `/v1/hr/staff/${id}/shift-roster`,
+    Permissions: `/v1/hr/staff/${id}/permissions`,
+    Activity: `/v1/hr/staff/${id}/activity`,
+  };
+
+  /**
+   * Deliberately absent from LIVE_TABS. `tasks` is a private to-do list, scoped
+   * to its owner everywhere else in the app; showing it to a manager here is a
+   * product decision, not a wiring gap, so the tab says that instead of
+   * rendering an empty table that implies the person has nothing on.
+   */
+  const WITHHELD_TABS: Record<string, string> = {
+    Tasks: 'Tasks are a personal to-do list, private to the person who wrote them. ' +
+           'Assigned work shows under Tickets and Timesheet.',
   };
 
   const [attendance, setAttendance] = useState<any[]>([]);
   const [leaves, setLeaves] = useState<any[]>([]);
   const [payslips, setPayslips] = useState<any[]>([]);
+  // The tabs added later all render from the same shape, so they share one
+  // bucket rather than growing a useState each.
+  const [tabRows, setTabRows] = useState<Record<string, any>>({});
   const [tabLoading, setTabLoading] = useState(false);
   // Payroll is the one tab that can legitimately refuse. "You may not see this"
   // and "there is nothing here" are different answers and must not look alike.
@@ -267,16 +311,23 @@ export const StaffDetail: React.FC = () => {
       const rows = await apiFetch(LIVE_TABS[which]) ?? [];
       if (which === 'Attendance') setAttendance(rows);
       else if (which === 'Leaves') setLeaves(rows);
-      else setPayslips(rows);
+      else if (which === 'Payroll') setPayslips(rows);
+      else setTabRows(prev => ({ ...prev, [which]: rows }));
     } catch (e: any) {
       // An empty list and a failed request must not look the same, so the
       // table says which it was rather than rendering a bare "no records".
-      if (/403|forbidden/i.test(String(e?.message ?? e))) {
-        setTabDenied('Your access level does not include other people’s pay.');
+      const msg = String(e?.message ?? e);
+      if (/403|forbidden/i.test(msg)) {
+        setTabDenied(which === 'Payroll'
+          ? 'Your access level does not include other people’s pay.'
+          : 'Your access level does not include other people’s records.');
+      } else {
+        setTabDenied(`This could not be loaded: ${msg}`);
       }
       if (which === 'Attendance') setAttendance([]);
       else if (which === 'Leaves') setLeaves([]);
-      else setPayslips([]);
+      else if (which === 'Payroll') setPayslips([]);
+      else setTabRows(prev => ({ ...prev, [which]: [] }));
     } finally {
       setTabLoading(false);
     }
@@ -843,14 +894,160 @@ export const StaffDetail: React.FC = () => {
           </div>
         )}
 
-        {tab !== 'Profile' && !LIVE_TABS[tab] && (
+        {/* One refusal state for every tab but Payroll, which words it its own
+            way. "You may not look" and "there is nothing here" are different
+            answers; rendering an empty table for the first is a quiet lie. */}
+        {tabDenied && tab !== 'Payroll' && tab !== 'Profile' && (
+          <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>
+            <Icon name="lock" size={28} color="var(--border)" />
+            <div style={{ marginTop: 12, fontSize: 14, fontWeight: 500, color: 'var(--ink2)' }}>This tab could not be shown</div>
+            <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink3)' }}>{tabDenied}</div>
+          </div>
+        )}
+
+        {tab === 'Timesheet' && !tabDenied && (
+          <TabTable
+            loading={tabLoading}
+            rows={tabRows.Timesheet ?? []}
+            empty="No time has been logged for this person."
+            head={['Date', 'Task', 'Project', 'Billable', 'Duration', 'Note']}
+            summary={rows => {
+              const mins = rows.reduce((t, r) => t + Number(r.duration_minutes ?? 0), 0);
+              const bill = rows.filter(r => r.is_billable).reduce((t, r) => t + Number(r.duration_minutes ?? 0), 0);
+              return `${rows.length} entries · ${hhmm(mins)} logged, ${hhmm(bill)} of it billable`;
+            }}
+            row={r => [
+              formatDate(r.date),
+              r.task_name || '—',
+              r.project_ref || '—',
+              r.is_billable ? 'Yes' : 'No',
+              hhmm(Number(r.duration_minutes ?? 0)),
+              r.notes || '—',
+            ]}
+          />
+        )}
+
+        {tab === 'Projects' && !tabDenied && (
+          <TabTable
+            loading={tabLoading}
+            rows={tabRows.Projects ?? []}
+            empty="No project time has been logged for this person."
+            head={['Project', 'Entries', 'Time', 'Billable', 'Last worked']}
+            summary={() => 'Grouped from logged time — there is no separate project record behind this.'}
+            row={r => [
+              r.project === '(no project)'
+                ? <span style={{ color: 'var(--ink3)' }}>No project</span>
+                : r.project,
+              r.entries,
+              hhmm(r.minutes),
+              hhmm(r.billable_minutes),
+              r.last_worked ? formatDate(r.last_worked) : '—',
+            ]}
+          />
+        )}
+
+        {tab === 'Documents' && !tabDenied && (
+          <TabTable
+            loading={tabLoading}
+            rows={tabRows.Documents ?? []}
+            empty="No documents are on file for this person."
+            head={['Name', 'Type', 'Status', 'Added']}
+            row={r => [r.name, r.type || '—', <StatusChip key="s" value={r.status} />, formatDate(r.created_at)]}
+          />
+        )}
+
+        {tab === 'Tickets' && !tabDenied && (
+          <TabTable
+            loading={tabLoading}
+            rows={tabRows.Tickets ?? []}
+            empty="No support tickets are assigned to this person."
+            head={['Ref', 'Subject', 'Priority', 'Status', 'Opened', 'Resolved']}
+            summary={rows => {
+              const open = rows.filter(r => !r.resolved_at).length;
+              return `${rows.length} assigned · ${open} still open`;
+            }}
+            row={r => [
+              r.ref_number || '—', r.subject,
+              r.priority || '—',
+              <StatusChip key="s" value={r.status} />,
+              formatDate(r.created_at),
+              r.resolved_at ? formatDate(r.resolved_at) : '—',
+            ]}
+          />
+        )}
+
+        {tab === 'Shift Roster' && !tabDenied && (
+          <TabTable
+            loading={tabLoading}
+            rows={tabRows['Shift Roster'] ?? []}
+            empty="No shifts have been assigned to this person."
+            head={['Date', 'Shift', 'Starts', 'Ends', 'Break', 'Grace']}
+            row={r => [
+              formatDate(r.date),
+              <span key="n" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: r.color || 'var(--teal)' }} />
+                {r.shift_name}
+              </span>,
+              r.start_time, r.end_time,
+              r.break_minutes != null ? `${r.break_minutes} min` : '—',
+              r.grace_minutes != null ? `${r.grace_minutes} min` : '—',
+            ]}
+          />
+        )}
+
+        {tab === 'Activity' && !tabDenied && (
+          <TabTable
+            loading={tabLoading}
+            rows={tabRows.Activity ?? []}
+            empty="Nothing has been recorded against this person yet."
+            head={['When', 'Module', 'What happened']}
+            row={r => [formatDate(r.created_at), r.module || '—', r.action]}
+          />
+        )}
+
+        {tab === 'Permissions' && !tabDenied && (
+          tabLoading ? (
+            <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>Loading…</div>
+          ) : (
+            <div style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
+              <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', fontSize: 12.5, color: 'var(--ink2)' }}>
+                Role <strong style={{ color: 'var(--ink)' }}>{tabRows.Permissions?.role ?? '—'}</strong>
+                {tabRows.Permissions?.active === false && ' · account deactivated'}
+                {/* Named as derived, because it is: there is no separate
+                    permissions model, only the role checks in the routes. */}
+                <div style={{ marginTop: 4, fontSize: 12, color: 'var(--ink3)' }}>
+                  Derived from the role checks the API actually enforces, not from a separate permissions table.
+                </div>
+              </div>
+              {(tabRows.Permissions?.capabilities ?? []).map((c: any) => (
+                <div key={c.label} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
+                  <span style={{ fontSize: 13, color: 'var(--ink2)' }}>{c.label}</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: c.granted ? 'var(--green)' : 'var(--ink4)' }}>
+                    {c.granted ? 'Allowed' : 'Not allowed'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+
+        {/* Withheld on purpose, and says so — an empty table here would read as
+            "this person has nothing on", which is a different claim. */}
+        {WITHHELD_TABS[tab] && (
+          <div style={{ textAlign: 'center', padding: '60px 24px', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>
+            <Icon name="lock" size={32} color="var(--border)" />
+            <div style={{ marginTop: 12, fontSize: 14, fontWeight: 500, color: 'var(--ink2)' }}>Not shown here</div>
+            <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink3)', maxWidth: 460, margin: '6px auto 0' }}>
+              {WITHHELD_TABS[tab]}
+            </div>
+          </div>
+        )}
+
+        {tab !== 'Profile' && !LIVE_TABS[tab] && !WITHHELD_TABS[tab] && (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>
             <Icon name="clock" size={32} color="var(--border)" />
             <div style={{ marginTop: 12, fontSize: 14, fontWeight: 500, color: 'var(--ink2)' }}>The {tab} module is coming soon</div>
-            {/* Says which, rather than implying every tab is equally close. */}
-            <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink3)' }}>
-              No endpoint backs this tab yet — Attendance, Leaves and Payroll are live.
-            </div>
+            <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink3)' }}>No endpoint backs this tab yet.</div>
           </div>
         )}
       </div>

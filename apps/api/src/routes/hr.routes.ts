@@ -1171,6 +1171,156 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // ── One person's record, tab by tab ──────────────────────────────────────
+  //
+  // The staff profile had twelve tabs and made two API calls. Everything past
+  // Profile, Attendance, Leaves and Payroll rendered a placeholder, which reads
+  // to a user as "there is nothing here" rather than "this was never built" —
+  // and several of them do have real data behind them.
+  //
+  // Two of the twelve are deliberately not wired, and say so on screen rather
+  // than showing an empty table:
+  //
+  //   Tasks     — `tasks` is a private to-do list, scoped to `user.sub`
+  //               everywhere else in the app. Putting somebody's personal
+  //               notes-to-self on an HR screen for their manager to read is a
+  //               different product decision from showing their work, and not
+  //               one to make silently while wiring up tabs.
+  //   Projects  — derived here from time entries, which is the only real record
+  //               of who worked on what. There is no projects table.
+
+  /**
+   * Your own record, or somebody whose record you are entitled to read.
+   * Everything below is HR data about one person, so "the caller's tenant" is
+   * necessary but not sufficient — a colleague is in your tenant too.
+   */
+  const HR_VIEWER_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'];
+  const mayViewStaffRecord = (req: any, targetId: string) =>
+    req.user.sub === targetId || HR_VIEWER_ROLES.includes(req.user.role);
+
+  /** Wraps a per-person read with the access rule and the tenant filter. */
+  function staffRecordRoute(
+    path: string,
+    handler: (trx: any, req: any, targetId: string) => Promise<unknown>,
+  ) {
+    fastify.get(`/staff/:id${path}`, async (req: any, reply) => {
+      const { id } = req.params as { id: string };
+      if (!mayViewStaffRecord(req, id)) {
+        return reply.status(403).send({ error: 'You can only open your own record.' });
+      }
+      return withTenant(req.user.tenant_id, async (trx) => {
+        // Confirm the person is in this tenant before reading anything keyed on
+        // their id — otherwise every query below trusts an id from the URL.
+        const exists = await trx.selectFrom('users').select('id')
+          .where('id', '=', id).where('tenant_id', '=', req.user.tenant_id)
+          .executeTakeFirst();
+        if (!exists) return reply.status(404).send({ error: 'Staff not found' });
+        return handler(trx, req, id);
+      });
+    });
+  }
+
+  staffRecordRoute('/timesheet', async (trx, req, id) => {
+    const q = req.query as { from?: string; to?: string };
+    let query = trx.selectFrom('hr_time_entries')
+      .select(['id', 'date', 'task_name', 'project_ref', 'is_billable', 'duration_minutes',
+               'started_at', 'ended_at', 'entry_type', 'notes'])
+      .where('tenant_id', '=', req.user.tenant_id)
+      .where('user_id', '=', id);
+    if (q.from) query = query.where('date', '>=', q.from);
+    if (q.to) query = query.where('date', '<=', q.to);
+    return query.orderBy('date', 'desc').orderBy('started_at', 'desc').limit(200).execute();
+  });
+
+  staffRecordRoute('/projects', async (trx, req, id) => {
+    // No projects table — this is what the time entries actually say. Entries
+    // with no project are grouped as such rather than dropped, so the totals
+    // here reconcile with the timesheet tab instead of quietly disagreeing.
+    const rows = await trx.selectFrom('hr_time_entries')
+      .select(['project_ref', 'is_billable', 'duration_minutes', 'date'])
+      .where('tenant_id', '=', req.user.tenant_id)
+      .where('user_id', '=', id)
+      .execute();
+    const byProject = new Map<string, { project: string; minutes: number; billable_minutes: number; entries: number; last_worked: string | null }>();
+    for (const r of rows as any[]) {
+      const key = r.project_ref || '(no project)';
+      const acc = byProject.get(key) ?? { project: key, minutes: 0, billable_minutes: 0, entries: 0, last_worked: null };
+      const mins = Number(r.duration_minutes ?? 0);
+      acc.minutes += mins;
+      if (r.is_billable) acc.billable_minutes += mins;
+      acc.entries += 1;
+      const d = r.date ? String(r.date).slice(0, 10) : null;
+      if (d && (!acc.last_worked || d > acc.last_worked)) acc.last_worked = d;
+      byProject.set(key, acc);
+    }
+    return [...byProject.values()].sort((a, b) => b.minutes - a.minutes);
+  });
+
+  staffRecordRoute('/documents', async (trx, req, id) =>
+    trx.selectFrom('hr_documents')
+      .select(['id', 'name', 'type', 'status', 'storage_key', 'created_at', 'updated_at'])
+      .where('tenant_id', '=', req.user.tenant_id)
+      .where('user_id', '=', id)
+      .orderBy('created_at', 'desc')
+      .execute());
+
+  staffRecordRoute('/tickets', async (trx, req, id) =>
+    // Tickets assigned to this person — their workload, not tickets they raised.
+    trx.selectFrom('support_tickets')
+      .select(['id', 'ref_number', 'subject', 'status', 'priority', 'category',
+               'created_at', 'resolved_at', 'sla_deadline'])
+      .where('tenant_id', '=', req.user.tenant_id)
+      .where('assigned_to', '=', id)
+      .orderBy('created_at', 'desc')
+      .limit(100)
+      .execute());
+
+  staffRecordRoute('/shift-roster', async (trx, req, id) => {
+    const q = req.query as { from?: string; to?: string };
+    let query = trx.selectFrom('hr_shift_assignments as a')
+      .innerJoin('hr_shifts as s', 's.id', 'a.shift_id')
+      .select(['a.id', 'a.date', 's.name as shift_name', 's.start_time', 's.end_time',
+               's.break_minutes', 's.color', 's.grace_minutes'])
+      .where('a.tenant_id', '=', req.user.tenant_id)
+      .where('a.user_id', '=', id);
+    if (q.from) query = query.where('a.date', '>=', q.from);
+    if (q.to) query = query.where('a.date', '<=', q.to);
+    return query.orderBy('a.date', 'desc').limit(120).execute();
+  });
+
+  staffRecordRoute('/activity', async (trx, req, id) =>
+    trx.selectFrom('hr_activity_log')
+      .select(['id', 'action', 'module', 'created_at'])
+      .where('tenant_id', '=', req.user.tenant_id)
+      .where('user_id', '=', id)
+      .orderBy('created_at', 'desc')
+      .limit(100)
+      .execute());
+
+  /**
+   * What this person's role actually lets them do.
+   *
+   * Derived from the role lists the route handlers really check, not from a
+   * separate permissions model — there isn't one, and inventing a prettier
+   * display of capabilities the code does not enforce would be worse than
+   * showing nothing. If a `requireRole` list changes, this must change with it.
+   */
+  staffRecordRoute('/permissions', async (trx, req, id) => {
+    const person = await trx.selectFrom('users').select(['role', 'active'])
+      .where('id', '=', id).where('tenant_id', '=', req.user.tenant_id)
+      .executeTakeFirstOrThrow();
+    const role = person.role as string;
+    const capabilities = [
+      { label: 'Edit staff identity and contact details', roles: ['SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN'] },
+      { label: 'Set pay and payment details',             roles: ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] },
+      { label: 'Change a colleague’s role',           roles: ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] },
+      { label: 'Activate or deactivate staff',            roles: ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'] },
+      { label: 'Approve or reject leave',                 roles: ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] },
+      { label: 'Open another person’s HR record',     roles: HR_VIEWER_ROLES },
+    ].map(c => ({ label: c.label, granted: c.roles.includes(role) }));
+    return { role, active: person.active, capabilities };
+  });
+
   // ── My Active Shipments (for check-in widget) ────────────────
 
   fastify.get('/my-shipments', async (req) => {
