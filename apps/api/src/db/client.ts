@@ -68,6 +68,20 @@ export interface UsersTable {
   profile: Generated<Record<string, any>>;
   active: Generated<boolean>;
   last_login_at: Date | null;
+  /**
+   * Payroll identity. These sit on the column rather than inside `profile`
+   * because the payroll engine depends on them: residency alone switches the
+   * calculation to a flat rate with no tax-free band, and a value the engine
+   * reads should not live somewhere it can be overwritten by an unrelated
+   * profile save. null everywhere means not yet captured, never zero.
+   */
+  tax_residency: 'RESIDENT' | 'NON_RESIDENT' | null;
+  national_id: string | null;
+  tax_id: string | null;
+  social_security_no: string | null;
+  health_insurance_no: string | null;
+  basic_salary: string | null;
+  pay_currency: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -1805,10 +1819,139 @@ export interface LensAreasTable {
   created_at: Generated<Date>;
 }
 
+export interface LensCyclesTable {
+  id: Generated<string>;
+  name: string;
+  start_date: Date | null;
+  end_date: Date | null;
+  status: Generated<'PLANNING' | 'ACTIVE' | 'CLOSED'>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/**
+ * Statutory payroll. Rates and bands are rows rather than code so that a tenant
+ * can hold its own, and so the next jurisdiction is a seed rather than a branch.
+ */
+export interface PayrollTaxBandsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  jurisdiction: string;
+  residency: Generated<'RESIDENT' | 'NON_RESIDENT'>;
+  seq: number;
+  lower_bound: string;
+  /** null is the open-ended top band, never a stand-in large number. */
+  upper_bound: string | null;
+  rate_pct: string;
+  /** Cumulative tax at the foot of the band, as published. */
+  fixed_amount: Generated<string>;
+  effective_from: Date;
+  effective_to: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface PayrollContributionSchemesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  jurisdiction: string;
+  code: string;
+  name: string;
+  employee_pct: Generated<string>;
+  employer_pct: Generated<string>;
+  calc_base: Generated<'BASIC' | 'GROSS' | 'TAXABLE'>;
+  /** True for an approved retirement fund; false for health insurance. */
+  reduces_tax_base: Generated<boolean>;
+  /** Headcount floor before the scheme applies. 0 means always. */
+  min_employees: Generated<number>;
+  on_payslip: Generated<boolean>;
+  active: Generated<boolean>;
+  effective_from: Date;
+  effective_to: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface PayrollComponentTypesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  code: string;
+  name: string;
+  direction: 'EARNING' | 'DEDUCTION';
+  taxable: Generated<boolean>;
+  statutory: Generated<boolean>;
+  default_amount: string | null;
+  frequency: Generated<'MONTHLY' | 'ANNUAL' | 'ONE_OFF'>;
+  active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface PayrollEmployeeComponentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  component_type_id: string;
+  amount: string;
+  effective_from: Date;
+  effective_to: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface PayrollRunsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  period_year: number;
+  period_month: number;
+  period_start: Date;
+  period_end: Date;
+  jurisdiction: Generated<string>;
+  status: Generated<'DRAFT' | 'CALCULATED' | 'PENDING_APPROVAL' | 'APPROVED' | 'PAID' | 'CANCELLED'>;
+  /** Headcount when calculated — the levy thresholds depend on it. */
+  employee_count: Generated<number>;
+  total_gross: Generated<string>;
+  total_net: Generated<string>;
+  total_employee_deductions: Generated<string>;
+  /** What employing these people costs beyond their pay — excludes income tax. */
+  total_employer_cost: Generated<string>;
+  /** Everything forwarded to the authorities, whoever it was withheld from. */
+  total_remitted: Generated<string>;
+  calculated_at: Date | null;
+  approved_by: string | null;
+  approved_at: Date | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface PayrollPayslipsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  run_id: string;
+  user_id: string;
+  residency: Generated<'RESIDENT' | 'NON_RESIDENT'>;
+  basic_pay: Generated<string>;
+  gross_pay: Generated<string>;
+  /** The tax base after the retirement-fund deduction. */
+  taxable_pay: Generated<string>;
+  income_tax: Generated<string>;
+  employee_contributions: Generated<string>;
+  other_deductions: Generated<string>;
+  total_deductions: Generated<string>;
+  employer_contributions: Generated<string>;
+  net_pay: Generated<string>;
+  /** Every line behind the totals, so a payslip explains itself. */
+  lines: Generated<unknown>;
+  created_at: Generated<Date>;
+}
+
 export interface LensItemsTable {
   id: Generated<string>;
   ref: string;
-  kind: 'BUG' | 'FEATURE' | 'DEBT' | 'DECISION' | 'QUESTION' | 'RISK';
+  kind: 'BUG' | 'FEATURE' | 'DEBT' | 'DECISION' | 'QUESTION' | 'RISK' | 'EPIC';
   title: string;
   body: string | null;
   area_id: string | null;
@@ -1826,6 +1969,8 @@ export interface LensItemsTable {
   resolution: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+  parent_id: string | null;
+  cycle_id: string | null;
 }
 
 export interface LensIntegrationsTable {
@@ -2824,8 +2969,17 @@ export interface Database {
   invoice_reminders: InvoiceRemindersTable;
   invoice_activity_log: InvoiceActivityLogTable;
   tax_codes: TaxCodesTable;
+  // Statutory payroll. Tenant-scoped like everything else here — every query
+  // still needs its own explicit tenant_id filter.
+  payroll_tax_bands: PayrollTaxBandsTable;
+  payroll_contribution_schemes: PayrollContributionSchemesTable;
+  payroll_component_types: PayrollComponentTypesTable;
+  payroll_employee_components: PayrollEmployeeComponentsTable;
+  payroll_runs: PayrollRunsTable;
+  payroll_payslips: PayrollPayslipsTable;
   // Lens — platform-scoped, no tenant_id by design.
   lens_areas: LensAreasTable;
+  lens_cycles: LensCyclesTable;
   lens_items: LensItemsTable;
   lens_events: LensEventsTable;
   lens_integrations: LensIntegrationsTable;
