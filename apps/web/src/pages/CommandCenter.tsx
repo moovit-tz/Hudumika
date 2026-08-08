@@ -5,7 +5,6 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useShipments } from '../hooks/useShipments.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
-import { FilterBar } from '../components/FilterBar.js';
 import { TableHeader } from '../components/TableHeader.js';
 import { CustomerGroup } from '../components/CustomerGroup.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -467,9 +466,20 @@ export const CommandCenter: React.FC = () => {
   );
   useEffect(() => {
     apiFetch('/v1/workflows')
-      .then((res: any) => setWorkflows((res.data ?? []).filter((w: Workflow) => w.isActive)))
+      .then((res: any) => {
+        const activeWorkflows = (res.data ?? []).filter((w: Workflow) => w.isActive);
+        setWorkflows(activeWorkflows);
+        if (activeWorkflows.length > 0) {
+          const saved = localStorage.getItem('ops_selectedWorkflow') || 'legacy';
+          if (saved === 'legacy') {
+            setSelectedWorkflowId(activeWorkflows[0].id);
+            localStorage.setItem('ops_selectedWorkflow', activeWorkflows[0].id);
+          }
+        }
+      })
       .catch(() => {});
   }, []);
+
   const activeWorkflow = selectedWorkflowId === 'legacy' ? null : (workflows.find(w => w.id === selectedWorkflowId) ?? null);
 
   /**
@@ -516,6 +526,14 @@ export const CommandCenter: React.FC = () => {
     ...(declPresence !== '__all__' ? { has_declaration: declPresence === 'yes' } : {}),
     ...(serverSearch ? { search: serverSearch } : {}),
   });
+
+  // Auto-refresh data every 15 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      refresh();
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [refresh]);
 
   const [opsSummary, setOpsSummary] = useState<{ checked_in: number; active_shipments: number; pending_tasks: number } | null>(null);
 
@@ -628,34 +646,17 @@ export const CommandCenter: React.FC = () => {
     // Raised = one of the two risk figures, and only while it is non-zero.
     const raised = cell.cell === 'alert' && cell.value !== '0' && cell.value !== '—';
     const cls = [
-      'cc-kpi-card',
-      clickable ? 'cc-kpi-card--clickable' : '',
-      active ? 'cc-kpi-card--active' : '',
+      'cc-pipeline-step',
+      clickable ? 'cc-pipeline-step--clickable' : '',
+      active ? 'cc-pipeline-step--active' : '',
       cell.cell === 'alert' ? 'r' : '',
-      raised ? 'cc-kpi-card--raised' : '',
+      raised ? 'cc-pipeline-step--raised' : '',
     ].filter(Boolean).join(' ');
 
     const inner = (
       <>
-        <span className="cc-kpi-cell-label">
-          {/* Inline with the label, at label size. It was a 26px pastel square
-              in the corner — repeating what the label already said, in a tint
-              that mapped to nothing, and forcing the card taller than its own
-              content. */}
-          <Icon name={cell.icon as any} size={12} strokeWidth={2} />
-          {cell.label}
-        </span>
-        <span className="cc-kpi-cell-value">{cell.value}</span>
-        {/* Four of these seven filter the list and three do not, and they were
-            indistinguishable. This says which — on hover, so it does not add a
-            permanent seventh line of text to the row.
-
-            Rendered on every card, empty where there is nothing to say, so the
-            line is reserved and a clickable card is not taller than the one
-            beside it. */}
-        <span className="cc-kpi-hint" aria-hidden={!clickable}>
-          {clickable ? (active ? 'Filtering — click to clear' : 'Click to filter') : ' '}
-        </span>
+        <span className="cc-pipeline-num">{cell.value}</span>
+        <span className="cc-pipeline-label">{cell.label}</span>
       </>
     );
 
@@ -666,11 +667,12 @@ export const CommandCenter: React.FC = () => {
         className={cls}
         aria-pressed={active}
         onClick={() => setSelectedMetric(m => (m === cell.metric ? null : cell.metric))}
+        title={active ? 'Filtering — click to clear' : 'Click to filter'}
       >
         {inner}
       </button>
     ) : (
-      <div key={cell.key} className={cls}>{inner}</div>
+      <div key={cell.key} className={cls} title={cell.label}>{inner}</div>
     );
   };
 
@@ -701,7 +703,7 @@ export const CommandCenter: React.FC = () => {
       <div className="cc-main">
 
         {/* ── Enterprise Page Header ── */}
-        <div className="cc-page-header" style={{ padding: '0 0 12px 0', borderBottom: expanded ? 'none' : '1px solid var(--border)' }}>
+        <div className="cc-page-header" style={{ padding: '1.25rem 1.25rem 12px 1.25rem', borderBottom: expanded ? 'none' : '1px solid var(--border)' }}>
           <div className="cc-page-header-left">
             <div className="cc-breadcrumb">
               <span className="cc-breadcrumb-root">Dashboard</span>
@@ -742,25 +744,6 @@ export const CommandCenter: React.FC = () => {
                   </button>
                 ))}
               </div>
-
-              {/* Workflow selector — board view only, and only when the tenant
-                  has at least one active custom workflow to switch to. */}
-              {viewMode === 'board' && workflows.length > 0 && (
-                <Select
-                  value={selectedWorkflowId}
-                  onValueChange={v => { setSelectedWorkflowId(v); localStorage.setItem('ops_selectedWorkflow', v); }}
-                >
-                  <SelectTrigger style={{ height: 32, fontSize: 12.5, minWidth: 150, width: 'auto' }}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="legacy">Legacy Stages</SelectItem>
-                    {workflows.map(w => (
-                      <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
             </div>
 
             {/* Primary actions — always fully visible, never scrolled/clipped. */}
@@ -771,9 +754,6 @@ export const CommandCenter: React.FC = () => {
                   {isMobile ? 'New' : 'New Shipment'}
                 </Button>
               )}
-              <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => refresh()} title="Refresh data">
-                <Icon name="refresh" size={14} />
-              </Button>
             </div>
           </div>
         </div>
@@ -783,49 +763,107 @@ export const CommandCenter: React.FC = () => {
             no `metric` (penalty exposure, on-time rate, this month) are
             informational only. Always visible, independent of the collapsible
             toolbar below, since these are the primary at-a-glance numbers. */}
-        <div className="cc-kpi-row">
+        <div className="cc-pipeline" style={{ marginLeft: '1.25rem', marginRight: '1.25rem' }}>
           {kpiCells.map(kpiCell)}
         </div>
 
         {/* Collapsible Ops Summary & Filters — one row, wraps as a unit on narrow screens */}
         {expanded && (
-          <div className="cc-toolbar-row">
-            {/* Ops summary chips */}
-            {opsSummary && (
-              <div className="cc-summary-chips">
-                <div className="cc-summary-chip">
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--teal)', flexShrink: 0, boxShadow: '0 0 0 2px var(--teal-l)' }} />
-                  <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 500 }}>Checked In</span>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', lineHeight: 1 }}>{opsSummary.checked_in}</span>
-                </div>
-                <div className="cc-summary-chip">
-                  <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 500 }}>Active Shipments</span>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', lineHeight: 1 }}>{opsSummary.active_shipments}</span>
-                </div>
-                <div className="cc-summary-chip">
-                  <span style={{ fontSize: 11, color: 'var(--ink3)', fontWeight: 500 }}>Pending Tasks</span>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: opsSummary.pending_tasks > 0 ? 'var(--gold)' : 'var(--ink)', lineHeight: 1 }}>{opsSummary.pending_tasks}</span>
-                </div>
-              </div>
-            )}
+          <div className="cc-toolbar-row" style={{ paddingLeft: '1.25rem', paddingRight: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', width: '100%' }}>
+              <div className="ds-tabs-list" data-variant="segmented" style={{ flexShrink: 0, overflowX: 'auto', maxWidth: '100%' }}>
+                {opsSummary && (
+                  <>
+                    <button
+                      type="button"
+                      className="ds-tabs-trigger"
+                      data-variant="segmented"
+                      data-state={selectedMetric === 'active' ? 'active' : 'inactive'}
+                      onClick={() => setSelectedMetric(m => m === 'active' ? null : 'active')}
+                    >
+                      Active
+                      <span style={{
+                        fontSize: 10,
+                        padding: '0 5px',
+                        borderRadius: 9,
+                        background: selectedMetric === 'active' ? 'var(--teal-l)' : 'var(--border)',
+                        color: selectedMetric === 'active' ? 'var(--teal)' : 'var(--ink3)',
+                        fontWeight: 700
+                      }}>
+                        {opsSummary.active_shipments}
+                      </span>
+                    </button>
 
-            {/* Filter bar */}
-            <div className="cc-toolbar-filters">
-              <FilterBar
-                searchQuery={searchQuery}
-                setSearchQuery={setSearchQuery}
-                selectedType={selectedType}
-                setSelectedType={setSelectedType}
-                showOnlyMyCases={showOnlyMyCases}
-                setShowOnlyMyCases={setShowOnlyMyCases}
-                selectedRiskOnly={selectedRiskOnly}
-                setSelectedRiskOnly={setSelectedRiskOnly}
-                declarationFilter={
-                  /* One "Filter by" menu instead of three loose Selects in the
-                     page header. Those sat in a different place doing the same
-                     job as the chips beside this, so the page had two filter
-                     controls in two styles. The count on the trigger is what
-                     tells you a filter is on once the menu is shut. */
+                    <button
+                      type="button"
+                      className="ds-tabs-trigger"
+                      data-variant="segmented"
+                      data-state="inactive"
+                      onClick={() => navigate('/nexushr/staff')}
+                      title="View staff in NexusHR"
+                    >
+                      Checked In
+                      <span style={{
+                        fontSize: 10,
+                        padding: '0 5px',
+                        borderRadius: 9,
+                        background: 'var(--border)',
+                        color: 'var(--ink3)',
+                        fontWeight: 700
+                      }}>
+                        {opsSummary.checked_in}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="ds-tabs-trigger"
+                      data-variant="segmented"
+                      data-state="inactive"
+                      onClick={() => navigate('/studio')}
+                      title="View workflow studio"
+                    >
+                      Pending
+                      <span style={{
+                        fontSize: 10,
+                        padding: '0 5px',
+                        borderRadius: 9,
+                        background: 'var(--border)',
+                        color: 'var(--ink3)',
+                        fontWeight: 700
+                      }}>
+                        {opsSummary.pending_tasks}
+                      </span>
+                    </button>
+
+                    <div style={{ width: 1, height: 16, background: 'var(--ink3)', opacity: 0.2, alignSelf: 'center', margin: '0 4px' }} />
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  className="ds-tabs-trigger"
+                  data-variant="segmented"
+                  data-state={showOnlyMyCases ? 'active' : 'inactive'}
+                  onClick={() => setShowOnlyMyCases(!showOnlyMyCases)}
+                >
+                  My Cases
+                </button>
+
+                <button
+                  type="button"
+                  className="ds-tabs-trigger"
+                  data-variant="segmented"
+                  data-state={selectedRiskOnly ? 'active' : 'inactive'}
+                  onClick={() => setSelectedRiskOnly(!selectedRiskOnly)}
+                  style={selectedRiskOnly ? { color: 'var(--red)' } : {}}
+                >
+                  At Risk
+                </button>
+              </div>
+
+              {/* Filter bar */}
+              <div className="cc-toolbar-filters" style={{ minWidth: 'auto', flex: 'none' }}>
+                <div className="filter-chips">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button type="button" className={`fc fc-filterby${declFiltersActive ? ' on' : ''}`}>
@@ -839,11 +877,6 @@ export const CommandCenter: React.FC = () => {
                         <Icon name="chevronDown" size={11} />
                       </button>
                     </DropdownMenuTrigger>
-                    {/* Three submenus, not twenty-seven rows.
-                        Flat, this menu listed 7 types + 3 presence + 11 filing
-                        statuses + 5 lanes + Clear, which overran the viewport
-                        and had to scroll. Each group is one row now, showing
-                        its current value, and opens on hover. */}
                     <DropdownMenuContent align="end" className="w-60">
                       <DropdownMenuSub>
                         <DropdownMenuSubTrigger>
@@ -924,11 +957,10 @@ export const CommandCenter: React.FC = () => {
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>
-                }
-              />
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Board view */}
         {viewMode === 'board' && (

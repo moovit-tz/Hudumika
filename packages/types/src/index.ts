@@ -15,3 +15,4 @@ export * from './seal.js';
 export * from './workflow-studio.js';
 
 export * from './countries.js';
+export * from './lens.js';

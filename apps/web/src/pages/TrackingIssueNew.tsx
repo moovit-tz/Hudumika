@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
+import { BackButton } from '../components/ui/BackButton.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -52,9 +53,7 @@ export const TrackingIssueNew: React.FC = () => {
 
   return (
     <div style={{ padding: '0 0 24px'}}>
-      <Link to="/tracking/issues" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
-        <Icon name="arrowLeft" size={12} /> Issues
-      </Link>
+      <BackButton to="/tracking/issues" label="Issues" />
       <PageHeader
         crumbs={['HuduFreight', 'Report Issue']}
         titlePlain="Report an"

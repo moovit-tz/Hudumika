@@ -21,12 +21,12 @@ import { preflight } from '../services/lens-preflight.service.js';
  * concept of.
  */
 
-type Kind = 'BUG' | 'FEATURE' | 'DEBT' | 'DECISION' | 'QUESTION' | 'RISK';
+type Kind = 'BUG' | 'FEATURE' | 'DEBT' | 'DECISION' | 'QUESTION' | 'RISK' | 'EPIC';
 type Status = 'OPEN' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE' | 'WONTFIX';
 type Severity = 'CRITICAL' | 'HIGH' | 'NORMAL' | 'LOW';
 type Confidence = 'CONFIRMED' | 'SUSPECTED' | 'UNVERIFIED';
 
-const KINDS: Kind[] = ['BUG', 'FEATURE', 'DEBT', 'DECISION', 'QUESTION', 'RISK'];
+const KINDS: Kind[] = ['BUG', 'FEATURE', 'DEBT', 'DECISION', 'QUESTION', 'RISK', 'EPIC'];
 const STATUSES: Status[] = ['OPEN', 'IN_PROGRESS', 'BLOCKED', 'DONE', 'WONTFIX'];
 const SEVERITIES: Severity[] = ['CRITICAL', 'HIGH', 'NORMAL', 'LOW'];
 const CONFIDENCES: Confidence[] = ['CONFIRMED', 'SUSPECTED', 'UNVERIFIED'];
@@ -163,6 +163,8 @@ export async function lensRoutes(fastify: FastifyInstance) {
       confidence: body.confidence ?? 'SUSPECTED',
       evidence: body.evidence ?? null,
       waiting_on: body.waiting_on ?? null,
+      parent_id: body.parent_id ?? null,
+      cycle_id: body.cycle_id ?? null,
       refs: asJson(body.refs, []) as any,
       tags: asJson(body.tags, []) as any,
       created_by: user.sub ?? null,
@@ -197,7 +199,8 @@ export async function lensRoutes(fastify: FastifyInstance) {
 
     const updates: any = { updated_at: new Date() };
     for (const f of ['kind', 'title', 'body', 'area_id', 'status', 'severity',
-                     'confidence', 'evidence', 'waiting_on', 'resolution']) {
+                     'confidence', 'evidence', 'waiting_on', 'resolution',
+                     'parent_id', 'cycle_id']) {
       if (body[f] !== undefined) updates[f] = body[f];
     }
     if (body.refs !== undefined) updates.refs = asJson(body.refs, []);
@@ -431,6 +434,46 @@ export async function lensRoutes(fastify: FastifyInstance) {
       ok: true, number: p.number, state: p.state,
       created_at: p.created_at, vcs: p.vcs?.revision?.slice(0, 8) ?? null,
     } : { ok: true, empty: true };
+  });
+
+  // GET /v1/lens/cycles
+  fastify.get('/cycles', async () => {
+    const rows = await db.selectFrom('lens_cycles').selectAll().orderBy('created_at', 'desc').execute();
+    return rows;
+  });
+
+  // POST /v1/lens/cycles
+  fastify.post('/cycles', async (request, reply) => {
+    const user = request.user;
+    const body = request.body as any;
+    if (!String(body.name ?? '').trim()) {
+      return reply.status(400).send({ error: 'name is required' });
+    }
+    const cycle = await db.insertInto('lens_cycles').values({
+      name: String(body.name).trim(),
+      start_date: body.start_date ?? null,
+      end_date: body.end_date ?? null,
+      status: body.status ?? 'PLANNING',
+      created_by: user.sub ?? null,
+    }).returningAll().executeTakeFirstOrThrow();
+    return reply.status(201).send(cycle);
+  });
+
+  // PATCH /v1/lens/cycles/:id
+  fastify.patch('/cycles/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const body = request.body as any;
+    const updates: any = { updated_at: new Date() };
+    for (const f of ['name', 'start_date', 'end_date', 'status']) {
+      if (body[f] !== undefined) updates[f] = body[f];
+    }
+    
+    if (Object.keys(updates).length === 1) return reply.send({ ok: true }); // only updated_at
+    
+    const cycle = await db.updateTable('lens_cycles').set(updates)
+      .where('id', '=', id).returningAll().executeTakeFirst();
+    if (!cycle) return reply.status(404).send({ error: 'Cycle not found' });
+    return reply.send(cycle);
   });
 
   // There is no DELETE. An item that turned out to be wrong is closed as

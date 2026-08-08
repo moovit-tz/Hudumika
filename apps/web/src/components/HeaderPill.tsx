@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Icon } from './Icon.js';
+import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './ui/tooltip.js';
 
 /**
  * The header's resting state: one unread notification at a time, swapped on a
@@ -125,19 +126,33 @@ export const HeaderPill: React.FC<Props> = ({ items, onOpen, onDismiss, onExpand
         five seconds would talk over whatever the user is actually doing. The
         bell, with its count, is the accessible surface.
       */}
-      <button
-        // Keyed so React replaces the node on every swap, which restarts the
-        // enter animation. Without it the text would change with no transition.
-        key={item.id}
-        type="button"
-        className="app-header-pill-body"
-        onClick={() => onOpen(item)}
-        title={item.message ? `${item.title} — ${item.message}` : item.title}
-      >
-        <span className="app-header-pill-badge">{item.badge || 'NEW'}</span>
-        <span className="app-header-pill-title">{item.title}</span>
-        {item.message && <span className="app-header-pill-sub">{item.message}</span>}
-      </button>
+      <TooltipProvider delayDuration={300}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              // Keyed so React replaces the node on every swap, which restarts the
+              // enter animation. Without it the text would change with no transition.
+              key={item.id}
+              type="button"
+              className="app-header-pill-body"
+              onClick={() => onOpen(item)}
+            >
+              <span className="app-header-pill-badge">{item.badge || 'NEW'}</span>
+              <span className="app-header-pill-title">{item.title}</span>
+              {item.message && <span className="app-header-pill-sub">{item.message}</span>}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent 
+            side="bottom" 
+            align="start" 
+            className="max-w-[calc(100vw-32px)] sm:max-w-md p-3 pointer-events-auto cursor-pointer"
+            onClick={() => onOpen(item)}
+          >
+            <div className="font-semibold mb-1">{item.title}</div>
+            {item.message && <div className="text-muted-foreground leading-relaxed">{item.message}</div>}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       <div ref={liveRef} className="app-header-pill-controls">
         {showControls && (

@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { BackButton } from '../components/ui/BackButton.js';
 
 interface Vehicle { id: string; name: string; plate_number: string | null }
 interface Driver { id: string; name: string }
@@ -134,9 +135,7 @@ export const TrackingShipmentNew: React.FC = () => {
 
   return (
     <div style={{ padding: '0 0 24px', maxWidth: 760 }}>
-      <Link to="/tracking/vehicles" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
-        <Icon name="arrowLeft" size={12} /> Vehicles
-      </Link>
+      <BackButton to="/tracking/vehicles" label="Vehicles" />
       <PageHeader
         crumbs={['HuduFreight', 'New Trip']}
         titlePlain="New"

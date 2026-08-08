@@ -217,7 +217,33 @@ export async function tasksRoutes(fastify: FastifyInstance) {
       const rows = await trx.selectFrom('calendar_events').selectAll()
         .where('tenant_id', '=', user.tenant_id).where('user_id', '=', user.sub)
         .orderBy('start_at', 'asc').execute();
-      return { data: rows };
+
+      const hrHolidays = await trx.selectFrom('hr_holidays')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .execute();
+
+      const holidayEvents = hrHolidays.map(h => {
+        const dateStr = (h.date as any) instanceof Date ? (h.date as any).toISOString().slice(0, 10) : String(h.date).slice(0, 10);
+        return {
+          id: h.id,
+          tenant_id: h.tenant_id,
+          user_id: user.sub,
+          title: `🌴 ${h.name}`,
+          start_at: `${dateStr}T00:00:00.000Z`,
+          end_at: `${dateStr}T23:59:59.999Z`,
+          description: `${h.type} Holiday`,
+          location: null,
+          category: 'holiday',
+          guests: '[]',
+          created_at: h.created_at,
+          updated_at: h.created_at,
+        };
+      });
+
+      const allEvents = [...rows, ...holidayEvents].sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime());
+      
+      return { data: allEvents };
     });
   });
 

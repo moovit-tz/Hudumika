@@ -6,6 +6,8 @@ import { PageLayout } from '../components/PageLayout.js';
 import { RequireRoles } from '../components/RequireRoles.js';
 import { Lens } from '../pages/Lens.js';
 import { LensIntegrations } from '../pages/LensIntegrations.js';
+import LensRoadmap from '../pages/LensRoadmap.js';
+import LensCycles from '../pages/LensCycles.js';
 
 /**
  * Lens — the internal developer record.
@@ -18,7 +20,14 @@ const LENS_ROLES = ['SUPER_ADMIN'] as const;
 
 const NAV: SidebarSection[] = [
   {
-    title: 'Record',
+    title: 'Planning',
+    items: [
+      { label: 'Roadmap', icon: 'map', path: '/lens/roadmap' },
+      { label: 'Cycles', icon: 'calendar', path: '/lens/cycles' },
+    ],
+  },
+  {
+    title: 'Execution',
     items: [
       { label: 'Items', icon: 'columns', path: '/lens', exact: true },
     ],
@@ -42,6 +51,8 @@ export function LensShell() {
             <Routes>
               <Route element={<PageLayout />}>
                 <Route index element={<RequireRoles roles={[...LENS_ROLES]}><Lens /></RequireRoles>} />
+                <Route path="roadmap" element={<RequireRoles roles={[...LENS_ROLES]}><LensRoadmap /></RequireRoles>} />
+                <Route path="cycles" element={<RequireRoles roles={[...LENS_ROLES]}><LensCycles /></RequireRoles>} />
                 <Route path="integrations" element={<RequireRoles roles={[...LENS_ROLES]}><LensIntegrations /></RequireRoles>} />
               </Route>
             </Routes>

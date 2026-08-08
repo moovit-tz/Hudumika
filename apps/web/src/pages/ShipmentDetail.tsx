@@ -27,6 +27,8 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Combobox } from '../components/ui/combobox.js';
 import { Badge } from '../components/ui/badge.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { Popover, PopoverTrigger, PopoverContent } from '../components/ui/popover.js';
+import { HoverCard, HoverCardTrigger, HoverCardContent } from '../components/ui/hover-card.js';
 
 // ─── Clock-in gate ───────────────────────────────────────────────────────────
 
@@ -3655,39 +3657,259 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
     <div style={{ width: 248, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
       {/* Assigned To */}
+      {/* Assigned To Card */}
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
         <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>Assigned To</span>
           {canManage && (
             <button type="button" onClick={() => setShowAssignPicker(true)}
-              style={{ fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, padding: 'var(--ds-btn-py-xs) 0', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+              style={{ fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, padding: 0 }}>
               {job.assignees.length > 0 ? 'Change' : '+ Assign'}
             </button>
           )}
         </div>
         <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {job.assignees.length === 0 && (
+          {job.assignees.length === 0 ? (
             canManage ? (
               <button type="button" onClick={() => setShowAssignPicker(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)', background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', cursor: 'pointer', width: '100%', textAlign: 'left', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink3)', background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: '8px 12px', cursor: 'pointer', width: '100%', textAlign: 'left', fontFamily: 'var(--font)' }}>
                 <Icon name="userPlus" size={14} color="var(--ink3)" /> Assign an agent…
               </button>
             ) : (
               <div style={{ fontSize: 12, color: 'var(--ink3)' }}>No agent assigned yet.</div>
             )
-          )}
-          {job.assignees.map(a => {
-            const label = (a === job.assignees[0] && job.assigneeName) || friendlyAssignee(a);
-            return (
-              <div key={a} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Av name={label} size={30} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
-                  <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Assigned Officer</div>
+          ) : (
+            job.assignees.map(a => {
+              const label = (a === job.assignees[0] && job.assigneeName) || friendlyAssignee(a);
+              return (
+                <div key={a} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Av name={label} size={28} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
+                    <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Assigned Officer</div>
+                  </div>
                 </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+
+      {/* Listeners Card */}
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>Listeners</span>
+          <span style={{ display: 'flex', gap: 5 }}>
+            <span style={{ padding: '1px 7px', background: 'var(--bg)', borderRadius: 12, fontSize: 10, fontWeight: 700, color: 'var(--ink3)' }}>{job.listeners.length}</span>
+            {customers.length > 0 && (
+              <span style={{ padding: '1px 7px', background: waActive ? 'var(--green-l)' : 'var(--bg)', color: waActive ? 'var(--green)' : 'var(--ink3)', borderRadius: 12, fontSize: 10, fontWeight: 700 }}>WA {waActive ? '✓' : '✕'}</span>
+            )}
+          </span>
+        </div>
+        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--bg-light, rgba(0,0,0,0.01))' }}>
+          
+          {/* Staff Section */}
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6 }}>
+              Staff ({internal.length})
+            </div>
+            {internal.length === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 11, color: 'var(--ink3)' }}>None added</span>
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={() => setStaffPickerType('internal')}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      border: '1px dashed var(--border)',
+                      background: 'var(--bg)',
+                      color: 'var(--ink3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                    title="Add Staff Listener"
+                  >
+                    <Icon name="plus" size={11} />
+                  </button>
+                )}
               </div>
-            );
-          })}
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                {internal.map(l => (
+                  <HoverCard key={l.id} openDelay={100} closeDelay={300}>
+                    <HoverCardTrigger asChild>
+                      <button
+                        type="button"
+                        style={{
+                          border: 'none',
+                          background: 'none',
+                          padding: 0,
+                          cursor: 'pointer',
+                          borderRadius: '50%',
+                          outline: 'none',
+                          display: 'flex',
+                        }}
+                      >
+                        <Av name={l.name} size={28} />
+                      </button>
+                    </HoverCardTrigger>
+                    <HoverCardContent align="start" side="bottom" sideOffset={6} className="w-60 p-3">
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+                        <Av name={l.name} size={30} />
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {l.name}
+                          </div>
+                          <div style={{ fontSize: 10.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {l.role}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                        Notification Channels
+                      </div>
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {ALL_CHANNELS.map(ch => (
+                          <ChannelToggle key={ch} ch={ch} active={l.channel.includes(ch)} onToggle={() => toggleListenerCh(l, ch)} readOnly={!canManage || channelToggling === l.listenerId} />
+                        ))}
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
+                ))}
+
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={() => setStaffPickerType('internal')}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      border: '1px dashed var(--border)',
+                      background: 'var(--bg)',
+                      color: 'var(--ink3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.12s',
+                      padding: 0,
+                    }}
+                    title="Add Staff Listener"
+                  >
+                    <Icon name="plus" size={13} />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Customers Section */}
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6 }}>
+              Customers ({customers.length})
+            </div>
+            {customers.length === 0 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 11, color: 'var(--ink3)' }}>None added</span>
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={() => setStaffPickerType('customer')}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: '50%',
+                      border: '1px dashed var(--border)',
+                      background: 'var(--bg)',
+                      color: 'var(--ink3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                    title="Add Customer Listener"
+                  >
+                    <Icon name="plus" size={11} />
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                {customers.map(l => (
+                  <HoverCard key={l.id} openDelay={100} closeDelay={300}>
+                    <HoverCardTrigger asChild>
+                      <button
+                        type="button"
+                        style={{
+                          border: 'none',
+                          background: 'none',
+                          padding: 0,
+                          cursor: 'pointer',
+                          borderRadius: '50%',
+                          outline: 'none',
+                          display: 'flex',
+                        }}
+                      >
+                        <Av name={l.name} size={28} />
+                      </button>
+                    </HoverCardTrigger>
+                    <HoverCardContent align="start" side="bottom" sideOffset={6} className="w-60 p-3">
+                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+                        <Av name={l.name} size={30} />
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {l.name}
+                          </div>
+                          <div style={{ fontSize: 10.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {l.role}
+                          </div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                        Notification Channels
+                      </div>
+                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                        {ALL_CHANNELS.map(ch => (
+                          <ChannelToggle key={ch} ch={ch} active={l.channel.includes(ch)} onToggle={() => toggleListenerCh(l, ch)} readOnly={!canManage || channelToggling === l.listenerId} />
+                        ))}
+                      </div>
+                    </HoverCardContent>
+                  </HoverCard>
+                ))}
+
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={() => setStaffPickerType('customer')}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      border: '1px dashed var(--border)',
+                      background: 'var(--bg)',
+                      color: 'var(--ink3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.12s',
+                      padding: 0,
+                    }}
+                    title="Add Customer Listener"
+                  >
+                    <Icon name="plus" size={13} />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
         </div>
       </div>
 
@@ -3703,53 +3925,6 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
           onAssign={handleAssign}
         />
       )}
-
-      {/* Listeners — internal + customer merged into one Trello-style watchers list */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>Listeners</span>
-          <span style={{ display: 'flex', gap: 5 }}>
-            <span style={{ padding: '1px 7px', background: 'var(--bg)', borderRadius: 12, fontSize: 10, fontWeight: 700, color: 'var(--ink3)' }}>{job.listeners.length}</span>
-            {customers.length > 0 && (
-              <span style={{ padding: '1px 7px', background: waActive ? 'var(--green-l)' : 'var(--bg)', color: waActive ? 'var(--green)' : 'var(--ink3)', borderRadius: 12, fontSize: 10, fontWeight: 700 }}>WA {waActive ? '✓' : '✕'}</span>
-            )}
-          </span>
-        </div>
-        {job.listeners.length === 0 && <div style={{ padding: '12px 16px', fontSize: 12, color: 'var(--ink3)' }}>None added</div>}
-        {[...internal, ...customers].map(l => (
-          <div key={l.id} style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 7 }}>
-              <Av name={l.name} size={26} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.name}</div>
-                  <span style={{ flexShrink: 0, fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 10, textTransform: 'uppercase', letterSpacing: '0.03em', background: l.type === 'internal' ? 'var(--bg)' : 'var(--green-l)', color: l.type === 'internal' ? 'var(--ink3)' : 'var(--green)' }}>
-                    {l.type === 'internal' ? 'Internal' : 'Customer'}
-                  </span>
-                </div>
-                <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{l.role}</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-              {ALL_CHANNELS.map(ch => (
-                <ChannelToggle key={ch} ch={ch} active={l.channel.includes(ch)} onToggle={() => toggleListenerCh(l, ch)} readOnly={!canManage || channelToggling === l.listenerId} />
-              ))}
-            </div>
-          </div>
-        ))}
-        {canManage && (
-          <div style={{ padding: '10px 16px', display: 'flex', gap: 14 }}>
-            <button type="button" onClick={() => setStaffPickerType('internal')}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-              <Icon name="plus" size={13} /> Add Internal
-            </button>
-            <button type="button" onClick={() => setStaffPickerType('customer')}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-              <Icon name="plus" size={13} /> Add Customer
-            </button>
-          </div>
-        )}
-      </div>
 
       {staffPickerType && canManage && (
         <StaffPickerModal

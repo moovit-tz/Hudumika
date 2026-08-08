@@ -9,6 +9,7 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import './Seal.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { BackButton } from '../components/ui/BackButton.js';
 
 interface Compartment {
   id: string;
@@ -132,9 +133,7 @@ export function SealCompartmentDetail() {
       />
       {/* Back Link */}
       <div style={{ marginBottom: 16 }}>
-        <Link to="/seal/compartments" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'var(--seal)', textDecoration: 'none' }}>
-          <Icon name="arrowLeft" size={14} /> Back to Compartments
-        </Link>
+        <BackButton to="/seal/compartments" label="Back to Compartments" />
       </div>
 
       {/* Header Card */}

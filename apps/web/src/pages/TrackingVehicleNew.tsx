@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { BackButton } from '../components/ui/BackButton.js';
 
 const VEHICLE_TYPES = ['TRUCK', 'VAN', 'MOTORBIKE', 'OTHER'];
 const FUEL_TYPES = ['DIESEL', 'PETROL', 'ELECTRIC', 'HYBRID'];
@@ -66,9 +67,7 @@ export const TrackingVehicleNew: React.FC = () => {
 
   return (
     <div style={{ padding: '0 0 24px'}}>
-      <Link to="/tracking/vehicles" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
-        <Icon name="arrowLeft" size={12} /> Vehicles
-      </Link>
+      <BackButton to="/tracking/vehicles" label="Vehicles" />
       <PageHeader
         crumbs={['HuduFreight', 'Register Vehicle']}
         titlePlain="Register a"

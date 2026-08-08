@@ -1328,6 +1328,7 @@ select.input-field { cursor: pointer; }
 .th-ref     { width: 130px; flex-shrink: 0; }
 .th-type    { width: 80px;  flex-shrink: 0; }
 .th-desc    { flex: 1; }
+.th-decl    { width: 196px; flex-shrink: 0; padding-right: 12px; }
 .th-stage   { width: 160px; flex-shrink: 0; padding: 0 12px; }
 .th-status  { width: 140px; flex-shrink: 0; }
 .th-officer { width: 100px; flex-shrink: 0; }
@@ -2588,125 +2589,85 @@ select.input-field { cursor: pointer; }
    as seven competing objects with six gutters between them — and the grey fill
    on white made every one look disabled. It is one surface now, divided by
    hairlines: the numbers are the content, the container is just a container. */
-/* ── Operations KPI Grid Cards ── */
-.cc-kpi-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 10px;
-  margin: 0 0 16px 0;
-  padding: 0;
-  background: transparent;
-  border: none;
-  flex-shrink: 0;
-}
-
-.cc-kpi-card {
-  position: relative;
+/* ── Operations KPI Pipeline ── */
+.cc-pipeline {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  /* Sized by its content rather than stretched by space-between, which held
-     the card open around a 26px icon that is no longer there. */
-  padding: 12px 14px 11px;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0;
+  margin: 0 0 16px 0;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: var(--r);
-  text-align: left;
-  font-family: var(--font);
-  transition: border-color 0.15s var(--ease, ease), box-shadow 0.15s var(--ease, ease), background 0.15s var(--ease, ease);
+  overflow: hidden;
   box-shadow: var(--elev-sm);
+  flex-shrink: 0;
 }
-.cc-kpi-card--clickable { cursor: pointer; }
-/* No translateY on hover. Seven cards that each jump 1px under the pointer is
-   motion for its own sake on a row you sweep across; the border and shadow
-   already say "pressable". */
-.cc-kpi-card--clickable:hover { border-color: var(--teal); box-shadow: var(--elev); }
-.cc-kpi-card--clickable:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
-.cc-kpi-card--active { border-color: var(--teal); background: var(--teal-l); box-shadow: 0 0 0 2px var(--teal-l); }
-.cc-kpi-card--active.r { border-color: var(--red); background: var(--red-l); box-shadow: 0 0 0 2px var(--red-l); }
 
-/* A risk figure that is actually non-zero. The card carries the state, not
-   just the number — a red 58 on a white card beside six other white cards is
-   easy to sweep past. Zero stays plain, because zero demurrage risk is good
-   news and should not be dressed as a warning. */
-.cc-kpi-card--raised { border-color: var(--red-m, var(--red-l)); background: var(--red-l); }
-.cc-kpi-card--raised .cc-kpi-cell-label { color: var(--red); }
-.cc-kpi-card--raised .cc-kpi-cell-value { color: var(--red); }
-
-/* Says which of these seven do something when clicked — four filter the list,
-   three are read-only, and they were indistinguishable. Held back until hover
-   or focus so it does not add a seventh line of permanent text to the row. */
-.cc-kpi-hint {
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--ink3);
-  opacity: 0;
-  transition: opacity 0.12s var(--ease, ease);
-  margin-top: -2px;
+.cc-pipeline-step {
+  flex: 1 1 110px;
+  padding: 14px 12px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  background: transparent;
+  cursor: default;
+  transition: background 0.15s ease;
 }
-.cc-kpi-card--clickable:hover .cc-kpi-hint,
-.cc-kpi-card--clickable:focus-visible .cc-kpi-hint { opacity: 1; }
-.cc-kpi-card--active .cc-kpi-hint { opacity: 1; color: var(--teal); }
-.cc-kpi-card--active.r .cc-kpi-hint { color: var(--red); }
 
-/* Labels read like the table headers below them — same case, same tracking. */
-.cc-kpi-cell-label {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 9.5px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--ink3);
-  line-height: 1.35;
-  /* Two lines' worth, always. "Active Shipments" wraps where "This Month"
-     does not, and without a floor the cards in one grid row came out at
-     different heights depending on which labels happened to wrap. */
-  min-height: 2.7em;
-  align-items: flex-start;
+@media (max-width: 560px) {
+  .cc-pipeline-step:nth-child(3n) { border-right: none; }
 }
-.cc-kpi-cell-label svg { margin-top: 1px; }
-/* The icon is a label-sized glyph, not a tinted chip: it inherits the label's
-   colour so it moves with the card's state instead of carrying a hue of its
-   own that mapped to nothing. */
-.cc-kpi-cell-label svg { flex-shrink: 0; opacity: 0.7; }
-.cc-kpi-cell-value {
-  /* Scales with the card so "56.4M TZS" does not wrap or clip when the grid
-     drops to two columns on a phone. */
+@media (min-width: 561px) {
+  .cc-pipeline-step:last-child { border-bottom: none; }
+}
+.cc-pipeline-step:last-child { border-right: none; }
+
+.cc-pipeline-step--clickable {
+  cursor: pointer;
+}
+.cc-pipeline-step--clickable:hover {
+  background: var(--bg);
+}
+
+.cc-pipeline-step--active {
+  background: var(--teal-l);
+}
+.cc-pipeline-step--raised {
+  background: var(--red-l);
+}
+
+.cc-pipeline-num {
   font-size: clamp(19px, 1.55vw, 24px);
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.4px;
+  font-weight: 800;
   color: var(--ink);
-  white-space: nowrap;
+  line-height: 1;
 }
 
-/* The per-letter value colours (.cc-kpi-cell.t/.r/.g/.a/.n) went with the
-   .cc-kpi-cell class. Value colour is decided by --raised now: ink unless
-   the figure is a live risk. */
+.cc-pipeline-label {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-top: 6px;
+}
 
-/* .cc-kpi-dot is gone with the markup that used it. The alert cards carry
-   their state in the card itself now (.cc-kpi-card--raised), which is
-   readable at a glance across a row of seven. */
-/* The gold bar down the left of Penalty Exposure is gone. The figure is
-   already gold and already labelled; a coloured rule beside it added emphasis
-   without adding information, and it was the only cell in the row with one. */
-.cc-kpi-cell--warn { border-left: none; }
+.cc-pipeline-step--active .cc-pipeline-num,
+.cc-pipeline-step--active .cc-pipeline-label { color: var(--teal); }
 
-/* The .cc-kpi-cell--active variants above targeted a class the markup no
-   longer uses; .cc-kpi-card--active carries the applied-filter state now. */
+.cc-pipeline-step--raised .cc-pipeline-num,
+.cc-pipeline-step--raised .cc-pipeline-label { color: var(--red); }
 
-[data-theme="dark"] .cc-kpi-card { background: rgba(255,255,255,0.03); }
-[data-theme="dark"] .cc-kpi-card--clickable:hover { background: rgba(255,255,255,0.06); border-color: var(--teal); }
-[data-theme="dark"] .cc-kpi-card--raised { background: var(--red-l); border-color: var(--red-l); }
+[data-theme="dark"] .cc-pipeline { background: rgba(255,255,255,0.03); }
+[data-theme="dark"] .cc-pipeline-step--clickable:hover { background: rgba(255,255,255,0.06); }
+[data-theme="dark"] .cc-pipeline-step--active { background: rgba(255,255,255,0.1); }
+[data-theme="dark"] .cc-pipeline-step--raised { background: var(--red-l); }
 
 @media (max-width: 767px) {
-  .cc-kpi-row { padding: 10px 14px; gap: 8px; }
-  .cc-kpi-cell { min-width: 118px; padding: 8px 12px; }
-  .cc-kpi-cell-value { font-size: 16px; }
+  .cc-pipeline-num { font-size: 16px; }
 }
 
 /* ── Enterprise KPI Grid ── */
@@ -6035,4 +5996,14 @@ html[data-expanded="true"] .fin-shell {
   max-width: 100% !important;
   margin-left: 0 !important;
   margin-right: 0 !important;
+}
+
+@media (max-width: 767px) {
+  .th-type, .sr-type,
+  .th-decl, .sr-decl,
+  .th-stage, .sr-stage,
+  .th-officer, .sr-officer,
+  .th-days, .sr-days {
+    display: none !important;
+  }
 }

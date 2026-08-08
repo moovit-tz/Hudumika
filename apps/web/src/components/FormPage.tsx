@@ -1,5 +1,6 @@
 import React from 'react';
 import { Icon } from './Icon.js';
+import { BackButton } from './ui/BackButton.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 
 /**
@@ -32,18 +33,8 @@ export function FormPage({ title, subtitle, onCancel, actions, children }: FormP
   const isMobile = useIsMobile();
   return (
     <div style={{ padding: isMobile ? '16px' : '24px 32px', flex: 1, overflowY: 'auto' }}>
+      <BackButton onClick={onCancel} label="Back" color="var(--ink2)" />
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-        <button
-          type="button"
-          title="Back"
-          onClick={onCancel}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink2)',
-            display: 'flex', padding: 4, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box',
-          }}
-        >
-          <Icon name="arrowLeft" size={18} />
-        </button>
         <div style={{ minWidth: 0 }}>
           <h1 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: 0 }}>{title}</h1>
           {subtitle && (

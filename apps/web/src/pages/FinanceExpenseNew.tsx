@@ -6,6 +6,7 @@ import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { BackButton } from '../components/ui/BackButton.js';
 
 const CATS: Record<string, string> = {
   PORT_CHARGES: 'Port Charges', CUSTOMS_DUTY: 'Customs Duty', FREIGHT: 'Freight',
@@ -85,9 +86,7 @@ export const FinanceExpenseNew: React.FC = () => {
 
   return (
     <div style={{ padding: 24 }}>
-      <Link to="/finance/expenses" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
-        <Icon name="arrowLeft" size={12} /> Expenses
-      </Link>
+      <BackButton to="/finance/expenses" label="Expenses" />
       <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 20 }}>Add Expense / Revenue</div>
 
       <form onSubmit={submit} style={{ ...cardStyle, display: 'flex', flexDirection: 'column', gap: 14 }}>

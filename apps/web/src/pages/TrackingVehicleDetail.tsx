@@ -18,6 +18,7 @@ import {
 } from '../components/ui/dropdown-menu.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { BackButton } from '../components/ui/BackButton.js';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -166,9 +167,7 @@ export const TrackingVehicleDetail: React.FC = () => {
         titlePlain="Vehicle"
         titleEm="detail"
       />
-      <Link to="/tracking/vehicles" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
-        <Icon name="arrowLeft" size={12} /> Back to Vehicles
-      </Link>
+      <BackButton to="/tracking/vehicles" label="Back to Vehicles" />
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>

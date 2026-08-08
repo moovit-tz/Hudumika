@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { BackButton } from '../components/ui/BackButton.js';
 
 interface Issue {
   id: string; vehicle_id: string; title: string; description: string | null;
@@ -105,9 +106,7 @@ export const TrackingIssueDetail: React.FC = () => {
         titlePlain="Issue"
         titleEm="detail"
       />
-      <Link to="/tracking/issues" style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4, marginBottom: 16 }}>
-        <Icon name="arrowLeft" size={12} /> Issues
-      </Link>
+      <BackButton to="/tracking/issues" label="Issues" />
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)' }}>{issue.title}</div>

@@ -104,6 +104,9 @@ export const UserProfile: React.FC = () => {
     cover_url:  user?.profile?.cover_url || '',
     bio:        user?.profile?.bio || '',
     job_title:  user?.profile?.job_title || ROLE_LABELS[user?.role || ''] || '',
+    employee_code: user?.profile?.employee_code || '',
+    department: user?.profile?.department || '',
+    reports_to: user?.profile?.reports_to || '',
     city:       user?.profile?.city || '',
     country:    user?.profile?.country || 'Tanzania',
     timezone:   user?.profile?.timezone || 'Africa/Dar_es_Salaam',
@@ -401,9 +404,6 @@ export const UserProfile: React.FC = () => {
                 <Field label="Phone Number">
                   <input style={INPUT} value={form.phone} onChange={e => setForm(p => ({...p, phone: e.target.value}))} placeholder="+255712345678" />
                 </Field>
-                <Field label="Job Title">
-                  <input style={INPUT} value={form.job_title} onChange={e => setForm(p => ({...p, job_title: e.target.value}))} />
-                </Field>
                 <Field label="Website">
                   <input style={INPUT} value={form.website} onChange={e => setForm(p => ({...p, website: e.target.value}))} placeholder="https://..." />
                 </Field>
@@ -414,6 +414,23 @@ export const UserProfile: React.FC = () => {
               <Field label="Bio">
                 <textarea value={form.bio} onChange={e => setForm(p => ({...p, bio: e.target.value}))} rows={3} placeholder="Brief description about yourself…" style={{ ...INPUT, resize: 'vertical', lineHeight: 1.6 }} />
               </Field>
+            </Card>
+
+            <Card title="Employment Details (NexusHR)" subtitle="Managed by NexusHR. Please ask your manager to request an update from the Admin.">
+              <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '0 20px' }}>
+                <Field label="Employee ID">
+                  <input style={INPUT_DISABLED} value={form.employee_code || '—'} disabled />
+                </Field>
+                <Field label="Job Title">
+                  <input style={INPUT_DISABLED} value={form.job_title || '—'} disabled />
+                </Field>
+                <Field label="Department">
+                  <input style={INPUT_DISABLED} value={form.department || '—'} disabled />
+                </Field>
+                <Field label="Reports To (Manager)">
+                  <input style={INPUT_DISABLED} value={form.reports_to || '—'} disabled />
+                </Field>
+              </div>
             </Card>
 
             <Card title="Address & Region" subtitle="Your location is used for timezone and reporting.">
