@@ -178,22 +178,24 @@ function TaxCodeForm({ code, onClose, onSaved }: {
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__none__">No TRA equivalent</SelectItem>
-              <SelectItem value="1">1 — Standard</SelectItem>
-              <SelectItem value="2">2 — Special rate</SelectItem>
-              <SelectItem value="3">3 — Zero-rated</SelectItem>
-              <SelectItem value="4">4 — Special relief</SelectItem>
-              <SelectItem value="5">5 — Exempt</SelectItem>
+              {/* TRA's own wording, including the rate, so a 0%-only code is
+                  never mistaken for a reduced rate. */}
+              <SelectItem value="1">1 — Standard Rate (18%)</SelectItem>
+              <SelectItem value="2">2 — Special Rate (0%)</SelectItem>
+              <SelectItem value="3">3 — Zero rated (0%)</SelectItem>
+              <SelectItem value="4">4 — Special Relief (0%)</SelectItem>
+              <SelectItem value="5">5 — Exempt (0%)</SelectItem>
             </SelectContent>
           </Select>
         </F>
 
         <F label="TRA VATRATE letter"
-           hint="The <VATTOTALS> grouping letter. Leave blank to keep the old behaviour (A standard, B special, C everything else). Set D or E only if your EFDMS spec distinguishes special relief and exempt — a letter TRA does not expect will be rejected.">
+           hint="The <VATTOTALS> grouping letter. It tracks the TRA tax code one for one — A standard 18%, B special 0%, C zero-rated 0%, D special relief 0%, E exempt 0% — and Automatic does exactly that. Only override it if TRA tells you otherwise.">
           <Select value={form.traVatRate ?? '__auto__'}
                   onValueChange={v => set('traVatRate', v === '__auto__' ? null : v)}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="__auto__">Automatic (A / B / C)</SelectItem>
+              <SelectItem value="__auto__">Automatic (matches the TRA tax code)</SelectItem>
               {['A', 'B', 'C', 'D', 'E'].map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}
             </SelectContent>
           </Select>

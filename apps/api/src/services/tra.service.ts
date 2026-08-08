@@ -95,6 +95,16 @@ const ENDPOINTS = {
 
 const PUBLIC_VERIFY_URL = 'https://verify.tra.go.tz/efdmsRctVerify';
 
+/**
+ * EFDMS <VATRATE> letter for each <TAXCODE>, per the TRA VFD API documentation
+ * cited at the top of this file:
+ *
+ *   1 Standard Rate (18%)  -> A      4 Special Relief (0%) -> D
+ *   2 Special Rate (0%)    -> B      5 Exempt (0%)         -> E
+ *   3 Zero rated (0%)      -> C
+ */
+const VATRATE_BY_TAXCODE: Record<number, string> = { 1: 'A', 2: 'B', 3: 'C', 4: 'D', 5: 'E' };
+
 // ─────────────────────────────────────────────────────────────────────────────
 // XML helpers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -604,17 +614,21 @@ export const TRAService = {
         const taxCode = line.tc_tra != null
           ? Number(line.tc_tra)
           : (taxPct >= 18 ? 1 : taxPct > 0 ? 2 : 3);
-        // VATRATE: the <VATTOTALS> grouping letter. This used to be derived
-        // here as A/B/C, which buckets special relief (TAXCODE 4) and exempt
-        // (5) together — some EFDMS specs give them their own D/E letters, and
-        // that could not be confirmed against this integration's spec.
+        // VATRATE: the <VATTOTALS> grouping letter, which tracks TAXCODE one
+        // for one per the TRA VFD API:
         //
-        // So it is configuration now, not a guess: the code carries the letter
-        // (migration 183), seeded to reproduce the old derivation exactly. A
-        // tenant holding the real spec sets D or E without a code change. The
-        // fallback covers lines with no tax code, which have no letter to read.
-        const vatRate = line.tc_vat_rate
-          ?? (taxCode === 1 ? 'A' : taxCode === 2 ? 'B' : 'C');
+        //   A = 18 (Standard Rate for VAT items)   B = 0 (Special Rate)
+        //   C = 0  (Zero rated for Non-VAT items)  D = 0 (Special Relief)
+        //   E = 0  (Exempt items)
+        //
+        // This was `taxCode === 1 ? 'A' : taxCode === 2 ? 'B' : 'C'`, which
+        // collapsed 3, 4 and 5 onto C — so every exempt sale was reported
+        // inside the zero-rated totals bucket. The per-item TAXCODE was right;
+        // the block grouping it was not. See migration 185.
+        //
+        // The code's own letter wins where one is set, so a tenant can override
+        // per treatment; this covers lines with no tax code at all.
+        const vatRate = line.tc_vat_rate ?? VATRATE_BY_TAXCODE[taxCode] ?? 'C';
 
         totalTaxExcl += amtExcl;
         totalTaxIncl += amtIncl;
