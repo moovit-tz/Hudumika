@@ -25,7 +25,8 @@ import {
 
 const EMPTY: TaxCode = {
   id: '', code: '', name: '', kind: 'STANDARD', rate: 18, jurisdiction: 'TZ',
-  inputTaxRecoverable: true, appliesTo: 'BOTH', traTaxCode: null, traVatRate: null, isDefault: false, status: 'active',
+  inputTaxRecoverable: true, appliesTo: 'BOTH', traTaxCode: null, traVatRate: null, guidance: null,
+  isDefault: false, status: 'active',
   effectiveFrom: null, effectiveTo: null,
 };
 
@@ -208,6 +209,18 @@ function TaxCodeForm({ code, onClose, onSaved }: {
         <F label="Effective to">
           <input style={inp} type="date" value={form.effectiveTo ?? ''}
             onChange={e => set('effectiveTo', e.target.value || null)} />
+        </F>
+
+        {/* The reasoning, recorded once. Deciding a treatment means someone
+            went and checked; without somewhere to write down what they found,
+            the next person re-derives it or copies the neighbouring line. */}
+        <F label="When to use this" col2
+           hint="Which of your supplies belong here, and why. Shown to anyone choosing this treatment later.">
+          <textarea
+            value={form.guidance ?? ''}
+            onChange={e => set('guidance', e.target.value || null)}
+            placeholder="e.g. International freight where we hold the export documentation. Confirmed with our accountant, March 2026."
+            style={{ ...inp, minHeight: 68, resize: 'vertical' } as React.CSSProperties} />
         </F>
 
         <F label="Default for new lines" col2>

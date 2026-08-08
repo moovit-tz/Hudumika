@@ -401,6 +401,7 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
         tra_tax_code: body.tra_tax_code === undefined || body.tra_tax_code === null
           ? null : Number(body.tra_tax_code),
         tra_vat_rate: body.tra_vat_rate ? String(body.tra_vat_rate).toUpperCase() : null,
+        guidance: body.guidance ? String(body.guidance).trim() : null,
         applies_to: body.applies_to || 'BOTH',
         is_default: !!body.is_default,
         status: body.status || 'active',
@@ -439,7 +440,7 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
 
       const updates: any = { updated_at: new Date() };
       for (const f of ['code', 'name', 'kind', 'jurisdiction', 'input_tax_recoverable', 'applies_to',
-                       'tra_tax_code', 'tra_vat_rate', 'is_default', 'status', 'effective_from', 'effective_to']) {
+                       'tra_tax_code', 'tra_vat_rate', 'guidance', 'is_default', 'status', 'effective_from', 'effective_to']) {
         if (body[f] !== undefined) updates[f] = body[f];
       }
       if (updates.code) updates.code = String(updates.code).trim().toUpperCase();

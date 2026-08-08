@@ -1836,6 +1836,8 @@ export interface TaxCodesTable {
   tra_tax_code: number | null;
   /** EFDMS <VATRATE> letter for the VATTOTALS grouping (A–E), or null. */
   tra_vat_rate: string | null;
+  /** Tenant-written note on which supplies belong under this treatment, and why. */
+  guidance: string | null;
   is_default: Generated<boolean>;
   status: Generated<string>;
   effective_from: DateOnlyNull;
