@@ -17,6 +17,7 @@ import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
+import { overtimeAmount } from '../services/attendance.service.js';
 import {
   computePayslip, summariseRun,
   type TaxBand, type ContributionScheme, type PayslipResult, type Residency,
@@ -289,6 +290,27 @@ export async function payrollRoutes(fastify: FastifyInstance) {
         });
       }
 
+      // Release anything a previous attempt at THIS run claimed, before asking
+      // what is unpaid. Ordered this way round because the query filters on
+      // paid_in_run_id IS NULL: releasing afterwards meant a recalculation
+      // found nothing and silently dropped the overtime from the payslip.
+      // Caught by asserting the second calculation still showed both lines.
+      await trx.updateTable('hr_overtime_requests')
+        .set({ paid_in_run_id: null, updated_at: new Date() } as any)
+        .where('tenant_id', '=', user.tenant_id).where('paid_in_run_id', '=', id).execute();
+
+      // Approved overtime, unpaid, falling inside the period. Pulled in as an
+      // earning so the hours somebody actually worked reach their payslip —
+      // until now the overtime engine computed a figure nothing ever paid.
+      const overtime = await trx.selectFrom('hr_overtime_requests')
+        .select(['id', 'user_id', 'hours', 'rate_multiplier', 'kind'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('status', '=', 'APPROVED')
+        .where('paid_in_run_id', 'is', null)
+        .where('date', '>=', isoDate(run.period_start) as any)
+        .where('date', '<=', isoDate(run.period_end) as any)
+        .execute();
+
       const components = await trx.selectFrom('payroll_employee_components as c')
         .innerJoin('payroll_component_types as t', 't.id', 'c.component_type_id')
         .select(['c.user_id', 'c.amount', 't.code', 't.name', 't.direction', 't.taxable'])
@@ -302,14 +324,46 @@ export async function payrollRoutes(fastify: FastifyInstance) {
       // payslips beside new ones would double the run's totals.
       await trx.deleteFrom('payroll_payslips').where('run_id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
 
+
+      // The tenant's stated working pattern, so an hourly rate is derived the
+      // same way everywhere rather than assuming 26 and 8 in two places.
+      const WORKING_DAYS_PER_MONTH = 26, WORKING_HOURS_PER_DAY = 8;
+
       const results: PayslipResult[] = [];
+      const paidOvertimeIds: string[] = [];
       for (const person of payable) {
         const mine = components.filter(c => c.user_id === person.id);
         const residency = (person.tax_residency ?? 'RESIDENT') as Residency;
+
+        // One line per rate, not per claim: a payslip listing eleven separate
+        // overtime entries is unreadable, and the rate is what varies.
+        const theirs = overtime.filter(o => o.user_id === person.id);
+        const byKind = new Map<string, { hours: number; multiplier: number; amount: number }>();
+        for (const o of theirs) {
+          const { amount } = overtimeAmount(num(person.basic_salary), num(o.hours),
+            num(o.rate_multiplier), WORKING_DAYS_PER_MONTH, WORKING_HOURS_PER_DAY);
+          const k = String(o.kind);
+          const acc = byKind.get(k) ?? { hours: 0, multiplier: num(o.rate_multiplier), amount: 0 };
+          acc.hours += num(o.hours);
+          acc.amount += amount;
+          byKind.set(k, acc);
+          paidOvertimeIds.push(o.id);
+        }
+        const overtimeEarnings = [...byKind.entries()].map(([kind, v]) => ({
+          code: `OT_${kind}`,
+          name: kind === 'NORMAL' ? `Overtime (${v.hours}h at ${v.multiplier}x)`
+              : kind === 'REST_DAY' ? `Rest-day overtime (${v.hours}h at ${v.multiplier}x)`
+              : `Public-holiday overtime (${v.hours}h at ${v.multiplier}x)`,
+          amount: Math.round((v.amount + Number.EPSILON) * 100) / 100,
+          // Overtime is employment income and is taxed.
+          taxable: true,
+        }));
+
         const slip = computePayslip({
           basicPay: num(person.basic_salary),
-          earnings: mine.filter(c => c.direction === 'EARNING')
+          earnings: [...mine.filter(c => c.direction === 'EARNING')
             .map(c => ({ code: c.code, name: c.name, amount: num(c.amount), taxable: c.taxable })),
+            ...overtimeEarnings],
           deductions: mine.filter(c => c.direction === 'DEDUCTION')
             .map(c => ({ code: c.code, name: c.name, amount: num(c.amount) })),
           residency,
@@ -331,6 +385,16 @@ export async function payrollRoutes(fastify: FastifyInstance) {
           employer_contributions: String(slip.employerContributions),
           net_pay: String(slip.netPay), lines: JSON.stringify(slip.lines),
         } as any).execute();
+      }
+
+      // Marked paid only once the payslips exist, and inside the same
+      // transaction — overtime marked paid by a run that then failed would be
+      // invisible to the next one and never paid at all.
+      if (paidOvertimeIds.length > 0) {
+        await trx.updateTable('hr_overtime_requests')
+          .set({ paid_in_run_id: id, updated_at: new Date() } as any)
+          .where('tenant_id', '=', user.tenant_id)
+          .where('id', 'in', paidOvertimeIds).execute();
       }
 
       const totals = summariseRun(results);
