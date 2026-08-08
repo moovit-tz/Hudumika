@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
+import { useCurrency } from '../hooks/useCurrency.js';
 import type { ProfitLossReport, ProfitLossLine } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -98,16 +99,27 @@ function PLSection({ rows, highlightColor, cur }: { rows: PLRow[]; highlightColo
         if (row.separator) return <div key={i} style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />;
         const isTotal = row.label.startsWith('Total') || row.label.startsWith('TOTAL') || row.label.startsWith('NET') || row.label.startsWith('Gross') || row.label.startsWith('Operating Profit');
         return (
+          // gap, and min-width:0 on the label, are what keep a large figure
+          // inside its row. Without them the two flex children refuse to
+          // shrink and the amount is drawn straight over the label: measured
+          // at a trillion USD in shillings, a 117px box was painting 231px of
+          // text with overflow-x:visible, so it spilled rather than clipped.
+          // The label truncates because it can be re-read in the export; the
+          // amount never does, because half a number is worse than none.
           <div key={i} style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12,
             padding: row.bold ? '10px 0' : '7px 0',
             paddingLeft: row.sub ? 20 : 0,
           }}>
-            <span style={{
-              fontSize: row.bold ? 13 : 12,
-              fontWeight: row.bold ? 700 : 400,
-              color: isTotal ? highlightColor : row.bold ? 'var(--ink)' : 'var(--ink2)',
-            }}>
+            <span
+              title={row.label}
+              style={{
+                fontSize: row.bold ? 13 : 12,
+                fontWeight: row.bold ? 700 : 400,
+                color: isTotal ? highlightColor : row.bold ? 'var(--ink)' : 'var(--ink2)',
+                minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}
+            >
               {row.label}
             </span>
             {row.amount !== 0 && (
@@ -116,6 +128,10 @@ function PLSection({ rows, highlightColor, cur }: { rows: PLRow[]; highlightColo
                 fontWeight: row.bold ? 700 : 400,
                 color: isTotal ? highlightColor : row.sub ? 'var(--ink2)' : 'var(--ink)',
                 fontFamily: 'var(--mono)',
+                // Digits line up column-wise, and the figure is never broken
+                // across lines or shrunk away.
+                fontVariantNumeric: 'tabular-nums',
+                flexShrink: 0, whiteSpace: 'nowrap',
               }}>
                 {fmt(row.amount)}
               </span>
@@ -129,6 +145,7 @@ function PLSection({ rows, highlightColor, cur }: { rows: PLRow[]; highlightColo
 
 export const FinanceProfitLoss: React.FC = () => {
   const co = useCompany();
+  const { fmtCompact } = useCurrency();
   const cur = co.currency ?? 'TZS';
   const [period, setPeriod] = useState('This Year (YTD)');
   const [report, setReport] = useState<ProfitLossReport | null>(null);
@@ -155,7 +172,11 @@ export const FinanceProfitLoss: React.FC = () => {
     [report, revenueTotal]
   );
 
-  const fmtM = (n: number) => `${cur} ${(n / 1_000_000).toFixed(1)}M`;
+  // Was `${cur} ${(n/1e6).toFixed(1)}M` — one tier, so it stopped being short
+  // exactly when it mattered: a trillion USD in shillings came out as
+  // "TZS 2646444401.0M", 17 characters in a card measured at 117px on a phone.
+  // fmtCompact carries the full M/B/T/Q ladder and the tenant's own currency.
+  const fmtM = (n: number) => fmtCompact(n);
   const grossMargin = revenueTotal !== 0 ? ((grossProfit / revenueTotal) * 100).toFixed(1) : '0.0';
   const netMargin = revenueTotal !== 0 ? ((netProfit / revenueTotal) * 100).toFixed(1) : '0.0';
 
@@ -213,7 +234,17 @@ export const FinanceProfitLoss: React.FC = () => {
             { label: 'Net Margin',    value: `${netMargin}%`    },
           ].map(s => (
             <div key={s.label} style={{ flex: 1, minWidth: 140, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '14px 16px' }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{s.value}</div>
+              {/* fmtCompact should already have made this short; truncation is
+                  the backstop for a figure that still will not fit, so it
+                  ellipsises inside its own card instead of painting over the
+                  card beside it. Measured at a trillion USD in shillings: a
+                  192px value box was drawing 231px of text with
+                  overflow:visible. title= keeps the full figure reachable. */}
+              <div title={s.value} style={{
+                fontSize: 20, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em',
+                fontVariantNumeric: 'tabular-nums',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{s.value}</div>
               <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{s.label}</div>
             </div>
           ))}
