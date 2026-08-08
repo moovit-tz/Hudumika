@@ -35,6 +35,7 @@ import { rateCardRoutes } from './routes/rate-card.routes.js';
 import { consignmentRoutes } from './routes/consignments.routes.js';
 import { ocrRoutes } from './routes/ocr.routes.js';
 import { hrRoutes } from './routes/hr.routes.js';
+import { payrollRoutes } from './routes/payroll.routes.js';
 import { orgChartRoutes }   from './routes/org-chart.routes.js';
 import { permissionsRoutes } from './routes/permissions.routes.js';
 import { invoiceRoutes }  from './routes/invoices.routes.js';
@@ -252,6 +253,7 @@ async function main() {
     await server.register(queryBuilderRoutes, { prefix: '/v1/superadmin/query-builder' });
     await server.register(ocrRoutes, { prefix: '/v1/ocr' });
     await server.register(hrRoutes, { prefix: '/v1/hr' });
+    await server.register(payrollRoutes, { prefix: '/v1/payroll' });
     await server.register(orgChartRoutes,   { prefix: '/v1/org-chart' });
     await server.register(permissionsRoutes, { prefix: '/v1/permissions' });
     await server.register(invoiceRoutes,  { prefix: '/v1/invoices' });
