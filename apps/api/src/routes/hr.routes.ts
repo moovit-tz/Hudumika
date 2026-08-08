@@ -846,7 +846,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
       const staff = await trx.selectFrom('users')
-        .select(['id', 'name', 'email', 'phone', 'role', 'active', 'created_at', 'last_login_at'])
+        .select(['id', 'name', 'email', 'phone', 'role', 'active', 'created_at', 'last_login_at', 'profile'])
         .where('id', '=', id)
         .where('tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
@@ -894,10 +894,15 @@ export async function hrRoutes(fastify: FastifyInstance) {
       const allowed: Record<string, any> = {};
       if (body.name  !== undefined) allowed.name  = body.name;
       if (body.phone !== undefined) allowed.phone = body.phone;
+      if (body.profile !== undefined) {
+        // Deep merge the profile json if it already exists, or just set it
+        const current = await trx.selectFrom('users').select('profile').where('id', '=', id).executeTakeFirst();
+        allowed.profile = JSON.stringify({ ...(current?.profile as any || {}), ...body.profile });
+      }
       allowed.updated_at = new Date();
       return trx.updateTable('users').set(allowed)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returning(['id', 'name', 'email', 'phone', 'role', 'active'])
+        .returning(['id', 'name', 'email', 'phone', 'role', 'active', 'profile'])
         .executeTakeFirstOrThrow();
     });
   });
