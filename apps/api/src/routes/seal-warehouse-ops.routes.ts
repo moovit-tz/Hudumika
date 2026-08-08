@@ -101,7 +101,8 @@ export async function sealWarehouseOpsRoutes(fastify: FastifyInstance) {
       const b = request.body as any;
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_containers').set({ yard_slot_id: b.yardSlotId ?? null })
-          .where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
+          .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
+          .returningAll().executeTakeFirstOrThrow()
       );
       return row;
     } catch (err: any) {
@@ -132,7 +133,8 @@ export async function sealWarehouseOpsRoutes(fastify: FastifyInstance) {
       const b = request.body as any;
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_containers').set({ vehicle_id: b.vehicleId ?? null })
-          .where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
+          .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
+          .returningAll().executeTakeFirstOrThrow()
       );
       return row;
     } catch (err: any) {

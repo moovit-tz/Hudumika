@@ -91,7 +91,8 @@ export async function leadsRoutes(fastify: FastifyInstance) {
       if (b.website !== undefined) patch.website = b.website || null;
 
       const row = await withTenant(request.user.tenant_id, trx =>
-        trx.updateTable('leads').set(patch).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
+        trx.updateTable('leads').set(patch).where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirstOrThrow()
       );
       return mapLead(row);
     } catch (err: any) {
@@ -102,7 +103,8 @@ export async function leadsRoutes(fastify: FastifyInstance) {
   fastify.delete('/:id', async (request: any, reply) => {
     try {
       await withTenant(request.user.tenant_id, trx =>
-        trx.deleteFrom('leads').where('id', '=', request.params.id).execute()
+        trx.deleteFrom('leads').where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id).execute()
       );
       reply.status(204);
       return null;

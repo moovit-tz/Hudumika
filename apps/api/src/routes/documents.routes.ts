@@ -208,7 +208,8 @@ export async function documentRoutes(fastify: FastifyInstance) {
 
       return withTenant(user.tenant_id, async (trx) => {
         const doc = await trx.selectFrom('case_documents').selectAll()
-          .where('shipment_id', '=', id).where('id', '=', docId).executeTakeFirst();
+          .where('shipment_id', '=', id).where('id', '=', docId)
+          .where('tenant_id', '=', user.tenant_id).executeTakeFirst();
 
         if (!doc) return reply.status(404).send({ error: 'Document record not found' });
 

@@ -518,7 +518,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
           active: b.active === undefined ? undefined : b.active,
           logo_url: b.logoUrl === undefined ? undefined : b.logoUrl,
           updated_at: new Date(),
-        }).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
+        }).where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirstOrThrow()
       );
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
@@ -690,7 +691,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
       if (b.widthM !== undefined) patch.width_m = b.widthM != null ? String(b.widthM) : null;
       if (b.heightM !== undefined) patch.height_m = b.heightM != null ? String(b.heightM) : null;
       return await withTenant(request.user.tenant_id, trx =>
-        trx.updateTable('seal_locations').set(patch).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
+        trx.updateTable('seal_locations').set(patch).where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirstOrThrow()
       );
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
@@ -1369,7 +1371,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
       return await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_discrepancies').set({
           status: b.status, resolution_note: b.resolutionNote ?? null,
-        }).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
+        }).where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirstOrThrow()
       );
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });

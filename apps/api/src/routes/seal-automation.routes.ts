@@ -162,7 +162,8 @@ export async function sealAutomationRoutes(fastify: FastifyInstance) {
       if (b.thresholdValue !== undefined) patch.threshold_value = b.thresholdValue != null ? String(b.thresholdValue) : null;
       if (b.actionAssignee !== undefined) patch.action_assignee = b.actionAssignee;
       const row = await withTenant(request.user.tenant_id, trx =>
-        trx.updateTable('seal_automation_rules').set(patch).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
+        trx.updateTable('seal_automation_rules').set(patch).where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirstOrThrow()
       );
       return mapRule(row);
     } catch (err: any) {
@@ -173,7 +174,8 @@ export async function sealAutomationRoutes(fastify: FastifyInstance) {
   fastify.delete('/automation-rules/:id', async (request: any, reply) => {
     try {
       await withTenant(request.user.tenant_id, trx =>
-        trx.deleteFrom('seal_automation_rules').where('id', '=', request.params.id).execute()
+        trx.deleteFrom('seal_automation_rules').where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id).execute()
       );
       reply.status(204);
       return null;

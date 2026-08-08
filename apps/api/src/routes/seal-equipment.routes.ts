@@ -103,7 +103,8 @@ export async function sealEquipmentRoutes(fastify: FastifyInstance) {
       if (b.nextServiceDueDate !== undefined) patch.next_service_due_date = b.nextServiceDueDate ? new Date(b.nextServiceDueDate) : null;
       if (b.notes !== undefined) patch.notes = b.notes;
       const row = await withTenant(request.user.tenant_id, trx =>
-        trx.updateTable('seal_equipment').set(patch).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
+        trx.updateTable('seal_equipment').set(patch).where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirstOrThrow()
       );
       return mapEquipment(row);
     } catch (err: any) {

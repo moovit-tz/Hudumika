@@ -88,10 +88,10 @@ function audit(file: string): { writes: Hit[]; reads: Hit[] } {
     // opening call is stripped before looking.
     const preceding = src.slice(handlerStart < 0 ? 0 : handlerStart, m.index)
       .replace(/withTenant\s*\(\s*[A-Za-z0-9_.]*tenant_id\s*,/g, 'withTenant(')
-      .replace(/tenantId/g, '');
+      .replace(/\btenantId\b/g, '');
     const verifiedEarlier = /tenant_id/.test(preceding);
     // Scoped to one person is stronger than scoped to their tenant.
-    const userScoped = /user_id|actor\.sub|user\.sub/.test(chain);
+    const userScoped = /\buser_id\b|\bactor\.sub\b|\buser\.sub\b/.test(chain);
 
     const hit: Hit = {
       file, table, kind,

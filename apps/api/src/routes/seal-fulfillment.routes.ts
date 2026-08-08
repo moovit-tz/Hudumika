@@ -160,7 +160,8 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
       if (!b.lineId || typeof b.qty !== 'number' || b.qty <= 0) return reply.status(400).send({ error: 'lineId and a positive qty are required' });
 
       const result = await withTenant(request.user.tenant_id, async trx => {
-        const order = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id).executeTakeFirstOrThrow();
+        const order = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirstOrThrow();
         if (order.status === 'dispatched' || order.status === 'cancelled') {
           throw new Error(`Cannot pick against a ${order.status} order.`);
         }
@@ -204,7 +205,8 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
   fastify.post('/fulfillment-orders/:id/pack', async (request: any, reply) => {
     try {
       const order = await withTenant(request.user.tenant_id, async trx => {
-        const o = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id).executeTakeFirstOrThrow();
+        const o = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirstOrThrow();
         if (o.status !== 'picked') throw new Error(`Cannot confirm packing — order is ${o.status}, not fully picked yet.`);
         await trx.updateTable('seal_fulfillment_lines').set({ packed: true }).where('order_id', '=', o.id).execute();
         return trx.updateTable('seal_fulfillment_orders').set({ status: 'packed', packed_at: new Date() })
@@ -224,7 +226,8 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
     try {
       const b = request.body as { vehicleId?: string | null; carrierNote?: string | null };
       const order = await withTenant(request.user.tenant_id, async trx => {
-        const o = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id).executeTakeFirstOrThrow();
+        const o = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirstOrThrow();
         if (o.status !== 'packed') throw new Error(`Cannot dispatch — order is ${o.status}, not packed yet.`);
         const lines = await trx.selectFrom('seal_fulfillment_lines').selectAll().where('order_id', '=', o.id).execute();
         for (const line of lines) {
@@ -259,7 +262,8 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
   fastify.post('/fulfillment-orders/:id/cancel', async (request: any, reply) => {
     try {
       const order = await withTenant(request.user.tenant_id, async trx => {
-        const o = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id).executeTakeFirstOrThrow();
+        const o = await trx.selectFrom('seal_fulfillment_orders').selectAll().where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id).executeTakeFirstOrThrow();
         if (o.status !== 'draft') throw new Error(`Cannot cancel — order is ${o.status}; stock has already been picked against it.`);
         return trx.updateTable('seal_fulfillment_orders').set({ status: 'cancelled' })
           .where('id', '=', o.id).returningAll().executeTakeFirstOrThrow();

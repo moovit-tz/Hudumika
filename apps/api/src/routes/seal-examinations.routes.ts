@@ -74,7 +74,8 @@ export async function sealExaminationRoutes(fastify: FastifyInstance) {
         patch.completed_at = new Date();
       }
       const row = await withTenant(request.user.tenant_id, trx =>
-        trx.updateTable('seal_examinations').set(patch).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
+        trx.updateTable('seal_examinations').set(patch).where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirstOrThrow()
       );
       return mapExamination(row);
     } catch (err: any) {

@@ -93,7 +93,8 @@ export async function inventoryTasksRoutes(fastify: FastifyInstance) {
       if (b.note !== undefined) patch.note = b.note;
       if (b.title !== undefined) patch.title = b.title.trim();
       const row = await withTenant(request.user.tenant_id, trx =>
-        trx.updateTable('inventory_tasks').set(patch).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
+        trx.updateTable('inventory_tasks').set(patch).where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id).returningAll().executeTakeFirstOrThrow()
       );
       return mapTask(row);
     } catch (err: any) {
@@ -104,7 +105,8 @@ export async function inventoryTasksRoutes(fastify: FastifyInstance) {
   fastify.delete('/tasks/:id', async (request: any, reply) => {
     try {
       await withTenant(request.user.tenant_id, trx =>
-        trx.deleteFrom('inventory_tasks').where('id', '=', request.params.id).execute()
+        trx.deleteFrom('inventory_tasks').where('id', '=', request.params.id)
+          .where('tenant_id', '=', request.user.tenant_id).execute()
       );
       reply.status(204);
       return null;
