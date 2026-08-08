@@ -47,18 +47,24 @@ export async function runMissingDocReminderJob(): Promise<void> {
       docsByShipment[doc.shipment_id].push(doc);
     }
 
-    let due = 0, skipped = 0;
+    let sent = 0, unreachable = 0, skipped = 0;
 
     for (const [shipmentId, docs] of Object.entries(docsByShipment)) {
       const tenantId = docs[0].tenant_id;
 
       await withTenant(tenantId, async (trx) => {
-        // Fetch shipment ref number
+        // assigned_to and the customer's contact details come back with the
+        // ref number because whether this reminder can reach anyone at all
+        // depends on them — see the fallback below.
         const shipment = await trx
           .selectFrom('shipment_cases')
-          .select(['ref_number'])
-          .where('tenant_id', '=', tenantId)
-          .where('id', '=', shipmentId)
+          .leftJoin('customers', 'customers.id', 'shipment_cases.customer_id')
+          .select([
+            'shipment_cases.ref_number', 'shipment_cases.assigned_to',
+            'customers.name as customer_name', 'customers.phone_wa', 'customers.phone', 'customers.email',
+          ])
+          .where('shipment_cases.tenant_id', '=', tenantId)
+          .where('shipment_cases.id', '=', shipmentId)
           .executeTakeFirst();
 
         if (!shipment) return;
@@ -80,19 +86,56 @@ export async function runMissingDocReminderJob(): Promise<void> {
 
         const docTypes = docs.map((d) => d.type).join(', ');
 
-        await NotificationService.triggerNotification(tenantId, shipmentId, 'MISSING_DOCUMENT', {
-          docList: docTypes,
-        });
-        due++;
+        // MISSING_DOCUMENT addresses the CUSTOMER over WhatsApp and email
+        // (notification-matrix.ts). A customer with neither on file produced
+        // nothing at all, silently — no message, no record, and nobody aware
+        // the chase had not happened. On this data that is most of them: of
+        // 100 shipments carrying a required document, 30 customers have a
+        // phone and 36 an email.
+        const reachable = !!(shipment.phone_wa || shipment.phone || shipment.email);
+        if (reachable) {
+          await NotificationService.triggerNotification(tenantId, shipmentId, 'MISSING_DOCUMENT', {
+            docList: docTypes,
+          });
+          sent++;
+          return;
+        }
+
+        // Nobody to chase, so tell whoever owns the shipment instead. This is
+        // deliberately not a second attempt at the customer: it is a different
+        // message, to a different person, about a different problem — the
+        // customer record is missing contact details.
+        if (!shipment.assigned_to) { unreachable++; return; }
+        await trx.insertInto('notifications').values({
+          tenant_id: tenantId,
+          shipment_id: shipmentId,
+          user_id: shipment.assigned_to,
+          // Same trigger_type as the real reminder on purpose: it is the record
+          // that this shipment's daily chase was attempted, so the cooldown
+          // above sees it and this does not repeat every run either.
+          trigger_type: 'MISSING_DOCUMENT',
+          channel: 'IN_APP',
+          recipient: 'IN_APP',
+          title: 'Cannot chase missing documents',
+          content: `${shipment.customer_name ?? 'This customer'} has no phone or email on file, so the reminder for ${docTypes} could not be sent.`,
+          message: `${shipment.customer_name ?? 'This customer'} has no phone or email on file, so the reminder for ${docTypes} could not be sent.`,
+          type: 'task',
+          link: `/clearos/clearance/${shipmentId}?tab=files`,
+          entity_type: 'shipment',
+          entity_id: shipmentId,
+          entity_label: shipment.ref_number,
+          status: 'SENT',
+          read: false,
+          created_at: new Date(),
+        } as any).execute();
+        unreachable++;
       });
     }
 
-    // "due" is shipments whose rules were evaluated, not messages delivered:
-    // MISSING_DOCUMENT addresses the CUSTOMER over WhatsApp and email, and a
-    // customer with neither on file produces no message at all. On this data
-    // that is most of them — 100 shipments carry a required document, but only
-    // 30 of their customers have a phone and 36 an email.
-    console.log(`✅ Missing Documents Reminders job completed — ${due} due, ${skipped} still inside the ${REMINDER_COOLDOWN_MS / 3600000}h cooldown.`);
+    console.log(
+      `✅ Missing Documents Reminders job completed — ${sent} customer reminder(s), ` +
+      `${unreachable} shipment(s) whose customer has no contact details (owner told instead), ` +
+      `${skipped} inside the ${REMINDER_COOLDOWN_MS / 3600000}h cooldown.`);
   } catch (error) {
     console.error('❌ Missing documents reminder job failed:', error);
   }
