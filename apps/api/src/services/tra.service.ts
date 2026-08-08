@@ -15,6 +15,7 @@ import { XMLBuilder, XMLParser } from 'fast-xml-parser';
 import { sql } from 'kysely';
 import { db } from '../db/client.js';
 import QRCode from 'qrcode';
+import { guardPlaceholders } from './placeholder-identifiers.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -265,6 +266,21 @@ async function getNextCounters(tenantId: string): Promise<{ gc: number; dc: numb
 // TRA Service
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * The workspace's own VAT registration number, for the placeholder guard.
+ * Read separately from tra_vfd_config because that table holds the TIN, while
+ * the VRN — the one actually seeded as TEST-VRN-NOT-REAL — lives in
+ * tax_registrations.
+ */
+async function vatRegistrationNumber(tenantId: string): Promise<string | null> {
+  const row = await db.selectFrom('tax_registrations')
+    .select('registration_number')
+    .where('tenant_id', '=', tenantId)
+    .orderBy('created_at', 'desc')
+    .executeTakeFirst();
+  return row?.registration_number ?? null;
+}
+
 export const TRAService = {
 
   // ── Registration ────────────────────────────────────────────────────────────
@@ -506,6 +522,18 @@ export const TRAService = {
       if (!config.reg_id || !config.receipt_code) {
         return { success: false, error: 'TRA registration incomplete. Please complete VFD registration first.' };
       }
+
+      // Nothing filed under a number that was seeded for testing. The tenants
+      // carrying TEST-VRN-NOT-REAL exist so the VAT-registered path could be
+      // exercised before go-live; the note saying so lives in the database,
+      // which is not consulted at the moment an invoice is fiscalised.
+      // Only bites in production — a placeholder in the TRA test environment is
+      // what the test environment is for.
+      const placeholder = guardPlaceholders(config.environment, {
+        TIN: config.tin,
+        'VAT registration number': await vatRegistrationNumber(tenantId),
+      });
+      if (placeholder) return { success: false, error: placeholder };
 
       // 2. Load invoice with lines
       const invoice = await db
@@ -857,6 +885,14 @@ export const TRAService = {
 
       if (!config) return { success: false, error: 'TRA VFD not configured' };
       if (!config.reg_id) return { success: false, error: 'TRA registration incomplete' };
+
+      // A Z report files a day's takings, so the same rule applies as for a
+      // single invoice — arguably more so, since nobody reviews it line by line.
+      const zPlaceholder = guardPlaceholders(config.environment, {
+        TIN: config.tin,
+        'VAT registration number': await vatRegistrationNumber(tenantId),
+      });
+      if (zPlaceholder) return { success: false, error: zPlaceholder };
 
       // Get token
       const tokenResult = await this.getToken(tenantId);
