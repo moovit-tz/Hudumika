@@ -816,7 +816,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
       const today = new Date().toISOString().split('T')[0];
       const [users, onLeaveRows] = await Promise.all([
         trx.selectFrom('users')
-          .select(['id', 'name', 'email', 'phone', 'role', 'active', 'created_at', 'last_login_at'])
+          // avatar_url was not selected, which is why every staff row fell back
+          // to initials while the header — reading the same column through
+          // /auth/me — showed the picture.
+          .select(['id', 'name', 'email', 'phone', 'role', 'active', 'created_at',
+                   'last_login_at', 'avatar_url'])
           .where('tenant_id', '=', user.tenant_id)
           .orderBy('name')
           .execute(),

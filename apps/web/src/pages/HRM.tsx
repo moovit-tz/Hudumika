@@ -396,9 +396,30 @@ function avatarColor(n: string) { return AVATAR_COLORS[[...(n ?? '?')].reduce((a
 function ini(n: string) { return n.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase(); }
 function fmtTZS(n: number) { return 'TZS ' + n.toLocaleString(); }
 
-function Avatar({ name, size = 32 }: { name: string; size?: number }) {
+/**
+ * Initials, or the person's actual picture when there is one.
+ *
+ * This took only a name and so could never show a photograph, which is why the
+ * same account rendered its picture in the app header and its initials on every
+ * NexusHR screen. Callers that have a URL pass it; the rest are unchanged and
+ * keep the coloured initials.
+ */
+function Avatar({ name, size = 32, src }: { name: string; size?: number; src?: string | null }) {
+  const [failed, setFailed] = useState(false);
+  const common: React.CSSProperties = {
+    width: size, height: size, borderRadius: '50%', flexShrink: 0,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  };
+  // A broken or expired image falls back to initials rather than leaving a
+  // grey box where a person should be.
+  if (src && !failed) {
+    return (
+      <img src={src} alt={name} onError={() => setFailed(true)}
+        style={{ ...common, objectFit: 'cover', background: avatarColor(name) }} />
+    );
+  }
   return (
-    <div style={{ width:size, height:size, borderRadius:'50%', flexShrink:0, background:avatarColor(name), color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:size*0.35, fontWeight:800 }}>
+    <div style={{ ...common, background:avatarColor(name), color:'#fff', fontSize:size*0.35, fontWeight:800 }}>
       {ini(name)}
     </div>
   );
@@ -513,6 +534,10 @@ export function EmployeesPage() {
         dept: u.dept || '—', designation: u.designation || '—',
         role: u.role, status: (u.status || 'ACTIVE') as EmpStatus,
         hireDate: u.hireDate || (u.created_at ? String(u.created_at).split('T')[0] : ''),
+        // Dropped here previously, which is the last of the three places this
+        // picture went missing: the query did not select it, the component
+        // could not render it, and this mapper discarded it.
+        avatarUrl: u.avatar_url ?? null,
       })));
     } catch { /* leave the list empty — see note at top of file */ }
   }, []);
@@ -610,7 +635,7 @@ export function EmployeesPage() {
                 <div style={{ height: 3, background: statusBar(e.status) }} />
                 <div style={{ padding: '18px 16px 12px', textAlign: 'center' }}>
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-                    <Avatar name={e.name} size={60} />
+                    <Avatar name={e.name} size={60} src={e.avatarUrl} />
                   </div>
                   <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--ink)', marginBottom: 2 }}>{e.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, marginBottom: 8 }}>{e.designation}</div>
@@ -652,7 +677,7 @@ export function EmployeesPage() {
                   <TD>
                     <Link to={'/nexushr/staff/' + e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit' }}>
                       <div style={{ position: 'relative', flexShrink: 0 }}>
-                        <Avatar name={e.name} size={34} />
+                        <Avatar name={e.name} size={34} src={e.avatarUrl} />
                         <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: statusBar(e.status), border: '2px solid var(--white)' }} />
                       </div>
                       <div>

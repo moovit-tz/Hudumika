@@ -13,6 +13,8 @@ export interface Employee {
   role: string;
   status: EmpStatus;
   hireDate: string;
+  /** The person's picture, when they have set one. Absent means initials. */
+  avatarUrl?: string | null;
 }
 
 const COLORS = ['#e8461a', '#0891b2', '#7c3aed', '#059669', '#d97706', '#9333ea'] as const;
