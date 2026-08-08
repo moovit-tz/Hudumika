@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react';
 import { apiFetch } from '../lib/api.js';
+import { refreshFxRates } from '../lib/currency.js';
 
 // Reactive company info store — read by DeliveryNotes, Invoices, Reports, TopBar,
 // ShipmentDetail, Subscription (Company Info + Regulatory Details), Settings, etc.
@@ -153,6 +154,11 @@ export function useCompany(): CompanyInfo {
 export async function hydrateCompanyFromServer(): Promise<void> {
   if (_hydrated) return;
   _hydrated = true;
+  // Live FX alongside the company record: both are per-session, both need a
+  // token, and every figure this store's `currency` is used to format may need
+  // converting. Deliberately not awaited — a slow or unavailable FX service
+  // must not hold up the company details.
+  void refreshFxRates();
   try {
     const res = await apiFetch('/v1/settings');
     const c = res?.settings?.company || {};
