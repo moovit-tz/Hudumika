@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Icon } from '../components/Icon.js';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, BASE_URL } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { PageHeader } from '../components/PageHeader.js';
@@ -97,6 +97,20 @@ export const FinanceTaxReport: React.FC = () => {
     return () => { alive = false; };
   }, [range.from, range.to]);
 
+  async function downloadSubmission() {
+    const res = await fetch(
+      `${BASE_URL}/v1/finance/vat-return/export?from=${range.from}&to=${range.to}`,
+      { headers: { Authorization: `Bearer ${localStorage.getItem('hudumika_token') ?? ''}` } },
+    );
+    if (!res.ok) { setError((await res.json().catch(() => ({}))).error ?? 'Could not build the file'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vat-return-${data?.registration.jurisdiction ?? ''}-${range.from}-to-${range.to}.csv`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
   function exportCsv() {
     if (!data) return;
     const rows: (string | number)[][] = [
@@ -183,6 +197,13 @@ export const FinanceTaxReport: React.FC = () => {
             </Select>
             <button type="button" onClick={exportCsv} disabled={!data} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
               <Icon name="download" size={13} /> Export
+            </button>
+            {/* The full working, for transcribing onto the local form. Built
+                server-side so the file carries the registration and the
+                exclusions, not just the figures on screen. */}
+            <button type="button" disabled={!data} className="btn btn-primary btn-sm" style={{ gap: 6 }}
+              onClick={() => downloadSubmission()}>
+              <Icon name="fileText" size={13} color="#fff" /> Download for submission
             </button>
           </div>
         }

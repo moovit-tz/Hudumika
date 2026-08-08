@@ -137,22 +137,106 @@ export async function defaultTaxCode(db: Db, tenantId: string, scope: TaxCodeSco
 }
 
 /**
- * Ensure a tenant has a usable set of treatments.
+ * Seed one jurisdiction's tax codes for a tenant, if they have none there yet.
  *
- * Migration 180 seeds every tenant that existed when it ran; a workspace
- * created afterwards would otherwise have none, and its first invoice would be
- * unclassifiable for the same reason the old data is. Called on the first read
- * of the list, which is the earliest point anyone can notice.
+ * Separate from `ensureTaxCodes` because a tenant can be in more than one
+ * country: adding Kenya should give them Kenyan codes *beside* whatever they
+ * already had, not instead of it. Returns how many were added so the caller can
+ * say plainly whether anything happened.
+ *
+ * It never touches codes that already exist. A code used on an issued document
+ * is a historical fact, and adding a country is not a reason to restate it.
+ */
+export async function ensureJurisdictionCodes(
+  db: Db, tenantId: string, jurisdiction: string, standardRate?: number,
+): Promise<number> {
+  const juris = jurisdiction.toUpperCase();
+
+  const already = await db.selectFrom('tax_codes').select('id')
+    .where('tenant_id', '=', tenantId).where('jurisdiction', '=', juris).executeTakeFirst();
+  if (already) return 0;
+
+  const ref = await db.selectFrom('tax_jurisdictions').selectAll()
+    .where('code', '=', juris).executeTakeFirst();
+
+  // The local standard rate, from the jurisdiction reference. Falling back to
+  // 18 is a last resort for a country we have no confirmed rate for - and it is
+  // recorded in the code's own guidance so nobody mistakes it for a checked
+  // figure.
+  const std = Number(
+    standardRate ?? (ref?.standard_rate != null ? Number(ref.standard_rate) : null) ?? 18,
+  );
+  const rateKnown = standardRate != null || ref?.standard_rate != null;
+  const regime = ref?.regime ?? 'VAT';
+
+  // EFDMS fields belong to Tanzania. Attaching them elsewhere asserts a
+  // fiscalisation regime the business is not in.
+  const usesTra = !!ref?.uses_tra_codes;
+  const traCode = (n: number) => (usesTra ? n : null);
+  const traRate = (n: number | null) =>
+    n === null ? null : (({ 1: 'A', 2: 'B', 3: 'C', 4: 'D', 5: 'E' } as Record<number, string>)[n] ?? null);
+
+  const unknownRateNote = rateKnown ? null
+    : `No standard ${regime} rate is on record for ${juris}, so this was seeded at ${std}% as a `
+      + `placeholder. Confirm it against the local authority before invoicing.`;
+
+  await db.insertInto('tax_codes').values([
+    { tenant_id: tenantId, code: 'STD', name: `Standard rate (${std}%)`, kind: 'STANDARD',
+      rate: std, jurisdiction: juris, input_tax_recoverable: true,
+      tra_tax_code: traCode(1), tra_vat_rate: traRate(traCode(1)), is_default: true,
+      guidance: unknownRateNote },
+    { tenant_id: tenantId, code: 'ZERO', name: 'Zero-rated', kind: 'ZERO_RATED',
+      rate: 0, jurisdiction: juris, input_tax_recoverable: true,
+      tra_tax_code: traCode(3), tra_vat_rate: traRate(traCode(3)), is_default: false },
+    { tenant_id: tenantId, code: 'EXEMPT', name: 'Exempt', kind: 'EXEMPT',
+      rate: 0, jurisdiction: juris, input_tax_recoverable: false,
+      tra_tax_code: traCode(5), tra_vat_rate: traRate(traCode(5)), is_default: false },
+    { tenant_id: tenantId, code: 'RC', name: 'Reverse charge', kind: 'REVERSE_CHARGE',
+      rate: 0, jurisdiction: juris, input_tax_recoverable: true,
+      tra_tax_code: null, tra_vat_rate: null, is_default: false },
+    { tenant_id: tenantId, code: 'OOS', name: 'Out of scope', kind: 'OUT_OF_SCOPE',
+      rate: 0, jurisdiction: juris, input_tax_recoverable: false,
+      tra_tax_code: null, tra_vat_rate: null, is_default: false },
+    // Purchase-only: tax genuinely charged and paid, but blocked from recovery.
+    { tenant_id: tenantId, code: 'STD-NR', name: `Standard rate, not recoverable (${std}%)`,
+      kind: 'STANDARD', rate: std, jurisdiction: juris, input_tax_recoverable: false,
+      tra_tax_code: null, tra_vat_rate: null, applies_to: 'PURCHASE', is_default: false },
+  ]).onConflict(oc => oc.columns(['tenant_id', 'jurisdiction', 'code']).doNothing()).execute();
+
+  // Jurisdictions whose standard rate is really several taxes get the breakdown
+  // seeded too, so the effective rate is derived rather than typed. Ghana is the
+  // only one today; the template list is the extension point.
+  const template = COMPONENT_TEMPLATES[juris]?.[0];
+  if (template) {
+    const stdCode = await db.selectFrom('tax_codes').select('id')
+      .where('tenant_id', '=', tenantId).where('jurisdiction', '=', juris)
+      .where('code', '=', 'STD').executeTakeFirst();
+    if (stdCode) {
+      await db.insertInto('tax_code_components').values(
+        template.components.map((c, i) => ({
+          tax_code_id: stdCode.id, sequence: i,
+          code: c.code, name: c.name, rate: c.rate,
+          basis: c.basis, recoverable: c.recoverable,
+        })),
+      ).onConflict(oc => oc.columns(['tax_code_id', 'sequence']).doNothing()).execute();
+    }
+  }
+
+  return 6;
+}
+
+/**
+ * Ensure a tenant has a usable set of treatments, in their own country.
+ *
+ * Called on the first read of the tax-code list, which is the earliest point
+ * anyone can notice. The country is resolved from the tenant's own settings -
+ * this used to default to TZ and 18% for every workspace on earth.
  */
 export async function ensureTaxCodes(db: Db, tenantId: string, jurisdiction?: string, standardRate?: number) {
   const existing = await db
     .selectFrom('tax_codes').select('id').where('tenant_id', '=', tenantId).executeTakeFirst();
   if (existing) return false;
 
-  // Where is this business? Asked of the tenant, not assumed. This used to
-  // default to TZ and 18% for every workspace on earth, so a Ghanaian or Kenyan
-  // signup silently received Tanzanian tax codes — at the wrong rate, under the
-  // wrong jurisdiction, carrying TRA EFDMS fields that mean nothing there.
   let juris: string | null =
     jurisdiction && /^[A-Za-z]{2}$/.test(jurisdiction) ? jurisdiction.toUpperCase() : null;
   if (!juris) {
@@ -168,72 +252,7 @@ export async function ensureTaxCodes(db: Db, tenantId: string, jurisdiction?: st
       }
     }
   }
-  const code2 = juris ?? 'TZ';
 
-  const ref = await db.selectFrom('tax_jurisdictions').selectAll()
-    .where('code', '=', code2).executeTakeFirst();
-
-  // The local standard rate, from the jurisdiction reference. Falling back to
-  // 18 is a last resort for a country we have no confirmed rate for — and it is
-  // recorded in the code's own guidance so nobody mistakes it for a checked
-  // figure.
-  const std = Number(
-    standardRate ?? (ref?.standard_rate != null ? Number(ref.standard_rate) : null) ?? 18,
-  );
-  const rateKnown = standardRate != null || ref?.standard_rate != null;
-  const regime = ref?.regime ?? 'VAT';
-
-  // EFDMS fields belong to Tanzania. Attaching them elsewhere asserted a
-  // fiscalisation regime the business is not in.
-  const usesTra = !!ref?.uses_tra_codes;
-  const traCode = (n: number) => (usesTra ? n : null);
-  const traRate = (n: number | null) =>
-    n === null ? null : (({ 1: 'A', 2: 'B', 3: 'C', 4: 'D', 5: 'E' } as Record<number, string>)[n] ?? null);
-
-  const unknownRateNote = rateKnown ? null
-    : `No standard ${regime} rate is on record for ${code2}, so this was seeded at ${std}% as a `
-      + `placeholder. Confirm it against the local authority before invoicing.`;
-
-  await db.insertInto('tax_codes').values([
-    { tenant_id: tenantId, code: 'STD', name: `Standard rate (${std}%)`, kind: 'STANDARD',
-      rate: std, jurisdiction: code2, input_tax_recoverable: true,
-      tra_tax_code: traCode(1), tra_vat_rate: traRate(traCode(1)), is_default: true,
-      guidance: unknownRateNote },
-    { tenant_id: tenantId, code: 'ZERO', name: 'Zero-rated', kind: 'ZERO_RATED',
-      rate: 0, jurisdiction: code2, input_tax_recoverable: true,
-      tra_tax_code: traCode(3), tra_vat_rate: traRate(traCode(3)), is_default: false },
-    { tenant_id: tenantId, code: 'EXEMPT', name: 'Exempt', kind: 'EXEMPT',
-      rate: 0, jurisdiction: code2, input_tax_recoverable: false,
-      tra_tax_code: traCode(5), tra_vat_rate: traRate(traCode(5)), is_default: false },
-    { tenant_id: tenantId, code: 'RC', name: 'Reverse charge', kind: 'REVERSE_CHARGE',
-      rate: 0, jurisdiction: code2, input_tax_recoverable: true,
-      tra_tax_code: null, tra_vat_rate: null, is_default: false },
-    { tenant_id: tenantId, code: 'OOS', name: 'Out of scope', kind: 'OUT_OF_SCOPE',
-      rate: 0, jurisdiction: code2, input_tax_recoverable: false,
-      tra_tax_code: null, tra_vat_rate: null, is_default: false },
-    // Purchase-only: tax genuinely charged and paid, but blocked from recovery.
-    { tenant_id: tenantId, code: 'STD-NR', name: `Standard rate, not recoverable (${std}%)`,
-      kind: 'STANDARD', rate: std, jurisdiction: code2, input_tax_recoverable: false,
-      tra_tax_code: null, tra_vat_rate: null, applies_to: 'PURCHASE', is_default: false },
-  ]).onConflict(oc => oc.columns(['tenant_id', 'code']).doNothing()).execute();
-
-  // Jurisdictions whose standard rate is really several taxes get the breakdown
-  // seeded too, so the effective rate is derived rather than typed. Ghana is the
-  // only one today; the template list is the extension point.
-  const template = COMPONENT_TEMPLATES[code2]?.[0];
-  if (template) {
-    const stdCode = await db.selectFrom('tax_codes').select('id')
-      .where('tenant_id', '=', tenantId).where('code', '=', 'STD').executeTakeFirst();
-    if (stdCode) {
-      await db.insertInto('tax_code_components').values(
-        template.components.map((c, i) => ({
-          tax_code_id: stdCode.id, sequence: i,
-          code: c.code, name: c.name, rate: c.rate,
-          basis: c.basis, recoverable: c.recoverable,
-        })),
-      ).onConflict(oc => oc.columns(['tax_code_id', 'sequence']).doNothing()).execute();
-    }
-  }
-
+  await ensureJurisdictionCodes(db, tenantId, juris ?? 'TZ', standardRate);
   return true;
 }

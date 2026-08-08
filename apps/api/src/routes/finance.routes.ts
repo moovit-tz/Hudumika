@@ -35,6 +35,123 @@ export async function financeRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * GET /v1/finance/vat-return/export?from=&to=&format=csv
+   *
+   * The return as a file to submit.
+   *
+   * Deliberately not a country-specific form. Every authority wants its own
+   * layout — TRA, KRA, URA and GRA agree on almost nothing about presentation —
+   * and pretending to produce an official form we have not been given would be
+   * worse than useless: it would look filable and be rejected. What this
+   * produces is the complete, sourced working: every figure with its own
+   * heading, the registration it was computed under, and the gaps that were
+   * excluded. It is what a preparer transcribes onto the local form, and what
+   * an auditor asks for afterwards.
+   */
+  fastify.get('/vat-return/export', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE') }, async (request, reply) => {
+    const user = request.user;
+    const { from, to, currency } = request.query as { from?: string; to?: string; currency?: string };
+    const isDate = (s?: string) => !!s && /^\d{4}-\d{2}-\d{2}$/.test(s);
+    if (!isDate(from) || !isDate(to)) {
+      return reply.status(400).send({ error: 'from and to are required, as YYYY-MM-DD' });
+    }
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const cur = currency || await reportingCurrency(trx, user.tenant_id);
+      const r = await computeVatReturn(trx, user.tenant_id, from!, to!, cur);
+      const tenant = await trx.selectFrom('tenants').select('name')
+        .where('id', '=', user.tenant_id).executeTakeFirst();
+
+      const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+      const row = (...cells: unknown[]) => cells.map(esc).join(',');
+      const money = (n: number) => (Math.round(n * 100) / 100).toFixed(2);
+
+      const out: string[] = [];
+      out.push(row('VAT RETURN'));
+      out.push(row('Workspace', tenant?.name ?? ''));
+      out.push(row('Jurisdiction', r.registration.jurisdiction));
+      out.push(row(r.registration.registrationLabel ?? 'Registration number',
+                   r.registration.registrationNumber ?? 'NOT RECORDED'));
+      out.push(row('Registration status', r.registration.state));
+      out.push(row('Period', `${r.from} to ${r.to}`));
+      out.push(row('Currency', r.currency));
+      out.push(row('Prepared', new Date().toISOString().slice(0, 19).replace('T', ' ')));
+      out.push('');
+
+      // A return produced under a registration that is not on record has to say
+      // so on the document itself, not only on the screen it was made from.
+      if (r.registration.advisory) {
+        out.push(row('WARNING', r.registration.advisory));
+        out.push('');
+      }
+
+      out.push(row('SALES — OUTPUT TAX'));
+      out.push(row('Treatment', 'Code', 'Net', 'Output tax', 'Lines'));
+      for (const b of r.outputs) {
+        out.push(row(b.name, b.code ?? '', money(b.net), money(b.tax), b.lines));
+      }
+      out.push(row('Total output tax', '', '', money(r.outputTax), ''));
+      out.push('');
+
+      out.push(row('PURCHASES — INPUT TAX'));
+      out.push(row('Treatment', 'Code', 'Net', 'Input tax', 'Lines'));
+      for (const b of r.inputs) {
+        out.push(row(b.name, b.code ?? '', money(b.net), money(b.tax), b.lines));
+      }
+      out.push(row('Total input tax charged', '', '', money(r.inputTax), ''));
+      out.push('');
+
+      out.push(row('HOW MUCH INPUT TAX IS CLAIMABLE'));
+      out.push(row('Input tax charged', money(r.inputTax)));
+      out.push(row('Less: blocked treatments and purchases with no treatment recorded', money(-r.inputTaxBlocked)));
+      out.push(row('Input tax on treatments that permit recovery', money(r.inputTaxClaimable)));
+      out.push(row(`Less: partial exemption restriction (${r.recoveryRatePct.toFixed(4)}% recovery)`,
+                   money(-r.inputTaxRestricted)));
+      out.push(row('Input tax recoverable', money(r.inputTaxRecoverable)));
+      out.push('');
+
+      out.push(row('PARTIAL EXEMPTION WORKING'));
+      out.push(row('Taxable supplies', money(r.taxableSupplies)));
+      out.push(row('Exempt supplies', money(r.exemptSupplies)));
+      out.push(row('Recovery rate', `${r.recoveryRatePct.toFixed(4)}%`));
+      out.push(row('Method', 'Turnover (standard method) — no direct attribution, nothing links a purchase to the supply it was made for'));
+      out.push('');
+
+      out.push(row('NET POSITION'));
+      out.push(row('Output tax', money(r.outputTax)));
+      out.push(row('Input tax recoverable', money(-r.inputTaxRecoverable)));
+      out.push(row(r.netPayable >= 0 ? 'NET PAYABLE' : 'NET REPAYABLE', money(Math.abs(r.netPayable))));
+      out.push('');
+
+      out.push(row('AGAINST THE LEDGER'));
+      out.push(row('VAT Output (Payable), account 2200', money(r.ledger.outputTax)));
+      out.push(row('VAT Input (Recoverable), account 1150', money(-r.ledger.inputTax)));
+      out.push(row('Net per ledger', money(r.ledger.netPerLedger)));
+      out.push(row('Difference vs this return', money(r.ledger.difference)));
+      out.push('');
+
+      // Excluded, not zero. A submission that silently drops rows is the thing
+      // an auditor finds later.
+      out.push(row('EXCLUDED FROM THIS RETURN'));
+      out.push(row('Sales lines with no treatment recorded', r.unclassified.salesLines,
+                   money(r.unclassified.salesNet), money(r.unclassified.salesTax)));
+      out.push(row('Purchase lines with no treatment recorded', r.unclassified.purchaseLines,
+                   money(r.unclassified.purchaseNet), money(r.unclassified.purchaseTax)));
+      out.push(row('Documents in a currency with no rate to ' + r.currency,
+                   r.fxSkipped.invoices + r.fxSkipped.bills));
+
+      // CRLF: spreadsheets on Windows are the overwhelmingly common consumer of
+      // a file like this, and a preparer transcribing figures should not have to
+      // fight the import dialog.
+      const csv = out.join('\r\n');
+      const name = `vat-return-${r.registration.jurisdiction}-${r.from}-to-${r.to}.csv`;
+      reply.header('Content-Type', 'text/csv; charset=utf-8');
+      reply.header('Content-Disposition', `attachment; filename="${name}"`);
+      return reply.send(csv);
+    });
+  });
+
+  /**
    * GET /v1/shipments/:id/pnl
    * Get shipment profitability metrics
    */

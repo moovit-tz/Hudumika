@@ -4,7 +4,8 @@ import type { TaxCodeKind } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireRole } from '../middleware/rbac.js';
 import {
-  TAX_CODE_KINDS, ZERO_RATE_KINDS, ensureTaxCodes, isTaxCodeUserError, resolveTaxCode,
+  TAX_CODE_KINDS, ZERO_RATE_KINDS, ensureTaxCodes, ensureJurisdictionCodes,
+  isTaxCodeUserError, resolveTaxCode,
 } from '../services/tax-code.service.js';
 import { tenantJurisdiction } from '../services/vat-period.service.js';
 import {
@@ -102,6 +103,66 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
         listJurisdictions(trx),
       ]);
       return { status, reference: reference ?? null, jurisdictions: all };
+    });
+  });
+
+  // PUT /v1/tax-codes/jurisdiction  { jurisdiction, currency? }
+  //
+  // Move the workspace to another country. This is the switch that makes the
+  // rest of the tax system follow: the return groups by it, periods are per
+  // jurisdiction, and the seeded codes carry it.
+  //
+  // It adds what the new country needs and leaves everything already there
+  // alone. Existing codes are not re-rated and not deleted — a code that has
+  // been used on an issued document is a historical fact, and a country switch
+  // is not a reason to restate it. The new country's codes arrive alongside.
+  fastify.put('/jurisdiction', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const body = (request.body ?? {}) as { jurisdiction?: string; currency?: string };
+    const juris = String(body.jurisdiction || '').toUpperCase();
+    if (!/^[A-Z]{2}$/.test(juris)) {
+      return reply.status(400).send({ error: 'jurisdiction must be an ISO 3166-1 alpha-2 country code' });
+    }
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const ref = await trx.selectFrom('tax_jurisdictions').selectAll()
+        .where('code', '=', juris).executeTakeFirst();
+
+      const currency = (body.currency || ref?.currency || '').toUpperCase();
+      if (currency && !/^[A-Z]{3}$/.test(currency)) {
+        return reply.status(400).send({ error: 'currency must be an ISO 4217 code' });
+      }
+
+      // Company settings are the tenant's own record of where they are; the
+      // tax codes follow from it rather than the other way round.
+      const existing = await trx.selectFrom('tenant_settings').select('settings')
+        .where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const settings: any = existing?.settings ?? {};
+      settings.company = { ...(settings.company ?? {}), country: juris };
+      if (currency) settings.company.currency = currency;
+
+      await trx.insertInto('tenant_settings')
+        .values({ tenant_id: user.tenant_id, settings: JSON.stringify(settings) as any })
+        .onConflict(oc => oc.column('tenant_id').doUpdateSet({ settings: JSON.stringify(settings) as any }))
+        .execute();
+
+      // Seed the new country's codes if this workspace has none there yet.
+      const added = await ensureJurisdictionCodes(trx, user.tenant_id, juris);
+
+      const codes = await trx.selectFrom('tax_codes').selectAll()
+        .where('tenant_id', '=', user.tenant_id).orderBy('jurisdiction').orderBy('code').execute();
+
+      return {
+        jurisdiction: juris,
+        currency: currency || null,
+        reference: ref ?? null,
+        codes_added: added,
+        codes_total: codes.length,
+        note: added === 0
+          ? `This workspace already had ${juris} tax codes; nothing was changed.`
+          : `${added} ${juris} tax code(s) added. Existing codes were left as they are — a code ` +
+            `used on an issued document is a historical fact, so nothing was re-rated or removed.`,
+      };
     });
   });
 
@@ -443,13 +504,18 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
 
     return withTenant(user.tenant_id, async (trx) => {
       const code = String(body.code).trim().toUpperCase();
+      const juris = String(body.jurisdiction || 'TZ').toUpperCase();
+      // Per jurisdiction — a tenant in two countries holds a STD in each, at
+      // each country's own rate (migration 190).
       const dup = await trx.selectFrom('tax_codes').select('id')
-        .where('tenant_id', '=', user.tenant_id).where('code', '=', code).executeTakeFirst();
-      if (dup) return reply.status(409).send({ error: `Tax code "${code}" already exists` });
+        .where('tenant_id', '=', user.tenant_id).where('jurisdiction', '=', juris)
+        .where('code', '=', code).executeTakeFirst();
+      if (dup) return reply.status(409).send({ error: `Tax code "${code}" already exists for ${juris}` });
 
       if (body.is_default) {
         await trx.updateTable('tax_codes').set({ is_default: false })
           .where('tenant_id', '=', user.tenant_id).where('is_default', '=', true)
+          .where('jurisdiction', '=', juris)
           .where('applies_to', '=', body.applies_to || 'BOTH').execute();
       }
       const row = await trx.insertInto('tax_codes').values({
@@ -458,7 +524,7 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
         name: String(body.name).trim(),
         kind: body.kind,
         rate: ZERO_RATE_KINDS.includes(body.kind) ? 0 : Number(body.rate),
-        jurisdiction: String(body.jurisdiction || 'TZ').toUpperCase(),
+        jurisdiction: juris,
         input_tax_recoverable: body.input_tax_recoverable !== false,
         tra_tax_code: body.tra_tax_code === undefined || body.tra_tax_code === null
           ? null : Number(body.tra_tax_code),
@@ -497,6 +563,7 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
         const side = body.applies_to ?? existing.applies_to;
         await trx.updateTable('tax_codes').set({ is_default: false })
           .where('tenant_id', '=', user.tenant_id).where('is_default', '=', true)
+          .where('jurisdiction', '=', body.jurisdiction ?? existing.jurisdiction)
           .where('applies_to', '=', side).execute();
       }
 

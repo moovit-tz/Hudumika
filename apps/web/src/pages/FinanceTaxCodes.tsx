@@ -36,6 +36,7 @@ interface Registration {
     jurisdiction: string; registrationNumber: string | null; registrationLabel: string | null;
     mayChargeVat: boolean; advisory: string | null; notes: string | null;
   };
+  jurisdictions?: { code: string; name: string; currency: string | null; standard_rate: string | null }[];
   reference: {
     name: string; currency: string | null; standard_rate: string | null;
     threshold_amount: string | null; threshold_window_months: number | null;
@@ -262,6 +263,27 @@ export function FinanceTaxCodes() {
   const [regNum, setRegNum] = useState('');
   const [regState, setRegState] = useState<string>('unknown');
   const [regBusy, setRegBusy] = useState(false);
+  const [switching, setSwitching] = useState(false);
+
+  /** Move the workspace to another country. Adds that country's codes; never
+   *  re-rates or removes what is already there. */
+  async function switchCountry(code: string) {
+    if (!reg || code === reg.status.jurisdiction) return;
+    setSwitching(true); setNotice(null);
+    try {
+      const r: any = await apiFetch('/v1/tax-codes/jurisdiction', {
+        method: 'PUT', body: JSON.stringify({ jurisdiction: code }),
+      });
+      setNotice({ kind: 'ok', text: r.note });
+      await refreshTaxCodes(true);
+      const fresh: Registration = await apiFetch('/v1/tax-codes/registration');
+      setReg(fresh);
+      setRegNum(fresh.status.registrationNumber ?? '');
+      setRegState(fresh.status.state === 'unknown' ? 'unknown' : fresh.status.state);
+    } catch (e: any) {
+      setNotice({ kind: 'err', text: e?.message || 'Could not switch country' });
+    } finally { setSwitching(false); }
+  }
 
   useEffect(() => { refreshTaxCodes(true); }, []);
   useEffect(() => {
@@ -360,6 +382,24 @@ export function FinanceTaxCodes() {
           borderRadius: 'var(--r)', padding: '14px 16px', marginBottom: 16,
         }}>
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            {/* Country first — it decides the rate, the currency, the vocabulary
+                and which fiscalisation applies. */}
+            <div>
+              <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>
+                Country
+              </label>
+              <Select value={reg.status.jurisdiction} onValueChange={switchCountry} disabled={switching}>
+                <SelectTrigger style={{ minWidth: 210 }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(reg.jurisdictions ?? []).map(j => (
+                    <SelectItem key={j.code} value={j.code}>
+                      {j.name}{j.standard_rate ? ` — ${Number(j.standard_rate)}%` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div>
               <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>
                 {reg.status.jurisdiction} VAT status
