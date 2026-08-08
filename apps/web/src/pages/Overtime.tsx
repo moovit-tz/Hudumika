@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
-import { PersonAvatar } from '../components/PersonAvatar.js';
+import { PersonLink } from '../components/PersonLink.js';
 import { Button } from '../components/ui/button.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker } from '../components/ui/date-picker.js';
@@ -249,10 +249,8 @@ export function OvertimePage() {
                 {shown.map(r => (
                   <tr key={r.id} style={{ borderTop: '1px solid var(--border)' }}>
                     <td style={cell}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <PersonAvatar userId={r.user_id} name={r.employee_name} size={24} />
-                        {r.employee_name}
-                      </div>
+                      {/* Whose claim this is, and a way to go and look at them. */}
+                      <PersonLink userId={r.user_id} name={r.employee_name} size={24} />
                     </td>
                     <td style={{ ...cell, whiteSpace: 'nowrap' }}>{r.date}</td>
                     <td style={{ ...cell, textAlign: 'right', fontWeight: 700, color: 'var(--ink)' }}>{Number(r.hours)}</td>

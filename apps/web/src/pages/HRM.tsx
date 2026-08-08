@@ -15,6 +15,7 @@ import { Combobox } from '../components/ui/combobox.js';
 import { MultiSelectFilter } from '../components/ui/filter-dropdown.js';
 import { DatePicker } from '../components/ui/date-picker.js';
 import { PageHeader as SharedPageHeader } from '../components/PageHeader.js';
+import { PersonLink } from '../components/PersonLink.js';
 
 function mapAttStatus(s: string): AttendanceStatus {
   switch (s) {
@@ -1365,8 +1366,7 @@ export function TeamsPage() {
             <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:12 }}>
               {t.members.map(m => (
                 <div key={m.user_id} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                  <Avatar name={m.user_name} size={22} />
-                  <span style={{ fontSize:12.5, color:'var(--ink)', flex:1 }}>{m.user_name}</span>
+                  <PersonLink userId={m.user_id} name={m.user_name} size={22} style={{ flex:1 }} />
                   <button type="button" title="Remove" onClick={() => removeMember(t.id, m.user_id)} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)' }}>
                     <Icon name="x" size={12} />
                   </button>

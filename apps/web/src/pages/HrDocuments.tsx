@@ -6,6 +6,7 @@ import { Input } from '../components/ui/input.js';
 import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { PersonLink } from '../components/PersonLink.js';
 
 /**
  * HR documents and the templates they come from.
@@ -22,8 +23,10 @@ import { PageHeader } from '../components/PageHeader.js';
 
 interface Doc {
   id: string; name: string; type: string; status: string; storage_key: string;
-  created_at: string; person_id: string | null; employment_id: string | null;
-  person_name: string | null; signature_status: string | null;
+  // One owner column. person_id/employment_id were declared here long after the
+  // service stopped sending them — both read undefined at runtime.
+  created_at: string; user_id: string | null;
+  person_name: string | null; person_email?: string | null; signature_status: string | null;
 }
 interface Template {
   id: string; name: string; type: string; country_code: string | null;
@@ -153,7 +156,7 @@ export function HrDocuments() {
                     </td>
                     <td style={{ padding: '9px 14px' }}>
                       {d.person_name
-                        ? <span style={{ color: 'var(--ink2)' }}>{d.person_name}</span>
+                        ? <PersonLink userId={d.user_id} name={d.person_name} size={24} />
                         : <span style={{ color: 'var(--gold)' }}>attached to nobody</span>}
                     </td>
                     <td style={{ padding: '9px 14px', color: 'var(--ink3)' }}>{d.type.replace(/_/g, ' ').toLowerCase()}</td>
