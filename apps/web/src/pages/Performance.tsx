@@ -14,9 +14,11 @@ import { PageHeader } from '../components/PageHeader.js';
 /**
  * Performance — goals and review cycles.
  *
- * Both hang off `hr_employments`, so someone with a login but no contract
- * cannot own a goal or be reviewed. That is stated rather than left to fail on
- * a constraint after the form is filled in.
+ * Both key on `users` — the staff record every other module uses. They used to
+ * key on `hr_employments`, which holds no rows because nothing in the product
+ * creates one, so the owner list was always empty and no goal could be created
+ * for anybody. That, and not an unfinished feature, is why these tables sat at
+ * zero.
  *
  * Progress is whatever the recorded check-ins say. A goal with no target has
  * no percentage and is shown as a raw count instead of a bar at 0%, and a
@@ -40,7 +42,8 @@ interface Instance {
   self_rating: number | null; manager_rating: number | null; final_rating: number | null;
   calibration_notes: string | null;
 }
-interface EmploymentOption { employment_id: string; first_name: string; last_name: string }
+/** A member of staff who can own a goal or be reviewed. */
+interface PersonOption { id: string; name: string; email?: string }
 
 const card: React.CSSProperties = {
   border: '1px solid var(--border)', borderRadius: 12,
@@ -59,7 +62,7 @@ export function Performance() {
   const [tab, setTab] = useState<'goals' | 'reviews'>('goals');
   const [goals, setGoals] = useState<Goal[]>([]);
   const [cycles, setCycles] = useState<Cycle[]>([]);
-  const [people, setPeople] = useState<EmploymentOption[]>([]);
+  const [people, setPeople] = useState<PersonOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [pane, setPane] = useState<'none' | 'goal' | 'cycle'>('none');
@@ -71,7 +74,8 @@ export function Performance() {
       const [g, c, e] = await Promise.all([
         apiFetch('/v1/hr/goals'),
         apiFetch('/v1/hr/reviews/cycles'),
-        apiFetch('/v1/hr/employments'),
+        // Real staff. This was /v1/hr/employments, which returns [].
+        apiFetch('/v1/identity/people'),
       ]);
       setGoals(Array.isArray(g) ? g : []);
       setCycles(Array.isArray(c) ? c : []);
@@ -116,17 +120,16 @@ export function Performance() {
                       color: 'var(--red)', fontSize: 12.5, marginBottom: 14 }}>{error}</div>
       )}
 
-      {/* Both tables key on employments. With none, nothing here can be created
-          — say so once rather than failing on a constraint after a form. */}
+      {/* Kept, but it now means what it says: no active staff at all, rather
+          than "nobody has a contract" — which was true of everyone. */}
       {people.length === 0 && (
         <div style={{ ...card, padding: '14px 16px', marginBottom: 16, background: 'var(--gold-l)', borderColor: 'var(--gold-l)' }}>
           <div style={{ display: 'flex', gap: 10 }}>
             <Icon name="alertTriangle" size={16} color="var(--gold)" style={{ flexShrink: 0, marginTop: 1 }} />
             <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Nobody has a contract yet</div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>No staff on file</div>
               <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 3, lineHeight: 1.55 }}>
-                A goal belongs to an employment and a review is of one, so both need a contract on file first.
-                Employment Records is where those are created.
+                A goal belongs to somebody and a review is of somebody, so add staff before either.
               </div>
             </div>
           </div>
@@ -292,7 +295,7 @@ function CheckInForm({ goal, onDone }: { goal: Goal; onDone: () => void }) {
 }
 
 function GoalPane({ people, busy, onCreate }: {
-  people: EmploymentOption[]; busy: string; onCreate: (d: any) => void;
+  people: PersonOption[]; busy: string; onCreate: (d: any) => void;
 }) {
   const [title, setTitle] = useState('');
   const [owner, setOwner] = useState('');
@@ -318,7 +321,7 @@ function GoalPane({ people, busy, onCreate }: {
         <div>
           <div style={{ ...label, marginBottom: 4 }}>Whose goal</div>
           <Combobox
-            options={people.map(p => ({ value: p.employment_id, label: `${p.first_name} ${p.last_name}` }))}
+            options={people.map(p => ({ value: p.id, label: p.name }))}
             value={owner} onChange={setOwner} placeholder="Choose a person…" emptyText="No person found." />
         </div>
         <div>

@@ -833,14 +833,16 @@ export class NexusHRService {
     return withTenant(tenantId, async (trx) => {
       const goals = await trx
         .selectFrom('hr_goals')
-        .leftJoin('hr_employments', 'hr_employments.id', 'hr_goals.owner_id')
-        .leftJoin('hr_people', 'hr_people.id', 'hr_employments.person_id')
+        // users, not hr_employments: the latter holds no rows, so this join
+        // produced a null owner name for every goal — when a goal could be
+        // created at all, which it could not.
+        .leftJoin('users', 'users.id', 'hr_goals.owner_id')
         .select([
           'hr_goals.id', 'hr_goals.owner_id', 'hr_goals.parent_goal_id', 'hr_goals.title',
           'hr_goals.description', 'hr_goals.goal_type', 'hr_goals.target_value',
           'hr_goals.current_value', 'hr_goals.unit', 'hr_goals.weight', 'hr_goals.due_date',
           'hr_goals.status', 'hr_goals.updated_at',
-          'hr_people.first_name', 'hr_people.last_name',
+          'users.name as owner_name', 'users.email as owner_email',
         ])
         .where('hr_goals.tenant_id', '=', tenantId)
         .orderBy('hr_goals.created_at', 'desc')
@@ -868,7 +870,9 @@ export class NexusHRService {
           ...g,
           target_value: target,
           current_value: current,
-          owner_name: g.first_name ? `${g.first_name} ${g.last_name}` : null,
+          // Already selected from users — no name assembly needed now that a
+          // goal belongs to a person who actually exists.
+          owner_name: g.owner_name ?? null,
           // No target to measure against is not 0% progress.
           progress_pct: target > 0 ? Math.round((current / target) * 1000) / 10 : null,
           checkin_count: counts.get(g.id) ?? 0,
@@ -888,9 +892,9 @@ export class NexusHRService {
       throw new Error(`target_value is required when the unit is "${unit}" — there is no implied scale to measure against`);
     }
     return withTenant(tenantId, async (trx) => {
-      const owner = await trx.selectFrom('hr_employments').select('id')
+      const owner = await trx.selectFrom('users').select('id')
         .where('id', '=', data.owner_id).where('tenant_id', '=', tenantId).executeTakeFirst();
-      if (!owner) throw new Error('Owner employment not found');
+      if (!owner) throw new Error('Owner not found — a goal belongs to a member of staff');
       if (data.parent_goal_id) {
         const parent = await trx.selectFrom('hr_goals').select('id')
           .where('id', '=', data.parent_goal_id).where('tenant_id', '=', tenantId).executeTakeFirst();
@@ -1005,23 +1009,20 @@ export class NexusHRService {
       if (!cycle) throw new Error('Review cycle not found');
       const rows = await trx
         .selectFrom('hr_review_instances')
-        .leftJoin('hr_employments', 'hr_employments.id', 'hr_review_instances.employment_id')
-        .leftJoin('hr_people', 'hr_people.id', 'hr_employments.person_id')
+        .leftJoin('users', 'users.id', 'hr_review_instances.user_id')
         .leftJoin('hr_review_templates', 'hr_review_templates.id', 'hr_review_instances.template_id')
         .select([
-          'hr_review_instances.id', 'hr_review_instances.employment_id',
+          'hr_review_instances.id', 'hr_review_instances.user_id',
           'hr_review_instances.self_rating', 'hr_review_instances.manager_rating',
           'hr_review_instances.final_rating', 'hr_review_instances.calibration_notes',
-          'hr_people.first_name', 'hr_people.last_name',
+          'users.name as person_name', 'users.email as person_email',
           'hr_review_templates.name as template_name', 'hr_review_templates.rating_scale',
         ])
         .where('hr_review_instances.tenant_id', '=', tenantId)
         .where('hr_review_instances.cycle_id', '=', cycleId)
+        .orderBy('users.name')
         .execute();
-      return rows.map(r => ({
-        ...r,
-        person_name: r.first_name ? `${r.first_name} ${r.last_name}` : null,
-      }));
+      return rows;
     });
   }
 

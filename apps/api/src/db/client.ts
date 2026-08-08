@@ -4642,7 +4642,7 @@ export interface HrReviewInstancesTable {
   tenant_id: string;
   cycle_id: string;
   template_id: string;
-  employment_id: string;
+  user_id: string;
   self_rating: number | null;
   manager_rating: number | null;
   final_rating: number | null;
