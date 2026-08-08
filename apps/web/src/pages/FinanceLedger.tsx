@@ -35,6 +35,9 @@ function fmtDate(d: string) {
   return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+/** Accounts per page. Same figure as the rest of the platform's lists. */
+const PAGE_SIZE = 25;
+
 export const FinanceLedger: React.FC = () => {
   const co = useCompany();
   const { fmt } = useCurrency();
@@ -45,6 +48,7 @@ export const FinanceLedger: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<AccountType | 'ALL'>('ALL');
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [periodIdx, setPeriodIdx] = useState(PERIODS.length - 1);
+  const [page, setPage] = useState(1);
   const [report, setReport] = useState<TrialBalanceReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [ledgerCache, setLedgerCache] = useState<Record<string, LedgerReport>>({});
@@ -102,14 +106,29 @@ export const FinanceLedger: React.FC = () => {
     cr: accounts.reduce((s, a) => s + a.period_credit, 0),
   }), [accounts]);
 
+  /**
+   * Accounts are paged first and grouped second, not the other way round.
+   * Grouping first and paging the groups would make a page mean "one account
+   * type", which is what the type tabs already do and would leave a page of
+   * 2 next to a page of 40.
+   */
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  // Clamped, so narrowing the filter while on a later page cannot leave an
+  // empty table with nothing explaining why.
+  const currentPage = Math.min(page, pageCount);
+  const offset = (currentPage - 1) * PAGE_SIZE;
+  const paged = useMemo(() => filtered.slice(offset, offset + PAGE_SIZE), [filtered, offset]);
+
+  useEffect(() => { setPage(1); }, [search, typeFilter, periodIdx]);
+
   const grouped = useMemo(() => {
     const groups: Partial<Record<AccountType, typeof filtered>> = {};
-    filtered.forEach(a => {
+    paged.forEach(a => {
       if (!groups[a.account_type]) groups[a.account_type] = [];
       groups[a.account_type]!.push(a);
     });
     return groups;
-  }, [filtered]);
+  }, [paged]);
 
   function exportCsv() {
     const rows = [
@@ -164,9 +183,11 @@ export const FinanceLedger: React.FC = () => {
           { label:'Total Credits',   value: fmt(totals.cr), color:'#7c3aed' },
           { label:'Net Movement',    value: fmt(totals.dr - totals.cr), color: totals.dr >= totals.cr ? '#059669' : '#ef4444' },
         ].map(c => (
-          <div key={c.label} className="card" style={{ padding:'16px 18px', borderTop:`3px solid ${c.color}` }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color:'var(--ink)' }}>{c.value}</div>
-            <div style={{ fontSize: 12, color:'var(--ink3)', marginTop: 4 }}>{c.label}</div>
+          // No accent bar across the top. Four cards each in a different
+          // colour is decoration competing with the figures they carry.
+          <div key={c.label} className="card" style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--ink)' }}>{c.value}</div>
+            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 4 }}>{c.label}</div>
           </div>
         ))}
       </div>
@@ -289,6 +310,30 @@ export const FinanceLedger: React.FC = () => {
           </div>
         </div>
       ))}
+
+      {/* Hidden when everything already fits on one page. */}
+      {filtered.length > PAGE_SIZE && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+          flexWrap: 'wrap', padding: '14px 16px', border: '1px solid var(--border)',
+          borderRadius: 9, background: 'var(--white)', fontSize: 12.5, color: 'var(--ink3)',
+        }}>
+          <span>
+            {offset + 1}–{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length} account{filtered.length === 1 ? '' : 's'}
+          </span>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button type="button" className="btn btn-secondary btn-sm"
+              disabled={currentPage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+              <Icon name="arrowLeft" size={12} /> Previous
+            </button>
+            <span style={{ minWidth: 70, textAlign: 'center' }}>Page {currentPage} of {pageCount}</span>
+            <button type="button" className="btn btn-secondary btn-sm"
+              disabled={currentPage === pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
+              Next <Icon name="arrowRight" size={12} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Icon } from '../components/Icon.js';
-import type { IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCompany } from '../data/companyStore.js';
 import type { ProfitLossReport, ProfitLossLine } from '@hudumika/types';
@@ -212,20 +211,21 @@ export const FinanceProfitLoss: React.FC = () => {
         {/* KPI summary */}
         <div style={{ display: 'flex', gap: 14 }}>
           {[
-            { label: 'Total Revenue',   value: fmtM(revenueTotal),  color: 'var(--teal)',   bg: 'var(--teal-l)', icon: 'trendingUp'   },
-            { label: 'Gross Profit',    value: fmtM(grossProfit),   color: 'var(--blue)',   bg: 'var(--blue-l)',       icon: 'dollarSign'   },
-            { label: 'Net Profit',      value: fmtM(netProfit),     color: 'var(--green)',  bg: 'var(--green-l)',       icon: 'checkCircle'  },
-            { label: 'Gross Margin',    value: `${grossMargin}%`,   color: 'var(--gold)',       bg: 'var(--gold-l)',       icon: 'percent'      },
-            { label: 'Net Margin',      value: `${netMargin}%`,     color: 'var(--purple)', bg: 'var(--purple-l)',       icon: 'pieChart'     },
+            // color/bg/icon are gone with the chip they fed; leaving them here
+            // would read as styling that simply stopped being applied.
+            { label: 'Total Revenue', value: fmtM(revenueTotal) },
+            { label: 'Gross Profit',  value: fmtM(grossProfit)  },
+            { label: 'Net Profit',    value: fmtM(netProfit)    },
+            { label: 'Gross Margin',  value: `${grossMargin}%`  },
+            { label: 'Net Margin',    value: `${netMargin}%`    },
           ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <Icon name={s.icon as IconName} size={16} color={s.color} />
-              </div>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{s.value}</div>
-                <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 1 }}>{s.label}</div>
-              </div>
+            // The 38px tinted icon chip is gone. Five of them, each in its own
+            // colour, took the eye before any of the numbers did — and the
+            // icons were decorative anyway: a percent sign next to "Gross
+            // Margin" says nothing the label has not already said.
+            <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '14px 16px' }}>
+              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{s.value}</div>
+              <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{s.label}</div>
             </div>
           ))}
         </div>

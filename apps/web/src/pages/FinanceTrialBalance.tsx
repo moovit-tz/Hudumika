@@ -34,6 +34,9 @@ function fmt(n: number, cur: string) {
   return `${cur} ${n.toLocaleString('en-US', { minimumFractionDigits: 0 })}`;
 }
 
+/** Accounts per page. Same figure as the rest of the platform's lists. */
+const PAGE_SIZE = 25;
+
 export const FinanceTrialBalance: React.FC = () => {
   const co = useCompany();
   const cur = co.currency ?? 'TZS';
@@ -42,6 +45,7 @@ export const FinanceTrialBalance: React.FC = () => {
   const [periodIdx, setPeriodIdx] = useState(PERIODS.length - 1);
   const [typeFilter, setTypeFilter] = useState<AccountType | 'ALL'>('ALL');
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [report, setReport] = useState<TrialBalanceReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -73,11 +77,20 @@ export const FinanceTrialBalance: React.FC = () => {
   const totals = report?.totals ?? { debit: 0, credit: 0 };
   const balanced = Math.abs(totals.debit - totals.credit) < 1;
 
+  /** Paged first, grouped second — grouping first would make a page mean
+   *  "one account type", which the type tabs above already do. */
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const offset = (currentPage - 1) * PAGE_SIZE;
+  const paged = useMemo(() => filtered.slice(offset, offset + PAGE_SIZE), [filtered, offset]);
+
+  useEffect(() => { setPage(1); }, [search, typeFilter, periodIdx]);
+
   const grouped = useMemo(() => {
     const g: Partial<Record<AccountType, typeof filtered>> = {};
-    filtered.forEach(a => { if (!g[a.account_type]) g[a.account_type] = []; g[a.account_type]!.push(a); });
+    paged.forEach(a => { if (!g[a.account_type]) g[a.account_type] = []; g[a.account_type]!.push(a); });
     return g;
-  }, [filtered]);
+  }, [paged]);
 
   const groupTotals = useMemo(() =>
     Object.fromEntries(
@@ -159,9 +172,21 @@ export const FinanceTrialBalance: React.FC = () => {
           const cfg = TYPE_CFG[t];
           const count = rows.filter(a => a.account_type === t && (a.closing_debit !== 0 || a.closing_credit !== 0)).length;
           return (
-            <div key={t} className="card" style={{ padding:'12px 14px', borderTop:`3px solid ${cfg.color}`, cursor:'pointer' }} onClick={() => setTypeFilter(typeFilter === t ? 'ALL' : t)}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: cfg.color, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom: 6 }}>{cfg.label}</div>
-              <div style={{ fontSize: 13, fontWeight: 800, color:'var(--ink)', fontFamily:'var(--mono)' }}>
+            // Selection reads as a teal border and label, not an accent bar
+            // and a pastel fill. Same treatment as Chart of Accounts.
+            <div
+              key={t}
+              className="card"
+              aria-pressed={typeFilter === t}
+              style={{
+                padding: '12px 14px', cursor: 'pointer', background: 'var(--white)',
+                borderColor: typeFilter === t ? 'var(--teal)' : undefined,
+                boxShadow: typeFilter === t ? 'inset 0 0 0 1px var(--teal)' : undefined,
+              }}
+              onClick={() => setTypeFilter(typeFilter === t ? 'ALL' : t)}
+            >
+              <div style={{ fontSize: 10, fontWeight: 800, color: typeFilter === t ? 'var(--teal)' : 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>{cfg.label}</div>
+              <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>
                 {gt.debit > 0 ? `Dr ${(gt.debit/1_000_000).toFixed(1)}M` : `Cr ${(gt.credit/1_000_000).toFixed(1)}M`}
               </div>
               <div style={{ fontSize: 10, color:'var(--ink3)', marginTop: 3 }}>{count} accounts</div>
@@ -243,7 +268,14 @@ export const FinanceTrialBalance: React.FC = () => {
 
             {/* Grand total */}
             <tr style={{ background:'var(--teal-l)' }}>
-              <td colSpan={3} style={{ fontSize:13, fontWeight:800, color:'var(--teal)' }}>GRAND TOTAL</td>
+              <td colSpan={3} style={{ fontSize:13, fontWeight:800, color:'var(--teal)' }}>
+                GRAND TOTAL
+                {pageCount > 1 && (
+                  <span style={{ fontSize:11, fontWeight:600, color:'var(--ink3)', marginLeft:8 }}>
+                    all {filtered.length} accounts, not this page
+                  </span>
+                )}
+              </td>
               <td style={{ textAlign:'right', fontSize:14, fontFamily:'var(--mono)', color:'#0891b2', fontWeight:800 }}>{cur} {totals.debit.toLocaleString()}</td>
               <td style={{ textAlign:'right', fontSize:14, fontFamily:'var(--mono)', color:'#7c3aed', fontWeight:800 }}>{cur} {totals.credit.toLocaleString()}</td>
             </tr>
@@ -260,6 +292,29 @@ export const FinanceTrialBalance: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {filtered.length > PAGE_SIZE && (
+        <div style={{
+          display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap',
+          padding:'14px 16px', border:'1px solid var(--border)', borderRadius:9,
+          background:'var(--white)', marginTop:14, fontSize:12.5, color:'var(--ink3)',
+        }}>
+          <span>
+            {offset + 1}–{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length} account{filtered.length === 1 ? '' : 's'}
+          </span>
+          <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+            <button type="button" className="btn btn-secondary btn-sm"
+              disabled={currentPage === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>
+              <Icon name="arrowLeft" size={12} /> Previous
+            </button>
+            <span style={{ minWidth:70, textAlign:'center' }}>Page {currentPage} of {pageCount}</span>
+            <button type="button" className="btn btn-secondary btn-sm"
+              disabled={currentPage === pageCount} onClick={() => setPage(p => Math.min(pageCount, p + 1))}>
+              Next <Icon name="arrowRight" size={12} />
+            </button>
+          </div>
+        </div>
+      )}
 
       <p style={{ fontSize:11, color:'var(--ink3)', marginTop:14, textAlign:'right' }}>
         Period: {period.label} &nbsp;·&nbsp; Prepared: {new Date().toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'})} &nbsp;·&nbsp; {co.name}
