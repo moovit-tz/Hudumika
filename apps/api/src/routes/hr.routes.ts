@@ -850,7 +850,10 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
       const staff = await trx.selectFrom('users')
-        .select(['id', 'name', 'email', 'phone', 'role', 'active', 'created_at', 'last_login_at', 'profile'])
+        // Same omission as the staff list had: without avatar_url the profile
+        // header falls back to initials for someone who has a picture.
+        .select(['id', 'name', 'email', 'phone', 'role', 'active', 'created_at',
+                 'last_login_at', 'profile', 'avatar_url'])
         .where('id', '=', id)
         .where('tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
