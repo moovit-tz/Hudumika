@@ -21,8 +21,29 @@ interface StaffData {
   created_at: string;
   last_login_at: string | null;
   hireDate: string;
+  /** True when hireDate is standing in for a real one, taken from created_at. */
+  hire_date_is_estimated?: boolean;
   avatar_url?: string | null;
   profile?: UserProfileFields;
+  // Statutory identity and pay. Columns rather than profile json, because the
+  // payroll engine reads them and a value it depends on should not be able to
+  // be overwritten by an unrelated profile save.
+  hire_date?: string | null;
+  tax_residency?: 'RESIDENT' | 'NON_RESIDENT' | null;
+  national_id?: string | null;
+  tax_id?: string | null;
+  social_security_no?: string | null;
+  health_insurance_no?: string | null;
+  pension_fund?: 'NSSF' | 'PSSSF' | null;
+  basic_salary?: string | null;
+  pay_currency?: string | null;
+  pay_method?: 'BANK' | 'MOBILE_MONEY' | 'CASH' | null;
+  bank_name?: string | null;
+  bank_branch?: string | null;
+  bank_account_no?: string | null;
+  bank_account_name?: string | null;
+  mobile_money_provider?: string | null;
+  mobile_money_number?: string | null;
   // Computed fallbacks for UI
   employee_code?: string;
   dept?: string;
@@ -40,6 +61,18 @@ function formatDate(d: string | null | undefined): string {
   try { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
   catch { return String(d); }
 }
+
+const PAY_METHOD_LABEL: Record<string, string> = {
+  BANK: 'Bank transfer',
+  MOBILE_MONEY: 'Mobile money',
+  CASH: 'Cash',
+};
+
+/**
+ * The four networks that actually move salaries in Tanzania. Free text here
+ * would give the payment file four spellings of M-Pesa and no way to group them.
+ */
+const MOBILE_MONEY_PROVIDERS = ['M-Pesa', 'Tigo Pesa', 'Airtel Money', 'HaloPesa', 'T-Pesa'];
 
 const STATUS_STYLE: Record<string, { bg: string; color: string; label: string }> = {
   ACTIVE:   { bg: 'rgba(16,185,129,.12)',  color: 'var(--green)', label: 'Active'   },
@@ -186,6 +219,14 @@ export const StaffDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user: authUser } = useAuth();
+  /**
+   * Pay is a different permission from a phone number. A manager keeps a team's
+   * identity and contact details current; what somebody earns and which account
+   * it lands in is an admin action. The API enforces this — this only decides
+   * whether to render fields that would be refused, so nobody fills in a form
+   * that cannot be saved.
+   */
+  const canSetPay = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(authUser?.role ?? '');
 
   const [staff, setStaff] = useState<StaffData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -304,7 +345,25 @@ export const StaffDetail: React.FC = () => {
         gender: staff.profile?.gender || '',
         language: staff.profile?.language || '',
         biometric_id: staff.profile?.biometric_id || ''
-      }
+      },
+      // Seeded from '' rather than left undefined so clearing a field sends ''
+      // and is understood as "cleared" instead of "unchanged".
+      hire_date: staff.hire_date || '',
+      tax_residency: staff.tax_residency ?? null,
+      national_id: staff.national_id || '',
+      tax_id: staff.tax_id || '',
+      social_security_no: staff.social_security_no || '',
+      health_insurance_no: staff.health_insurance_no || '',
+      pension_fund: staff.pension_fund ?? null,
+      basic_salary: staff.basic_salary || '',
+      pay_currency: staff.pay_currency || '',
+      pay_method: staff.pay_method ?? null,
+      bank_name: staff.bank_name || '',
+      bank_branch: staff.bank_branch || '',
+      bank_account_no: staff.bank_account_no || '',
+      bank_account_name: staff.bank_account_name || '',
+      mobile_money_provider: staff.mobile_money_provider || '',
+      mobile_money_number: staff.mobile_money_number || '',
     });
     setIsEditing(true);
   };
@@ -334,23 +393,52 @@ export const StaffDetail: React.FC = () => {
         return;
       }
 
+      // Pay fields are only sent when this user may set them. Sending them
+      // anyway would have the API refuse the whole request, losing the identity
+      // and contact edits alongside the one field they were not allowed to touch.
+      const payload: Record<string, unknown> = {
+        name: editForm.name,
+        phone: editForm.phone,
+        profile: editForm.profile,
+        hire_date: editForm.hire_date,
+        tax_residency: editForm.tax_residency,
+        national_id: editForm.national_id,
+        tax_id: editForm.tax_id,
+        social_security_no: editForm.social_security_no,
+        health_insurance_no: editForm.health_insurance_no,
+        pension_fund: editForm.pension_fund,
+      };
+      if (canSetPay) {
+        Object.assign(payload, {
+          basic_salary: editForm.basic_salary,
+          pay_currency: editForm.pay_currency,
+          pay_method: editForm.pay_method,
+          bank_name: editForm.bank_name,
+          bank_branch: editForm.bank_branch,
+          bank_account_no: editForm.bank_account_no,
+          bank_account_name: editForm.bank_account_name,
+          mobile_money_provider: editForm.mobile_money_provider,
+          mobile_money_number: editForm.mobile_money_number,
+        });
+      }
+
       const updated = await apiFetch(`/v1/hr/staff/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify({
-          name: editForm.name,
-          phone: editForm.phone,
-          profile: editForm.profile
-        })
+        body: JSON.stringify(payload),
       });
-      
+
       setStaff(prev => {
         if (!prev) return prev;
         const newProfile = { ...prev.profile, ...editForm.profile };
         return {
+          // Spread what the server actually stored, so a value it trimmed,
+          // upper-cased or rejected is what the screen goes on to show.
           ...prev,
+          ...updated,
           name: updated.name || prev.name,
           phone: updated.phone || prev.phone,
           profile: newProfile,
+          hireDate: updated.hire_date || prev.hireDate,
           employee_code: newProfile.employee_code || prev.employee_code,
           dept: newProfile.department || prev.dept,
           designation: newProfile.job_title || prev.designation,
@@ -373,6 +461,20 @@ export const StaffDetail: React.FC = () => {
     }));
   };
 
+  /** Statutory and pay fields are real columns, not profile json. */
+  const updateField = (key: keyof StaffData, value: string | null) => {
+    setEditForm(prev => ({ ...prev, [key]: value }));
+  };
+
+  /**
+   * Radix refuses an empty-string SelectItem value, so "not set" travels as a
+   * sentinel and is turned back into null at this boundary — the API and the
+   * database both want null, and '__none__' must never reach either.
+   */
+  const NONE = '__none__';
+  const selectValue = (v: string | null | undefined) => (v ? v : NONE);
+  const fromSelect = (v: string) => (v === NONE ? null : v);
+
   if (loading) {
     return <div style={{ padding: 40, color: 'var(--ink3)', fontSize: 13 }}>Loading profile…</div>;
   }
@@ -392,6 +494,18 @@ export const StaffDetail: React.FC = () => {
 
   const personalFields = [staff.profile?.date_of_birth, staff.profile?.gender, staff.profile?.language, staff.profile?.biometric_id];
   const personalFilled = personalFields.filter(f => f && f !== 'Not set' && f !== '—').length;
+
+  const statutoryFields = [staff.national_id, staff.tax_id, staff.social_security_no,
+                           staff.pension_fund, staff.health_insurance_no, staff.tax_residency];
+  const statutoryFilled = statutoryFields.filter(f => f && f !== 'Not set' && f !== '—').length;
+
+  // Counted as four regardless of method: salary, currency, method, and the one
+  // destination field that identifies the account for whichever method is set.
+  const payDestination = staff.pay_method === 'MOBILE_MONEY' ? staff.mobile_money_number
+    : staff.pay_method === 'BANK' ? staff.bank_account_no
+    : staff.pay_method === 'CASH' ? 'CASH' : null;
+  const payFilled = [staff.basic_salary, staff.pay_currency, staff.pay_method, payDestination]
+    .filter(f => f && f !== 'Not set' && f !== '—').length;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
@@ -481,6 +595,60 @@ export const StaffDetail: React.FC = () => {
                   <FieldItem label="Biometric ID" value={staff.profile?.biometric_id} />
                 </div>
               </ProfileCard>
+
+              {/* Everything payroll needs to file a return. Blank until somebody
+                  enters it — the engine treats missing as missing, not zero. */}
+              <ProfileCard icon={<Icon name="shield" size={14} />} title="Statutory identity" filled={statutoryFilled} total={6}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                  <FieldItem label="NIDA / National ID" value={staff.national_id} />
+                  <FieldItem label="TIN" value={staff.tax_id} />
+                  <FieldItem label="Social security no." value={staff.social_security_no} />
+                  <FieldItem label="Pension fund" value={staff.pension_fund} />
+                  <FieldItem label="NHIF no." value={staff.health_insurance_no} />
+                  <FieldItem
+                    label="Tax residency"
+                    value={staff.tax_residency === 'NON_RESIDENT' ? 'Non-resident' : staff.tax_residency === 'RESIDENT' ? 'Resident' : null}
+                  />
+                </div>
+                {staff.tax_residency === 'NON_RESIDENT' && (
+                  <div style={{ fontSize: 12, color: 'var(--ink2)', background: 'var(--gold-l)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '8px 10px', marginBottom: 16 }}>
+                    PAYE is a flat 15% with no tax-free band for a non-resident.
+                  </div>
+                )}
+                {staff.hire_date_is_estimated && (
+                  <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
+                    No hire date recorded — the leave cycle is being counted from the
+                    day this account was created, which is a guess. Enter the real one.
+                  </div>
+                )}
+              </ProfileCard>
+
+              {canSetPay && (
+                <ProfileCard icon={<Icon name="creditCard" size={14} />} title="Pay & payment" filled={payFilled} total={4}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                    <FieldItem
+                      label="Basic salary"
+                      value={staff.basic_salary
+                        ? `${staff.pay_currency || 'TZS'} ${Number(staff.basic_salary).toLocaleString()}`
+                        : null}
+                    />
+                    <FieldItem label="Paid by" value={PAY_METHOD_LABEL[staff.pay_method ?? ''] ?? null} />
+                    {staff.pay_method === 'MOBILE_MONEY' ? (
+                      <>
+                        <FieldItem label="Provider" value={staff.mobile_money_provider} />
+                        <FieldItem label="Mobile number" value={staff.mobile_money_number} />
+                      </>
+                    ) : staff.pay_method === 'BANK' ? (
+                      <>
+                        <FieldItem label="Bank" value={staff.bank_name} />
+                        <FieldItem label="Branch" value={staff.bank_branch} />
+                        <FieldItem label="Account number" value={staff.bank_account_no} />
+                        <FieldItem label="Account name" value={staff.bank_account_name} />
+                      </>
+                    ) : null}
+                  </div>
+                </ProfileCard>
+              )}
 
             </div>
 
@@ -776,6 +944,146 @@ export const StaffDetail: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              <div>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Statutory Identity</h3>
+                <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12, lineHeight: 1.5 }}>
+                  What payroll needs to file a return. Leave a field blank rather than
+                  inventing a placeholder — the engine treats missing as missing.
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Hire date</label>
+                    <input type="date" value={editForm.hire_date || ''} onChange={e => updateField('hire_date', e.target.value)} style={inputSt} />
+                    <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>The leave cycle resets on this anniversary, not on 1 January.</div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Tax residency</label>
+                    <Select value={selectValue(editForm.tax_residency)} onValueChange={v => updateField('tax_residency', fromSelect(v))}>
+                      <SelectTrigger><SelectValue placeholder="Not set" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE}>Not set</SelectItem>
+                        <SelectItem value="RESIDENT">Resident</SelectItem>
+                        <SelectItem value="NON_RESIDENT">Non-resident</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {editForm.tax_residency === 'NON_RESIDENT' && (
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>PAYE becomes a flat 15% with no tax-free band.</div>
+                    )}
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>NIDA / National ID</label>
+                    <input value={editForm.national_id || ''} onChange={e => updateField('national_id', e.target.value)} style={inputSt} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>TIN</label>
+                    <input value={editForm.tax_id || ''} onChange={e => updateField('tax_id', e.target.value)} style={inputSt} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Social security number</label>
+                    <input value={editForm.social_security_no || ''} onChange={e => updateField('social_security_no', e.target.value)} style={inputSt} />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Pension fund</label>
+                    <Select value={selectValue(editForm.pension_fund)} onValueChange={v => updateField('pension_fund', fromSelect(v))}>
+                      <SelectTrigger><SelectValue placeholder="Not set" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NONE}>Not set</SelectItem>
+                        <SelectItem value="NSSF">NSSF — private sector</SelectItem>
+                        <SelectItem value="PSSSF">PSSSF — public service</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>NHIF number</label>
+                    <input value={editForm.health_insurance_no || ''} onChange={e => updateField('health_insurance_no', e.target.value)} style={inputSt} />
+                  </div>
+                </div>
+              </div>
+
+              {canSetPay && (
+                <div>
+                  <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, borderBottom: '1px solid var(--border)', paddingBottom: 8 }}>Pay &amp; Payment</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Basic salary</label>
+                      <input
+                        type="number" min="0" step="0.01"
+                        value={editForm.basic_salary ?? ''}
+                        onChange={e => updateField('basic_salary', e.target.value)}
+                        style={inputSt}
+                      />
+                      <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>
+                        Social security is 10% of basic; NHIF and WCF are on gross.
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Currency</label>
+                      <input
+                        value={editForm.pay_currency || ''}
+                        onChange={e => updateField('pay_currency', e.target.value.toUpperCase())}
+                        placeholder="TZS" maxLength={3} style={inputSt}
+                      />
+                    </div>
+                    <div style={{ gridColumn: '1 / -1' }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Paid by</label>
+                      <Select value={selectValue(editForm.pay_method)} onValueChange={v => updateField('pay_method', fromSelect(v))}>
+                        <SelectTrigger><SelectValue placeholder="Not set" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={NONE}>Not set</SelectItem>
+                          <SelectItem value="MOBILE_MONEY">Mobile money</SelectItem>
+                          <SelectItem value="BANK">Bank transfer</SelectItem>
+                          <SelectItem value="CASH">Cash</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Only the fields the chosen method actually uses. Showing both
+                        sets invites half of each to be filled in, and a payment file
+                        built from that fails at the bank rather than here. */}
+                    {editForm.pay_method === 'MOBILE_MONEY' && (
+                      <>
+                        <div>
+                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Provider</label>
+                          <Select value={selectValue(editForm.mobile_money_provider)} onValueChange={v => updateField('mobile_money_provider', fromSelect(v))}>
+                            <SelectTrigger><SelectValue placeholder="Not set" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={NONE}>Not set</SelectItem>
+                              {MOBILE_MONEY_PROVIDERS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Mobile number</label>
+                          <input value={editForm.mobile_money_number || ''} onChange={e => updateField('mobile_money_number', e.target.value)} placeholder="07XX XXX XXX" style={inputSt} />
+                        </div>
+                      </>
+                    )}
+
+                    {editForm.pay_method === 'BANK' && (
+                      <>
+                        <div>
+                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Bank</label>
+                          <input value={editForm.bank_name || ''} onChange={e => updateField('bank_name', e.target.value)} style={inputSt} />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Branch</label>
+                          <input value={editForm.bank_branch || ''} onChange={e => updateField('bank_branch', e.target.value)} style={inputSt} />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Account number</label>
+                          <input value={editForm.bank_account_no || ''} onChange={e => updateField('bank_account_no', e.target.value)} style={inputSt} />
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 6 }}>Account name</label>
+                          <input value={editForm.bank_account_name || ''} onChange={e => updateField('bank_account_name', e.target.value)} style={inputSt} />
+                          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>As it appears at the bank — not always the employee's own name.</div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
 
             </div>
             

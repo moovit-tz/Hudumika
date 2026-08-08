@@ -96,6 +96,22 @@ export interface UsersTable {
    * their real date is entered.
    */
   hire_date: string | null;
+  /**
+   * How the net figure actually reaches the person. Mobile money is not a
+   * fallback here — for a large share of staff it is the only account they
+   * have, so it gets its own fields rather than being squeezed into the bank
+   * ones. null pay_method means nobody has been asked yet, which is not the
+   * same as having chosen CASH.
+   */
+  pay_method: 'BANK' | 'MOBILE_MONEY' | 'CASH' | null;
+  bank_name: string | null;
+  bank_branch: string | null;
+  bank_account_no: string | null;
+  bank_account_name: string | null;
+  mobile_money_provider: string | null;
+  mobile_money_number: string | null;
+  /** NSSF or PSSSF — same rate, different return. */
+  pension_fund: 'NSSF' | 'PSSSF' | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

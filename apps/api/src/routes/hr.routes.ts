@@ -959,7 +959,16 @@ export async function hrRoutes(fastify: FastifyInstance) {
         // Same omission as the staff list had: without avatar_url the profile
         // header falls back to initials for someone who has a picture.
         .select(['id', 'name', 'email', 'phone', 'role', 'active', 'created_at',
-                 'last_login_at', 'profile', 'avatar_url'])
+                 'last_login_at', 'profile', 'avatar_url',
+                 // Statutory identity and pay. Selected here rather than behind a
+                 // second endpoint because the profile screen is the only place
+                 // they are ever entered, and a field nobody can see is a field
+                 // nobody fills in.
+                 'hire_date', 'tax_residency', 'national_id', 'tax_id',
+                 'social_security_no', 'health_insurance_no', 'pension_fund',
+                 'basic_salary', 'pay_currency', 'pay_method',
+                 'bank_name', 'bank_branch', 'bank_account_no', 'bank_account_name',
+                 'mobile_money_provider', 'mobile_money_number'])
         .where('id', '=', id)
         .where('tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
@@ -987,9 +996,18 @@ export async function hrRoutes(fastify: FastifyInstance) {
       return {
         ...staff,
         status: !staff.active ? 'INACTIVE' : Number(onLeaveNow?.c ?? 0) > 0 ? 'ON_LEAVE' : 'ACTIVE',
-        hireDate: staff.created_at instanceof Date
-          ? staff.created_at.toISOString().split('T')[0]
-          : String(staff.created_at).split('T')[0],
+        // The real hire date if one has been entered, and only then the row's
+        // creation date. These are not interchangeable: the leave cycle is
+        // counted from the employment anniversary, so showing "joined" as the
+        // day somebody's account was made tells an approver the wrong date to
+        // reset an allowance on. `hire_date_is_estimated` says which one this
+        // is rather than letting the screen present a guess as a fact.
+        hireDate: staff.hire_date
+          ? String(staff.hire_date).split('T')[0]
+          : staff.created_at instanceof Date
+            ? staff.created_at.toISOString().split('T')[0]
+            : String(staff.created_at).split('T')[0],
+        hire_date_is_estimated: !staff.hire_date,
         stats: {
           approved_leaves: Number(leaveSummary?.c ?? 0),
           present_days: Number(attendanceSummary?.c ?? 0),
@@ -999,24 +1017,107 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/staff/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  /**
+   * Statutory identity and payment details, which the payroll engine reads and
+   * until now could only be set by SQL.
+   *
+   * Two rules the shape of this handler exists to enforce:
+   *
+   * 1. Everything is validated *before* anything is written. `withTenant` runs
+   *    its callback in a transaction, and returning a 4xx from inside that
+   *    callback returns normally — so the transaction commits and the rejected
+   *    write is kept. A refusal that leaves half a change behind is worse than
+   *    no validation at all, so the checks run outside it.
+   *
+   * 2. Pay is not the same permission as a phone number. A MANAGER may keep a
+   *    team's contact and identity details current; setting what somebody earns
+   *    or which account it lands in is an admin action. Splitting these means
+   *    the field is editable by the people who should edit it rather than by
+   *    everyone who can reach the screen.
+   */
+  const PAY_FIELDS = new Set([
+    'basic_salary', 'pay_currency', 'pay_method', 'bank_name', 'bank_branch',
+    'bank_account_no', 'bank_account_name', 'mobile_money_provider', 'mobile_money_number',
+  ]);
+  const IDENTITY_FIELDS = new Set([
+    'tax_residency', 'national_id', 'tax_id', 'social_security_no',
+    'health_insurance_no', 'pension_fund', 'hire_date',
+  ]);
+  const ENUMS: Record<string, readonly string[]> = {
+    tax_residency: ['RESIDENT', 'NON_RESIDENT'],
+    pension_fund: ['NSSF', 'PSSSF'],
+    pay_method: ['BANK', 'MOBILE_MONEY', 'CASH'],
+  };
+  const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+  fastify.patch('/staff/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as any;
     const body = req.body as any;
+
+    const allowed: Record<string, any> = {};
+    if (body.name  !== undefined) allowed.name  = body.name;
+    if (body.phone !== undefined) allowed.phone = body.phone;
+
+    const canSetPay = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user.role);
+    for (const field of [...IDENTITY_FIELDS, ...PAY_FIELDS]) {
+      if (body[field] === undefined) continue;
+      if (PAY_FIELDS.has(field) && !canSetPay) {
+        return reply.status(403).send({
+          error: `Changing ${field} requires an administrator — a manager can edit identity and contact details, but not pay.`,
+        });
+      }
+      const raw = body[field];
+      // '' from an untouched form field means "cleared", not "set to empty".
+      const value = raw === '' || raw === null ? null : raw;
+
+      if (value !== null && ENUMS[field] && !ENUMS[field].includes(String(value))) {
+        return reply.status(400).send({
+          error: `${field} must be one of ${ENUMS[field].join(', ')} — got "${value}".`,
+        });
+      }
+      if (field === 'hire_date' && value !== null && !ISO_DATE.test(String(value))) {
+        return reply.status(400).send({ error: 'hire_date must be YYYY-MM-DD.' });
+      }
+      if (field === 'basic_salary' && value !== null) {
+        const n = Number(value);
+        if (!Number.isFinite(n) || n < 0) {
+          return reply.status(400).send({ error: 'basic_salary must be a number and cannot be negative.' });
+        }
+        allowed[field] = String(n);
+        continue;
+      }
+      if (field === 'pay_currency' && value !== null) {
+        const code = String(value).trim().toUpperCase();
+        if (!/^[A-Z]{3}$/.test(code)) {
+          return reply.status(400).send({ error: 'pay_currency must be a three-letter code, such as TZS.' });
+        }
+        allowed[field] = code;
+        continue;
+      }
+      allowed[field] = typeof value === 'string' ? value.trim() || null : value;
+    }
+
     return withTenant(user.tenant_id, async (trx) => {
-      const allowed: Record<string, any> = {};
-      if (body.name  !== undefined) allowed.name  = body.name;
-      if (body.phone !== undefined) allowed.phone = body.phone;
       if (body.profile !== undefined) {
-        // Deep merge the profile json if it already exists, or just set it
-        const current = await trx.selectFrom('users').select('profile').where('id', '=', id).executeTakeFirst();
+        // Deep merge the profile json if it already exists, or just set it.
+        // Tenant-scoped: without it this reads another tenant's profile and
+        // merges the caller's keys into a copy of it.
+        const current = await trx.selectFrom('users').select('profile')
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
         allowed.profile = JSON.stringify({ ...(current?.profile as any || {}), ...body.profile });
       }
       allowed.updated_at = new Date();
-      return trx.updateTable('users').set(allowed)
+      const updated = await trx.updateTable('users').set(allowed)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .returning(['id', 'name', 'email', 'phone', 'role', 'active', 'profile'])
+        .returning(['id', 'name', 'email', 'phone', 'role', 'active', 'profile',
+                    'hire_date', 'tax_residency', 'national_id', 'tax_id',
+                    'social_security_no', 'health_insurance_no', 'pension_fund',
+                    'basic_salary', 'pay_currency', 'pay_method',
+                    'bank_name', 'bank_branch', 'bank_account_no', 'bank_account_name',
+                    'mobile_money_provider', 'mobile_money_number'])
         .executeTakeFirstOrThrow();
+      return { ...updated, hire_date_is_estimated: !updated.hire_date };
     });
   });
 
