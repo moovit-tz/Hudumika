@@ -7,6 +7,7 @@ import { useFullLayout } from '../hooks/useFullLayout.js';
 import { apiFetch } from '../lib/api.js';
 import type { TrialBalanceReport, TrialBalanceRow, LedgerReport, AccountType } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
 
 const TYPE_CFG: Record<AccountType, { label: string; color: string; bg: string }> = {
@@ -151,37 +152,35 @@ export const FinanceLedger: React.FC = () => {
   if (loading) return <div style={{ textAlign: 'center', color: 'var(--ink3)' }}>Loading ledger…</div>;
 
   return (
-    <div style={{ padding: '0 0 28px', maxWidth: isFullLayout ? 'none' : 1100 }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       {/* Header */}
-      <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom: 24 }}>
-        <div>
-          <PageHeader
-            crumbs={['FinOps', 'Ledger']}
-            titlePlain="Ledger"
-            titleEm="summary"
-            subtitle="General ledger — all accounts with transaction detail"
-          />
-        </div>
-        <div style={{ display:'flex', gap: 10, alignItems:'center' }}>
-          <Select value={String(periodIdx)} onValueChange={v => setPeriodIdx(Number(v))}>
-            <SelectTrigger aria-label="Period" className="input-field" style={{ height: 34, fontSize: 12 }}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {PERIODS.map((p, i) => <SelectItem key={p.label} value={String(i)}>{p.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <button type="button" title="Export ledger" className="btn btn-secondary btn-sm" style={{ gap: 6 }} onClick={exportCsv}>
-            <Icon name="download" size={13} />Export
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Finance', 'Accounts']}
+        titlePlain="Ledger"
+        titleEm="summary"
+        subtitle="General ledger — all accounts with transaction detail."
+        actions={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+            <Select value={String(periodIdx)} onValueChange={v => setPeriodIdx(Number(v))}>
+              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PERIODS.map((p, i) => <SelectItem key={p.label} value={String(i)}>{p.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <button type="button" title="Export ledger" className="btn btn-secondary btn-sm" style={{ gap: 6, whiteSpace: 'nowrap' }} onClick={exportCsv}>
+              <Icon name="download" size={13} /> Export
+            </button>
+          </div>
+        }
+      />
 
       {/* Summary cards */}
-      <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: 14, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
         {[
-          { label:'Active Accounts', value: accounts.length, color:'var(--teal)' },
-          { label:'Total Debits',    value: fmt(totals.dr), color:'#0891b2' },
-          { label:'Total Credits',   value: fmt(totals.cr), color:'#7c3aed' },
-          { label:'Net Movement',    value: fmt(totals.dr - totals.cr), color: totals.dr >= totals.cr ? '#059669' : '#ef4444' },
+          { label: 'Active Accounts', value: accounts.length, color: 'var(--teal)' },
+          { label: 'Total Debits',    value: fmt(totals.dr), color: '#0891b2' },
+          { label: 'Total Credits',   value: fmt(totals.cr), color: '#7c3aed' },
+          { label: 'Net Movement',    value: fmt(totals.dr - totals.cr), color: totals.dr >= totals.cr ? '#059669' : '#ef4444' },
         ].map(c => (
           // No accent bar across the top. Four cards each in a different
           // colour is decoration competing with the figures they carry.
@@ -192,22 +191,40 @@ export const FinanceLedger: React.FC = () => {
         ))}
       </div>
 
-      {/* Filters */}
-      <div style={{ display:'flex', gap: 10, marginBottom: 18, flexWrap:'wrap' }}>
-        <div style={{ position:'relative', flex:'1 1 180px', maxWidth: 260 }}>
-          <Icon name="search" size={13} color="var(--ink3)" style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)' }} />
-          <input title="Search accounts" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search account…" className="input-field" style={{ paddingLeft:32, height:34, fontSize:13, width:'100%' }} />
-        </div>
-        <div style={{ display:'flex', gap: 6, flexWrap:'wrap' }}>
-          {(['ALL', ...TYPE_ORDER] as const).map(t => (
-            <button key={t} type="button" title={`Filter by ${t}`}
-              onClick={() => setTypeFilter(t)}
-              style={{ padding:'var(--ds-btn-py-sm) 12px', borderRadius:20, border:'1px solid var(--border)', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)',
-                background: typeFilter===t ? (t==='ALL'?'var(--teal)':TYPE_CFG[t].color) : 'var(--white)',
-                color: typeFilter===t ? '#fff' : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {t === 'ALL' ? 'All' : TYPE_CFG[t].label}
-            </button>
-          ))}
+      {/* Filters Toolbar Card: Tabs on Left, Search on Right */}
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+        <Tabs value={typeFilter} onValueChange={v => setTypeFilter(v as AccountType | 'ALL')} variant="pill">
+          <TabsList>
+            <TabsTrigger value="ALL">All ({accounts.length})</TabsTrigger>
+            {TYPE_ORDER.map(t => (
+              <TabsTrigger key={t} value={t}>
+                {TYPE_CFG[t].label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+
+        <div style={{ position: 'relative', width: isMobile ? '100%' : 260 }}>
+          <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' } as React.CSSProperties} />
+          <input
+            type="text"
+            title="Search accounts"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search account…"
+            style={{
+              width: '100%',
+              padding: '8px 12px 8px 32px',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--r, 6px)',
+              fontSize: 13,
+              fontFamily: 'var(--font)',
+              background: 'var(--white)',
+              color: 'var(--ink)',
+              outline: 'none',
+              boxSizing: 'border-box'
+            }}
+          />
         </div>
       </div>
 

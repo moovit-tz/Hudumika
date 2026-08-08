@@ -1,29 +1,22 @@
-# Operations Full-Bleed Single Margin Axis Alignment Review
+# Expense Tracking Pagination Implementation Review
 
-This document records the exact alignment improvements executed to align all elements on `http://localhost:5173/clearos/ops` flush to the left and right margin bounding lines.
+This document records the exact pagination logic implemented on `http://localhost:5173/finance/expenses` ([`Expenses.tsx`](file:///d:/Apps/Hudumika/apps/web/src/pages/Expenses.tsx)).
 
 ---
 
-## 1. Full-Bleed Alignment & Layout Realignment
+## 1. Pagination Implementation Details
 
-1. **Eliminated Container Bottleneck (`cc-shell` & `cc-frame`)**:
-   - Removed artificial `max-width: 1400px` and `margin: 0 auto` centering on `.cc-shell`.
-   - Removed `padding: 12px 20px` inner offsets on `.cc-frame`, allowing the page container to span 100% of the viewport width.
-
-2. **Left Bounding Line Alignment (Left 0 Axis)**:
-   - Breadcrumbs (`Dashboard > Operations`) and Page Title (`Operations`) align at Left 0.
-   - First KPI Card (`ACTIVE SHIPMENTS`) left edge aligns at Left 0.
-   - First Summary Chip (`Checked In 1`) left edge aligns at Left 0.
-   - Table First Column (`REF NUMBER` header & `CLR-2026-0111` cell) aligns at Left 0.
-
-3. **Right Bounding Line Alignment (Right 0 Axis)**:
-   - Header actions (`List/Board toggle`, `+ New Shipment`, `(↻)` refresh button) extend to Right 0 (`justify-content: flex-end`).
-   - KPI Cards Grid expands to fill 100% width, placing Card 7 (`THIS MONTH`) right edge at Right 0.
-   - Toolbar Filter Controls (`My Cases`, `At Risk`, `Filter by v`) sit at Right 0 (`justify-content: space-between`).
-   - Table Last Column (`DAYS` header & arrow cells `26d ->`) extends flush to Right 0.
+1. **Standard Page Size**: Set `PAGE_SIZE = 10` matching platform conventions (`FinanceProducts.tsx`, `FinanceVendors.tsx`).
+2. **Page State & Reset Effect**:
+   - Maintains `page` state (default `1`).
+   - Automatically resets `page` to `1` when filters or search queries change.
+3. **Pager Footer Component**:
+   - Positioned at the bottom of the table list panel.
+   - Shows current record range (`Showing 1–10 of 41 records`) on the left.
+   - Provides `Previous`, `Page X of Y` indicator, and `Next` buttons with disabled states on bounds.
 
 ---
 
 ## 2. Verification
 - **`npm run typecheck`**: Verified 0 compilation errors across `apps/api` and `apps/web`.
-- **Single-Axis Bounding Box Verification**: Verified flush alignment on both left and right edges.
+- **UI Responsiveness**: Smooth page switching with instant slice rendering.

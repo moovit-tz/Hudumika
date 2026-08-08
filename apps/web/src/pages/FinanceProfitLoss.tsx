@@ -175,55 +175,44 @@ export const FinanceProfitLoss: React.FC = () => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       <PageHeader
-        crumbs={['FinOps', 'Profit & Loss']}
+        crumbs={['Finance', 'Accounts']}
         titlePlain="Profit and"
         titleEm="loss"
-        subtitle="Revenue less costs for the period."
+        subtitle="Income statement — freight & customs clearing operations."
+        actions={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+              <Icon name="download" size={13} /> Export
+            </button>
+          </div>
+        }
       />
-
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Profit &amp; Loss</div>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Income statement — freight &amp; customs clearing operations</div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 'auto', padding: '7px 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <button onClick={exportCsv} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="download" size={13} /> Export
-          </button>
-        </div>
-      </div>
 
       {loading ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading profit &amp; loss…</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* KPI summary */}
-        <div style={{ display: 'flex', gap: 14 }}>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           {[
-            // color/bg/icon are gone with the chip they fed; leaving them here
-            // would read as styling that simply stopped being applied.
             { label: 'Total Revenue', value: fmtM(revenueTotal) },
             { label: 'Gross Profit',  value: fmtM(grossProfit)  },
             { label: 'Net Profit',    value: fmtM(netProfit)    },
             { label: 'Gross Margin',  value: `${grossMargin}%`  },
             { label: 'Net Margin',    value: `${netMargin}%`    },
           ].map(s => (
-            // The 38px tinted icon chip is gone. Five of them, each in its own
-            // colour, took the eye before any of the numbers did — and the
-            // icons were decorative anyway: a percent sign next to "Gross
-            // Margin" says nothing the label has not already said.
-            <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '14px 16px' }}>
+            <div key={s.label} style={{ flex: 1, minWidth: 140, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '14px 16px' }}>
               <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{s.value}</div>
               <div style={{ fontSize: 10.5, color: 'var(--ink3)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{s.label}</div>
             </div>
@@ -231,8 +220,8 @@ export const FinanceProfitLoss: React.FC = () => {
         </div>
 
         {/* P&L Statement */}
-        <div style={{ display: 'flex', gap: 14 }}>
-          <div style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 300, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
             <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--teal)' }} />
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Income</span>
@@ -243,7 +232,7 @@ export const FinanceProfitLoss: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
+          <div style={{ flex: 1, minWidth: 300, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
             <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)' }} />
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Costs &amp; Profit</span>

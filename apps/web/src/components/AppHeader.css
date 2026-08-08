@@ -19,20 +19,19 @@
 [data-navbar="sticky"] .app-header { position: sticky; top: 0; }
 [data-navbar="hidden"] .app-header { display: none; }
 
-/* ── Inner wrapper — constrained in boxed mode ── */
 .app-header-inner {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 16px;
+  padding: 0 var(--page-pad-x, 8px);
   width: 100%;
-  max-width: 1380px;
-  margin: 0 auto;
-  transition: max-width 0.25s ease;
+  max-width: 100% !important;
+  margin: 0;
+  transition: padding 0.25s ease;
 }
 
 [data-layout="full"] .app-header-inner {
-  max-width: 100%;
+  max-width: 100% !important;
 }
 
 /* ── Search bar (kept for reference, now hidden) ── */

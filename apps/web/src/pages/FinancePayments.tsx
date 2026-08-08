@@ -7,6 +7,7 @@ import { MetricsRow } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
 import { Combobox } from '../components/ui/combobox.js';
 import { showAlert } from '../lib/alert.js';
@@ -119,6 +120,7 @@ export const FinancePayments: React.FC = () => {
   const [invoices, setInvoices] = useState<InvoiceOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState('ALL');
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
@@ -210,19 +212,59 @@ export const FinancePayments: React.FC = () => {
     }
   };
 
-  const filtered = payments.filter(p =>
-    !search ||
-    p.invoice_number?.toLowerCase().includes(search.toLowerCase()) ||
-    (p.client_name || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = payments.filter(p => {
+    const matchesTab = activeTab === 'ALL' || (p.method || '').toLowerCase().includes(activeTab.toLowerCase());
+    const matchesSearch = !search ||
+      p.invoice_number?.toLowerCase().includes(search.toLowerCase()) ||
+      (p.client_name || '').toLowerCase().includes(search.toLowerCase()) ||
+      (p.method || '').toLowerCase().includes(search.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
 
   const totalAmount = payments.reduce((sum, p) => sum + Number(p.amount), 0);
+
+  const bankTransferTotal = payments
+    .filter(p => (p.method || '').toLowerCase().includes('bank'))
+    .reduce((sum, p) => sum + Number(p.amount), 0);
+  const bankTransferCount = payments
+    .filter(p => (p.method || '').toLowerCase().includes('bank')).length;
+
+  const cashTotal = payments
+    .filter(p => (p.method || '').toLowerCase().includes('cash'))
+    .reduce((sum, p) => sum + Number(p.amount), 0);
+  const cashCount = payments
+    .filter(p => (p.method || '').toLowerCase().includes('cash')).length;
+
+  const chequeTotal = payments
+    .filter(p => (p.method || '').toLowerCase().includes('cheque') || (p.method || '').toLowerCase().includes('check'))
+    .reduce((sum, p) => sum + Number(p.amount), 0);
+  const chequeCount = payments
+    .filter(p => (p.method || '').toLowerCase().includes('cheque') || (p.method || '').toLowerCase().includes('check')).length;
+
+  const mobileMoneyTotal = payments
+    .filter(p => (p.method || '').toLowerCase().includes('mobile') || (p.method || '').toLowerCase().includes('mpesa') || (p.method || '').toLowerCase().includes('m-pesa'))
+    .reduce((sum, p) => sum + Number(p.amount), 0);
+  const mobileMoneyCount = payments
+    .filter(p => (p.method || '').toLowerCase().includes('mobile') || (p.method || '').toLowerCase().includes('mpesa') || (p.method || '').toLowerCase().includes('m-pesa')).length;
+
   const thisMonth = payments.filter(p => {
     if (!p.payment_date) return false;
     const d = new Date(p.payment_date);
     const now = new Date();
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
   }).length;
+
+  const PAGE_SIZE = 15;
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, activeTab]);
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const offset = (currentPage - 1) * PAGE_SIZE;
+  const pagedPayments = filtered.slice(offset, offset + PAGE_SIZE);
 
   // Full page, matching Quotations: the form replaces the list rather than
   // floating over it. Submit stays on the <form> so Enter still saves.
@@ -318,25 +360,80 @@ export const FinancePayments: React.FC = () => {
         <MetricsRow cards={[
           {
             title: 'Total Collected',
-            value: `TZS ${totalAmount.toLocaleString()}`,
+            value: fmt(totalAmount, 'TZS'),
             sub1Label: 'PAYMENTS', sub1Value: String(payments.length),
-            sub2Label: 'THIS MONTH', sub2Value: String(thisMonth), barHighlight: 'var(--green)'
+            sub2Label: 'THIS MONTH', sub2Value: String(thisMonth),
+            barHighlight: 'var(--green)'
+          },
+          {
+            title: 'Bank Transfer',
+            value: fmt(bankTransferTotal, 'TZS'),
+            sub1Label: 'TRANSACTIONS', sub1Value: String(bankTransferCount),
+            barHighlight: 'var(--teal)'
+          },
+          {
+            title: 'Cash',
+            value: fmt(cashTotal, 'TZS'),
+            sub1Label: 'TRANSACTIONS', sub1Value: String(cashCount),
+            barHighlight: 'var(--blue)'
+          },
+          {
+            title: 'Cheque',
+            value: fmt(chequeTotal, 'TZS'),
+            sub1Label: 'TRANSACTIONS', sub1Value: String(chequeCount),
+            barHighlight: '#7c3aed'
+          },
+          {
+            title: 'Mobile Money',
+            value: fmt(mobileMoneyTotal, 'TZS'),
+            sub1Label: 'TRANSACTIONS', sub1Value: String(mobileMoneyCount),
+            barHighlight: 'var(--gold)'
           },
         ]} />
       </div>
 
       {/* -- Main Content Area -- */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', marginTop: 16 }}>
 
         {/* -- Left: List -- */}
-        <div style={{ flex: isSplit ? '0 0 55%' : 1, padding: '24px 28px', borderRight: isSplit ? '1px solid var(--border)' : 'none', overflowY: 'auto' }}>
-          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
+        <div style={{ flex: isSplit ? '0 0 55%' : 1, display: 'flex', flexDirection: 'column', borderRight: isSplit ? '1px solid var(--border)' : 'none', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden', display: 'flex', flexDirection: 'column', flex: 1 }}>
 
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 12 }}>
-              <input type="text" placeholder="Search payments..." value={search} onChange={e => setSearch(e.target.value)} style={{ padding: '8px 12px', border: '1.5px solid var(--border)', borderRadius: 6, width: 250, fontSize: 13 }} />
+            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <Tabs value={activeTab} onValueChange={setActiveTab} variant="pill">
+                <TabsList>
+                  <TabsTrigger value="ALL">All ({payments.length})</TabsTrigger>
+                  <TabsTrigger value="Bank Transfer">Bank Transfer</TabsTrigger>
+                  <TabsTrigger value="Cash">Cash</TabsTrigger>
+                  <TabsTrigger value="Cheque">Cheque</TabsTrigger>
+                  <TabsTrigger value="Mobile Money">Mobile Money</TabsTrigger>
+                </TabsList>
+              </Tabs>
+
+              <div style={{ position: 'relative', width: isMobile ? '100%' : 260 }}>
+                <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' } as React.CSSProperties} />
+                <input
+                  type="text"
+                  placeholder="Search payments..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px 8px 32px',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--r, 6px)',
+                    fontSize: 13,
+                    fontFamily: 'var(--font)',
+                    background: 'var(--white)',
+                    color: 'var(--ink)',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
             </div>
 
-            <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', textAlign: 'left' }}>
+            <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', textAlign: 'left', width: '100%' }}>
               <thead>
                 <tr style={{ background: 'var(--bg)', color: 'var(--ink3)', fontSize: 11.5, fontWeight: 600, borderBottom: '1px solid var(--border)' }}>
                   <th style={{ padding: '12px 16px' }}>Invoice</th>
@@ -351,7 +448,7 @@ export const FinancePayments: React.FC = () => {
                   <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--ink3)' }}>Loading payments…</td></tr>
                 ) : filtered.length === 0 ? (
                   <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--ink3)' }}>No payments found.</td></tr>
-                ) : filtered.map(p => (
+                ) : pagedPayments.map(p => (
                   <tr key={p.id} onClick={() => setSelectedPayment(p)} style={{ borderBottom: '1px solid var(--border)', fontSize: 13, color: 'var(--navy)', cursor: 'pointer', background: selectedPayment?.id === p.id ? 'var(--bg)' : 'var(--white)' }}
                       onMouseEnter={e => { if (selectedPayment?.id !== p.id) e.currentTarget.style.background = '#f8fafc'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = selectedPayment?.id === p.id ? 'var(--bg)' : 'var(--white)'; }}>
@@ -376,6 +473,48 @@ export const FinancePayments: React.FC = () => {
                 ))}
               </tbody>
             </table></div>
+
+            {/* Pagination Controls */}
+            {filtered.length > PAGE_SIZE && (
+              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, background: 'var(--white)', marginTop: 'auto' }}>
+                <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
+                  Showing <strong>{offset + 1}–{Math.min(offset + PAGE_SIZE, filtered.length)}</strong> of <strong>{filtered.length}</strong> payments
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <button
+                    type="button"
+                    disabled={currentPage <= 1}
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      padding: 'var(--ds-btn-py-sm) 12px', minHeight: 'var(--ctl-h-sm)',
+                      border: '1px solid var(--border)', borderRadius: 'var(--r)',
+                      background: 'var(--white)', color: 'var(--ink2)', fontSize: 11.5, fontWeight: 700,
+                      cursor: currentPage <= 1 ? 'not-allowed' : 'pointer', opacity: currentPage <= 1 ? 0.45 : 1
+                    }}
+                  >
+                    <Icon name="chevronLeft" size={13} /> Previous
+                  </button>
+                  <span style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, padding: '0 6px' }}>
+                    Page {currentPage} of {pageCount}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={currentPage >= pageCount}
+                    onClick={() => setPage(p => Math.min(pageCount, p + 1))}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5,
+                      padding: 'var(--ds-btn-py-sm) 12px', minHeight: 'var(--ctl-h-sm)',
+                      border: '1px solid var(--border)', borderRadius: 'var(--r)',
+                      background: 'var(--white)', color: 'var(--ink2)', fontSize: 11.5, fontWeight: 700,
+                      cursor: currentPage >= pageCount ? 'not-allowed' : 'pointer', opacity: currentPage >= pageCount ? 0.45 : 1
+                    }}
+                  >
+                    Next <Icon name="chevronRight" size={13} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

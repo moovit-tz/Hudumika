@@ -51,33 +51,28 @@ export const FinanceAgedPayables: React.FC = () => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       <PageHeader
-        crumbs={['FinOps', 'Aged Payables']}
+        crumbs={['Finance', 'Accounts']}
         titlePlain="Aged"
         titleEm="payables"
-        subtitle="What is owed to suppliers, by how overdue."
+        subtitle={`Outstanding supplier balances by age${asOf ? ` — as of ${asOf}` : ''}`}
+        actions={
+          <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+            <Icon name="download" size={13} /> Export
+          </button>
+        }
       />
-
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Aged Payables</div>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Outstanding supplier balances by age — as of {asOf}</div>
-        </div>
-        <button onClick={exportCsv} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-          <Icon name="download" size={13} /> Export
-        </button>
-      </div>
 
       {loading ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading aged payables…</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Summary */}
-        <div style={{ display: 'flex', gap: 14 }}>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           {[
             { label: 'Total Payable',     value: `${cur} ${(totals.total / 1_000_000).toFixed(1)}M`,       color: 'var(--blue)',  bg: 'var(--blue-l)',       icon: 'dollarSign'   },
             { label: 'Current',           value: `${cur} ${(totals.current / 1_000_000).toFixed(1)}M`,     color: 'var(--green)', bg: 'var(--green-l)',       icon: 'checkCircle'  },
@@ -99,7 +94,7 @@ export const FinanceAgedPayables: React.FC = () => {
         {/* Aging distribution */}
         <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 20px' }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 14 }}>Aging Distribution</div>
-          <div style={{ display: 'flex', gap: 16 }}>
+          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             {[
               { label: 'Current',    value: totals.current,      color: 'var(--green)'  },
               { label: '1–30 Days',  value: totals.days_1_30,    color: 'var(--gold)'       },
@@ -109,7 +104,7 @@ export const FinanceAgedPayables: React.FC = () => {
             ].map(band => {
               const pct = totals.total > 0 ? Math.round((band.value / totals.total) * 100) : 0;
               return (
-                <div key={band.label} style={{ flex: 1 }}>
+                <div key={band.label} style={{ flex: 1, minWidth: 100 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
                     <span style={{ fontSize: 11, color: 'var(--ink2)', fontWeight: 500 }}>{band.label}</span>
                     <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink)' }}>{pct}%</span>
@@ -127,13 +122,13 @@ export const FinanceAgedPayables: React.FC = () => {
         {/* Table */}
         <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
           <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Supplier Aging Detail</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Supplier Aging Detail ({rows.length})</span>
           </div>
           {rows.length === 0 ? (
             <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No outstanding supplier balances.</div>
           ) : (
           <div className="rtbl-wrap" style={{ overflowX: 'auto' }}>
-            <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, minWidth: 800 }}>
+            <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%', minWidth: 800 }}>
               <thead>
                 <tr style={{ background: 'var(--bg)' }}>
                   {['Supplier', 'Current', '1–30 Days', '31–60 Days', '61–90 Days', '90+ Days', 'Total', 'Status'].map(h => (

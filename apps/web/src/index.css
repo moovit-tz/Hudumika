@@ -2386,12 +2386,12 @@ select.input-field { cursor: pointer; }
   display: flex;
   flex: 1;
   overflow: hidden;
-  max-width: 100%;
+  max-width: 100% !important;
   margin: 0;
   width: 100%;
-  border: none;
-  border-radius: 0;
-  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--white);
 }
 
 /* Outer frame that provides the workspace behind cc-shell */
@@ -2399,8 +2399,8 @@ select.input-field { cursor: pointer; }
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: transparent;
-  padding: 0;
+  background: var(--bg);
+  padding: var(--page-pad-y, 8px) var(--page-pad-x, 8px);
   overflow: hidden;
   min-height: 0;
   width: 100%;
@@ -2422,8 +2422,8 @@ select.input-field { cursor: pointer; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 0 12px 0;
-  background: transparent;
+  padding: 14px 20px 8px;
+  background: var(--white);
   flex-shrink: 0;
   gap: 12px;
   flex-wrap: wrap;
@@ -3531,38 +3531,17 @@ select.input-field { cursor: pointer; }
    ════════════════════════════════════════════════════════════ */
 .page-layout {
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
-  /* Top matches the sides. The brief was "the same padding from left and
-     top": .app-shell-content contributes --page-pad-* equally on both axes,
-     but this card only padded its sides, so content sat 37px from the left
-     and 17px from the top of the same box. Keeping the two in step here is
-     what makes the two distances equal on every page at every breakpoint —
-     bottom stays 0 because pages own their own trailing space. */
+  max-width: 100% !important;
+  margin: 0;
   padding: 20px 20px 0;
   box-sizing: border-box;
   background: var(--white);
   border: 1px solid var(--border);
   border-radius: 0 0 9px 9px;
-
-  /* Eleven app stylesheets set exactly this trio on .page-layout so their
-     footer would sit at the bottom of a short page. Stating it once means
-     the apps that never got their own stylesheet behave the same, instead
-     of leaving .page-footer's `margin-top: auto` in a block container,
-     where auto computes to 0 and the footer has no separation at all. */
   min-height: 100%;
   display: flex;
   flex-direction: column;
-
-  /* The gap between the page's content and the footer. It has to be gap
-     rather than a margin on either side: the footer's own margin-top is
-     `auto` so it can be pushed down on short pages, and an auto margin
-     resolves to 0 as soon as content fills the column — which is why the
-     footer's divider was landing flush against the card above it. A flex
-     container applies row-gap regardless, so the separation holds whether
-     the page is short or long. 40px is the figure .page-footer already
-     declared before every app overrode it. */
-  row-gap: 40px;
+  row-gap: 32px;
 }
 /* Light mode: scope --bg to white inside page-layout so page root containers
    that use var(--bg) as their background become white too */
@@ -3576,15 +3555,6 @@ html:not([data-theme="dark"]) .page-layout {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-}
-@media (max-width: 1100px) {
-  .page-layout { padding: 20px 20px 0; }
-}
-@media (max-width: 768px) {
-  .page-layout { padding: 16px 16px 0; }
-}
-@media (max-width: 480px) {
-  .page-layout { padding: 12px 12px 0; }
 }
 
 /* ShipmentDetail's cover/hero band bleeds out of .page-layout's own
@@ -5932,45 +5902,30 @@ html:not([data-theme="dark"]) .page-layout {
 /* ── MetricCard ── */
 .mc-row {
   display: flex;
-  gap: 14px;
-  margin-bottom: 20px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
-.mc-row::-webkit-scrollbar { display: none; }
 .mc-card {
-  background: var(--white); border-radius: 12px; border: 1px solid var(--border);
-  padding: 20px; box-shadow: var(--shadow-sm);
-  /* 220px used to let sub-labels ("SHIPMENTS CALC.") and values ("49,440.75
-     kg") wrap mid-word before the row's own overflow-x:auto ever kicked in —
-     280px is wide enough for those to stay on one line; narrower viewports
-     now scroll the row instead of squeezing cards below a readable width. */
-  flex: 1 0 280px; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--white); border-radius: 10px; border: 1px solid var(--border);
+  padding: 12px 14px; box-shadow: var(--shadow-sm);
+  flex: 1 1 170px; min-width: 0; display: flex; flex-direction: column; overflow: hidden;
 }
-.mc-head       { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 14px; }
-.mc-head-left  { display: flex; align-items: center; gap: 10px; }
-.mc-title      { font-size: 11.5px; font-weight: 700; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap; }
+.mc-head       { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 8px; }
+.mc-head-left  { display: flex; align-items: center; gap: 8px; }
+.mc-title      { font-size: 11px; font-weight: 700; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mc-refresh-btn {
-  color: var(--ink3); cursor: pointer; flex-shrink: 0; margin-top: 2px;
-  background: none; border: none; padding: 5px; border-radius: 6px; display: flex;
+  color: var(--ink3); cursor: pointer; flex-shrink: 0; margin-top: 1px;
+  background: none; border: none; padding: 4px; border-radius: 6px; display: flex;
 }
 .mc-refresh-btn:hover { background: var(--bg); color: var(--ink); }
-.mc-value-row  { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; min-width: 0; }
-/* `white-space: nowrap` on a fixed 26px inside `.mc-card { overflow: hidden }`
-   means a long value is silently cut off rather than shrunk — "295,622.81 kg"
-   already needs 240px of a 285px card at 1024px wide, and a tenant an order of
-   magnitude larger would lose digits with no sign anything was hidden. The
-   size now scales with the viewport down to 19px, and the element may shrink,
-   so the number stays whole. */
-.mc-value      { font-size: clamp(19px, 1.55vw, 26px); font-weight: 800; color: var(--navy); letter-spacing: -0.5px; line-height: 1.05; white-space: nowrap; min-width: 0; }
-/* Two sub-columns with nowrap labels ("NOT YET CALCULATED", "SHIPMENTS CALC.")
-   overflowed a narrow card side by side. They wrap to a second line now, and
-   the 18px gap only applies between columns on the same line. */
-.mc-sub-row    { display: flex; gap: 6px 18px; margin-bottom: 12px; flex-wrap: wrap; min-width: 0; }
+.mc-value-row  { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; min-width: 0; }
+.mc-value      { font-size: clamp(16px, 1.25vw, 22px); font-weight: 800; color: var(--navy); letter-spacing: -0.4px; line-height: 1.1; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mc-sub-row    { display: flex; gap: 4px 12px; margin-bottom: 4px; flex-wrap: wrap; min-width: 0; }
 .mc-sub-row > div { min-width: 0; }
-.mc-sub-label  { font-size: 9.5px; font-weight: 700; color: var(--ink3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 2px; }
-.mc-sub-value  { font-size: 12.5px; font-weight: 700; color: var(--ink2); white-space: nowrap; }
-.mc-spark-wrap { margin: auto -20px -20px; line-height: 0; }
+.mc-sub-label  { font-size: 9px; font-weight: 700; color: var(--ink3); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 1px; }
+.mc-sub-value  { font-size: 11.5px; font-weight: 700; color: var(--ink2); white-space: nowrap; }
+.mc-spark-wrap { margin: auto -14px -12px; line-height: 0; }
 .mc-sparkline-svg { display: block; overflow: visible; flex-shrink: 0; }
 .mc-minibar-svg   { display: block; flex-shrink: 0; }
 .mc-trend {
@@ -6067,8 +6022,17 @@ html[data-expanded="true"] .fin-shell {
 .app-shell-content .seal-page,
 .app-shell-content .trk-dashboard,
 .app-shell-content .comply-page,
-.app-shell-content .fin-page {
-  padding-left: 0;
-  padding-right: 0;
-  padding-top: 0;
+.app-shell-content .fin-page,
+.app-shell-content .inv-page,
+.app-shell-content .crm-page,
+.app-shell-content .store-page,
+.app-shell-content .workspace-page,
+.app-shell-content .cloud-page,
+.app-shell-content .contacts-page,
+.app-shell-content .bliss-page,
+.app-shell-content .ai-page,
+.app-shell-content .onepi-page {
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
 }

@@ -33,6 +33,19 @@ function periodRange(key: string): { from: string; to: string } {
   }
 }
 
+const PAGE_SIZE = 15;
+
+const pagerBtn = (disabled: boolean): React.CSSProperties => ({
+  display: 'inline-flex', alignItems: 'center', gap: 5,
+  padding: 'var(--ds-btn-py-sm) 12px',
+  minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25,
+  border: '1px solid var(--border)', borderRadius: 'var(--r)',
+  background: 'var(--white)', color: 'var(--ink2)',
+  fontSize: 11.5, fontWeight: 700, fontFamily: 'var(--font)',
+  cursor: disabled ? 'not-allowed' : 'pointer',
+  opacity: disabled ? 0.45 : 1,
+});
+
 /** Tax accounts from the standard seeded chart of accounts (021_finance_gl.sql).
  *  Taxable base is derived (taxAmt / rate) since only the tax amount itself is
  *  posted to the GL — there's no separately stored taxable-base figure. */
@@ -101,6 +114,17 @@ export const FinanceTaxReport: React.FC = () => {
   const totalTax = summary.reduce((a, b) => a + b.taxAmt, 0);
   const totalInv = summary.reduce((a, b) => a + b.invoices, 0);
 
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [period]);
+
+  const pageCount = Math.max(1, Math.ceil(transactions.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const offset = (currentPage - 1) * PAGE_SIZE;
+  const pagedTransactions = transactions.slice(offset, offset + PAGE_SIZE);
+
   function exportCsv() {
     const rows = [
       ['Ref', 'Description', 'Date', 'Tax Type', 'Taxable Amount', 'Tax Amount', 'Rate'],
@@ -116,41 +140,36 @@ export const FinanceTaxReport: React.FC = () => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       <PageHeader
-        crumbs={['FinOps', 'Tax']}
+        crumbs={['Finance', 'Tax']}
         titlePlain="Tax"
         titleEm="report"
-        subtitle="VAT and duty collected and payable."
+        subtitle="VAT and withholding tax accrued to the general ledger."
+        actions={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+              <Icon name="download" size={13} /> Export
+            </button>
+          </div>
+        }
       />
-
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 0', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Tax Report</div>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>VAT and withholding tax accrued to the general ledger</div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <Select value={period} onValueChange={setPeriod}>
-            <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 'auto', padding: '7px 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <button onClick={exportCsv} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="download" size={13} /> Export
-          </button>
-        </div>
-      </div>
 
       {loading ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading tax report…</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Summary cards */}
-        <div style={{ display: 'flex', gap: 14 }}>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           {[
             { label: 'Total Taxable Base (est.)', value: fmtFull(totalTaxable), icon: 'dollarSign', color: 'var(--blue)',   bg: 'var(--blue-l)' },
             { label: 'Total Tax Accrued',         value: fmtFull(totalTax),     icon: 'percent',    color: 'var(--teal)',   bg: 'var(--teal-l)' },
@@ -177,7 +196,7 @@ export const FinanceTaxReport: React.FC = () => {
           {summary.length === 0 ? (
             <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No tax activity for this period.</div>
           ) : (
-          <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12 }}>
+          <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
                 {['Tax Name', 'Rate', 'Taxable Base (est.)', 'Tax Accrued', 'Entries', 'Share'].map(h => (
@@ -221,12 +240,13 @@ export const FinanceTaxReport: React.FC = () => {
         {/* Transaction detail table */}
         <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
           <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Taxable Transactions</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Taxable Transactions ({transactions.length})</span>
           </div>
           {transactions.length === 0 ? (
             <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No taxable transactions for this period.</div>
           ) : (
-          <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12 }}>
+          <>
+          <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
                 {['Reference', 'Description', 'Date', 'Tax Type', 'Taxable Base (est.)', 'Tax Amount', 'Rate'].map(h => (
@@ -235,8 +255,8 @@ export const FinanceTaxReport: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((tx, i) => (
-                <tr key={`${tx.ref}-${i}`} style={{ borderBottom: i < transactions.length - 1 ? '1px solid var(--border)' : 'none' }}>
+              {pagedTransactions.map((tx, i) => (
+                <tr key={`${tx.ref}-${i}`} style={{ borderBottom: i < pagedTransactions.length - 1 ? '1px solid var(--border)' : 'none' }}>
                   <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 600, fontFamily: 'var(--mono)', fontSize: 11 }}>{tx.ref}</td>
                   <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 500 }}>{tx.description}</td>
                   <td style={{ padding: '10px 16px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{new Date(tx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</td>
@@ -250,6 +270,37 @@ export const FinanceTaxReport: React.FC = () => {
               ))}
             </tbody>
           </table></div>
+
+          {/* Pagination Controls */}
+          {transactions.length > PAGE_SIZE && (
+            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, background: 'var(--white)' }}>
+              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
+                Showing <strong>{offset + 1}–{Math.min(offset + PAGE_SIZE, transactions.length)}</strong> of <strong>{transactions.length}</strong> transactions
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button
+                  type="button"
+                  disabled={currentPage <= 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  style={pagerBtn(currentPage <= 1)}
+                >
+                  <Icon name="chevronLeft" size={13} /> Previous
+                </button>
+                <span style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, padding: '0 6px' }}>
+                  Page {currentPage} of {pageCount}
+                </span>
+                <button
+                  type="button"
+                  disabled={currentPage >= pageCount}
+                  onClick={() => setPage(p => Math.min(pageCount, p + 1))}
+                  style={pagerBtn(currentPage >= pageCount)}
+                >
+                  Next <Icon name="chevronRight" size={13} />
+                </button>
+              </div>
+            </div>
+          )}
+          </>
           )}
         </div>
       </div>

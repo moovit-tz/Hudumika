@@ -180,19 +180,17 @@ export function AccountingIntegrations() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, background: 'var(--bg)' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       <PageHeader
-        crumbs={['FinOps', 'Integrations']}
+        crumbs={['Finance', 'Integrations']}
         titlePlain="Accounting"
         titleEm="integrations"
         subtitle="Connect the ledger to Xero, QuickBooks or Zoho and keep them in step."
       />
 
-      {/* Page header + tabs */}
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '20px 0 0', flexShrink: 0 }}>
-        <h2 style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)', margin: '0 0 4px' }}>Integrations</h2>
-        <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '0 0 16px' }}>Connect ClearOS with your accounting platforms and payment providers.</p>
-        <div style={{ display: 'flex', gap: 0, borderTop: '1px solid var(--border)', marginTop: 4 }}>
+      {/* Tabs */}
+      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 0 }}>
           {(['connected', 'marketplace'] as TabId[]).map(tab => (
             <button key={tab} type="button" onClick={() => setActiveTab(tab)}
               style={{ padding: 'var(--ds-btn-py) 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer', border: 'none', background: 'none', fontFamily: 'var(--font)', color: activeTab === tab ? 'var(--teal)' : 'var(--ink3)', borderBottom: activeTab === tab ? '2px solid var(--teal)' : '2px solid transparent', marginBottom: -1, transition: 'all 0.15s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>

@@ -23,6 +23,19 @@ const CATS: Record<string, { label: string; color: string }> = {
   FUEL:            { label: 'Fuel',            color: '#0891b2' },
   MAINTENANCE:     { label: 'Maintenance',     color: '#7c3aed' },
 };
+const PAGE_SIZE = 15;
+
+const pagerBtn = (disabled: boolean): React.CSSProperties => ({
+  display: 'inline-flex', alignItems: 'center', gap: 5,
+  padding: 'var(--ds-btn-py-sm) 12px',
+  minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25,
+  border: '1px solid var(--border)', borderRadius: 'var(--r)',
+  background: 'var(--white)', color: 'var(--ink2)',
+  fontSize: 11.5, fontWeight: 700, fontFamily: 'var(--font)',
+  cursor: disabled ? 'not-allowed' : 'pointer',
+  opacity: disabled ? 0.45 : 1,
+});
+
 function catLabel(cat: string) { return CATS[cat]?.label ?? cat; }
 function catColor(cat: string) { return CATS[cat]?.color ?? 'var(--ink3)'; }
 
@@ -100,6 +113,17 @@ export const FinanceExpensesReport: React.FC = () => {
     return { expenses, monthLabels, monthlyTotals, totalExpenses, thisMonthTotal, categoryBreakdown, largestCategory };
   }, [rawExpenses, period, category]);
 
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [period, category]);
+
+  const pageCount = Math.max(1, Math.ceil(expenses.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const offset = (currentPage - 1) * PAGE_SIZE;
+  const pagedExpenses = expenses.slice(offset, offset + PAGE_SIZE);
+
   const allCategories = useMemo(() => Array.from(new Set(rawExpenses.map(e => e.category))).sort(), [rawExpenses]);
 
   function exportCsv() {
@@ -117,40 +141,35 @@ export const FinanceExpensesReport: React.FC = () => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       <PageHeader
-        crumbs={['FinOps', 'Expenses']}
+        crumbs={['Finance', 'Reports']}
         titlePlain="Expense"
         titleEm="report"
         subtitle="What was spent, by category and period."
+        actions={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger aria-label="Category" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="All Categories">All Categories</SelectItem>
+                {allCategories.map(c => <SelectItem key={c} value={c}>{catLabel(c)}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={period} onValueChange={v => setPeriod(v as Period)}>
+              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+              <Icon name="download" size={13} /> Export
+            </button>
+          </div>
+        }
       />
 
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 0', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Expenses Report</div>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Operational costs by category and period</div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger aria-label="Category" style={{ width: 'auto', height: 'auto', padding: '7px 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All Categories">All Categories</SelectItem>
-              {allCategories.map(c => <SelectItem key={c} value={c}>{catLabel(c)}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={period} onValueChange={v => setPeriod(v as Period)}>
-            <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 'auto', padding: '7px 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <button onClick={exportCsv} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="download" size={13} /> Export
-          </button>
-        </div>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Summary cards */}
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
@@ -206,12 +225,12 @@ export const FinanceExpensesReport: React.FC = () => {
           </div>
         </div>
 
-        {/* Table */}
+        {/* Table Container Card */}
         <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
           <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Expense Details</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Expense Details ({expenses.length})</span>
           </div>
-          <div className="rtbl-wrap" style={{ overflowX: 'auto' }}><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12 }}>
+          <div className="rtbl-wrap" style={{ overflowX: 'auto' }}><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
                 {['Name', 'Category', 'Date', 'Amount'].map(h => (
@@ -226,8 +245,8 @@ export const FinanceExpensesReport: React.FC = () => {
                 <tr><td colSpan={4} style={{ padding: '32px', textAlign: 'center', color: 'var(--red)' }}>{loadError}</td></tr>
               ) : expenses.length === 0 ? (
                 <tr><td colSpan={4} style={{ padding: '32px', textAlign: 'center', color: 'var(--ink3)' }}>No expenses in this period.</td></tr>
-              ) : expenses.map((x, i) => (
-                <tr key={x.e.id} style={{ borderBottom: i < expenses.length - 1 ? '1px solid var(--border)' : 'none' }}>
+              ) : pagedExpenses.map((x, i) => (
+                <tr key={x.e.id} style={{ borderBottom: i < pagedExpenses.length - 1 ? '1px solid var(--border)' : 'none' }}>
                   <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 500 }}>{x.e.name}</td>
                   <td style={{ padding: '10px 16px' }}>
                     <span style={{ fontSize: 10, fontWeight: 700, color: catColor(x.e.category), background: catColor(x.e.category) + '1a', borderRadius: 5, padding: '2px 7px' }}>{catLabel(x.e.category)}</span>
@@ -238,6 +257,36 @@ export const FinanceExpensesReport: React.FC = () => {
               ))}
             </tbody>
           </table></div>
+
+          {/* Pagination Controls */}
+          {expenses.length > PAGE_SIZE && (
+            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, background: 'var(--white)' }}>
+              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
+                Showing <strong>{offset + 1}–{Math.min(offset + PAGE_SIZE, expenses.length)}</strong> of <strong>{expenses.length}</strong> expenses
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button
+                  type="button"
+                  disabled={currentPage <= 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  style={pagerBtn(currentPage <= 1)}
+                >
+                  <Icon name="chevronLeft" size={13} /> Previous
+                </button>
+                <span style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, padding: '0 6px' }}>
+                  Page {currentPage} of {pageCount}
+                </span>
+                <button
+                  type="button"
+                  disabled={currentPage >= pageCount}
+                  onClick={() => setPage(p => Math.min(pageCount, p + 1))}
+                  style={pagerBtn(currentPage >= pageCount)}
+                >
+                  Next <Icon name="chevronRight" size={13} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

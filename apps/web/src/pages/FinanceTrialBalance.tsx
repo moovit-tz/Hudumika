@@ -5,6 +5,7 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { apiFetch } from '../lib/api.js';
 import type { TrialBalanceReport, AccountType } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Tabs, TabsList, TabsTrigger } from '../components/ui/tabs.js';
 import { PageHeader } from '../components/PageHeader.js';
 
 const TYPE_CFG: Record<AccountType, { label: string; color: string; bg: string }> = {
@@ -122,36 +123,34 @@ export const FinanceTrialBalance: React.FC = () => {
   if (error) return <div style={{ textAlign: 'center', color: 'var(--red)' }}>{error}</div>;
 
   return (
-    <div style={{ padding: '0 0 28px', maxWidth: 960 }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       {/* Header */}
-      <div style={{ display:'flex', flexWrap:'wrap', alignItems:'flex-start', justifyContent:'space-between', gap:12, marginBottom: 24 }}>
-        <div>
-          <PageHeader
-            crumbs={['FinOps', 'Trial Balance']}
-            titlePlain="Trial"
-            titleEm="balance"
-          />
-          <p style={{ fontSize: 13, color: 'var(--ink3)', margin: '4px 0 0' }}>{co.name} — verifying debits equal credits</p>
-        </div>
-        <div style={{ display:'flex', gap: 10, alignItems:'center' }}>
-          <Select value={String(periodIdx)} onValueChange={v => setPeriodIdx(Number(v))}>
-            <SelectTrigger aria-label="Period" className="input-field" style={{ height: 34, fontSize: 12 }}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {PERIODS.map((p, i) => <SelectItem key={p.label} value={String(i)}>{p.label}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <button type="button" title="Export trial balance" className="btn btn-secondary btn-sm" style={{ gap: 6 }} onClick={exportCsv}>
-            <Icon name="download" size={13} />Export
-          </button>
-          <button type="button" title="Print trial balance" className="btn btn-secondary btn-sm" style={{ gap: 6 }} onClick={() => window.print()}>
-            <Icon name="fileText" size={13} />Print
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Finance', 'Accounts']}
+        titlePlain="Trial"
+        titleEm="balance"
+        subtitle={`${co.name} — verifying debits equal credits.`}
+        actions={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'nowrap', whiteSpace: 'nowrap' }}>
+            <Select value={String(periodIdx)} onValueChange={v => setPeriodIdx(Number(v))}>
+              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PERIODS.map((p, i) => <SelectItem key={p.label} value={String(i)}>{p.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <button type="button" title="Export trial balance" className="btn btn-secondary btn-sm" style={{ gap: 6, whiteSpace: 'nowrap' }} onClick={exportCsv}>
+              <Icon name="download" size={13} /> Export
+            </button>
+            <button type="button" title="Print trial balance" className="btn btn-secondary btn-sm" style={{ gap: 6, whiteSpace: 'nowrap' }} onClick={() => window.print()}>
+              <Icon name="fileText" size={13} /> Print
+            </button>
+          </div>
+        }
+      />
 
       {/* Balance status banner */}
-      <div style={{ display:'flex', alignItems:'center', gap: 12, padding:'12px 18px', borderRadius: 9, marginBottom: 24, background: balanced ? '#ecfdf5' : '#fef2f2', border:`1px solid ${balanced ? '#059669' : '#ef4444'}40` }}>
-        <div style={{ width: 32, height: 32, borderRadius: 9, background: balanced ? '#059669' : '#ef4444', display:'flex', alignItems:'center', justifyContent:'center', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderRadius: 9, marginBottom: 20, background: balanced ? '#ecfdf5' : '#fef2f2', border: `1px solid ${balanced ? '#059669' : '#ef4444'}40` }}>
+        <div style={{ width: 32, height: 32, borderRadius: 9, background: balanced ? '#059669' : '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <Icon name={balanced ? 'check' : 'alertTriangle'} size={16} color="#fff" />
         </div>
         <div>
@@ -166,7 +165,7 @@ export const FinanceTrialBalance: React.FC = () => {
       </div>
 
       {/* Summary metric cards */}
-      <div style={{ display:'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(5,1fr)', gap: 12, marginBottom: 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(5,1fr)', gap: 12, marginBottom: 20 }}>
         {TYPE_ORDER.map(t => {
           const gt = groupTotals[t];
           const cfg = TYPE_CFG[t];
@@ -189,28 +188,46 @@ export const FinanceTrialBalance: React.FC = () => {
               <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', fontFamily: 'var(--mono)' }}>
                 {gt.debit > 0 ? `Dr ${(gt.debit/1_000_000).toFixed(1)}M` : `Cr ${(gt.credit/1_000_000).toFixed(1)}M`}
               </div>
-              <div style={{ fontSize: 10, color:'var(--ink3)', marginTop: 3 }}>{count} accounts</div>
+              <div style={{ fontSize: 10, color: 'var(--ink3)', marginTop: 3 }}>{count} accounts</div>
             </div>
           );
         })}
       </div>
 
-      {/* Filters */}
-      <div style={{ display:'flex', gap: 10, marginBottom: 16, flexWrap:'wrap' }}>
-        <div style={{ position:'relative', flex:'1 1 180px', maxWidth: 260 }}>
-          <Icon name="search" size={13} color="var(--ink3)" style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)' }} />
-          <input title="Search accounts" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search account…" className="input-field" style={{ paddingLeft:32, height:34, fontSize:13, width:'100%' }} />
-        </div>
-        <div style={{ display:'flex', gap: 6, flexWrap:'wrap' }}>
-          {(['ALL',...TYPE_ORDER] as const).map(t => (
-            <button key={t} type="button" title={`Filter ${t}`}
-              onClick={() => setTypeFilter(t)}
-              style={{ padding:'var(--ds-btn-py-sm) 12px', borderRadius:20, border:'1px solid var(--border)', fontSize:11, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)',
-                background: typeFilter===t ? (t==='ALL'?'var(--teal)':TYPE_CFG[t].color) : 'var(--white)',
-                color: typeFilter===t ? '#fff' : 'var(--ink3)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              {t==='ALL' ? 'All' : TYPE_CFG[t].label}
-            </button>
-          ))}
+      {/* Filters Toolbar Card: Tabs on Left, Search on Right */}
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+        <Tabs value={typeFilter} onValueChange={v => setTypeFilter(v as AccountType | 'ALL')} variant="pill">
+          <TabsList>
+            <TabsTrigger value="ALL">All ({rows.length})</TabsTrigger>
+            {TYPE_ORDER.map(t => (
+              <TabsTrigger key={t} value={t}>
+                {TYPE_CFG[t].label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
+
+        <div style={{ position: 'relative', width: isMobile ? '100%' : 260 }}>
+          <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' } as React.CSSProperties} />
+          <input
+            type="text"
+            title="Search accounts"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search account…"
+            style={{
+              width: '100%',
+              padding: '8px 12px 8px 32px',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--r, 6px)',
+              fontSize: 13,
+              fontFamily: 'var(--font)',
+              background: 'var(--white)',
+              color: 'var(--ink)',
+              outline: 'none',
+              boxSizing: 'border-box'
+            }}
+          />
         </div>
       </div>
 

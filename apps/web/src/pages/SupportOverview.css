@@ -17,8 +17,8 @@
 
 .sov-container {
   padding: 22px 26px 40px;
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: 100% !important;
+  margin: 0;
 }
 
 .sov-actions {

@@ -34,23 +34,14 @@
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  max-width: 1380px;
+  max-width: 100% !important;
   width: 100%;
-  margin: 0 auto;
-  /* One gutter for every page, set here rather than by each page's own
-     wrapper. The header and the content below it share this element, so
-     aligning the header means aligning this — shifting the header alone
-     would misalign it from its own page. Pages measured 37 / 61 / 69 / 85px
-     from the shell edge before this, depending on whether their wrapper
-     added anything and how much. */
+  margin: 0;
   padding: var(--page-pad-y, 8px) var(--page-pad-x, 8px);
   box-sizing: border-box;
-  transition: max-width 0.25s ease, padding 0.25s ease;
+  transition: padding 0.25s ease;
 }
 
-/* Full-width mode: let content use the reclaimed space, but keep a small
-   gutter either side rather than running edge-to-edge against the sidebar
-   rail / browser edge. */
 [data-layout="full"] .app-shell-content {
   max-width: 100% !important;
   padding: var(--page-pad-y, 8px) var(--page-pad-x, 8px);

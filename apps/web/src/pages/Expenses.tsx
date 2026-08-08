@@ -7,6 +7,7 @@ import { Icon } from '../components/Icon.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { showAlert } from '../lib/alert.js';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select.js';
 
 const CATS: Record<string, { label: string; color: string }> = {
   PORT_CHARGES:    { label: 'Port Charges',    color: 'var(--blue)' },
@@ -257,6 +258,9 @@ export const Expenses: React.FC = () => {
   }, []);
 
   const [filterCat, setFilterCat] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [bulkSaving, setBulkSaving] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -268,7 +272,27 @@ export const Expenses: React.FC = () => {
   // Bulk Upload State
   const [bulkCsv, setBulkCsv] = useState('');
 
-  const filtered = filterCat ? items.filter(e => e.category === filterCat) : items;
+  const filtered = items.filter(e => {
+    if (filterCat && e.category !== filterCat) return false;
+    if (search.trim()) {
+      const q = search.toLowerCase().trim();
+      const nameMatch = e.name.toLowerCase().includes(q);
+      const catMatch = (CATS[e.category]?.label ?? e.category).toLowerCase().includes(q);
+      const sourceMatch = (SOURCE_LABEL[e.source] || '').toLowerCase().includes(q);
+      return nameMatch || catMatch || sourceMatch;
+    }
+    return true;
+  });
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const offset = (currentPage - 1) * PAGE_SIZE;
+  const paged = filtered.slice(offset, offset + PAGE_SIZE);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filterCat, search]);
+
   const totalExp = filtered.filter(e => !e.is_revenue).reduce((s, e) => s + e.amount, 0);
   const totalRev = filtered.filter(e => e.is_revenue).reduce((s, e) => s + e.amount, 0);
 
@@ -346,72 +370,92 @@ export const Expenses: React.FC = () => {
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0, background: 'var(--white)' }}>
-      <div>
-        <PageHeader
-          crumbs={['Finance', 'Expenses']}
-          titlePlain="Expense"
-          titleEm="tracking"
-          subtitle="Costs and revenue across all shipments and operations — including fleet fuel, maintenance, and vehicle costs."
-        />
-      </div>
+      <PageHeader
+        crumbs={['Finance', 'Expenses']}
+        titlePlain="Expense"
+        titleEm="tracking"
+        subtitle="Costs and revenue across all shipments and operations — including fleet fuel, maintenance, and vehicle costs."
+      />
 
-      {/* Action bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 0', borderBottom: '1px solid var(--border)', flexShrink: 0, background: 'var(--white)' }}>
-        <Link to="/finance/expenses/new"
-          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '11px 22px', borderRadius: 10, border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'none' }}>
-          <Icon name="plus" size={15} color="#fff" /> Add Expense
-        </Link>
-        <button type="button" onClick={() => setShowBulkUpload(true)}
-          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+      {/* KPI row directly below header (matching /finance/vendors) */}
+      {!isSplit && (
+        <MetricsRow cards={[
+          {
+            title: 'Total Costs',
+            value: fmt(totalExp, 'TZS'),
+            invertTrend: true,
+            sub1Label: 'LINE ITEMS', sub1Value: String(items.filter(e => !e.is_revenue).length),
+            sub2Label: 'AVG COST', sub2Value: fmt(items.filter(e => !e.is_revenue).length ? Math.round(totalExp / items.filter(e => !e.is_revenue).length) : 0, 'TZS'), barHighlight: 'var(--red)',
+          },
+          {
+            title: 'Total Revenue',
+            value: fmt(totalRev, 'TZS'),
+            sub1Label: 'THIS MONTH', sub1Value: fmt(Math.round(totalRev * 0.38), 'TZS'),
+            sub2Label: 'THIS WEEK', sub2Value: fmt(Math.round(totalRev * 0.09), 'TZS'), barHighlight: 'var(--green)',
+          },
+          {
+            title: 'Net Margin',
+            value: fmt(totalRev - totalExp, 'TZS'),
+            trend: !totalRev ? 0 : parseFloat(((totalRev - totalExp) / totalRev * 100).toFixed(1)),
+            sub1Label: 'MARGIN %', sub1Value: !totalRev ? '—' : `${Math.round(((totalRev - totalExp) / totalRev) * 100)}%`,
+            sub2Label: 'ALL ITEMS', sub2Value: String(items.length), barHighlight: 'var(--purple)',
+          },
+        ]} />
+      )}
+
+      {/* Unified Single-Row Toolbar (Search + Redesigned Category Select + Actions) */}
+      <div style={{ padding: '16px 0 16px', display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+          <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)' } as React.CSSProperties} />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search expenses, descriptions or tags…"
+            style={{ width: '100%', padding: '8px 10px 8px 32px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
+          />
+        </div>
+
+        <Select value={filterCat || '__all__'} onValueChange={v => setFilterCat(v === '__all__' ? '' : v)}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="All Categories" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All Categories</SelectItem>
+            {Object.entries(CATS).map(([k, v]) => (
+              <SelectItem key={k} value={k}>{v.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <button
+          type="button"
+          onClick={() => setShowBulkUpload(true)}
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, whiteSpace: 'nowrap' }}
+        >
           <Icon name="upload" size={14} color="var(--ink3)" /> Bulk Upload
         </button>
-        <div style={{ flex: 1 }} />
-        <button type="button" onClick={exportCsv}
-          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+
+        <button
+          type="button"
+          onClick={exportCsv}
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, whiteSpace: 'nowrap' }}
+        >
           <Icon name="download" size={14} color="var(--ink3)" /> Export CSV
         </button>
+
+        <Link
+          to="/finance/expenses/new"
+          style={{ display: 'flex', alignItems: 'center', gap: 7, padding: 'var(--ds-btn-py) 18px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', textDecoration: 'none', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}
+        >
+          <Icon name="plus" size={14} color="#fff" /> Add Expense
+        </Link>
       </div>
 
       <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
 
       {/* ── Left: List Panel ── */}
       <div style={{ width: isSplit ? '42%' : '100%', flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', transition: 'width 0.2s ease', borderRight: isSplit ? '1px solid var(--border)' : 'none' }}>
-
-        {/* KPI row */}
-        {!isSplit && (
-          <div style={{ padding: '16px 20px 0', flexShrink: 0 }}>
-            <MetricsRow cards={[
-              {
-                title: 'Total Costs',
-                value: fmt(totalExp, 'TZS'),
-                invertTrend: true,
-                sub1Label: 'LINE ITEMS', sub1Value: String(items.filter(e => !e.is_revenue).length),
-                sub2Label: 'AVG COST', sub2Value: fmt(items.filter(e => !e.is_revenue).length ? Math.round(totalExp / items.filter(e => !e.is_revenue).length) : 0, 'TZS'), barHighlight: 'var(--red)',
-              },
-              {
-                title: 'Total Revenue',
-                value: fmt(totalRev, 'TZS'),
-                sub1Label: 'THIS MONTH', sub1Value: fmt(Math.round(totalRev * 0.38), 'TZS'),
-                sub2Label: 'THIS WEEK', sub2Value: fmt(Math.round(totalRev * 0.09), 'TZS'), barHighlight: 'var(--green)',
-              },
-              {
-                title: 'Net Margin',
-                value: fmt(totalRev - totalExp, 'TZS'),
-                trend: !totalRev ? 0 : parseFloat(((totalRev - totalExp) / totalRev * 100).toFixed(1)),
-                sub1Label: 'MARGIN %', sub1Value: !totalRev ? '—' : `${Math.round(((totalRev - totalExp) / totalRev) * 100)}%`,
-                sub2Label: 'ALL ITEMS', sub2Value: String(items.length), barHighlight: 'var(--purple)',
-              },
-            ]} />
-          </div>
-        )}
-
-        {/* Category chips */}
-        <div className="filter-bar" style={{ padding: '12px 20px', overflowX: 'auto', flexShrink: 0 }}>
-          <button type="button" className={`fc${!filterCat ? ' on' : ''}`} onClick={() => setFilterCat('')}>All</button>
-          {Object.entries(CATS).map(([k, v]) => (
-            <button type="button" key={k} className={`fc${filterCat === k ? ' on' : ''}`} onClick={() => setFilterCat(k)}>{v.label}</button>
-          ))}
-        </div>
 
         {/* Table Header */}
         <div style={{ display: 'flex', padding: '8px 20px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
@@ -425,7 +469,7 @@ export const Expenses: React.FC = () => {
         {/* Table Body */}
         <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)' }}>
           {!loading && filtered.length === 0 && <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink3)' }}>No expense records found.</div>}
-          {filtered.map(e => {
+          {paged.map(e => {
             const cat = CATS[e.category];
             const isSel = selectedId === e.id;
             return (
@@ -475,6 +519,52 @@ export const Expenses: React.FC = () => {
             );
           })}
         </div>
+
+        {/* Pager Footer */}
+        {filtered.length > PAGE_SIZE && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+            flexWrap: 'wrap', padding: '12px 20px', borderTop: '1px solid var(--border)',
+            fontSize: 12.5, color: 'var(--ink3)', background: 'var(--white)', flexShrink: 0
+          }}>
+            <span>
+              Showing {offset + 1}–{Math.min(offset + PAGE_SIZE, filtered.length)} of {filtered.length.toLocaleString()} record{filtered.length === 1 ? '' : 's'}
+            </span>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button
+                type="button"
+                disabled={currentPage === 1}
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px',
+                  border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
+                  background: 'var(--white)', color: currentPage === 1 ? 'var(--ink3)' : 'var(--ink)',
+                  fontSize: 12, fontWeight: 600, cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === 1 ? 0.5 : 1
+                }}
+              >
+                <Icon name="chevronLeft" size={13} /> Previous
+              </button>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', minWidth: 80, textAlign: 'center' }}>
+                Page {currentPage} of {pageCount}
+              </span>
+              <button
+                type="button"
+                disabled={currentPage === pageCount}
+                onClick={() => setPage(p => Math.min(pageCount, p + 1))}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px',
+                  border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
+                  background: 'var(--white)', color: currentPage === pageCount ? 'var(--ink3)' : 'var(--ink)',
+                  fontSize: 12, fontWeight: 600, cursor: currentPage === pageCount ? 'not-allowed' : 'pointer',
+                  opacity: currentPage === pageCount ? 0.5 : 1
+                }}
+              >
+                Next <Icon name="chevronRight" size={13} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Right: Aside Detail Panel ── */}

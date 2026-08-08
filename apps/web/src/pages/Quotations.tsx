@@ -161,18 +161,18 @@ function fmt(amount: number, currency = 'USD') {
 }
 
 function fmtDate(d: string | null | undefined) {
-  if (!d) return '�';
+  if (!d) return '—';
   const dt = new Date(d);
-  if (isNaN(dt.getTime())) return '�';
+  if (isNaN(dt.getTime())) return '—';
   return dt.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
 }
 
 function fmtDateTime(d: string | null | undefined) {
-  if (!d) return '�';
+  if (!d) return '—';
   const dt = new Date(d);
-  if (isNaN(dt.getTime())) return '�';
+  if (isNaN(dt.getTime())) return '—';
   return dt.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
-    + ' � ' + dt.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', hour12:true }).toLowerCase();
+    + ' • ' + dt.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', hour12:true }).toLowerCase();
 }
 
 function calcTotals(lines: LineForm[]) {
@@ -222,7 +222,7 @@ function RejectModal({ onConfirm, onCancel }: { onConfirm:(r:string)=>void; onCa
       <div style={{ background:'var(--white)', borderRadius: 9, padding:28, width:440, boxShadow: 'var(--elev-lg)' }}>
         <div style={{ fontSize:16, fontWeight:700, color:'var(--ink)', marginBottom:6 }}>Reject Quotation</div>
         <div style={{ fontSize:13, color:'var(--ink2)', marginBottom:16 }}>Provide a reason. This will be logged on the quote record.</div>
-        <textarea title="Rejection reason" placeholder="Enter rejection reason�" value={reason} onChange={e=>setReason(e.target.value)} rows={4}
+        <textarea title="Rejection reason" placeholder="Enter rejection reason..." value={reason} onChange={e=>setReason(e.target.value)} rows={4}
           style={{ width:'100%', padding:'10px 12px', border:'1px solid var(--border)', borderRadius: 9, fontSize:13, resize:'vertical', boxSizing:'border-box' as const, fontFamily:'inherit', outline:'none' }} />
         <div style={{ display:'flex', gap:8, justifyContent:'flex-end', marginTop:16 }}>
           <button type="button" title="Cancel" onClick={onCancel} style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
@@ -288,7 +288,7 @@ function printQuote(q: Quote) {
 
   const win = window.open('','_blank','width=920,height=750');
   if (!win) return;
-  win.document.write(`<!DOCTYPE html><html><head><title>${q.quote_number} � ${q.title}</title>
+  win.document.write(`<!DOCTYPE html><html><head><title>${q.quote_number} – ${q.title}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:Inter,-apple-system,Arial,sans-serif;font-size:13px;color:#1e293b;background:#fff;padding:48px}
@@ -324,7 +324,7 @@ function printQuote(q: Quote) {
     @media print{body{padding:24px}@page{margin:1cm}}
   </style></head><body>
   <div class="hdr">
-    <div>${logoHtml}<div class="co-sub">${co.tagline||''}<br>${co.address?co.address+', ':''} ${co.city||''}<br>${co.phone||''} � ${co.email||''}</div></div>
+    <div>${logoHtml}<div class="co-sub">${co.tagline||''}<br>${co.address?co.address+', ':''} ${co.city||''}<br>${co.phone||''} – ${co.email||''}</div></div>
     <div style="text-align:right">
       <div class="qnum">${q.quote_number}</div>
       <div class="qtitle">${q.title}</div>
@@ -348,9 +348,9 @@ function printQuote(q: Quote) {
     </div>
   </div>
   ${(q.origin_port||q.destination_port)?`<div class="route">
-    <div class="route-port"><div class="route-lbl">Origin</div><div class="route-val">${q.origin_port||'�'}</div></div>
-    <div class="route-arrow">?</div>
-    <div class="route-port"><div class="route-lbl">Destination</div><div class="route-val">${q.destination_port||'�'}</div></div>
+    <div class="route-port"><div class="route-lbl">Origin</div><div class="route-val">${q.origin_port||'—'}</div></div>
+    <div class="route-arrow">→</div>
+    <div class="route-port"><div class="route-lbl">Destination</div><div class="route-val">${q.destination_port||'—'}</div></div>
   </div>`:''}
   <table>
     <thead><tr><th>#</th><th>Description</th><th class="r">Qty</th><th class="r">Unit Price</th><th class="r">Tax</th><th class="r">Amount</th></tr></thead>
@@ -364,7 +364,7 @@ function printQuote(q: Quote) {
   ${q.notes?`<div class="section"><h4>Notes</h4><p>${q.notes}</p></div>`:''}
   ${q.terms?`<div class="section"><h4>Terms &amp; Conditions</h4><p>${q.terms}</p></div>`:''}
   <div class="footer">
-    <div class="footer-co"><strong>${co.name}</strong><br>${co.website||''} � ${co.email||''}</div>
+    <div class="footer-co"><strong>${co.name}</strong><br>${co.website||''} – ${co.email||''}</div>
     <div class="sig-box">Authorised Signature</div>
   </div>
   <script>window.onload=()=>{window.print()}</script></body></html>`);
@@ -412,7 +412,7 @@ function ContactSelector({ customers, leads, value, onChange }: {
         <div onClick={()=>setOpen(o=>!o)} style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 12px', border:'1px solid var(--border)', borderRadius: 9, cursor:'pointer', background:'var(--white)', minHeight:40 }}>
           {selected
             ? <><Av name={selected.label} size={22}/><div><span style={{ fontSize:13, fontWeight:600 }}>{selected.label}</span>{selected.company&&<span style={{ fontSize:11, color:'var(--ink3)', marginLeft:6 }}>{selected.company}</span>}</div><span style={{ marginLeft:4, fontSize:10, background: selected.type==='lead'?'var(--gold-l)':'var(--teal-l)', color:selected.type==='lead'?'var(--gold)':'var(--teal)', borderRadius:4, padding:'2px 6px', fontWeight:700 }}>{selected.type==='lead'?'LEAD':'CLIENT'}</span></>
-            : <span style={{ fontSize:13, color:'var(--ink3)' }}>Select customer or lead�</span>
+            : <span style={{ fontSize:13, color:'var(--ink3)' }}>Select customer or lead...</span>
           }
           <Icon name="chevronDown" size={14} style={{ marginLeft:'auto', color:'var(--ink3)' } as React.CSSProperties}/>
         </div>
@@ -420,7 +420,7 @@ function ContactSelector({ customers, leads, value, onChange }: {
       <PopoverContent align="start" className="w-(--radix-popover-trigger-width) p-0 flex flex-col max-h-[320px]"
         onOpenAutoFocus={e => e.preventDefault()} onCloseAutoFocus={e => e.preventDefault()}>
         <div style={{ padding:'10px 10px 8px' }}>
-          <input type="text" title="Search contacts" placeholder="Search�" value={q} onChange={e=>setQ(e.target.value)} autoFocus
+          <input type="text" title="Search contacts" placeholder="Search..." value={q} onChange={e=>setQ(e.target.value)} autoFocus
             style={{ width:'100%', padding:'7px 10px', border:'1px solid var(--border)', borderRadius:6, fontSize:13, outline:'none', boxSizing:'border-box' as const, marginBottom:8 }}/>
           <div style={{ display:'flex', gap:4, background:'var(--bg)', borderRadius: 9, padding:3 }}>
             <button type="button" title="Show customers" onClick={()=>setTab('customers')} style={tabS(tab==='customers')}>Customers ({custOptions.length})</button>
@@ -464,7 +464,7 @@ function ServicePicker({ onSelect }: {
   return (
     <div style={{ width:480, display:'flex', flexDirection:'column', maxHeight:400 }}>
       <div style={{ padding:'10px 12px', borderBottom:'1px solid var(--border)' }}>
-        <input type="text" title="Search services" placeholder="Search freight services�" value={q} onChange={e=>setQ(e.target.value)} autoFocus
+        <input type="text" title="Search services" placeholder="Search freight services..." value={q} onChange={e=>setQ(e.target.value)} autoFocus
           style={{ width:'100%', padding:'8px 12px', border:'1px solid var(--border)', borderRadius:7, fontSize:13, outline:'none', boxSizing:'border-box' as const }}/>
       </div>
       <div style={{ overflowY:'auto', flex:1, padding:'8px 0' }}>
@@ -483,7 +483,7 @@ function ServicePicker({ onSelect }: {
                     <div style={{ fontSize:11, color:'var(--ink3)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.description}</div>
                   </div>
                   <div style={{ textAlign:'right', flexShrink:0 }}>
-                    <div style={{ fontSize:12, fontWeight:700, color:'var(--ink)' }}>{s.unit_price>0?`$${s.unit_price}`:'�'}</div>
+                    <div style={{ fontSize:12, fontWeight:700, color:'var(--ink)' }}>{s.unit_price>0?`$${s.unit_price}`:'—'}</div>
                     <div style={{ fontSize:10, color:'var(--ink3)' }}>per {s.unit??'unit'}</div>
                   </div>
                 </div>
@@ -540,7 +540,7 @@ function LineItemsEditor({ lines, currency, onChange }: {
                 <tr key={l._key} style={{ borderBottom:'1px solid var(--border)', verticalAlign:'middle' }}>
                   <td style={{ padding:'6px 8px', minWidth:240, position:'relative' }}>
                     <div style={{ display:'flex', gap:4, alignItems:'center' }}>
-                      <input type="text" title="Description" placeholder="Describe the service or charge�" value={l.description}
+                      <input type="text" title="Description" placeholder="Describe the service or charge..." value={l.description}
                         onChange={e=>update(l._key,'description',e.target.value)} style={{ ...inpS, flex:1 }}/>
                       <Popover open={pickerKey===l._key} onOpenChange={o=>setPickerKey(o?l._key:null)}>
                         <PopoverTrigger asChild>
@@ -684,7 +684,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
         <div style={{ marginLeft:'auto', display:'flex', gap:8 }}>
           <button type="button" title="Save as draft" onClick={()=>submit(true)} disabled={saving}
             style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--white)', color:'var(--ink)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            {saving?'Saving�':'Save as Draft'}
+            {saving?'Saving...':'Save as Draft'}
           </button>
           <button type="button" title="Save and submit for approval" onClick={()=>submit(false)} disabled={saving}
             style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:600, fontSize:13, display:'flex', alignItems:'center', gap:6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
@@ -733,7 +733,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
             <div style={{ padding:20, display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap:16 }}>
               <div style={{ gridColumn:'1/-1' }}>
                 <label style={lbl}>Quotation Subject / Title *</label>
-                <input type="text" title="Title" placeholder="e.g. Sea Freight � Dar es Salaam to Hamburg � 1x20ft FCL" value={f.title}
+                <input type="text" title="Title" placeholder="e.g. Sea Freight – Dar es Salaam to Hamburg – 1x20ft FCL" value={f.title}
                   onChange={e=>set('title',e.target.value)} style={inp}/>
               </div>
               <div>
@@ -783,7 +783,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
             <div style={{ padding:20, display:'flex', flexDirection:'column', gap:16 }}>
               <div>
                 <label style={lbl}>Client-Facing Notes</label>
-                <textarea title="Notes" placeholder="Any important notes for the client�" value={f.notes} onChange={e=>set('notes',e.target.value)} rows={3}
+                <textarea title="Notes" placeholder="Any important notes for the client..." value={f.notes} onChange={e=>set('notes',e.target.value)} rows={3}
                   style={{ ...inp, resize:'vertical', fontFamily:'inherit' }}/>
               </div>
               <div>
@@ -828,7 +828,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
               <div style={{ display:'flex', justifyContent:'space-between', fontSize:17, fontWeight:800, color:'var(--teal)', paddingTop:10, borderTop:'2px solid var(--border)', marginTop:6 }}>
                 <span>Grand Total</span><span>{fmt(total,f.currency)}</span>
               </div>
-              <div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:8, textAlign:'right' }}>{f.lines.length} line item{f.lines.length!==1?'s':''} � {f.currency}</div>
+              <div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:8, textAlign:'right' }}>{f.lines.length} line item{f.lines.length!==1?'s':''} – {f.currency}</div>
             </div>
           </div>
 
@@ -866,7 +866,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
                 </div>
               ))}
               <div style={{ padding:'6px 16px', borderTop:'1px solid var(--border)', marginTop:4 }}>
-                <div style={{ fontSize:11, color:'var(--ink3)' }}>{FREIGHT_SERVICES.length} services in catalog � use "From Catalog" for full list</div>
+                <div style={{ fontSize:11, color:'var(--ink3)' }}>{FREIGHT_SERVICES.length} services in catalog – use "From Catalog" for full list</div>
               </div>
             </div>
           </div>
@@ -923,8 +923,8 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
                     <div style={{ fontSize:13, color:'var(--ink2)', display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
                       <Av name={quote.customer_name} size={20}/>
                       <strong>{quote.customer_name}</strong>
-                      {quote.customer_company&&<span style={{ color:'var(--ink3)' }}>� {quote.customer_company}</span>}
-                      <span style={{ color:'var(--ink3)' }}>�</span>
+                      {quote.customer_company&&<span style={{ color:'var(--ink3)' }}> – {quote.customer_company}</span>}
+                      <span style={{ color:'var(--ink3)' }}> –</span>
                       <span>{SHIP_TYPE_LABEL[quote.shipment_type]??quote.shipment_type}</span>
                     </div>
                   </div>
@@ -934,12 +934,12 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
                   <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr auto 1fr', gap:16, background:'var(--bg)', borderRadius: 9, padding:16 }}>
                     <div>
                       <div style={{ fontSize:10, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4 }}>Origin</div>
-                      <div style={{ fontSize:15, fontWeight:700 }}>{quote.origin_port||'�'}</div>
+                      <div style={{ fontSize:15, fontWeight:700 }}>{quote.origin_port||'—'}</div>
                     </div>
                     <div style={{ display:'flex', alignItems:'center' }}><Icon name="arrowRight" size={20} color="var(--ink3)"/></div>
                     <div>
                       <div style={{ fontSize:10, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:4 }}>Destination</div>
-                      <div style={{ fontSize:15, fontWeight:700 }}>{quote.destination_port||'�'}</div>
+                      <div style={{ fontSize:15, fontWeight:700 }}>{quote.destination_port||'—'}</div>
                     </div>
                   </div>
                 )}
@@ -1041,18 +1041,18 @@ function QuoteDetailView({ quote, onBack, onEdit, onStatusChange, onConvert, onS
                 )}
                 <button type="button" title="Duplicate" onClick={()=>act('dup',onDuplicate)}
                   style={{ display:'flex', alignItems:'center', gap:8, padding:'var(--ds-btn-py) 14px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--bg)', cursor:'pointer', fontWeight:600, fontSize:13, color:'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                  <Icon name="copy" size={14}/> {busy==='dup'?'Duplicating�':'Duplicate'}
+                  <Icon name="copy" size={14}/> {busy==='dup'?'Duplicating...':'Duplicate'}
                 </button>
 
                 <div style={{ borderTop:'1px solid var(--border)', paddingTop:8, marginTop:4, display:'flex', flexDirection:'column', gap:8 }}>
-                  {quote.status==='DRAFT'&&<button type="button" title="Submit" onClick={()=>act('submit',()=>onStatusChange('PENDING'))} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--gold)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="send" size={14}/>{busy==='submit'?'Submitting�':'Submit for Approval'}</button>}
-                  {quote.status==='PENDING'&&<><button type="button" title="Approve" onClick={()=>act('approve',()=>onStatusChange('APPROVED'))} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--green)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="checkCircle" size={14}/>{busy==='approve'?'Approving�':'Approve'}</button>
+                  {quote.status==='DRAFT'&&<button type="button" title="Submit" onClick={()=>act('submit',()=>onStatusChange('PENDING'))} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--gold)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="send" size={14}/>{busy==='submit'?'Submitting...':'Submit for Approval'}</button>}
+                  {quote.status==='PENDING'&&<><button type="button" title="Approve" onClick={()=>act('approve',()=>onStatusChange('APPROVED'))} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--green)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="checkCircle" size={14}/>{busy==='approve'?'Approving...':'Approve'}</button>
                   <button type="button" title="Reject" onClick={()=>setShowReject(true)} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'1px solid rgba(239,68,68,0.25)', borderRadius: 'var(--r)', background:'rgba(239,68,68,0.06)', color:'var(--red)', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="xCircle" size={14}/>Reject</button></>}
-                  {quote.status==='APPROVED'&&<button type="button" title="Convert to Shipment" onClick={()=>act('convert',onConvert)} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--navy)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="ship" size={14}/>{busy==='convert'?'Converting�':'Convert to Shipment'}</button>}
+                  {quote.status==='APPROVED'&&<button type="button" title="Convert to Shipment" onClick={()=>act('convert',onConvert)} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:10, border:'none', borderRadius: 'var(--r)', background:'var(--navy)', color:'#fff', cursor:'pointer', fontWeight:700, fontSize:13 }}><Icon name="ship" size={14}/>{busy==='convert'?'Converting...':'Convert to Shipment'}</button>}
                 </div>
 
                 <button type="button" title="Delete" onClick={()=>act('delete',onDelete)} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:9, border:'1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--r)', background:'none', color:'var(--red)', cursor:'pointer', fontWeight:600, fontSize:12, marginTop:4 }}>
-                  <Icon name="trash" size={13}/> {busy==='delete'?'Deleting�':'Delete Quotation'}
+                  <Icon name="trash" size={13}/> {busy==='delete'?'Deleting...':'Delete Quotation'}
                 </button>
               </div>
             </div>
@@ -1141,7 +1141,7 @@ export const Quotations: React.FC = () => {
   }
   async function handleSend(id:string,email:string,msg:string){
     try{ await apiFetch(`/v1/quotations/${id}/send`,{method:'POST',body:JSON.stringify({email,message:msg})}); showAlert('Quotation sent!'); }
-    catch{ showAlert('Could not send via API � please email manually to: '+email); }
+    catch{ showAlert('Could not send via API – please email manually to: '+email); }
   }
   async function handleDelete(id:string){
     if(!(await showConfirm('Delete this quotation? This cannot be undone.', { confirmLabel: 'Delete' }))) return;
@@ -1225,7 +1225,7 @@ export const Quotations: React.FC = () => {
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
           <div style={{ position:'relative', minWidth:220 }}>
             <Icon name="search" size={14} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--ink3)' } as React.CSSProperties}/>
-            <input type="text" title="Search" placeholder="Search quotes, customers�" value={search} onChange={e=>setSearch(e.target.value)}
+            <input type="text" title="Search" placeholder="Search quotes, customers..." value={search} onChange={e=>setSearch(e.target.value)}
               style={{ width:'100%', paddingLeft:32, paddingRight:12, paddingTop:8, paddingBottom:8, border:'1px solid var(--border)', borderRadius: 9, fontSize:13, outline:'none', background:'var(--white)', boxSizing:'border-box' as const }}/>
           </div>
           <button type="button" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 14px', borderRadius:'var(--r)', border:'1px solid var(--border)', background:'var(--white)', color:'var(--ink2)', fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:'var(--font)', whiteSpace:'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
@@ -1239,7 +1239,7 @@ export const Quotations: React.FC = () => {
 
       <div style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', overflow:'hidden' }}>
         {loading
-          ? <div style={{ padding:'60px 20px', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading quotations�</div>
+          ? <div style={{ padding:'60px 20px', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading quotations...</div>
           : displayed.length===0
             ? <div style={{ padding:'60px 20px', textAlign:'center' }}>
                 <div style={{ marginBottom:12 }}><Icon name="fileText" size={48} color="var(--border)"/></div>
@@ -1261,7 +1261,7 @@ export const Quotations: React.FC = () => {
                         <td style={{ padding:'11px 14px', fontWeight:700, fontFamily:'monospace', color:'var(--teal)', whiteSpace:'nowrap' }}>{q.quote_number}</td>
                         <td style={{ padding:'11px 14px', fontWeight:600, maxWidth:200, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{q.title}</td>
                         <td style={{ padding:'11px 14px' }}><div style={{ display:'flex', alignItems:'center', gap:7 }}><Av name={q.customer_name} size={24}/>{q.customer_name}</div></td>
-                        <td style={{ padding:'11px 14px', fontSize:12, color:'var(--ink2)', whiteSpace:'nowrap' }}>{q.origin_port||'�'} ? {q.destination_port||'�'}</td>
+                        <td style={{ padding:'11px 14px', fontSize:12, color:'var(--ink2)', whiteSpace:'nowrap' }}>{q.origin_port && q.destination_port ? `${q.origin_port} → ${q.destination_port}` : (q.origin_port || q.destination_port || '—')}</td>
                         <td style={{ padding:'11px 14px', fontWeight:700, whiteSpace:'nowrap' }}>{fmt(q.total_amount,q.currency)}</td>
                         <td style={{ padding:'11px 14px' }}><StatusBadge status={q.status}/></td>
                         <td style={{ padding:'11px 14px', fontSize:12, color:'var(--ink3)', whiteSpace:'nowrap' }}>{fmtDate(q.valid_until)}</td>

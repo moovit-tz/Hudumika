@@ -96,41 +96,36 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       <PageHeader
-        crumbs={['FinOps', 'Income vs Expenses']}
+        crumbs={['Finance', 'Reports']}
         titlePlain="Income vs"
         titleEm="expenses"
-        subtitle="Earned against spent, side by side."
+        subtitle="Comparative revenue and cost analysis."
+        actions={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Select value={year} onValueChange={setYear}>
+              <SelectTrigger aria-label="Year" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+              <Icon name="download" size={13} /> Export
+            </button>
+          </div>
+        }
       />
-
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 0', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Income vs Expenses</div>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Comparative revenue and cost analysis</div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <Select value={year} onValueChange={setYear}>
-            <SelectTrigger aria-label="Year" style={{ width: 'auto', height: 'auto', padding: '7px 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {YEARS.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <button onClick={exportCsv} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="download" size={13} /> Export
-          </button>
-        </div>
-      </div>
 
       {loading ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading income vs expenses…</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Summary cards */}
-        <div style={{ display: 'flex', gap: 14 }}>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           {[
             { label: 'Total Income',   value: fmtM(totalIncome),   color: 'var(--teal)',   bg: 'var(--teal-l)', icon: 'trendingUp'  },
             { label: 'Total Expenses', value: fmtM(totalExpenses), color: 'var(--red)',    bg: 'var(--red-l)',       icon: 'trendingDown' },
@@ -175,7 +170,7 @@ export const FinanceIncomeVsExpenses: React.FC = () => {
           <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Monthly Breakdown</span>
           </div>
-          <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12 }}>
+          <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
                 {['Month', 'Income', 'Expenses', 'Net Profit', 'Margin'].map(h => (

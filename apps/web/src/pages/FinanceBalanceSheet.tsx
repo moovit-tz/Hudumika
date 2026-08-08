@@ -142,43 +142,38 @@ export const FinanceBalanceSheet: React.FC = () => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       <PageHeader
-        crumbs={['FinOps', 'Balance Sheet']}
+        crumbs={['Finance', 'Accounts']}
         titlePlain="Balance"
         titleEm="sheet"
-        subtitle="Assets, liabilities and equity as at a date."
+        subtitle="Statement of financial position — Assets, liabilities and equity."
+        actions={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <DatePicker date={parseDateOnly(asOf)} onChange={d => setAsOf(toDateOnlyString(d))} triggerClassName="w-auto" />
+            <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+              <Icon name="download" size={13} /> Export
+            </button>
+          </div>
+        }
       />
-
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Balance Sheet</div>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Statement of financial position</div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <DatePicker date={parseDateOnly(asOf)} onChange={d => setAsOf(toDateOnlyString(d))} triggerClassName="w-auto" />
-          <button onClick={exportCsv} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="download" size={13} /> Export
-          </button>
-        </div>
-      </div>
 
       {loading ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--ink3)' }}>Loading balance sheet…</div>
       ) : error ? (
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : (
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Summary */}
-        <div style={{ display: 'flex', gap: 14 }}>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           {[
             { label: 'Total Assets',              value: fmt(totalAssets),      color: 'var(--teal)',  bg: 'var(--teal-l)', icon: 'layers'      },
             { label: 'Total Liabilities',         value: fmt(totalLiabilities), color: 'var(--red)',   bg: 'var(--red-l)',       icon: 'receipt'     },
             { label: 'Total Equity',              value: fmt(totalEquity),      color: 'var(--green)', bg: 'var(--green-l)',       icon: 'dollarSign'  },
             { label: 'Debt to Equity Ratio',      value: totalEquity !== 0 ? `${(totalLiabilities / totalEquity).toFixed(2)}x` : '—', color: 'var(--blue)', bg: 'var(--blue-l)', icon: 'barChart2' },
           ].map(s => (
-            <div key={s.label} style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div key={s.label} style={{ flex: 1, minWidth: 160, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
               <div style={{ width: 42, height: 42, borderRadius: 9, background: s.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <Icon name={s.icon as IconName} size={18} color={s.color} />
               </div>
@@ -198,9 +193,9 @@ export const FinanceBalanceSheet: React.FC = () => {
         )}
 
         {/* Statement */}
-        <div style={{ display: 'flex', gap: 14 }}>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
           {/* Assets */}
-          <div style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
+          <div style={{ flex: 1, minWidth: 300, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
             <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--teal)' }} />
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Assets</span>
@@ -212,7 +207,7 @@ export const FinanceBalanceSheet: React.FC = () => {
           </div>
 
           {/* Liabilities & Equity */}
-          <div style={{ flex: 1, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
+          <div style={{ flex: 1, minWidth: 300, background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
             <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--blue)' }} />
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Liabilities &amp; Equity</span>

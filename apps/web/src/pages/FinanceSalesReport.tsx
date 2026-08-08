@@ -27,6 +27,19 @@ function BarChart({ labels, values, color }: { labels: string[]; values: number[
 const PERIODS = ['This Month', 'Last Month', 'This Quarter', 'This Year', 'Last Year'] as const;
 type Period = typeof PERIODS[number];
 
+const PAGE_SIZE = 15;
+
+const pagerBtn = (disabled: boolean): React.CSSProperties => ({
+  display: 'inline-flex', alignItems: 'center', gap: 5,
+  padding: 'var(--ds-btn-py-sm) 12px',
+  minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25,
+  border: '1px solid var(--border)', borderRadius: 'var(--r)',
+  background: 'var(--white)', color: 'var(--ink2)',
+  fontSize: 11.5, fontWeight: 700, fontFamily: 'var(--font)',
+  cursor: disabled ? 'not-allowed' : 'pointer',
+  opacity: disabled ? 0.45 : 1,
+});
+
 function periodRange(period: Period): { from: Date; to: Date } {
   const now = new Date();
   const y = now.getFullYear(), m = now.getMonth();
@@ -81,6 +94,17 @@ export const FinanceSalesReport: React.FC = () => {
     return { invoices, monthLabels, monthlyTotals, totalSales, paid, unpaid, overdue };
   }, [rawInvoices, period]);
 
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [period]);
+
+  const pageCount = Math.max(1, Math.ceil(invoices.length / PAGE_SIZE));
+  const currentPage = Math.min(page, pageCount);
+  const offset = (currentPage - 1) * PAGE_SIZE;
+  const pagedInvoices = invoices.slice(offset, offset + PAGE_SIZE);
+
   function exportCsv() {
     const rows = [
       ['Invoice #', 'Client', 'Date', 'Due Date', 'Total', 'Amount Due', 'Status'],
@@ -99,33 +123,28 @@ export const FinanceSalesReport: React.FC = () => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg)', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--white)', fontFamily: 'var(--font)' }}>
       <PageHeader
-        crumbs={['FinOps', 'Sales']}
+        crumbs={['Finance', 'Reports']}
         titlePlain="Sales"
         titleEm="report"
-        subtitle="What was invoiced, by customer and period."
+        subtitle="Invoice income and payment status."
+        actions={
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <Select value={period} onValueChange={v => setPeriod(v as Period)}>
+              <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 34, padding: '0 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <button type="button" onClick={exportCsv} className="btn btn-secondary btn-sm" style={{ gap: 6 }}>
+              <Icon name="download" size={13} /> Export
+            </button>
+          </div>
+        }
       />
 
-      <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '13px 0', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Sales Report</div>
-          <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 1 }}>Invoice income and payment status</div>
-        </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <Select value={period} onValueChange={v => setPeriod(v as Period)}>
-            <SelectTrigger aria-label="Period" style={{ width: 'auto', height: 'auto', padding: '7px 10px', fontSize: 12, fontWeight: 600 }}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {PERIODS.map(p => <SelectItem key={p} value={p}>{p}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <button onClick={exportCsv} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="download" size={13} /> Export
-          </button>
-        </div>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', padding: '20px 0', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {/* Summary cards */}
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
@@ -157,9 +176,9 @@ export const FinanceSalesReport: React.FC = () => {
         {/* Table */}
         <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
           <div style={{ padding: '11px 18px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Invoice Details</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Invoice Details ({invoices.length})</span>
           </div>
-          <div className="rtbl-wrap" style={{ overflowX: 'auto' }}><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12 }}>
+          <div className="rtbl-wrap" style={{ overflowX: 'auto' }}><table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%' }}>
             <thead>
               <tr style={{ background: 'var(--bg)' }}>
                 {['Invoice #', 'Client', 'Date', 'Due Date', 'Total', 'Amount Due', 'Status'].map(h => (
@@ -174,10 +193,10 @@ export const FinanceSalesReport: React.FC = () => {
                 <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: 'var(--red)' }}>{loadError}</td></tr>
               ) : invoices.length === 0 ? (
                 <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: 'var(--ink3)' }}>No invoices in this period.</td></tr>
-              ) : invoices.map((i, idx) => {
+              ) : pagedInvoices.map((i, idx) => {
                 const sc = STATUS_STYLE[i.mapped.status] || STATUS_STYLE.Draft;
                 return (
-                  <tr key={i.mapped.id + idx} style={{ borderBottom: idx < invoices.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                  <tr key={i.mapped.id + idx} style={{ borderBottom: idx < pagedInvoices.length - 1 ? '1px solid var(--border)' : 'none' }}>
                     <td style={{ padding: '10px 16px', color: 'var(--teal)', fontWeight: 600, fontFamily: 'var(--mono)', fontSize: 11 }}>{i.mapped.id}</td>
                     <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 500 }}>{i.mapped.client}</td>
                     <td style={{ padding: '10px 16px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{i.mapped.billDate || '—'}</td>
@@ -192,6 +211,36 @@ export const FinanceSalesReport: React.FC = () => {
               })}
             </tbody>
           </table></div>
+
+          {/* Pagination Controls */}
+          {invoices.length > PAGE_SIZE && (
+            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, background: 'var(--white)' }}>
+              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
+                Showing <strong>{offset + 1}–{Math.min(offset + PAGE_SIZE, invoices.length)}</strong> of <strong>{invoices.length}</strong> invoices
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button
+                  type="button"
+                  disabled={currentPage <= 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  style={pagerBtn(currentPage <= 1)}
+                >
+                  <Icon name="chevronLeft" size={13} /> Previous
+                </button>
+                <span style={{ fontSize: 12, color: 'var(--ink2)', fontWeight: 600, padding: '0 6px' }}>
+                  Page {currentPage} of {pageCount}
+                </span>
+                <button
+                  type="button"
+                  disabled={currentPage >= pageCount}
+                  onClick={() => setPage(p => Math.min(pageCount, p + 1))}
+                  style={pagerBtn(currentPage >= pageCount)}
+                >
+                  Next <Icon name="chevronRight" size={13} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

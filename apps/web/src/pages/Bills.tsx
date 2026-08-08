@@ -772,9 +772,11 @@ function RecurringTab({ recurring, onEdit, onToggle, onGenerate, onDelete, isMob
 
       <div style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', overflow:'hidden' }}>
         {recurring.length === 0 ? (
-          <div style={{ padding:'60px 20px', textAlign:'center' }}>
-            <Icon name="refresh" size={40} color="var(--border)" />
-            <div style={{ marginTop:12, fontSize:14, fontWeight:600, color:'var(--ink3)' }}>No recurring bills set up yet</div>
+          <div style={{ padding:'64px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign:'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <Icon name="refresh" size={32} color="var(--ink3)" />
+            </div>
+            <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>No recurring bills set up yet</div>
           </div>
         ) : (
           <div className="rtbl-wrap"><table className="rtbl">
@@ -1090,6 +1092,30 @@ export const Bills: React.FC = () => {
             titlePlain="Supplier"
             titleEm="bills"
             subtitle="Supplier invoices, payment tracking and recurring billing schedules."
+            actions={
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <div style={{ position: 'relative' }}>
+                  <Icon name="search" size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--ink3)' } as React.CSSProperties} />
+                  <input
+                    type="text"
+                    title="Search bills"
+                    placeholder="Search bill # or supplier…"
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    style={{ paddingLeft: 32, paddingRight: 12, paddingTop: 7, paddingBottom: 7, border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, outline: 'none', width: 240, boxSizing: 'border-box' as const, background: 'var(--white)' }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  title="New bill"
+                  onClick={() => { setFormBill(null); setShowBillForm(true); }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25 }}
+                >
+                  <Icon name="plus" size={13} />
+                  New Bill
+                </button>
+              </div>
+            }
           />
 
           {/* Metrics */}
@@ -1141,21 +1167,17 @@ export const Bills: React.FC = () => {
                   options={[{ value: 'ALL', label: 'All Suppliers' }, ...uniqueSups.map(id => ({ value: id, label: supplierMap[id]?.name ?? id }))]}
                   value={supFilter} onChange={setSupFilter} triggerClassName="w-52"
                 />
-                <div style={{ position:'relative', marginLeft:'auto' }}>
-                  <Icon name="search" size={14} style={{ position:'absolute', left:10, top:'50%', transform:'translateY(-50%)', color:'var(--ink3)' } as React.CSSProperties} />
-                  <input type="text" title="Search bills" placeholder="Search bill # or supplier…" value={search} onChange={e => setSearch(e.target.value)}
-                    style={{ paddingLeft:32, paddingRight:12, paddingTop:8, paddingBottom:8, border:'1px solid var(--border)', borderRadius: 9, fontSize:13, outline:'none', width:240, boxSizing:'border-box' as const }} />
-                </div>
               </div>
 
               {/* Bills Table */}
               <div style={{ background:'var(--white)', borderRadius: 9, border:'1px solid var(--border)', overflow:'hidden' }}>
                 {displayed.length === 0 ? (
-                  <div style={{ padding:'60px 20px', textAlign:'center' }}>
-                    <Icon name="receipt" size={40} color="var(--border)" />
-                    <div style={{ marginTop:12, fontSize:14, fontWeight:600, color:'var(--ink3)' }}>No bills found</div>
-                    <div style={{ fontSize:13, color:'var(--ink3)', marginTop:6, marginBottom:20 }}>Adjust filters or create a new bill.</div>
-                    <button type="button" title="New bill" onClick={() => setShowBillForm(true)} style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py) 20px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}><Icon name="plus" size={13} /> New Bill</button>
+                  <div style={{ padding:'64px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign:'center' }}>
+                    <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                      <Icon name="receipt" size={32} color="var(--ink3)" />
+                    </div>
+                    <div style={{ fontSize:15, fontWeight:700, color:'var(--ink)' }}>No bills found</div>
+                    <div style={{ fontSize:13, color:'var(--ink3)', marginTop:4 }}>Adjust filters or use "+ New Bill" above.</div>
                   </div>
                 ) : (
                   <>

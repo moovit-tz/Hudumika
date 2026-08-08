@@ -652,16 +652,14 @@
   font-weight: 600;
 }
 
-/* ── PAGE BOX (boxed / full-width layout) ── */
 .wh-page-box {
-  max-width: 1380px;
+  max-width: 100% !important;
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
   min-height: 100%;
   display: flex;
   flex-direction: column;
   background: var(--bg);
-  transition: max-width 0.25s ease;
 }
 
 [data-layout="full"] .wh-page-box {
