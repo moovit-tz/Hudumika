@@ -56,6 +56,25 @@ npm run lint          # eslint . --ext .ts,.tsx
 - The real verification loop, used throughout this repo's history: `npm run typecheck` (or `npx tsc --noEmit` inside the specific app) after every change that touches `.ts`/`.tsx`, plus an actual browser check for anything UI-visible — this repo's sessions consistently catch real bugs (blank pages, crashed components, invisible footers) that `tsc` alone does not, because `tsc` only proves the types line up, not that the page renders. If Playwright is available, prefer it over asking the user to eyeball something you could have checked yourself.
 - If you change a shared dependency version (see the `react-leaflet` gotcha below), the dev server's Vite dep cache can serve stale pre-bundled code — a full dev-server restart (not just an HMR reload) is sometimes required to actually observe your fix.
 
+## Committing when another session may be working the same checkout
+
+More than one agent runs against this working tree at a time. That makes a
+broad `git add` a way to commit somebody else's half-finished work under your
+message — it has already happened once: commit `eca4d83` swept up migration 189,
+`tax-code.service.ts` and the currency fixes under an unrelated subject. Nothing
+was lost, but the *rationale* for the swept work was, and had to be reattached
+as a git note.
+
+- **Stage by path, never `git add -A` or `git add .`** — name the files you
+  actually edited. If that list is long, it is still shorter than untangling a
+  mixed commit.
+- **Read `git status` before committing** and treat anything you did not touch
+  as somebody else's. `git restore --staged <path>` it back out.
+- Files modified before your session started are the clearest tell — the git
+  status captured at session start is worth keeping for exactly this.
+- If you do sweep something in, say so and attach the missing rationale rather
+  than leaving a commit whose message does not describe its contents.
+
 ## Documentation & referencing
 
 - Comments explain **why**, not what — a hidden constraint, a version incompatibility, a workaround for a specific bug. If the code is self-explanatory, no comment. This repo already has a lot of exactly this style of comment (see `Tracking.css`'s full-bleed-map explanation, or `middleware/auth.ts`'s `apiKeyScopes` doc) — match it, don't add narrative/what-comments.
