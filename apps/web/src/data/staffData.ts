@@ -17,15 +17,11 @@ export interface Employee {
   avatarUrl?: string | null;
 }
 
-const COLORS = ['#e8461a', '#0891b2', '#7c3aed', '#059669', '#d97706', '#9333ea'] as const;
-
-export function empAvatarColor(n: string): string {
-  return COLORS[[...(n ?? '?')].reduce((a, c) => a + c.charCodeAt(0), 0) % COLORS.length];
-}
-
-export function empInitials(n: string): string {
-  return n.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
-}
+// Re-exported from the shared identity helpers rather than defined again here.
+// This file had six colours and a sum-of-char-codes hash; ClearOS and CRM had
+// seven colours and a shift-hash. Four out of five real names resolved to
+// different colours depending on which app you were looking at.
+export { nameColor as empAvatarColor, nameInitials as empInitials } from '../lib/identity.js';
 
 export const EMPLOYEES: Employee[] = [
   { id: 'e1', name: 'Amina Hassan',  email: 'amina@moovit.co.tz',  phone: '+255 712 001 001', dept: 'Operations', designation: 'Clearing Officer',  role: 'Officer',  status: 'ACTIVE',   hireDate: '2023-03-15' },

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { nameColor as avatarColor, nameInitials as initials } from '../lib/identity.js';
 import { Link } from 'react-router-dom';
 import type { ClearanceStage } from '@hudumika/types';
 import { CLEARANCE_STAGES, STAGE_LABELS } from '@hudumika/types';
@@ -12,10 +13,7 @@ interface DetailPanelProps {
   userRole: string;
 }
 
-function initials(name?: string | null): string {
-  if (!name) return '??';
-  return name.split(' ').slice(0, 2).map((w: string) => w[0] || '').join('').toUpperCase();
-}
+// `initials` now comes from lib/identity — see the import at the top.
 
 function relTime(iso?: string | null): string {
   if (!iso) return '�';
@@ -29,12 +27,10 @@ function fmtTZS(n: number): string {
   return 'TZS ' + n.toLocaleString('en-TZ');
 }
 
-const AVATAR_COLORS = ['#0b7264', '#7c3aed', '#0891b2', '#ea580c', '#059669', '#dc2626', '#d97706'];
-function avatarColor(name: string): string {
-  let h = 0;
-  for (let i = 0; i < (name ?? '').length; i++) h = ((h << 5) - h) + (name ?? '').charCodeAt(i);
-  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
-}
+// The local palette and hash are gone: seven colours and a shift-hash here
+// against six and a sum-hash in NexusHR, so an officer shown on a shipment was
+// a different colour from the same officer in their own staff record. Four out
+// of five real names disagreed.
 
 export const DetailPanel: React.FC<DetailPanelProps> = ({ shipmentId, onClose }) => {
   const [shipment, setShipment] = useState<any | null>(null);

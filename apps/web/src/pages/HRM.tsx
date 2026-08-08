@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { MetricsRow } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { EMPLOYEES } from '../data/staffData.js';
 import type { EmpStatus, Employee } from '../data/staffData.js';
 import { EMPLOYEES as SHIFT_EMPLOYEES, SHIFT_TYPES } from '../data/hrmData.js';
@@ -404,25 +405,18 @@ function fmtTZS(n: number) { return 'TZS ' + n.toLocaleString(); }
  * NexusHR screen. Callers that have a URL pass it; the rest are unchanged and
  * keep the coloured initials.
  */
-function Avatar({ name, size = 32, src }: { name: string; size?: number; src?: string | null }) {
-  const [failed, setFailed] = useState(false);
-  const common: React.CSSProperties = {
-    width: size, height: size, borderRadius: '50%', flexShrink: 0,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  };
-  // A broken or expired image falls back to initials rather than leaving a
-  // grey box where a person should be.
-  if (src && !failed) {
-    return (
-      <img src={src} alt={name} onError={() => setFailed(true)}
-        style={{ ...common, objectFit: 'cover', background: avatarColor(name) }} />
-    );
-  }
-  return (
-    <div style={{ ...common, background:avatarColor(name), color:'#fff', fontSize:size*0.35, fontWeight:800 }}>
-      {ini(name)}
-    </div>
-  );
+/**
+ * Delegates to the shared avatar so a person looks the same here as in every
+ * other app. This file used to carry its own palette and hash, which disagreed
+ * with the one ClearOS and CRM used — the same colleague rendered purple in one
+ * app and amber in another.
+ *
+ * Passing `userId` is preferred over `src`: the picture is then fetched once
+ * from the identity endpoint and cached, instead of a 548KB data URI riding
+ * along in the row payload.
+ */
+function Avatar({ name, size = 32, src, userId }: { name: string; size?: number; src?: string | null; userId?: string | null }) {
+  return <PersonAvatar name={name} size={size} src={src} userId={userId} />;
 }
 
 const S: Record<string, { bg: string; color: string; label: string }> = {
@@ -635,7 +629,7 @@ export function EmployeesPage() {
                 <div style={{ height: 3, background: statusBar(e.status) }} />
                 <div style={{ padding: '18px 16px 12px', textAlign: 'center' }}>
                   <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 10 }}>
-                    <Avatar name={e.name} size={60} src={e.avatarUrl} />
+                    <Avatar name={e.name} size={60} userId={e.id} />
                   </div>
                   <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--ink)', marginBottom: 2 }}>{e.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--teal)', fontWeight: 600, marginBottom: 8 }}>{e.designation}</div>
@@ -677,7 +671,7 @@ export function EmployeesPage() {
                   <TD>
                     <Link to={'/nexushr/staff/' + e.id} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: 'inherit' }}>
                       <div style={{ position: 'relative', flexShrink: 0 }}>
-                        <Avatar name={e.name} size={34} src={e.avatarUrl} />
+                        <Avatar name={e.name} size={34} userId={e.id} />
                         <div style={{ position: 'absolute', bottom: 0, right: 0, width: 9, height: 9, borderRadius: '50%', background: statusBar(e.status), border: '2px solid var(--white)' }} />
                       </div>
                       <div>

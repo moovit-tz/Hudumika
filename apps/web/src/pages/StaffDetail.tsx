@@ -32,9 +32,8 @@ interface StaffData {
   member_since?: string;
 }
 
-const AVATAR_COLORS = ['#e8461a','#0891b2','#7c3aed','#059669','#d97706','#9333ea'];
-function avatarBg(n: string) { return AVATAR_COLORS[[...(n ?? '?')].reduce((a,c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length]; }
-function initials(n: string) { return n.split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase(); }
+// Shared, so this page agrees with the header above it and with every other app.
+import { nameColor as avatarBg, nameInitials as initials } from '../lib/identity.js';
 
 function formatDate(d: string | null | undefined): string {
   if (!d) return '—';
