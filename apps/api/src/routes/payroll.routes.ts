@@ -433,6 +433,35 @@ export async function payrollRoutes(fastify: FastifyInstance) {
     });
   });
 
+  /**
+   * One person's payslips, for their profile page.
+   *
+   * Same rule as everywhere else: your own, or one of the payroll roles. The
+   * difference from /me/payslips is that a payroll role sees unapproved runs
+   * too — they are the people who need to look at a draft before approving it.
+   */
+  fastify.get('/employees/:userId/payslips', async (req, reply) => {
+    const user = req.user;
+    const { userId } = req.params as { userId: string };
+    const isOwn = userId === user.sub;
+    if (!isOwn && !canSeeAll(user.role)) {
+      return reply.status(403).send({ error: 'Forbidden: you may only view your own payslips' });
+    }
+    return withTenant(user.tenant_id, async (trx) => {
+      let q = trx.selectFrom('payroll_payslips as p')
+        .innerJoin('payroll_runs as r', 'r.id', 'p.run_id')
+        .select(['p.id', 'p.basic_pay', 'p.gross_pay', 'p.taxable_pay', 'p.income_tax',
+                 'p.employee_contributions', 'p.other_deductions', 'p.total_deductions',
+                 'p.employer_contributions', 'p.net_pay', 'p.lines',
+                 'r.name as run_name', 'r.period_year', 'r.period_month', 'r.status as run_status'])
+        .where('p.tenant_id', '=', user.tenant_id)
+        .where('p.user_id', '=', userId);
+      // Someone reading their own record still only sees settled pay.
+      if (!canSeeAll(user.role)) q = q.where('r.status', 'in', ['APPROVED', 'PAID']);
+      return q.orderBy('r.period_year', 'desc').orderBy('r.period_month', 'desc').execute();
+    });
+  });
+
   fastify.get('/payslips/:id', async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };

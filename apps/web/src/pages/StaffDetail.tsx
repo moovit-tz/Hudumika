@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
+import { BackButton } from '../components/ui/BackButton.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { EMPLOYEES } from '../data/staffData.js';
 import type { EmpStatus } from '../data/staffData.js';
@@ -113,8 +114,28 @@ function Pill({ text, tone }: { text: string; tone?: { bg: string; fg: string } 
     }}>{text}</span>
   );
 }
+const RUN_TONE: Record<string, { bg: string; fg: string }> = {
+  PAID:      { bg: 'var(--green-l)', fg: 'var(--green)' },
+  APPROVED:  { bg: 'var(--green-l)', fg: 'var(--green)' },
+  CALCULATED:{ bg: 'var(--gold-l)',  fg: 'var(--gold)'  },
+  DRAFT:     { bg: 'var(--bg)',      fg: 'var(--ink3)'  },
+  CANCELLED: { bg: 'var(--red-l)',   fg: 'var(--red)'   },
+};
 function AttBadge({ status }: { status: string }) { return <Pill text={status} tone={ATT_TONE[status]} />; }
 function LeaveBadge({ status }: { status: string }) { return <Pill text={status} tone={LEAVE_TONE[status]} />; }
+function RunBadge({ status }: { status: string }) { return <Pill text={status} tone={RUN_TONE[status]} />; }
+
+/**
+ * Money, grouped and without decimals.
+ *
+ * The shilling has no subunit in daily use, so "489,300" is what a payslip
+ * says. Rounding here is presentation only — the stored figures keep their
+ * precision, because a total that disagrees with its own lines is unexplainable.
+ */
+function money(v: unknown): string {
+  const n = Number(v ?? 0);
+  return Number.isFinite(n) ? n.toLocaleString(undefined, { maximumFractionDigits: 0 }) : '—';
+}
 
 /** One table shape for every record tab, so they stay consistent as more land. */
 function TabTable({ loading, rows, head, row, empty, summary }: {
@@ -181,28 +202,41 @@ export const StaffDetail: React.FC = () => {
     'Documents', 'Payroll', 'Tickets', 'Shift Roster', 'Permissions', 'Activity'
   ];
 
-  // Attendance and Leaves are the two tabs with a real endpoint behind them
-  // (/v1/hr/attendance and /v1/hr/leaves both take ?user_id=). Loaded when the
-  // tab is opened rather than with the profile, so viewing someone's details
-  // does not pull eight weeks of rows nobody asked for.
+  // The tabs with a real endpoint behind them. Loaded when the tab is opened
+  // rather than with the profile, so viewing someone's details does not pull
+  // eight weeks of attendance and a year of payslips nobody asked for.
+  const LIVE_TABS: Record<string, string> = {
+    Attendance: `/v1/hr/attendance?user_id=${id}`,
+    Leaves: `/v1/hr/leaves?user_id=${id}`,
+    Payroll: `/v1/payroll/employees/${id}/payslips`,
+  };
+
   const [attendance, setAttendance] = useState<any[]>([]);
   const [leaves, setLeaves] = useState<any[]>([]);
+  const [payslips, setPayslips] = useState<any[]>([]);
   const [tabLoading, setTabLoading] = useState(false);
+  // Payroll is the one tab that can legitimately refuse. "You may not see this"
+  // and "there is nothing here" are different answers and must not look alike.
+  const [tabDenied, setTabDenied] = useState<string | null>(null);
 
   const loadTab = useCallback(async (which: string) => {
-    if (!id) return;
-    if (which !== 'Attendance' && which !== 'Leaves') return;
+    if (!id || !LIVE_TABS[which]) return;
     setTabLoading(true);
+    setTabDenied(null);
     try {
-      if (which === 'Attendance') {
-        setAttendance(await apiFetch(`/v1/hr/attendance?user_id=${id}`) ?? []);
-      } else {
-        setLeaves(await apiFetch(`/v1/hr/leaves?user_id=${id}`) ?? []);
-      }
-    } catch {
+      const rows = await apiFetch(LIVE_TABS[which]) ?? [];
+      if (which === 'Attendance') setAttendance(rows);
+      else if (which === 'Leaves') setLeaves(rows);
+      else setPayslips(rows);
+    } catch (e: any) {
       // An empty list and a failed request must not look the same, so the
       // table says which it was rather than rendering a bare "no records".
-      if (which === 'Attendance') setAttendance([]); else setLeaves([]);
+      if (/403|forbidden/i.test(String(e?.message ?? e))) {
+        setTabDenied('Your access level does not include other people’s pay.');
+      }
+      if (which === 'Attendance') setAttendance([]);
+      else if (which === 'Leaves') setLeaves([]);
+      else setPayslips([]);
     } finally {
       setTabLoading(false);
     }
@@ -364,7 +398,9 @@ export const StaffDetail: React.FC = () => {
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
       {/* Top Header Section */}
       <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)' }}>
-        
+        <div style={{ padding: '24px 32px 0 32px' }}>
+          <BackButton to="/nexushr/employees" label="Employees" color="var(--blue)" />
+        </div>
         {/* Profile Info Row */}
         <div style={{ padding: '24px 32px 16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
@@ -546,13 +582,107 @@ export const StaffDetail: React.FC = () => {
           />
         )}
 
-        {tab !== 'Profile' && tab !== 'Attendance' && tab !== 'Leaves' && (
+        {tab === 'Payroll' && (
+          tabDenied ? (
+            // Refusal is its own state. Showing "no payslips" to someone who is
+            // merely not allowed to look would be a quiet lie.
+            <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>
+              <Icon name="lock" size={28} color="var(--border)" />
+              <div style={{ marginTop: 12, fontSize: 14, fontWeight: 500, color: 'var(--ink2)' }}>Pay details are restricted</div>
+              <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink3)' }}>{tabDenied}</div>
+            </div>
+          ) : (
+            <TabTable
+              loading={tabLoading}
+              rows={payslips}
+              empty="No payslip has been issued to this person yet."
+              head={['Period', 'Gross', 'Taxable', 'PAYE', 'Deductions', 'Net', 'Status']}
+              row={(p: any) => [
+                p.run_name,
+                money(p.gross_pay),
+                money(p.taxable_pay),
+                money(p.income_tax),
+                money(p.total_deductions),
+                <strong key="n">{money(p.net_pay)}</strong>,
+                <RunBadge key="s" status={p.run_status} />,
+              ]}
+              summary={(rows: any[]) => {
+                const paid = rows.filter(r => ['APPROVED', 'PAID'].includes(r.run_status));
+                const net = paid.reduce((t, r) => t + Number(r.net_pay || 0), 0);
+                const tax = paid.reduce((t, r) => t + Number(r.income_tax || 0), 0);
+                const draft = rows.length - paid.length;
+                return `${paid.length} payslip(s) issued — ${money(net)} net, ${money(tax)} PAYE`
+                  + (draft ? `, ${draft} not yet approved` : '');
+              }}
+            />
+          )
+        )}
+
+        {/* The most recent payslip, line by line, so the figures above can be
+            explained without anyone re-running the payroll. */}
+        {tab === 'Payroll' && !tabDenied && payslips.length > 0 && Array.isArray(payslips[0]?.lines) && (
+          <div style={{ marginTop: 16, background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', fontSize: 12.5, fontWeight: 600, color: 'var(--ink2)' }}>
+              {payslips[0].run_name} — how it was calculated
+            </div>
+            {/* Employer contributions are split off rather than listed among the
+                deductions. They are a cost the employer bears on top of pay, and
+                a minus sign beside them reads as money taken from this person —
+                it is not, and their net is unaffected by it. */}
+            {(() => {
+              const lines = payslips[0].lines as any[];
+              const own = lines.filter(l => l.kind !== 'EMPLOYER_CONTRIBUTION');
+              const employer = lines.filter(l => l.kind === 'EMPLOYER_CONTRIBUTION');
+              const Row = ({ l, muted }: { l: any; muted?: boolean }) => (
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, padding: '7px 16px' }}>
+                  <span style={{ fontSize: 13, color: muted ? 'var(--ink3)' : 'var(--ink)', minWidth: 200 }}>{l.name}</span>
+                  <span style={{ fontSize: 12, color: 'var(--ink3)', flex: 1 }}>
+                    {l.basis ?? (l.kind === 'EARNING' ? 'earning' : '')}
+                  </span>
+                  <span style={{
+                    fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums',
+                    color: muted ? 'var(--ink3)' : l.kind === 'EARNING' ? 'var(--green)' : 'var(--ink)',
+                  }}>
+                    {l.kind === 'EARNING' || muted ? '' : '−'}{money(l.amount)}
+                  </span>
+                </div>
+              );
+              return (
+                <>
+                  <div style={{ padding: '4px 0' }}>
+                    {own.map((l, i) => <Row key={i} l={l} />)}
+                  </div>
+                  <div style={{
+                    display: 'flex', justifyContent: 'space-between', padding: '10px 16px',
+                    borderTop: '1px solid var(--border)', background: 'var(--bg)',
+                    fontSize: 13, fontWeight: 700, color: 'var(--ink)',
+                  }}>
+                    <span>Net pay</span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{money(payslips[0].net_pay)}</span>
+                  </div>
+                  {employer.length > 0 && (
+                    <>
+                      <div style={{ padding: '9px 16px', borderTop: '1px solid var(--border)', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink3)' }}>
+                        Paid by the employer — not deducted from this pay
+                      </div>
+                      <div style={{ padding: '0 0 6px' }}>
+                        {employer.map((l, i) => <Row key={i} l={l} muted />)}
+                      </div>
+                    </>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        )}
+
+        {tab !== 'Profile' && !LIVE_TABS[tab] && (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--ink3)', background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)' }}>
             <Icon name="clock" size={32} color="var(--border)" />
             <div style={{ marginTop: 12, fontSize: 14, fontWeight: 500, color: 'var(--ink2)' }}>The {tab} module is coming soon</div>
             {/* Says which, rather than implying every tab is equally close. */}
             <div style={{ marginTop: 6, fontSize: 12, color: 'var(--ink3)' }}>
-              No endpoint backs this tab yet — Attendance and Leaves are live.
+              No endpoint backs this tab yet — Attendance, Leaves and Payroll are live.
             </div>
           </div>
         )}

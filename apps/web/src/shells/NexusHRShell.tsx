@@ -6,6 +6,7 @@ import { AppSidebar } from '../components/AppSidebar.js';
 import type { SidebarSection } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
 import { RequireRoles } from '../components/RequireRoles.js';
+import { RequireSelfOrRoles } from '../components/RequireSelfOrRoles.js';
 import { PageLayout } from '../components/PageLayout.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
 
@@ -106,7 +107,7 @@ export function NexusHRShell() {
               <Route path="teams"             element={<RequireRoles roles={MGMT_ROLES}><TeamsPage /></RequireRoles>} />
               <Route path="invitations"       element={<RequireRoles roles={MGMT_ROLES}><InvitationsPage /></RequireRoles>} />
               <Route path="staff-directory"   element={<Navigate to="/nexushr/employees" replace />} />
-              <Route path="staff/:id"         element={<RequireRoles roles={MGMT_ROLES}><StaffDetail /></RequireRoles>} />
+              <Route path="staff/:id"         element={<RequireSelfOrRoles roles={MGMT_ROLES}><StaffDetail /></RequireSelfOrRoles>} />
               <Route path="activity-logs"     element={<RequireRoles roles={MGMT_ROLES}><ActivityLogsPage /></RequireRoles>} />
               <Route path="login-history"     element={<RequireRoles roles={MGMT_ROLES}><LoginHistoryPage /></RequireRoles>} />
               <Route path="device-management" element={<RequireRoles roles={MGMT_ROLES}><DeviceManagementPage /></RequireRoles>} />
