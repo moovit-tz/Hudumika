@@ -51,6 +51,7 @@ import { ConfirmHost } from './components/ConfirmHost.js';
 
 import { ClearOSShell } from './shells/ClearOSShell.js';
 import { FinOpsShell }  from './shells/FinOpsShell.js';
+import { LensShell }    from './shells/LensShell.js';
 import { NexusHRShell }   from './shells/NexusHRShell.js';
 import { BlissShell }   from './shells/BlissShell.js';
 import { CloudShell }   from './shells/CloudShell.js';
@@ -315,6 +316,9 @@ const AppContent: React.FC = () => {
 
           {/* ── App shells (prefix-based routes) ── */}
           <Route path="/clearos/*"  element={<ClearOSShell />} />
+          {/* Lens — internal developer record. SuperAdmin only, never in a
+              customer launcher. */}
+          <Route path="/lens/*"     element={<RequireRoles roles={['SUPER_ADMIN']}><LensShell /></RequireRoles>} />
           <Route path="/finance/*"  element={<RequireRoles roles={FIN_ROLES}><FinOpsShell /></RequireRoles>} />
           <Route path="/finops/*"   element={<RequireRoles roles={FIN_ROLES}><FinOpsShell /></RequireRoles>} />
           <Route path="/nexushr/*"    element={<NexusHRShell />} />

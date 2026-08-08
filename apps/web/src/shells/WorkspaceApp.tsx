@@ -20,6 +20,7 @@ interface WorkspaceAppProps {
 
 // Map app id → brand label shown next to the Hudumika logo
 export const APP_LABELS: Record<AppId, string> = {
+  lens:      'Lens',
   studio:    'Studio',
   clearos:   'ClearOS',
   finops:    'FinOps',
@@ -52,6 +53,9 @@ export const APP_LABELS: Record<AppId, string> = {
 // avatar accent by default.
 const DEFAULT_APP_COLOR = '#0b1e3a';
 export const APP_COLORS: Record<AppId, string> = {
+  // Slate, deliberately unlike the customer apps — it should not look like
+  // one of them in a screenshot.
+  lens:      '#475569',
   studio:    '#4361ee',
   clearos: DEFAULT_APP_COLOR, finops: DEFAULT_APP_COLOR, complyos: DEFAULT_APP_COLOR,
   bliss: DEFAULT_APP_COLOR, nexushr: DEFAULT_APP_COLOR, onesite: DEFAULT_APP_COLOR,
@@ -79,6 +83,9 @@ export const APP_COLORS: Record<AppId, string> = {
  * not an accident of where it landed in a list.
  */
 export const APP_PALETTE_SLOT: Record<AppId, number> = {
+  // Internal tooling — takes the neutral slot so a tenant's brand preset does
+  // not recolour a developer tool.
+  lens: 0,
   // 0 — clearance & customs
   clearos: 0, cargotracker: 0, demurrage: 0,
   // 1 — finance & commerce

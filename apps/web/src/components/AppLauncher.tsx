@@ -4,7 +4,8 @@ import { Icon } from './Icon.js';
 import { useBranding } from '../hooks/useBranding.js';
 import { useLocale } from '../hooks/useLocale.js';
 import { useEnabledApps, isAppEnabled } from '../hooks/useEnabledApps.js';
-import { LAUNCHER_APPS, LauncherAppSvg } from './LauncherApps.js';
+import { LAUNCHER_APPS, LauncherAppSvg, INTERNAL_APP_IDS } from './LauncherApps.js';
+import { useAuth } from '../hooks/useAuth.js';
 import './AppLauncher.css';
 
 interface AppLauncherProps {
@@ -17,6 +18,9 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
   const enabledApps = useEnabledApps();
 
   const [launcherOpen, setLauncherOpen] = useState(false);
+  const { user } = useAuth();
+  const canSeeInternal = user?.role === 'SUPER_ADMIN';
+
   const [editMode, setEditMode] = useState(false);
   const [appOrder, setAppOrder] = useState<string[]>(() => {
     try {
@@ -39,6 +43,7 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
           .map(id => LAUNCHER_APPS.find(a => a.id === id))
           .filter((a): a is (typeof LAUNCHER_APPS)[0] => Boolean(a))
           .filter(a => isAppEnabled(a.id, enabledApps))
+          .filter(a => canSeeInternal || !INTERNAL_APP_IDS.has(a.id))
       );
     } catch { setRecentApps([]); }
   }, [launcherOpen, enabledApps]);
@@ -48,7 +53,11 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
       .map(id => LAUNCHER_APPS.find(a => a.id === id))
       .filter((a): a is (typeof LAUNCHER_APPS)[0] => Boolean(a));
     const extras = LAUNCHER_APPS.filter(a => !appOrder.includes(a.id));
-    return [...ordered, ...extras].filter(a => isAppEnabled(a.id, enabledApps));
+    return [...ordered, ...extras]
+      .filter(a => isAppEnabled(a.id, enabledApps))
+      // Internal tooling is not entitlement-gated — a tenant could be granted
+      // every feature and must still never see it. Role is the gate.
+      .filter(a => canSeeInternal || !INTERNAL_APP_IDS.has(a.id));
   }, [appOrder, enabledApps]);
 
   function closeLauncher() { setLauncherOpen(false); setEditMode(false); }

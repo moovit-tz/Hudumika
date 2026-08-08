@@ -1792,6 +1792,53 @@ export type TaxCodeKind =
 export type TaxCodeScope = 'SALES' | 'PURCHASE' | 'BOTH';
 
 /**
+ * Lens — the internal developer record. Platform-scoped on purpose: these
+ * tables carry no tenant_id, because a bug in FinOps is a fact about the
+ * software, not about one customer's workspace. See migration 191.
+ */
+export interface LensAreasTable {
+  id: string;
+  name: string;
+  kind: Generated<'APP' | 'PLATFORM' | 'INFRA' | 'INTEGRATION'>;
+  description: string | null;
+  sort_order: Generated<number>;
+  created_at: Generated<Date>;
+}
+
+export interface LensItemsTable {
+  id: Generated<string>;
+  ref: string;
+  kind: 'BUG' | 'FEATURE' | 'DEBT' | 'DECISION' | 'QUESTION' | 'RISK';
+  title: string;
+  body: string | null;
+  area_id: string | null;
+  status: Generated<'OPEN' | 'IN_PROGRESS' | 'BLOCKED' | 'DONE' | 'WONTFIX'>;
+  severity: Generated<'CRITICAL' | 'HIGH' | 'NORMAL' | 'LOW'>;
+  /** CONFIRMED means somebody ran it. SUSPECTED is a reading of the code. */
+  confidence: Generated<'CONFIRMED' | 'SUSPECTED' | 'UNVERIFIED'>;
+  /** The proof, not a restatement of the problem. */
+  evidence: string | null;
+  waiting_on: string | null;
+  refs: Generated<unknown>;
+  tags: Generated<unknown>;
+  created_by: string | null;
+  resolved_at: Date | null;
+  resolution: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface LensEventsTable {
+  id: Generated<string>;
+  item_id: string;
+  kind: string;
+  detail: string | null;
+  actor_id: string | null;
+  actor_name: string | null;
+  created_at: Generated<Date>;
+}
+
+/**
  * Whether a workspace may charge VAT in a jurisdiction. An absent row means
  * *unknown*, not *unregistered* — the two have different consequences.
  */
@@ -2740,6 +2787,10 @@ export interface Database {
   invoice_reminders: InvoiceRemindersTable;
   invoice_activity_log: InvoiceActivityLogTable;
   tax_codes: TaxCodesTable;
+  // Lens — platform-scoped, no tenant_id by design.
+  lens_areas: LensAreasTable;
+  lens_items: LensItemsTable;
+  lens_events: LensEventsTable;
   vat_periods: VatPeriodsTable;
   tax_registrations: TaxRegistrationsTable;
   tax_code_components: TaxCodeComponentsTable;

@@ -25,13 +25,18 @@ export type AppId =
   | 'cargotracker' // AWB/BL shipment tracking (split out of ClearOS)
   | 'seal'         // Bonded / customs-controlled warehouse
   | 'inventory'    // General multi-warehouse stock control (separate from SEAL's bonded-warehouse domain)
-  | 'studio';      // Workflow Studio — the platform's automation control plane
+  | 'studio'       // Workflow Studio — the platform's automation control plane
+  | 'lens';        // Internal developer record — SuperAdmin only, never customer-facing
 
 export const ALL_APP_IDS: AppId[] = [
   'clearos', 'finops', 'complyos', 'bliss',
   'nexushr', 'onesite', 'oneid', 'tracking', 'cloud', 'ai', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
   'calendar', 'tasks',
   'demurrage', 'cargotracker', 'seal', 'inventory', 'studio',
+  // Internal tooling. Present so the app shell and design system can resolve it
+  // like any other app; the launcher filters it out for non-SuperAdmins and
+  // both its route and its endpoints require that role.
+  'lens',
 ];
 
 // ── Roles ────────────────────────────────────────────────────
@@ -70,6 +75,16 @@ export interface UserProfileFields {
   language?: string;
   website?: string;
   cover_url?: string;
+  
+  // HR/Staff Fields
+  employee_code?: string;
+  department?: string;
+  reports_to?: string;
+  employment_type?: string;
+  address?: string;
+  gender?: string;
+  date_of_birth?: string;
+  biometric_id?: string;
 }
 
 export interface User {

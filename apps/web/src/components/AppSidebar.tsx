@@ -42,6 +42,7 @@ interface Props {
 }
 
 const APP_ICONS: Record<AppId, IconName> = {
+  lens:      'search',
   clearos:   'layers',
   finops:    'barChart',
   complyos:  'shield',

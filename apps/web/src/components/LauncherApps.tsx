@@ -5,7 +5,12 @@ import React from 'react';
 // AppLauncher (the switcher panel itself) — kept in its own module so
 // both can use it without one depending on the other's internals.
 
+/** Apps that are internal tooling, not customer-facing. The launcher filters
+ *  these out unless the signed-in user is a SuperAdmin. */
+export const INTERNAL_APP_IDS = new Set(['lens']);
+
 export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; path: string }> = [
+  { id: 'lens',      name: 'Lens',     color: '#475569', path: '/lens'      },
   { id: 'clearos',   name: 'ClearOS',  color: '#ea580c', path: '/clearos'   },
   { id: 'finops',    name: 'FinOps',   color: '#0284c7', path: '/finance'   },
   { id: 'nexushr',     name: 'NexusHR',  color: '#0d9488', path: '/nexushr'     },
@@ -31,6 +36,8 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
 // ── App SVG icons for launcher ─────────────────────────────────
 
 export const LAUNCHER_SVG_ICONS: Record<string, React.ReactElement> = {
+  // A lens: what the tool is for — looking closely at the platform itself.
+  lens:     (<g stroke="white" strokeWidth="2.4" fill="none" strokeLinecap="round"><circle cx="17" cy="17" r="9"/><line x1="24" y1="24" x2="32" y2="32"/><line x1="13.5" y1="17" x2="20.5" y2="17" opacity="0.7"/><line x1="17" y1="13.5" x2="17" y2="20.5" opacity="0.7"/></g>),
   studio:   (<g fill="white"><path d="M11 8H29V12H11Z" /><path d="M11 15H29V19H11Z" opacity="0.8" /><path d="M11 22H29V26H11Z" opacity="0.6" /><circle cx="7" cy="10" r="2.5" /><circle cx="7" cy="17" r="2.5" /><circle cx="7" cy="24" r="2.5" /></g>),
   clearos:  (<g stroke="white" strokeWidth="2.3" fill="none" strokeLinecap="round" strokeLinejoin="round"><circle cx="20" cy="12" r="3"/><path d="M16 10.5L24 10.5"/><line x1="20" y1="15" x2="20" y2="30"/><line x1="12" y1="21" x2="28" y2="21"/><path d="M20 30 C14.5 30 11 27.5 11 24"/><path d="M20 30 C25.5 30 29 27.5 29 24"/></g>),
   finops:   (<g fill="white"><rect x="8" y="25" width="6.5" height="8" rx="2"/><rect x="17" y="18.5" width="6.5" height="14.5" rx="2" opacity="0.8"/><rect x="26" y="11" width="6.5" height="22" rx="2" opacity="0.65"/></g>),
