@@ -30,6 +30,20 @@ const EMPTY: TaxCode = {
   effectiveFrom: null, effectiveTo: null,
 };
 
+interface Registration {
+  status: {
+    state: 'registered' | 'not_registered' | 'pending' | 'deregistered' | 'unknown';
+    jurisdiction: string; registrationNumber: string | null; registrationLabel: string | null;
+    mayChargeVat: boolean; advisory: string | null;
+  };
+  reference: {
+    name: string; currency: string | null; standard_rate: string | null;
+    threshold_amount: string | null; threshold_window_months: number | null;
+    registration_label: string | null; fiscalisation: string | null;
+    as_of: string; source: string | null;
+  } | null;
+}
+
 interface Usage {
   invoice_lines: { total: number; unclassified: number };
   products: { total: number; unclassified: number };
@@ -244,11 +258,41 @@ export function FinanceTaxCodes() {
   // The app has no mounted toast system, so results are stated inline rather
   // than fired at one that would silently swallow them.
   const [notice, setNotice] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+  const [reg, setReg] = useState<Registration | null>(null);
+  const [regNum, setRegNum] = useState('');
+  const [regState, setRegState] = useState<string>('unknown');
+  const [regBusy, setRegBusy] = useState(false);
 
   useEffect(() => { refreshTaxCodes(true); }, []);
   useEffect(() => {
     apiFetch('/v1/tax-codes/usage').then(setUsage).catch(() => setUsage(null));
+    apiFetch('/v1/tax-codes/registration')
+      .then((r: Registration) => {
+        setReg(r);
+        setRegNum(r.status.registrationNumber ?? '');
+        setRegState(r.status.state === 'unknown' ? 'unknown' : r.status.state);
+      })
+      .catch(() => setReg(null));
   }, [showForm]);
+
+  async function saveRegistration() {
+    if (!reg) return;
+    setRegBusy(true); setNotice(null);
+    try {
+      const r = await apiFetch('/v1/tax-codes/registration', {
+        method: 'PUT',
+        body: JSON.stringify({
+          jurisdiction: reg.status.jurisdiction,
+          status: regState,
+          registration_number: regNum.trim() || null,
+        }),
+      });
+      setReg({ ...reg, status: r });
+      setNotice({ kind: 'ok', text: 'VAT registration recorded.' });
+    } catch (e: any) {
+      setNotice({ kind: 'err', text: e?.message || 'Could not save that' });
+    } finally { setRegBusy(false); }
+  }
 
   const unclassified = useMemo(() => {
     if (!usage) return null;
@@ -307,6 +351,66 @@ export function FinanceTaxCodes() {
           borderRadius: 'var(--r)', fontSize: 12.5, fontWeight: 600,
           color: notice.kind === 'ok' ? 'var(--green)' : 'var(--red)',
         }}>{notice.text}</div>
+      )}
+
+      {/* The prior question to every tax code below it. */}
+      {reg && (
+        <div style={{
+          background: 'var(--white)', border: `1px solid ${reg.status.state === 'registered' ? 'var(--border)' : 'var(--gold)'}`,
+          borderRadius: 'var(--r)', padding: '14px 16px', marginBottom: 16,
+        }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div>
+              <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>
+                {reg.status.jurisdiction} VAT status
+              </label>
+              <Select value={regState} onValueChange={setRegState}>
+                <SelectTrigger style={{ minWidth: 200 }}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unknown">Not recorded</SelectItem>
+                  <SelectItem value="registered">Registered</SelectItem>
+                  <SelectItem value="not_registered">Not registered</SelectItem>
+                  <SelectItem value="pending">Registration pending</SelectItem>
+                  <SelectItem value="deregistered">Deregistered</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'block', marginBottom: 4 }}>
+                {reg.status.registrationLabel ?? 'Registration number'}
+              </label>
+              <input value={regNum} onChange={e => setRegNum(e.target.value)}
+                placeholder={reg.status.registrationLabel ?? 'Number'}
+                style={{ padding: '8px 10px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
+                         minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', fontSize: 13,
+                         fontFamily: 'var(--font)', background: 'var(--white)', color: 'var(--ink)', minWidth: 200 }} />
+            </div>
+            <button type="button" className="btn btn-secondary btn-sm"
+              disabled={regBusy || regState === 'unknown'} onClick={saveRegistration}>
+              {regBusy ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+
+          {reg.status.advisory && (
+            <div style={{ fontSize: 12, color: 'var(--ink2)', lineHeight: 1.55, marginTop: 10 }}>
+              {reg.status.advisory}
+            </div>
+          )}
+
+          {/* Local reference figures, clearly dated — these change every budget,
+              so they prefill and sanity-check rather than decide anything. */}
+          {reg.reference && (
+            <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.6, marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+              <strong style={{ color: 'var(--ink2)' }}>{reg.reference.name}</strong> — standard rate{' '}
+              {reg.reference.standard_rate ? `${Number(reg.reference.standard_rate)}%` : '—'}
+              {reg.reference.threshold_amount && <>, registration required above{' '}
+                {reg.reference.currency} {Number(reg.reference.threshold_amount).toLocaleString()} over{' '}
+                {reg.reference.threshold_window_months} months</>}
+              {reg.reference.fiscalisation && <>, fiscalised through {reg.reference.fiscalisation}</>}.
+              {' '}<span style={{ opacity: 0.85 }}>Reference only, checked {String(reg.reference.as_of).slice(0, 10)} — thresholds move each budget, so confirm before relying on it.</span>
+            </div>
+          )}
+        </div>
       )}
 
       <MetricsRow cards={[

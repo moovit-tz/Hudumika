@@ -1792,6 +1792,44 @@ export type TaxCodeKind =
 export type TaxCodeScope = 'SALES' | 'PURCHASE' | 'BOTH';
 
 /**
+ * Whether a workspace may charge VAT in a jurisdiction. An absent row means
+ * *unknown*, not *unregistered* — the two have different consequences.
+ */
+export interface TaxRegistrationsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  jurisdiction: string;
+  regime: Generated<string>;
+  status: 'registered' | 'not_registered' | 'pending' | 'deregistered';
+  registration_number: string | null;
+  basis: string | null;
+  registered_from: DateOnlyNull;
+  registered_to: DateOnlyNull;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** Reference data for onboarding a country. Never authoritative — see `as_of`. */
+export interface TaxJurisdictionsTable {
+  code: string;
+  name: string;
+  regime: Generated<string>;
+  currency: string | null;
+  standard_rate: number | null;
+  threshold_amount: number | null;
+  threshold_window_months: number | null;
+  threshold_alt_amount: number | null;
+  threshold_alt_window_months: number | null;
+  registration_label: string | null;
+  fiscalisation: string | null;
+  as_of: DateOnly;
+  source: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/**
  * A filing period, per tenant per jurisdiction.
  *
  * Closing one freezes every document dated inside it and stores the return as
@@ -2681,6 +2719,8 @@ export interface Database {
   invoice_activity_log: InvoiceActivityLogTable;
   tax_codes: TaxCodesTable;
   vat_periods: VatPeriodsTable;
+  tax_registrations: TaxRegistrationsTable;
+  tax_jurisdictions: TaxJurisdictionsTable;
   // Suppliers / Vendors
   products: ProductsTable;
   suppliers: SuppliersTable;

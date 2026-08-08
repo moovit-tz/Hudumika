@@ -1,5 +1,6 @@
 import type { Kysely, Transaction } from 'kysely';
 import type { Database, TaxCodeKind } from '../db/client.js';
+import { registrationStatus, type RegistrationStatus } from './tax-registration.service.js';
 
 type Db = Kysely<Database> | Transaction<Database>;
 
@@ -70,6 +71,16 @@ export interface VatReturn {
 
   /** Documents that could not be converted to the reporting currency. */
   fxSkipped: { invoices: number; bills: number };
+
+  /**
+   * Whether this workspace may charge VAT here at all.
+   *
+   * The prior question to everything above it. An unregistered business must
+   * not charge VAT, so output tax on its sales is not a return figure — it is
+   * a problem. Reported rather than enforced: an absent registration record
+   * means nobody has told us, which is not the same as being unregistered.
+   */
+  registration: RegistrationStatus;
 
   /**
    * What the ledger says, next to what the return says.
@@ -248,6 +259,8 @@ export async function computeVatReturn(
   const recoveryRate = totalSupplies > 0 ? taxableSupplies / totalSupplies : 1;
   const inputTaxRecoverable = inputTaxClaimable * recoveryRate;
 
+  const registration = await registrationStatus(db, tenantId, juris ?? 'TZ', to);
+
   const outputTax = [...outputs.values()].reduce((s, b) => s + b.tax, 0);
   const inputTax = [...inputs.values()].reduce((s, b) => s + b.tax, 0);
 
@@ -292,6 +305,7 @@ export async function computeVatReturn(
     netPayable: outputTax - inputTaxRecoverable,
     unclassified,
     fxSkipped,
+    registration,
     ledger: {
       outputTax: ledgerOutput,
       inputTax: ledgerInput,

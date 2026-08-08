@@ -7,6 +7,9 @@ import {
   TAX_CODE_KINDS, ZERO_RATE_KINDS, ensureTaxCodes, isTaxCodeUserError, resolveTaxCode,
 } from '../services/tax-code.service.js';
 import { tenantJurisdiction } from '../services/vat-period.service.js';
+import {
+  registrationStatus, jurisdictionReference, listJurisdictions,
+} from '../services/tax-registration.service.js';
 
 const FIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE'] as const;
 
@@ -82,6 +85,65 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
         q = q.where(eb => eb.or([eb('applies_to', '=', 'BOTH'), eb('applies_to', '=', scope)]));
       }
       return q.orderBy('is_default', 'desc').orderBy('rate', 'desc').orderBy('code', 'asc').execute();
+    });
+  });
+
+  // GET /v1/tax-codes/registration?jurisdiction=TZ
+  // Whether this workspace may charge VAT here, plus the local reference
+  // figures for onboarding (rate, threshold, what the number is called).
+  fastify.get('/registration', async (request) => {
+    const user = request.user;
+    const { jurisdiction } = request.query as { jurisdiction?: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const juris = (jurisdiction || await tenantJurisdiction(trx, user.tenant_id)).toUpperCase();
+      const [status, reference, all] = await Promise.all([
+        registrationStatus(trx, user.tenant_id, juris),
+        jurisdictionReference(trx, juris),
+        listJurisdictions(trx),
+      ]);
+      return { status, reference: reference ?? null, jurisdictions: all };
+    });
+  });
+
+  // PUT /v1/tax-codes/registration
+  // One registration per jurisdiction per regime, so this upserts rather than
+  // accumulating rows nobody can tell apart.
+  fastify.put('/registration', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
+    const user = request.user;
+    const body = (request.body ?? {}) as any;
+    const juris = String(body.jurisdiction || '').toUpperCase();
+    if (!/^[A-Z]{2}$/.test(juris)) {
+      return reply.status(400).send({ error: 'jurisdiction must be an ISO 3166-1 alpha-2 country code' });
+    }
+    const VALID = ['registered', 'not_registered', 'pending', 'deregistered'];
+    if (!VALID.includes(body.status)) {
+      return reply.status(400).send({ error: `status must be one of ${VALID.join(', ')}` });
+    }
+    // "Registered" without a number is a claim, not a registration — the DB
+    // enforces this too, but a clear message beats a constraint violation.
+    if (body.status === 'registered' && !String(body.registration_number ?? '').trim()) {
+      return reply.status(400).send({
+        error: 'A registration number is required to record this workspace as registered.',
+      });
+    }
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const values = {
+        tenant_id: user.tenant_id,
+        jurisdiction: juris,
+        regime: body.regime || 'VAT',
+        status: body.status,
+        registration_number: String(body.registration_number ?? '').trim() || null,
+        basis: body.basis || null,
+        registered_from: body.registered_from || null,
+        registered_to: body.registered_to || null,
+        notes: body.notes ? String(body.notes).trim() : null,
+        updated_at: new Date(),
+      };
+      await trx.insertInto('tax_registrations').values(values)
+        .onConflict(oc => oc.columns(['tenant_id', 'jurisdiction', 'regime']).doUpdateSet(values))
+        .execute();
+      return registrationStatus(trx, user.tenant_id, juris);
     });
   });
 

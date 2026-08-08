@@ -56,6 +56,11 @@ interface VatReturn {
   unclassified: { salesLines: number; salesNet: number; salesTax: number; purchaseLines: number; purchaseNet: number; purchaseTax: number };
   fxSkipped: { invoices: number; bills: number };
   ledger: { outputTax: number; inputTax: number; netPerLedger: number; difference: number };
+  registration: {
+    state: 'registered' | 'not_registered' | 'pending' | 'deregistered' | 'unknown';
+    jurisdiction: string; registrationNumber: string | null; registrationLabel: string | null;
+    mayChargeVat: boolean; advisory: string | null;
+  };
 }
 
 const card: React.CSSProperties = {
@@ -189,6 +194,38 @@ export const FinanceTaxReport: React.FC = () => {
         <div style={{ padding: '48px 0', textAlign: 'center', color: 'var(--red)' }}>{error}</div>
       ) : !data ? null : (
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* The prior question. An unregistered business must not charge VAT,
+              so its "output tax" is not a return figure — it is a problem, and
+              showing a tidy net payable above it would be actively misleading. */}
+          {data.registration.advisory && (
+            <div style={{
+              display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px',
+              background: data.registration.state === 'unknown' ? 'var(--gold-l)' : 'var(--red-l)',
+              border: `1px solid ${data.registration.state === 'unknown' ? 'var(--gold)' : 'var(--red)'}`,
+              borderRadius: 'var(--r)', fontSize: 12.5, color: 'var(--ink2)', lineHeight: 1.55,
+            }}>
+              <Icon name="alertTriangle" size={16}
+                color={data.registration.state === 'unknown' ? 'var(--gold)' : 'var(--red)'} />
+              <div>
+                <strong style={{ color: 'var(--ink)' }}>
+                  {data.registration.state === 'unknown'
+                    ? 'It is not recorded whether this workspace is VAT-registered.'
+                    : 'This workspace should not be charging VAT.'}
+                </strong>{' '}
+                {data.registration.advisory}
+                {data.outputTax > 0 && (
+                  <> There is {fmt(data.outputTax)} of output tax on this period's sales, which
+                  only belongs on a return if the registration exists.</>
+                )}
+                <div style={{ marginTop: 8 }}>
+                  <a href="/finance/tax-codes" className="btn btn-secondary btn-sm">
+                    Record the registration
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* The one figure the return exists to produce. */}
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
