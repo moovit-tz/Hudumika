@@ -6,6 +6,7 @@ import { Icon } from '../components/Icon.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
+import { useTaxCodes } from '../data/taxCodeData.js';
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -35,7 +36,10 @@ const STATUS_FG: Record<string, string> = {
 const SHIPMENT_TYPES = ['AIR', 'SEA', 'ROAD', 'RAIL'];
 const CURRENCIES     = ['USD', 'TZS', 'EUR', 'GBP'];
 const CATEGORIES     = ['Freight', 'Handling', 'Customs', 'Insurance', 'Other'];
-const TAX_RATES      = [0, 10, 18];
+// Tax used to be a third hardcoded rate list — [0, 10, 18] here, [0, 18] in
+// productData — and 10% is not a rate any of this platform's jurisdictions
+// charge. It now comes from the workspace's own tax codes, which carry the
+// treatment as well as the rate. See data/taxCodeData.ts.
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -58,7 +62,7 @@ function toDateInput(d: string | null | undefined) {
 // ─── blank line ───────────────────────────────────────────────────────────────
 
 function blankLine() {
-  return { description: '', category: 'Freight', quantity: 1, unit_price: 0, tax_rate: 0 };
+  return { description: '', category: 'Freight', quantity: 1, unit_price: 0, tax_rate: 0, tax_code_id: null as string | null };
 }
 
 // ─── StatusBadge ──────────────────────────────────────────────────────────────
@@ -360,6 +364,7 @@ function QuoteModal({
   onSaved: () => void;
 }) {
   const isEdit = Boolean(editQuote);
+  const taxCodes = useTaxCodes();
 
   const [form, setForm] = useState<any>(() => ({
     title:              editQuote?.title ?? '',
@@ -384,6 +389,7 @@ function QuoteModal({
           quantity:    l.quantity,
           unit_price:  l.unit_price,
           tax_rate:    l.tax_rate,
+          tax_code_id: l.tax_code_id ?? null,
         }))
       : [blankLine()]
   );
@@ -420,6 +426,13 @@ function QuoteModal({
 
   function setLine(idx: number, key: string, val: any) {
     setLines(ls => ls.map((l, i) => i === idx ? { ...l, [key]: val } : l));
+  }
+
+  /** The treatment decides the rate, so a line can never carry two answers. */
+  function setTaxCode(idx: number, codeId: string) {
+    const tc = taxCodes.find(c => c.id === codeId);
+    setLines(ls => ls.map((l, i) =>
+      i === idx ? { ...l, tax_code_id: codeId, tax_rate: tc ? tc.rate : l.tax_rate } : l));
   }
 
   function addLine() {
@@ -613,11 +626,15 @@ function QuoteModal({
                           <input type="number" min={0} step="0.01" aria-label="Unit Price" value={line.unit_price} onChange={e => setLine(idx, 'unit_price', Number(e.target.value))}
                             style={{ ...inputStyle, padding: '4px 6px', fontSize: 12, width: 100 }} />
                         </td>
-                        <td style={{ padding: '4px 6px', minWidth: 65 }}>
-                          <Select value={String(line.tax_rate)} onValueChange={v => setLine(idx, 'tax_rate', Number(v))}>
-                            <SelectTrigger aria-label="Tax Rate" style={{ ...inputStyle, height: 'auto', padding: '4px 6px', fontSize: 12, width: 65 }}><SelectValue /></SelectTrigger>
+                        <td style={{ padding: '4px 6px', minWidth: 130 }}>
+                          <Select value={line.tax_code_id ?? ''} onValueChange={v => setTaxCode(idx, v)}>
+                            <SelectTrigger aria-label="Tax treatment" style={{ ...inputStyle, height: 'auto', padding: '4px 6px', fontSize: 12, minWidth: 130 }}>
+                              <SelectValue placeholder="Not classified" />
+                            </SelectTrigger>
                             <SelectContent>
-                              {TAX_RATES.map(r => <SelectItem key={r} value={String(r)}>{r}%</SelectItem>)}
+                              {taxCodes.map(tc => (
+                                <SelectItem key={tc.id} value={tc.id}>{tc.code} · {tc.rate}%</SelectItem>
+                              ))}
                             </SelectContent>
                           </Select>
                         </td>

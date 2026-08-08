@@ -1,6 +1,7 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { quotationService } from '../services/quotation.service.js';
+import { TaxCodeNotFound } from '../services/tax-code.service.js';
 import { withTenant } from '../db/client.js';
 
 // Matches the frontend's actual route grant for /quotations (FIN_ROLES +
@@ -40,8 +41,15 @@ export async function quotationRoutes(app: FastifyInstance) {
       return reply.code(403).send({ error: 'Insufficient permissions' });
     }
     const body = req.body as any;
-    const quote = await quotationService.create(user.tenant_id, user.id, body);
-    return reply.code(201).send(quote);
+    try {
+      const quote = await quotationService.create(user.tenant_id, user.id, body);
+      return reply.code(201).send(quote);
+    } catch (e) {
+      // An unknown (or another tenant's) tax code is a bad request, not a
+      // server fault.
+      if (e instanceof TaxCodeNotFound) return reply.code(400).send({ error: e.message });
+      throw e;
+    }
   });
 
   app.patch('/:id/status', async (req: FastifyRequest, reply: FastifyReply) => {

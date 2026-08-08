@@ -1315,6 +1315,7 @@ export interface QuotationLinesTable {
   quantity: number;
   unit_price: number;
   tax_rate: number;
+  tax_code_id: string | null;
   tax_amount: number;
   line_total: number;
   is_optional: Generated<boolean>;
@@ -1772,6 +1773,39 @@ export interface SalesInvoiceLinesTable {
   line_group: Generated<string>;
   currency: Generated<string>;
   sort_order: Generated<number>;
+  /**
+   * The tax *treatment*. `tax_pct` remains the rate that was actually charged;
+   * this says which of the four 0% treatments it was, which is what a return
+   * needs and a percentage cannot express. NULL = never recorded.
+   */
+  tax_code_id: string | null;
+}
+
+/**
+ * Tenant-scoped tax treatments. `kind` carries the meaning, `rate` is a
+ * consequence of it — see migration 180 for why a bare percentage was not
+ * enough (TRA's TAXCODE 4 and 5 were unreachable by construction).
+ */
+export type TaxCodeKind =
+  | 'STANDARD' | 'REDUCED' | 'ZERO_RATED' | 'EXEMPT' | 'REVERSE_CHARGE' | 'OUT_OF_SCOPE';
+
+export interface TaxCodesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  code: string;
+  name: string;
+  kind: TaxCodeKind;
+  rate: Generated<number>;
+  jurisdiction: string;
+  input_tax_recoverable: Generated<boolean>;
+  /** TRA EFDMS <TAXCODE> 1–5, or null where TRA has no equivalent. */
+  tra_tax_code: number | null;
+  is_default: Generated<boolean>;
+  status: Generated<string>;
+  effective_from: DateOnlyNull;
+  effective_to: DateOnlyNull;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 export interface InvoicePaymentsTable {
@@ -1842,6 +1876,7 @@ export interface ProductsTable {
   purchase_price: Generated<number>;
   currency: Generated<string>;
   tax_rate: Generated<number>;
+  tax_code_id: string | null;
   status: Generated<string>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -2601,6 +2636,7 @@ export interface Database {
   invoice_tasks: InvoiceTasksTable;
   invoice_reminders: InvoiceRemindersTable;
   invoice_activity_log: InvoiceActivityLogTable;
+  tax_codes: TaxCodesTable;
   // Suppliers / Vendors
   products: ProductsTable;
   suppliers: SuppliersTable;

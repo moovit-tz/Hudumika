@@ -8,8 +8,9 @@ import { MetricsRow } from '../components/MetricCard.js';
 import {
   useProducts, addProduct, updateProduct, deleteProduct,
   Product, ProductType, ProductStatus,
-  PRODUCT_UNITS, PRODUCT_CATEGORIES, PRODUCT_TYPE_COLOR, TAX_RATES,
+  PRODUCT_UNITS, PRODUCT_CATEGORIES, PRODUCT_TYPE_COLOR,
 } from '../data/productData.js';
+import { useTaxCodes, defaultTaxCode, TAX_CODE_KIND_HINT } from '../data/taxCodeData.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showConfirm } from '../lib/confirm.js';
 
@@ -37,7 +38,9 @@ const EMPTY_PRODUCT: Product = {
   id: '', code: '', name: '', type: 'service', description: '',
   category: 'Clearance Services', unit: 'shipment',
   salePrice: 0, purchasePrice: 0, currency: 'TZS',
-  taxRate: 18, status: 'active', createdAt: '',
+  // No hardcoded 18 — a new product takes the workspace's default treatment,
+  // which carries its own rate. See ProductForm.
+  taxRate: 0, taxCodeId: null, status: 'active', createdAt: '',
 };
 
 /* ── Detail Panel ───────────────────────────────────────────────────────────── */
@@ -46,6 +49,7 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
 }) {
   const { fmt } = useCurrency();
   const tc = PRODUCT_TYPE_COLOR[product.type];
+  const taxCode = useTaxCodes().find(c => c.id === product.taxCodeId);
   const margin = product.purchasePrice > 0
     ? Math.round(((product.salePrice - product.purchasePrice) / product.salePrice) * 100)
     : null;
@@ -104,8 +108,14 @@ function ProductDetail({ product, onClose, onEdit, isMobile }: {
             <div style={{ fontSize: 16, fontWeight: 800, color: margin !== null && margin > 0 ? '#059669' : 'var(--ink3)' }}>{margin !== null ? `${margin}%` : '—'}</div>
           </div>
           <div style={{ padding: '10px 12px', background: 'var(--bg)', borderRadius: 8, border: '1px solid var(--border)', textAlign: 'center' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>VAT Rate</div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Tax</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{product.taxRate}%</div>
+            {/* The rate alone does not say which treatment it is. A 0% item may
+                be zero-rated, exempt, reverse-charge or out of scope, and only
+                one of those lets you recover input tax. */}
+            <div style={{ fontSize: 10.5, fontWeight: 600, color: taxCode ? 'var(--ink3)' : 'var(--gold)', marginTop: 2 }}>
+              {taxCode ? taxCode.name : 'Not classified'}
+            </div>
           </div>
         </div>
 
@@ -142,8 +152,25 @@ function ProductForm({ product, onSave, onClose }: {
 }) {
   const [form, setForm] = useState<Product>(product ?? { ...EMPTY_PRODUCT });
   const [saving, setSaving] = useState(false);
+  const taxCodes = useTaxCodes();
+
+  // A new product starts on the workspace default rather than a literal 18.
+  // Only once, and only while the field is still untouched.
+  useEffect(() => {
+    if (product || form.taxCodeId || taxCodes.length === 0) return;
+    const d = defaultTaxCode(taxCodes);
+    if (d) setForm(f => ({ ...f, taxCodeId: d.id, taxRate: d.rate }));
+  }, [taxCodes, product, form.taxCodeId]);
+
+  const selectedCode = taxCodes.find(c => c.id === form.taxCodeId);
 
   function set(k: keyof Product, v: string | number) { setForm(f => ({ ...f, [k]: v })); }
+
+  /** The code decides the rate, so the two can never contradict each other. */
+  function setTaxCode(id: string) {
+    const c = taxCodes.find(x => x.id === id);
+    setForm(f => ({ ...f, taxCodeId: id, taxRate: c ? c.rate : f.taxRate }));
+  }
 
   async function handleSave() {
     if (!form.name.trim()) return;
@@ -234,13 +261,23 @@ function ProductForm({ product, onSave, onClose }: {
           <F label="Purchase / Cost Price">
             <input style={inp} type="number" min={0} value={form.purchasePrice} onChange={e => set('purchasePrice', +e.target.value)} />
           </F>
-          <F label="VAT Rate (%)">
-            <Select value={String(form.taxRate)} onValueChange={v => set('taxRate', +v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+          {/* Tax treatment, not a bare rate. The old control offered 0% and 18%
+              and labelled 0% "(Exempt)" — which is one of four things 0% can
+              mean, and the wrong one for most of what this catalogue sells. */}
+          <F label="Tax Treatment">
+            <Select value={form.taxCodeId ?? ''} onValueChange={setTaxCode}>
+              <SelectTrigger><SelectValue placeholder="Not classified" /></SelectTrigger>
               <SelectContent>
-                {TAX_RATES.map(r => <SelectItem key={r} value={String(r)}>{r}%{r === 18 ? ' (Standard)' : ' (Exempt)'}</SelectItem>)}
+                {taxCodes.map(c => (
+                  <SelectItem key={c.id} value={c.id}>{c.name} — {c.rate}%</SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            <div style={{ fontSize: 11, color: 'var(--ink3)', lineHeight: 1.4, marginTop: 2 }}>
+              {selectedCode
+                ? TAX_CODE_KIND_HINT[selectedCode.kind]
+                : 'This item has no recorded treatment — it will not classify correctly on a return.'}
+            </div>
           </F>
           <F label="Description" col2>
             <textarea style={{ ...inp, minHeight: 72, resize: 'vertical' } as React.CSSProperties}
@@ -257,6 +294,8 @@ export function FinanceProducts() {
   const { fmt } = useCurrency();
   const isMobile = useIsMobile();
   const products = useProducts();
+  const taxCodes = useTaxCodes();
+  const codeById = useMemo(() => new Map(taxCodes.map(c => [c.id, c])), [taxCodes]);
 
   const [search, setSearch]             = useState('');
   const [filterType, setFilterType]     = useState<ProductType | ''>('');
@@ -409,7 +448,7 @@ export function FinanceProducts() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ background: 'var(--bg)', borderBottom: '2px solid var(--border)' }}>
-                {['Code', 'Name', 'Type', 'Category', 'Unit', 'Sale Price', 'VAT', 'Status', ''].map(h => (
+                {['Code', 'Name', 'Type', 'Category', 'Unit', 'Sale Price', 'Tax', 'Status', ''].map(h => (
                   <th key={h} style={{ padding: '11px 14px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -438,7 +477,12 @@ export function FinanceProducts() {
                     <td style={{ padding: '11px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{p.category}</td>
                     <td style={{ padding: '11px 14px', color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{p.unit}</td>
                     <td style={{ padding: '11px 14px', fontWeight: 700, color: 'var(--teal)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>{fmt(p.salePrice)}</td>
-                    <td style={{ padding: '11px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>{p.taxRate}%</td>
+                    <td style={{ padding: '11px 14px', color: 'var(--ink2)', whiteSpace: 'nowrap' }}>
+                      {p.taxRate}%
+                      <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: p.taxCodeId ? 'var(--ink3)' : 'var(--gold)' }}>
+                        {codeById.get(p.taxCodeId || '')?.code ?? 'unclassified'}
+                      </span>
+                    </td>
                     <td style={{ padding: '11px 14px', whiteSpace: 'nowrap' }}>
                       <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 5, fontWeight: 700, background: p.status === 'active' ? '#ecfdf5' : '#f1f5f9', color: p.status === 'active' ? '#065f46' : '#64748b' }}>
                         {p.status.toUpperCase()}

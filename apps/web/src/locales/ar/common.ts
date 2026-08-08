@@ -149,6 +149,7 @@ export default
       "accounts": "الحسابات",
       "payments": "المدفوعات",
       "products": "المنتجات",
+      "taxCodes": "رموز الضرائب",
       "chartOfAccounts": "دليل الحسابات",
       "ledger": "دفتر الأستاذ",
       "trialBalance": "ميزان المراجعة",

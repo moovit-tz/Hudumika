@@ -149,6 +149,7 @@ export default
       "accounts": "账户",
       "payments": "付款",
       "products": "产品",
+      "taxCodes": "税码",
       "chartOfAccounts": "会计科目表",
       "ledger": "总账",
       "trialBalance": "试算平衡表",

@@ -2,6 +2,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { TaxCodeNotFound, resolveLineTax } from '../services/tax-code.service.js';
 import crypto from 'crypto';
 
 const FIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'] as const;
@@ -47,6 +48,16 @@ export async function productRoutes(fastify: FastifyInstance) {
     const body = request.body as any;
     if (!body.name?.trim()) return reply.status(400).send({ error: 'name is required' });
     return withTenant(user.tenant_id, async (trx) => {
+      // A tax code, when given, decides the rate — so the two can never
+      // disagree on the same row.
+      let tax: { tax_code_id: string | null; rate: number };
+      try {
+        tax = await resolveLineTax(trx, user.tenant_id,
+          { tax_code_id: body.tax_code_id, tax_pct: body.tax_rate });
+      } catch (e) {
+        if (e instanceof TaxCodeNotFound) return reply.status(400).send({ error: e.message });
+        throw e;
+      }
       const row = await trx.insertInto('products').values({
         id: body.id || `PRD-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
         tenant_id: user.tenant_id,
@@ -59,7 +70,8 @@ export async function productRoutes(fastify: FastifyInstance) {
         sale_price: body.sale_price || 0,
         purchase_price: body.purchase_price || 0,
         currency: body.currency || 'TZS',
-        tax_rate: body.tax_rate || 0,
+        tax_rate: tax.rate,
+        tax_code_id: tax.tax_code_id,
         status: body.status || 'active',
       }).returningAll().executeTakeFirstOrThrow();
       return reply.status(201).send(row);
@@ -72,11 +84,34 @@ export async function productRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     const body = request.body as any;
     return withTenant(user.tenant_id, async (trx) => {
-      const existing = await trx.selectFrom('products').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const existing = await trx.selectFrom('products').select(['id', 'tax_rate', 'tax_code_id'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Product not found' });
       const updates: any = { updated_at: new Date() };
-      const fields = ['code', 'name', 'type', 'description', 'category', 'unit', 'sale_price', 'purchase_price', 'currency', 'tax_rate', 'status'];
+      const fields = ['code', 'name', 'type', 'description', 'category', 'unit', 'sale_price', 'purchase_price', 'currency', 'status'];
       for (const f of fields) if (body[f] !== undefined) updates[f] = body[f];
+
+      // tax_rate and tax_code_id move together or not at all — patching one
+      // without the other is how they drift apart.
+      if (body.tax_code_id !== undefined) {
+        try {
+          const tax = await resolveLineTax(trx, user.tenant_id, { tax_code_id: body.tax_code_id });
+          updates.tax_rate = tax.tax_code_id ? tax.rate : (body.tax_rate ?? existing.tax_rate);
+          updates.tax_code_id = tax.tax_code_id;
+        } catch (e) {
+          if (e instanceof TaxCodeNotFound) return reply.status(400).send({ error: e.message });
+          throw e;
+        }
+      } else if (body.tax_rate !== undefined) {
+        // A bare rate change from an older client. Keep the treatment only if
+        // it still agrees with the new rate; a code that no longer matches its
+        // own rate is the exact ambiguity this table exists to remove.
+        const newRate = Number(body.tax_rate) || 0;
+        updates.tax_rate = newRate;
+        if (existing.tax_code_id && Number(existing.tax_rate) !== newRate) {
+          updates.tax_code_id = null;
+        }
+      }
       const row = await trx.updateTable('products').set(updates).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
       return row;
     });

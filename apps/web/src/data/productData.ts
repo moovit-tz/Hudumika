@@ -16,13 +16,19 @@ export interface Product {
   purchasePrice: number;
   currency: string;
   taxRate: number;
+  /**
+   * The tax *treatment*, from the workspace's own tax codes. `taxRate` stays as
+   * the rate it implies — the two are written together so they cannot drift.
+   * null means the treatment was never recorded (everything predating tax
+   * codes), which is not the same as zero-rated.
+   */
+  taxCodeId: string | null;
   status: ProductStatus;
   createdAt: string;
 }
 
 export const PRODUCT_UNITS = ['each', 'CBM', 'kg', 'container', 'shipment', 'hour', 'day', 'set', 'lot'];
 export const PRODUCT_CATEGORIES = ['Clearance Services', 'Documentation', 'Port & Handling', 'Storage', 'Consulting', 'Freight', 'Insurance', 'Other'];
-export const TAX_RATES = [0, 18];
 
 export const PRODUCT_TYPE_COLOR: Record<ProductType, { bg: string; color: string }> = {
   product: { bg: '#dbeafe', color: '#1d4ed8' },
@@ -35,6 +41,7 @@ function mapApiProduct(d: any): Product {
     description: d.description || '', category: d.category || '', unit: d.unit || 'each',
     salePrice: Number(d.sale_price) || 0, purchasePrice: Number(d.purchase_price) || 0,
     currency: d.currency || 'TZS', taxRate: Number(d.tax_rate) || 0,
+    taxCodeId: d.tax_code_id ?? null,
     status: (d.status || 'active') as ProductStatus,
     createdAt: d.created_at ? String(d.created_at).slice(0, 10) : '',
   };
@@ -44,7 +51,8 @@ function toApiPayload(p: Product) {
   return {
     id: p.id, code: p.code, name: p.name, type: p.type, description: p.description,
     category: p.category, unit: p.unit, sale_price: p.salePrice, purchase_price: p.purchasePrice,
-    currency: p.currency, tax_rate: p.taxRate, status: p.status,
+    currency: p.currency, tax_rate: p.taxRate, tax_code_id: p.taxCodeId ?? null,
+    status: p.status,
   };
 }
 

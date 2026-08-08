@@ -519,11 +519,30 @@ export const TRAService = {
         };
       }
 
+      // Lines come with their tax treatment attached, not just a percentage —
+      // see the TAXCODE derivation below for why that mattered.
       const lines = await db
-        .selectFrom('sales_invoice_lines')
-        .selectAll()
-        .where('invoice_id', '=', invoiceId)
+        .selectFrom('sales_invoice_lines as l')
+        .leftJoin('tax_codes as tc', 'tc.id', 'l.tax_code_id')
+        .selectAll('l')
+        .select(['tc.code as tc_code', 'tc.kind as tc_kind', 'tc.tra_tax_code as tc_tra'])
+        .where('l.invoice_id', '=', invoiceId)
         .execute();
+
+      // Fail on what is knowable before spending a token request, a counter
+      // increment and a certificate load on an invoice that cannot be filed.
+      // Reverse charge and out-of-scope have no EFDMS equivalent; refusing is
+      // the point, since the alternative is filing under the nearest wrong
+      // code — which is exactly what this whole mechanism replaces.
+      const unfilable = lines.find(l => l.tc_kind && (l.tc_tra === null || l.tc_tra === undefined));
+      if (unfilable) {
+        return {
+          success: false,
+          error: `Line "${unfilable.name}" uses tax code ${unfilable.tc_code} ` +
+                 `(${unfilable.tc_kind}), which has no TRA equivalent. Set its TRA tax code ` +
+                 `under Finance › Tax codes, or use a treatment TRA recognises.`,
+        };
+      }
 
       // 3. Get/refresh token
       const tokenResult = await this.getToken(tenantId);
@@ -557,15 +576,39 @@ export const TRAService = {
         const rate = Number(line.rate) || 0;
         const taxPct = Number(line.tax_pct) || 0;
 
-        // Convert to TZS if shipping line
-        const lineRate = line.line_group === 'shipping' ? rate * exRate : rate;
+        // Convert on the line's own currency against the invoice's, not on
+        // `line_group`. The old test — "is it tagged shipping?" — held only
+        // because a freight invoice happens to bill its ocean leg under that
+        // label; a USD line in any other group was submitted to TRA at its face
+        // value in shillings. Same fix as invoiceGrandTotal().
+        const invCur = (invoice.currency || 'TZS').toUpperCase();
+        const lineCur = (line.currency || invCur).toUpperCase();
+        const lineRate = lineCur === invCur ? rate : rate * exRate;
         const amtExcl = qty * lineRate;
         const amtIncl = amtExcl * (1 + taxPct / 100);
         const taxAmt = amtIncl - amtExcl;
 
         // TAXCODE: 1=Standard(18%), 2=Special, 3=Zero, 4=Special Relief, 5=Exempt
-        const taxCode = taxPct >= 18 ? 1 : taxPct > 0 ? 2 : 3;
-        // VATRATE: A=Standard 18%, B=Special rate, C=Zero-rated/exempt
+        //
+        // This used to be `taxPct >= 18 ? 1 : taxPct > 0 ? 2 : 3` — 4 and 5 were
+        // unreachable, so every exempt and every special-relief line in the
+        // system was filed as zero-rated. That understates nothing on the
+        // invoice and misstates the return: zero-rated supplies allow input tax
+        // recovery, exempt ones do not.
+        //
+        // The line's tax code now carries the treatment. The old rate guess
+        // survives only as the fallback for lines written before tax codes
+        // existed, where the treatment genuinely was never recorded.
+        // Unfilable codes were already rejected above, before any network call.
+        const taxCode = line.tc_tra != null
+          ? Number(line.tc_tra)
+          : (taxPct >= 18 ? 1 : taxPct > 0 ? 2 : 3);
+        // VATRATE: A=Standard 18%, B=Special rate, C=Zero-rated/exempt.
+        // Special relief (TAXCODE 4) and exempt (5) both bucket under C here.
+        // Some EFDMS specs give them their own D/E letters; that is not
+        // confirmed against this integration's spec, and guessing a letter TRA
+        // may reject is worse than the coarser bucket. The per-item TAXCODE
+        // above is exact either way — this only affects the VATTOTALS grouping.
         const vatRate = taxCode === 1 ? 'A' : taxCode === 2 ? 'B' : 'C';
 
         totalTaxExcl += amtExcl;

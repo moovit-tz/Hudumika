@@ -149,6 +149,7 @@ export default
       "accounts": "COMPTES",
       "payments": "Paiements",
       "products": "Produits",
+      "taxCodes": "Codes de taxe",
       "chartOfAccounts": "Plan comptable",
       "ledger": "Grand livre",
       "trialBalance": "Balance de vérification",

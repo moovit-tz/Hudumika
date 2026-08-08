@@ -149,6 +149,7 @@ export default
       "accounts": "CONTAS",
       "payments": "Pagamentos",
       "products": "Produtos",
+      "taxCodes": "Códigos Fiscais",
       "chartOfAccounts": "Plano de Contas",
       "ledger": "Livro Razão",
       "trialBalance": "Balancete",

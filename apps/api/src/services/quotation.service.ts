@@ -1,4 +1,5 @@
 import { db, withTenant } from '../db/client.js';
+import { resolveTaxCode } from './tax-code.service.js';
 
 export const quotationService = {
   async list(tenantId: string, filters?: { status?: string; customer_id?: string }) {
@@ -101,6 +102,7 @@ export const quotationService = {
       quantity: number;
       unit_price: number;
       tax_rate?: number;
+      tax_code_id?: string | null;
       is_optional?: boolean;
       vendor?: string;
     }>;
@@ -116,12 +118,24 @@ export const quotationService = {
       const nextNum = Number(count.count) + 1;
       const quoteNumber = `QT-${new Date().getFullYear()}-${String(nextNum).padStart(4, '0')}`;
 
+      // Resolve any tax codes the caller sent, against this tenant only — the
+      // FK guarantees a code row exists, not that it belongs to you. A code,
+      // when given, decides the rate, so a line can never carry a treatment and
+      // a rate that contradict each other.
+      const codeIds = [...new Set((data.lines || []).map(l => l.tax_code_id).filter(Boolean))] as string[];
+      const codes = new Map<string, number>();
+      for (const cid of codeIds) {
+        const c = await resolveTaxCode(trx, tenantId, cid);   // throws TaxCodeNotFound
+        codes.set(cid, Number(c.rate));
+      }
+
       // Calculate line totals
       let subtotal = 0;
       let totalTax = 0;
       const lines = (data.lines || []).map((line, idx) => {
         const lineTotal = line.quantity * line.unit_price;
-        const taxRate = line.tax_rate || 0;
+        const codeRate = line.tax_code_id ? codes.get(line.tax_code_id) : undefined;
+        const taxRate = codeRate ?? (line.tax_rate || 0);
         const taxAmount = lineTotal * (taxRate / 100);
         subtotal += lineTotal;
         totalTax += taxAmount;
@@ -131,6 +145,7 @@ export const quotationService = {
           line_total: lineTotal,
           tax_amount: taxAmount,
           tax_rate: taxRate,
+          tax_code_id: line.tax_code_id || null,
         };
       });
 
@@ -175,6 +190,7 @@ export const quotationService = {
               quantity: l.quantity,
               unit_price: l.unit_price,
               tax_rate: l.tax_rate,
+              tax_code_id: l.tax_code_id,
               tax_amount: l.tax_amount,
               line_total: l.line_total,
               is_optional: l.is_optional || false,

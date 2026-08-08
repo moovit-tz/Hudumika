@@ -41,6 +41,7 @@ function buildNav(t: TFunction): SidebarSection[] {
       items: [
         { label: t('finance.nav.payments'),         icon: 'dollarSign', path: '/finance/payments'                     },
         { label: t('finance.nav.products'),         icon: 'package',    path: '/finance/products'                     },
+        { label: t('finance.nav.taxCodes'),         icon: 'percent',    path: '/finance/tax-codes'                    },
         { label: t('finance.nav.chartOfAccounts'),  icon: 'list',       path: '/finance/accounts/chart-of-accounts'   },
         { label: t('finance.nav.ledger'),           icon: 'fileText',   path: '/finance/accounts/ledger'              },
         { label: t('finance.nav.trialBalance'),     icon: 'barChart',   path: '/finance/accounts/trial-balance'       },
@@ -77,6 +78,7 @@ import { FinanceExpenseNew }      from '../pages/FinanceExpenseNew.js';
 import { Bills }                  from '../pages/Bills.js';
 import { FinanceVendors }         from '../pages/FinanceVendors.js';
 import { FinanceProducts }        from '../pages/FinanceProducts.js';
+import { FinanceTaxCodes }        from '../pages/FinanceTaxCodes.js';
 import { FinancePayments }        from '../pages/FinancePayments.js';
 import { FinanceLedger }          from '../pages/FinanceLedger.js';
 import { FinanceTrialBalance }    from '../pages/FinanceTrialBalance.js';
@@ -125,6 +127,7 @@ export function FinOpsShell() {
           {/* Accounts */}
           <Route path="payments"  element={<RequireRoles roles={FIN_ROLES}><FinancePayments /></RequireRoles>} />
           <Route path="products"  element={<RequireRoles roles={FIN_ROLES}><FinanceProducts /></RequireRoles>} />
+          <Route path="tax-codes" element={<RequireRoles roles={FIN_ROLES}><FinanceTaxCodes /></RequireRoles>} />
           <Route path="accounts">
             <Route index                  element={<RequireRoles roles={FIN_ROLES}><AccountsQuery /></RequireRoles>} />
             <Route path="chart-of-accounts" element={<RequireRoles roles={FIN_ROLES}><ChartOfAccounts /></RequireRoles>} />

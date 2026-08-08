@@ -149,6 +149,7 @@ export default
       "accounts": "HESABU",
       "payments": "Malipo",
       "products": "Bidhaa",
+      "taxCodes": "Misimbo ya Kodi",
       "chartOfAccounts": "Chati ya Hesabu",
       "ledger": "Kitabu cha Hesabu",
       "trialBalance": "Salio la Majaribio",

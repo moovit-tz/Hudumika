@@ -9,6 +9,9 @@ import { AccountingIntegrationService } from '../services/accounting-integration
 import { TRAService } from '../services/tra.service.js';
 import { getNextDocNumber } from '../lib/doc-numbering.js';
 import { toDateParam } from '../utils/dates.js';
+import { TaxCodeNotFound, resolveTaxCode } from '../services/tax-code.service.js';
+import type { Transaction } from 'kysely';
+import type { Database } from '../db/client.js';
 
 /**
  * An invoice's grand total, expressed in the invoice's own currency.
@@ -43,6 +46,72 @@ export function invoiceGrandTotal(
     const cur = (l.currency || base).toUpperCase();
     return sum + (cur === base ? gross : gross * exchangeRate);
   }, 0);
+}
+
+/**
+ * Turn request items into invoice line rows, resolving each line's tax code.
+ *
+ * `tax_pct` is still what the line stores and what every total reads — nothing
+ * about pricing changes here. What is added is the *treatment* beside it, so a
+ * 0% line can finally say whether it is zero-rated, exempt, reverse-charge or
+ * out of scope. Those four are indistinguishable as a percentage and are not
+ * interchangeable on a return.
+ *
+ * When a code is supplied it decides the rate, so a line can never carry a code
+ * and a rate that contradict each other. Codes are resolved against the
+ * caller's own tenant — the FK guarantees the row exists, not that it is yours.
+ *
+ * Returns an `error` rather than throwing so the caller answers 400, not 500:
+ * an unknown tax code is a bad request, not a server fault.
+ *
+ * **Call this before any write.** A handler that returns a reply from inside
+ * `withTenant` returns normally, so the transaction *commits* — an early 400
+ * after the header insert leaves an orphan invoice behind, and after the PATCH
+ * line-delete it leaves an invoice with no lines at all. Both were observed.
+ * Resolving first means the request either fails having touched nothing, or
+ * proceeds knowing every code is valid.
+ */
+async function resolveItemTaxCodes(
+  trx: Transaction<Database>,
+  tenantId: string,
+  items: any[],
+): Promise<{ ok: false; error: string } | { ok: true; codes: Map<string, { id: string; rate: number }> }> {
+  // One lookup per distinct code rather than one per line.
+  const codeIds = [...new Set(items.map(it => it?.tax_code_id).filter(Boolean))] as string[];
+  const codes = new Map<string, { id: string; rate: number }>();
+  for (const cid of codeIds) {
+    try {
+      const c = await resolveTaxCode(trx, tenantId, cid);
+      codes.set(cid, { id: c.id, rate: Number(c.rate) });
+    } catch (e) {
+      if (e instanceof TaxCodeNotFound) return { ok: false as const, error: e.message };
+      throw e;
+    }
+  }
+  return { ok: true as const, codes };
+}
+
+/** Pure mapping, once every code is known good. */
+function buildInvoiceLines(
+  invoiceId: string,
+  items: any[],
+  codes: Map<string, { id: string; rate: number }>,
+) {
+  return items.map((it: any, i: number) => {
+    const code = it.tax_code_id ? codes.get(it.tax_code_id) : undefined;
+    return {
+      invoice_id: invoiceId,
+      name: it.name,
+      unit: it.unit || 'PER BIL',
+      rate: it.rate || 0,
+      qty: it.qty || 1,
+      tax_pct: code ? code.rate : (it.tax_pct || 0),
+      tax_code_id: code ? code.id : null,
+      line_group: it.line_group || 'other',
+      currency: it.currency || 'TZS',
+      sort_order: i,
+    };
+  });
 }
 
 export async function invoiceRoutes(fastify: FastifyInstance) {
@@ -336,6 +405,11 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const body = request.body as any;
     return withTenant(user.tenant_id, async (trx) => {
+      // Before the header is written — see resolveItemTaxCodes on why an early
+      // return after a write commits the partial state.
+      const resolved = await resolveItemTaxCodes(trx, user.tenant_id, body.items ?? []);
+      if (!resolved.ok) return reply.status(400).send({ error: resolved.error });
+
       const invoiceNumber = body.invoice_number || await getNextDocNumber(trx, user.tenant_id, 'invoice');
       const [inv] = await trx.insertInto('sales_invoices').values({
         tenant_id: user.tenant_id,
@@ -363,17 +437,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
 
       let grandTotal = 0;
       if (Array.isArray(body.items) && body.items.length > 0) {
-        const itemsToInsert = body.items.map((it: any, i: number) => ({
-          invoice_id: inv.id,
-          name: it.name,
-          unit: it.unit || 'PER BIL',
-          rate: it.rate || 0,
-          qty: it.qty || 1,
-          tax_pct: it.tax_pct || 0,
-          line_group: it.line_group || 'other',
-          currency: it.currency || 'TZS',
-          sort_order: i,
-        }));
+        const itemsToInsert = buildInvoiceLines(inv.id, body.items, resolved.codes);
         await trx.insertInto('sales_invoice_lines').values(itemsToInsert).execute();
 
         grandTotal = invoiceGrandTotal(itemsToInsert, inv.currency, Number(inv.exchange_rate) || 1);
@@ -416,6 +480,13 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('sales_invoices').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Invoice not found' });
+
+      // Before the header update and, critically, before the line delete below:
+      // a 400 returned from inside withTenant still commits, so failing later
+      // would leave the invoice with its lines wiped.
+      const resolved = await resolveItemTaxCodes(trx, user.tenant_id, body.items ?? []);
+      if (!resolved.ok) return reply.status(400).send({ error: resolved.error });
+
       const updates: any = { updated_at: new Date() };
       const fields = ['invoice_number', 'customer_id', 'client_name', 'client_address', 'shipment_ref', 'bl_number', 'origin', 'destination', 'mode', 'bill_date', 'due_date', 'sale_agent', 'payment_terms', 'exchange_rate', 'status', 'notes', 'ref_code', 'version'];
       for (const f of fields) {
@@ -427,18 +498,8 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
       if (Array.isArray(body.items)) {
         await trx.deleteFrom('sales_invoice_lines').where('invoice_id', '=', id).execute();
         if (body.items.length > 0) {
-          const itemsToInsert = body.items.map((it: any, i: number) => ({
-            invoice_id: id,
-            name: it.name,
-            unit: it.unit || 'PER BIL',
-            rate: it.rate || 0,
-            qty: it.qty || 1,
-            tax_pct: it.tax_pct || 0,
-            line_group: it.line_group || 'other',
-            currency: it.currency || 'TZS',
-            sort_order: i,
-          }));
-          await trx.insertInto('sales_invoice_lines').values(itemsToInsert).execute();
+          await trx.insertInto('sales_invoice_lines')
+            .values(buildInvoiceLines(id, body.items, resolved.codes)).execute();
           lines = await trx.selectFrom('sales_invoice_lines').selectAll().where('invoice_id', '=', id).execute();
         } else {
           lines = [];

@@ -147,6 +147,7 @@ export default
       "accounts": "ACCOUNTS",
       "payments": "Payments",
       "products": "Products",
+      "taxCodes": "Tax Codes",
       "chartOfAccounts": "Chart of Accounts",
       "ledger": "Ledger",
       "trialBalance": "Trial Balance",
