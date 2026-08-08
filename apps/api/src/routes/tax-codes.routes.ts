@@ -193,6 +193,59 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // GET /v1/tax-codes/unclassified/groups?target=sales|purchase|product
+  //
+  // The backlog collapses hard: this workspace's 223 unclassified rows are only
+  // 13 distinct (grouping, rate) combinations. Deciding once per group instead
+  // of once per row is the difference between a job someone will do and one
+  // they will not — and it is the same decision either way, since every row in
+  // a group carries the same signals.
+  //
+  // The grouping is mechanical. Which treatment a group deserves is a judgement
+  // about the business and is left to whoever is looking at it.
+  fastify.get('/unclassified/groups', async (request) => {
+    const user = request.user;
+    const { target = 'sales' } = request.query as { target?: string };
+
+    return withTenant(user.tenant_id, async (trx) => {
+      if (target === 'product') {
+        const rows = await trx.selectFrom('products')
+          .select(({ fn }) => [
+            'category as key', 'tax_rate as rate',
+            fn.countAll<string>().as('count'),
+            fn.min('name').as('sample'),
+          ])
+          .where('tenant_id', '=', user.tenant_id).where('tax_code_id', 'is', null)
+          .groupBy(['category', 'tax_rate']).orderBy('count', 'desc').execute();
+        return { target, groups: rows.map(r => ({ ...r, count: Number(r.count), rate: Number(r.rate) })) };
+      }
+
+      if (target === 'purchase') {
+        const rows = await trx.selectFrom('supplier_bill_lines as l')
+          .innerJoin('supplier_bills as b', 'b.id', 'l.bill_id')
+          .select(({ fn }) => [
+            'l.category as key', 'l.tax_rate as rate',
+            fn.countAll<string>().as('count'),
+            fn.min('l.description').as('sample'),
+          ])
+          .where('b.tenant_id', '=', user.tenant_id).where('l.tax_code_id', 'is', null)
+          .groupBy(['l.category', 'l.tax_rate']).orderBy('count', 'desc').execute();
+        return { target, groups: rows.map(r => ({ ...r, count: Number(r.count), rate: Number(r.rate) })) };
+      }
+
+      const rows = await trx.selectFrom('sales_invoice_lines as l')
+        .innerJoin('sales_invoices as si', 'si.id', 'l.invoice_id')
+        .select(({ fn }) => [
+          'l.line_group as key', 'l.tax_pct as rate',
+          fn.countAll<string>().as('count'),
+          fn.min('l.name').as('sample'),
+        ])
+        .where('si.tenant_id', '=', user.tenant_id).where('l.tax_code_id', 'is', null)
+        .groupBy(['l.line_group', 'l.tax_pct']).orderBy('count', 'desc').execute();
+      return { target: 'sales', groups: rows.map(r => ({ ...r, count: Number(r.count), rate: Number(r.rate) })) };
+    });
+  });
+
   // POST /v1/tax-codes/classify  { target, ids, tax_code_id }
   //
   // Sets a treatment on rows that had none. Three things it deliberately will
@@ -209,11 +262,17 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
   // rather than looking like success.
   fastify.post('/classify', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
     const user = request.user;
-    const { target, ids, tax_code_id } = (request.body ?? {}) as
-      { target?: string; ids?: string[]; tax_code_id?: string };
+    const { target, ids, group, tax_code_id } = (request.body ?? {}) as
+      { target?: string; ids?: string[]; group?: { key: string | null; rate: number }; tax_code_id?: string };
 
-    if (!Array.isArray(ids) || ids.length === 0) return reply.status(400).send({ error: 'ids is required' });
-    if (ids.length > 500) return reply.status(400).send({ error: 'At most 500 rows at a time' });
+    // Either an explicit list of rows, or a whole (grouping, rate) group. The
+    // group form resolves its own rows server-side so the client cannot race a
+    // stale id list, and every guard below applies identically to both.
+    const byGroup = !!group && typeof group === 'object';
+    if (!byGroup) {
+      if (!Array.isArray(ids) || ids.length === 0) return reply.status(400).send({ error: 'ids or group is required' });
+      if (ids.length > 500) return reply.status(400).send({ error: 'At most 500 rows at a time' });
+    }
     if (!tax_code_id) return reply.status(400).send({ error: 'tax_code_id is required' });
     if (!['sales', 'purchase', 'product'].includes(String(target))) {
       return reply.status(400).send({ error: 'target must be sales, purchase or product' });
@@ -231,9 +290,13 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
       const codeRate = Number(code.rate);
 
       if (target === 'product') {
-        const eligible = await trx.selectFrom('products').select(['id', 'tax_rate'])
-          .where('tenant_id', '=', user.tenant_id).where('id', 'in', ids)
-          .where('tax_code_id', 'is', null).execute();
+        let q = trx.selectFrom('products').select(['id', 'tax_rate'])
+          .where('tenant_id', '=', user.tenant_id).where('tax_code_id', 'is', null);
+        q = byGroup
+          ? q.where(eb => group!.key === null ? eb('category', 'is', null) : eb('category', '=', group!.key))
+             .where('tax_rate', '=', group!.rate)
+          : q.where('id', 'in', ids!);
+        const eligible = await q.execute();
         const ok = eligible.filter(r => Number(r.tax_rate) === codeRate).map(r => r.id);
         if (ok.length > 0) {
           await trx.updateTable('products').set({ tax_code_id: code.id, updated_at: new Date() })
@@ -259,11 +322,15 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
       };
 
       if (target === 'purchase') {
-        const rows = await trx.selectFrom('supplier_bill_lines as l')
+        let q = trx.selectFrom('supplier_bill_lines as l')
           .innerJoin('supplier_bills as b', 'b.id', 'l.bill_id')
           .select(['l.id', 'l.tax_rate', 'b.bill_date'])
-          .where('b.tenant_id', '=', user.tenant_id).where('l.id', 'in', ids)
-          .where('l.tax_code_id', 'is', null).execute();
+          .where('b.tenant_id', '=', user.tenant_id).where('l.tax_code_id', 'is', null);
+        q = byGroup
+          ? q.where(eb => group!.key === null ? eb('l.category', 'is', null) : eb('l.category', '=', group!.key))
+             .where('l.tax_rate', '=', group!.rate)
+          : q.where('l.id', 'in', ids!);
+        const rows = await q.execute();
         const open = rows.filter(r => !inClosedPeriod(r.bill_date));
         const ok = open.filter(r => Number(r.tax_rate) === codeRate).map(r => r.id);
         if (ok.length > 0) {
@@ -278,11 +345,15 @@ export async function taxCodeRoutes(fastify: FastifyInstance) {
         };
       }
 
-      const rows = await trx.selectFrom('sales_invoice_lines as l')
+      let q = trx.selectFrom('sales_invoice_lines as l')
         .innerJoin('sales_invoices as si', 'si.id', 'l.invoice_id')
         .select(['l.id', 'l.tax_pct', 'si.bill_date'])
-        .where('si.tenant_id', '=', user.tenant_id).where('l.id', 'in', ids)
-        .where('l.tax_code_id', 'is', null).execute();
+        .where('si.tenant_id', '=', user.tenant_id).where('l.tax_code_id', 'is', null);
+      q = byGroup
+        ? q.where(eb => group!.key === null ? eb('l.line_group', 'is', null) : eb('l.line_group', '=', group!.key))
+           .where('l.tax_pct', '=', group!.rate)
+        : q.where('l.id', 'in', ids!);
+      const rows = await q.execute();
       const open = rows.filter(r => !inClosedPeriod(r.bill_date));
       const ok = open.filter(r => Number(r.tax_pct) === codeRate).map(r => r.id);
       if (ok.length > 0) {
