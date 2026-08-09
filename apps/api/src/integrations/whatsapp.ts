@@ -4,7 +4,7 @@ export class WhatsAppIntegration {
   /**
    * Send a template or text message to a client WhatsApp number using Meta Cloud API
    */
-  static async sendMessage(toPhone: string, messageText: string, tenantWaId?: string, tenantWaToken?: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  static async sendMessage(toPhone: string, messageText: string, tenantWaId?: string, tenantWaToken?: string): Promise<{ success: boolean; messageId?: string; error?: string; simulated?: boolean }> {
     const waPhoneId = tenantWaId || env.META_PHONE_NUMBER_ID;
     const waToken = tenantWaToken || env.META_WA_TOKEN;
 
@@ -26,7 +26,12 @@ export class WhatsAppIntegration {
       !waPhoneId ||
       waPhoneId === 'your-phone-number-id'
     ) {
-      return { success: true, messageId: `sim_${Math.random().toString(36).substring(7)}` };
+      // `simulated` so callers can tell this apart from a real send. It used to
+      // return only `success: true`, and notification.service recorded that as
+      // SENT — an audit trail asserting delivery of a message that was never
+      // handed to Meta. `success` stays true so a missing key does not fail the
+      // caller's own request; what changes is that it no longer claims delivery.
+      return { success: true, simulated: true, messageId: `sim_${Math.random().toString(36).substring(7)}` };
     }
 
     const url = `https://graph.facebook.com/${env.META_API_VERSION}/${waPhoneId}/messages`;

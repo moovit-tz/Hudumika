@@ -197,7 +197,10 @@ export class NotificationService {
       if (tenantSettings?.notifications?.whatsapp === false) return;
 
       const result = await WhatsAppIntegration.sendMessage(target.phone, bodyContent);
-      deliveryStatus = result.success ? 'SENT' : 'FAILED';
+      // SIMULATED is its own state. Recording a simulated send as SENT made the
+      // notification log assert a delivery that never left this machine —
+      // which is the one thing someone reads that log to find out.
+      deliveryStatus = !result.success ? 'FAILED' : result.simulated ? 'SIMULATED' : 'SENT';
     } else if (channel === 'EMAIL' && target.email) {
       const result = await EmailIntegration.sendEmail({
         to: target.email,
@@ -205,7 +208,7 @@ export class NotificationService {
         bodyHtml: `<p>${bodyContent}</p>`,
         tenantId: tenantId,
       });
-      deliveryStatus = result.success ? 'SENT' : 'FAILED';
+      deliveryStatus = !result.success ? 'FAILED' : (result as any).simulated ? 'SIMULATED' : 'SENT';
     } else if (channel === 'IN_APP') {
       deliveryStatus = 'SENT';
     } else {

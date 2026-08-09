@@ -11,7 +11,7 @@ export class EmailIntegration {
     subject: string;
     bodyHtml: string;
     tenantId?: string;
-  }): Promise<{ success: boolean; messageId?: string; error?: string }> {
+  }): Promise<{ success: boolean; messageId?: string; error?: string; simulated?: boolean }> {
     try {
       let emailConfig: any = null;
 
@@ -69,7 +69,9 @@ export class EmailIntegration {
         
         if (isPlaceholder && env.APP_ENV !== 'production') {
           console.log(`📧 [Simulated Email] To: ${input.to} | Subject: ${input.subject}`);
-          return { success: true, messageId: `sim_${Math.random().toString(36).substring(7)}` };
+          // Flagged for the same reason as the WhatsApp simulation: nothing
+          // downstream should record this as delivered.
+          return { success: true, simulated: true, messageId: `sim_${Math.random().toString(36).substring(7)}` };
         }
 
         // Use the system's pre-configured global SMTP mailer
