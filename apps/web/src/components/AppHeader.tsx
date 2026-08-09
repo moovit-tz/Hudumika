@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useContext, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { PersonAvatar } from './PersonAvatar.js';
@@ -639,20 +640,33 @@ export function AppHeader({
                 </span>
               )}
             </button>
-            {notifOpen && (
-              <div className="app-header-notif-backdrop" onClick={() => setNotifOpen(false)} />
+            {/* Portalled for the same reason as the app launcher: this header
+                is `position: relative; z-index: 10`, so any z-index declared on
+                a descendant only orders it *within* the header. The panel's own
+                z-index never competed with the page at all — the sticky
+                `.cust-header` company row in the ClearOS list is z-index 10 too
+                and comes later in the DOM, so it painted its risk badges over
+                the open notification panel. Out at document.body the panel's
+                z-index means what it says. */}
+            {createPortal(
+              <>
+                {notifOpen && (
+                  <div className="app-header-notif-backdrop" onClick={() => setNotifOpen(false)} />
+                )}
+                <div className={`app-header-notif-panel${notifOpen ? ' app-header-notif-panel--open' : ''}`}>
+                  <NotificationCentre
+                    onClose={() => setNotifOpen(false)}
+                    notifs={notifs}
+                    unreadCount={unreadCount}
+                    totalCount={totalCount}
+                    onMarkRead={handleMarkRead}
+                    onMarkAllRead={handleMarkAllRead}
+                    onReload={loadNotifs}
+                  />
+                </div>
+              </>,
+              document.body,
             )}
-            <div className={`app-header-notif-panel${notifOpen ? ' app-header-notif-panel--open' : ''}`}>
-              <NotificationCentre
-                onClose={() => setNotifOpen(false)}
-                notifs={notifs}
-                unreadCount={unreadCount}
-                totalCount={totalCount}
-                onMarkRead={handleMarkRead}
-                onMarkAllRead={handleMarkAllRead}
-                onReload={loadNotifs}
-              />
-            </div>
 
             {/* Theme toggle */}
             <button

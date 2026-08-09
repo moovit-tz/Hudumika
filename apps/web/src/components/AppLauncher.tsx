@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Link } from 'react-router-dom';
 import { Icon } from './Icon.js';
 import { useBranding } from '../hooks/useBranding.js';
@@ -134,10 +135,25 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
       </button>
     );
 
-  return (
+  /**
+   * The overlay is portalled to document.body, not rendered where the trigger
+   * sits.
+   *
+   * Its `z-index: 1001` was fiction. The panel lives inside <header
+   * class="app-header">, which is `position: relative; z-index: 10` — a
+   * stacking context — so 1001 only ordered the panel *within the header*, and
+   * the header as a whole competed against the page at 10. `.cust-header`, the
+   * sticky company row in the ClearOS list, is also z-index 10 and comes later
+   * in the DOM, so it won the tie and painted its risk badges straight over the
+   * open launcher.
+   *
+   * Raising one number or lowering the other would only move the collision to
+   * the next element that declares a z-index. Out here in the root stacking
+   * context 1001 means what it says, which is also how every Radix overlay in
+   * this app already behaves.
+   */
+  const overlay = (
     <>
-      {trigger}
-
       {launcherOpen && (
         <div className="app-lnch-backdrop" onClick={closeLauncher} />
       )}
@@ -234,6 +250,13 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
           </Link>
         </div>
       </div>
+    </>
+  );
+
+  return (
+    <>
+      {trigger}
+      {createPortal(overlay, document.body)}
     </>
   );
 }
