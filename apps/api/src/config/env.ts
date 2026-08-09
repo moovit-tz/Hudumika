@@ -57,3 +57,37 @@ if (!parsed.success) {
 }
 
 export const env = parsed.data;
+
+/**
+ * Refuse to start in production on a credential that is published in this
+ * repository.
+ *
+ * JWT_SECRET, the read-only database password and the seeded app password all
+ * carry working defaults so a developer can clone and run. Each of those
+ * defaults is also public: anyone holding this source can mint a token for any
+ * user in any tenant — SUPER_ADMIN included — without a password, and nothing
+ * downstream can tell it from a real sign-in. Token expiry does not help,
+ * because whoever can forge one can forge a fresh one.
+ *
+ * These are checked at boot rather than at first use so the failure is a
+ * refusal to start, not a breach discovered later. Development and test are
+ * untouched — the defaults exist for them.
+ */
+const PUBLISHED_DEFAULTS: [key: string, value: string, why: string][] = [
+  ['JWT_SECRET', 'change-this-in-production-min-32-characters-long',
+   'anyone with this repository could sign a valid token for any user in any tenant'],
+  ['DATABASE_URL_READONLY', 'postgresql://hudumika_readonly:hudumika_readonly_pass@localhost:5432/clearos',
+   'the Query Builder\'s raw-SQL role would be reachable with a published password'],
+];
+
+if (env.APP_ENV === 'production') {
+  const offenders = PUBLISHED_DEFAULTS
+    .filter(([key, value]) => (env as Record<string, unknown>)[key] === value)
+    .map(([key, , why]) => `  ${key} is still the default committed to this repository — ${why}.`);
+
+  if (offenders.length) {
+    console.error('❌ Refusing to start in production with published credentials:\n' + offenders.join('\n'));
+    console.error('\nSet real values for these before deploying.');
+    process.exit(1);
+  }
+}

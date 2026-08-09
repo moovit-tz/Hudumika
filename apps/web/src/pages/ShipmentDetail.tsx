@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
@@ -233,7 +234,20 @@ ${HUDUMIKA_FOOTER_HTML}
   if (win) { win.document.write(html); win.document.close(); }
 }
 
-function Av({ name, size = 32 }: { name: string; size?: number }) {
+/**
+ * A person's face. Drew initials and only initials, so somebody with a picture
+ * still appeared as "SA" everywhere outside the header — which does use the
+ * shared component.
+ *
+ * With a `userId` it delegates to PersonAvatar, which fetches the picture once
+ * and shares it from a module cache across every app. Without one it keeps
+ * drawing initials, which is the right answer for a name we cannot resolve to
+ * an account rather than a gap to paper over.
+ */
+function Av({ name, size = 32, userId }: { name: string; size?: number; userId?: string | null }) {
+  if (userId && isUUID(userId)) {
+    return <PersonAvatar userId={userId} name={name} size={size} />;
+  }
   return (
     <div style={{ width: size, height: size, borderRadius: '50%', background: avatarBg(name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.36, fontWeight: 700, flexShrink: 0, fontFamily: 'var(--font)' }}>
       {initials(name)}
@@ -3710,7 +3724,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
               const label = (a === job.assignees[0] && job.assigneeName) || friendlyAssignee(a);
               return (
                 <div key={a} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Av name={label} size={28} />
+                  <Av name={label} userId={a} size={28} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</div>
                     <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>Assigned Officer</div>
@@ -3739,7 +3753,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
                     }}
                     title={label}
                   >
-                    <Av name={label} size={28} />
+                    <Av name={label} userId={a} size={28} />
                   </button>
                 );
               })}
@@ -3833,12 +3847,12 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
                             zIndex: 10 - index,
                           }}
                         >
-                          <Av name={l.name} size={28} />
+                          <Av name={l.name} userId={l.id} size={28} />
                         </button>
                       </HoverCardTrigger>
                       <HoverCardContent align="start" side="bottom" sideOffset={6} className="w-60 p-3">
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-                          <Av name={l.name} size={30} />
+                          <Av name={l.name} userId={l.id} size={30} />
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {l.name}
@@ -3895,7 +3909,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
                       {internal.slice(4).map(l => (
                         <div key={l.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
-                            <Av name={l.name} size={22} />
+                            <Av name={l.name} userId={l.id} size={22} />
                             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={l.name}>
                               {l.name}
                             </span>
@@ -3989,12 +4003,12 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
                             zIndex: 10 - index,
                           }}
                         >
-                          <Av name={l.name} size={28} />
+                          <Av name={l.name} userId={l.id} size={28} />
                         </button>
                       </HoverCardTrigger>
                       <HoverCardContent align="start" side="bottom" sideOffset={6} className="w-60 p-3">
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-                          <Av name={l.name} size={30} />
+                          <Av name={l.name} userId={l.id} size={30} />
                           <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {l.name}
@@ -4051,7 +4065,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
                       {customers.slice(4).map(l => (
                         <div key={l.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
-                            <Av name={l.name} size={22} />
+                            <Av name={l.name} userId={l.id} size={22} />
                             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={l.name}>
                               {l.name}
                             </span>

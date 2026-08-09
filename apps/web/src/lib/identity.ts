@@ -63,11 +63,28 @@ export function avatarObjectUrl(userId: string): Promise<string | null> {
   return p;
 }
 
-/** Forget a cached picture, after someone changes theirs. */
+/**
+ * Forget a cached picture, after someone changes theirs, and tell every mounted
+ * PersonAvatar to fetch again.
+ *
+ * The cache is what makes one picture serve every app without a request per
+ * render — and it was also why a new picture did not appear anywhere until a
+ * full reload: this function existed but nothing ever called it. Dropping the
+ * entry is not enough on its own, because components that already resolved a
+ * URL are holding it in state; they need to be told.
+ */
+const avatarSubs = new Set<(userId: string) => void>();
+
+export function onAvatarChanged(fn: (userId: string) => void): () => void {
+  avatarSubs.add(fn);
+  return () => { avatarSubs.delete(fn); };
+}
+
 export function forgetAvatar(userId: string): void {
   const hit = avatarCache.get(userId);
   if (hit) hit.then(url => { if (url) URL.revokeObjectURL(url); }).catch(() => {});
   avatarCache.delete(userId);
+  avatarSubs.forEach(fn => { try { fn(userId); } catch { /* one listener must not stop the rest */ } });
 }
 
 export async function fetchPeople(opts: { ids?: string[]; q?: string; limit?: number } = {}): Promise<Person[]> {

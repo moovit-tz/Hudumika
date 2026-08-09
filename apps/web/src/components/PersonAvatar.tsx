@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { avatarObjectUrl, nameColor, nameInitials } from '../lib/identity.js';
+import { avatarObjectUrl, nameColor, nameInitials, onAvatarChanged } from '../lib/identity.js';
 
 /**
  * One person's face, drawn the same way in every app.
@@ -34,10 +34,15 @@ export function PersonAvatar({
     if (src) { setUrl(src); return; }
     if (!userId) { setUrl(null); return; }
     let alive = true;
-    avatarObjectUrl(userId).then(u => { if (alive) setUrl(u); });
+    const load = () => { setFailed(false); avatarObjectUrl(userId).then(u => { if (alive) setUrl(u); }); };
+    load();
+    // When this person's picture changes anywhere in the app, re-fetch. Without
+    // this the module cache — the thing that makes one picture serve every app —
+    // also pinned the old one until a full reload.
+    const off = onAvatarChanged(changed => { if (changed === userId) load(); });
     // Guarded so a picture arriving after the component unmounts does not set
     // state on it.
-    return () => { alive = false; };
+    return () => { alive = false; off(); };
   }, [userId, src]);
 
   const common: React.CSSProperties = {
