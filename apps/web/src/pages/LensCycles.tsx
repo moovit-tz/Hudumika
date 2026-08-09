@@ -16,7 +16,7 @@ export default function LensCycles() {
   }, []);
 
   const cardStyle = {
-    background: '#fff', border: '1px solid var(--border)', borderRadius: 12,
+    background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12,
     padding: '20px', marginBottom: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
   };
 
@@ -34,7 +34,7 @@ export default function LensCycles() {
         {loading ? (
           <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink3)' }}>Loading...</div>
         ) : cycles.length === 0 ? (
-          <div style={{ padding: 60, textAlign: 'center', background: '#fff', borderRadius: 12, border: '1px dashed var(--border)' }}>
+          <div style={{ padding: 60, textAlign: 'center', background: 'var(--white)', borderRadius: 12, border: '1px dashed var(--border)' }}>
             <Icon name="calendar" size={32} color="var(--ink3)" />
             <h3 style={{ marginTop: 16, color: 'var(--ink)' }}>No Cycles planned</h3>
             <p style={{ color: 'var(--ink2)', fontSize: 14 }}>Create a cycle to start assigning work.</p>

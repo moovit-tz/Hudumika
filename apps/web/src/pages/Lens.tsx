@@ -279,15 +279,15 @@ export function Lens() {
               style={{
                 display: 'flex', flexDirection: 'column',
                 flex: '0 0 280px', height: '100%',
-                background: over === col.status ? 'var(--teal-l)' : '#f1f2f4',
-                border: `1px solid ${over === col.status ? 'var(--teal)' : '#e2e8f0'}`,
+                background: over === col.status ? 'var(--teal-l)' : 'var(--bg)',
+                border: `1px solid ${over === col.status ? 'var(--teal)' : 'var(--border)'}`,
                 borderRadius: '10px', transition: 'background .12s, border-color .12s',
               }}>
               <div style={{ padding: '12px 14px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>
                   {col.name}
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 700, background: col.over_wip ? 'var(--red)' : '#e2e8f0', color: col.over_wip ? '#fff' : 'var(--ink2)', padding: '2px 6px', borderRadius: 10 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, background: col.over_wip ? 'var(--red)' : 'var(--border)', color: col.over_wip ? '#fff' : 'var(--ink2)', padding: '2px 6px', borderRadius: 10 }}>
                   {col.count}{col.wip_limit != null ? ` / ${col.wip_limit}` : ''}
                 </span>
               </div>
@@ -393,9 +393,10 @@ export function Lens() {
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           onClick={() => setClosing(null)}>
           <div onClick={e => e.stopPropagation()} style={{
-            background: '#fff', borderRadius: 'var(--r)', width: 420, padding: 20, boxShadow: 'var(--elev-lg)',
+            background: 'var(--white)', borderRadius: 'var(--r)', width: 420, padding: 20, boxShadow: 'var(--elev-lg)',
+            border: '1px solid var(--border)',
           }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: 16 }}>Close {closing.card.ref}</h3>
+            <h3 style={{ margin: '0 0 16px', fontSize: 16, color: 'var(--ink)' }}>Close {closing.card.ref}</h3>
             <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 16, lineHeight: 1.5 }}>
               Closing an item requires a resolution. What happened here? Was it fixed, proven false, or abandoned?
             </div>

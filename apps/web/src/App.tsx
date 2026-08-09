@@ -261,9 +261,9 @@ const AppContent: React.FC = () => {
   if (loading) {
     return (
       <div className="app-loading">
-        <div className="app-loading-inner">
-          <div className="app-loading-spinner" />
-          <div className="app-loading-label">Loading Hudumika ClearOS…</div>
+        <div className="app-loading-header" />
+        <div className="app-loading-bar">
+          <div className="app-loading-bar-fill" />
         </div>
       </div>
     );

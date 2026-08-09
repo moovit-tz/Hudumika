@@ -891,26 +891,39 @@ body {
 
 /* ── APP LOADING SCREEN ── */
 .app-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
+  position: fixed;
+  inset: 0;
   background: var(--bg);
   font-family: var(--font);
-  color: var(--navy);
 }
-.app-loading-inner { text-align: center; }
-.app-loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid var(--border);
-  border-top-color: var(--teal);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 16px;
+
+/* Placeholder header strip — same height as the real header */
+.app-loading-header {
+  height: 57px;
+  background: var(--white);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.09);
 }
-.app-loading-label { font-size: 14px; font-weight: 600; color: var(--ink2); }
-@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Thin indeterminate progress bar pinned right below the header */
+.app-loading-bar {
+  height: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.app-loading-bar-fill {
+  height: 100%;
+  width: 40%;
+  background: var(--teal);
+  border-radius: 0 2px 2px 0;
+  animation: app-loading-slide 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes app-loading-slide {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(300%); }
+}
+
 
 /* ── NAV COUNT BADGES ── */
 .nav-badge {
@@ -3537,6 +3550,34 @@ html:not([data-theme="dark"]) .page-layout {
 }
 @media (max-width: 480px) {
   .shipdetail-cover-bleed { margin-left: -12px; margin-right: -12px; margin-top: -12px; }
+}
+
+/* The hero band's fill. --navy flips to a pale blue in dark mode (it's a
+   heading-text token, not a background one — see the two theme blocks
+   above); --nav-header-bg stays a dark navy in both, which is what a
+   gradient *background* actually needs. --teal is the per-app accent, so
+   this band is orange in ClearOS and green in SEAL with no per-app code. */
+.shipdetail-hero-band {
+  background: linear-gradient(120deg, var(--teal) 0%, var(--nav-header-bg) 100%);
+}
+
+/* In dark mode the accent end stayed at full light-mode brightness, so the
+   band glowed against an otherwise dark page. Two steps down: --teal-d is
+   the canonical darker step of the same per-app accent (WorkspaceApp derives
+   it alongside --teal, so this stays orange in ClearOS rather than becoming
+   a fixed colour), and the scrim takes the whole band — accent end, navy end
+   and the decorative crates over it — down together, which keeps the
+   gradient's shape instead of flattening one stop toward the other. */
+[data-theme="dark"] .shipdetail-hero-band {
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.38)),
+    /* --teal-d is written by WorkspaceApp at runtime and defined nowhere in
+       this stylesheet, so on any route that renders outside that shell the
+       substitution fails, the whole shorthand is invalid at computed-value
+       time, and the band computes to `unset` — transparent, not the light
+       rule above. The fallback keeps it a gradient there; the scrim still
+       darkens it. */
+    linear-gradient(120deg, var(--teal-d, var(--teal)) 0%, var(--nav-header-bg) 100%);
 }
 
 /* ── Page footer ── */

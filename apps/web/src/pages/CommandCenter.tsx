@@ -20,7 +20,7 @@ import {
 import { AiExtractedCard } from '../components/AiExtractedCard.js';
 import { showAlert } from '../lib/alert.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
-import type { ShipmentCase, ShipmentType, Workflow } from '@hudumika/types';
+import type { ShipmentCase, ShipmentType } from '@hudumika/types';
 import { CLEARANCE_STAGES, STAGE_LABELS } from '@hudumika/types';
 import type { ClearanceStage } from '@hudumika/types';
 import { Icon } from '../components/Icon.js';
@@ -135,7 +135,7 @@ function OfficerMentionInput({
   );
 }
 
-type Metric = 'active' | 'demurrage' | 'sla' | 'delivered' | null;
+type Metric = 'active' | 'demurrage' | 'sla' | 'delivered' | 'checked_in' | 'pending' | null;
 
 /* Shipment type, for the "Filter by" menu. Was seven chips in the toolbar. */
 const SHIPMENT_TYPES: { value: ShipmentType | 'ALL'; label: string }[] = [
@@ -178,14 +178,8 @@ const TYPE_SHORT: Record<string, string> = {
   SEA_FCL: 'FCL', SEA_LCL: 'LCL', AIR: 'AIR', ROAD: 'RD', RAIL: 'RAIL', BULK: 'BULK',
 };
 
-/* ── Enterprise Kanban Board ──
-   `activeWorkflow`: null → legacy fixed-stage board (today's behavior,
-   unchanged); a Workflow object → that workflow's own ordered steps become
-   the columns, and shipments are scoped to workflow_id === that workflow's
-   id instead of workflow_id == null. handleDrop needs no branching at all —
-   a column's key is already the exact `stage` value (ClearanceStage literal
-   or workflow_steps.id) the PATCH /stage endpoint expects. */
-function KanbanBoard({ groups, refresh, activeWorkflow }: { groups: any[], refresh: () => void, activeWorkflow: Workflow | null }) {
+/* ── Enterprise Kanban Board ── fixed CLEARANCE_STAGES columns, drag-to-move. */
+function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () => void, sortBy: 'urgency' | 'created' | 'eta' | 'days' }) {
   const navigate = useNavigate();
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overStage, setOverStage] = useState<string | null>(null);
@@ -245,47 +239,37 @@ function KanbanBoard({ groups, refresh, activeWorkflow }: { groups: any[], refre
     }
   };
 
-  const allShipsRaw = groups.flatMap((g: any) =>
+  // All ships from all customer groups, all shown on the legacy board.
+  const allShips = [...groups.flatMap((g: any) =>
     (g.shipments || []).map((s: any) => ({
       ...s,
       _customer: g.customer.name,
       _avatarColor: g.customer.avatar_color || '#0b7264',
     }))
-  );
+  )].sort((a: any, b: any) => {
+    if (sortBy === 'urgency') {
+      const score = (s: any) =>
+        s.active_risk_types?.includes('DEMURRAGE') ? 3 :
+        s.active_risk_types?.includes('SLA_BREACH') ? 2 : 1;
+      return score(b) - score(a);
+    }
+    if (sortBy === 'created') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    if (sortBy === 'eta') {
+      if (!a.eta) return 1;
+      if (!b.eta) return -1;
+      return new Date(a.eta).getTime() - new Date(b.eta).getTime();
+    }
+    if (sortBy === 'days') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    return 0;
+  });
 
-  // Legacy board: shipments still on the fixed stage system (workflow_id ==
-  // null), unchanged from before. Custom-workflow board: scoped to exactly
-  // that workflow's shipments — a single Kanban view can't coherently show
-  // one column set for shipments governed by different workflows.
-  const allShips = activeWorkflow
-    ? allShipsRaw.filter((s: any) => s.workflow_id === activeWorkflow.id)
-    : allShipsRaw.filter((s: any) => !s.workflow_id);
-
-  const columns: { key: string; label: string; color: string }[] = activeWorkflow
-    ? [...activeWorkflow.steps].sort((a, b) => a.order - b.order).map(s => ({ key: s.id, label: s.name, color: s.color }))
-    : CLEARANCE_STAGES.map(st => ({ key: st, label: STAGE_LABELS[st] || st, color: STAGE_COLORS[st] || 'var(--teal)' }));
+  const columns = CLEARANCE_STAGES.map(st => ({ key: st, label: STAGE_LABELS[st] || st, color: STAGE_COLORS[st] || 'var(--teal)' }));
 
   const byStage = new Map<string, any[]>();
   for (const col of columns) byStage.set(col.key, []);
   for (const s of allShips) {
-    const bucketKey = activeWorkflow ? (s.workflow_step_id ?? s.stage) : s.stage;
-    const col = byStage.get(bucketKey);
+    const col = byStage.get(s.stage);
     if (col) col.push(s);
-  }
-
-  if (columns.length === 0) {
-    return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 14 }}>
-        No shipments match the current filters.
-      </div>
-    );
-  }
-  if (activeWorkflow && allShips.length === 0) {
-    return (
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink3)', fontSize: 14 }}>
-        No shipments are currently on this workflow.
-      </div>
-    );
   }
 
   return (
@@ -457,30 +441,6 @@ export const CommandCenter: React.FC = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Ops Kanban workflow selector — 'legacy' (default) shows today's fixed
-  // 18-stage board; any other value scopes the board to that tenant
-  // workflow's own steps. Never affects list view — that stays unfiltered.
-  const [workflows, setWorkflows] = useState<Workflow[]>([]);
-  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string>(
-    () => localStorage.getItem('ops_selectedWorkflow') || 'legacy'
-  );
-  useEffect(() => {
-    apiFetch('/v1/workflows')
-      .then((res: any) => {
-        const activeWorkflows = (res.data ?? []).filter((w: Workflow) => w.isActive);
-        setWorkflows(activeWorkflows);
-        if (activeWorkflows.length > 0) {
-          const saved = localStorage.getItem('ops_selectedWorkflow') || 'legacy';
-          if (saved === 'legacy') {
-            setSelectedWorkflowId(activeWorkflows[0].id);
-            localStorage.setItem('ops_selectedWorkflow', activeWorkflows[0].id);
-          }
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const activeWorkflow = selectedWorkflowId === 'legacy' ? null : (workflows.find(w => w.id === selectedWorkflowId) ?? null);
 
   /**
    * Declaration filters, folded in from /clearos/declarations.
@@ -525,6 +485,8 @@ export const CommandCenter: React.FC = () => {
     ...(lane !== '__all__' ? { selectivity_channel: lane } : {}),
     ...(declPresence !== '__all__' ? { has_declaration: declPresence === 'yes' } : {}),
     ...(serverSearch ? { search: serverSearch } : {}),
+    ...(selectedMetric === 'checked_in' ? { checked_in: true } : {}),
+    ...(selectedMetric === 'pending' ? { pending: true } : {}),
   });
 
   // Auto-refresh data every 15 seconds
@@ -586,9 +548,33 @@ export const CommandCenter: React.FC = () => {
   // Reset to page 1 whenever filters / sort change
   useEffect(() => setPage(1), [searchQuery, selectedType, selectedRiskOnly, selectedMetric, sortBy]);
 
-  const totalGroups = filteredGroupedShipments.length;
+  // Sort customer groups themselves based on their highest priority/sorted shipment
+  const sortedGroupedShipments = [...filteredGroupedShipments].sort((gA, gB) => {
+    const a = gA.shipments[0];
+    const b = gB.shipments[0];
+    if (!a && !b) return 0;
+    if (!a) return 1;
+    if (!b) return -1;
+
+    if (sortBy === 'urgency') {
+      const score = (s: ShipmentCase) =>
+        s.active_risk_types?.includes('DEMURRAGE') ? 3 :
+        s.active_risk_types?.includes('SLA_BREACH') ? 2 : 1;
+      return score(b) - score(a);
+    }
+    if (sortBy === 'created') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    if (sortBy === 'eta') {
+      if (!a.eta) return 1;
+      if (!b.eta) return -1;
+      return new Date(a.eta).getTime() - new Date(b.eta).getTime();
+    }
+    if (sortBy === 'days') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    return 0;
+  });
+
+  const totalGroups = sortedGroupedShipments.length;
   const totalPages  = Math.max(1, Math.ceil(totalGroups / pageSize));
-  const pagedGroups = filteredGroupedShipments.slice((page - 1) * pageSize, page * pageSize);
+  const pagedGroups = sortedGroupedShipments.slice((page - 1) * pageSize, page * pageSize);
 
   const canCreate = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER'].includes(user?.role || '');
   const isJunior  = user?.role === 'JUNIOR' || user?.role === 'OFFICER';
@@ -726,11 +712,6 @@ export const CommandCenter: React.FC = () => {
             </div>
           </div>
           <div className="cc-page-header-right">
-            {/* Secondary controls — shrinks/scrolls internally first when
-                space is tight, so the primary action button (below) never
-                gets pushed off-screen. */}
-            <div className="cc-page-header-scroll">
-              {/* List / Board toggle */}
               <div className="cc-view-toggle">
                 {(['list', 'board'] as const).map(m => (
                   <button key={m} type="button"
@@ -744,7 +725,6 @@ export const CommandCenter: React.FC = () => {
                   </button>
                 ))}
               </div>
-            </div>
 
             {/* Primary actions — always fully visible, never scrolled/clipped. */}
             <div className="cc-page-header-actions">
@@ -797,17 +777,16 @@ export const CommandCenter: React.FC = () => {
                       type="button"
                       className="ds-tabs-trigger"
                       data-variant="segmented"
-                      data-state="inactive"
-                      onClick={() => navigate('/nexushr/staff')}
-                      title="View staff in NexusHR"
+                      data-state={selectedMetric === 'checked_in' ? 'active' : 'inactive'}
+                      onClick={() => setSelectedMetric(m => m === 'checked_in' ? null : 'checked_in')}
                     >
                       Checked In
                       <span style={{
                         fontSize: 10,
                         padding: '0 5px',
                         borderRadius: 9,
-                        background: 'var(--border)',
-                        color: 'var(--ink3)',
+                        background: selectedMetric === 'checked_in' ? 'var(--teal-l)' : 'var(--border)',
+                        color: selectedMetric === 'checked_in' ? 'var(--teal)' : 'var(--ink3)',
                         fontWeight: 700
                       }}>
                         {opsSummary.checked_in}
@@ -818,17 +797,16 @@ export const CommandCenter: React.FC = () => {
                       type="button"
                       className="ds-tabs-trigger"
                       data-variant="segmented"
-                      data-state="inactive"
-                      onClick={() => navigate('/studio')}
-                      title="View workflow studio"
+                      data-state={selectedMetric === 'pending' ? 'active' : 'inactive'}
+                      onClick={() => setSelectedMetric(m => m === 'pending' ? null : 'pending')}
                     >
                       Pending
                       <span style={{
                         fontSize: 10,
                         padding: '0 5px',
                         borderRadius: 9,
-                        background: 'var(--border)',
-                        color: 'var(--ink3)',
+                        background: selectedMetric === 'pending' ? 'var(--teal-l)' : 'var(--border)',
+                        color: selectedMetric === 'pending' ? 'var(--teal)' : 'var(--ink3)',
                         fontWeight: 700
                       }}>
                         {opsSummary.pending_tasks}
@@ -970,7 +948,7 @@ export const CommandCenter: React.FC = () => {
                 Syncing shipment data…
               </div>
             ) : (
-              <KanbanBoard groups={filteredGroupedShipments} refresh={refresh} activeWorkflow={activeWorkflow} />
+              <KanbanBoard groups={sortedGroupedShipments} refresh={refresh} sortBy={sortBy} />
             )}
           </div>
         )}

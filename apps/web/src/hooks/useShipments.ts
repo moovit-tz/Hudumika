@@ -14,6 +14,8 @@ export function useShipments(filters: {
   assigned_to?: string; stage?: string; workflow_id?: string;
   declaration_status?: string; selectivity_channel?: string;
   has_declaration?: boolean; search?: string;
+  checked_in?: boolean;
+  pending?: boolean;
 } = {}) {
   const [groupedShipments, setGroupedShipments] = useState<CustomerShipmentGroup[]>([]);
   const [kpis, setKpis] = useState<KPIResponse | null>(null);
@@ -30,6 +32,8 @@ export function useShipments(filters: {
       if (filters.selectivity_channel) params.append('selectivity_channel', filters.selectivity_channel);
       if (filters.has_declaration !== undefined) params.append('has_declaration', String(filters.has_declaration));
       if (filters.search) params.append('search', filters.search);
+      if (filters.checked_in) params.append('checked_in', 'true');
+      if (filters.pending) params.append('pending', 'true');
 
       const queryString = params.toString() ? `?${params.toString()}` : '';
       const response = await apiFetch(`/v1/shipments/grouped${queryString}`);
@@ -41,7 +45,7 @@ export function useShipments(filters: {
     }
   }, [filters.assigned_to, filters.stage, filters.workflow_id,
       filters.declaration_status, filters.selectivity_channel,
-      filters.has_declaration, filters.search]);
+      filters.has_declaration, filters.search, filters.checked_in, filters.pending]);
 
   const fetchKPIs = useCallback(async () => {
     try {

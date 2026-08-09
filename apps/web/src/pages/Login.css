@@ -58,14 +58,14 @@
 .login-card {
   background: var(--lp-card-bg, #fff);
   border-radius: 12px;
-  padding: 40px;
+  padding: 28px;
   width: 100%;
-  max-width: 640px;
+  max-width: 396px;
   border: 1px solid var(--lp-card-border, #e0e2e6);
   box-shadow: var(--lp-card-shadow, none);
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 18px;
   transition: all 0.2s ease;
 }
 
@@ -257,8 +257,8 @@
 .login-submit-btn:disabled             { opacity: 0.7; cursor: not-allowed; }
 
 /* ── Page footer ── */
-.login-footer       { display: flex; justify-content: space-between; width: 100%; max-width: 440px; margin-top: 24px; font-size: 12px; color: var(--lp-page-text, #5f6368); padding: 0 8px; transition: color 0.2s ease; }
-.login-footer--accounts { max-width: 442px; }
+.login-footer       { display: flex; justify-content: space-between; width: 100%; max-width: 396px; margin-top: 24px; font-size: 12px; color: var(--lp-page-text, #5f6368); padding: 0 8px; transition: color 0.2s ease; }
+.login-footer--accounts { max-width: 396px; }
 .login-footer-links { display: flex; gap: 16px; }
 .login-footer-link  { color: var(--lp-page-link, #5f6368); text-decoration: none; }
 
@@ -318,8 +318,8 @@
 .reg-signin-link { font-weight: 700; color: var(--lp-accent, #0d7a6b); text-decoration: none; }
 
 /* Register card is slightly wider to accommodate more fields */
-.login-card--reg { max-width: 720px; }
-.login-card--accounts { max-width: 442px; }
+.login-card--reg { max-width: 396px; }
+.login-card--accounts { max-width: 396px; }
 
 /* Full-width submit button (register form) */
 .login-submit-btn--full { width: 100%; margin-top: 8px; }

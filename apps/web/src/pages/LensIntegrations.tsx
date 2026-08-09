@@ -108,7 +108,7 @@ export function LensIntegrations() {
         background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 'var(--r)',
         boxShadow: '0 2px 8px rgba(245, 158, 11, 0.05)',
       }}>
-        <div style={{ background: '#fff', borderRadius: '50%', padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div style={{ background: 'var(--white)', borderRadius: '50%', padding: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
           <Icon name="alertTriangle" size={16} color="var(--gold)" />
         </div>
         <div style={{ fontSize: 13, color: 'var(--ink2)', lineHeight: 1.5 }}>
