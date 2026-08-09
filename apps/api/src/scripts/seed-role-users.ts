@@ -21,15 +21,25 @@ const PASSWORD = 'HudumikaTest#2026';
 const MARK = '[test]';
 
 const PEOPLE: { role: string; name: string; local: string; designation: string }[] = [
-  { role: 'ADMIN',   name: 'Asha Mwinyi',    local: 'admin',   designation: 'Director' },
-  { role: 'MANAGER', name: 'Baraka Ndlovu',  local: 'manager', designation: 'Operations Manager' },
-  { role: 'FINANCE', name: 'Neema Kimaro',   local: 'finance', designation: 'Finance Officer' },
-  { role: 'SALES',   name: 'Juma Salehe',    local: 'sales',   designation: 'Sales Officer' },
-  { role: 'SENIOR',  name: 'Fatuma Hassan',  local: 'senior',  designation: 'Senior Clearing Officer' },
-  { role: 'JUNIOR',  name: 'Emmanuel Moshi', local: 'junior',  designation: 'Junior Clearing Officer' },
+  { role: 'ADMIN',   name: 'Asha Mwinyi',    local: 'asha.mwinyi',   designation: 'Director' },
+  { role: 'MANAGER', name: 'Baraka Ndlovu',  local: 'baraka.ndlovu', designation: 'Operations Manager' },
+  { role: 'FINANCE', name: 'Neema Kimaro',   local: 'neema.kimaro', designation: 'Finance Officer' },
+  { role: 'SALES',   name: 'Juma Salehe',    local: 'juma.salehe',   designation: 'Sales Officer' },
+  { role: 'SENIOR',  name: 'Fatuma Hassan',  local: 'fatuma.hassan',  designation: 'Senior Clearing Officer' },
+  { role: 'JUNIOR',  name: 'Emmanuel Moshi', local: 'emmanuel.moshi',  designation: 'Junior Clearing Officer' },
 ];
 
-const DOMAIN = 'hudumika.test';
+/**
+ * These six were seeded on @hudumika.test as throwaway access-level accounts,
+ * then promoted to real staff of Moovit Mobility Limited on their own company
+ * domain. Re-running this script against the old domain would recreate the
+ * throwaways alongside the real people — two accounts per person, identical
+ * names, and no way to tell from a staff list which one is which.
+ *
+ * It now targets the same addresses the real accounts use, so a re-run finds
+ * them and leaves them alone instead.
+ */
+const DOMAIN = 'moovit.co.tz';
 
 async function main() {
   if (process.env.PROBE !== '1') {

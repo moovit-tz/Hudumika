@@ -17,7 +17,9 @@
  */
 import { db } from '../db/client.js';
 
-const DOMAIN = 'hudumika.test';
+// Follows seed-role-users: these accounts are real staff on the tenant's
+// own domain now, not throwaways.
+const DOMAIN = 'moovit.co.tz';
 const WEEKS = 8;
 
 function iso(d: Date) { return d.toISOString().slice(0, 10); }

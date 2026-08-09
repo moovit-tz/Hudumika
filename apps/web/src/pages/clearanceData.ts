@@ -576,7 +576,10 @@ export function apiToJob(data: any): ClearanceJob {
     ],
     documents: (data.documents || []).map((d: any) => ({
       id: String(d.id), name: d.filename || d.type, type: (d.type?.toLowerCase() || 'other') as DocType,
-      size: '—', uploadedBy: d.uploaded_by || 'System',
+      // The server now joins users for this. Falls back to the id only when
+      // there is genuinely no account behind it (an import, or a deleted user),
+      // rather than printing a uuid at everyone.
+      size: '—', uploadedBy: d.uploaded_by_name || (d.uploaded_by ? 'A former colleague' : 'System'),
       uploadedAt: new Date(d.created_at || Date.now()), extracted: { status: 'pending' as const },
       apiType: d.type, pending: !d.storage_key,
     })),
@@ -604,7 +607,7 @@ export function apiToJob(data: any): ClearanceJob {
       ...(data.documents || []).filter((d: any) => d.storage_key).map((d: any, i: number): ActivityEvent => ({
         id: `act-doc-${d.id || i}`,
         userId: d.uploaded_by || 'system',
-        userName: d.uploaded_by_name || 'Someone',
+        userName: d.uploaded_by_name || (d.uploaded_by ? 'A former colleague' : 'System'),
         action: 'uploaded',
         subject: `uploaded ${d.filename || d.type}`,
         ts: new Date(d.created_at || Date.now()),

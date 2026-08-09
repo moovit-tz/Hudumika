@@ -187,6 +187,8 @@ export class ShipmentService {
     /** Folded in from /clearos/declarations, which is being removed. */
     declaration_status?: string; selectivity_channel?: string;
     has_declaration?: boolean; search?: string;
+    checked_in?: boolean;
+    pending?: boolean;
   }) {
     return withTenant(tenantId, async (trx) => {
       // Explicit tenant filter on every query below — RLS doesn't protect
@@ -221,6 +223,26 @@ export class ShipmentService {
         shipmentsQuery = filters.workflow_id === null
           ? shipmentsQuery.where('workflow_id', 'is', null)
           : shipmentsQuery.where('workflow_id', '=', filters.workflow_id);
+      }
+
+      if (filters.checked_in) {
+        const today = new Date().toISOString().split('T')[0];
+        shipmentsQuery = shipmentsQuery.where('assigned_to', 'in', (eb) => eb.selectFrom('hr_time_entries')
+          .select('user_id')
+          .where('tenant_id', '=', tenantId)
+          .where('date', '=', today)
+          .where('ended_at', 'is', null)
+        );
+      }
+
+      if (filters.pending) {
+        shipmentsQuery = shipmentsQuery.where((eb) => eb.exists(
+          eb.selectFrom('shipment_tasks')
+            .select('id')
+            .whereRef('shipment_tasks.shipment_id', '=', 'shipment_cases.id')
+            .where('shipment_tasks.tenant_id', '=', tenantId)
+            .where('shipment_tasks.status', '=', 'open')
+        ));
       }
 
       /**
@@ -472,12 +494,18 @@ export class ShipmentService {
         .orderBy('entered_at', 'asc')
         .execute();
 
+      // uploaded_by is a user id, and the screens that show it were rendering
+      // the raw uuid — "Uploaded by f7c30a8f-b30f-…" in the Files tab and
+      // "Someone uploaded …" in the activity feed. leftJoin, not innerJoin: a
+      // document uploaded by an account since deleted must still be listed.
       const documents = await trx
-        .selectFrom('case_documents')
-        .selectAll()
-        .where('shipment_id', '=', shipmentId)
-        .where('tenant_id', '=', tenantId)
-        .orderBy('created_at', 'desc')
+        .selectFrom('case_documents as d')
+        .leftJoin('users as u', 'u.id', 'd.uploaded_by')
+        .selectAll('d')
+        .select('u.name as uploaded_by_name')
+        .where('d.shipment_id', '=', shipmentId)
+        .where('d.tenant_id', '=', tenantId)
+        .orderBy('d.created_at', 'desc')
         .execute();
 
       const expenses = await trx

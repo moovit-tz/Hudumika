@@ -26,7 +26,7 @@ async function main() {
   // computeBalances correctly returned nothing — tenant scoping working, and a
   // reminder that a test can be wrong in exactly the way the code is right.
   const person = await db.selectFrom('users').select(['id', 'name', 'hire_date', 'tenant_id'])
-    .where('email', '=', 'junior@hudumika.test').executeTakeFirstOrThrow();
+    .where('email', '=', 'emmanuel.moshi@moovit.co.tz').executeTakeFirstOrThrow();
   const tenant = await db.selectFrom('tenants').select(['id', 'name', 'country'])
     .where('id', '=', person.tenant_id).executeTakeFirstOrThrow();
   console.log(`\ntenant: ${tenant.name} · person: ${person.name}`);

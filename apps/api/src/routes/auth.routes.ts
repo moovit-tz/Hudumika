@@ -64,20 +64,17 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
 
     /**
-     * Seeded test accounts must not be usable in production.
+     * Seeded throwaway accounts must not be usable in production.
      *
-     * One account per access level was created in a real tenant so that
-     * role-differentiated behaviour could actually be tested — a SUPER_ADMIN
-     * passes every check, so nothing is proven with that account alone. They
-     * are real accounts with real password hashes and they can sign in, which
-     * is exactly what makes them useful and exactly what makes them a problem
-     * once this is live.
+     * The six that prompted this — one per access level, so that
+     * role-differentiated behaviour could be tested at all, since a SUPER_ADMIN
+     * passes every check — have since been promoted to real staff of their
+     * tenant on that company's own domain. No account matches this rule today.
      *
-     * Refusing them here rather than deleting them keeps them useful in
-     * development and makes "remember to remove these before go-live" no longer
-     * something anyone has to remember. The @hudumika.test domain is reserved
-     * and cannot be a real customer address: .test is reserved by RFC 2606
-     * precisely so it can never resolve.
+     * It stays because the seed scripts that created them still exist, and the
+     * next batch of throwaways would otherwise reach production the same way.
+     * .test is reserved by RFC 2606 precisely so it can never resolve, which
+     * makes it safe to refuse outright: no real customer can ever hold one.
      */
     if (env.APP_ENV === 'production' && /@hudumika\.test$/i.test(user.email)) {
       await recordLogin(user.tenant_id, user.id, 'FAILED', request.ip, String(request.headers['user-agent'] || ''));
