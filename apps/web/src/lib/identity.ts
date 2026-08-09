@@ -124,3 +124,31 @@ export function nameColor(name: string): string {
 export function nameInitials(name: string): string {
   return (name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0] ?? '').join('').toUpperCase() || '?';
 }
+
+/**
+ * A picture file, centre-cropped square and downscaled, as a JPEG data URI.
+ *
+ * `users.avatar_url` is a text column holding the image itself, so whatever is
+ * uploaded rides along in every payload carrying that user. Uploads used to go
+ * in at full size — up to 5MB — for something usually drawn at 32px. 256px of
+ * JPEG is about 20KB and indistinguishable at these sizes.
+ *
+ * Lives here rather than in a page so the self-service and admin paths cannot
+ * drift into two different ideas of what an avatar is.
+ */
+export const AVATAR_EDGE = 256;
+
+export async function squareAvatarDataUrl(file: File): Promise<string> {
+  if (!file.type.startsWith('image/')) throw new Error('That file is not an image.');
+  const bitmap = await createImageBitmap(file);
+  const edge = Math.min(bitmap.width, bitmap.height);
+  const canvas = document.createElement('canvas');
+  canvas.width = AVATAR_EDGE;
+  canvas.height = AVATAR_EDGE;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Could not process the image in this browser.');
+  ctx.drawImage(bitmap, (bitmap.width - edge) / 2, (bitmap.height - edge) / 2, edge, edge, 0, 0, AVATAR_EDGE, AVATAR_EDGE);
+  bitmap.close?.();
+  // JPEG, not PNG — a photo as PNG is several times larger for no visible gain.
+  return canvas.toDataURL('image/jpeg', 0.85);
+}

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { forgetAvatar } from '../lib/identity.js';
+import { forgetAvatar, squareAvatarDataUrl } from '../lib/identity.js';
 import { usePageSEO } from '../hooks/usePageSEO.js';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
@@ -181,36 +181,12 @@ export const UserProfile: React.FC = () => {
     } finally { setSaving(false); }
   };
 
-  /**
-   * Centre-cropped square, downscaled, as a JPEG data URI.
-   *
-   * `avatar_url` is a text column holding the image itself, so whatever is
-   * uploaded is what every payload carrying this user hauls around — and this
-   * accepted the raw file up to 5MB. The one seeded avatar in this database is
-   * 560KB of base64, for a picture usually drawn at 32px. 256px of JPEG is
-   * ~20KB and indistinguishable at the sizes these render.
-   */
-  const AVATAR_EDGE = 256;
-  const toSquareDataUrl = async (file: File): Promise<string> => {
-    const bitmap = await createImageBitmap(file);
-    const edge = Math.min(bitmap.width, bitmap.height);
-    const canvas = document.createElement('canvas');
-    canvas.width = AVATAR_EDGE;
-    canvas.height = AVATAR_EDGE;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Could not process the image in this browser.');
-    ctx.drawImage(bitmap, (bitmap.width - edge) / 2, (bitmap.height - edge) / 2, edge, edge, 0, 0, AVATAR_EDGE, AVATAR_EDGE);
-    bitmap.close?.();
-    // JPEG, not PNG — a photo as PNG is several times larger for no visible gain.
-    return canvas.toDataURL('image/jpeg', 0.85);
-  };
-
   const handleAvatarFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) { showAlert('That file is not an image.'); return; }
     try {
-      const dataUrl = await toSquareDataUrl(file);
+      const dataUrl = await squareAvatarDataUrl(file);
       setForm(p => ({ ...p, avatar_url: dataUrl }));
       await persistImagePatch(dataUrl, undefined);
       // Tell every mounted avatar to re-fetch. The module cache in

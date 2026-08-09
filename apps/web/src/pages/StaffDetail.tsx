@@ -10,6 +10,7 @@ import type { UserProfileFields } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
 import { RecordActivity } from '../components/RecordActivity.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
 import { StaffContracts, StaffEmergencyContacts } from '../components/StaffContracts.js';
 
 interface StaffData {
@@ -56,7 +57,7 @@ interface StaffData {
 }
 
 // Shared, so this page agrees with the header above it and with every other app.
-import { nameColor as avatarBg, nameInitials as initials } from '../lib/identity.js';
+import { nameColor as avatarBg, nameInitials as initials, forgetAvatar, squareAvatarDataUrl } from '../lib/identity.js';
 
 function formatDate(d: string | null | undefined): string {
   if (!d) return '—';
@@ -545,6 +546,39 @@ export const StaffDetail: React.FC = () => {
     }
   };
 
+  /**
+   * Give this person a picture.
+   *
+   * PATCH /v1/hr/staff/:id/avatar has existed all along and nothing called it,
+   * so an account could only get a photo if its own owner set one — which left
+   * every newly created account faceless until they happened to visit their
+   * profile. Same downscale as self-service, from the shared helper, so the two
+   * paths cannot drift into different ideas of what an avatar is.
+   */
+  const photoInputRef = useRef<HTMLInputElement | null>(null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const canSetPhoto = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(authUser?.role ?? '');
+
+  async function setStaffPhoto(file: File) {
+    if (!id) return;
+    setPhotoBusy(true);
+    try {
+      const dataUrl = await squareAvatarDataUrl(file);
+      // Their own picture goes through the self-service endpoint — the only one
+      // a non-admin could use anyway.
+      const path = authUser?.id === id ? '/v1/hr/profile/avatar' : `/v1/hr/staff/${id}/avatar`;
+      await apiFetch(path, { method: 'PATCH', body: JSON.stringify({ avatar_url: dataUrl }) });
+      setStaff(prev => (prev ? { ...prev, avatar_url: dataUrl } : prev));
+      // Every mounted avatar for this person, in every app, re-fetches.
+      forgetAvatar(id);
+    } catch (e: any) {
+      showAlert(e?.message || 'That picture could not be saved.');
+    } finally {
+      setPhotoBusy(false);
+      if (photoInputRef.current) photoInputRef.current.value = '';
+    }
+  }
+
   /** Statutory and pay fields are real columns, not profile json. */
   const updateField = (key: keyof StaffData, value: string | null) => {
     setEditForm(prev => ({ ...prev, [key]: value }));
@@ -601,13 +635,37 @@ export const StaffDetail: React.FC = () => {
         {/* Profile Info Row */}
         <div style={{ padding: '24px 32px 16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
-            {staff.avatar_url ? (
-              <img src={staff.avatar_url} alt={staff.name} style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }} />
-            ) : (
-              <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'var(--teal-l)', color: 'var(--teal)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700 }}>
-                {initialsText}
-              </div>
-            )}
+            {/* Every account can have a picture, not only the ones whose owner
+                thought to set one. This also read staff.avatar_url directly,
+                missing the shared cache that keeps one picture consistent
+                across apps — PersonAvatar handles both. */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <PersonAvatar userId={staff.id} name={staff.name} src={staff.avatar_url ?? undefined} size={64} />
+              {canSetPhoto && (
+                <>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) setStaffPhoto(f); }}
+                  />
+                  <button
+                    type="button"
+                    title="Set profile picture"
+                    disabled={photoBusy}
+                    onClick={() => photoInputRef.current?.click()}
+                    style={{
+                      position: 'absolute', right: -2, bottom: -2, width: 24, height: 24, borderRadius: '50%',
+                      border: '2px solid var(--white)', background: 'var(--teal)', color: '#fff',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
+                    }}
+                  >
+                    <Icon name={photoBusy ? 'clock' : 'camera'} size={11} color="#fff" />
+                  </button>
+                </>
+              )}
+            </div>
             <div>
               <h1 style={{ margin: '0 0 6px 0', fontSize: 22, fontWeight: 700, color: 'var(--ink)' }}>{staff.name}</h1>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--ink2)' }}>
