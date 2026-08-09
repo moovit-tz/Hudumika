@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useContext, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { PersonAvatar } from './PersonAvatar.js';
 import { NotificationCentre } from './NotificationCentre.js';
@@ -11,6 +11,8 @@ import { useLocale } from '../hooks/useLocale.js';
 import { AppLauncher } from './AppLauncher.js';
 import { LAUNCHER_APPS, LauncherAppSvg } from './LauncherApps.js';
 import { apiFetch } from '../lib/api.js';
+import { useClockIn } from '../contexts/ClockInContext.js';
+import { getJobs } from '../pages/clearanceData.js';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -80,6 +82,21 @@ export function AppHeader({
   filterControl?: { open: boolean; onToggle: () => void; hasActive?: boolean };
 } = {}) {
   const { user, logout } = useAuth();
+
+  /**
+   * Check-in state and the shipment context to open it with. A CUSTOMER has no
+   * timesheet, so they get no clock — same rule CheckInWidget itself applies.
+   */
+  const { isCheckedIn, triggerOpen } = useClockIn();
+  const location = useLocation();
+  const isStaff = !!(user && user.role !== 'CUSTOMER');
+  const clockContext = () => {
+    const m = location.pathname.match(/\/clearance\/([0-9a-f-]{36})/i);
+    if (!m) return undefined;
+    const shipmentId = m[1];
+    const job = getJobs().find(j => j.id === shipmentId);
+    return { shipmentId, shipmentRef: job?.sysRef || shipmentId };
+  };
   const activeApp = useContext(ActiveAppContext);
   const { setMobileOpen } = useContext(MobileNavContext);
   const branding = useBranding();
@@ -548,6 +565,30 @@ export function AppHeader({
 
           {/* Right actions */}
           <div className="app-header-actions">
+
+            {/* Clock in / out.
+                Every app shell renders this header, and none of them had a
+                check-in control — the only component that did, TopBar, is not
+                imported anywhere. So the one way to start the clock was to
+                trigger a gated action and be interrupted by the prompt.
+
+                It carries the shipment you are looking at. CheckInWidget
+                already auto-detects from `openContext`, and every gate inside
+                the clearance page passes it; opening the widget from the header
+                did not, which meant searching for the job already on screen.
+                The ref comes from the clearance store, so it reads
+                "CLR-2026-0087" rather than a uuid. */}
+            {isStaff && (
+              <button
+                type="button"
+                className="app-header-icon-btn"
+                onClick={() => triggerOpen(clockContext())}
+                title={isCheckedIn ? t('header.switchTask') : t('header.clockIn')}
+                aria-pressed={isCheckedIn}
+              >
+                <Icon name="clock" size={19} color={isCheckedIn ? 'var(--teal)' : 'var(--ink)'} />
+              </button>
+            )}
 
             {/* Full page */}
             <button

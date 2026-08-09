@@ -14,6 +14,8 @@ export default
     "compact": "Compact view",
     "fullPage": "Full page",
     "exitFullPage": "Exit full page",
+    "clockIn": "Clock in",
+    "switchTask": "Switch what you're working on",
     "myProfile": "My profile",
     "adminPanel": "Admin panel",
     "signOut": "Sign out",
