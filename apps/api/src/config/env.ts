@@ -23,6 +23,23 @@ const envSchema = z.object({
   // throw away the point of having two.
   JWT_EXPIRES_IN: z.string().default('1h'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
+
+  /**
+   * Encrypts Onsite's stored credentials — environment secrets, CI tokens,
+   * cloud provider keys (ONSITE.md §25, §66).
+   *
+   * onsite-secrets.service.ts required this and nothing declared it, so it was
+   * absent everywhere: every attempt to save an environment variable or connect
+   * a provider threw out of getKey() and surfaced as a 500. The feature could
+   * not be used at all.
+   *
+   * The default is a development key and is listed in PUBLISHED_DEFAULTS below,
+   * so production refuses to boot with it — the same treatment as JWT_SECRET,
+   * and for the same reason: this one decrypts every infrastructure credential
+   * a tenant has entrusted to the platform.
+   */
+  ONSITE_SECRETS_KEY: z.string().length(64, 'ONSITE_SECRETS_KEY must be 64 hex characters (32 bytes)')
+    .default('6f6e73697465646576656c6f706d656e746b65796e6f74666f7270726f6475637469'.slice(0, 64)),
   
   META_WA_TOKEN: z.string().default('your-meta-whatsapp-token'),
   META_PHONE_NUMBER_ID: z.string().default('your-phone-number-id'),
@@ -82,6 +99,8 @@ const PUBLISHED_DEFAULTS: [key: string, value: string, why: string][] = [
    'anyone with this repository could sign a valid token for any user in any tenant'],
   ['DATABASE_URL_READONLY', 'postgresql://hudumika_readonly:hudumika_readonly_pass@localhost:5432/clearos',
    'the Query Builder\'s raw-SQL role would be reachable with a published password'],
+  ['ONSITE_SECRETS_KEY', '6f6e73697465646576656c6f706d656e746b65796e6f74666f7270726f6475637469'.slice(0, 64),
+   'every Onsite environment variable, CI token and cloud credential could be decrypted from this repository'],
 ];
 
 if (env.APP_ENV === 'production') {

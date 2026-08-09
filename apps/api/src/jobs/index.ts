@@ -12,6 +12,7 @@ import { runGpswoxSyncJob } from './gpswox-sync.job.js';
 import { runWorkflowCommQueueJob } from './workflow-comm.job.js';
 import { runSealLedgerAnchorJob, runSealLedgerAnchorConfirmationSweepJob } from './seal-ledger-anchor.job.js';
 import { runDeclarationLedgerAnchorJob, runDeclarationLedgerAnchorConfirmationSweepJob } from './declaration-ledger-anchor.job.js';
+import { runOnsiteDeploymentSyncJob } from './onsite-deployment-sync.job.js';
 
 let redisConnection: Redis | null = null;
 let riskQueue: Queue | null = null;
@@ -325,6 +326,15 @@ function startIntervalFallback(): void {
   setInterval(() => {
     runWorkflowCommQueueJob().catch(console.error);
   }, 2 * 60 * 1000);
+
+  // Onsite deployments in flight — every minute. This is what actually moves a
+  // deployment to succeeded or failed, by asking the CI provider; nothing else
+  // in the system is allowed to decide that. Frequent because someone is
+  // usually watching the screen while it runs, and cheap because it does
+  // nothing at all when no deployment is open.
+  setInterval(() => {
+    runOnsiteDeploymentSyncJob().catch(console.error);
+  }, 60 * 1000);
 
   // SEAL ledger anchoring — deliberately NOT run in the "immediately on
   // startup" pass above: each stamp is a real external network call and a

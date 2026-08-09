@@ -1,0 +1,296 @@
+/* ─── Onsite Infrastructure Control Plane Styling ─── */
+
+.onsite-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.onsite-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.onsite-header-title h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.onsite-header-title p {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+}
+
+.onsite-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Stat Grid */
+.onsite-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.onsite-stat-card {
+  background: var(--white);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.onsite-stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.onsite-stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 0.6rem;
+  background: var(--teal-l);
+  color: var(--teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.onsite-stat-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.onsite-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.onsite-stat-label {
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+  margin-top: 0.25rem;
+}
+
+.onsite-stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin-top: 0.35rem;
+}
+
+.onsite-stat-badge.success { color: #10b981; }
+.onsite-stat-badge.warning { color: #f59e0b; }
+.onsite-stat-badge.danger  { color: #ef4444; }
+
+/* Grid Sections */
+.onsite-grid-2 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .onsite-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Onsite Cards */
+.onsite-card {
+  background: var(--white);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.onsite-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.onsite-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Badges & Pills */
+.onsite-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.onsite-badge.active,
+.onsite-badge.healthy,
+.onsite-badge.succeeded,
+.onsite-badge.running {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.onsite-badge.pending,
+.onsite-badge.queued,
+.onsite-badge.building,
+.onsite-badge.deploying,
+.onsite-badge.syncing {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.onsite-badge.misconfigured,
+.onsite-badge.failed,
+.onsite-badge.expired,
+.onsite-badge.critical,
+.onsite-badge.error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+}
+
+.onsite-badge.unknown,
+.onsite-badge.inactive {
+  background: rgba(107, 114, 128, 0.12);
+  color: #4b5563;
+}
+
+/* Tables */
+.onsite-table-wrapper {
+  overflow-x: auto;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-subtle);
+}
+
+.onsite-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.onsite-table th {
+  background: var(--bg-subtle, #f8fafc);
+  color: var(--ink-muted);
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  white-space: nowrap;
+}
+
+.onsite-table td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--ink);
+  vertical-align: middle;
+}
+
+.onsite-table tr:last-child td {
+  border-bottom: none;
+}
+
+.onsite-table tr:hover td {
+  background: rgba(0, 0, 0, 0.015);
+}
+
+/* Code & Mono */
+.onsite-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.8125rem;
+}
+
+/* Form Groups */
+.onsite-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.onsite-form-group label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.onsite-input,
+.onsite-select,
+.onsite-textarea {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--white);
+  color: var(--ink);
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.onsite-input:focus,
+.onsite-select:focus,
+.onsite-textarea:focus {
+  border-color: var(--teal);
+}
+
+/* Alert Boxes */
+.onsite-alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: 0.5rem;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.onsite-alert-item.critical {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.onsite-alert-content h4 {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.onsite-alert-content p {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.8125rem;
+  color: var(--ink-muted);
+}

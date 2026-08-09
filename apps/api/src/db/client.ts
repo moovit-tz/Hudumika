@@ -3201,6 +3201,20 @@ export interface Database {
   platform_support_tickets: PlatformSupportTicketsTable;
   platform_support_attachments: PlatformSupportAttachmentsTable;
   platform_support_messages: PlatformSupportMessagesTable;
+  // Onsite Infrastructure Platform
+  onsite_projects: OnsiteProjectsTable;
+  onsite_domains: OnsiteDomainsTable;
+  onsite_dns_zones: OnsiteDnsZonesTable;
+  onsite_dns_records: OnsiteDnsRecordsTable;
+  onsite_ssl_certificates: OnsiteSslCertificatesTable;
+  onsite_websites: OnsiteWebsitesTable;
+  onsite_applications: OnsiteApplicationsTable;
+  onsite_environments: OnsiteEnvironmentsTable;
+  onsite_secrets: OnsiteSecretsTable;
+  onsite_deployments: OnsiteDeploymentsTable;
+  onsite_servers: OnsiteServersTable;
+  onsite_provider_connections: OnsiteProviderConnectionsTable;
+  onsite_health_checks: OnsiteHealthChecksTable;
   // NexusHR Core
   hr_legal_entities: HrLegalEntitiesTable;
   hr_locations: HrLocationsTable;
@@ -5268,6 +5282,247 @@ export interface WorkflowStudioRunsTable {
    *  Unique per (workflow_id, domain_event_id) — see migrations 158/159. */
   domain_event_id: string | null;
   created_at:     Generated<Date>;
+}
+
+export interface OnsiteProjectsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  description: string | null;
+  color: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OnsiteDomainsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string | null;
+  domain: string;
+  registrar: string | null;
+  nameservers: Generated<string>;
+  registered_at: Date | null;
+  expires_at: Date | null;
+  auto_renew: Generated<boolean>;
+  dns_status: Generated<string>;
+  dns_checked_at: Date | null;
+  ssl_status: Generated<string>;
+  ssl_checked_at: Date | null;
+  ssl_expires_at: Date | null;
+  status: Generated<string>;
+  notes: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OnsiteDnsZonesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  domain_id: string;
+  provider: string | null;
+  external_id: string | null;
+  status: Generated<string>;
+  last_synced_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OnsiteDnsRecordsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  zone_id: string;
+  name: string;
+  type: string;
+  value: string;
+  ttl: Generated<number>;
+  priority: number | null;
+  external_id: string | null;
+  synced_at: Date | null;
+  sync_status: Generated<string>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OnsiteSslCertificatesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  domain_id: string;
+  provider: Generated<string>;
+  issuer: string | null;
+  subject: string | null;
+  sans: Generated<string>;
+  issued_at: Date | null;
+  expires_at: Date | null;
+  status: Generated<string>;
+  last_checked_at: Date | null;
+  last_error: string | null;
+  acme_order_id: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OnsiteWebsitesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string | null;
+  domain_id: string | null;
+  name: string;
+  type: Generated<string>;
+  status: Generated<string>;
+  hosting_provider: string | null;
+  hosting_id: string | null;
+  url: string | null;
+  last_health_at: Date | null;
+  last_health_status: number | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OnsiteApplicationsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string | null;
+  domain_id: string | null;
+  name: string;
+  runtime: Generated<string>;
+  repo_provider: string | null;
+  repo_owner: string | null;
+  repo_name: string | null;
+  repo_url: string | null;
+  /** Branch deployed when a deploy request does not name one (migration 210). */
+  default_branch: Generated<string>;
+  build_command: string | null;
+  start_command: string | null;
+  output_dir: string | null;
+  port: number | null;
+  auto_deploy: Generated<boolean>;
+  status: Generated<string>;
+  current_version: string | null;
+  last_deployed_at: Date | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OnsiteEnvironmentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  application_id: string;
+  name: string;
+  branch: string | null;
+  domain_id: string | null;
+  status: Generated<string>;
+  url: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OnsiteSecretsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  environment_id: string;
+  key: string;
+  value_cipher: string;
+  is_secret: Generated<boolean>;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OnsiteDeploymentsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  application_id: string;
+  environment_id: string;
+  trigger: Generated<string>;
+  triggered_by: string | null;
+  commit_sha: string | null;
+  commit_message: string | null;
+  branch: string | null;
+  tag: string | null;
+  ci_provider: string | null;
+  ci_pipeline_id: string | null;
+  ci_build_url: string | null;
+  status: Generated<string>;
+  version: string | null;
+  queued_at: Generated<Date>;
+  started_at: Date | null;
+  completed_at: Date | null;
+  log_reference: string | null;
+  error_message: string | null;
+  created_at: Generated<Date>;
+}
+
+export interface OnsiteServersTable {
+  id: Generated<string>;
+  tenant_id: string;
+  project_id: string | null;
+  name: string;
+  provider: Generated<string>;
+  external_id: string | null;
+  region: string | null;
+  os: string | null;
+  cpu_count: number | null;
+  ram_mb: number | null;
+  disk_gb: number | null;
+  ip_address: string | null;
+  ipv6_address: string | null;
+  status: Generated<string>;
+  last_checked_at: Date | null;
+  cpu_percent: number | null;
+  ram_percent: number | null;
+  disk_percent: number | null;
+  metrics_at: Date | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OnsiteProviderConnectionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  provider: string;
+  name: string;
+  config_cipher: string;
+  access_token_cipher: string | null;
+  refresh_token_cipher: string | null;
+  token_expires_at: Date | null;
+  external_id: string | null;
+  external_name: string | null;
+  status: Generated<string>;
+  last_verified_at: Date | null;
+  error_message: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface OnsiteHealthChecksTable {
+  id: Generated<string>;
+  tenant_id: string;
+  name: string;
+  url: string;
+  method: Generated<string>;
+  expected_status: Generated<number>;
+  timeout_ms: Generated<number>;
+  interval_s: Generated<number>;
+  status: Generated<string>;
+  last_checked_at: Date | null;
+  last_response_ms: number | null;
+  last_status_code: number | null;
+  last_error: string | null;
+  uptime_30d: number | null;
+  application_id: string | null;
+  domain_id: string | null;
+  notify_on_fail: Generated<boolean>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 /**
