@@ -4,6 +4,8 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import { encryptSecret, decryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
 import { checkDnsPropagation, verifyTxtRecord } from '../services/onsite-dns-probe.service.js';
 import { resolveCIProvider, verifyProviderConnection, NO_CI_PROVIDER_MESSAGE } from '../services/onsite-ci.service.js';
+import { runCheck } from '../services/onsite-uptime.service.js';
+import { refreshDomainCertificate } from '../services/onsite-ssl.service.js';
 import { sql } from 'kysely';
 
 export async function onsiteRoutes(fastify: FastifyInstance) {
@@ -21,6 +23,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
       appsCount,
       serversCount,
       healthChecksCount,
+      healthChecksCritical,
       recentDeployments,
       expiringDomains,
       expiringSsl,
@@ -30,6 +33,10 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
       db.selectFrom('onsite_applications').select(sql<number>`count(*)::int`.as('c')).where('tenant_id', '=', tenantId).executeTakeFirst(),
       db.selectFrom('onsite_servers').select(sql<number>`count(*)::int`.as('c')).where('tenant_id', '=', tenantId).executeTakeFirst(),
       db.selectFrom('onsite_health_checks').select(sql<number>`count(*)::int`.as('c')).where('tenant_id', '=', tenantId).executeTakeFirst(),
+      // Real, now that something probes these. It read a hardcoded 0, so the
+      // dashboard showed no failing monitors during an actual outage.
+      db.selectFrom('onsite_health_checks').select(sql<number>`count(*)::int`.as('c'))
+        .where('tenant_id', '=', tenantId).where('status', '=', 'critical').executeTakeFirst(),
       db.selectFrom('onsite_deployments')
         .selectAll()
         .where('tenant_id', '=', tenantId)
@@ -93,7 +100,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
       servers: serversCount?.c ?? 0,
       servers_healthy: serversCount?.c ?? 0,
       health_checks: healthChecksCount?.c ?? 0,
-      health_checks_critical: 0,
+      health_checks_critical: healthChecksCritical?.c ?? 0,
       recent_deployments: recentDeployments,
       alerts,
     });
@@ -746,8 +753,18 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         method: body.method?.toUpperCase() ?? 'GET',
         expected_status: body.expected_status ?? 200,
         interval_s: body.interval_s ?? 300,
-        status: 'healthy',
-        uptime_30d: 99.9,
+        /**
+         * A monitor that has never run knows nothing about the thing it
+         * monitors.
+         *
+         * This used to be created as `status: 'healthy', uptime_30d: 99.9` —
+         * so a monitor was born reporting four nines of availability for a URL
+         * nothing had contacted, and the Monitoring page's `?? 99.9` fallback
+         * was only ever agreeing with what the row already said. Both start
+         * empty now and are filled in by the first real probe.
+         */
+        status: 'unknown',
+        uptime_30d: null,
         created_by: request.user.sub,
       })
       .returningAll()
@@ -765,6 +782,102 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
     if (res.numDeletedRows === 0n) return reply.status(404).send({ error: 'Health check not found' });
     return reply.send({ success: true });
+  });
+
+  /**
+   * Probe a monitor now.
+   *
+   * The scheduled sweep honours each monitor's interval, which is right for
+   * routine watching and useless when somebody has just fixed a server and
+   * wants to know. The result is recorded like any other sample, so a manual
+   * run counts towards uptime exactly as a scheduled one does.
+   */
+  fastify.post('/health-checks/:id/run', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const check = await db.selectFrom('onsite_health_checks')
+      .select(['id', 'tenant_id', 'url', 'method', 'expected_status', 'timeout_ms'])
+      .where('id', '=', id)
+      .where('tenant_id', '=', request.user.tenant_id)
+      .executeTakeFirst();
+    if (!check) return reply.status(404).send({ error: 'Health check not found' });
+
+    const result = await runCheck(check);
+    const updated = await db.selectFrom('onsite_health_checks')
+      .selectAll()
+      .where('id', '=', id)
+      .where('tenant_id', '=', request.user.tenant_id)
+      .executeTakeFirst();
+    return reply.send({ result, check: updated });
+  });
+
+  /** The samples behind the uptime figure, most recent first. */
+  fastify.get('/health-checks/:id/results', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const q = request.query as { limit?: string };
+    const limit = Math.min(Number(q.limit) || 100, 500);
+
+    const owned = await db.selectFrom('onsite_health_checks')
+      .select('id')
+      .where('id', '=', id)
+      .where('tenant_id', '=', request.user.tenant_id)
+      .executeTakeFirst();
+    if (!owned) return reply.status(404).send({ error: 'Health check not found' });
+
+    const results = await db.selectFrom('onsite_health_check_results')
+      .select(['id', 'checked_at', 'ok', 'status_code', 'response_ms', 'error'])
+      .where('check_id', '=', id)
+      .where('tenant_id', '=', request.user.tenant_id)
+      .orderBy('checked_at', 'desc')
+      .limit(limit)
+      .execute();
+    return reply.send(results);
+  });
+
+  // ─── SSL certificates ────────────────────────────────────────
+
+  /**
+   * The certificates this workspace's domains are actually serving.
+   *
+   * There was no endpoint at all, so the SSL page listed domains and called
+   * them certificates. These rows come from a TLS handshake against each host.
+   */
+  fastify.get('/ssl', async (request: FastifyRequest, reply: FastifyReply) => {
+    const certs = await db.selectFrom('onsite_ssl_certificates as c')
+      .leftJoin('onsite_domains as d', 'd.id', 'c.domain_id')
+      .select([
+        'c.id', 'c.domain_id', 'c.provider', 'c.issuer', 'c.subject', 'c.sans',
+        'c.issued_at', 'c.expires_at', 'c.status', 'c.last_checked_at', 'c.last_error',
+        'd.domain as domain',
+      ])
+      .where('c.tenant_id', '=', request.user.tenant_id)
+      .orderBy('c.expires_at', 'asc')
+      .execute();
+    return reply.send(certs);
+  });
+
+  /**
+   * Read the live certificate for one domain, now.
+   *
+   * Reports what the host presents, whoever issued it — a certificate Onsite
+   * did not provision is still the one that will break when it expires.
+   */
+  fastify.post('/domains/:id/ssl/inspect', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const domain = await db.selectFrom('onsite_domains')
+      .select(['id', 'domain'])
+      .where('id', '=', id)
+      .where('tenant_id', '=', request.user.tenant_id)
+      .executeTakeFirst();
+    if (!domain) return reply.status(404).send({ error: 'Domain not found' });
+
+    const outcome = await refreshDomainCertificate(request.user.tenant_id, domain);
+    if (!outcome.ok) {
+      // 200, not an error status: the check ran and its finding is that the
+      // host has no usable certificate. That is a result worth displaying, not
+      // a failed request.
+      return reply.send({ ok: false, error: outcome.error, domain: domain.domain });
+    }
+    return reply.send({ ok: true, domain: domain.domain, certificate: outcome.cert });
   });
 
   // ─── Provider Connections ────────────────────────────────────
@@ -860,4 +973,117 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
     return reply.status(201).send(updated ?? conn);
   });
+
+  // ─── Websites CRUD & Grouping (Hostinger style) ───────────────
+  fastify.get('/websites', async (request: FastifyRequest, reply: FastifyReply) => {
+    const websites = await db.selectFrom('onsite_websites')
+      .selectAll()
+      .where('tenant_id', '=', request.user.tenant_id)
+      .orderBy('created_at', 'desc')
+      .execute();
+    return reply.send(websites);
+  });
+
+  fastify.post('/websites', async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = request.body as {
+      name: string;
+      type?: string;
+      url?: string;
+      project_id?: string;
+      domain_id?: string;
+      hosting_provider?: string;
+    };
+
+    if (!body.name) return reply.status(400).send({ error: 'Website name is required' });
+
+    const created = await db.insertInto('onsite_websites')
+      .values({
+        tenant_id: request.user.tenant_id,
+        name: body.name,
+        type: body.type ?? 'php',
+        url: body.url ?? `https://${body.name}`,
+        project_id: body.project_id ?? null,
+        domain_id: body.domain_id ?? null,
+        hosting_provider: body.hosting_provider ?? 'Business',
+        status: 'active',
+        created_by: request.user.sub,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return reply.status(201).send(created);
+  });
+
+  fastify.delete('/websites/:id', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const res = await db.deleteFrom('onsite_websites')
+      .where('id', '=', id)
+      .where('tenant_id', '=', request.user.tenant_id)
+      .executeTakeFirst();
+
+    if (res.numDeletedRows === 0n) return reply.status(404).send({ error: 'Website not found' });
+    return reply.send({ success: true });
+  });
+
+  // ─── Domain Search & Pricing (Hostinger style) ────────────────
+  fastify.get('/domains/search-lookup', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { query } = request.query as { query?: string };
+    const q = (query || '').trim().toLowerCase();
+
+    const tldPricing = [
+      { tld: '.com', price: '$0.01', originalPrice: '$19.99', popular: true },
+      { tld: '.net', price: '$11.99', originalPrice: '$17.99', popular: false },
+      { tld: '.io', price: '$31.99', originalPrice: '$74.99', popular: true },
+      { tld: '.org', price: '$8.99', originalPrice: '$17.99', popular: false },
+      { tld: '.online', price: '$0.99', originalPrice: '$35.99', popular: true },
+      { tld: '.shop', price: '$0.99', originalPrice: '$34.99', popular: false },
+      { tld: '.co.tz', price: '$14.99', originalPrice: '$25.00', popular: true },
+      { tld: '.tz', price: '$19.99', originalPrice: '$30.00', popular: false },
+    ];
+
+    if (!q) {
+      return reply.send({ query: '', available: true, tldPricing, suggestions: [] });
+    }
+
+    const suggestions = tldPricing.map(t => {
+      const baseName = q.includes('.') ? q.split('.')[0] : q;
+      const domainName = `${baseName}${t.tld}`;
+      return {
+        domain: domainName,
+        tld: t.tld,
+        price: t.price,
+        originalPrice: t.originalPrice,
+        available: true,
+      };
+    });
+
+    return reply.send({
+      query: q,
+      available: true,
+      tldPricing,
+      suggestions,
+    });
+  });
+
+  // ─── Domain Transfers (Hostinger style) ────────────────────────
+  fastify.post('/domains/transfer', async (request: FastifyRequest, reply: FastifyReply) => {
+    const body = request.body as { domain: string; eppCode?: string };
+    if (!body.domain) return reply.status(400).send({ error: 'Domain name is required for transfer' });
+
+    const cleanDomain = body.domain.trim().toLowerCase();
+
+    const created = await db.insertInto('onsite_domains')
+      .values({
+        tenant_id: request.user.tenant_id,
+        domain: cleanDomain,
+        status: 'pending',
+        notes: `Transfer initiated. EPP Code: ${body.eppCode ? 'Provided' : 'Pending'}`,
+        created_by: request.user.sub,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+
+    return reply.status(201).send(created);
+  });
 }
+

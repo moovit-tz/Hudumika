@@ -13,6 +13,7 @@ import { runWorkflowCommQueueJob } from './workflow-comm.job.js';
 import { runSealLedgerAnchorJob, runSealLedgerAnchorConfirmationSweepJob } from './seal-ledger-anchor.job.js';
 import { runDeclarationLedgerAnchorJob, runDeclarationLedgerAnchorConfirmationSweepJob } from './declaration-ledger-anchor.job.js';
 import { runOnsiteDeploymentSyncJob } from './onsite-deployment-sync.job.js';
+import { runOnsiteUptimeJob, runOnsiteSslSweepJob } from './onsite-uptime.job.js';
 
 let redisConnection: Redis | null = null;
 let riskQueue: Queue | null = null;
@@ -335,6 +336,20 @@ function startIntervalFallback(): void {
   setInterval(() => {
     runOnsiteDeploymentSyncJob().catch(console.error);
   }, 60 * 1000);
+
+  // Onsite uptime monitors — every minute. The job honours each monitor's own
+  // interval_s, so this is the scheduler's resolution, not the rate anything
+  // actually gets probed at.
+  setInterval(() => {
+    runOnsiteUptimeJob().catch(console.error);
+  }, 60 * 1000);
+
+  // Onsite certificate sweep — every six hours. Each pass is a real TLS
+  // handshake per domain, and an expiry date does not move; running it more
+  // often is load on other people's servers for no new information.
+  setInterval(() => {
+    runOnsiteSslSweepJob().catch(console.error);
+  }, 6 * 60 * 60 * 1000);
 
   // SEAL ledger anchoring — deliberately NOT run in the "immediately on
   // startup" pass above: each stamp is a real external network call and a

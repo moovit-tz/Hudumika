@@ -3215,6 +3215,7 @@ export interface Database {
   onsite_servers: OnsiteServersTable;
   onsite_provider_connections: OnsiteProviderConnectionsTable;
   onsite_health_checks: OnsiteHealthChecksTable;
+  onsite_health_check_results: OnsiteHealthCheckResultsTable;
   // NexusHR Core
   hr_legal_entities: HrLegalEntitiesTable;
   hr_locations: HrLocationsTable;
@@ -5500,6 +5501,23 @@ export interface OnsiteProviderConnectionsTable {
   created_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+}
+
+/**
+ * One row per uptime probe (migration 211).
+ *
+ * Append-only. onsite_health_checks.uptime_30d is derived from these rather
+ * than written by hand, so an availability figure always has samples behind it.
+ */
+export interface OnsiteHealthCheckResultsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  check_id: string;
+  checked_at: Generated<Date>;
+  ok: boolean;
+  status_code: number | null;
+  response_ms: number | null;
+  error: string | null;
 }
 
 export interface OnsiteHealthChecksTable {

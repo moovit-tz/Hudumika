@@ -12,6 +12,8 @@ export function OnsiteMonitoring() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  /** Which monitor is being probed right now, so its button can say so. */
+  const [running, setRunning] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [url, setUrl] = useState('');
@@ -48,6 +50,32 @@ export function OnsiteMonitoring() {
       showAlert(err.message || 'Failed to add health check', { variant: 'error' });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  /**
+   * Probe now.
+   *
+   * The scheduled sweep honours each monitor's interval, which is right for
+   * watching and useless when somebody has just fixed a server and wants to
+   * know. The result is recorded like any other sample.
+   */
+  const handleRun = async (id: string) => {
+    setRunning(id);
+    try {
+      const res = await apiFetch(`/v1/onsite/health-checks/${id}/run`, { method: 'POST' });
+      const r = res?.result;
+      showAlert(
+        r?.ok
+          ? `Responded ${r.statusCode} in ${r.responseMs}ms.`
+          : (r?.error || 'The host did not respond.'),
+        { title: r?.ok ? 'Monitor is up' : 'Monitor is down', variant: r?.ok ? 'success' : 'error' },
+      );
+      fetchChecks();
+    } catch (err: any) {
+      showAlert(err.message || 'The check could not be run.', { variant: 'error' });
+    } finally {
+      setRunning(null);
     }
   };
 
@@ -118,18 +146,33 @@ export function OnsiteMonitoring() {
                         {c.method}
                       </span>
                     </td>
-                    <td style={{ fontWeight: 600, color: '#059669' }}>
+                    <td style={{ fontWeight: 600, color: c.uptime_30d == null ? 'var(--ink-muted)' : Number(c.uptime_30d) >= 99 ? '#059669' : '#ef4444' }}>
                       {c.uptime_30d != null ? `${c.uptime_30d}%` : 'Not measured yet'}
+                      {/* The measurement's own timestamp, so a stale figure is
+                          visibly stale rather than quietly current. */}
+                      <div style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--ink-muted)' }}>
+                        {(c as any).last_checked_at
+                          ? `checked ${new Date((c as any).last_checked_at).toLocaleString()}`
+                          : 'never checked'}
+                      </div>
                     </td>
                     <td>
                       <span className={`onsite-badge ${c.status}`}>
                         {c.status}
                       </span>
+                      {(c as any).last_error && (
+                        <div style={{ fontSize: '0.75rem', color: '#ef4444', maxWidth: 260 }}>{(c as any).last_error}</div>
+                      )}
                     </td>
                     <td>
-                      <button className="btn btn-sm btn-ghost" style={{ color: '#ef4444' }} onClick={() => handleDelete(c.id, c.name)}>
-                        <Icon name="trash2" size={14} />
-                      </button>
+                      <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button className="btn btn-sm btn-secondary" disabled={running === c.id} onClick={() => handleRun(c.id)}>
+                          <Icon name="refresh" size={14} /> {running === c.id ? 'Checking…' : 'Run now'}
+                        </button>
+                        <button className="btn btn-sm btn-ghost" style={{ color: '#ef4444' }} onClick={() => handleDelete(c.id, c.name)}>
+                          <Icon name="trash2" size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
