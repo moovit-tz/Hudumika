@@ -11,6 +11,7 @@ import { TRAService } from '../services/tra.service.js';
 import { db, withTenant } from '../db/client.js';
 import fs from 'fs';
 import path from 'path';
+import { fiscaliseInvoice } from '../services/fiscalisation.service.js';
 
 export async function traRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -203,7 +204,9 @@ export async function traRoutes(fastify: FastifyInstance) {
       const user = request.user as any;
       const { id } = request.params as { id: string };
 
-      const result = await TRAService.submitInvoice(user.tenant_id, id);
+      // Routed by the tenant's own jurisdiction — a Kenyan business pressing
+    // submit used to be told "TRA VFD not configured".
+    const result = await fiscaliseInvoice(user.tenant_id, id);
       if (!result.success) {
         return reply.status(400).send({ error: result.error, ackCode: result.ackCode, ackMsg: result.ackMsg });
       }

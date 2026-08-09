@@ -15,6 +15,7 @@ import {
 } from '../services/vat-period.service.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
+import { fiscaliseInvoice } from '../services/fiscalisation.service.js';
 
 /**
  * An invoice's grand total, expressed in the invoice's own currency.
@@ -780,7 +781,9 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     if (!inv) return reply.status(404).send({ error: 'Invoice not found' });
     if (inv.status === 'Draft') return reply.status(400).send({ error: 'Cannot submit Draft invoices to TRA. Change status first.' });
 
-    const result = await TRAService.submitInvoice(user.tenant_id, id);
+    // Routed by the tenant's own jurisdiction — a Kenyan business pressing
+    // submit used to be told "TRA VFD not configured".
+    const result = await fiscaliseInvoice(user.tenant_id, id);
 
     if (!result.success) {
       return reply.status(400).send({
