@@ -11,6 +11,15 @@ export interface DomainEvent {
   entityId: string | null;
   payload: Record<string, unknown>;
   /**
+   * Who performed this, when a person did. Omit for background jobs and
+   * scheduled work — a null actor is the honest answer there.
+   *
+   * Do not pass the subject of the event. `userId` on a leave request is the
+   * person the leave is for, not who filed it; passing that would make the
+   * activity trail attribute every action to whoever it was done to.
+   */
+  actorId?: string | null;
+  /**
    * The domain_events row id. Set by emitDomainEvent before handlers run —
    * emitters never supply it. Subscribers that must not act twice on a
    * redelivered event use it as their idempotency key (Studio does).
@@ -53,6 +62,7 @@ export async function emitDomainEvent(trx: Transaction<Database>, tenantId: stri
     entity_type: event.entityType,
     entity_id: event.entityId,
     payload: JSON.stringify(event.payload),
+    actor_id: event.actorId ?? null,
   }).returning('id').executeTakeFirstOrThrow();
 
   // Handlers receive the persisted row id so they can deduplicate a redelivery.

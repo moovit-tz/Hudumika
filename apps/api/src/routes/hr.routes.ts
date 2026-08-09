@@ -1136,6 +1136,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
       await emitDomainEvent(trx, user.tenant_id, {
         type: 'hr.staff_role_changed', sourceApp: 'nexushr', entityType: 'user', entityId: updated.id,
         payload: { userId: updated.id, name: updated.name, email: updated.email, role: updated.role, changedBy: user.sub },
+        actorId: user.sub,
       }).catch(err => console.error('[HR] staff_role_changed emit failed:', err?.message));
       return updated;
     });
@@ -1160,11 +1161,13 @@ export async function hrRoutes(fastify: FastifyInstance) {
         await emitDomainEvent(trx, user.tenant_id, {
           type: 'hr.staff_reactivated', sourceApp: 'nexushr', entityType: 'user', entityId: updated.id,
           payload: { userId: updated.id, name: updated.name, active: updated.active, changedBy: user.sub },
+        actorId: user.sub,
         }).catch(err => console.error('[HR] staff_reactivated emit failed:', err?.message));
       } else {
         await emitDomainEvent(trx, user.tenant_id, {
           type: 'hr.staff_deactivated', sourceApp: 'nexushr', entityType: 'user', entityId: updated.id,
           payload: { userId: updated.id, name: updated.name, active: updated.active, changedBy: user.sub },
+        actorId: user.sub,
         }).catch(err => console.error('[HR] staff_deactivated emit failed:', err?.message));
       }
       return updated;

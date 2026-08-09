@@ -726,6 +726,14 @@ export interface DomainEventsTable {
   entity_type: string;
   entity_id: string | null;
   payload: unknown; // JSONB
+  /**
+   * Who performed this. NULL means a background job, or that it was never
+   * recorded — not that nobody did it. Never inferred from the payload: the
+   * keys that look like an actor (`userId`, `assignedTo`) name the subject of
+   * the event, so reading them as the author attributes an action to the person
+   * it was done to.
+   */
+  actor_id: string | null;
   created_at: Generated<Date>;
 }
 

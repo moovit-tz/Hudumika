@@ -9,6 +9,7 @@ import type { EmpStatus } from '../data/staffData.js';
 import type { UserProfileFields } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
+import { RecordActivity } from '../components/RecordActivity.js';
 
 interface StaffData {
   id: string;
@@ -1040,13 +1041,26 @@ export const StaffDetail: React.FC = () => {
         )}
 
         {tab === 'Activity' && !tabDenied && (
-          <TabTable
-            loading={tabLoading}
-            rows={tabRows.Activity ?? []}
-            empty="Nothing has been recorded against this person yet."
-            head={['When', 'Module', 'What happened']}
-            row={r => [formatDate(r.created_at), r.module || '—', r.action]}
-          />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Two different questions, so two sections rather than one merged
+                list that answers neither: what this person did, and what was
+                done to their record. */}
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Changes to this record</div>
+              {id && <RecordActivity entityType="user" entityId={id}
+                emptyText="Nothing has been changed on this record yet." />}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>What this person did</div>
+              <TabTable
+                loading={tabLoading}
+                rows={tabRows.Activity ?? []}
+                empty="No activity has been logged for this person."
+                head={['When', 'Module', 'What happened']}
+                row={r => [formatDate(r.created_at), r.module || '—', r.action]}
+              />
+            </div>
+          </div>
         )}
 
         {tab === 'Permissions' && !tabDenied && (
