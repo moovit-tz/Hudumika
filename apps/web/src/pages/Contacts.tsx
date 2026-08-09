@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
+import { AvatarPicker } from '../components/AvatarPicker.js';
 import { useContacts } from '../shells/contacts-context.js';
 import type { Contact, ContactActivityEntry } from '../shells/contacts-context.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -457,15 +458,26 @@ export function Contacts() {
               <div style={{ width: 300, flexShrink: 0 }}>
                 <div style={{ background: 'var(--white)', borderRadius: 12, padding: 24, border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
                   
-                  {/* Avatar */}
-                  <div style={{ width: 110, height: 110, borderRadius: '50%', overflow: 'hidden', background: 'var(--bg)', border: '3px solid var(--cts-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-                    {activeContact.avatar_url ? (
-                      <img src={activeContact.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', background: 'var(--cts-accent)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 44 }}>
-                        {monogram(activeContact.first_name, activeContact.last_name)}
-                      </div>
-                    )}
+                  {/* Avatar.
+                      A contact could show a picture but never set one — the
+                      column was written only by the Google sync. The ring lives
+                      on a wrapper rather than on the circle itself because the
+                      old one clipped with overflow:hidden, which would cut the
+                      camera button off. */}
+                  <div style={{ borderRadius: '50%', border: '3px solid var(--cts-accent)', padding: 3, marginBottom: 16 }}>
+                    <AvatarPicker
+                      id={activeContact.id} kind="contacts"
+                      name={`${activeContact.first_name} ${activeContact.last_name || ''}`.trim()}
+                      size={104} shape="circle"
+                      onChange={url => {
+                        // The list lives in ContactsProvider, so the open
+                        // record is updated here and the list is re-read —
+                        // otherwise the row behind this panel keeps the old
+                        // picture until the next navigation.
+                        setActiveContact({ ...activeContact, avatar_url: url });
+                        loadData();
+                      }}
+                    />
                   </div>
 
                   {/* Name & Title */}

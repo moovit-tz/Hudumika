@@ -6,6 +6,8 @@ import { StatusPill } from '@hudumika/ui';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
+import { AvatarPicker } from '../components/AvatarPicker.js';
 import { mapApiInvoice, invoiceTotals } from './Billing.js';
 import type { ExpenseListItem } from './Expenses.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -44,19 +46,21 @@ interface Customer {
   tancis_number?: string;
 }
 
-/* ── Avatar helper ── */
-const AVATAR_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30'];
-function initials(name: string) {
-  return name.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase();
-}
-function avatarColor(name: string) {
-  return AVATAR_COLORS[((name ?? '?').charCodeAt(0)) % AVATAR_COLORS.length];
-}
-function Avatar({ name, size = 36 }: { name: string; size?: number }) {
+/* ── Avatar helper ──
+   This page carried its own initials-and-colour scheme, with its own seven-colour
+   palette keyed off the first character of the name. So did Leads, and HRM, and
+   the header — which is why one company appeared in a different colour in each
+   app. It delegates now; the only thing kept is this page's corner radius.
+
+   `customerId` is optional because the same component also draws `contact_name`,
+   which is a text field on the customer row rather than a record of its own and
+   so has no picture to fetch. */
+function Avatar({ name, size = 36, customerId }: { name: string; size?: number; customerId?: string }) {
   return (
-    <div style={{ background: avatarColor(name), width: size, height: size, fontSize: size * 0.35, borderRadius: size > 48 ? 16 : '50%', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, flexShrink: 0, fontFamily: 'var(--font)', letterSpacing: '-0.02em' }}>
-      {initials(name)}
-    </div>
+    <PersonAvatar
+      userId={customerId} kind="customers" name={name} size={size}
+      style={{ borderRadius: size > 48 ? 16 : '50%' }}
+    />
   );
 }
 
@@ -639,7 +643,7 @@ export const Customers: React.FC = () => {
                           </td>
                           <td>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <Avatar name={c.name} size={36} />
+                              <Avatar name={c.name} size={36} customerId={c.id} />
                               <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--navy)' }}>{c.name}</span>
                             </div>
                           </td>
@@ -1682,7 +1686,7 @@ export const Customers: React.FC = () => {
 
           {/* Main hero row */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20 }}>
-            <Avatar name={sel.name} size={72} />
+            <AvatarPicker id={sel.id} kind="customers" name={sel.name} size={72} shape="square" />
 
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>

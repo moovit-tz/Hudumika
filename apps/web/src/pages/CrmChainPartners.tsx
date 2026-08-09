@@ -4,6 +4,7 @@ import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { AvatarPicker } from '../components/AvatarPicker.js';
 
 interface Partner {
   id: string;
@@ -138,8 +139,15 @@ export function CrmChainPartners() {
               {partners.map(p => (
                 <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '14px 18px', fontWeight: 700, color: 'var(--ink)' }}>
+                    {/* Every partner used to carry the same warehouse glyph, so
+                        the column identified the category rather than the
+                        company. This is the partner's own mark — initials until
+                        a logo is set, and settable right here because a partner
+                        is created with is_customer false and so never appears
+                        on the Customers page, which is where every other
+                        company's picture is set. */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <FeaturedIcon variant="brand" size="sm" shape="square"><Icon name="warehouse" size={14} /></FeaturedIcon>
+                      <AvatarPicker id={p.id} kind="customers" name={p.name} size={34} shape="square" />
                       <span>{p.name}</span>
                     </div>
                   </td>

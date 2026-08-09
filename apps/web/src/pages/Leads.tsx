@@ -4,6 +4,8 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { PersonAvatar } from '../components/PersonAvatar.js';
+import { AvatarPicker } from '../components/AvatarPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { SingleSelectFilter } from '../components/ui/filter-dropdown.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '../components/ui/dropdown-menu.js';
@@ -63,9 +65,6 @@ const OFFICERS = ['Amina Hassan', 'John Mwangi', 'Fatuma Ally', 'Peter Kimani', 
 const SOURCES   = Object.keys(SOURCE_CFG);
 
 /* ── Helpers ── */
-const AVATAR_COLORS = ['#0d7a6b','#0550ae','#6e40c9','#059669','#9a6700','#cf222e','#d05c30','#0e7490'];
-function initials(n: string) { return n.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase(); }
-function avatarColor(n: string) { return AVATAR_COLORS[((n ?? '?').charCodeAt(0)) % AVATAR_COLORS.length]; }
 function fmtDate(d: string) { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }); }
 function fmtShort(d: string) { return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }); }
 export function fmtValue(v: number) {
@@ -88,11 +87,24 @@ function getPageNums(cur: number, total: number): (number | '…')[] {
 const PAGE_SIZE = 10;
 
 /* ── Sub-components ── */
-export function LeadAv({ name, size = 32 }: { name: string; size?: number }) {
+/**
+ * A lead's mark.
+ *
+ * This had its own eight-colour palette keyed off the first character of the
+ * name, as did Customers with a different seven — the reason one company came
+ * out a different colour in each app. It delegates to the shared avatar now,
+ * keeping only this page's corner radius.
+ *
+ * `leadId` is optional because the same component also draws `contact_name`
+ * and `assigned_to`, which are text fields on the lead rather than records of
+ * their own and so have no picture to fetch.
+ */
+export function LeadAv({ name, size = 32, leadId }: { name: string; size?: number; leadId?: string }) {
   return (
-    <div style={{ width: size, height: size, borderRadius: size > 48 ? 14 : '50%', background: avatarColor(name), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.32, fontWeight: 700, flexShrink: 0, fontFamily: 'var(--font)' }}>
-      {initials(name)}
-    </div>
+    <PersonAvatar
+      userId={leadId} kind="leads" name={name} size={size}
+      style={{ borderRadius: size > 48 ? 14 : '50%' }}
+    />
   );
 }
 
@@ -391,7 +403,7 @@ export const Leads: React.FC = () => {
             </button>
 
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20 }}>
-              <LeadAv name={sel.company} size={72} />
+              <AvatarPicker id={sel.id} kind="leads" name={sel.company} size={72} shape="square" />
 
               <div style={{ flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
@@ -892,7 +904,7 @@ export const Leads: React.FC = () => {
                     </td>
                     <td style={{ padding: '12px 14px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <LeadAv name={lead.company} size={34} />
+                        <LeadAv name={lead.company} size={34} leadId={lead.id} />
                         <div>
                           <div style={{ fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3 }}>{lead.company}</div>
                           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1 }}>{lead.contact_name}</div>

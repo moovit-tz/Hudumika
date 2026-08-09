@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { PersonAvatar } from './PersonAvatar.js';
-import { setAvatar, clearAvatar, squareAvatarDataUrl } from '../lib/identity.js';
+import { setAvatar, clearAvatar, squareAvatarDataUrl, avatarObjectUrl } from '../lib/identity.js';
 import type { SubjectKind } from '../lib/identity.js';
 import { Icon } from './Icon.js';
 
@@ -41,6 +41,15 @@ export function AvatarPicker({
   // Bumped on every save so the avatar remounts and re-reads the cache, which
   // forgetAvatar has just cleared.
   const [rev, setRev] = useState(0);
+  // Whether there is anything to remove. Without this the Remove control shows
+  // against a subject drawing initials, where pressing it does nothing at all.
+  const [hasPicture, setHasPicture] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    avatarObjectUrl(id, kind).then(u => { if (alive) setHasPicture(!!u); });
+    return () => { alive = false; };
+  }, [id, kind, rev]);
 
   const isOrg = kind === 'customers' || kind === 'leads' || kind === 'suppliers';
   const effectiveShape = shape ?? (isOrg ? 'square' : 'circle');
@@ -119,13 +128,13 @@ export function AvatarPicker({
         />
       </div>
 
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      {hasPicture && (
         <button type="button" onClick={remove} disabled={busy}
           style={{ background: 'none', border: 'none', padding: 0, cursor: busy ? 'wait' : 'pointer',
                    color: 'var(--ink3)', fontSize: 11.5, fontWeight: 600, fontFamily: 'var(--font)' }}>
           Remove
         </button>
-      </div>
+      )}
 
       {error && (
         <span style={{ color: 'var(--red)', fontSize: 11.5, maxWidth: 220 }}>{error}</span>

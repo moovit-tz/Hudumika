@@ -4,6 +4,7 @@ import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import './TrackingDriverDetail.css';
 import { PageHeader } from '../components/PageHeader.js';
+import { AvatarPicker } from '../components/AvatarPicker.js';
 
 interface DriverEnriched {
   id: string; name: string; phone: string | null; license_number: string | null;
@@ -163,7 +164,15 @@ export const TrackingDriverDetail: React.FC = () => {
               )}
             </div>
             <div className="dd-courier-top">
-              <img src={driver.avatar_url || 'https://i.pravatar.cc/150'} alt={driver.name} className="dd-courier-avatar" />
+              {/* A driver with no picture used to be given a stranger's face from
+                  i.pravatar.cc — a stock photo fetched from an external
+                  service and shown as if it were this person. Initials are the
+                  honest rendering, and the camera button means a real picture
+                  can now actually be set (drivers.avatar_url was read here and
+                  by FleetOps and Tracking, but nothing anywhere could write
+                  it). */}
+              <AvatarPicker id={driver.id} kind="drivers" name={driver.name} size={80} shape="square"
+                onChange={url => setDetail(prev => (prev ? { ...prev, driver: { ...prev.driver, avatar_url: url } } : prev))} />
               <div>
                 {editingDriver ? (
                   <input value={driverForm.name || ''} onChange={e => setDriverForm({ ...driverForm, name: e.target.value })}
