@@ -34,6 +34,7 @@ const SLOGANS: Partial<Record<AppId, string>> = {
   admin:        'Platform governance, tenants & query builder',
   oneid:        'SSO, identity verification & biometrics',
   onesite:      'Content management & company intranet',
+  onsite:       'Domains, DNS, hosting, deployments & cloud infrastructure',
   tracking:     'GPS fleet tracking, telemetry & live map',
   demurrage:    'Container demurrage tariffs and cost tracking',
   cargotracker: 'AWB and Bill of Lading shipment tracking',

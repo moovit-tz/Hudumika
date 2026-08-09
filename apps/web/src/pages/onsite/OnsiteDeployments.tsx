@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../../components/PageHeader.js';
 import { apiFetch } from '../../lib/api.js';
 import type { OnsiteDeployment } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
@@ -19,12 +20,12 @@ export function OnsiteDeployments() {
 
   return (
     <div className="onsite-page">
-      <div className="onsite-header">
-        <div className="onsite-header-title">
-          <h1>Deployment History</h1>
-          <p>Real-time audit log of all build executions, branch deployments, and rollbacks.</p>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Onsite', 'Deployments']}
+        titlePlain="Deployment"
+        titleEm="history"
+        subtitle="Real-time audit log of all build executions, branch deployments, and rollbacks."
+      />
 
       {loading ? (
         <div className="onsite-card">

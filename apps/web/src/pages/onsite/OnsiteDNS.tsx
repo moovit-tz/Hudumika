@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../../components/PageHeader.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { useParams, Link } from 'react-router-dom';
@@ -103,22 +104,15 @@ export function OnsiteDNS() {
 
   return (
     <div className="onsite-page">
-      <div className="onsite-header">
-        <div className="onsite-header-title">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Link to="/onsite/domains" className="btn btn-sm btn-ghost">
-              <Icon name="arrowLeft" size={16} />
-            </Link>
-            <h1>DNS Zone Management</h1>
-          </div>
-          <p>Configure A, CNAME, MX, TXT, and SRV records for your domain.</p>
-        </div>
-        <div className="onsite-header-actions">
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-            <Icon name="plus" size={16} /> Add Record
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Onsite', 'Domains', 'DNS']}
+        titlePlain="DNS"
+        titleEm="records"
+        subtitle="Configure A, CNAME, MX, TXT, and SRV records for your domain."
+        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                    <Icon name="plus" size={16} /> Add Record
+                  </button></>}
+      />
 
       {loading ? (
         <div className="onsite-card">

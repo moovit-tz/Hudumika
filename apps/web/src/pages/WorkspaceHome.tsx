@@ -43,6 +43,7 @@ const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category' | 'status' 
   oneid:        { desc: 'SSO, identity verification & biometric access control', category: 'Identity', status: 'Live', userCount: 24, dataSize: '02 GB', appServicesCount: 5, tags: ['SSO', 'KYC', 'Biometrics'] },
   tracking:     { desc: 'Fleet, vehicle and driver tracking — GPS positions, geofence alerts & trip history', category: 'Logistics', status: 'Live', userCount: 9, dataSize: '19 GB', appServicesCount: 3, tags: ['GPS', 'Fleet', 'Geofencing'] },
   workspace:    { desc: 'Organization settings and configuration', category: 'Admin', status: 'Live', userCount: 2, dataSize: '50 GB', appServicesCount: 6, tags: ['Settings', 'Security', 'Billing'] },
+  onsite:       { desc: 'Domains, DNS, hosting, deployments & cloud infrastructure', category: 'Infrastructure', status: 'Live', userCount: 0, dataSize: '—', appServicesCount: 0, tags: ['Domains', 'DNS', 'Deployments'] },
   calendar:     { desc: 'Scheduling & team calendar', category: 'Productivity', status: 'Live', userCount: 20, dataSize: '01 GB', appServicesCount: 1, tags: ['Scheduling', 'Meetings'] },
   tasks:        { desc: 'To-dos & team task tracking', category: 'Productivity', status: 'Live', userCount: 16, dataSize: '01 GB', appServicesCount: 1, tags: ['To-dos', 'Tracking'] },
   cargotracker: { desc: 'AWB and Bill of Lading shipment tracking', category: 'Logistics', status: 'Live', userCount: 7, dataSize: '15 GB', appServicesCount: 3, tags: ['AWB', 'BL', 'Demurrage'] },

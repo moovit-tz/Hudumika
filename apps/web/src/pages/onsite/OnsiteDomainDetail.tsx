@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../../components/PageHeader.js';
 import { useParams, Link } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import type { OnsiteDomain } from '@hudumika/types';
@@ -43,23 +44,15 @@ export function OnsiteDomainDetail() {
 
   return (
     <div className="onsite-page">
-      <div className="onsite-header">
-        <div className="onsite-header-title">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Link to="/onsite/domains" className="btn btn-sm btn-ghost">
-              <Icon name="arrowLeft" size={16} />
-            </Link>
-            <h1>{domain.domain}</h1>
-            <span className={`onsite-badge ${domain.status}`}>{domain.status}</span>
-          </div>
-          <p>Managed domain settings, nameservers, DNS zone configuration, and SSL.</p>
-        </div>
-        <div className="onsite-header-actions">
-          <Link to={`/onsite/domains/${domain.id}/dns`} className="btn btn-primary">
-            <Icon name="sliders" size={16} /> Manage DNS Records
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Onsite', 'Domains', domain.domain]}
+        titlePlain="Domain"
+        titleEm="detail"
+        subtitle="Managed domain settings, nameservers, DNS zone configuration, and SSL."
+        actions={<><Link to={`/onsite/domains/${domain.id}/dns`} className="btn btn-primary">
+                    <Icon name="sliders" size={16} /> Manage DNS Records
+                  </Link></>}
+      />
 
       <div className="onsite-grid-2">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

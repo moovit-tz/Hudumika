@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../../components/PageHeader.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { apiFetch } from '../../lib/api.js';
@@ -62,17 +63,15 @@ export function OnsiteMonitoring() {
 
   return (
     <div className="onsite-page">
-      <div className="onsite-header">
-        <div className="onsite-header-title">
-          <h1>Uptime & Health Monitors</h1>
-          <p>Automated HTTP/S synthetic probes monitoring availability and latency.</p>
-        </div>
-        <div className="onsite-header-actions">
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-            <Icon name="plus" size={16} /> Add Monitor
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Onsite', 'Monitoring']}
+        titlePlain="Uptime"
+        titleEm="monitors"
+        subtitle="Automated HTTP/S synthetic probes monitoring availability and latency."
+        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                    <Icon name="plus" size={16} /> Add Monitor
+                  </button></>}
+      />
 
       {loading ? (
         <div className="onsite-card">
@@ -120,7 +119,7 @@ export function OnsiteMonitoring() {
                       </span>
                     </td>
                     <td style={{ fontWeight: 600, color: '#059669' }}>
-                      {c.uptime_30d ?? 99.9}%
+                      {c.uptime_30d != null ? `${c.uptime_30d}%` : 'Not measured yet'}
                     </td>
                     <td>
                       <span className={`onsite-badge ${c.status}`}>

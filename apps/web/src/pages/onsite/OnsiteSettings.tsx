@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../../components/PageHeader.js';
 import { showAlert } from '../../lib/alert.js';
 import { apiFetch } from '../../lib/api.js';
 import type { OnsiteProviderConnection } from '@hudumika/types';
@@ -49,17 +50,15 @@ export function OnsiteSettings() {
 
   return (
     <div className="onsite-page">
-      <div className="onsite-header">
-        <div className="onsite-header-title">
-          <h1>Provider Connections & Settings</h1>
-          <p>Connect your GitHub org, CircleCI account, and Cloudflare tokens for continuous deployment.</p>
-        </div>
-        <div className="onsite-header-actions">
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-            <Icon name="plus" size={16} /> Connect Provider
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Onsite', 'Settings']}
+        titlePlain="Provider"
+        titleEm="connections"
+        subtitle="Connect your GitHub org, CircleCI account, and Cloudflare tokens for continuous deployment."
+        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                    <Icon name="plus" size={16} /> Connect Provider
+                  </button></>}
+      />
 
       <div className="onsite-grid-2">
         <div className="onsite-card">

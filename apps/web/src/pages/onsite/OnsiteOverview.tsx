@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../../components/PageHeader.js';
 import { Link } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
 import type { OnsiteDashboard } from '@hudumika/types';
@@ -40,20 +41,18 @@ export function OnsiteOverview() {
   return (
     <div className="onsite-page">
       {/* Header */}
-      <div className="onsite-header">
-        <div className="onsite-header-title">
-          <h1>Infrastructure Control Plane</h1>
-          <p>Manage domains, DNS, SSL certificates, websites, applications, and cloud compute.</p>
-        </div>
-        <div className="onsite-header-actions">
-          <Link to="/onsite/domains" className="btn btn-secondary">
-            <Icon name="globe" size={16} /> Manage Domains
-          </Link>
-          <Link to="/onsite/applications" className="btn btn-primary">
-            <Icon name="plus" size={16} /> Deploy Application
-          </Link>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Onsite']}
+        titlePlain="Infrastructure"
+        titleEm="overview"
+        subtitle="Manage domains, DNS, SSL certificates, websites, applications, and cloud compute."
+        actions={<><Link to="/onsite/domains" className="btn btn-secondary">
+                    <Icon name="globe" size={16} /> Manage Domains
+                  </Link>
+                  <Link to="/onsite/applications" className="btn btn-primary">
+                    <Icon name="plus" size={16} /> Deploy Application
+                  </Link></>}
+      />
 
       {/* Quick Stats */}
       <div className="onsite-stats-grid">
@@ -181,7 +180,7 @@ export function OnsiteOverview() {
                   {data.recent_deployments.map((d) => (
                     <tr key={d.id}>
                       <td>
-                        <div style={{ fontWeight: 600 }}>{d.version || 'v1.0.0'}</div>
+                        <div style={{ fontWeight: 600 }}>{d.version || <span style={{ color: 'var(--ink-muted)' }}>—</span>}</div>
                         <div className="onsite-mono" style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>
                           {d.branch || 'main'}
                         </div>

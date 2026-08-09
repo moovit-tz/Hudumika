@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../../components/PageHeader.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { apiFetch } from '../../lib/api.js';
@@ -62,17 +63,15 @@ export function OnsiteServers() {
 
   return (
     <div className="onsite-page">
-      <div className="onsite-header">
-        <div className="onsite-header-title">
-          <h1>Servers & Compute</h1>
-          <p>Monitor Virtual Private Servers (VPS), bare metal, and cloud instances.</p>
-        </div>
-        <div className="onsite-header-actions">
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-            <Icon name="plus" size={16} /> Add Server
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Onsite', 'Servers']}
+        titlePlain="Compute"
+        titleEm="servers"
+        subtitle="Monitor Virtual Private Servers (VPS), bare metal, and cloud instances."
+        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                    <Icon name="plus" size={16} /> Add Server
+                  </button></>}
+      />
 
       {loading ? (
         <div className="onsite-card">

@@ -9,6 +9,12 @@ export type AppId =
   | 'bliss'      // Support & Helpdesk
   | 'nexushr'      // People & HR
   | 'onesite'    // Web & CMS
+  | 'onsite'     // Hosting, domains, DNS & cloud infrastructure. Distinct from
+                 // 'onesite' above despite the one-letter difference: that is
+                 // the CMS (/cms, CMSShell, cms.routes.ts). OnsiteShell shipped
+                 // declaring appId="onesite", so both apps resolved to one
+                 // identity — same colour, same label, same entitlement — and
+                 // Onsite appeared in neither the launcher nor the hub.
   | 'oneid'      // Identity & Access
   | 'tracking'   // Vehicle GPS & Geospatial Tracking
   | 'cloud'      // File Storage
@@ -30,7 +36,7 @@ export type AppId =
 
 export const ALL_APP_IDS: AppId[] = [
   'clearos', 'finops', 'complyos', 'bliss',
-  'nexushr', 'onesite', 'oneid', 'tracking', 'cloud', 'ai', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
+  'nexushr', 'onesite', 'onsite', 'oneid', 'tracking', 'cloud', 'ai', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
   'calendar', 'tasks',
   'demurrage', 'cargotracker', 'seal', 'inventory', 'studio',
   // Internal tooling. Present so the app shell and design system can resolve it

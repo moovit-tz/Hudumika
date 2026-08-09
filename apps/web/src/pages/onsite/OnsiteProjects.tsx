@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../../components/PageHeader.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { apiFetch } from '../../lib/api.js';
@@ -60,17 +61,15 @@ export function OnsiteProjects() {
 
   return (
     <div className="onsite-page">
-      <div className="onsite-header">
-        <div className="onsite-header-title">
-          <h1>Projects</h1>
-          <p>Organize infrastructure resources into client or team project containers.</p>
-        </div>
-        <div className="onsite-header-actions">
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-            <Icon name="plus" size={16} /> New Project
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Onsite', 'Projects']}
+        titlePlain="Infrastructure"
+        titleEm="projects"
+        subtitle="Organize infrastructure resources into client or team project containers."
+        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                    <Icon name="plus" size={16} /> New Project
+                  </button></>}
+      />
 
       {loading ? (
         <div className="onsite-card">

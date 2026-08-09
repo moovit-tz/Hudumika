@@ -49,6 +49,7 @@ const APP_ICONS: Record<AppId, IconName> = {
   bliss:     'chatBubble',
   nexushr:     'users',
   onesite:   'globe',
+  onsite:    'terminal',
   oneid:     'lock',
   tracking:  'mapPin',
   cloud:     'folder',

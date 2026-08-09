@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../../components/PageHeader.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { Link } from 'react-router-dom';
@@ -69,17 +70,15 @@ export function OnsiteDomains() {
 
   return (
     <div className="onsite-page">
-      <div className="onsite-header">
-        <div className="onsite-header-title">
-          <h1>Domain Management</h1>
-          <p>Register, delegate nameservers, and monitor DNS & SSL health across all your domains.</p>
-        </div>
-        <div className="onsite-header-actions">
-          <button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
-            <Icon name="plus" size={16} /> Add Domain
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Onsite', 'Domains']}
+        titlePlain="Managed"
+        titleEm="domains"
+        subtitle="Register, delegate nameservers, and monitor DNS & SSL health across all your domains."
+        actions={<><button className="btn btn-primary" onClick={() => setShowAddModal(true)}>
+                    <Icon name="plus" size={16} /> Add Domain
+                  </button></>}
+      />
 
       {loading ? (
         <div className="onsite-card">

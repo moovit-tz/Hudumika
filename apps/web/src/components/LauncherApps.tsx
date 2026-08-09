@@ -31,6 +31,11 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
   { id: 'seal',      name: 'SEAL',     color: '#0f766e', path: '/seal'      },
   { id: 'inventory', name: 'Inventory', color: '#0f766e', path: '/inventory' },
   { id: 'studio',    name: 'Studio',   color: '#4361ee', path: '/studio'    },
+  // Onsite ships with its own id rather than the CMS's 'onesite' — see the
+  // AppId union. Without an entry here it appeared in neither this launcher
+  // nor the workspace hub, since WorkspaceHome builds its grid from this
+  // same list.
+  { id: 'onsite',    name: 'Onsite',   color: '#0f172a', path: '/onsite'    },
 ];
 
 // ── App SVG icons for launcher ─────────────────────────────────
@@ -38,6 +43,7 @@ export const LAUNCHER_APPS: Array<{ id: string; name: string; color: string; pat
 export const LAUNCHER_SVG_ICONS: Record<string, React.ReactElement> = {
   // A lens: what the tool is for — looking closely at the platform itself.
   lens:     (<g stroke="white" strokeWidth="2.4" fill="none" strokeLinecap="round"><circle cx="17" cy="17" r="9"/><line x1="24" y1="24" x2="32" y2="32"/><line x1="13.5" y1="17" x2="20.5" y2="17" opacity="0.7"/><line x1="17" y1="13.5" x2="17" y2="20.5" opacity="0.7"/></g>),
+  onsite:   (<g stroke="white" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round"><rect x="6" y="7" width="24" height="8" rx="2"/><rect x="6" y="21" width="24" height="8" rx="2"/><circle cx="11" cy="11" r="1.6" fill="white" stroke="none"/><circle cx="11" cy="25" r="1.6" fill="white" stroke="none"/><line x1="17" y1="11" x2="25" y2="11" opacity="0.75"/><line x1="17" y1="25" x2="25" y2="25" opacity="0.75"/><line x1="18" y1="15" x2="18" y2="21" opacity="0.6"/></g>),
   studio:   (<g fill="white"><path d="M11 8H29V12H11Z" /><path d="M11 15H29V19H11Z" opacity="0.8" /><path d="M11 22H29V26H11Z" opacity="0.6" /><circle cx="7" cy="10" r="2.5" /><circle cx="7" cy="17" r="2.5" /><circle cx="7" cy="24" r="2.5" /></g>),
   clearos:  (<g stroke="white" strokeWidth="2.3" fill="none" strokeLinecap="round" strokeLinejoin="round"><circle cx="20" cy="12" r="3"/><path d="M16 10.5L24 10.5"/><line x1="20" y1="15" x2="20" y2="30"/><line x1="12" y1="21" x2="28" y2="21"/><path d="M20 30 C14.5 30 11 27.5 11 24"/><path d="M20 30 C25.5 30 29 27.5 29 24"/></g>),
   finops:   (<g fill="white"><rect x="8" y="25" width="6.5" height="8" rx="2"/><rect x="17" y="18.5" width="6.5" height="14.5" rx="2" opacity="0.8"/><rect x="26" y="11" width="6.5" height="22" rx="2" opacity="0.65"/></g>),

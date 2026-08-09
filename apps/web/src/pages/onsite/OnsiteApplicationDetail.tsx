@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../../components/PageHeader.js';
 import { showAlert } from '../../lib/alert.js';
 import { showConfirm } from '../../lib/confirm.js';
 import { useParams, Link } from 'react-router-dom';
@@ -98,23 +99,15 @@ export function OnsiteApplicationDetail() {
 
   return (
     <div className="onsite-page">
-      <div className="onsite-header">
-        <div className="onsite-header-title">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Link to="/onsite/applications" className="btn btn-sm btn-ghost">
-              <Icon name="arrowLeft" size={16} />
-            </Link>
-            <h1>{app.name}</h1>
-            <span className={`onsite-badge ${app.status}`}>{app.status}</span>
-          </div>
-          <p>Runtime: {app.runtime} | Port: {app.port || 3000}</p>
-        </div>
-        <div className="onsite-header-actions">
-          <button className="btn btn-primary" onClick={() => fetchAppData()}>
-            <Icon name="refresh" size={16} /> Refresh
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Onsite', 'Applications', app.name]}
+        titlePlain="Application"
+        titleEm="detail"
+        subtitle={<>Runtime: {app.runtime} | Port: {app.port || 3000}</>}
+        actions={<><button className="btn btn-primary" onClick={() => fetchAppData()}>
+                    <Icon name="refresh" size={16} /> Refresh
+                  </button></>}
+      />
 
       <div className="onsite-grid-2">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
@@ -135,7 +128,7 @@ export function OnsiteApplicationDetail() {
               </div>
               <div>
                 <label style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>Current Version</label>
-                <div className="onsite-mono">{app.current_version || 'v1.0.0'}</div>
+                <div className="onsite-mono">{app.current_version || <span style={{ color: 'var(--ink-muted)' }}>Never deployed</span>}</div>
               </div>
             </div>
           </div>

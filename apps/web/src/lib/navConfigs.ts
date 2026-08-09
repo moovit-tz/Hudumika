@@ -240,6 +240,8 @@ const crmNav: NavCategory[] = [
 export const NAV_CONFIGS: Record<AppId, NavCategory[]> = {
   // Lens builds its own sidebar in LensShell.tsx.
   lens: [],
+  // Onsite likewise — OnsiteShell.tsx passes its own NAV.
+  onsite: [],
   // Studio builds its own sidebar in StudioShell.tsx, like the other
   // shells that outgrew this map.
   studio: [],

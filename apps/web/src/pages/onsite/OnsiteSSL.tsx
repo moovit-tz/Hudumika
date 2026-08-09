@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../../components/PageHeader.js';
 import { apiFetch } from '../../lib/api.js';
 import type { OnsiteDomain } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
@@ -17,12 +18,12 @@ export function OnsiteSSL() {
 
   return (
     <div className="onsite-page">
-      <div className="onsite-header">
-        <div className="onsite-header-title">
-          <h1>SSL Certificates</h1>
-          <p>Automated TLS/SSL certificate issuance and Let's Encrypt lifecycle management.</p>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Onsite', 'SSL']}
+        titlePlain="SSL"
+        titleEm="certificates"
+        subtitle="Automated TLS/SSL certificate issuance and Let's Encrypt lifecycle management."
+      />
 
       {loading ? (
         <div className="onsite-card">

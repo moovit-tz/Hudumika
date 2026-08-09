@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { PageHeader } from '../../components/PageHeader.js';
 import { apiFetch } from '../../lib/api.js';
 import { Icon } from '../../components/Icon.js';
 import './Onsite.css';
@@ -24,12 +25,12 @@ export function OnsiteActivity() {
 
   return (
     <div className="onsite-page">
-      <div className="onsite-header">
-        <div className="onsite-header-title">
-          <h1>Infrastructure Audit Feed</h1>
-          <p>Real-time record of all configuration changes, DNS updates, and deployment events.</p>
-        </div>
-      </div>
+      <PageHeader
+        crumbs={['Onsite', 'Activity']}
+        titlePlain="Infrastructure"
+        titleEm="audit"
+        subtitle="Real-time record of all configuration changes, DNS updates, and deployment events."
+      />
 
       {loading ? (
         <div className="onsite-card">
