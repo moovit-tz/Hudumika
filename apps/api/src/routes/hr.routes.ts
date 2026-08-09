@@ -1324,6 +1324,175 @@ export async function hrRoutes(fastify: FastifyInstance) {
     return { role, active: person.active, capabilities };
   });
 
+  // ── Contracts and emergency contacts ─────────────────────────────────────
+
+  const CONTRACT_TYPES = ['PERMANENT', 'FIXED_TERM', 'PROBATION', 'CASUAL', 'INTERNSHIP'];
+  const ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+  staffRecordRoute('/contracts', async (trx, req, id) =>
+    trx.selectFrom('hr_contracts')
+      .select(['id', 'contract_type', 'start_date', 'end_date', 'reference', 'document_id', 'notes', 'created_at'])
+      .where('tenant_id', '=', req.user.tenant_id)
+      .where('user_id', '=', id)
+      .orderBy('start_date', 'desc')
+      .execute());
+
+  staffRecordRoute('/emergency-contacts', async (trx, req, id) =>
+    trx.selectFrom('hr_emergency_contacts')
+      .select(['id', 'name', 'relationship', 'phone', 'alt_phone', 'address', 'is_primary'])
+      .where('tenant_id', '=', req.user.tenant_id)
+      .where('user_id', '=', id)
+      .orderBy('is_primary', 'desc')
+      .orderBy('name')
+      .execute());
+
+  fastify.post<{ Params: { id: string } }>('/staff/:id/contracts',
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    async (req, reply) => {
+      const user = req.user;
+      const { id } = req.params;
+      const b = (req.body ?? {}) as any;
+
+      // Everything checked before the transaction opens — a 4xx returned from
+      // inside withTenant returns normally, so the transaction commits.
+      const type = String(b.contract_type ?? '').toUpperCase();
+      if (!CONTRACT_TYPES.includes(type)) {
+        return reply.status(400).send({ error: `contract_type must be one of ${CONTRACT_TYPES.join(', ')}.` });
+      }
+      if (!ISO.test(String(b.start_date ?? ''))) {
+        return reply.status(400).send({ error: 'start_date must be YYYY-MM-DD.' });
+      }
+      const end = b.end_date ? String(b.end_date) : null;
+      if (end && !ISO.test(end)) return reply.status(400).send({ error: 'end_date must be YYYY-MM-DD.' });
+      // The rule the whole table turns on, refused here with a reason rather
+      // than surfacing as a CHECK violation the caller cannot act on.
+      if (type !== 'PERMANENT' && !end) {
+        return reply.status(400).send({
+          error: `A ${type.toLowerCase().replace('_', '-')} contract must say when it ends — that is what makes it not permanent.`,
+        });
+      }
+      if (type === 'PERMANENT' && end) {
+        return reply.status(400).send({ error: 'A permanent contract has no end date. Use fixed-term if it ends.' });
+      }
+      if (end && end < String(b.start_date)) {
+        return reply.status(400).send({ error: 'end_date cannot be before start_date.' });
+      }
+
+      return withTenant(user.tenant_id, async (trx) => {
+        const person = await trx.selectFrom('users').select('id')
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!person) return reply.status(404).send({ error: 'Staff not found' });
+
+        return trx.insertInto('hr_contracts').values({
+          tenant_id: user.tenant_id, user_id: id,
+          contract_type: type as any,
+          start_date: String(b.start_date),
+          end_date: end,
+          reference: b.reference ? String(b.reference).trim() : null,
+          notes: b.notes ? String(b.notes).trim() : null,
+        }).returningAll().executeTakeFirstOrThrow();
+      });
+    });
+
+  fastify.post<{ Params: { id: string } }>('/staff/:id/emergency-contacts',
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    async (req, reply) => {
+      const user = req.user;
+      const { id } = req.params;
+      const b = (req.body ?? {}) as any;
+      const name = String(b.name ?? '').trim();
+      const phone = String(b.phone ?? '').trim();
+      if (!name) return reply.status(400).send({ error: 'A name is required.' });
+      // A contact with no number is not a contact.
+      if (!phone) return reply.status(400).send({ error: 'A phone number is required — that is the point of the record.' });
+
+      return withTenant(user.tenant_id, async (trx) => {
+        const person = await trx.selectFrom('users').select('id')
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!person) return reply.status(404).send({ error: 'Staff not found' });
+
+        // One primary per person, cleared here rather than by a partial unique
+        // index that would make a routine save fail mid-edit.
+        if (b.is_primary) {
+          await trx.updateTable('hr_emergency_contacts').set({ is_primary: false })
+            .where('tenant_id', '=', user.tenant_id).where('user_id', '=', id).execute();
+        }
+        return trx.insertInto('hr_emergency_contacts').values({
+          tenant_id: user.tenant_id, user_id: id, name, phone,
+          relationship: b.relationship ? String(b.relationship).trim() : null,
+          alt_phone: b.alt_phone ? String(b.alt_phone).trim() : null,
+          address: b.address ? String(b.address).trim() : null,
+          is_primary: !!b.is_primary,
+        }).returningAll().executeTakeFirstOrThrow();
+      });
+    });
+
+  fastify.delete<{ Params: { id: string; contractId: string } }>('/staff/:id/contracts/:contractId',
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') },
+    async (req, reply) => {
+      const user = req.user;
+      return withTenant(user.tenant_id, async (trx) => {
+        const res = await trx.deleteFrom('hr_contracts')
+          .where('id', '=', req.params.contractId)
+          .where('user_id', '=', req.params.id)
+          .where('tenant_id', '=', user.tenant_id)
+          .executeTakeFirst();
+        if (!Number(res.numDeletedRows)) return reply.status(404).send({ error: 'Contract not found' });
+        return reply.status(204).send();
+      });
+    });
+
+  fastify.delete<{ Params: { id: string; contactId: string } }>('/staff/:id/emergency-contacts/:contactId',
+    { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') },
+    async (req, reply) => {
+      const user = req.user;
+      return withTenant(user.tenant_id, async (trx) => {
+        const res = await trx.deleteFrom('hr_emergency_contacts')
+          .where('id', '=', req.params.contactId)
+          .where('user_id', '=', req.params.id)
+          .where('tenant_id', '=', user.tenant_id)
+          .executeTakeFirst();
+        if (!Number(res.numDeletedRows)) return reply.status(404).send({ error: 'Contact not found' });
+        return reply.status(204).send();
+      });
+    });
+
+  /**
+   * GET /v1/hr/contracts/expiring?days=30
+   *
+   * The query the table exists for. A fixed-term contract that quietly runs out
+   * is a person working without one, which is an employment-law problem rather
+   * than a data one — so already-expired contracts are included, not filtered
+   * out for being in the past. Those are the urgent ones.
+   */
+  fastify.get('/contracts/expiring', async (req) => {
+    const user = req.user;
+    const days = Math.min(Math.max(Number((req.query as any)?.days) || 30, 1), 365);
+    const horizon = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+    const today = new Date().toISOString().slice(0, 10);
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx.selectFrom('hr_contracts as c')
+        .innerJoin('users as u', 'u.id', 'c.user_id')
+        .select(['c.id', 'c.contract_type', 'c.start_date', 'c.end_date', 'c.reference',
+                 'u.id as user_id', 'u.name as user_name', 'u.email as user_email'])
+        .where('c.tenant_id', '=', user.tenant_id)
+        .where('c.end_date', 'is not', null)
+        .where('c.end_date', '<=', horizon)
+        // Only people still employed here — a former employee's expired
+        // contract is not something anyone needs to act on.
+        .where('u.active', '=', true)
+        .orderBy('c.end_date', 'asc')
+        .execute();
+
+      return rows.map(r => {
+        const end = String(r.end_date);
+        const daysLeft = Math.round((new Date(end).getTime() - new Date(today).getTime()) / 86400000);
+        return { ...r, days_left: daysLeft, already_expired: daysLeft < 0 };
+      });
+    });
+  });
+
   // ── My Active Shipments (for check-in widget) ────────────────
 
   fastify.get('/my-shipments', async (req) => {

@@ -3207,6 +3207,8 @@ export interface Database {
   // NexusHR Workflows
   // NexusHR Documents & Assets
   hr_documents: HrDocumentsTable;
+  hr_contracts: HrContractsTable;
+  hr_emergency_contacts: HrEmergencyContactsTable;
   hr_document_templates: HrDocumentTemplatesTable;
   hr_signature_requests: HrSignatureRequestsTable;
   hr_signature_events: HrSignatureEventsTable;
@@ -4592,6 +4594,38 @@ export interface HrDocumentsTable {
   type: string;
   storage_key: string;
   status: Generated<string>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface HrContractsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  contract_type: 'PERMANENT' | 'FIXED_TERM' | 'PROBATION' | 'CASUAL' | 'INTERNSHIP';
+  start_date: string;
+  /**
+   * NULL only for PERMANENT — a CHECK enforces it. A fixed-term contract with
+   * no end date is precisely the record that expires without anyone noticing.
+   */
+  end_date: string | null;
+  reference: string | null;
+  document_id: string | null;
+  notes: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface HrEmergencyContactsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  name: string;
+  relationship: string | null;
+  phone: string;
+  alt_phone: string | null;
+  address: string | null;
+  is_primary: Generated<boolean>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

@@ -10,6 +10,7 @@ import type { UserProfileFields } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { showAlert } from '../lib/alert.js';
 import { RecordActivity } from '../components/RecordActivity.js';
+import { StaffContracts, StaffEmergencyContacts } from '../components/StaffContracts.js';
 
 interface StaffData {
   id: string;
@@ -769,6 +770,11 @@ export const StaffDetail: React.FC = () => {
                   No shift assigned — office hours from HR Settings apply.
                 </div>
               </div>
+
+              {/* Both live in the right column beside Account, because they are
+                  facts about the person rather than fields of the profile form. */}
+              {id && <StaffContracts userId={id} canEdit={canSetPay} />}
+              {id && <StaffEmergencyContacts userId={id} canEdit={canSetPay} />}
 
               <div style={{ background: 'var(--white)', borderRadius: 10, border: '1px solid var(--border)', marginBottom: 16 }}>
                 <div style={{ padding: '16px 20px', fontSize: 14, fontWeight: 700, color: 'var(--ink)', borderBottom: '1px solid var(--border)' }}>Quick actions</div>
