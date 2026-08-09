@@ -1,6 +1,7 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
+import { resolveCustomerId } from '../services/customer-identity.service.js';
 import { ShipmentService } from '../services/shipment.service.js';
 import { co2Service } from '../services/co2.service.js';
 import { requireRole } from '../middleware/rbac.js';
@@ -48,7 +49,10 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       if (user.role === 'OFFICER') {
         q = q.where('assigned_to', '=', user.sub);
       } else if (user.role === 'CUSTOMER') {
-        q = q.where('customer_id', '=', user.sub);
+        // Their customers row, not their login id — see customer-identity.service.
+        // A null link must filter to nothing rather than to everything.
+        const cid = await resolveCustomerId(user);
+        q = q.where('customer_id', '=', cid ?? '00000000-0000-0000-0000-000000000000');
       }
 
       // Query Filters
@@ -156,6 +160,8 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     if (query.has_declaration === 'true') filters.has_declaration = true;
     else if (query.has_declaration === 'false') filters.has_declaration = false;
     if (query.search) filters.search = String(query.search).trim();
+    if (query.checked_in === 'true') filters.checked_in = true;
+    if (query.pending === 'true') filters.pending = true;
 
     const groupedData = await ShipmentService.listGroupedByCustomer(user.tenant_id, filters);
     return { data: groupedData };
@@ -178,7 +184,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     if (user.role === 'OFFICER' && shipment.assigned_to !== user.sub) {
       return reply.status(403).send({ error: 'Forbidden: You are not assigned to this case' });
     }
-    if (user.role === 'CUSTOMER' && shipment.customer_id !== user.sub) {
+    if (user.role === 'CUSTOMER' && shipment.customer_id !== await resolveCustomerId(user)) {
       return reply.status(403).send({ error: 'Forbidden: Access denied to this case' });
     }
 

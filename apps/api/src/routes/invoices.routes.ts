@@ -1,4 +1,5 @@
 import { requireAnyEntitlement } from '../middleware/entitlement.js';
+import { resolveCustomerId } from '../services/customer-identity.service.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
@@ -189,13 +190,17 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.get('/', async (request, reply) => {
     const user = request.user;
     const { status, search, customer_id } = request.query as { status?: string; search?: string; customer_id?: string };
-    // A CUSTOMER-role user's own record is customers.id === user.sub (same
+    // A CUSTOMER-role login is NOT its own customers row — that assumption is
+    // what made every customer-scoped read come back empty (migration 207).
     // convention used elsewhere, e.g. shipment ownership checks) — they may
     // only ever see their own invoices, never the whole tenant's.
-    if (user.role === 'CUSTOMER' && customer_id && customer_id !== user.sub) {
+    const ownCustomerId = user.role === 'CUSTOMER' ? await resolveCustomerId(user) : null;
+    if (user.role === 'CUSTOMER' && customer_id && customer_id !== ownCustomerId) {
       return reply.status(403).send({ error: 'Forbidden' });
     }
-    const scopedCustomerId = user.role === 'CUSTOMER' ? user.sub : customer_id;
+    const scopedCustomerId = user.role === 'CUSTOMER'
+      ? (ownCustomerId ?? '00000000-0000-0000-0000-000000000000')
+      : customer_id;
     return withTenant(user.tenant_id, async (trx) => {
       let q = trx.selectFrom('sales_invoices').selectAll().where('tenant_id', '=', user.tenant_id);
       if (status) q = q.where('status', '=', status);

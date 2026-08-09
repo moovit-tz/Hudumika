@@ -612,7 +612,11 @@ function CustomerAttentionPanel({ job }: { job: ClearanceJob }) {
 // ─── Customer clearing-agent contact card ──────────────────────────────────────
 
 function CustomerAgentCard({ job }: { job: ClearanceJob }) {
-  const agentName = job.assignees[0];
+  // assignees[0] is the assigned user's id. Showing it rendered the customer's
+  // clearing agent as "1e996956-431d-42c0-8bc9-164d9797d31a"; the name the
+  // server sends is assigneeName.
+  const agentName = job.assigneeName || job.assignees[0];
+  if (agentName && isUUID(agentName)) return null;
   if (!agentName) return null;
   const agent = EMPLOYEES.find(e => e.name === agentName);
 
@@ -4175,6 +4179,20 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
 
 type Tab = 'overview' | 'tasks' | 'timesheets' | 'declaration' | 'updates' | 'files' | 'ledger' | 'co2';
 
+/**
+ * What a customer is shown on their own shipment.
+ *
+ * The tab strip was not filtered by role, so a customer opening their job saw
+ * Tasks, Timesheets and Ledger — the internal work breakdown, the hours booked
+ * against them, and Shipment Economics, which states revenue, expenses and
+ * gross margin. That is our commercial position on their job, and LedgerTab has
+ * no role check of its own.
+ *
+ * Declaration is excluded too: it is a working document with editable fields,
+ * not something to hand a customer mid-preparation.
+ */
+const CUSTOMER_TABS = new Set<Tab>(['overview', 'updates', 'files', 'co2']);
+
 const TAB_CFG: { id: Tab; label: string; icon: IconName }[] = [
   { id: 'overview',     label: 'Overview',     icon: 'barChart'    },
   { id: 'tasks',        label: 'Tasks',        icon: 'tasks'       },
@@ -4303,7 +4321,7 @@ export function ShipmentDetail() {
   if (!job) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 12 }}>
       <div style={{ fontSize: 16, color: 'var(--ink3)' }}>Shipment not found.</div>
-      <Link to="/" style={{ padding: '8px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, textDecoration: 'none' }}>← Back to Ops Command</Link>
+      <Link to="/" style={{ padding: '8px 16px', background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, textDecoration: 'none' }}>← Back</Link>
     </div>
   );
 
@@ -4352,8 +4370,8 @@ export function ShipmentDetail() {
           {/* Top Single Row: Utility + Title + Actions */}
           <div style={{ position: 'relative', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: heroFolded ? 8 : 16, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1 }}>
-              <Link to="/clearos/ops" title="Back to Ops Command" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px 6px 8px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 12.5, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
-                <Icon name="chevronLeft" size={13} color="#fff" /> {isMobile ? '' : 'Ops Command'}
+              <Link to={isStaff ? '/clearos/ops' : '/'} title={isStaff ? 'Back to Ops Command' : 'Back to your shipments'} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px 6px 8px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 12.5, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
+                <Icon name="chevronLeft" size={13} color="#fff" /> {isMobile ? '' : (isStaff ? 'Ops Command' : 'My shipments')}
               </Link>
               {job.sysRef && (
                 <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.06em' }}>{job.sysRef}</span>
@@ -4428,7 +4446,7 @@ export function ShipmentDetail() {
 
         {/* Tabs — horizontal scroll on narrow screens instead of wrapping/clipping */}
         <div style={{ display: 'flex', padding: isMobile ? '0 10px' : '0 14px', borderTop: '1px solid var(--border)', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
-          {TAB_CFG.map(t => {
+          {TAB_CFG.filter(t => isStaff || CUSTOMER_TABS.has(t.id)).map(t => {
             const badge =
               t.id === 'tasks'      ? job.tasks.length :
               t.id === 'timesheets' ? job.timeEntries.length :
@@ -4458,15 +4476,17 @@ export function ShipmentDetail() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               {tab === 'overview'     && (isStaff ? <OverviewTab job={job} isMobile={isMobile} /> : <CustomerOverviewTab job={job} isMobile={isMobile} />)}
-              {tab === 'tasks'        && <TasksTab       job={job} isMobile={isMobile} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
-              {tab === 'timesheets'   && <TimesheetsTab  job={job} isMobile={isMobile} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
-              {tab === 'declaration'  && <DeclarationTab job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
+              {/* Hiding the tab is not enough: `?tab=ledger` sets it directly. */}
+              {tab === 'tasks'        && isStaff && <TasksTab       job={job} isMobile={isMobile} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
+              {tab === 'timesheets'   && isStaff && <TimesheetsTab  job={job} isMobile={isMobile} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
+              {tab === 'declaration'  && isStaff && <DeclarationTab job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
               {tab === 'updates'      && <UpdatesTab     job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
               {tab === 'files'        && <FilesTab       job={job} isMobile={isMobile} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
-              {tab === 'ledger'       && <LedgerTab      job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
+              {tab === 'ledger'       && isStaff && <LedgerTab      job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
               {tab === 'co2'          && <CO2Tab         job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
             </div>
-            {!isMobile && <ListenersSidebar job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
+            {/* Who we have tagged internally is not the customer's business. */}
+            {!isMobile && isStaff && <ListenersSidebar job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
           </div>
         </div>
       </div>

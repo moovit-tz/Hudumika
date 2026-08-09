@@ -1,6 +1,7 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
+import { resolveCustomerId } from '../services/customer-identity.service.js';
 
 /**
  * GET /v1/payments — customer payment history, joined from invoice_payments
@@ -15,7 +16,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   fastify.get('/', async (request, reply) => {
     const user = request.user;
     const { customer_id } = request.query as { customer_id?: string };
-    if (user.role === 'CUSTOMER' && customer_id && customer_id !== user.sub) {
+    if (user.role === 'CUSTOMER' && customer_id && customer_id !== await resolveCustomerId(user)) {
       return reply.status(403).send({ error: 'Forbidden' });
     }
     const scopedCustomerId = user.role === 'CUSTOMER' ? user.sub : customer_id;

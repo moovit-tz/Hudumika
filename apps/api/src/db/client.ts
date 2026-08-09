@@ -112,6 +112,13 @@ export interface UsersTable {
   mobile_money_number: string | null;
   /** NSSF or PSSSF — same rate, different return. */
   pension_fund: 'NSSF' | 'PSSSF' | null;
+  /**
+   * For CUSTOMER-role logins: the customers row they act for. Eleven call sites
+   * used to assume this was the login's own id; it never was, so every
+   * customer-scoped query matched nothing. NULL means unlinked, which must be
+   * read as "sees nothing".
+   */
+  customer_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

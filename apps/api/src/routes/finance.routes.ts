@@ -6,6 +6,7 @@ import { requireRole } from '../middleware/rbac.js';
 import type { RecordExpenseInput } from '@hudumika/types';
 import { computeVatReturn } from '../services/vat-return.service.js';
 import { reportingCurrency } from '../services/tax-registration.service.js';
+import { resolveCustomerId } from '../services/customer-identity.service.js';
 
 export async function financeRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -205,7 +206,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
           .select('customer_id')
           .where('id', '=', id)
           .executeTakeFirst();
-        if (!shipment || shipment.customer_id !== user.sub) {
+        if (!shipment || shipment.customer_id !== await resolveCustomerId(user)) {
           return reply.status(403).send({ error: 'Forbidden: Access denied' });
         }
       }

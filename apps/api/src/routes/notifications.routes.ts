@@ -1,4 +1,17 @@
 import type { FastifyInstance } from 'fastify';
+import { resolveCustomerId } from '../services/customer-identity.service.js';
+
+/**
+ * The customers row a CUSTOMER login acts for. These filters used `user.sub`,
+ * the login's own id, which is never a customers id — so a customer's
+ * notifications always came back empty.
+ *
+ * An unresolvable link yields an id that matches nothing, deliberately: the
+ * failure mode of a customer seeing none of their own notifications is
+ * recoverable, and the one where they see everybody's is not.
+ */
+const NOTHING = '00000000-0000-0000-0000-000000000000';
+const customerScope = async (u: any) => (await resolveCustomerId(u)) ?? NOTHING;
 import { db, withTenant } from '../db/client.js';
 
 export async function notificationRoutes(fastify: FastifyInstance) {
@@ -46,9 +59,9 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         .where(inAppFilter);
 
       if (user.role === 'CUSTOMER') {
-        q = q.where('customer_id', '=', user.sub);
-        countQ = countQ.where('customer_id', '=', user.sub);
-        totalQ = totalQ.where('customer_id', '=', user.sub);
+        q = q.where('customer_id', '=', await customerScope(user));
+        countQ = countQ.where('customer_id', '=', await customerScope(user));
+        totalQ = totalQ.where('customer_id', '=', await customerScope(user));
       } else {
         q = q.where('user_id', '=', user.sub);
         countQ = countQ.where('user_id', '=', user.sub);
@@ -83,7 +96,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         .where((eb) => eb.or([eb('channel', 'is', null), eb('channel', '=', 'IN_APP')]));
 
       if (user.role === 'CUSTOMER') {
-        q = q.where('customer_id', '=', user.sub);
+        q = q.where('customer_id', '=', await customerScope(user));
       } else {
         q = q.where('user_id', '=', user.sub);
       }
@@ -107,7 +120,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         .where('read', '=', false);
 
       if (user.role === 'CUSTOMER') {
-        q = q.where('customer_id', '=', user.sub);
+        q = q.where('customer_id', '=', await customerScope(user));
       } else {
         q = q.where('user_id', '=', user.sub);
       }
@@ -132,7 +145,7 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         .where('id', '=', id);
 
       if (user.role === 'CUSTOMER') {
-        q = q.where('customer_id', '=', user.sub);
+        q = q.where('customer_id', '=', await customerScope(user));
       } else {
         q = q.where('user_id', '=', user.sub);
       }
