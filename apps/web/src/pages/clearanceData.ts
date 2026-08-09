@@ -580,7 +580,36 @@ export function apiToJob(data: any): ClearanceJob {
       uploadedAt: new Date(d.created_at || Date.now()), extracted: { status: 'pending' as const },
       apiType: d.type, pending: !d.storage_key,
     })),
-    tasks: [], timeEntries: [], activity: [], cloudLinks: [],
+    tasks: [], timeEntries: [], cloudLinks: [],
+    /**
+     * The Overview's Activity Feed. This was hardcoded `[]`, and nothing else
+     * ever assigned to it — so the panel could not have shown anything in any
+     * tenant, however much had happened to the shipment.
+     *
+     * Built from what the server actually reports: stage movements, and
+     * documents as they arrived. Not invented, and deliberately not padded with
+     * events the API does not send — an empty feed on a genuinely quiet
+     * shipment is the right answer.
+     */
+    activity: [
+      ...(data.stage_history || []).map((h: any, i: number): ActivityEvent => ({
+        id: `act-stage-${h.id || i}`,
+        userId: h.user_id || 'system',
+        userName: h.user_name || 'System',
+        action: 'stage_change',
+        subject: `moved this to ${STAGES.find(st => st.id === toStage(h.stage || ''))?.label || h.stage}`,
+        detail: h.note || h.blocker || undefined,
+        ts: new Date(h.entered_at || Date.now()),
+      })),
+      ...(data.documents || []).filter((d: any) => d.storage_key).map((d: any, i: number): ActivityEvent => ({
+        id: `act-doc-${d.id || i}`,
+        userId: d.uploaded_by || 'system',
+        userName: d.uploaded_by_name || 'Someone',
+        action: 'uploaded',
+        subject: `uploaded ${d.filename || d.type}`,
+        ts: new Date(d.created_at || Date.now()),
+      })),
+    ].sort((a, b) => a.ts.getTime() - b.ts.getTime()),
     co2EmissionsKg: data.co2_emissions_kg ? Number(data.co2_emissions_kg) : undefined,
     carbonCreditsSaved: data.carbon_credits_saved ? Number(data.carbon_credits_saved) : undefined,
     co2CalcDetails: typeof data.co2_calc_details === 'string' ? JSON.parse(data.co2_calc_details) : data.co2_calc_details,
