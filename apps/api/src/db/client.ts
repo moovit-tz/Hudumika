@@ -3199,9 +3199,6 @@ export interface Database {
   hr_locations: HrLocationsTable;
   hr_cost_centers: HrCostCentersTable;
   hr_job_catalog: HrJobCatalogTable;
-  hr_people: HrPeopleTable;
-  hr_employments: HrEmploymentsTable;
-  hr_employment_effective_records: HrEmploymentEffectiveRecordsTable;
   hr_compensations: HrCompensationsTable;
   hr_compensation_components: HrCompensationComponentsTable;
   // NexusHR Workflows
@@ -4510,58 +4507,16 @@ export interface HrJobCatalogTable {
   updated_at: Generated<Date>;
 }
 
-export interface HrPeopleTable {
-  id: Generated<string>;
-  tenant_id: string;
-  first_name: string;
-  last_name: string;
-  preferred_name: string | null;
-  date_of_birth: DateOnlyNull;
-  gender: string | null;
-  personal_email: string | null;
-  personal_phone: string | null;
-  national_identifiers: Generated<Record<string, any>>;
-  emergency_contacts: Generated<any[]>;
-  avatar_url: string | null;
-  /** The login this HR record belongs to. NULL while a hire has no account yet
-   *  — see migration 172 for why the two person models were separate. */
-  user_id: string | null;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
-}
-
-export interface HrEmploymentsTable {
-  id: Generated<string>;
-  tenant_id: string;
-  person_id: string;
-  legal_entity_id: string;
-  status: Generated<string>;
-  employment_type: Generated<string>;
-  start_date: DateOnly;
-  end_date: DateOnlyNull;
-  created_at: Generated<Date>;
-  updated_at: Generated<Date>;
-}
-
-export interface HrEmploymentEffectiveRecordsTable {
-  id: Generated<string>;
-  tenant_id: string;
-  employment_id: string;
-  effective_date: DateOnly;
-  end_date: DateOnlyNull;
-  job_title: string;
-  department_id: string | null;
-  location_id: string | null;
-  cost_center_id: string | null;
-  manager_id: string | null;
-  change_reason: string | null;
-  created_at: Generated<Date>;
-}
-
 export interface HrCompensationsTable {
   id: Generated<string>;
   tenant_id: string;
-  employment_id: string;
+  /**
+   * Migration 201 repointed this from hr_employments to users and this type was
+   * not updated with it, so `tsc` kept accepting `employment_id` — a column the
+   * database no longer has. The query would have failed at runtime; it never
+   * did, only because hr_employments held no rows to trigger it.
+   */
+  user_id: string;
   effective_date: DateOnly;
   end_date: DateOnlyNull;
   base_salary: Generated<number>;

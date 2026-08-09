@@ -4,18 +4,17 @@ import { toDateParam } from '../utils/dates.js';
 export class NexusHRService {
   // ─── CORE HR ───────────────────────────────────────────────────────────────
 
-  static async getPeople(tenantId: string) {
-    return withTenant(tenantId, async (trx) => {
-      return await trx
-        .selectFrom('hr_people')
-        .leftJoin('users', 'users.id', 'hr_people.user_id')
-        .selectAll('hr_people')
-        .select(['users.name as user_name', 'users.email as user_email', 'users.role as user_role', 'users.active as user_active'])
-        .where('hr_people.tenant_id', '=', tenantId)
-        .orderBy('hr_people.first_name', 'asc')
-        .execute();
-    });
-  }
+  /**
+   * getPeople is gone, with hr_people itself.
+   *
+   * A "person" separate from a login never held a row in any tenant, while
+   * every table that does hold rows — attendance, leave, goals, documents,
+   * assets, payslips — keys on `users`. The separation was a model nobody
+   * populated, and the roster's "linked / unlinked" distinction was therefore
+   * a comparison between two empty sets.
+   *
+   * The staff list is GET /v1/hr/staff.
+   */
 
   /**
    * The staff roster reconciled across both person models.
@@ -35,97 +34,88 @@ export class NexusHRService {
     return withTenant(tenantId, async (trx) => {
       const users = await trx
         .selectFrom('users')
-        .leftJoin('hr_people', 'hr_people.user_id', 'users.id')
-        .select([
-          'users.id as user_id', 'users.name', 'users.email', 'users.role', 'users.active',
-          'hr_people.id as person_id', 'hr_people.first_name', 'hr_people.last_name',
-        ])
-        .where('users.tenant_id', '=', tenantId)
-        .orderBy('users.name', 'asc')
-        .execute();
-
-      const unlinkedPeople = await trx
-        .selectFrom('hr_people')
-        .select(['id as person_id', 'first_name', 'last_name', 'personal_email'])
+        .select(['id as user_id', 'name', 'email', 'role', 'active', 'hire_date',
+                 'basic_salary', 'pay_currency'])
         .where('tenant_id', '=', tenantId)
-        .where('user_id', 'is', null)
-        .orderBy('first_name', 'asc')
+        .orderBy('name', 'asc')
         .execute();
 
-      // Employment + current compensation for BOTH sides. Restricting this to
-      // linked people made a contract belonging to someone without a login
-      // invisible everywhere — the record existed and no screen could show it.
-      const personIds = [
-        ...users.map(u => u.person_id).filter(Boolean) as string[],
-        ...unlinkedPeople.map(u => u.person_id),
-      ];
-      const employmentRows = personIds.length
-        ? await trx
-            .selectFrom('hr_employments')
-            .select([
-              'id as employment_id', 'person_id', 'status', 'employment_type', 'start_date',
-            ])
+      // The employment record is the contract. hr_employments never held a row
+      // in any tenant, so "linked / unlinked" was a distinction between two
+      // empty sets — every login showed as having no HR record because there
+      // were no HR records to have.
+      const contracts = users.length
+        ? await trx.selectFrom('hr_contracts')
+            .select(['id', 'user_id', 'contract_type', 'start_date', 'end_date'])
             .where('tenant_id', '=', tenantId)
-            .where('person_id', 'in', personIds)
+            .orderBy('start_date', 'desc')
             .execute()
         : [];
 
       /**
        * Pay is effective-dated, so "what do they earn" only has an answer as at
-       * a date. Joining the whole history and keeping whichever row arrived
-       * last showed a raise that starts next month as today's salary.
-       *
-       * The record in force today is selected explicitly, and a raise already
-       * agreed for a future date is returned separately rather than either
-       * silently replacing the current figure or being hidden entirely.
+       * a date. Keeping whichever row arrived last showed a raise that starts
+       * next month as today's salary — so the record in force today is selected
+       * explicitly, and one already agreed for a future date is returned
+       * separately rather than replacing the current figure or being hidden.
        */
       const today = toDateParam(new Date());
-      const comps = employmentRows.length
+      const comps = users.length
         ? await trx.selectFrom('hr_compensations')
-            .select(['employment_id', 'base_salary', 'currency', 'pay_frequency', 'effective_date', 'end_date'])
+            .select(['user_id', 'base_salary', 'currency', 'pay_frequency', 'effective_date', 'end_date'])
             .where('tenant_id', '=', tenantId)
-            .where('employment_id', 'in', employmentRows.map(e => e.employment_id))
             .orderBy('effective_date', 'asc')
             .execute()
         : [];
-      const compsByEmployment = new Map<string, typeof comps>();
+      const compsByUser = new Map<string, typeof comps>();
       for (const c of comps) {
-        const list = compsByEmployment.get(c.employment_id);
-        if (list) list.push(c); else compsByEmployment.set(c.employment_id, [c]);
+        const list = compsByUser.get(c.user_id);
+        if (list) list.push(c); else compsByUser.set(c.user_id, [c]);
       }
+      const contractByUser = new Map<string, typeof contracts[number]>();
+      for (const c of contracts) if (!contractByUser.has(c.user_id)) contractByUser.set(c.user_id, c);
 
-      const employments = employmentRows.map(e => {
-        const list = compsByEmployment.get(e.employment_id) ?? [];
+      const roster = users.map(u => {
+        const list = compsByUser.get(u.user_id) ?? [];
         const current = list.find(c => c.effective_date <= today && (c.end_date === null || c.end_date >= today));
         const upcoming = list.find(c => c.effective_date > today);
+        const contract = contractByUser.get(u.user_id) ?? null;
+
+        // Falls back to the salary on the person themselves, which is what the
+        // payroll engine actually reads. A compensation history is the richer
+        // record; its absence does not mean nobody is paid.
+        const base = current?.base_salary ?? (u.basic_salary != null ? Number(u.basic_salary) : null);
+
         return {
-          ...e,
-          base_salary: current?.base_salary ?? null,
-          currency: current?.currency ?? null,
-          pay_frequency: current?.pay_frequency ?? null,
-          upcoming: upcoming
-            ? { base_salary: upcoming.base_salary, currency: upcoming.currency,
-                pay_frequency: upcoming.pay_frequency, effective_date: upcoming.effective_date }
-            : null,
+          userId: u.user_id, name: u.name, email: u.email, role: u.role, active: u.active,
+          employment: contract || base != null ? {
+            employment_id: contract?.id ?? null,
+            status: contract
+              ? (contract.end_date && contract.end_date < today ? 'ENDED' : 'ACTIVE')
+              : 'NO_CONTRACT',
+            employment_type: contract?.contract_type ?? null,
+            start_date: contract?.start_date ?? u.hire_date ?? null,
+            end_date: contract?.end_date ?? null,
+            base_salary: base != null ? String(base) : null,
+            currency: current?.currency ?? u.pay_currency ?? null,
+            pay_frequency: current?.pay_frequency ?? (base != null ? 'MONTHLY' : null),
+            upcoming: upcoming
+              ? { base_salary: String(upcoming.base_salary), currency: upcoming.currency,
+                  pay_frequency: upcoming.pay_frequency, effective_date: upcoming.effective_date }
+              : null,
+          } : null,
         };
       });
-      const empByPerson = new Map(employments.map(e => [e.person_id, e]));
 
       return {
-        roster: users.map(u => ({
-          userId: u.user_id, name: u.name, email: u.email, role: u.role, active: u.active,
-          personId: u.person_id,
-          hrName: u.person_id ? `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim() : null,
-          employment: empByPerson.get(u.person_id as string) ?? null,
-        })),
-        unlinkedPeople: unlinkedPeople.map(u => ({ ...u, employment: empByPerson.get(u.person_id) ?? null })),
+        roster,
         // Named plainly so the UI can say what is missing rather than imply
         // everyone is fully set up.
         summary: {
           logins: users.length,
-          withHrRecord: users.filter(u => u.person_id).length,
-          withEmployment: users.filter(u => empByPerson.has(u.person_id as string)).length,
-          hrRecordsWithoutLogin: unlinkedPeople.length,
+          withContract: roster.filter(r => r.employment?.employment_id).length,
+          withPay: roster.filter(r => r.employment?.base_salary).length,
+          withNeither: roster.filter(r => !r.employment).length,
         },
       };
     });
@@ -133,14 +123,14 @@ export class NexusHRService {
 
   // ─── COMPENSATION ──────────────────────────────────────────────────────────
 
-  /** Effective-dated pay history for one employment, newest first. */
-  static async getCompensationHistory(tenantId: string, employmentId: string) {
+  /** Effective-dated pay history for one person, newest first. */
+  static async getCompensationHistory(tenantId: string, userId: string) {
     return withTenant(tenantId, async (trx) => {
-      const emp = await trx.selectFrom('hr_employments').select('id')
-        .where('id', '=', employmentId).where('tenant_id', '=', tenantId).executeTakeFirst();
-      if (!emp) throw new Error('Employment not found');
+      const person = await trx.selectFrom('users').select('id')
+        .where('id', '=', userId).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!person) throw new Error('Staff member not found');
       return trx.selectFrom('hr_compensations').selectAll()
-        .where('employment_id', '=', employmentId).where('tenant_id', '=', tenantId)
+        .where('user_id', '=', userId).where('tenant_id', '=', tenantId)
         .orderBy('effective_date', 'desc').execute();
     });
   }
@@ -150,16 +140,16 @@ export class NexusHRService {
    * day before, so the history reads as a sequence rather than overlapping
    * claims about what someone earns.
    */
-  static async addCompensation(tenantId: string, employmentId: string, data: any) {
+  static async addCompensation(tenantId: string, userId: string, data: any) {
     if (data?.base_salary === undefined || data.base_salary === null || data.base_salary === '') {
       throw new Error('base_salary is required');
     }
     if (!data?.effective_date) throw new Error('effective_date is required');
 
     return withTenant(tenantId, async (trx) => {
-      const emp = await trx.selectFrom('hr_employments').select('id')
-        .where('id', '=', employmentId).where('tenant_id', '=', tenantId).executeTakeFirst();
-      if (!emp) throw new Error('Employment not found');
+      const person = await trx.selectFrom('users').select('id')
+        .where('id', '=', userId).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!person) throw new Error('Staff member not found');
 
       const effective = String(data.effective_date).slice(0, 10);
       const dayBefore = new Date(effective + 'T00:00:00Z');
@@ -168,19 +158,32 @@ export class NexusHRService {
 
       await trx.updateTable('hr_compensations')
         .set({ end_date: prevEnd as any })
-        .where('employment_id', '=', employmentId).where('tenant_id', '=', tenantId)
+        .where('user_id', '=', userId).where('tenant_id', '=', tenantId)
         .where('end_date', 'is', null)
         .where('effective_date', '<', effective as any)
         .execute();
 
-      return trx.insertInto('hr_compensations').values({
+      const row = await trx.insertInto('hr_compensations').values({
         tenant_id: tenantId,
-        employment_id: employmentId,
+        user_id: userId,
         effective_date: effective as any,
         base_salary: Number(data.base_salary),
         currency: data.currency || 'TZS',
         pay_frequency: data.pay_frequency || 'MONTHLY',
       }).returningAll().executeTakeFirstOrThrow();
+
+      // The payroll engine reads users.basic_salary, so a pay change that only
+      // landed in the history would never reach a payslip. Only the record in
+      // force today may move it — agreeing a raise for next month must not
+      // change what this month pays.
+      const today = toDateParam(new Date());
+      if (effective <= today) {
+        await trx.updateTable('users')
+          .set({ basic_salary: String(Number(data.base_salary)),
+                 pay_currency: data.currency || 'TZS', updated_at: new Date() })
+          .where('id', '=', userId).where('tenant_id', '=', tenantId).execute();
+      }
+      return row;
     });
   }
 
@@ -211,14 +214,14 @@ export class NexusHRService {
         .where('p.period_year', '=', year)
         .execute();
 
-      // Contract salary in force during the period, reached through the bridge.
-      const contracts = await trx.selectFrom('hr_people as pe')
-        .innerJoin('hr_employments as e', 'e.person_id', 'pe.id')
-        .innerJoin('hr_compensations as c', 'c.employment_id', 'e.id')
-        .select(['pe.user_id', 'c.base_salary', 'c.currency', 'c.pay_frequency',
-                 'c.effective_date', 'c.end_date', 'e.status as employment_status'])
-        .where('pe.tenant_id', '=', tenantId)
-        .where('pe.user_id', 'is not', null)
+      // Contract salary in force during the period. There is no bridge to cross
+      // any more — compensation keys on the person, the same person payroll is
+      // filed against, which is the disagreement this comparison exists to find.
+      const contracts = await trx.selectFrom('hr_compensations as c')
+        .innerJoin('users as u', 'u.id', 'c.user_id')
+        .select(['c.user_id', 'c.base_salary', 'c.currency', 'c.pay_frequency',
+                 'c.effective_date', 'c.end_date', 'u.active'])
+        .where('c.tenant_id', '=', tenantId)
         .where('c.effective_date', '<=', periodEnd as any)
         .where(eb => eb.or([eb('c.end_date', 'is', null), eb('c.end_date', '>=', periodStart as any)]))
         .execute();
@@ -276,7 +279,8 @@ export class NexusHRService {
       // Contracts with nobody paid this period — the other half of the picture.
       const paidUserIds = new Set(payroll.map(p => p.user_id));
       const unpaid = [...contractsByUser.entries()]
-        .filter(([userId, list]) => !paidUserIds.has(userId) && list.some(c => c.employment_status === 'ACTIVE'))
+        // Still employed here, so a missing payslip is a gap rather than a leaver.
+        .filter(([userId, list]) => !paidUserIds.has(userId) && list.some(c => c.active))
         // One entry per person, not one per pay record they happen to have.
         .map(([userId, list]) => {
           const c = list[list.length - 1];
@@ -300,76 +304,53 @@ export class NexusHRService {
   }
 
   /** Links an existing HR person record to an existing login, or clears it. */
-  static async linkPersonToUser(tenantId: string, personId: string, userId: string | null) {
-    return withTenant(tenantId, async (trx) => {
-      // Both sides must belong to this tenant — a valid-looking id from
-      // elsewhere must not become a cross-tenant join.
-      const person = await trx.selectFrom('hr_people').select('id')
-        .where('id', '=', personId).where('tenant_id', '=', tenantId).executeTakeFirst();
-      if (!person) throw new Error('Person not found');
-
-      if (userId) {
-        const user = await trx.selectFrom('users').select('id')
-          .where('id', '=', userId).where('tenant_id', '=', tenantId).executeTakeFirst();
-        if (!user) throw new Error('User not found');
-      }
-
-      return trx.updateTable('hr_people')
-        .set({ user_id: userId, updated_at: new Date() })
-        .where('id', '=', personId).where('tenant_id', '=', tenantId)
-        .returningAll().executeTakeFirstOrThrow();
-    });
-  }
-
-  static async createPerson(tenantId: string, data: any) {
-    return withTenant(tenantId, async (trx) => {
-      const [person] = await trx
-        .insertInto('hr_people')
-        .values({
-          tenant_id: tenantId,
-          first_name: data.first_name,
-          last_name: data.last_name,
-          preferred_name: data.preferred_name || null,
-          date_of_birth: data.date_of_birth ? new Date(data.date_of_birth) : null,
-          gender: data.gender || null,
-          personal_email: data.personal_email || null,
-          personal_phone: data.personal_phone || null,
-          national_identifiers: JSON.stringify(data.national_identifiers || {}) as any,
-          emergency_contacts: JSON.stringify(data.emergency_contacts || []) as any,
-          avatar_url: data.avatar_url || null,
-        })
-        .returningAll()
-        .execute();
-      return person;
-    });
-  }
-
+  /**
+   * Everyone employable, for pickers that need to name a person.
+   *
+   * Was hr_employments joined through hr_people, which meant it returned []
+   * in every tenant — so the asset-assignment picker read "Nobody has a
+   * contract yet" whoever you asked. Performance.tsx had already routed around
+   * it with a comment saying exactly that.
+   *
+   * `employment_id` stays in the shape and now carries the user id: the callers
+   * use it as "the id of the person I am assigning to", and hr_assets.assigned_to
+   * was itself repointed onto users in migration 201.
+   */
   static async getEmployments(tenantId: string) {
     return withTenant(tenantId, async (trx) => {
-      // Join employments with people and legal entities
-      // leftJoin, not innerJoin: an employment whose legal entity was removed
-      // must appear as incomplete, not vanish from the list. A record that
-      // disappears reads as "no such employee" to whoever is looking for them.
-      return await trx
-        .selectFrom('hr_employments')
-        .innerJoin('hr_people', 'hr_people.id', 'hr_employments.person_id')
-        .leftJoin('hr_legal_entities', 'hr_legal_entities.id', 'hr_employments.legal_entity_id')
+      const rows = await trx
+        .selectFrom('users')
+        .leftJoin('hr_contracts', join => join
+          .onRef('hr_contracts.user_id', '=', 'users.id')
+          .on('hr_contracts.tenant_id', '=', tenantId))
         .select([
-          'hr_employments.id as employment_id',
-          'hr_employments.person_id',
-          'hr_employments.legal_entity_id',
-          'hr_employments.status',
-          'hr_employments.employment_type',
-          'hr_employments.start_date',
-          'hr_employments.end_date',
-          'hr_people.first_name',
-          'hr_people.last_name',
-          'hr_people.personal_email',
-          'hr_legal_entities.legal_name as legal_entity_name',
-          'hr_legal_entities.country_code'
+          'users.id as employment_id', 'users.id as user_id',
+          'users.name', 'users.email as personal_email', 'users.active',
+          'hr_contracts.contract_type as employment_type',
+          'hr_contracts.start_date', 'hr_contracts.end_date',
         ])
-        .where('hr_employments.tenant_id', '=', tenantId)
+        .where('users.tenant_id', '=', tenantId)
+        .where('users.active', '=', true)
+        .orderBy('users.name', 'asc')
         .execute();
+
+      // Split for callers that still render `first_name last_name`. One name
+      // field is the truth on `users`; this is a presentation split, not a
+      // second model of a person's name.
+      const seen = new Set<string>();
+      return rows.filter(r => {
+        if (seen.has(r.employment_id)) return false;
+        seen.add(r.employment_id);
+        return true;
+      }).map(r => {
+        const parts = String(r.name ?? '').trim().split(/\s+/);
+        return {
+          ...r,
+          status: r.active ? 'ACTIVE' : 'INACTIVE',
+          first_name: parts[0] ?? '',
+          last_name: parts.slice(1).join(' '),
+        };
+      });
     });
   }
 
@@ -383,17 +364,11 @@ export class NexusHRService {
     return withTenant(tenantId, async (trx) => {
       const entities = await trx.selectFrom('hr_legal_entities').selectAll()
         .where('tenant_id', '=', tenantId).orderBy('legal_name', 'asc').execute();
-      if (entities.length === 0) return [];
-
-      // How many people each entity employs — so deleting one can say what it
-      // would take with it rather than failing on a constraint.
-      const counts = await trx.selectFrom('hr_employments')
-        .select('legal_entity_id')
-        .select(eb => eb.fn.countAll<string>().as('n'))
-        .where('tenant_id', '=', tenantId)
-        .groupBy('legal_entity_id').execute();
-      const byEntity = new Map(counts.map(c => [c.legal_entity_id, Number(c.n)]));
-      return entities.map(e => ({ ...e, employment_count: byEntity.get(e.id) ?? 0 }));
+      // employment_count is gone rather than zeroed. It counted hr_employments
+      // rows, and nothing links a person to a legal entity any more — so the
+      // honest answer is "not known", and a hardcoded 0 would read identically
+      // to an entity that genuinely employs nobody.
+      return entities.map(e => ({ ...e, employment_count: null }));
     });
   }
 
@@ -411,114 +386,20 @@ export class NexusHRService {
     }).returningAll().executeTakeFirstOrThrow());
   }
 
-  static async createEmployment(tenantId: string, data: any) {
-    // A job title is a fact about someone's contract, so it is required rather
-    // than defaulted — the previous `|| 'Officer'` gave every hire a title
-    // nobody agreed to, indistinguishable afterwards from a real one.
-    if (!data?.person_id) throw new Error('person_id is required');
-    if (!data?.legal_entity_id) throw new Error('legal_entity_id is required');
-    if (!data?.start_date) throw new Error('start_date is required');
-    if (!data?.job_title) throw new Error('job_title is required');
+  /**
+   * createEmployment is gone. An employment record is an hr_contract now,
+   * created through POST /v1/hr/staff/:id/contracts — which validates that a
+   * fixed-term contract states when it ends, something hr_employments never
+   * did. Keeping a second way to record the same fact is how the two models
+   * came to disagree in the first place.
+   */
 
-    return withTenant(tenantId, async (trx) => {
-      // Both references must belong to this tenant. Without these checks a
-      // valid-looking id from another workspace would attach one tenant's
-      // employee to another tenant's legal entity.
-      const person = await trx.selectFrom('hr_people').select('id')
-        .where('id', '=', data.person_id).where('tenant_id', '=', tenantId).executeTakeFirst();
-      if (!person) throw new Error('Person not found');
-      const entity = await trx.selectFrom('hr_legal_entities').select('id')
-        .where('id', '=', data.legal_entity_id).where('tenant_id', '=', tenantId).executeTakeFirst();
-      if (!entity) throw new Error('Legal entity not found');
-      if (data.manager_id) {
-        const mgr = await trx.selectFrom('hr_employments').select('id')
-          .where('id', '=', data.manager_id).where('tenant_id', '=', tenantId).executeTakeFirst();
-        if (!mgr) throw new Error('Manager employment not found');
-      }
-
-      const emp = await trx
-        .insertInto('hr_employments')
-        .values({
-          tenant_id: tenantId,
-          person_id: data.person_id,
-          legal_entity_id: data.legal_entity_id,
-          status: data.status || 'ACTIVE',
-          employment_type: data.employment_type || 'FULL_TIME',
-          start_date: new Date(data.start_date),
-          end_date: data.end_date ? new Date(data.end_date) : null,
-        })
-        .returningAll()
-        .executeTakeFirstOrThrow();
-
-      await trx
-        .insertInto('hr_employment_effective_records')
-        .values({
-          tenant_id: tenantId,
-          employment_id: emp.id,
-          effective_date: new Date(data.start_date),
-          job_title: data.job_title,
-          department_id: data.department_id || null,
-          location_id: data.location_id || null,
-          cost_center_id: data.cost_center_id || null,
-          manager_id: data.manager_id || null,
-          change_reason: 'NEW_HIRE',
-        })
-        .execute();
-
-      // Only when a salary was actually given. base_salary is NOT NULL, so the
-      // old `|| 0` recorded "this person earns zero" — which reads identically
-      // to a real zero and would flow into any payroll comparison built on it.
-      // No salary agreed yet is an absent row, not a zero one.
-      if (data.base_salary !== undefined && data.base_salary !== null && data.base_salary !== '') {
-        await trx
-          .insertInto('hr_compensations')
-          .values({
-            tenant_id: tenantId,
-            employment_id: emp.id,
-            effective_date: new Date(data.start_date),
-            base_salary: Number(data.base_salary),
-            currency: data.currency || 'TZS',
-            pay_frequency: data.pay_frequency || 'MONTHLY',
-          })
-          .execute();
-      }
-
-      return emp;
-    });
-  }
-
-  static async getOrgChart(tenantId: string) {
-    return withTenant(tenantId, async (trx) => {
-      // Get all active employments with their latest effective record
-      const rows = await trx
-        .selectFrom('hr_employments')
-        .innerJoin('hr_people', 'hr_people.id', 'hr_employments.person_id')
-        .leftJoin('hr_employment_effective_records', (join) =>
-          join
-            .onRef('hr_employment_effective_records.employment_id', '=', 'hr_employments.id')
-            .on('hr_employment_effective_records.end_date', 'is', null)
-        )
-        .select([
-          'hr_employments.id as id',
-          'hr_people.first_name',
-          'hr_people.last_name',
-          'hr_employment_effective_records.job_title',
-          'hr_employment_effective_records.manager_id as parent_id',
-          'hr_employment_effective_records.department_id'
-        ])
-        .where('hr_employments.tenant_id', '=', tenantId)
-        .where('hr_employments.status', '=', 'ACTIVE')
-        .execute();
-
-      return rows.map(r => ({
-        id: r.id,
-        name: `${r.first_name} ${r.last_name}`,
-        title: r.job_title || 'Officer',
-        parent_id: r.parent_id || null,
-        department: r.department_id || null
-      }));
-    });
-  }
+  /**
+   * getOrgChart is gone. It read hr_employments joined to hr_people and
+   * hr_employment_effective_records — three tables with no rows — so it
+   * returned [] in every tenant. The org chart people actually use is
+   * org_chart_nodes, served by org-chart.routes.ts and drawn by OrgChart.tsx.
+   */
 
   // NexusHR's own workflow engine (hr_workflow_definitions/stages/cases/tasks/
   // conditions) was removed in migration 173. It was a third engine alongside
@@ -685,145 +566,14 @@ export class NexusHRService {
   }
 
   /**
-   * Drafts a payroll period from the contracts actually on file.
+   * runPayroll is gone. It was a third payroll implementation — beside
+   * /v1/hr/payroll and the statutory engine at /v1/payroll — and the only one
+   * of the three reading hr_employments, so it could never have produced a
+   * payslip in any tenant. Nothing in the web app called it.
    *
-   * This endpoint could not run at all: it wrote `employment_id` into
-   * `hr_payroll.user_id`, which is a foreign key to `users`, so every call
-   * with an active employment failed on the constraint. Fixing only that would
-   * have been worse than leaving it broken, because it also invented figures —
-   * a flat 1,200,000 for anyone with no agreed salary, a 15% allowance nobody
-   * granted, and a `PAID` status with a `paid_at` timestamp for money that had
-   * not moved.
-   *
-   * It now computes from real compensation only, and returns what it could not
-   * compute rather than filling the gap:
-   *   - no login linked  -> hr_payroll is keyed on users, so there is nowhere
-   *                         to file the payslip
-   *   - no agreed salary -> nothing to calculate from
-   *   - non-monthly pay  -> WEEKLY/DAILY/HOURLY need period hours this does
-   *                         not have
-   * Rows are written as PENDING. Marking one PAID stays a separate, deliberate
-   * act on the payroll screen.
+   * The engine that computes PAYE, NSSF, NHIF, WCF and SDL against real bands
+   * is payroll.service.ts. Use that.
    */
-  static async runPayroll(tenantId: string, data: any) {
-    const month = Number(data?.month), year = Number(data?.year);
-    if (!month || month < 1 || month > 12) throw new Error('month must be 1-12');
-    if (!year) throw new Error('year is required');
-
-    return withTenant(tenantId, async (trx) => {
-      const periodStart = `${year}-${String(month).padStart(2, '0')}-01`;
-      const endDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
-      const periodEnd = `${year}-${String(month).padStart(2, '0')}-${endDay}`;
-
-      const employments = await trx
-        .selectFrom('hr_employments')
-        .innerJoin('hr_people', 'hr_people.id', 'hr_employments.person_id')
-        .select([
-          'hr_employments.id as employment_id',
-          'hr_people.first_name', 'hr_people.last_name', 'hr_people.user_id',
-        ])
-        .where('hr_employments.tenant_id', '=', tenantId)
-        .where('hr_employments.status', '=', 'ACTIVE')
-        .execute();
-      if (employments.length === 0) return { period: { month, year }, written: 0, rows: [], skipped: [] };
-
-      // The pay agreement in force during the period, not merely the open one.
-      const comps = await trx.selectFrom('hr_compensations')
-        .select(['employment_id', 'base_salary', 'currency', 'pay_frequency', 'effective_date'])
-        .where('tenant_id', '=', tenantId)
-        .where('employment_id', 'in', employments.map(e => e.employment_id))
-        .where('effective_date', '<=', periodEnd)
-        .where(eb => eb.or([eb('end_date', 'is', null), eb('end_date', '>=', periodStart)]))
-        .orderBy('effective_date', 'desc')
-        .execute();
-
-      const MONTHLY_DIVISOR: Record<string, number> = { MONTHLY: 1, ANNUAL: 12, YEARLY: 12 };
-      const rows: any[] = [];
-      const skipped: { employee: string; reason: string }[] = [];
-
-      for (const emp of employments) {
-        const who = `${emp.first_name} ${emp.last_name}`;
-        if (!emp.user_id) {
-          skipped.push({ employee: who, reason: 'No login linked to this HR record — a payslip is filed against a login, so there is nowhere to put it.' });
-          continue;
-        }
-        const comp = comps.find(c => c.employment_id === emp.employment_id);
-        if (!comp) {
-          skipped.push({ employee: who, reason: 'No salary agreed for this period — nothing to calculate from.' });
-          continue;
-        }
-        const divisor = MONTHLY_DIVISOR[String(comp.pay_frequency).toUpperCase()];
-        if (!divisor) {
-          skipped.push({ employee: who, reason: `Paid ${comp.pay_frequency} — a monthly figure needs hours or days worked, which payroll does not hold.` });
-          continue;
-        }
-
-        const basic = Math.round(Number(comp.base_salary) / divisor);
-
-        // Allowances come from recorded components, not a percentage. With no
-        // components on file the answer is zero granted, not 15% assumed.
-        const components = await trx.selectFrom('hr_compensation_components')
-          .select(['amount', 'is_taxable'])
-          .where('tenant_id', '=', tenantId)
-          .where('compensation_id', 'in',
-            trx.selectFrom('hr_compensations').select('id')
-              .where('tenant_id', '=', tenantId)
-              .where('employment_id', '=', emp.employment_id))
-          .execute();
-        const allowances = components.reduce((sum, c) => sum + Number(c.amount), 0);
-
-        const taxable = basic + components.filter(c => c.is_taxable).reduce((s, c) => s + Number(c.amount), 0);
-        let paye = 0;
-        if (taxable >= 1000000) paye = Math.round((taxable - 1000000) * 0.30 + 128000);
-        else if (taxable >= 760000) paye = Math.round((taxable - 760000) * 0.25 + 68000);
-        else if (taxable >= 520000) paye = Math.round((taxable - 520000) * 0.20 + 20000);
-        else if (taxable >= 270000) paye = Math.round((taxable - 270000) * 0.08);
-        const nssf = Math.round(basic * 0.10);
-        const deductions = paye + nssf;
-
-        const existing = await trx
-          .selectFrom('hr_payroll')
-          .select(['id', 'status'])
-          .where('tenant_id', '=', tenantId)
-          .where('user_id', '=', emp.user_id)
-          .where('period_month', '=', month)
-          .where('period_year', '=', year)
-          .executeTakeFirst();
-
-        // A payslip already marked paid is a statement that money moved. This
-        // recalculation does not get to quietly restate it.
-        if (existing?.status === 'PAID') {
-          skipped.push({ employee: who, reason: 'Already marked paid for this period — recalculating would restate a payment that has been made.' });
-          continue;
-        }
-
-        if (existing) {
-          await trx.updateTable('hr_payroll')
-            .set({ basic_pay: basic, allowances, deductions, status: 'PENDING', updated_at: new Date() })
-            .where('id', '=', existing.id).where('tenant_id', '=', tenantId)
-            .execute();
-        } else {
-          await trx.insertInto('hr_payroll').values({
-            tenant_id: tenantId,
-            user_id: emp.user_id,
-            period_month: month,
-            period_year: year,
-            basic_pay: basic,
-            allowances,
-            deductions,
-            status: 'PENDING',
-          }).execute();
-        }
-
-        rows.push({ employee: who, currency: comp.currency, basic, allowances, deductions,
-                    net: basic + allowances - deductions, paye, nssf });
-      }
-
-      return { period: { month, year }, written: rows.length, rows, skipped };
-    });
-  }
-
-  // ─── PERFORMANCE & WELLNESS ────────────────────────────────────────────────
 
   /**
    * Goals, with whoever owns them named.

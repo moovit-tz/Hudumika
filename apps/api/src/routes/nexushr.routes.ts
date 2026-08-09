@@ -11,23 +11,16 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
 
   // ─── CORE HR ───────────────────────────────────────────────────────────────
 
-  fastify.get('/people', async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      return await NexusHRService.getPeople(tenantId);
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
-  });
-
-  fastify.post('/people', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      return await NexusHRService.createPerson(tenantId, request.body);
-    } catch (err: any) {
-      return reply.status(400).send({ error: err.message });
-    }
-  });
+  // A person separate from a login was a model nobody ever populated, while
+  // every table that does hold rows keys on `users`. 410 rather than 404, so an
+  // old client is told where the concept went rather than that it never existed.
+  const personModelGone = async (_request: any, reply: any) =>
+    reply.status(410).send({
+      error: 'HR records and logins are the same record now. Use /v1/hr/staff.',
+    });
+  fastify.get('/people', personModelGone);
+  fastify.post('/people', personModelGone);
+  fastify.patch('/people/:id/user', personModelGone);
 
   /**
    * GET /v1/hr/roster — both person models, reconciled.
@@ -99,17 +92,6 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
-  /** PATCH /v1/hr/people/:id/user — link (or unlink) an HR record to a login. */
-  fastify.patch('/people/:id/user', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
-    try {
-      const { id } = request.params;
-      const { user_id } = request.body ?? {};
-      return await NexusHRService.linkPersonToUser(request.user.tenant_id, id, user_id ?? null);
-    } catch (err: any) {
-      return reply.status(400).send({ error: err.message });
-    }
-  });
-
   fastify.get('/employments', async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
@@ -119,23 +101,18 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.post('/employments', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      return await NexusHRService.createEmployment(tenantId, request.body);
-    } catch (err: any) {
-      return reply.status(400).send({ error: err.message });
-    }
-  });
+  // POST /employments is gone — an employment record is a contract, created at
+  // POST /v1/hr/staff/:id/contracts, which refuses a fixed-term contract with
+  // no end date. 410 rather than 404 so an old client is told it moved.
+  fastify.post('/employments', async (_request, reply) =>
+    reply.status(410).send({
+      error: 'Employment records are now contracts. Use POST /v1/hr/staff/:id/contracts.',
+    }));
 
-  fastify.get('/org-chart', async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      return await NexusHRService.getOrgChart(tenantId);
-    } catch (err: any) {
-      return reply.status(500).send({ error: err.message });
-    }
-  });
+  // The org chart people use is org_chart_nodes, served at /v1/org-chart. This
+  // one read three empty tables and returned [] in every tenant.
+  fastify.get('/org-chart', async (_request, reply) =>
+    reply.status(410).send({ error: 'Use /v1/org-chart.' }));
 
   // NexusHR's own workflow routes were removed with the engine behind them
   // (migration 173). Nothing in the app called them; HR workflow automation
@@ -256,14 +233,13 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.post('/payroll/run', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE', 'MANAGER') }, async (request: any, reply) => {
-    try {
-      const tenantId = request.user.tenant_id;
-      return await NexusHRService.runPayroll(tenantId, request.body);
-    } catch (err: any) {
-      return reply.status(400).send({ error: err.message });
-    }
-  });
+  // POST /payroll/run is gone. It read hr_employments, which has never held a
+  // row, so it could not produce a payslip in any tenant. The engine that
+  // computes PAYE, NSSF, NHIF, WCF and SDL against real bands is /v1/payroll.
+  fastify.post('/payroll/run', async (_request, reply) =>
+    reply.status(410).send({
+      error: 'This payroll path never worked — it read a table with no rows. Use POST /v1/payroll/runs.',
+    }));
 
   // ─── PERFORMANCE ───────────────────────────────────────────────────────────
 

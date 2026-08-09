@@ -90,7 +90,6 @@ export function EmploymentRecords() {
     try {
       const [r, e] = await Promise.all([apiFetch('/v1/hr/roster'), apiFetch('/v1/hr/legal-entities')]);
       setRoster(r?.roster ?? []);
-      setUnlinked(r?.unlinkedPeople ?? []);
       setSummary(r?.summary ?? null);
       setEntities(Array.isArray(e) ? e : []);
     } catch (err: any) {
@@ -99,8 +98,10 @@ export function EmploymentRecords() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const unlinkedLogins = useMemo(() => roster.filter(r => !r.personId), [roster]);
-  const linkedNoEmployment = useMemo(() => roster.filter(r => r.personId && !r.employment), [roster]);
+  // "No contract on file" is the one gap left worth naming. The old pair of
+  // groups — logins without an HR record, HR records without a login — were
+  // both about a second person model that no longer exists.
+  const noContract = useMemo(() => roster.filter(r => !r.employment?.employment_id), [roster]);
 
   async function act(what: string, fn: () => Promise<any>) {
     setBusy(what); setError('');
@@ -164,83 +165,51 @@ export function EmploymentRecords() {
         <Button type="button" variant="outline" onClick={() => setPane(pane === 'entity' ? 'none' : 'entity')}>
           <Icon name="building" size={14} /> Legal entities ({entities.length})
         </Button>
-        <Button type="button" variant="outline" onClick={() => setPane(pane === 'person' ? 'none' : 'person')}>
-          <Icon name="userPlus" size={14} /> New HR record
-        </Button>
         <Button type="button" disabled={entities.length === 0} onClick={() => setPane(pane === 'employment' ? 'none' : 'employment')}>
           <Icon name="fileText" size={14} color="white" /> New contract
         </Button>
       </div>
 
       {pane === 'entity'     && <EntityPane entities={entities} busy={busy} onCreate={d => act('entity', () => apiFetch('/v1/hr/legal-entities', { method: 'POST', body: JSON.stringify(d) }))} />}
-      {pane === 'person'     && <PersonPane busy={busy} onCreate={d => act('person', () => apiFetch('/v1/hr/people', { method: 'POST', body: JSON.stringify(d) }))} />}
       {pane === 'employment' && (
         <EmploymentPane
           entities={entities}
-          people={[...unlinked.map(u => ({ id: u.person_id, label: `${u.first_name} ${u.last_name}` })),
-                   ...roster.filter(r => r.personId && !r.employment).map(r => ({ id: r.personId!, label: r.hrName || r.name || r.email }))]}
-          managers={roster.filter(r => r.employment).map(r => ({ id: r.employment!.employment_id, label: r.name || r.email }))}
+          people={noContract.map(r => ({ id: r.userId, label: r.name || r.email }))}
+          managers={roster.filter(r => r.employment).map(r => ({ id: r.userId, label: r.name || r.email }))}
           busy={busy}
-          onCreate={d => act('employment', () => apiFetch('/v1/hr/employments', { method: 'POST', body: JSON.stringify(d) }))}
+          onCreate={d => act('employment', () => apiFetch(`/v1/hr/staff/${d.user_id}/contracts`, {
+            method: 'POST',
+            body: JSON.stringify({
+              contract_type: d.employment_type,
+              start_date: d.start_date,
+              end_date: d.end_date || null,
+              reference: d.reference || null,
+            }),
+          }))}
         />
       )}
 
-      {/* Logins with no HR record — the gap the bridge exists to close. */}
-      {unlinkedLogins.length > 0 && (
+      {/* One gap now, not two. There is no second person model to reconcile
+          against: a login IS the person, so the only question left is whether
+          they have a contract on file. */}
+      {noContract.length > 0 && (
         <div style={{ ...card, marginBottom: 16 }}>
           <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ ...label, color: 'var(--ink)' }}>{unlinkedLogins.length} login{unlinkedLogins.length === 1 ? '' : 's'} with no HR record</span>
+            <span style={{ ...label, color: 'var(--ink)' }}>{noContract.length} {noContract.length === 1 ? 'person has' : 'people have'} no contract on file</span>
             <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
-              They can sign in and be assigned work, but have no contract, job title or agreed pay on file.
+              They can sign in and be assigned work. Nothing records what they were engaged to do, or until when.
             </div>
           </div>
-          {unlinkedLogins.map(u => (
+          {noContract.map(u => (
             <div key={u.userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderTop: '1px solid var(--border)' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 13, color: 'var(--ink)' }}>{u.name || u.email}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{u.email} · {u.role}</div>
               </div>
               {!u.active && <Badge variant="gray">inactive</Badge>}
-              <LinkPersonControl
-                people={unlinked}
-                busy={busy === 'link-' + u.userId}
-                onLink={pid => act('link-' + u.userId, () => apiFetch(`/v1/hr/people/${pid}/user`, { method: 'PATCH', body: JSON.stringify({ user_id: u.userId }) }))}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* HR records with no login yet. Their contracts are real and were
-          otherwise invisible: the roster iterates logins, so a contract for
-          someone who has not been given an account appeared nowhere at all. */}
-      {unlinked.length > 0 && (
-        <div style={{ ...card, marginBottom: 16 }}>
-          <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
-            <span style={{ ...label, color: 'var(--ink)' }}>{unlinked.length} HR record{unlinked.length === 1 ? '' : 's'} with no login</span>
-            <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>
-              On file and employable, but they cannot sign in or be assigned work yet.
-            </div>
-          </div>
-          {unlinked.map(u => (
-            <div key={u.person_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderTop: '1px solid var(--border)' }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, color: 'var(--ink)' }}>{u.first_name} {u.last_name}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>{u.personal_email || 'no personal email on file'}</div>
-              </div>
-              {u.employment
-                ? <>
-                    <Badge variant="brand">{u.employment.employment_type.replace(/_/g, ' ').toLowerCase()}</Badge>
-                    <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>from {String(u.employment.start_date).slice(0, 10)}</span>
-                    {u.employment.base_salary != null
-                      ? <span style={{ fontSize: 12, color: 'var(--ink)', fontWeight: 650 }}>{money(u.employment.base_salary, u.employment.currency)}</span>
-                      : u.employment.upcoming
-                        ? <span style={{ fontSize: 12, color: 'var(--gold)' }}>
-                            {money(u.employment.upcoming.base_salary, u.employment.upcoming.currency)} from {String(u.employment.upcoming.effective_date).slice(0, 10)}
-                          </span>
-                        : <span style={{ fontSize: 12, color: 'var(--gold)' }}>pay not agreed</span>}
-                  </>
-                : <Badge variant="gray">no contract</Badge>}
+              {u.employment?.base_salary
+                ? <span style={{ fontSize: 12, color: 'var(--ink3)' }}>pay on file, no contract</span>
+                : <Badge variant="gray">nothing on file</Badge>}
             </div>
           ))}
         </div>
@@ -339,12 +308,6 @@ export function EmploymentRecords() {
           </div>
         )}
       </div>
-
-      {linkedNoEmployment.length > 0 && (
-        <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 10 }}>
-          {linkedNoEmployment.length} {linkedNoEmployment.length === 1 ? 'person has' : 'people have'} an HR record but no contract yet.
-        </div>
-      )}
 
       <PayrollVsContractPanel roster={roster} />
     </div>
@@ -695,118 +658,74 @@ function EntityPane({ entities, busy, onCreate }: { entities: LegalEntity[]; bus
   );
 }
 
-function PersonPane({ busy, onCreate }: { busy: string; onCreate: (d: any) => void }) {
-  const [first, setFirst] = useState('');
-  const [last, setLast] = useState('');
-  const [email, setEmail] = useState('');
-  return (
-    <div style={{ ...card, padding: 16, marginBottom: 16 }}>
-      <div style={{ ...label, color: 'var(--ink)', marginBottom: 4 }}>New HR record</div>
-      <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 12 }}>
-        A person record can exist before they have a login — a hire partway through onboarding.
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 10 }}>
-        <div><div style={{ ...label, marginBottom: 4 }}>First name</div><Input value={first} onChange={e => setFirst(e.target.value)} placeholder="Given name" /></div>
-        <div><div style={{ ...label, marginBottom: 4 }}>Last name</div><Input value={last} onChange={e => setLast(e.target.value)} placeholder="Family name" /></div>
-        <div><div style={{ ...label, marginBottom: 4 }}>Personal email <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional)</span></div><Input value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com" /></div>
-      </div>
-      <Button type="button" style={{ marginTop: 12 }} disabled={!first.trim() || !last.trim() || !!busy}
-        onClick={() => onCreate({ first_name: first.trim(), last_name: last.trim(), personal_email: email || null })}>
-        {busy === 'person' ? 'Saving…' : 'Create record'}
-      </Button>
-    </div>
-  );
-}
-
 function EmploymentPane({ entities, people, managers, busy, onCreate }: {
   entities: LegalEntity[]; people: { id: string; label: string }[]; managers: { id: string; label: string }[];
   busy: string; onCreate: (d: any) => void;
 }) {
-  const [personId, setPersonId] = useState('');
-  const [entityId, setEntityId] = useState(entities[0]?.id ?? '');
-  const [jobTitle, setJobTitle] = useState('');
-  const [type, setType] = useState('FULL_TIME');
+  const [userId, setUserId] = useState('');
+  const [type, setType] = useState('FIXED_TERM');
   const [start, setStart] = useState<Date | undefined>(new Date());
-  const [salary, setSalary] = useState('');
-  const [managerId, setManagerId] = useState('__none__');
+  const [end, setEnd] = useState<Date | undefined>(undefined);
+  const [reference, setReference] = useState('');
 
-  const ready = personId && entityId && jobTitle.trim() && start;
+  // A permanent contract is the only one with no end date, so the field goes
+  // away rather than sitting there inviting a value the API will refuse.
+  const openEnded = type === 'PERMANENT';
+  const ready = !!userId && !!start && (openEnded || !!end);
 
   return (
-    <div style={{ ...card, padding: 16, marginBottom: 16 }}>
-      <div style={{ ...label, color: 'var(--ink)', marginBottom: 12 }}>New contract</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 10 }}>
+    <div style={{ ...card, marginBottom: 16, padding: 14 }}>
+      <div style={{ ...label, color: 'var(--ink)', marginBottom: 10 }}>New contract</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
         <div>
-          <div style={{ ...label, marginBottom: 4 }}>Person</div>
-          <Combobox options={people.map(p => ({ value: p.id, label: p.label }))} value={personId} onChange={setPersonId}
-            placeholder={people.length ? 'Choose a person…' : 'No HR records without a contract'} emptyText="No person found." />
+          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Person</div>
+          <Combobox options={people.map(p => ({ value: p.id, label: p.label }))} value={userId} onChange={setUserId}
+            placeholder={people.length ? 'Choose a person…' : 'Everyone already has a contract'} />
         </div>
         <div>
-          <div style={{ ...label, marginBottom: 4 }}>Employing company</div>
-          <Combobox options={entities.map(e => ({ value: e.id, label: e.legal_name }))} value={entityId} onChange={setEntityId} />
-        </div>
-        <div>
-          <div style={{ ...label, marginBottom: 4 }}>Job title</div>
-          {/* Required, never defaulted — a title nobody agreed to is
-              indistinguishable afterwards from one they did. */}
-          <Input value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder="e.g. Clearing Officer" />
-        </div>
-        <div>
-          <div style={{ ...label, marginBottom: 4 }}>Employment type</div>
+          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Type</div>
           <Select value={type} onValueChange={setType}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERN', 'TEMPORARY'].map(t => (
+              {['PERMANENT', 'FIXED_TERM', 'PROBATION', 'CASUAL', 'INTERNSHIP'].map(t => (
                 <SelectItem key={t} value={t}>{t.replace(/_/g, ' ').toLowerCase()}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div>
-          <div style={{ ...label, marginBottom: 4 }}>Start date</div>
-          <DatePicker date={start} onChange={setStart} />
+          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Starts</div>
+          <DatePicker value={start} onChange={setStart} />
         </div>
         <div>
-          <div style={{ ...label, marginBottom: 4 }}>Manager <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional)</span></div>
-          <Combobox
-            options={[{ value: '__none__', label: 'No manager' }, ...managers.map(m => ({ value: m.id, label: m.label }))]}
-            value={managerId} onChange={setManagerId} />
+          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>
+            Ends {openEnded && <span style={{ color: 'var(--ink4)' }}>— permanent, so none</span>}
+          </div>
+          {!openEnded && <DatePicker value={end} onChange={setEnd} />}
         </div>
         <div>
-          <div style={{ ...label, marginBottom: 4 }}>Base salary <span style={{ fontWeight: 400, textTransform: 'none' }}>(optional)</span></div>
-          <Input value={salary} onChange={e => setSalary(e.target.value.replace(/[^\d.]/g, ''))} placeholder="leave blank if not agreed" />
+          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Reference</div>
+          <Input value={reference} onChange={e => setReference(e.target.value)} placeholder="optional" />
         </div>
       </div>
-      <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 9 }}>
-        Leaving the salary blank records no pay agreement at all, rather than a salary of zero.
+      {/* Job title, manager and pay are not on the contract: the first two live
+          on the profile and pay is effective-dated in its own history, which a
+          single figure typed here would silently contradict. */}
+      <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 8 }}>
+        Job title and reporting line live on the profile. Pay is recorded separately, so it can change without rewriting the contract.
       </div>
-      <Button type="button" style={{ marginTop: 12 }} disabled={!ready || !!busy}
+      <Button
+        type="button"
+        disabled={!ready || busy === 'employment'}
+        style={{ marginTop: 12 }}
         onClick={() => onCreate({
-          person_id: personId, legal_entity_id: entityId, job_title: jobTitle.trim(),
-          employment_type: type, start_date: toDateOnlyString(start!),
-          manager_id: managerId === '__none__' ? null : managerId,
-          ...(salary ? { base_salary: Number(salary), currency: entities.find(e => e.id === entityId)?.currency ?? 'TZS' } : {}),
+          user_id: userId,
+          employment_type: type,
+          start_date: toDateOnlyString(start!),
+          end_date: openEnded ? null : (end ? toDateOnlyString(end) : null),
+          reference: reference.trim() || null,
         })}>
         {busy === 'employment' ? 'Saving…' : 'Create contract'}
-      </Button>
-    </div>
-  );
-}
-
-function LinkPersonControl({ people, busy, onLink }: { people: UnlinkedPerson[]; busy: boolean; onLink: (personId: string) => void }) {
-  const [pick, setPick] = useState('');
-  if (people.length === 0) {
-    return <span style={{ fontSize: 11.5, color: 'var(--ink3)' }}>no unlinked HR record to attach</span>;
-  }
-  return (
-    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-      <div style={{ minWidth: 190 }}>
-        <Combobox
-          options={people.map(p => ({ value: p.person_id, label: `${p.first_name} ${p.last_name}`, sublabel: p.personal_email ?? undefined }))}
-          value={pick} onChange={setPick} placeholder="Link an HR record…" emptyText="None available." />
-      </div>
-      <Button type="button" size="sm" variant="outline" disabled={!pick || busy} onClick={() => onLink(pick)}>
-        {busy ? 'Linking…' : 'Link'}
       </Button>
     </div>
   );
