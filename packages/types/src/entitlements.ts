@@ -13,6 +13,7 @@ export type FeatureKey =
   | 'finops'
   | 'oneid'
   | 'nexushr'
+  | 'onsite'
   | 'tracking'
   | 'tracking.cargo-loading'
   | 'tracking.warehouse'

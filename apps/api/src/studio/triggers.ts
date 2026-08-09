@@ -325,6 +325,21 @@ export const TRIGGERS: TriggerDef[] = [
     }).passthrough(),
     samplePayload: { userId: '00000000-0000-0000-0000-000000000000', name: 'Jane Mwangi', active: true, changedBy: '00000000-0000-0000-0000-000000000000' },
   },
+  {
+    id: 'hr.holidays_synced',
+    kind: 'DOMAIN_EVENT',
+    app: 'nexushr',
+    label: 'Holidays synced',
+    description: 'Public holidays were updated for the tenant country.',
+    entityType: 'hr_holidays',
+    payloadSchema: z.object({
+      countries: z.array(z.string()).optional(),
+      years: z.array(z.number()).optional(),
+      added: z.number().optional(),
+      updated: z.number().optional(),
+    }).passthrough(),
+    samplePayload: { countries: ['TZ'], years: [2026], added: 12, updated: 2 },
+  },
 ];
 
 export const TRIGGERS_BY_ID = new Map(TRIGGERS.map(t => [t.id, t]));
