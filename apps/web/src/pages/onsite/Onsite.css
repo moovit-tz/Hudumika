@@ -1,10 +1,10 @@
-/* ─── Onsite Infrastructure Control Plane Styling ─── */
+/* ─── Onsite Infrastructure Control Plane Styling (Hostinger / hPanel UI) ─── */
 
 .onsite-page {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  padding: 1.5rem;
+  padding: 1.5rem 2rem;
   max-width: 1400px;
   margin: 0 auto;
   width: 100%;
@@ -19,9 +19,9 @@
 }
 
 .onsite-header-title h1 {
-  font-size: 1.5rem;
+  font-size: 1.625rem;
   font-weight: 700;
-  color: var(--ink);
+  color: var(--ink, #18181b);
   margin: 0;
   letter-spacing: -0.02em;
 }
@@ -29,13 +29,391 @@
 .onsite-header-title p {
   margin: 0.25rem 0 0 0;
   font-size: 0.875rem;
-  color: var(--ink-muted);
+  color: var(--ink-muted, #71717a);
 }
 
 .onsite-header-actions {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+}
+
+/* Hostinger Home AI Prompt Hero */
+.onsite-hero-greeting {
+  text-align: center;
+  margin: 1.5rem 0 1rem 0;
+}
+
+.onsite-hero-greeting h2 {
+  font-size: 1.875rem;
+  font-weight: 600;
+  color: var(--ink, #18181b);
+  letter-spacing: -0.02em;
+  margin: 0 0 1.5rem 0;
+}
+
+.onsite-prompt-box {
+  max-width: 680px;
+  margin: 0 auto;
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 1.25rem;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.onsite-prompt-box:focus-within {
+  border-color: #673de6;
+  box-shadow: 0 4px 24px rgba(103, 61, 230, 0.12);
+}
+
+.onsite-prompt-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 0.9375rem;
+  color: var(--ink, #18181b);
+  background: transparent;
+}
+
+.onsite-prompt-submit {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #f4f4f5;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #71717a;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.onsite-prompt-submit:hover {
+  background: #673de6;
+  color: #ffffff;
+}
+
+.onsite-prompt-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.onsite-prompt-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.875rem;
+  border-radius: 9999px;
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #3f3f46;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.onsite-prompt-pill:hover {
+  border-color: #673de6;
+  color: #673de6;
+  background: #f8f5ff;
+}
+
+/* Feature Showcase Banners (Hostinger style) */
+.onsite-feature-banners {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
+.onsite-feature-banner {
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 1.25rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+.onsite-feature-banner h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: #18181b;
+}
+
+.onsite-feature-banner p {
+  font-size: 0.875rem;
+  color: #71717a;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.onsite-btn-black {
+  background: #18181b;
+  color: #ffffff;
+  border: none;
+  padding: 0.55rem 1.25rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  width: fit-content;
+  transition: background 0.15s ease;
+}
+
+.onsite-btn-black:hover {
+  background: #27272a;
+}
+
+.onsite-btn-purple {
+  background: #673de6;
+  color: #ffffff;
+  border: none;
+  padding: 0.55rem 1.25rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  width: fit-content;
+  transition: background 0.15s ease;
+}
+
+.onsite-btn-purple:hover {
+  background: #542cc7;
+}
+
+.onsite-btn-outline {
+  background: #ffffff;
+  color: #18181b;
+  border: 1px solid #e4e4e7;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.onsite-btn-outline:hover {
+  border-color: #673de6;
+  color: #673de6;
+}
+
+/* Tabs Header */
+.onsite-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #f4f4f5;
+  padding: 0.25rem;
+  border-radius: 9999px;
+  width: fit-content;
+}
+
+.onsite-tab {
+  padding: 0.4rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #71717a;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.onsite-tab.active {
+  background: #ffffff;
+  color: #18181b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Hostinger Grouped Plan Card */
+.onsite-plan-group {
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 1rem;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.onsite-plan-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f4f4f5;
+  padding-bottom: 0.875rem;
+}
+
+.onsite-plan-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #18181b;
+}
+
+.onsite-plan-expiry {
+  font-size: 0.8125rem;
+  color: #71717a;
+  margin-top: 0.15rem;
+}
+
+.onsite-website-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f4f4f5;
+}
+
+.onsite-website-row:last-child {
+  border-bottom: none;
+}
+
+.onsite-site-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 0.5rem;
+  background: #f4f4f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: #3f3f46;
+  flex-shrink: 0;
+}
+
+.onsite-site-info {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+}
+
+.onsite-site-domain {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: #18181b;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.onsite-site-domain:hover {
+  color: #673de6;
+}
+
+.onsite-site-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Domain Search Gradient Hero */
+.onsite-domain-search-hero {
+  background: linear-gradient(135deg, #e9e4ff 0%, #d8cdff 50%, #c4b5fd 100%);
+  border-radius: 1.5rem;
+  padding: 2.5rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.onsite-domain-search-hero h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1e1b4b;
+  margin: 0;
+}
+
+.onsite-tld-cards {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 900px;
+}
+
+.onsite-tld-card {
+  background: #ffffff;
+  border-radius: 0.875rem;
+  padding: 0.875rem 1.25rem;
+  min-width: 120px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.onsite-tld-name {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: #18181b;
+}
+
+.onsite-tld-orig-price {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+  text-decoration: line-through;
+}
+
+.onsite-tld-price {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: #673de6;
+}
+
+/* Transfers Illustration Box */
+.onsite-transfer-card {
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 1.25rem;
+  padding: 3.5rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  max-width: 800px;
+  margin: 1rem auto;
+}
+
+.onsite-transfer-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #f4f0ff;
+  color: #673de6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.5rem;
 }
 
 /* Stat Grid */
@@ -46,28 +424,22 @@
 }
 
 .onsite-stat-card {
-  background: var(--white);
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 0.875rem;
   padding: 1.25rem;
   display: flex;
   align-items: flex-start;
   gap: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.onsite-stat-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .onsite-stat-icon {
-  width: 44px;
-  height: 44px;
+  width: 42px;
+  height: 42px;
   border-radius: 0.6rem;
-  background: var(--teal-l);
-  color: var(--teal);
+  background: #f4f0ff;
+  color: #673de6;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -82,28 +454,15 @@
 .onsite-stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: var(--ink);
+  color: #18181b;
   line-height: 1.2;
 }
 
 .onsite-stat-label {
   font-size: 0.8125rem;
-  color: var(--ink-muted);
+  color: #71717a;
   margin-top: 0.25rem;
 }
-
-.onsite-stat-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-  font-weight: 600;
-  margin-top: 0.35rem;
-}
-
-.onsite-stat-badge.success { color: #10b981; }
-.onsite-stat-badge.warning { color: #f59e0b; }
-.onsite-stat-badge.danger  { color: #ef4444; }
 
 /* Grid Sections */
 .onsite-grid-2 {
@@ -120,14 +479,14 @@
 
 /* Onsite Cards */
 .onsite-card {
-  background: var(--white);
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 0.875rem;
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .onsite-card-header {
@@ -139,7 +498,7 @@
 .onsite-card-title {
   font-size: 1rem;
   font-weight: 600;
-  color: var(--ink);
+  color: #18181b;
   margin: 0;
   display: flex;
   align-items: center;
@@ -194,7 +553,7 @@
 .onsite-table-wrapper {
   overflow-x: auto;
   border-radius: 0.5rem;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid #e4e4e7;
 }
 
 .onsite-table {
@@ -205,18 +564,18 @@
 }
 
 .onsite-table th {
-  background: var(--bg-subtle, #f8fafc);
-  color: var(--ink-muted);
+  background: #fafafa;
+  color: #71717a;
   font-weight: 600;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid #e4e4e7;
   white-space: nowrap;
 }
 
 .onsite-table td {
   padding: 0.875rem 1rem;
-  border-bottom: 1px solid var(--border-subtle);
-  color: var(--ink);
+  border-bottom: 1px solid #e4e4e7;
+  color: #18181b;
   vertical-align: middle;
 }
 
@@ -244,17 +603,17 @@
 .onsite-form-group label {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--ink);
+  color: #18181b;
 }
 
 .onsite-input,
 .onsite-select,
 .onsite-textarea {
-  padding: 0.5rem 0.75rem;
+  padding: 0.55rem 0.875rem;
   border-radius: 0.5rem;
-  border: 1px solid var(--border-subtle);
-  background: var(--white);
-  color: var(--ink);
+  border: 1px solid #e4e4e7;
+  background: #ffffff;
+  color: #18181b;
   font-size: 0.875rem;
   outline: none;
   transition: border-color 0.15s ease;
@@ -263,34 +622,21 @@
 .onsite-input:focus,
 .onsite-select:focus,
 .onsite-textarea:focus {
-  border-color: var(--teal);
+  border-color: #673de6;
 }
 
-/* Alert Boxes */
-.onsite-alert-item {
+/* Modal backdrop.
+   Every dialog in these pages inlined the same six declarations; this is that
+   block named once so a new dialog cannot land on a different dim or a
+   different z-index. */
+.onsite-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
   display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.875rem 1rem;
-  border-radius: 0.5rem;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.2);
-}
-
-.onsite-alert-item.critical {
-  background: rgba(239, 68, 68, 0.08);
-  border-color: rgba(239, 68, 68, 0.2);
-}
-
-.onsite-alert-content h4 {
-  margin: 0;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.onsite-alert-content p {
-  margin: 0.25rem 0 0 0;
-  font-size: 0.8125rem;
-  color: var(--ink-muted);
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
 }

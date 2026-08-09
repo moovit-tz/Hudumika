@@ -6,6 +6,9 @@ import { checkDnsPropagation, verifyTxtRecord } from '../services/onsite-dns-pro
 import { resolveCIProvider, verifyProviderConnection, NO_CI_PROVIDER_MESSAGE } from '../services/onsite-ci.service.js';
 import { runCheck } from '../services/onsite-uptime.service.js';
 import { refreshDomainCertificate } from '../services/onsite-ssl.service.js';
+import {
+  validateRecord, deletionImpact, toZoneFile, parseZoneFile, planImport, DNS_TEMPLATES,
+} from '../services/onsite-dns.service.js';
 import { sql } from 'kysely';
 
 export async function onsiteRoutes(fastify: FastifyInstance) {
@@ -323,6 +326,17 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'Name, type, and value are required' });
     }
 
+    /**
+     * Checked here rather than at the CHECK constraint.
+     *
+     * An unsupported type used to surface as a raw 500 carrying Postgres code
+     * 23514, and nothing validated the *value* at all: an A record would store
+     * "not an address", and an MX record could be saved with no priority,
+     * which is not a valid MX record.
+     */
+    const invalid = validateRecord(body);
+    if (invalid) return reply.status(400).send({ error: invalid });
+
     const zone = await db.selectFrom('onsite_dns_zones')
       .select('id')
       .where('domain_id', '=', domainId)
@@ -348,15 +362,184 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
     return reply.status(201).send(record);
   });
 
+  /**
+   * Delete a record.
+   *
+   * Removing the last MX record ends mail delivery for the domain and removing
+   * the apex A record takes the site offline — both used to happen silently.
+   * The impact is computed first and returned as a 409 unless the caller
+   * confirms, which is ONSITE.md section 62's "explain the consequence" for the
+   * operations that actually have one.
+   */
   fastify.delete('/domains/:domainId/dns/:recordId', async (request: FastifyRequest, reply: FastifyReply) => {
     const { recordId } = request.params as { domainId: string; recordId: string };
-    const res = await db.deleteFrom('onsite_dns_records')
+    const q = request.query as { confirm?: string };
+
+    const record = await db.selectFrom('onsite_dns_records')
+      .select(['id', 'zone_id', 'name', 'type', 'value'])
       .where('id', '=', recordId)
       .where('tenant_id', '=', request.user.tenant_id)
       .executeTakeFirst();
+    if (!record) return reply.status(404).send({ error: 'DNS record not found' });
 
-    if (res.numDeletedRows === 0n) return reply.status(404).send({ error: 'DNS record not found' });
-    return reply.send({ success: true });
+    const siblings = await db.selectFrom('onsite_dns_records')
+      .select(['name', 'type'])
+      .where('zone_id', '=', record.zone_id)
+      .where('tenant_id', '=', request.user.tenant_id)
+      .where('id', '!=', recordId)
+      .execute();
+
+    const impact = deletionImpact(record, siblings);
+    if (impact && q.confirm !== 'true') {
+      return reply.status(409).send({ error: impact, requires_confirmation: true });
+    }
+
+    await db.deleteFrom('onsite_dns_records')
+      .where('id', '=', recordId)
+      .where('tenant_id', '=', request.user.tenant_id)
+      .execute();
+    return reply.send({ success: true, warned: impact ?? null });
+  });
+
+  /**
+   * The zone as a BIND file.
+   *
+   * Every registrar reads this format; an export nobody else can import is a
+   * backup rather than portability.
+   */
+  fastify.get('/domains/:domainId/dns/export', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { domainId } = request.params as { domainId: string };
+    const domain = await db.selectFrom('onsite_domains')
+      .select(['id', 'domain'])
+      .where('id', '=', domainId)
+      .where('tenant_id', '=', request.user.tenant_id)
+      .executeTakeFirst();
+    if (!domain) return reply.status(404).send({ error: 'Domain not found' });
+
+    const records = await db.selectFrom('onsite_dns_records as r')
+      .innerJoin('onsite_dns_zones as z', 'z.id', 'r.zone_id')
+      .select(['r.name', 'r.type', 'r.value', 'r.ttl', 'r.priority'])
+      .where('z.domain_id', '=', domainId)
+      .where('r.tenant_id', '=', request.user.tenant_id)
+      .orderBy('r.type').orderBy('r.name')
+      .execute();
+
+    return reply
+      .header('Content-Type', 'text/plain; charset=utf-8')
+      .header('Content-Disposition', 'attachment; filename="' + domain.domain + '.zone"')
+      .send(toZoneFile(domain.domain, records));
+  });
+
+  /**
+   * Import a zone file.
+   *
+   * Two steps on purpose: without `apply` this reports what *would* happen and
+   * writes nothing, so a paste can be reviewed before it changes how a domain
+   * resolves. Re-importing the same file creates nothing the second time — a
+   * record's identity is name+type+value(+priority), so the plan reports it as
+   * unchanged (ONSITE.md section 63).
+   */
+  fastify.post('/domains/:domainId/dns/import', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { domainId } = request.params as { domainId: string };
+    const body = request.body as { zone_file?: string; apply?: boolean };
+    if (!body?.zone_file?.trim()) return reply.status(400).send({ error: 'zone_file is required' });
+
+    const zone = await db.selectFrom('onsite_dns_zones as z')
+      .innerJoin('onsite_domains as d', 'd.id', 'z.domain_id')
+      .select(['z.id as zone_id', 'd.domain as domain'])
+      .where('z.domain_id', '=', domainId)
+      .where('z.tenant_id', '=', request.user.tenant_id)
+      .executeTakeFirst();
+    if (!zone) return reply.status(404).send({ error: 'DNS zone not found' });
+
+    const parsed = parseZoneFile(body.zone_file);
+    const errors = parsed.filter(x => x.error);
+    const good = parsed.filter(x => x.record).map(x => x.record!);
+
+    const existing = await db.selectFrom('onsite_dns_records')
+      .select(['name', 'type', 'value', 'ttl', 'priority'])
+      .where('zone_id', '=', zone.zone_id)
+      .where('tenant_id', '=', request.user.tenant_id)
+      .execute();
+
+    const plan = planImport(good, existing);
+    const toCreate = plan.filter(x => x.action === 'create');
+
+    if (!body.apply) {
+      return reply.send({
+        applied: false,
+        domain: zone.domain,
+        create: toCreate.length,
+        unchanged: plan.length - toCreate.length,
+        errors: errors.map(e => ({ line: e.line, raw: e.raw, error: e.error })),
+        plan,
+      });
+    }
+
+    // A file with an unreadable line is not applied piecemeal: the caller fixes
+    // it and re-imports, rather than being left guessing which half landed.
+    if (errors.length) {
+      return reply.status(400).send({
+        error: errors.length + ' line(s) could not be read. Nothing was imported.',
+        errors: errors.map(e => ({ line: e.line, raw: e.raw, error: e.error })),
+      });
+    }
+
+    if (toCreate.length) {
+      await db.insertInto('onsite_dns_records')
+        .values(toCreate.map(x => ({
+          tenant_id: request.user.tenant_id,
+          zone_id: zone.zone_id,
+          name: x.record.name,
+          type: x.record.type.toUpperCase(),
+          value: x.record.value,
+          ttl: x.record.ttl ?? 3600,
+          priority: x.record.priority ?? null,
+          created_by: request.user.sub,
+        })))
+        .execute();
+    }
+
+    return reply.send({
+      applied: true,
+      domain: zone.domain,
+      created: toCreate.length,
+      unchanged: plan.length - toCreate.length,
+    });
+  });
+
+  /**
+   * Setup templates.
+   *
+   * These return records to review; nothing is written. Section 15 is explicit
+   * that a template must require confirmation, so applying one is the caller
+   * posting the rows it accepted back through the ordinary create endpoint.
+   */
+  fastify.get('/dns/templates', async (_request: FastifyRequest, reply: FastifyReply) => {
+    return reply.send(DNS_TEMPLATES.map(t => ({
+      id: t.id, label: t.label, description: t.description, inputs: t.inputs,
+    })));
+  });
+
+  fastify.post('/dns/templates/:id/preview', async (request: FastifyRequest, reply: FastifyReply) => {
+    const { id } = request.params as { id: string };
+    const vars = (request.body ?? {}) as Record<string, string>;
+    const template = DNS_TEMPLATES.find(t => t.id === id);
+    if (!template) return reply.status(404).send({ error: 'No DNS template called "' + id + '".' });
+
+    const missing = template.inputs.filter(i => !String(vars[i.key] ?? '').trim());
+    if (missing.length) {
+      return reply.status(400).send({ error: missing.map(m => m.label).join(', ') + ' is required for this template.' });
+    }
+
+    const records = template.build(vars);
+    // A template that generates an invalid record is a bug in the template, and
+    // saying so beats handing the user rows the editor will refuse.
+    const bad = records.map(r => ({ r, err: validateRecord(r) })).filter(x => x.err);
+    if (bad.length) {
+      return reply.status(422).send({ error: 'This template produced a record Onsite cannot store: ' + bad[0].err });
+    }
+    return reply.send({ template: template.id, records });
   });
 
   fastify.post('/domains/:domainId/dns/check-propagation', async (request: FastifyRequest, reply: FastifyReply) => {
