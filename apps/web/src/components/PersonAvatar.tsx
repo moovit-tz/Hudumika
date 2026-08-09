@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { avatarObjectUrl, nameColor, nameInitials, onAvatarChanged } from '../lib/identity.js';
+import type { SubjectKind } from '../lib/identity.js';
 
 /**
  * One person's face, drawn the same way in every app.
@@ -14,11 +15,16 @@ import { avatarObjectUrl, nameColor, nameInitials, onAvatarChanged } from '../li
  * Pass a `userId` and the picture is fetched once and shared from a module
  * cache. Pass only a `name` and it draws initials, which is the correct
  * rendering for someone who has not set one — not a fallback, an answer.
+ *
+ * `kind` says which table the id belongs to. It defaults to `people` because
+ * that is all this could address originally; a CRM lead, a contact or a
+ * HuduFreight driver passes its own kind and gets the same treatment.
  */
 export function PersonAvatar({
-  userId, name, size = 32, src, title, style, onClick,
+  userId, kind = 'people', name, size = 32, src, title, style, onClick,
 }: {
   userId?: string | null;
+  kind?: SubjectKind;
   name: string;
   size?: number;
   /** An already-resolved image, when the caller has one. Skips the fetch. */
@@ -34,16 +40,18 @@ export function PersonAvatar({
     if (src) { setUrl(src); return; }
     if (!userId) { setUrl(null); return; }
     let alive = true;
-    const load = () => { setFailed(false); avatarObjectUrl(userId).then(u => { if (alive) setUrl(u); }); };
+    const load = () => { setFailed(false); avatarObjectUrl(userId, kind).then(u => { if (alive) setUrl(u); }); };
     load();
     // When this person's picture changes anywhere in the app, re-fetch. Without
     // this the module cache — the thing that makes one picture serve every app —
     // also pinned the old one until a full reload.
-    const off = onAvatarChanged(changed => { if (changed === userId) load(); });
+    const off = onAvatarChanged((changed, changedKind) => {
+      if (changed === userId && changedKind === kind) load();
+    });
     // Guarded so a picture arriving after the component unmounts does not set
     // state on it.
     return () => { alive = false; off(); };
-  }, [userId, src]);
+  }, [userId, kind, src]);
 
   const common: React.CSSProperties = {
     width: size, height: size, borderRadius: '50%', flexShrink: 0,

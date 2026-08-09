@@ -43,6 +43,53 @@ function decodeDataUri(uri: string): { mime: string; buf: Buffer } | null {
   try { return { mime: m[1], buf: Buffer.from(m[2], 'base64') }; } catch { return null; }
 }
 
+/**
+ * Every kind of thing that can have a picture.
+ *
+ * A picture is not a property of being a user account, but the schema treated
+ * it as one: only `users` could have one set, and every other subject the
+ * platform draws a face or a mark for — a CRM customer, a lead, a chain
+ * partner, a contact, a HuduFreight driver, a supplier — rendered initials
+ * with no way to change that.
+ *
+ * Rather than six near-identical endpoints, one registry. Adding a subject is
+ * a row here, and the serve/set/clear routes below cover it immediately.
+ *
+ * Only these table and column names ever reach a query — they come from this
+ * object, never from the request — so `:kind` cannot be used to point a write
+ * at some other table. Every subject also carries an explicit tenant column,
+ * because RLS does not protect these on its own.
+ */
+const SUBJECTS = {
+  // The historical URL. `people` rather than `users` because that is what the
+  // avatar endpoint has always been called and what clients already request.
+  people:    { table: 'users',     image: 'avatar_url' },
+  customers: { table: 'customers', image: 'logo_url'   },
+  leads:     { table: 'leads',     image: 'avatar_url' },
+  contacts:  { table: 'contacts',  image: 'avatar_url' },
+  drivers:   { table: 'drivers',   image: 'avatar_url' },
+  suppliers: { table: 'suppliers', image: 'avatar_url' },
+} as const;
+
+type SubjectKind = keyof typeof SUBJECTS;
+
+function subjectFor(kind: string): (typeof SUBJECTS)[SubjectKind] | null {
+  return Object.prototype.hasOwnProperty.call(SUBJECTS, kind)
+    ? SUBJECTS[kind as SubjectKind]
+    : null;
+}
+
+/**
+ * Roughly 1.5MB of base64, which is about a 1MB image.
+ *
+ * The client downscales to a 256px JPEG before sending — some 20KB — so
+ * anything near this ceiling did not come from the app's own picker. The cap
+ * exists because these are stored inline in a row, and one 548KB data URI in
+ * `users` is already what made embedding pictures in list payloads untenable.
+ */
+const MAX_AVATAR_CHARS = 1_500_000;
+const ALLOWED_IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
 export async function identityRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
 
@@ -131,18 +178,28 @@ export async function identityRoutes(fastify: FastifyInstance) {
    * URI repeated across a staff list is the difference between a page that
    * loads and one that does not.
    */
-  fastify.get('/people/:id/avatar', async (req, reply) => {
+  fastify.get('/:kind/:id/avatar', async (req, reply) => {
     const user = req.user;
-    const { id } = req.params as { id: string };
+    const { kind, id } = req.params as { kind: string; id: string };
+    const subject = subjectFor(kind);
+    if (!subject) return reply.status(404).send({ error: `There is no picture for "${kind}"` });
 
     return withTenant(user.tenant_id, async (trx) => {
-      const row = await trx.selectFrom('users').select(['avatar_url', 'name'])
+      const row = await (trx.selectFrom(subject.table as any) as any)
+        .select([subject.image])
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const stored: string | null = row?.[subject.image] ?? null;
       // 404 rather than a placeholder: the caller already knows how to draw
       // initials, and a served placeholder would hide a missing picture.
-      if (!row?.avatar_url) return reply.status(404).send({ error: 'No picture set' });
+      if (!stored) return reply.status(404).send({ error: 'No picture set' });
 
-      const decoded = decodeDataUri(row.avatar_url);
+      // A customer's logo_url predates this endpoint and may hold an ordinary
+      // http(s) URL rather than a data URI. Redirect to it instead of calling
+      // it corrupt — the column has one meaning, "the picture", and both
+      // spellings satisfy it.
+      if (!stored.startsWith('data:')) return reply.redirect(stored);
+
+      const decoded = decodeDataUri(stored);
       if (!decoded) return reply.status(422).send({ error: 'The stored picture is not a readable image' });
 
       const etag = `"${crypto.createHash('sha1').update(decoded.buf).digest('hex').slice(0, 24)}"`;
@@ -153,6 +210,64 @@ export async function identityRoutes(fastify: FastifyInstance) {
         .header('Cache-Control', 'private, max-age=3600, must-revalidate')
         .header('ETag', etag)
         .send(decoded.buf);
+    });
+  });
+
+  /**
+   * Set the picture for any subject.
+   *
+   * All validation happens before the write. A `reply.status(4xx)` inside
+   * withTenant returns *normally*, so the transaction commits — a rejected
+   * request that had already written would keep the write.
+   */
+  fastify.put('/:kind/:id/avatar', async (req, reply) => {
+    const user = req.user;
+    const { kind, id } = req.params as { kind: string; id: string };
+    const subject = subjectFor(kind);
+    if (!subject) return reply.status(404).send({ error: `There is no picture for "${kind}"` });
+
+    const { data_url } = (req.body ?? {}) as { data_url?: string };
+    if (!data_url || typeof data_url !== 'string') {
+      return reply.status(400).send({ error: 'data_url is required' });
+    }
+    if (data_url.length > MAX_AVATAR_CHARS) {
+      return reply.status(413).send({
+        error: `That picture is too large (${Math.round(data_url.length / 1024)}KB). Pictures are stored inline, so the limit is ${Math.round(MAX_AVATAR_CHARS / 1024)}KB.`,
+      });
+    }
+    const decoded = decodeDataUri(data_url);
+    if (!decoded) return reply.status(400).send({ error: 'data_url must be a base64 data URI' });
+    // Without this, any MIME at all could be stored and later served back with
+    // that Content-Type — including text/html, which the GET above would hand
+    // to the browser to render on this origin.
+    if (!ALLOWED_IMAGE_MIME.has(decoded.mime)) {
+      return reply.status(400).send({ error: `${decoded.mime} is not an image format that can be stored` });
+    }
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await (trx.updateTable(subject.table as any) as any)
+        .set({ [subject.image]: data_url })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returning('id').executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Not found in this workspace' });
+      return { success: true, avatar_url: `/v1/identity/${kind}/${id}/avatar` };
+    });
+  });
+
+  /** Remove a picture, returning the subject to initials. */
+  fastify.delete('/:kind/:id/avatar', async (req, reply) => {
+    const user = req.user;
+    const { kind, id } = req.params as { kind: string; id: string };
+    const subject = subjectFor(kind);
+    if (!subject) return reply.status(404).send({ error: `There is no picture for "${kind}"` });
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await (trx.updateTable(subject.table as any) as any)
+        .set({ [subject.image]: null })
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returning('id').executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Not found in this workspace' });
+      return { success: true };
     });
   });
 
@@ -188,7 +303,11 @@ export async function identityRoutes(fastify: FastifyInstance) {
       return rows.map(r => ({
         id: r.id, kind: 'customer', name: r.name,
         email: r.email ?? undefined, phone: r.phone ?? undefined,
-        logo_url: r.logo_url ?? undefined,
+        // The URL, not the blob — same rule as people above. Returning the
+        // column directly would put a whole data URI in every row of a
+        // 50-company list, which is the cost this endpoint exists to avoid.
+        has_avatar: !!r.logo_url,
+        logo_url: r.logo_url ? `/v1/identity/customers/${r.id}/avatar` : undefined,
         initials: initials(r.name), avatar_color: avatarColor(r.name),
       }));
     });

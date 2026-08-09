@@ -38,16 +38,37 @@ export interface Company {
   avatar_color: string;
 }
 
-/** id -> object URL, or null once we know there is no picture. */
+/**
+ * What kind of thing a picture belongs to.
+ *
+ * A picture used to be something only a user account could have, so this
+ * module addressed everything as a `userId` against /identity/people. The
+ * server now keeps a registry of subjects — a CRM customer, a lead, a chain
+ * partner, a contact, a HuduFreight driver, a supplier — and the same cache,
+ * the same invalidation and the same component serve all of them.
+ */
+export type SubjectKind = 'people' | 'customers' | 'leads' | 'contacts' | 'drivers' | 'suppliers';
+
+/** `kind:id` -> object URL, or null once we know there is no picture. */
 const avatarCache = new Map<string, Promise<string | null>>();
 
-export function avatarObjectUrl(userId: string): Promise<string | null> {
-  const hit = avatarCache.get(userId);
+/**
+ * Keyed by kind as well as id.
+ *
+ * Ids are UUIDs and so will not collide in practice, but a cache keyed on id
+ * alone would still be wrong in principle: it says a picture belongs to an id,
+ * when it belongs to a row in a particular table.
+ */
+const cacheKey = (id: string, kind: SubjectKind) => `${kind}:${id}`;
+
+export function avatarObjectUrl(id: string, kind: SubjectKind = 'people'): Promise<string | null> {
+  const key = cacheKey(id, kind);
+  const hit = avatarCache.get(key);
   if (hit) return hit;
 
   const p = (async () => {
     try {
-      const res = await fetch(`${BASE_URL}/v1/identity/people/${userId}/avatar`, {
+      const res = await fetch(`${BASE_URL}/v1/identity/${kind}/${id}/avatar`, {
         headers: { Authorization: `Bearer ${localStorage.getItem('hudumika_token') ?? ''}` },
       });
       // 404 is the ordinary answer for someone who has not set a picture. It is
@@ -59,8 +80,41 @@ export function avatarObjectUrl(userId: string): Promise<string | null> {
     }
   })();
 
-  avatarCache.set(userId, p);
+  avatarCache.set(key, p);
   return p;
+}
+
+/**
+ * Store a picture against any subject, then make every mounted avatar for it
+ * re-fetch. Throws with the server's own message so a caller can show it.
+ */
+export async function setAvatar(id: string, kind: SubjectKind, dataUrl: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/v1/identity/${kind}/${id}/avatar`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${localStorage.getItem('hudumika_token') ?? ''}`,
+    },
+    body: JSON.stringify({ data_url: dataUrl }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({} as any));
+    throw new Error(body.error || body.message || `Could not save the picture (${res.status})`);
+  }
+  forgetAvatar(id, kind);
+}
+
+/** Remove a picture, returning the subject to its initials. */
+export async function clearAvatar(id: string, kind: SubjectKind): Promise<void> {
+  const res = await fetch(`${BASE_URL}/v1/identity/${kind}/${id}/avatar`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${localStorage.getItem('hudumika_token') ?? ''}` },
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({} as any));
+    throw new Error(body.error || body.message || `Could not remove the picture (${res.status})`);
+  }
+  forgetAvatar(id, kind);
 }
 
 /**
@@ -73,18 +127,19 @@ export function avatarObjectUrl(userId: string): Promise<string | null> {
  * entry is not enough on its own, because components that already resolved a
  * URL are holding it in state; they need to be told.
  */
-const avatarSubs = new Set<(userId: string) => void>();
+const avatarSubs = new Set<(id: string, kind: SubjectKind) => void>();
 
-export function onAvatarChanged(fn: (userId: string) => void): () => void {
+export function onAvatarChanged(fn: (id: string, kind: SubjectKind) => void): () => void {
   avatarSubs.add(fn);
   return () => { avatarSubs.delete(fn); };
 }
 
-export function forgetAvatar(userId: string): void {
-  const hit = avatarCache.get(userId);
+export function forgetAvatar(id: string, kind: SubjectKind = 'people'): void {
+  const key = cacheKey(id, kind);
+  const hit = avatarCache.get(key);
   if (hit) hit.then(url => { if (url) URL.revokeObjectURL(url); }).catch(() => {});
-  avatarCache.delete(userId);
-  avatarSubs.forEach(fn => { try { fn(userId); } catch { /* one listener must not stop the rest */ } });
+  avatarCache.delete(key);
+  avatarSubs.forEach(fn => { try { fn(id, kind); } catch { /* one listener must not stop the rest */ } });
 }
 
 export async function fetchPeople(opts: { ids?: string[]; q?: string; limit?: number } = {}): Promise<Person[]> {
