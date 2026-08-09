@@ -61,7 +61,13 @@ export const Utilities: React.FC = () => {
       resetEntitlementsCache();
     } catch (err: any) {
       setOverrides(overrides);
-      showAlert(`Failed to update module: ${err.message}`);
+      // The API now answers 403 naming the feature and the plan when a
+      // module is not included, instead of scrubbing it to false behind a
+      // 200. That sentence is the whole message.
+      showAlert(err.message || 'That module could not be changed.', {
+        title: /plan/i.test(err.message || '') ? 'Not in your plan' : 'Could not update module',
+        variant: /plan/i.test(err.message || '') ? 'warning' : 'error',
+      });
     } finally {
       setModuleSaving(null);
     }

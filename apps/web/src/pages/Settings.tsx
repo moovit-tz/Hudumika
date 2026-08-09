@@ -16,7 +16,11 @@ import { useAuth } from '../hooks/useAuth.js';
 import { APP_META } from './Utilities.js';
 
 // -- Settings API context ---------------------------------------------------
-interface SettingsCtxType { s: Record<string, any>; save: (key: string, data: Record<string, any>) => Promise<void> }
+interface SettingsCtxType {
+  s: Record<string, any>;
+  /** `replace` sends $replace for sections whose payload is the complete set. */
+  save: (key: string, data: Record<string, any>, opts?: { replace?: boolean }) => Promise<void>;
+}
 const SettingsCtx = createContext<SettingsCtxType>({ s: {}, save: async () => {} });
 
 // -- nav structure ----------------------------------------------------------
@@ -1122,7 +1126,10 @@ const PaymentGatewaysSection: React.FC = () => {
           setSaving(true);
           const payload: Record<string, any> = {};
           for (const gw of GATEWAYS) { if (enabled[gw.id]) payload[`gw-${gw.id}`] = { enabled: true, sandbox: !!sandbox[gw.id], ...values[gw.id] }; }
-          try { await save('payment-gateways', payload); } catch {}
+          // $replace: this screen omits disabled gateways rather than sending
+          // them as false, so the stored object must be replaced outright. Every
+          // other section merges, which is what makes partial saves safe.
+          try { await save('payment-gateways', payload, { replace: true }); } catch {}
           setSaving(false);
         }}>
           {saving ? 'Saving�' : 'Save All Changes'}
@@ -1858,7 +1865,13 @@ const ModulesSection: React.FC = () => {
       resetEntitlementsCache();
     } catch (err: any) {
       setOverrides(prevOverrides);
-      showAlert(`Failed to update module: ${err.message}`);
+      // The API now answers 403 naming the feature and the plan when a
+      // module is not included, instead of scrubbing it to false behind a
+      // 200. That sentence is the whole message.
+      showAlert(err.message || 'That module could not be changed.', {
+        title: /plan/i.test(err.message || '') ? 'Not in your plan' : 'Could not update module',
+        variant: /plan/i.test(err.message || '') ? 'warning' : 'error',
+      });
     } finally {
       setModuleSaving(null);
     }
@@ -2242,8 +2255,20 @@ export const Settings: React.FC = () => {
       .catch(() => {});
   }, []);
 
-  const saveSection = async (key: string, data: Record<string, any>) => {
-    await apiFetch('/v1/settings', { method: 'PATCH', body: JSON.stringify({ [key]: data }) });
+  /**
+   * Save one section.
+   *
+   * The endpoint merges by default, so a section that sends only the fields it
+   * owns no longer wipes the rest of its object. `replace` is for the sections
+   * whose payload genuinely is the complete set — payment gateways omits the
+   * disabled ones rather than sending false, so merging would leave a
+   * switched-off gateway on.
+   */
+  const saveSection = async (key: string, data: Record<string, any>, opts?: { replace?: boolean }) => {
+    await apiFetch('/v1/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(opts?.replace ? { [key]: data, $replace: [key] } : { [key]: data }),
+    });
     setGlobalSettings(prev => ({ ...prev, [key]: data }));
   };
 

@@ -7,6 +7,46 @@ import { getDocSequence, setDocSequence, type DocType } from '../lib/doc-numberi
 
 const DOC_TYPES: DocType[] = ['invoice', 'quotation', 'purchase_order'];
 
+/**
+ * How a settings PATCH combines with what is already stored.
+ *
+ * This used to be one line — `settings || patch::jsonb` — which is a *shallow*
+ * merge: a patch of `{email:{host}}` replaced the whole `email` object and every
+ * sibling field with it. Reproduced against the live database: saving host, port
+ * and username, then saving host alone, left `{"host":"..."}` and nothing else.
+ * Every caller happened to send whole sections, so the loss had not fired yet —
+ * but nothing said it had to, and it is silent on both sides when it does.
+ *
+ * Merging is now the default, so a caller sending one field changes one field.
+ * RFC 7386's rule applies for removal: an explicit `null` deletes a key, which is
+ * what makes partial updates expressive enough to be the default.
+ *
+ * Replacement stays available per top-level key, because some sections genuinely
+ * mean "this is the whole set now" — the payment-gateway screen omits disabled
+ * gateways rather than sending them as false, so merging its payload would leave
+ * a switched-off gateway switched on. That is a real requirement; it is just no
+ * longer the silent default for everyone else.
+ */
+export function mergeSettings(
+  current: Record<string, any>,
+  patch: Record<string, any>,
+  replaceKeys: string[] = [],
+): Record<string, any> {
+  const isPlainObject = (v: unknown) => typeof v === 'object' && v !== null && !Array.isArray(v);
+  const out: Record<string, any> = { ...current };
+
+  for (const [key, value] of Object.entries(patch)) {
+    if (value === null) { delete out[key]; continue; }
+    if (replaceKeys.includes(key)) { out[key] = value; continue; }
+    // Arrays replace wholesale: a list of tax rates or currencies means the
+    // list, and merging two arrays by index is never what anyone wants.
+    out[key] = isPlainObject(value) && isPlainObject(out[key])
+      ? mergeSettings(out[key], value, [])
+      : value;
+  }
+  return out;
+}
+
 export async function settingsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
 
@@ -32,14 +72,29 @@ export async function settingsRoutes(fastify: FastifyInstance) {
   // PATCH /v1/settings
   fastify.patch('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
     const user = request.user;
-    const updates = request.body as Record<string, any>;
+    const { $replace, ...updates } = request.body as Record<string, any>;
 
-    // A non-SUPER_ADMIN can toggle 'enabled-apps' off (hide a module they have)
-    // but never on beyond what their plan already grants — otherwise this
-    // generic settings endpoint would let any tenant admin self-grant paid
-    // features for free. requireEntitlement() (middleware/entitlement.ts)
-    // trusts an explicit `true` override as SuperAdmin-authorized, so it must
-    // be scrubbed here for anyone else before it's persisted.
+    /**
+     * Which top-level keys mean "this is the whole set now".
+     *
+     * Everything else merges. A caller opts in by listing keys in `$replace`;
+     * the payment-gateway screen is the one that needs it, because it omits
+     * disabled gateways instead of sending them as false.
+     */
+    const replaceKeys: string[] = Array.isArray($replace) ? $replace.filter(k => typeof k === 'string') : [];
+
+    /**
+     * A tenant may switch a module off, but never on beyond what its plan
+     * grants — otherwise this generic endpoint would let any tenant admin
+     * self-grant paid features, since requireEntitlement() treats an explicit
+     * `true` override as SuperAdmin-authorised.
+     *
+     * The rule is unchanged. What changed is the answer: this used to scrub the
+     * ungranted `true` to `false` and return 200, so the switch stayed on
+     * screen, the database said off, and nothing told the person which. Now it
+     * refuses and names both the feature and the plan, so the console can say
+     * what happened.
+     */
     if (updates['enabled-apps'] && user.role !== 'SUPER_ADMIN') {
       return withTenant(user.tenant_id, async (trx) => {
         const tenant = await trx.selectFrom('tenants').select('plan').where('id', '=', user.tenant_id).executeTakeFirst();
@@ -48,21 +103,49 @@ export async function settingsRoutes(fastify: FastifyInstance) {
           : [];
         const grantSet = new Set(grants.map(g => g.feature_key));
         const raw = updates['enabled-apps'] as Record<string, boolean>;
-        const scrubbed: Record<string, boolean> = {};
-        for (const [key, val] of Object.entries(raw)) {
-          scrubbed[key] = val === true ? grantSet.has(key) : false;
+
+        const ungranted = Object.entries(raw)
+          .filter(([key, val]) => val === true && !grantSet.has(key))
+          .map(([key]) => key);
+
+        if (ungranted.length > 0) {
+          reply.status(403);
+          return {
+            error: ungranted.length === 1
+              ? `"${ungranted[0]}" is not included in your ${tenant?.plan ?? 'current'} plan, so it cannot be switched on here.`
+              : `These are not included in your ${tenant?.plan ?? 'current'} plan, so they cannot be switched on here: ${ungranted.join(', ')}.`,
+            code: 'PLAN_UPGRADE_REQUIRED',
+            plan: tenant?.plan ?? null,
+            ungranted,
+          };
         }
-        return applySettingsPatch(trx, user.tenant_id, { ...updates, 'enabled-apps': scrubbed });
+
+        return applySettingsPatch(trx, user.tenant_id, updates, replaceKeys);
       });
     }
 
-    return withTenant(user.tenant_id, (trx) => applySettingsPatch(trx, user.tenant_id, updates));
+    return withTenant(user.tenant_id, (trx) => applySettingsPatch(trx, user.tenant_id, updates, replaceKeys));
   });
 
-  async function applySettingsPatch(trx: any, tenantId: string, updates: Record<string, any>) {
-    const existing = await trx.selectFrom('tenant_settings').select('id').where('tenant_id', '=', tenantId).executeTakeFirst();
+  async function applySettingsPatch(
+    trx: any,
+    tenantId: string,
+    updates: Record<string, any>,
+    replaceKeys: string[] = [],
+  ) {
+    // FOR UPDATE: a read-modify-write needs the row held for the transaction, or
+    // two admins saving different sections at the same moment can each merge onto
+    // a snapshot taken before the other's write and silently drop it.
+    const existing = await sql<{ id: string; settings: any }>`
+      SELECT id, settings FROM tenant_settings WHERE tenant_id = ${tenantId} FOR UPDATE
+    `.execute(trx).then((r: any) => r.rows[0]);
+
     if (existing) {
-      await sql`UPDATE tenant_settings SET settings = settings || ${JSON.stringify(updates)}::jsonb, updated_at = NOW() WHERE tenant_id = ${tenantId}`.execute(trx);
+      const current = typeof existing.settings === 'string'
+        ? JSON.parse(existing.settings)
+        : (existing.settings ?? {});
+      const merged = mergeSettings(current, updates, replaceKeys);
+      await sql`UPDATE tenant_settings SET settings = ${JSON.stringify(merged)}::jsonb, updated_at = NOW() WHERE tenant_id = ${tenantId}`.execute(trx);
     } else {
       await trx.insertInto('tenant_settings').values({
         tenant_id: tenantId,
