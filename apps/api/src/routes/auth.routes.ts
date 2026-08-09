@@ -439,6 +439,45 @@ export async function authRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * POST /auth/logout
+   *
+   * Signing out was a localStorage wipe and nothing else, which left two ways
+   * back in. The access token stayed valid for its full hour wherever a copy
+   * of it existed, and the refresh token — good for thirty days, and the one
+   * the client did not even clear — would mint fresh access tokens on demand.
+   * Neither the browser nor the server had any record that the session ended.
+   *
+   * Revoking the device row closes both: middleware/auth.ts rejects any access
+   * token whose device_id is revoked, and /auth/refresh above refuses to mint
+   * from one. Every tab in this browser shares one hr_devices row (they share a
+   * User-Agent), so one sign-out ends the session for all of them server-side —
+   * the storage-event listener in useAuth.tsx only makes the UI agree promptly.
+   *
+   * Signing back in clears revoked_at (see recordLogin), so this is a sign-out,
+   * not a device ban.
+   */
+  fastify.post('/logout', {
+    preHandler: [fastify.authenticate],
+  }, async (request) => {
+    const actor = request.user;
+    // No device_id means a token minted before device tracking existed; there
+    // is nothing to revoke, and the client clearing its own keys is all that
+    // is left to do. Not an error — sign-out must always appear to succeed.
+    if (!actor.device_id) return { success: true, revoked: false };
+
+    return withTenant(actor.tenant_id, async (trx) => {
+      const revoked = await trx.updateTable('hr_devices')
+        .set({ revoked_at: new Date() })
+        .where('id', '=', actor.device_id!)
+        .where('user_id', '=', actor.sub)
+        .where('tenant_id', '=', actor.tenant_id)
+        .returning('id')
+        .executeTakeFirst();
+      return { success: true, revoked: !!revoked };
+    });
+  });
+
+  /**
    * POST /auth/change-password
    * Authenticated user changes their own password.
    */

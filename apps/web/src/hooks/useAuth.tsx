@@ -103,16 +103,64 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     hydrateTasksFromServer();
   };
 
-  const logout = () => {
-    localStorage.removeItem(KEYS.token);
-    localStorage.removeItem(KEYS.user);
-    localStorage.removeItem(KEYS.superToken);
-    localStorage.removeItem(KEYS.superUser);
+  /**
+   * Drop every trace of the session from this tab.
+   *
+   * Shared by the sign-out button and by the cross-tab listener, so the two
+   * can never end up clearing different things.
+   */
+  const clearSessionLocally = () => {
+    for (const k of Object.values(KEYS)) localStorage.removeItem(k);
     resetEnabledAppsCache();
     resetCompanyCache();
     resetTasksCache();
     setUser(null);
   };
+
+  const logout = () => {
+    // Tell the server first — it needs the token that is about to be deleted.
+    // Not awaited: sign-out must not hang on a slow or unreachable API, and it
+    // must not fail either. The device row is revoked server-side, which is
+    // what actually ends the session; clearing storage only ends it here.
+    apiFetch('/auth/logout', { method: 'POST' }).catch(() => {});
+    clearSessionLocally();
+  };
+
+  /**
+   * Signing out in one tab signs out every tab.
+   *
+   * localStorage fires `storage` in the *other* tabs of the same origin, never
+   * in the one that made the change — so this is exactly the signal for "some
+   * other tab ended the session". A tab that clears the whole store reports
+   * `key: null`, so that case has to be handled too rather than filtered out.
+   *
+   * The token going missing is not the only thing worth reacting to. If
+   * another tab signs in as somebody else, this tab keeps rendering the old
+   * user while every request it makes now carries the new user's token —
+   * showing one person's screen and acting as another. There is no way to
+   * repair that in place, so the tab reloads and adopts whoever is now
+   * signed in.
+   */
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.storageArea && e.storageArea !== localStorage) return;
+      if (e.key !== null && e.key !== KEYS.token && e.key !== KEYS.user) return;
+
+      const token = localStorage.getItem(KEYS.token);
+      if (!token) {
+        // Already signed out here — nothing to do, and setUser would loop.
+        if (!localStorage.getItem(KEYS.user) && !user) return;
+        clearSessionLocally();
+        return;
+      }
+      try {
+        const stored = JSON.parse(localStorage.getItem(KEYS.user) || 'null');
+        if (user && stored?.id && stored.id !== user.id) window.location.reload();
+      } catch { /* an unreadable user blob is handled on next load */ }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [user]);
 
   const impersonate = async (tenantId: string) => {
     const res = await apiFetch('/auth/impersonate', {
