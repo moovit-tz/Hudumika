@@ -34,6 +34,33 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [recentApps, setRecentApps] = useState<(typeof LAUNCHER_APPS)[0][]>([]);
 
+  // The app list is taller than any laptop viewport, so it has to scroll. Left
+  // unmarked, the row the scroll edge cuts through looks like the footer card
+  // is painting over it. `moreBelow` drives a fade on the bottom edge — but it
+  // has to switch off once you reach the end, or the fade eats the last row,
+  // which is why this is measured rather than a static CSS mask.
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [moreBelow, setMoreBelow] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!launcherOpen || !el) return;
+    const measure = () => setMoreBelow(el.scrollTop + el.clientHeight < el.scrollHeight - 2);
+    measure();
+    el.addEventListener('scroll', measure, { passive: true });
+    // The tile count changes with entitlements and role, and the panel is
+    // capped to the viewport — both change whether anything is below the fold.
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    if (el.firstElementChild) ro.observe(el.firstElementChild);
+    window.addEventListener('resize', measure);
+    return () => {
+      el.removeEventListener('scroll', measure);
+      window.removeEventListener('resize', measure);
+      ro.disconnect();
+    };
+  }, [launcherOpen, recentApps.length]);
+
   useEffect(() => {
     if (!launcherOpen) return;
     try {
@@ -147,7 +174,7 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
           <p className="app-lnch-edit-hint">{t('launcher.dragHint')}</p>
         )}
 
-        <div className="app-lnch-panel-scroll">
+        <div className="app-lnch-panel-scroll" ref={scrollRef} data-more-below={moreBelow || undefined}>
           {/* Recently viewed */}
           {recentApps.length > 0 && !editMode && (
             <>

@@ -36,7 +36,7 @@
 .app-lnch-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 498;
+  z-index: 1000;
   background: transparent;
 }
 
@@ -45,12 +45,12 @@
   top: 60px;
   right: 14px;
   width: 320px;
-  max-height: calc(100vh - 80px);
+  max-height: calc(100dvh - 80px);
   background: #ffffff;
   border: 1px solid rgba(226, 232, 240, 0.8);
   border-radius: 20px;
   box-shadow: var(--elev-lg);
-  z-index: 499;
+  z-index: 1001;
   display: flex;
   flex-direction: column;
   padding: 16px 14px 14px 14px;
@@ -187,10 +187,35 @@
 
 /* Scrollable grid area */
 .app-lnch-panel-scroll {
-  flex: 1;
+  /* A hard 380px here, under a panel already capped to the viewport, meant the
+     list was cut at 380 whatever the window size — and 380 does not divide into
+     the tile grid, so it always severed a row mid-tile. The half-icons left
+     above the footer read as the footer overlapping the grid.
+
+     flex + min-height:0 lets it take what the panel has spare instead: on a
+     normal window every app fits and nothing is cut, and on a short one it
+     scrolls properly rather than clipping at an arbitrary number. */
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding: 2px 2px 6px 2px;
-  max-height: 380px;
+
+  /* 25 tiles will not fit a laptop viewport, so the list does have to scroll.
+     What made it look broken was that the cut row had nothing marking it as a
+     scroll edge — a severed icon directly above the footer card reads as the
+     card covering it. Fading the last 40px turns that same cut into an
+     obvious "there is more below".
+
+     The fade has to be a mask, not a background gradient: a background paints
+     *behind* the tiles and so leaves the severed icon just as hard-edged. And
+     it is applied only while `data-more-below` is set, because a permanent
+     mask would dim the final row once you had scrolled to the end. */
+  transition: mask-image 0.15s ease;
+}
+
+.app-lnch-panel-scroll[data-more-below] {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 40px), transparent);
 }
 
 .app-lnch-panel-scroll::-webkit-scrollbar { width: 4px; }
