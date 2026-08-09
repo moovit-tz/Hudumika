@@ -27,9 +27,13 @@ import { PageHeader } from '../components/PageHeader.js';
 
 interface RosterRow {
   userId: string; name: string | null; email: string; role: string; active: boolean;
-  personId: string | null; hrName: string | null;
   employment: null | {
-    employment_id: string; status: string; employment_type: string; start_date: string;
+    // All nullable, and they mean it: someone can have a salary on file with no
+    // contract, in which case there is an employment block with a null type and
+    // no dates. Declaring these non-null is what let `employment_type.replace()`
+    // typecheck and then throw, blanking the whole page.
+    employment_id: string | null; status: string; employment_type: string | null;
+    start_date: string | null; end_date: string | null;
     base_salary: string | null; currency: string | null; pay_frequency: string | null;
     // A raise already agreed but not yet in force. Shown separately — it is
     // not what they earn today, and it is not nothing either.
@@ -129,11 +133,14 @@ export function EmploymentRecords() {
       {/* Counts of the real states, not a completion score. */}
       <div className="mc-row">
         {[
-          ['Logins', summary?.logins ?? 0, 'var(--ink)'],
-          ['With an HR record', summary?.withHrRecord ?? 0, 'var(--ink)'],
-          ['With a contract', summary?.withEmployment ?? 0, 'var(--ink)'],
-          ['HR records, no login', summary?.hrRecordsWithoutLogin ?? 0,
-            (summary?.hrRecordsWithoutLogin ?? 0) > 0 ? 'var(--gold)' : 'var(--ink)'],
+          // Two of these used to count the second person model and read 0
+          // forever; a third read a summary key the API no longer sends, so it
+          // showed 0 whatever the truth was. These are the states that exist now.
+          ['People', summary?.logins ?? 0, 'var(--ink)'],
+          ['With a contract', summary?.withContract ?? 0, 'var(--ink)'],
+          ['With pay on file', summary?.withPay ?? 0, 'var(--ink)'],
+          ['Nothing on file', summary?.withNeither ?? 0,
+            (summary?.withNeither ?? 0) > 0 ? 'var(--gold)' : 'var(--ink)'],
         ].map(([l, v, colour]) => (
           <div key={String(l)} className="mc-card">
             <div style={label}>{l}</div>
@@ -230,7 +237,7 @@ export function EmploymentRecords() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
               <thead>
                 <tr style={{ background: 'var(--bg)' }}>
-                  {['Person', 'Role', 'HR record', 'Contract', 'Job started', 'Agreed pay', ''].map((h, i) => (
+                  {['Person', 'Role', 'Status', 'Contract', 'Job started', 'Agreed pay', ''].map((h, i) => (
                     <th key={h || i} style={{ textAlign: 'left', padding: '8px 14px', ...label }}>{h}</th>
                   ))}
                 </tr>
@@ -245,15 +252,18 @@ export function EmploymentRecords() {
                     </td>
                     <td style={{ padding: '9px 14px', color: 'var(--ink2)' }}>{r.role}</td>
                     <td style={{ padding: '9px 14px' }}>
-                      {r.personId ? <Badge variant="success">linked</Badge> : <Badge variant="gray">none</Badge>}
+                      {/* Was "HR record: linked / none", which described the
+                          second person model. There is one record now, so the
+                          useful thing to say is whether they still work here. */}
+                      {r.active ? <Badge variant="success">active</Badge> : <Badge variant="gray">inactive</Badge>}
                     </td>
                     <td style={{ padding: '9px 14px' }}>
-                      {r.employment
+                      {r.employment?.employment_type
                         ? <Badge variant="brand">{r.employment.employment_type.replace(/_/g, ' ').toLowerCase()}</Badge>
-                        : <span style={{ color: 'var(--ink3)' }}>—</span>}
+                        : <span style={{ color: 'var(--ink3)' }}>none on file</span>}
                     </td>
                     <td style={{ padding: '9px 14px', color: 'var(--ink2)' }}>
-                      {r.employment ? String(r.employment.start_date).slice(0, 10) : '—'}
+                      {r.employment?.start_date ? String(r.employment.start_date).slice(0, 10) : '—'}
                     </td>
                     <td style={{ padding: '9px 14px' }}>
                       {/* Absent, not zero. A contract with no salary agreed yet
@@ -277,25 +287,24 @@ export function EmploymentRecords() {
                       )}
                     </td>
                     <td style={{ padding: '9px 14px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                      {/* Pay history hangs off the employment, so it only exists
-                          for someone who has a contract at all. */}
-                      {r.employment ? (
-                        <Button type="button" size="sm" variant="ghost"
-                          onClick={() => setOpenComp(openComp === r.employment!.employment_id ? null : r.employment!.employment_id)}>
-                          <Icon name={openComp === r.employment.employment_id ? 'chevronUp' : 'chevronDown'} size={13} />
-                          Pay history
-                        </Button>
-                      ) : null}
+                      {/* Pay history hangs off the person, not the contract, so
+                          everyone has one — including the people who have a
+                          salary on file and no contract yet. */}
+                      <Button type="button" size="sm" variant="ghost"
+                        onClick={() => setOpenComp(openComp === r.userId ? null : r.userId)}>
+                        <Icon name={openComp === r.userId ? 'chevronUp' : 'chevronDown'} size={13} />
+                        Pay history
+                      </Button>
                     </td>
                   </tr>
-                  {r.employment && openComp === r.employment.employment_id && (
+                  {openComp === r.userId && (
                     <tr>
                       <td colSpan={7} style={{ padding: 0, background: 'var(--bg)', borderTop: '1px solid var(--border)' }}>
                         <CompensationPanel
-                          employmentId={r.employment.employment_id}
-                          who={r.name || r.hrName || r.email}
-                          defaultCurrency={r.employment.currency ?? entities[0]?.currency ?? 'TZS'}
-                          defaultFrequency={r.employment.pay_frequency ?? 'MONTHLY'}
+                          userId={r.userId}
+                          who={r.name || r.email}
+                          defaultCurrency={r.employment?.currency ?? entities[0]?.currency ?? 'TZS'}
+                          defaultFrequency={r.employment?.pay_frequency ?? 'MONTHLY'}
                           onChanged={load}
                         />
                       </td>
@@ -325,8 +334,8 @@ export function EmploymentRecords() {
  * shows that boundary rather than hiding it, and says plainly when a contract
  * has no agreed pay at all instead of showing zero.
  */
-function CompensationPanel({ employmentId, who, defaultCurrency, defaultFrequency, onChanged }: {
-  employmentId: string; who: string; defaultCurrency: string; defaultFrequency: string; onChanged: () => void;
+function CompensationPanel({ userId, who, defaultCurrency, defaultFrequency, onChanged }: {
+  userId: string; who: string; defaultCurrency: string; defaultFrequency: string; onChanged: () => void;
 }) {
   const [rows, setRows] = useState<CompRow[] | null>(null);
   const [err, setErr] = useState('');
@@ -339,16 +348,16 @@ function CompensationPanel({ employmentId, who, defaultCurrency, defaultFrequenc
 
   const load = useCallback(async () => {
     setErr('');
-    try { setRows(await apiFetch(`/v1/hr/employments/${employmentId}/compensation`)); }
+    try { setRows(await apiFetch(`/v1/hr/employments/${userId}/compensation`)); }
     catch (e: any) { setErr(e?.message ?? 'Could not load pay history.'); setRows([]); }
-  }, [employmentId]);
+  }, [userId]);
   useEffect(() => { load(); }, [load]);
 
   async function save() {
     if (!salary || !effective) return;
     setSaving(true); setErr('');
     try {
-      await apiFetch(`/v1/hr/employments/${employmentId}/compensation`, {
+      await apiFetch(`/v1/hr/employments/${userId}/compensation`, {
         method: 'POST',
         body: JSON.stringify({
           base_salary: Number(salary), currency, pay_frequency: frequency,
@@ -472,7 +481,7 @@ function PayrollVsContractPanel({ roster }: { roster: RosterRow[] }) {
 
   const nameOf = useCallback((userId: string) => {
     const r = roster.find(x => x.userId === userId);
-    return r ? (r.name || r.hrName || r.email) : userId;
+    return r ? (r.name || r.email) : userId;
   }, [roster]);
 
   useEffect(() => {
