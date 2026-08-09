@@ -2169,6 +2169,17 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
           method: 'POST',
           body: JSON.stringify({ title: newTitle, priority: newPriority, assigned_to: newAssignee || undefined, due_date: newDue || undefined, product_id: newProductId || undefined }),
         });
+        if (newProductId && service) {
+          await apiFetch(`/v1/shipments/${shipmentId}/ledger`, {
+            method: 'POST',
+            body: JSON.stringify({
+              description: `[CLEARANCE] Task: ${newTitle} (${service.name})`,
+              amount: service.sale_price,
+              type: 'charge',
+              category: 'CLEARANCE'
+            }),
+          });
+        }
         onRefresh();
       } else {
         const task: InternalTask = {
@@ -2178,7 +2189,19 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
           productId: service?.id, serviceName: service?.name, serviceRate: service?.sale_price,
           serviceCurrency: service?.currency, serviceUnit: service?.unit,
         };
-        updateJob(job.id, j => ({ ...j, tasks: [...j.tasks, task] }));
+        const ledgerEntries = [...job.ledger];
+        if (service) {
+          ledgerEntries.push({
+            id: 'led-' + Date.now(),
+            description: `[CLEARANCE] Task: ${newTitle} (${service.name})`,
+            amount: service.sale_price,
+            currency: service.currency || 'TZS',
+            type: 'charge',
+            date: new Date(),
+            status: 'pending'
+          });
+        }
+        updateJob(job.id, j => ({ ...j, tasks: [...j.tasks, task], ledger: ledgerEntries }));
       }
       setNewTitle(''); setNewDue(''); setNewTitleCustom(false); setNewProductId(''); setShowAdd(false);
     } catch (err: any) { showAlert(err.message || 'Failed to create task'); } finally { setAddSaving(false); }
@@ -3678,7 +3701,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
             ) : (
               <div style={{ fontSize: 12, color: 'var(--ink3)' }}>No agent assigned yet.</div>
             )
-          ) : (
+          ) : job.assignees.length === 1 ? (
             job.assignees.map(a => {
               const label = (a === job.assignees[0] && job.assigneeName) || friendlyAssignee(a);
               return (
@@ -3691,6 +3714,54 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
                 </div>
               );
             })
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+              {job.assignees.slice(0, 4).map((a, index) => {
+                const label = (a === job.assignees[0] && job.assigneeName) || friendlyAssignee(a);
+                return (
+                  <button
+                    key={a}
+                    type="button"
+                    style={{
+                      border: '2px solid var(--white)',
+                      background: 'none',
+                      padding: 0,
+                      cursor: 'default',
+                      borderRadius: '50%',
+                      outline: 'none',
+                      display: 'flex',
+                      marginRight: -8,
+                      zIndex: 10 - index,
+                    }}
+                    title={label}
+                  >
+                    <Av name={label} size={28} />
+                  </button>
+                );
+              })}
+              {job.assignees.length > 4 && (
+                <div
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    background: 'var(--bg)',
+                    border: '1px solid var(--border)',
+                    color: 'var(--ink2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 11,
+                    fontWeight: 700,
+                    marginRight: -6,
+                    zIndex: 5,
+                  }}
+                  title={`${job.assignees.length - 4} more agents`}
+                >
+                  +{job.assignees.length - 4}
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -3739,48 +3810,102 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
                 )}
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                {internal.map(l => (
-                  <HoverCard key={l.id} openDelay={100} closeDelay={300}>
-                    <HoverCardTrigger asChild>
+              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', marginRight: internal.length > 4 ? 4 : 0 }}>
+                  {internal.slice(0, 4).map((l, index) => (
+                    <HoverCard key={l.id} openDelay={100} closeDelay={300}>
+                      <HoverCardTrigger asChild>
+                        <button
+                          type="button"
+                          style={{
+                            border: '2px solid var(--white)',
+                            background: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                            borderRadius: '50%',
+                            outline: 'none',
+                            display: 'flex',
+                            marginRight: -8,
+                            zIndex: 10 - index,
+                          }}
+                        >
+                          <Av name={l.name} size={28} />
+                        </button>
+                      </HoverCardTrigger>
+                      <HoverCardContent align="start" side="bottom" sideOffset={6} className="w-60 p-3">
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+                          <Av name={l.name} size={30} />
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {l.name}
+                            </div>
+                            <div style={{ fontSize: 10.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {l.role}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                          Notification Channels
+                        </div>
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                          {ALL_CHANNELS.map(ch => (
+                            <ChannelToggle key={ch} ch={ch} active={l.channel.includes(ch)} onToggle={() => toggleListenerCh(l, ch)} readOnly={!canManage || channelToggling === l.listenerId} />
+                          ))}
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
+                  ))}
+                </div>
+
+                {internal.length > 4 && (
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <button
                         type="button"
                         style={{
-                          border: 'none',
-                          background: 'none',
-                          padding: 0,
-                          cursor: 'pointer',
+                          width: 28,
+                          height: 28,
                           borderRadius: '50%',
-                          outline: 'none',
+                          background: 'var(--bg)',
+                          border: '1.5px solid var(--border)',
+                          color: 'var(--ink2)',
                           display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          padding: 0,
+                          outline: 'none',
+                          marginRight: 6,
+                          zIndex: 5,
                         }}
                       >
-                        <Av name={l.name} size={28} />
+                        +{internal.length - 4}
                       </button>
-                    </HoverCardTrigger>
-                    <HoverCardContent align="start" side="bottom" sideOffset={6} className="w-60 p-3">
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-                        <Av name={l.name} size={30} />
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {l.name}
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-64 p-2 flex flex-col gap-1 max-h-60 overflow-y-auto">
+                      <div style={{ padding: '6px 8px', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.02em', borderBottom: '1px solid var(--border)', marginBottom: 4 }}>
+                        Additional Staff
+                      </div>
+                      {internal.slice(4).map(l => (
+                        <div key={l.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+                            <Av name={l.name} size={22} />
+                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={l.name}>
+                              {l.name}
+                            </span>
                           </div>
-                          <div style={{ fontSize: 10.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {l.role}
+                          <div style={{ display: 'flex', gap: 3, flexShrink: 0, marginLeft: 6 }}>
+                            {ALL_CHANNELS.map(ch => (
+                              <ChannelToggle key={ch} ch={ch} active={l.channel.includes(ch)} onToggle={() => toggleListenerCh(l, ch)} readOnly={!canManage || channelToggling === l.listenerId} />
+                            ))}
                           </div>
                         </div>
-                      </div>
-                      <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                        Notification Channels
-                      </div>
-                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        {ALL_CHANNELS.map(ch => (
-                          <ChannelToggle key={ch} ch={ch} active={l.channel.includes(ch)} onToggle={() => toggleListenerCh(l, ch)} readOnly={!canManage || channelToggling === l.listenerId} />
-                        ))}
-                      </div>
-                    </HoverCardContent>
-                  </HoverCard>
-                ))}
+                      ))}
+                    </PopoverContent>
+                  </Popover>
+                )}
 
                 {canManage && (
                   <button
@@ -3799,6 +3924,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
                       cursor: 'pointer',
                       transition: 'all 0.12s',
                       padding: 0,
+                      marginLeft: internal.length > 4 ? 0 : 10,
                     }}
                     title="Add Staff Listener"
                   >
@@ -3840,48 +3966,102 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
                 )}
               </div>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                {customers.map(l => (
-                  <HoverCard key={l.id} openDelay={100} closeDelay={300}>
-                    <HoverCardTrigger asChild>
+              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', marginRight: customers.length > 4 ? 4 : 0 }}>
+                  {customers.slice(0, 4).map((l, index) => (
+                    <HoverCard key={l.id} openDelay={100} closeDelay={300}>
+                      <HoverCardTrigger asChild>
+                        <button
+                          type="button"
+                          style={{
+                            border: '2px solid var(--white)',
+                            background: 'none',
+                            padding: 0,
+                            cursor: 'pointer',
+                            borderRadius: '50%',
+                            outline: 'none',
+                            display: 'flex',
+                            marginRight: -8,
+                            zIndex: 10 - index,
+                          }}
+                        >
+                          <Av name={l.name} size={28} />
+                        </button>
+                      </HoverCardTrigger>
+                      <HoverCardContent align="start" side="bottom" sideOffset={6} className="w-60 p-3">
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
+                          <Av name={l.name} size={30} />
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {l.name}
+                            </div>
+                            <div style={{ fontSize: 10.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {l.role}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                          Notification Channels
+                        </div>
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                          {ALL_CHANNELS.map(ch => (
+                            <ChannelToggle key={ch} ch={ch} active={l.channel.includes(ch)} onToggle={() => toggleListenerCh(l, ch)} readOnly={!canManage || channelToggling === l.listenerId} />
+                          ))}
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
+                  ))}
+                </div>
+
+                {customers.length > 4 && (
+                  <Popover>
+                    <PopoverTrigger asChild>
                       <button
                         type="button"
                         style={{
-                          border: 'none',
-                          background: 'none',
-                          padding: 0,
-                          cursor: 'pointer',
+                          width: 28,
+                          height: 28,
                           borderRadius: '50%',
-                          outline: 'none',
+                          background: 'var(--bg)',
+                          border: '1.5px solid var(--border)',
+                          color: 'var(--ink2)',
                           display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          padding: 0,
+                          outline: 'none',
+                          marginRight: 6,
+                          zIndex: 5,
                         }}
                       >
-                        <Av name={l.name} size={28} />
+                        +{customers.length - 4}
                       </button>
-                    </HoverCardTrigger>
-                    <HoverCardContent align="start" side="bottom" sideOffset={6} className="w-60 p-3">
-                      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
-                        <Av name={l.name} size={30} />
-                        <div style={{ minWidth: 0, flex: 1 }}>
-                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {l.name}
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-64 p-2 flex flex-col gap-1 max-h-60 overflow-y-auto">
+                      <div style={{ padding: '6px 8px', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.02em', borderBottom: '1px solid var(--border)', marginBottom: 4 }}>
+                        Additional Customers
+                      </div>
+                      {customers.slice(4).map(l => (
+                        <div key={l.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, flex: 1 }}>
+                            <Av name={l.name} size={22} />
+                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={l.name}>
+                              {l.name}
+                            </span>
                           </div>
-                          <div style={{ fontSize: 10.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {l.role}
+                          <div style={{ display: 'flex', gap: 3, flexShrink: 0, marginLeft: 6 }}>
+                            {ALL_CHANNELS.map(ch => (
+                              <ChannelToggle key={ch} ch={ch} active={l.channel.includes(ch)} onToggle={() => toggleListenerCh(l, ch)} readOnly={!canManage || channelToggling === l.listenerId} />
+                            ))}
                           </div>
                         </div>
-                      </div>
-                      <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.02em' }}>
-                        Notification Channels
-                      </div>
-                      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                        {ALL_CHANNELS.map(ch => (
-                          <ChannelToggle key={ch} ch={ch} active={l.channel.includes(ch)} onToggle={() => toggleListenerCh(l, ch)} readOnly={!canManage || channelToggling === l.listenerId} />
-                        ))}
-                      </div>
-                    </HoverCardContent>
-                  </HoverCard>
-                ))}
+                      ))}
+                    </PopoverContent>
+                  </Popover>
+                )}
 
                 {canManage && (
                   <button
@@ -3900,6 +4080,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
                       cursor: 'pointer',
                       transition: 'all 0.12s',
                       padding: 0,
+                      marginLeft: customers.length > 4 ? 0 : 10,
                     }}
                     title="Add Customer Listener"
                   >
@@ -4048,21 +4229,45 @@ export function ShipmentDetail() {
       .catch(() => setApiTimeEntries([]));
   }
 
-  // If not in mock store, try fetching from real API
+  /**
+   * Always fetch the detail record. It used to be skipped whenever the store
+   * already held this shipment — but the store is loaded from GET /v1/shipments,
+   * the *list*, and the list payload is a strict subset: no `documents`, no
+   * `listeners`, no `assigned_officer_name`, no `expenses`, no `stage_history`,
+   * no `messages`.
+   *
+   * Worse than skipping, it actively discarded the fetch. The store loads
+   * asynchronously, so on mount `mockJob` was undefined and the detail request
+   * did fire; moments later the list arrived, `mockJob` became defined, this
+   * effect re-ran on that dependency and took the `else` branch —
+   * `setApiJob(null)` — throwing away the record that had just been fetched.
+   *
+   * The visible result was a detail page rendering list data: 4 documents shown
+   * as "No documents yet", 2 listeners shown as "None added", "Super Admin"
+   * shown as "Agent …34D7", and an empty ledger, updates tab and activity feed.
+   * Only the flags looked right, because `active_risk_types` happens to be one
+   * of the few rich fields the list does carry.
+   *
+   * `mockJob` is no longer a mock either — it is the list-derived record, and it
+   * stays useful as the thing to show while the detail is in flight.
+   */
   useEffect(() => {
-    if (!mockJob && id) {
-      setApiLoading(true);
-      apiFetch(`/v1/shipments/${id}`)
-        .then(data => setApiJob(apiToJob(data)))
-        .catch(() => setApiJob(null))
-        .finally(() => setApiLoading(false));
-      loadTasks();
-      loadTimeEntries();
-    } else {
-      setApiJob(null);
-    }
+    if (!id) { setApiJob(null); return; }
+    // Only block the screen when there is nothing to show yet; when the list
+    // already has this row, refresh underneath it rather than flashing a spinner.
+    if (!mockJob) setApiLoading(true);
+    let alive = true;
+    apiFetch(`/v1/shipments/${id}`)
+      .then(data => { if (alive) setApiJob(apiToJob(data)); })
+      .catch(() => { if (alive) setApiJob(null); })
+      .finally(() => { if (alive) setApiLoading(false); });
+    loadTasks();
+    loadTimeEntries();
+    return () => { alive = false; };
+    // Deliberately not keyed on mockJob: the list arriving must not re-trigger
+    // — or undo — the detail fetch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, mockJob]);
+  }, [id]);
 
   function refreshJob() {
     if (!id) return;
@@ -4261,7 +4466,7 @@ export function ShipmentDetail() {
               {tab === 'ledger'       && <LedgerTab      job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
               {tab === 'co2'          && <CO2Tab         job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
             </div>
-            {tab !== 'overview' && !isMobile && <ListenersSidebar job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
+            {!isMobile && <ListenersSidebar job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
           </div>
         </div>
       </div>
