@@ -3552,32 +3552,23 @@ html:not([data-theme="dark"]) .page-layout {
   .shipdetail-cover-bleed { margin-left: -12px; margin-right: -12px; margin-top: -12px; }
 }
 
-/* The hero band's fill. --navy flips to a pale blue in dark mode (it's a
-   heading-text token, not a background one — see the two theme blocks
-   above); --nav-header-bg stays a dark navy in both, which is what a
-   gradient *background* actually needs. --teal is the per-app accent, so
-   this band is orange in ClearOS and green in SEAL with no per-app code. */
-.shipdetail-hero-band {
-  background: linear-gradient(120deg, var(--teal) 0%, var(--nav-header-bg) 100%);
-}
+/* The hero band's fill.
+   Both stops are background tokens, deliberately. --navy flips to a pale
+   blue in dark mode (it's a heading-text token — see the two theme blocks
+   above) whereas --nav-header-bg stays a dark navy in both. --teal has the
+   same split: it is lightened 45% in dark mode so accent *text* stays
+   readable, which made this band glow. --teal-fill is the accent as a
+   surface — the true brand colour in light, taken down in dark — so one
+   rule covers both themes and the band is still orange in ClearOS and
+   green in SEAL with no per-app code.
 
-/* In dark mode the accent end stayed at full light-mode brightness, so the
-   band glowed against an otherwise dark page. Two steps down: --teal-d is
-   the canonical darker step of the same per-app accent (WorkspaceApp derives
-   it alongside --teal, so this stays orange in ClearOS rather than becoming
-   a fixed colour), and the scrim takes the whole band — accent end, navy end
-   and the decorative crates over it — down together, which keeps the
-   gradient's shape instead of flattening one stop toward the other. */
-[data-theme="dark"] .shipdetail-hero-band {
-  background:
-    linear-gradient(rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.38)),
-    /* --teal-d is written by WorkspaceApp at runtime and defined nowhere in
-       this stylesheet, so on any route that renders outside that shell the
-       substitution fails, the whole shorthand is invalid at computed-value
-       time, and the band computes to `unset` — transparent, not the light
-       rule above. The fallback keeps it a gradient there; the scrim still
-       darkens it. */
-    linear-gradient(120deg, var(--teal-d, var(--teal)) 0%, var(--nav-header-bg) 100%);
+   The fallback matters: --teal-fill is written by WorkspaceApp at runtime
+   and defined nowhere in this stylesheet, so on a route rendering outside
+   that shell the substitution fails, the whole shorthand is invalid at
+   computed-value time, and the band computes to `unset` — transparent,
+   not some earlier rule. */
+.shipdetail-hero-band {
+  background: linear-gradient(120deg, var(--teal-fill, var(--teal)) 0%, var(--nav-header-bg) 100%);
 }
 
 /* ── Page footer ── */

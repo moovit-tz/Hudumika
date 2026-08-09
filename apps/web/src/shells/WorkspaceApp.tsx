@@ -172,6 +172,24 @@ export function WorkspaceApp({ appId, children }: WorkspaceAppProps) {
       '--teal-m': `rgba(${r},${g},${b},0.18)`,
       '--teal-d': darkenHex(effectiveColor),
 
+      /**
+       * The accent as a *background fill*, which is not the same token as the
+       * accent as text.
+       *
+       * --teal is lightened by 45% in dark mode so a heading or a link stays
+       * readable on a dark page. Fill a large surface with it and you get the
+       * opposite of what dark mode is for: ClearOS's #ea580c became a pale
+       * #f3a379 and the shipment hero band glowed. --teal-d does not rescue
+       * it either — it darkens the *already lightened* colour, landing on a
+       * desaturated brown rather than a deep orange.
+       *
+       * So this one moves the other way: the true brand colour in light, and
+       * the same brand colour taken *down* in dark. It stays per-app and
+       * per-tenant like the rest, and it is the token to reach for on any
+       * large accent-coloured surface.
+       */
+      '--teal-fill': isDark ? darkenHex(appColor, 0.45) : appColor,
+
       '--primary': primaryHsl,
       '--primary-foreground': fgHsl,
       '--ring': primaryHsl,
