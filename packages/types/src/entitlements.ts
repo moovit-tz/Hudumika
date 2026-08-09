@@ -1,26 +1,62 @@
 // ─── Entitlements — package-gated features + per-app maintenance status ──
 
-/** Feature keys correspond 1:1 with the appId strings requireAppEnabled()
- *  already gates in apps/api/src/routes/*.ts, plus a few finer-grained
- *  sub-features previously only checked by requirePlanTier(). */
-export type FeatureKey =
-  | 'ai'
-  | 'clearos'
-  | 'cloud'
-  | 'complyos'
-  | 'contacts'
-  | 'email'
-  | 'finops'
-  | 'oneid'
-  | 'nexushr'
-  | 'onsite'
-  | 'tracking'
-  | 'tracking.cargo-loading'
-  | 'tracking.warehouse'
-  | 'tracking.analytics'
-  | 'tracking.reports'
-  | 'demurrage'
-  | 'cargotracker';
+/**
+ * Every feature a package can grant, as a value rather than only a type.
+ *
+ * This list existed four times over and the copies had drifted apart: the
+ * FeatureKey union, BASE_FEATURES in entitlements.routes.ts, APP_META in the
+ * settings UI, and the package_features rows. BASE_FEATURES was the one that
+ * mattered most and had gone stale — the entitlements endpoint iterated twelve
+ * hardcoded keys, so an app missing from *that* array was invisible to the
+ * whole frontend no matter what the database granted. Onsite had a key, had
+ * grants, and still never appeared anywhere.
+ *
+ * Declaring the array and deriving the type from it means adding a feature is
+ * one edit, and the API cannot report a different set of features than the type
+ * describes.
+ *
+ * Sub-features (tracking.*) sit alongside the apps: they gate the same way and
+ * are granted from the same table.
+ */
+export const ALL_FEATURE_KEYS = [
+  'ai',
+  'clearos',
+  'cloud',
+  'complyos',
+  'contacts',
+  'email',
+  'finops',
+  'oneid',
+  'nexushr',
+  'onsite',
+  'tracking',
+  'tracking.cargo-loading',
+  'tracking.warehouse',
+  'tracking.analytics',
+  'tracking.reports',
+  'demurrage',
+  'cargotracker',
+  // Added by migration 213. These shipped with no feature key at all, and
+  // isAppEnabled() treats an unknown key as enabled — so they were permanently
+  // on for every tenant, could not be included in or excluded from a plan, and
+  // a tenant admin had no way to switch one off. `onesite` was the opposite
+  // drift: granted in package_features while nothing declared it.
+  //
+  // Lens is deliberately absent. It is internal tooling gated on SUPER_ADMIN,
+  // not something a plan grants or a tenant admin toggles.
+  'seal',
+  'inventory',
+  'studio',
+  'crm',
+  'bliss',
+  'calendar',
+  'tasks',
+  'store',
+  'onesite',
+] as const;
+
+/** Feature keys correspond 1:1 with the appId strings the API gates on. */
+export type FeatureKey = (typeof ALL_FEATURE_KEYS)[number];
 
 export interface PackageFeature {
   package_code: string;

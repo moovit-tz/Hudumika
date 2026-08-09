@@ -1201,74 +1201,31 @@ function PlansTab({ tenant, onReload }: { tenant: any; onReload: () => Promise<v
 // ─── Tab: Modules ─────────────────────────────────────────────────────────────
 
 function ModulesTab() {
-  const { user } = useAuth();
-  const canManage = !!user && ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'].includes(user.role);
-  const entitlements = useEntitlements();
-  const [overrides, setOverrides] = useState<Record<string, boolean> | null>(null);
-  const [saving, setSaving] = useState<string | null>(null);
-
-  useEffect(() => {
-    apiFetch('/v1/settings').then(res => setOverrides(res.settings?.['enabled-apps'] || {})).catch(() => setOverrides({}));
-  }, []);
-
-  const moduleKeys = entitlements ? Object.keys(entitlements.features).filter(k => k in APP_META) : [];
-
-  async function toggle(key: string, enabled: boolean) {
-    // Full override map must be sent every time — the settings PATCH replaces
-    // 'enabled-apps' wholesale rather than deep-merging (same as Utilities.tsx).
-    const next = { ...(overrides ?? {}), [key]: enabled };
-    setOverrides(next);
-    setSaving(key);
-    try {
-      await apiFetch('/v1/settings', { method: 'PATCH', body: JSON.stringify({ 'enabled-apps': next }) });
-      resetEntitlementsCache();
-    } catch (err: any) {
-      setOverrides(overrides);
-      // The API now answers 403 naming the feature and the plan when a module
-      // is not included, instead of scrubbing it to false behind a 200. That
-      // sentence is the whole message.
-      showAlert(err.message || 'That module could not be changed.', {
-        title: /plan/i.test(err.message || '') ? 'Not in your plan' : 'Could not update module',
-        variant: /plan/i.test(err.message || '') ? 'warning' : 'error',
-      });
-    } finally {
-      setSaving(null);
-    }
-  }
-
+  /**
+   * Modules are configured in Settings.
+   *
+   * This tab, the Settings section and the Utilities panel were three screens
+   * editing one value, each with its own local state — so changing it in one
+   * left the other two showing the old value until a reload, and each carried
+   * its own copy of the "send the whole map" rule. One control now.
+   */
   return (
     <div>
       <SectionHead
         title="Installed Modules"
-        sub={canManage
-          ? 'Enable or disable modules for your Hudumika installation. Changes take effect immediately.'
-          : 'Modules enabled for your account. Ask an admin to change these.'}
+        sub="Which apps this workspace uses is configured in Settings."
       />
-      {(!entitlements || overrides === null) ? (
-        <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading modules…</div>
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-          {moduleKeys.map(key => {
-            const meta = APP_META[key];
-            const active = overrides[key] ?? entitlements.features[key] ?? true;
-            const maintenance = entitlements.appStatus[key] === 'maintenance';
-            return (
-              <Card key={key}>
-                <div style={{ padding: '16px 18px', opacity: maintenance ? 0.6 : 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <div style={{ width: 42, height: 42, borderRadius: 9, background: active ? 'var(--teal-l)' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name={meta.icon} size={20} strokeWidth={1.75} style={{ color: active ? 'var(--teal)' : 'var(--ink3)' } as React.CSSProperties} />
-                    </div>
-                    <Switch checked={active} disabled={!canManage || maintenance || saving === key} onCheckedChange={(v: boolean) => toggle(key, v)} />
-                  </div>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{meta.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink3)', lineHeight: 1.5 }}>{maintenance ? 'Under maintenance' : meta.desc}</div>
-                </div>
-              </Card>
-            );
-          })}
+      <Card>
+        <div style={{ padding: '20px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ fontSize: 13, color: 'var(--ink2)', maxWidth: 460 }}>
+            Turning an app on or off for everyone in this workspace lives with the
+            rest of the workspace configuration.
+          </div>
+          <Link to="/workspace/settings?s=modules" className="btn btn-primary btn-sm">
+            Open module settings
+          </Link>
         </div>
-      )}
+      </Card>
     </div>
   );
 }

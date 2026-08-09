@@ -1,12 +1,22 @@
 import type { FastifyInstance } from 'fastify';
 import { db } from '../db/client.js';
 import type { FeatureKey } from '@hudumika/types';
+import { ALL_FEATURE_KEYS } from '@hudumika/types';
 import { getUsageSummary } from '../lib/usage.js';
 
-const BASE_FEATURES: FeatureKey[] = [
-  'ai', 'clearos', 'cloud', 'complyos', 'contacts', 'email', 'finops', 'oneid', 'nexushr', 'tracking',
-  'demurrage', 'cargotracker',
-];
+/**
+ * The features this endpoint reports on.
+ *
+ * This was a hardcoded array of twelve keys, and it had fallen behind: Onsite
+ * had a feature key and real grants in package_features and never appeared
+ * here — so the entire frontend, which decides what to show from this response,
+ * could not see it. Eight further apps were in the same position, permanently
+ * on because nothing could report them as anything else.
+ *
+ * It reads the shared list now, so an app added to ALL_FEATURE_KEYS is reported
+ * without anyone having to remember this file exists.
+ */
+const BASE_FEATURES: readonly FeatureKey[] = ALL_FEATURE_KEYS;
 
 /**
  * GET /v1/entitlements — everything the frontend needs to decide what to show

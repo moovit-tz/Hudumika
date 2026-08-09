@@ -1820,7 +1820,10 @@ const ModulesSection: React.FC = () => {
     <div>
       <p className="s-mods-desc">
         {canManageModules
-          ? 'Enable or disable application modules to match your workflow. Every plan includes every module — this just controls what shows up in the nav.'
+          // Was 'every plan includes every module'. That stopped being true with
+          // migration 213, which gave the eight ungated apps real feature keys —
+          // a plan can now genuinely exclude one, and the switch says so.
+          ? 'Turn applications on or off for everyone in this workspace. A module your plan does not include cannot be switched on here.'
           : 'Apps enabled for this account. Ask an admin to change these.'}
       </p>
       {!entitlements || overrides === null ? (

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { apiFetch, BASE_URL } from '../lib/api.js';
 import { useEntitlements, resetEntitlementsCache } from '../hooks/useEntitlements.js';
 import { Switch } from '../components/ui/switch.js';
@@ -8,6 +9,18 @@ import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 
 export const APP_META: Record<string, { name: string; desc: string; icon: IconName }> = {
+  // Added with migration 213. These had no feature key, so they never appeared
+  // here and were permanently on for every tenant regardless of plan.
+  onsite:       { name: 'Onsite',        desc: 'Domains, DNS, hosting, deployments and cloud infrastructure.', icon: 'terminal' },
+  seal:         { name: 'SEAL',          desc: 'Bonded warehousing, lots, examinations and stock accounts.',   icon: 'box3' },
+  inventory:    { name: 'Inventory',     desc: 'Stock control, counts and catalog.',                            icon: 'layers' },
+  studio:       { name: 'Studio',        desc: 'Workflow builder and automation.',                              icon: 'gitBranch' },
+  crm:          { name: 'CRM',           desc: 'Customers, leads, partners and the sales pipeline.',            icon: 'users' },
+  bliss:        { name: 'Bliss',         desc: 'Customer helpdesk and ticketing.',                               icon: 'chatBubble' },
+  calendar:     { name: 'Calendar',      desc: 'Shared scheduling across the workspace.',                        icon: 'calendar' },
+  tasks:        { name: 'Tasks',         desc: 'Assignments and to-dos across apps.',                            icon: 'checkCircle' },
+  store:        { name: 'Store',         desc: 'B2B procurement and equipment marketplace.',                     icon: 'shoppingCart' },
+  onesite:      { name: 'oneSite',       desc: 'Content management and company intranet.',                       icon: 'globe' },
   clearos:      { name: 'ClearOS',       desc: 'Customs clearance, declarations, shipment tracking.', icon: 'package' },
   finops:       { name: 'FinOps',        desc: 'Invoicing, bills, ledgers and financial reports.',     icon: 'dollarSign' },
   contacts:     { name: 'Contacts',      desc: 'Shared customer, vendor and partner contact directory.', icon: 'users' },
@@ -132,38 +145,19 @@ export const Utilities: React.FC = () => {
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
 
+        {/* Modules moved to Settings.
+            Three screens edited this one setting — here, in Settings and in
+            Billing — each with its own local state, so changing it in one left
+            the other two showing the old value until a reload. One control now,
+            and two links to it. */}
         <div style={{ marginBottom: 28 }}>
           <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 2 }}>Modules</div>
           <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>
-            {canManageModules
-              ? 'Turn apps on or off for everyone on this account. Every plan includes every module — this just controls what shows up in the nav.'
-              : 'Apps enabled for this account. Ask an admin to change these.'}
+            Which apps this workspace uses is configured in Settings.
           </div>
-          {!entitlements || overrides === null ? (
-            <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Loading modules…</div>
-          ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
-              {moduleKeys.map(key => {
-                const meta = APP_META[key];
-                const checked = overrides[key] ?? entitlements.features[key] ?? true;
-                const maintenance = entitlements.appStatus[key] === 'maintenance';
-                return (
-                  <div key={key} className="card" style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12, opacity: maintenance ? 0.6 : 1 }}>
-                    <div style={{ flexShrink: 0 }}><Icon name={meta.icon} size={20} color="var(--teal)" /></div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontWeight: 700, fontSize: 13 }}>{meta.name}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.4 }}>{maintenance ? 'Under maintenance' : meta.desc}</div>
-                    </div>
-                    <Switch
-                      checked={checked}
-                      disabled={!canManageModules || maintenance || moduleSaving === key}
-                      onCheckedChange={(v: boolean) => toggleModule(key, v)}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <Link to="/workspace/settings?s=modules" className="btn btn-secondary btn-sm">
+            <Icon name="layers" size={14} /> Open module settings
+          </Link>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
