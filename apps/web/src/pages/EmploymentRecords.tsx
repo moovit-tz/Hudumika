@@ -695,13 +695,13 @@ function EmploymentPane({ entities, people, managers, busy, onCreate }: {
         </div>
         <div>
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Starts</div>
-          <DatePicker value={start} onChange={setStart} />
+          <DatePicker date={start} onChange={setStart} />
         </div>
         <div>
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>
             Ends {openEnded && <span style={{ color: 'var(--ink4)' }}>— permanent, so none</span>}
           </div>
-          {!openEnded && <DatePicker value={end} onChange={setEnd} />}
+          {!openEnded && <DatePicker date={end} onChange={setEnd} />}
         </div>
         <div>
           <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginBottom: 4 }}>Reference</div>
