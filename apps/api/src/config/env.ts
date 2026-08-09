@@ -17,7 +17,11 @@ const envSchema = z.object({
   REDIS_URL: z.string().url().default('redis://localhost:6379'),
   
   JWT_SECRET: z.string().default('change-this-in-production-min-32-characters-long'),
-  JWT_EXPIRES_IN: z.string().default('7d'),
+  // The access token's real lifetime. Was '7d' and unused — nothing passed it
+  // to sign(), so tokens carried no exp at all. Now that it is honoured and a
+  // refresh token exists to renew silently, a week-long access token would
+  // throw away the point of having two.
+  JWT_EXPIRES_IN: z.string().default('1h'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('30d'),
   
   META_WA_TOKEN: z.string().default('your-meta-whatsapp-token'),

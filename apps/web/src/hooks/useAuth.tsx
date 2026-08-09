@@ -7,6 +7,9 @@ import { hydrateTasksFromServer, resetTasksCache } from '../data/calendarStore.j
 
 const KEYS = {
   token: 'hudumika_token',
+  // Long-lived, and only /auth/refresh accepts it. Stored so a one-hour access
+  // token can renew itself rather than ending the session.
+  refresh: 'hudumika_refresh',
   user:  'hudumika_user',
   superToken: 'hudumika_super_token',
   superUser:  'hudumika_super_user',
@@ -80,6 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       body: JSON.stringify({ email, password }),
     });
     localStorage.setItem(KEYS.token, res.access_token);
+    if (res.refresh_token) localStorage.setItem(KEYS.refresh, res.refresh_token);
     localStorage.setItem(KEYS.user,  JSON.stringify(res.user));
     resetEnabledAppsCache();
     resetCompanyCache();
@@ -92,6 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const completeOnboarding = (res: OnboardingCompleteResponse) => {
     localStorage.setItem(KEYS.token, res.access_token);
+    if (res.refresh_token) localStorage.setItem(KEYS.refresh, res.refresh_token);
     localStorage.setItem(KEYS.user,  JSON.stringify(res.user));
     setUser(res.user);
     hydrateCompanyFromServer();
@@ -119,6 +124,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem(KEYS.superUser,  localStorage.getItem(KEYS.user)!);
     // Switch to impersonated session
     localStorage.setItem(KEYS.token, res.access_token);
+    if (res.refresh_token) localStorage.setItem(KEYS.refresh, res.refresh_token);
     localStorage.setItem(KEYS.user,  JSON.stringify(res.user));
     setUser(res.user);
     // Navigate to home so the tenant app loads fresh

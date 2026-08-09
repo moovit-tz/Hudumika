@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { issueTokens, durationSeconds } from '../services/token.service.js';
 import crypto from 'crypto';
 import { db, withTenant } from '../db/client.js';
 import { hashPassword, verifyPassword } from '../lib/password.js';
@@ -24,10 +25,15 @@ function parseDevice(userAgent: string): { label: string; type: string } {
 async function recordLogin(tenantId: string, userId: string, status: 'SUCCESS' | 'FAILED', ip: string, userAgent: string): Promise<string | null> {
   try {
     await db.insertInto('hr_login_history').values({ tenant_id: tenantId, user_id: userId, ip, user_agent: userAgent, status }).execute();
-    if (status === 'SUCCESS' && userAgent) {
-      const { label, type } = parseDevice(userAgent);
+    if (status === 'SUCCESS') {
+      // Unconditional: recordLogin used to return null when the client sent no
+      // User-Agent, and a token with no device_id skips the revocation check in
+      // middleware/auth.ts entirely — an unrevokable session. A nameless client
+      // gets a row too, so "Sign out" can always reach it.
+      const ua = userAgent || 'unknown-client';
+      const { label, type } = parseDevice(ua);
       const existing = await db.selectFrom('hr_devices').select('id')
-        .where('user_id', '=', userId).where('user_agent', '=', userAgent).executeTakeFirst();
+        .where('user_id', '=', userId).where('user_agent', '=', ua).executeTakeFirst();
       if (existing) {
         // A fresh login re-authenticates the device — clears any prior revocation
         // rather than leaving a token that would 401 on its very next request.
@@ -35,7 +41,7 @@ async function recordLogin(tenantId: string, userId: string, status: 'SUCCESS' |
         return existing.id;
       } else {
         const created = await db.insertInto('hr_devices').values({
-          tenant_id: tenantId, user_id: userId, device_label: label, device_type: type, user_agent: userAgent, trusted: true,
+          tenant_id: tenantId, user_id: userId, device_label: label, device_type: type, user_agent: ua, trusted: true,
         }).returning('id').executeTakeFirst();
         return created?.id ?? null;
       }
@@ -121,7 +127,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       ...(deviceId ? { device_id: deviceId } : {}),
     };
 
-    const accessToken = fastify.jwt.sign(payload as any);
+    const tokens = issueTokens(fastify, payload as any);
     const safeUser: SafeUser = {
       id: user.id,
       tenant_id: user.tenant_id,
@@ -137,12 +143,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       updated_at: user.updated_at.toISOString(),
     };
 
-    return {
-      access_token: accessToken,
-      refresh_token: accessToken, // simplified for dev
-      expires_in: 7 * 24 * 60 * 60, // 7 days
-      user: safeUser,
-    };
+    return { ...tokens, user: safeUser };
   });
 
   /**
@@ -178,19 +179,14 @@ export async function authRoutes(fastify: FastifyInstance) {
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
       sub: newUser.id, tenant_id: newUser.tenant_id, role: newUser.role, email: newUser.email, name: newUser.name,
     };
-    const accessToken = fastify.jwt.sign(payload as any);
+    const tokens = issueTokens(fastify, payload as any);
     const safeUser: SafeUser = {
       id: newUser.id, tenant_id: newUser.tenant_id, email: newUser.email, role: newUser.role, name: newUser.name,
       phone: newUser.phone || undefined, location_id: newUser.location_id || undefined, active: newUser.active,
       created_at: newUser.created_at.toISOString(), updated_at: newUser.updated_at.toISOString(),
     };
 
-    return {
-      access_token: accessToken,
-      refresh_token: accessToken,
-      expires_in: 7 * 24 * 60 * 60,
-      user: safeUser,
-    };
+    return { ...tokens, user: safeUser };
   });
 
   /**
@@ -322,7 +318,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       name: customer.name,
     };
 
-    const accessToken = fastify.jwt.sign(payload as any);
+    const tokens = issueTokens(fastify, payload as any);
     const safeUser: SafeUser = {
       id: customer.id,
       tenant_id: customer.tenant_id,
@@ -335,12 +331,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       updated_at: customer.updated_at.toISOString(),
     };
 
-    return {
-      access_token: accessToken,
-      refresh_token: accessToken,
-      expires_in: 7 * 24 * 60 * 60,
-      user: safeUser,
-    };
+    return { ...tokens, user: safeUser };
   });
 
   /**
@@ -380,7 +371,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       name: target.name,
     };
 
-    const accessToken = fastify.jwt.sign(payload as any);
+    const tokens = issueTokens(fastify, payload as any);
     const safeUser: SafeUser = {
       id: target.id,
       tenant_id: target.tenant_id,
@@ -394,7 +385,57 @@ export async function authRoutes(fastify: FastifyInstance) {
       updated_at: target.updated_at.toISOString(),
     };
 
-    return { access_token: accessToken, user: safeUser };
+    return { ...tokens, user: safeUser };
+  });
+
+  /**
+   * POST /auth/refresh
+   *
+   * Exchanges a refresh token for a new access token. There was no such
+   * endpoint: `refresh_token` was the access token itself, so "refreshing"
+   * meant reusing a credential that never expired.
+   *
+   * Refuses an access token here, and the auth middleware refuses a refresh
+   * token everywhere else. Both directions matter — without the second check a
+   * stolen 30-day refresh token would just be a 30-day access token.
+   *
+   * The device is re-checked live, so signing a device out kills its refresh
+   * token too rather than letting the session reappear an hour later.
+   */
+  fastify.post('/refresh', async (request, reply) => {
+    const { refresh_token } = (request.body ?? {}) as { refresh_token?: string };
+    if (!refresh_token) return reply.status(400).send({ error: 'refresh_token is required' });
+
+    let claims: any;
+    try {
+      claims = fastify.jwt.verify(refresh_token);
+    } catch {
+      return reply.status(401).send({ error: 'Refresh token is invalid or has expired. Sign in again.' });
+    }
+    if (claims?.typ !== 'refresh') {
+      return reply.status(401).send({ error: 'That is not a refresh token.' });
+    }
+
+    const device = claims.device_id
+      ? await db.selectFrom('hr_devices').select('revoked_at').where('id', '=', claims.device_id).executeTakeFirst()
+      : null;
+    if (!claims.device_id || device?.revoked_at) {
+      return reply.status(401).send({ error: 'This session has been signed out.' });
+    }
+
+    // Re-read the user: a role change, a deactivation or a move between tenants
+    // must take effect on refresh rather than riding the old claims for 30 days.
+    const user = await db.selectFrom('users').selectAll()
+      .where('id', '=', claims.sub).where('active', '=', true).executeTakeFirst();
+    if (!user) return reply.status(401).send({ error: 'This account is no longer active.' });
+
+    await db.updateTable('hr_devices').set({ last_used_at: new Date() })
+      .where('id', '=', claims.device_id).execute();
+
+    return issueTokens(fastify, {
+      sub: user.id, tenant_id: user.tenant_id, role: user.role,
+      email: user.email, name: user.name, device_id: claims.device_id,
+    });
   });
 
   /**

@@ -5,12 +5,57 @@ export const BASE_URL = 'http://localhost:3001';
  * prompt instead of every page independently surfacing the raw 401 body. */
 function handleUnauthorized() {
   localStorage.removeItem('hudumika_token');
+  // Or a "signed out" browser keeps a live 30-day credential in storage.
+  localStorage.removeItem('hudumika_refresh');
   localStorage.removeItem('hudumika_user');
   localStorage.removeItem('hudumika_super_token');
   localStorage.removeItem('hudumika_super_user');
   if (!window.location.pathname.startsWith('/login')) {
     window.location.href = '/login?expired=1';
   }
+}
+
+/**
+ * Swap the refresh token for a fresh access token.
+ *
+ * Access tokens used to carry no expiry at all, so nothing needed this. They
+ * now last an hour, and without a renewal path every session would break after
+ * one — so a 401 is worth a single silent retry before bouncing someone to the
+ * login page mid-task.
+ *
+ * The in-flight promise is shared: a page that fires eight requests at once
+ * would otherwise send eight refreshes and race them against each other. One
+ * refresh, eight retries.
+ */
+let refreshInFlight: Promise<string | null> | null = null;
+
+async function refreshAccessToken(): Promise<string | null> {
+  if (refreshInFlight) return refreshInFlight;
+
+  refreshInFlight = (async () => {
+    const refresh = localStorage.getItem('hudumika_refresh');
+    if (!refresh) return null;
+    try {
+      const res = await fetch(`${BASE_URL}/v1/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refresh }),
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data?.access_token) return null;
+      localStorage.setItem('hudumika_token', data.access_token);
+      if (data.refresh_token) localStorage.setItem('hudumika_refresh', data.refresh_token);
+      return data.access_token as string;
+    } catch {
+      return null;
+    } finally {
+      // Cleared on the next tick so concurrent callers all share this attempt.
+      setTimeout(() => { refreshInFlight = null; }, 0);
+    }
+  })();
+
+  return refreshInFlight;
 }
 
 async function throwForErrorResponse(response: Response): Promise<never> {
@@ -35,10 +80,21 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(`${BASE_URL}${path}`, {
+  let response = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers,
   });
+
+  // One silent renewal before giving up. Only for a 401, and only when we hold
+  // a refresh token — a 403 is a permission answer, not a stale credential, and
+  // retrying it would ask the same question twice.
+  if (response.status === 401 && localStorage.getItem('hudumika_refresh')) {
+    const fresh = await refreshAccessToken();
+    if (fresh) {
+      headers.set('Authorization', `Bearer ${fresh}`);
+      response = await fetch(`${BASE_URL}${path}`, { ...options, headers });
+    }
+  }
 
   if (!response.ok) {
     await throwForErrorResponse(response);

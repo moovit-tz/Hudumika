@@ -80,10 +80,17 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
       return reply.status(401).send({ error: 'Unauthorized: Invalid or expired token' });
     }
 
-    // A JWT with no exp is otherwise valid forever — device_id (see auth.routes.ts
-    // login / hr_devices.revoked_at) is the actual revocation mechanism: "Sign Out"
-    // in Workspace ▸ Security sets revoked_at, and every request re-checks it live
-    // against the DB rather than trusting whatever the token claimed at sign-in.
+    // A refresh token is not a key to the API. It is long-lived on purpose and
+    // only /auth/refresh accepts it; without this check the split between the
+    // two lifetimes would buy nothing.
+    if ((request.user as any).typ === 'refresh') {
+      return reply.status(401).send({ error: 'Unauthorized: refresh tokens cannot be used for API requests' });
+    }
+
+    // Access tokens now expire, but expiry alone cannot end a session early —
+    // device_id (see auth.routes.ts login / hr_devices.revoked_at) is what
+    // "Sign Out" in Workspace ▸ Security revokes, re-checked live on every
+    // request rather than trusting what the token claimed at sign-in.
     if (request.user.device_id) {
       const device = await db.selectFrom('hr_devices').select('revoked_at')
         .where('id', '=', request.user.device_id).executeTakeFirst();
