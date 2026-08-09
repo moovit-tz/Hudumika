@@ -105,6 +105,9 @@
   top: 60px;
   right: 14px;
   z-index: 499;
+  /* Height is capped on .notif-panel itself, not here: this wrapper has no
+     definite height, so a percentage max-height on the child resolves against
+     nothing and collapses it to a sliver. */
   transform-origin: top right;
   transform: scale(0.94) translateY(-10px);
   opacity: 0;

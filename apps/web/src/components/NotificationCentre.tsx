@@ -11,6 +11,8 @@ interface NotificationCentreProps {
   onClose: () => void;
   notifs: any[];
   unreadCount: number;
+  /** How many exist, not how many were fetched — see the tab labels. */
+  totalCount: number;
   onMarkRead: (id: string, link?: string) => void;
   onMarkAllRead: () => void;
   onReload: () => void;
@@ -23,7 +25,7 @@ interface NotificationCentreProps {
 // owns the tab filter + list rendering.
 
 export const NotificationCentre: React.FC<NotificationCentreProps> = ({
-  onClose, notifs, unreadCount,
+  onClose, notifs, unreadCount, totalCount,
   onMarkRead, onMarkAllRead, onReload,
 }) => {
   const { t } = useLocale();
@@ -75,7 +77,10 @@ export const NotificationCentre: React.FC<NotificationCentreProps> = ({
             className={`notif-panel-tab${activeTab === 'all' ? ' notif-panel-tab--active' : ''}`}
             onClick={() => setActiveTab('all')}
           >
-            {t('notif.all')} ({notifs.length})
+            {/* This read `notifs.length` — one fetched page, 50 by default —
+                beside an unread count that was a true total, so the tabs said
+                "All (50)" and "Unread (112)", which cannot both be true. */}
+            {t('notif.all')} ({totalCount || notifs.length})
           </button>
           <button
             type="button"
@@ -97,9 +102,22 @@ export const NotificationCentre: React.FC<NotificationCentreProps> = ({
             <span className="notif-panel-empty-text">{activeTab === 'unread' ? t('notif.noUnread') : t('notif.noNotifications')}</span>
             <span className="notif-panel-empty-sub">{t('notif.caughtUp')}</span>
           </div>
-        ) : filtered.map((n: any) => (
-          <NotificationListItem key={n.id} n={n} onMarkRead={onMarkRead} onNavigate={onClose} />
-        ))}
+        ) : (
+          <>
+            {filtered.map((n: any) => (
+              <NotificationListItem key={n.id} n={n} onMarkRead={onMarkRead} onNavigate={onClose} />
+            ))}
+            {/* The list is one page. Without this, 50 rows look like the whole
+                of it — which is how the tabs came to disagree in the first
+                place. */}
+            {filtered.length < (activeTab === 'all' ? (totalCount || filtered.length) : unreadCount) && (
+              <div className="notif-panel-more">
+                Showing the most recent {filtered.length} of{' '}
+                {activeTab === 'all' ? (totalCount || filtered.length) : unreadCount}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* ── Footer ── */}

@@ -211,6 +211,8 @@ export function AppHeader({
   const [notifOpen, setNotifOpen] = useState(false);
   const [notifs, setNotifs] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  // The list is one page (50 by default); this is how many exist.
+  const [totalCount, setTotalCount] = useState(0);
   /** Live platform/tenant notices for the pill. Separate from notifications:
    *  the server decides what is live and undismissed, so there is nothing to
    *  filter here. */
@@ -234,6 +236,8 @@ export function AppHeader({
       setNotifs(list);
       const serverCount = Array.isArray(data) ? undefined : data?.unread_count;
       setUnreadCount(typeof serverCount === 'number' ? serverCount : list.filter((n: any) => !n.read).length);
+      const serverTotal = Array.isArray(data) ? undefined : data?.total_count;
+      setTotalCount(typeof serverTotal === 'number' ? serverTotal : list.length);
     } catch { /* silently ignore */ }
   }, []);
 
@@ -643,6 +647,7 @@ export function AppHeader({
                 onClose={() => setNotifOpen(false)}
                 notifs={notifs}
                 unreadCount={unreadCount}
+                totalCount={totalCount}
                 onMarkRead={handleMarkRead}
                 onMarkAllRead={handleMarkAllRead}
                 onReload={loadNotifs}
