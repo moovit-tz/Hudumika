@@ -2628,6 +2628,10 @@ export interface ApiKeysTable {
   created_by: string | null;
   last_used_at: Date | null;
   revoked_at: Date | null;
+  /** When the key stops working; NULL means never (migration 212). */
+  expires_at: Date | null;
+  /** Safe methods only (GET/HEAD/OPTIONS) when true (migration 212). */
+  read_only: Generated<boolean>;
   created_at: Generated<Date>;
 }
 

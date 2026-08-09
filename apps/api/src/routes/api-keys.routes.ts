@@ -38,7 +38,8 @@ export async function apiKeysRoutes(fastify: FastifyInstance) {
   fastify.get('/', async (request) => {
     const user = request.user;
     const keys = await db.selectFrom('api_keys')
-      .select(['id', 'name', 'key_prefix', 'scopes', 'acting_role', 'last_used_at', 'revoked_at', 'created_at'])
+      .select(['id', 'name', 'key_prefix', 'scopes', 'acting_role', 'last_used_at', 'revoked_at', 'created_at',
+               'expires_at', 'read_only'])
       .where('tenant_id', '=', user.tenant_id)
       .orderBy('created_at', 'desc')
       .execute();
@@ -46,12 +47,37 @@ export async function apiKeysRoutes(fastify: FastifyInstance) {
   });
 
   // POST /v1/api-keys — issue a new key. The raw key is returned ONCE, here, and never again.
-  fastify.post<{ Body: { name: string; scopes: string[] } }>('/', async (request, reply) => {
+  fastify.post<{
+    Body: {
+      name: string;
+      scopes: string[];
+      /** Omitted means the key never expires, which is what every pre-212 key is. */
+      expires_in_days?: number | null;
+      /** Safe methods only — enforced in middleware/auth.ts, not per route. */
+      read_only?: boolean;
+    };
+  }>('/', async (request, reply) => {
     const user = request.user;
-    const { name, scopes } = request.body;
+    const { name, scopes, expires_in_days, read_only } = request.body;
 
     if (!name?.trim()) return reply.status(400).send({ error: 'Name is required' });
     if (!Array.isArray(scopes) || scopes.length === 0) return reply.status(400).send({ error: 'At least one scope is required' });
+
+    /**
+     * An expiry, if one was asked for.
+     *
+     * Omitting it still means "never", which is what every key issued before
+     * migration 212 has — but a caller that asks for 90 days should get 90
+     * days rather than silently getting forever because the field was
+     * mistyped.
+     */
+    let expiresAt: Date | null = null;
+    if (expires_in_days !== undefined && expires_in_days !== null) {
+      if (!Number.isInteger(expires_in_days) || expires_in_days < 1 || expires_in_days > 3650) {
+        return reply.status(400).send({ error: 'expires_in_days must be a whole number of days between 1 and 3650.' });
+      }
+      expiresAt = new Date(Date.now() + expires_in_days * 86400 * 1000);
+    }
 
     const granted = await getGrantedFeatures(user.tenant_id);
     const invalid = scopes.filter(s => !granted.has(s));
@@ -75,8 +101,11 @@ export async function apiKeysRoutes(fastify: FastifyInstance) {
         scopes: JSON.stringify(scopes) as unknown as string[],
         acting_role: user.role,
         created_by: user.sub,
+        expires_at: expiresAt,
+        read_only: read_only === true,
       })
-      .returning(['id', 'name', 'key_prefix', 'scopes', 'acting_role', 'created_at'])
+      .returning(['id', 'name', 'key_prefix', 'scopes', 'acting_role', 'created_at',
+                  'expires_at', 'read_only'])
       .executeTakeFirstOrThrow();
 
     reply.status(201);

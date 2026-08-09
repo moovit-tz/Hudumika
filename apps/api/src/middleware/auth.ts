@@ -58,6 +58,34 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
         return reply.status(401).send({ error: 'Unauthorized: Invalid or revoked API key' });
       }
 
+      /**
+       * An expired key is not a valid key.
+       *
+       * Revocation was the only way a key ever stopped working, so every key
+       * ever issued stayed live until somebody remembered to go and kill it.
+       * A null expiry still means "never", which is what every existing key
+       * has — this only enforces a date once one has been set.
+       */
+      if (row.expires_at && new Date(row.expires_at).getTime() <= Date.now()) {
+        return reply.status(401).send({
+          error: `Unauthorized: this API key expired on ${new Date(row.expires_at).toISOString().slice(0, 10)}.`,
+        });
+      }
+
+      /**
+       * A read-only key may only make safe requests.
+       *
+       * Scopes are entitlement feature keys, so a key scoped to 'onsite' could
+       * read a server and also delete it. Checked here rather than per-route
+       * because "does this request write" is a property of the method, and one
+       * place that cannot be forgotten beats every handler remembering.
+       */
+      if (row.read_only && !['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+        return reply.status(403).send({
+          error: `This API key is read-only, so it cannot ${request.method} ${request.url}.`,
+        });
+      }
+
       request.user = {
         sub: `apikey:${row.id}`,
         tenant_id: row.tenant_id,

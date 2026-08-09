@@ -11,6 +11,21 @@ import {
 } from '../services/onsite-dns.service.js';
 import { sql } from 'kysely';
 
+
+/**
+ * The user id to stamp on a row, or null when the caller is an API key.
+ *
+ * middleware/auth.ts sets `sub` to `apikey:<uuid>` for key-authenticated
+ * requests, which is not a UUID — so every Onsite insert that stamped
+ * created_by failed with a Postgres cast error, and an API key could read
+ * everything and create nothing. The column is nullable and means "the person
+ * who made this"; a key is not a person.
+ */
+function actorId(request: FastifyRequest): string | null {
+  const sub = request.user?.sub ?? '';
+  return sub.startsWith('apikey:') ? null : sub;
+}
+
 export async function onsiteRoutes(fastify: FastifyInstance) {
   // All routes in this module require valid auth + onsite entitlement
   fastify.addHook('preHandler', fastify.authenticate);
@@ -129,7 +144,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         name: body.name,
         description: body.description ?? null,
         color: body.color ?? '#4361ee',
-        created_by: request.user.sub,
+        created_by: actorId(request),
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -198,7 +213,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         registrar: body.registrar ?? null,
         auto_renew: body.auto_renew ?? false,
         status: 'active',
-        created_by: request.user.sub,
+        created_by: actorId(request),
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -224,7 +239,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
           type: 'NS',
           value: 'ns1.hudumika.com',
           ttl: 3600,
-          created_by: request.user.sub,
+          created_by: actorId(request),
         },
         {
           tenant_id: request.user.tenant_id,
@@ -233,7 +248,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
           type: 'NS',
           value: 'ns2.hudumika.com',
           ttl: 3600,
-          created_by: request.user.sub,
+          created_by: actorId(request),
         },
       ])
       .execute();
@@ -354,7 +369,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         value: body.value,
         ttl: body.ttl ?? 3600,
         priority: body.priority ?? null,
-        created_by: request.user.sub,
+        created_by: actorId(request),
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -495,7 +510,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
           value: x.record.value,
           ttl: x.record.ttl ?? 3600,
           priority: x.record.priority ?? null,
-          created_by: request.user.sub,
+          created_by: actorId(request),
         })))
         .execute();
     }
@@ -617,7 +632,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         output_dir: body.output_dir ?? null,
         port: body.port ?? 3000,
         status: 'inactive',
-        created_by: request.user.sub,
+        created_by: actorId(request),
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -710,7 +725,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         key: body.key.toUpperCase(),
         value_cipher: valueCipher,
         is_secret: body.is_secret ?? true,
-        created_by: request.user.sub,
+        created_by: actorId(request),
       })
       .onConflict((oc) => oc.columns(['environment_id', 'key']).doUpdateSet({
         value_cipher: valueCipher,
@@ -886,7 +901,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         ram_mb: body.ram_mb ?? 4096,
         disk_gb: body.disk_gb ?? 80,
         status: 'running',
-        created_by: request.user.sub,
+        created_by: actorId(request),
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -948,7 +963,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
          */
         status: 'unknown',
         uptime_30d: null,
-        created_by: request.user.sub,
+        created_by: actorId(request),
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -1132,7 +1147,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
          * what the provider says.
          */
         status: 'pending',
-        created_by: request.user.sub,
+        created_by: actorId(request),
       })
       .returning(['id', 'tenant_id', 'provider', 'name', 'external_id', 'external_name', 'status', 'created_at'])
       .executeTakeFirstOrThrow();
@@ -1189,7 +1204,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         domain_id: body.domain_id ?? null,
         hosting_provider: body.hosting_provider ?? 'Business',
         status: 'active',
-        created_by: request.user.sub,
+        created_by: actorId(request),
       })
       .returningAll()
       .executeTakeFirstOrThrow();
@@ -1261,7 +1276,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
         domain: cleanDomain,
         status: 'pending',
         notes: `Transfer initiated. EPP Code: ${body.eppCode ? 'Provided' : 'Pending'}`,
-        created_by: request.user.sub,
+        created_by: actorId(request),
       })
       .returningAll()
       .executeTakeFirstOrThrow();
