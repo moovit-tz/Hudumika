@@ -1948,9 +1948,9 @@ function OverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: boolean }
           {job.assigneeName && (
             <Card title="Assigned Officer">
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: avatarBg(job.assigneeName), color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 13, fontWeight: 700 }}>
-                  {initials(job.assigneeName)}
-                </div>
+                {/* Drew initials unconditionally, so this card showed "SA" for
+                    someone who has a picture while the header showed the photo. */}
+                <Av name={job.assigneeName ?? ''} userId={job.assignees[0]} size={36} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{job.assigneeName}</div>
                   {job.assigneeEmail && <div style={{ fontSize: 11.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.assigneeEmail}</div>}
