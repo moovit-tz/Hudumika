@@ -583,6 +583,34 @@ export const TRAService = {
         };
       }
 
+      /**
+       * A line with no tax code at all is not filable either, and used to slip
+       * past the check above — `l.tc_kind &&` skips a line whose join found
+       * nothing, which is exactly the unclassified case.
+       *
+       * It then fell through to the rate guess below: `taxPct >= 18 ? 1 : taxPct
+       * > 0 ? 2 : 3`. That is the misstatement the comment on that line says was
+       * fixed for coded lines, reintroduced for uncoded ones — zero-rated,
+       * exempt, reverse-charge and out-of-scope are indistinguishable once all
+       * you have is a percentage, and they are not the same on a return.
+       * Zero-rated supplies allow input tax recovery; exempt ones do not.
+       *
+       * Refusing is the point. The alternative is filing a guess under a real
+       * signature.
+       */
+      const unclassified = lines.filter(l => !l.tax_code_id);
+      if (unclassified.length) {
+        const names = unclassified.slice(0, 3).map(l => `"${l.name}"`).join(', ');
+        return {
+          success: false,
+          error: `${unclassified.length} line${unclassified.length === 1 ? '' : 's'} on this invoice ` +
+                 `(${names}${unclassified.length > 3 ? ', …' : ''}) ${unclassified.length === 1 ? 'has' : 'have'} ` +
+                 `no tax treatment recorded. A rate alone cannot say whether a supply is zero-rated, exempt, ` +
+                 `reverse-charge or out of scope, and TRA needs to be told which. Classify them under ` +
+                 `Finance › Tax codes › Unclassified before filing.`,
+        };
+      }
+
       // 3. Get/refresh token
       const tokenResult = await this.getToken(tenantId);
       if (!tokenResult.success || !tokenResult.accessToken) {
