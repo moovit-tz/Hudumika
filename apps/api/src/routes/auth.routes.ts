@@ -63,6 +63,29 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(401).send({ error: 'Invalid email or password' });
     }
 
+    /**
+     * Seeded test accounts must not be usable in production.
+     *
+     * One account per access level was created in a real tenant so that
+     * role-differentiated behaviour could actually be tested — a SUPER_ADMIN
+     * passes every check, so nothing is proven with that account alone. They
+     * are real accounts with real password hashes and they can sign in, which
+     * is exactly what makes them useful and exactly what makes them a problem
+     * once this is live.
+     *
+     * Refusing them here rather than deleting them keeps them useful in
+     * development and makes "remember to remove these before go-live" no longer
+     * something anyone has to remember. The @hudumika.test domain is reserved
+     * and cannot be a real customer address: .test is reserved by RFC 2606
+     * precisely so it can never resolve.
+     */
+    if (env.APP_ENV === 'production' && /@hudumika\.test$/i.test(user.email)) {
+      await recordLogin(user.tenant_id, user.id, 'FAILED', request.ip, String(request.headers['user-agent'] || ''));
+      return reply.status(403).send({
+        error: 'This is a seeded test account and cannot be used in production.',
+      });
+    }
+
     const ip = request.ip;
     const userAgent = String(request.headers['user-agent'] || '');
 
