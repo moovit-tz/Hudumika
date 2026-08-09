@@ -9,6 +9,7 @@ import { HolidaysService } from '../services/holidays.service.js';
 import { workingDaysBetween } from '../services/holiday-calendar.service.js';
 import { checkRequest as checkLeaveRequest, splitPayDays, computeBalances as computeLeaveBalances } from '../services/leave-entitlement.service.js';
 import { env } from '../config/env.js';
+import { settleEntry } from '../services/time-entry.service.js';
 
 /**
  * YYYY-MM-DD from a `date` column, whatever the driver hands back.
@@ -847,13 +848,17 @@ export async function hrRoutes(fastify: FastifyInstance) {
         .executeTakeFirst();
       if (!entry) throw Object.assign(new Error('Entry not found'), { statusCode: 404 });
 
+      // A shift that ran past the statutory maximum working day was not ended
+      // by anyone — recording `now - started_at` would have written 650 hours
+      // of work onto a timesheet from one click. settleEntry stores the real
+      // elapsed time for a normal shift and leaves it blank, with a note, for
+      // one that was never clocked out.
       const endedAt = new Date();
-      const durationMin = entry.started_at
-        ? Math.round((endedAt.getTime() - new Date(entry.started_at).getTime()) / 60000)
-        : 0;
+      const settled = settleEntry(entry.started_at as any, endedAt, entry.notes ?? null);
 
       return trx.updateTable('hr_time_entries')
-        .set({ ended_at: endedAt, duration_minutes: durationMin, updated_at: new Date() })
+        .set({ ended_at: settled.ended_at, duration_minutes: settled.duration_minutes,
+               notes: settled.notes, updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow();
     });

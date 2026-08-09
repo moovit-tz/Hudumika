@@ -3,6 +3,7 @@ import { Redis } from 'ioredis';
 import { env } from '../config/env.js';
 import { runRiskScanJob } from './risk-scan.job.js';
 import { runDailyStatusJob } from './daily-status.job.js';
+import { sweepStaleCheckIns } from '../services/time-entry.service.js';
 import { runMissingDocReminderJob } from './reminder.job.js';
 import { runComplyRenewalJob, runComplyExpiryReminderJob } from './comply-renewal.job.js';
 import { runTRAZReportJob } from './tra-zreport.job.js';
@@ -138,6 +139,9 @@ function startBullMQ(): void {
       async (job) => {
         if (job.name === 'doc-reminder') {
           await runMissingDocReminderJob();
+        } else if (job.name === 'stale-checkin') {
+          const { closed } = await sweepStaleCheckIns();
+          if (closed) console.log(`⏱️  Closed ${closed} check-in(s) left running past a full working day.`);
         } else if (job.name === 'daily-status') {
           await runDailyStatusJob();
         } else if (job.name === 'comply-renewal') {
@@ -221,6 +225,13 @@ function startBullMQ(): void {
 
     reminderQueue.add('daily-status', {}, {
       repeat: { pattern: '0 8 * * *' } // Every day at 8:00 AM
+    }).catch(console.error);
+
+    // Nobody clocks out reliably. Hourly rather than nightly, so an entry left
+    // running is settled while the day it belongs to is still current, and
+    // somebody who forgot at 17:00 is not shown as checked in until midnight.
+    reminderQueue.add('stale-checkin', {}, {
+      repeat: { pattern: '5 * * * *' } // Every hour, five past
     }).catch(console.error);
 
     reminderQueue.add('comply-renewal', {}, {
