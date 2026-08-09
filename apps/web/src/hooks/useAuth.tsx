@@ -4,6 +4,7 @@ import type { SafeUser, OnboardingCompleteResponse } from '@hudumika/types';
 import { resetEnabledAppsCache } from './useEnabledApps.js';
 import { hydrateCompanyFromServer, resetCompanyCache } from '../data/companyStore.js';
 import { hydrateTasksFromServer, resetTasksCache } from '../data/calendarStore.js';
+import { applyTenantLocale } from '../lib/tenantLocale.js';
 
 const KEYS = {
   token: 'hudumika_token',
@@ -41,6 +42,26 @@ async function hydrateIdentityFromServer(setUser: (u: any) => void): Promise<voi
   try {
     const me = await apiFetch('/v1/identity/me');
     if (!me?.id) return;
+
+    /**
+     * Adopt the workspace's language and timezone.
+     *
+     * The tenant's Localization setting was written and never read — language
+     * came from each browser's own localStorage, so an admin choosing Kiswahili
+     * changed nothing for anybody. This is the read. A person who has chosen a
+     * language for themselves keeps it; applyTenantLocale returns null in that
+     * case and nothing switches under them.
+     */
+    const adopt = applyTenantLocale(me?.tenant?.localization);
+    if (adopt) {
+      const { default: i18n } = await import('../i18n/index.js');
+      if (i18n.language?.slice(0, 2) !== adopt) {
+        i18n.changeLanguage(adopt);
+        document.documentElement.lang = adopt;
+        document.documentElement.dir = adopt === 'ar' ? 'rtl' : 'ltr';
+      }
+    }
+
     setUser((prev: any) => {
       const merged = { ...(prev ?? {}), ...me };
       localStorage.setItem(KEYS.user, JSON.stringify(merged));
@@ -91,6 +112,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(res.user);
     hydrateCompanyFromServer();
     hydrateTasksFromServer();
+    // Also on a fresh sign-in, not only when restoring a stored session — this
+    // is the first moment a new colleague sees the workspace, and it is exactly
+    // when the workspace's own language should already be in place.
+    hydrateIdentityFromServer(setUser);
     return res.user;
   };
 

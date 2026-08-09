@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, createContext, useContext } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { getCompany, setCompany } from '../data/companyStore.js';
 import { apiFetch } from '../lib/api.js';
+import { refreshTenantLocale } from '../lib/tenantLocale.js';
 import { useLocale } from '../hooks/useLocale.js';
 import type { SupportedLocale } from '../i18n/index.js';
 import './Settings.css';
@@ -31,22 +32,22 @@ const NAV: Array<{ group: string; items: Array<{ key: string; label: string; ico
   { group: 'General', items: [
     { key: 'company',            label: 'Company Information',  icon: 'building'      },
     { key: 'localization',       label: 'Localization',         icon: 'globe'         },
+    // Tax rates, quotations, purchase orders and currencies each had a panel
+    // here that saved to a key nothing read, while the real implementations
+    // live in FinOps. One control per thing; this one points at it.
+    { key: 'elsewhere',          label: 'Finance setup',        icon: 'externalLink' },
     { key: 'email',              label: 'Email',                icon: 'mail'          },
     { key: 'notifications',      label: 'Notifications',        icon: 'bell'          },
   ]},
   { group: 'Finance', items: [
     { key: 'finance-general',    label: 'General',              icon: 'dollarSign'    },
     { key: 'payment-gateways',   label: 'Payment Gateways',     icon: 'creditCard'    },
-    { key: 'tax-rates',          label: 'Tax Rates',            icon: 'percent'       },
-    { key: 'currencies',         label: 'Currencies',           icon: 'coins'         },
     { key: 'payment-modes',      label: 'Payment Modes',        icon: 'wallet'        },
     { key: 'einvoice',           label: 'e-Invoice',            icon: 'invoice'       },
     { key: 'expenses-categories',label: 'Expenses Categories',  icon: 'tag'           },
   ]},
   { group: 'Sales', items: [
     { key: 'invoices',           label: 'Invoices',             icon: 'fileText'      },
-    { key: 'quotations',         label: 'Quotations',           icon: 'file'          },
-    { key: 'purchase-orders',    label: 'Purchase Orders',      icon: 'shoppingCart'  },
     { key: 'credit-notes',       label: 'Credit Notes',         icon: 'receipt'       },
     { key: 'subscriptions',      label: 'Subscriptions',        icon: 'refresh'       },
   ]},
@@ -61,7 +62,6 @@ const NAV: Array<{ group: string; items: Array<{ key: string; label: string; ico
   ]},
   { group: 'Integrations', items: [
     { key: 'int-google',         label: 'Google',               icon: 'globe'         },
-    { key: 'int-pusher',         label: 'Pusher.com',           icon: 'zap'           },
     { key: 'int-ai',             label: 'AI Integration',       icon: 'sparkle'       },
     { key: 'int-openai',         label: 'OpenAI',               icon: 'sparkle'       },
     { key: 'int-sms',            label: 'SMS / WhatsApp',       icon: 'messageSquare' },
@@ -288,15 +288,23 @@ const CompanySection: React.FC = () => {
 // -- section: Localization ---------------------------------------------------
 const LocalizationSection: React.FC = () => {
   const { language, setLanguage, LANGUAGES } = useLocale();
-  const [f, set] = useSettingsFields('localization', { lang: language, tz: 'Africa/Dar_es_Salaam', date: 'DD/MM/YYYY', time: '24', week: '1', currPos: 'before', decimals: '2', decSep: '.', thouSep: ',' });
+  // Language and timezone only. The number/date-pattern fields that used to sit
+  // here (decimals, separators, currency position, week start) were stored and
+  // honoured by nothing — the app formats through Intl, which derives those from
+  // the locale itself. Fields that cannot change anything do not belong on a
+  // settings screen.
+  const [f, set] = useSettingsFields('localization', { lang: language, tz: 'Africa/Dar_es_Salaam' });
   const { save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   async function handleSave() {
     setSaving(true);
     try {
+      // The person doing the saving gets it applied immediately; everyone else
+      // picks it up from /identity/me on their next load.
       setLanguage(f.lang as SupportedLocale);
       await save('localization', { ...f });
+      await refreshTenantLocale();
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {} finally { setSaving(false); }
@@ -320,80 +328,11 @@ const LocalizationSection: React.FC = () => {
             </SelectContent>
           </Select>
         </Field>
-        <Field label="Week Start Day">
-          <Select value={f.week} onValueChange={v => set('week', v)}>
-            <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">Sunday</SelectItem>
-              <SelectItem value="1">Monday</SelectItem>
-              <SelectItem value="6">Saturday</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
-      </Card>
-      <Card title="Date & Time">
-        <Field label="Date Format">
-          <Select value={f.date} onValueChange={v => set('date', v)}>
-            <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="DD/MM/YYYY">31/12/2024</SelectItem>
-              <SelectItem value="MM/DD/YYYY">12/31/2024</SelectItem>
-              <SelectItem value="YYYY-MM-DD">2024-12-31</SelectItem>
-              <SelectItem value="D MMM YYYY">31 Dec 2024</SelectItem>
-              <SelectItem value="MMM D, YYYY">Dec 31, 2024</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
-        <Field label="Time Format">
-          <Select value={f.time} onValueChange={v => set('time', v)}>
-            <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="24">24-hour (14:30)</SelectItem>
-              <SelectItem value="12">12-hour (2:30 PM)</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
-      </Card>
-      <Card title="Number & Currency" desc="Default currency is set in Finance ? General.">
-        <Field label="Currency Position">
-          <Select value={f.currPos} onValueChange={v => set('currPos', v)}>
-            <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="before">Before amount ($ 1,000)</SelectItem>
-              <SelectItem value="after">After amount (1,000 $)</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
-        <Field label="Decimal Separator">
-          <Select value={f.decSep} onValueChange={v => set('decSep', v)}>
-            <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value=".">Period � 1,000.00</SelectItem>
-              <SelectItem value=",">Comma � 1.000,00</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
-        <Field label="Thousands Separator">
-          <Select value={f.thouSep || '__none__'} onValueChange={v => set('thouSep', v === '__none__' ? '' : v)}>
-            <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value=",">Comma (1,000)</SelectItem>
-              <SelectItem value=".">Period (1.000)</SelectItem>
-              <SelectItem value=" ">Space (1 000)</SelectItem>
-              <SelectItem value="__none__">None (1000)</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
-        <Field label="Decimal Places">
-          <Select value={f.decimals} onValueChange={v => set('decimals', v)}>
-            <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="0">0 � 1,000</SelectItem>
-              <SelectItem value="2">2 � 1,000.00</SelectItem>
-              <SelectItem value="3">3 � 1,000.000</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
+        {/* Week start, date/time pattern, currency position and the separator
+            pickers used to sit here. Every one was stored and honoured by
+            nothing: dates are formatted through Intl, which derives all of it
+            from the locale and timezone above. Keeping a control that cannot
+            change anything is worse than not offering it. */}
       </Card>
       <SaveRow saving={saving} saved={saved} onSave={handleSave} />
     </>
@@ -2201,10 +2140,41 @@ const GenericSection: React.FC<{ title: string }> = ({ title }) => (
   </Card>
 );
 
+/**
+ * Where the finance configuration actually lives.
+ *
+ * This screen used to carry its own Tax Rates, Currencies, Quotations and
+ * Purchase Orders panels. All four saved to keys nothing in the platform ever
+ * read, while the real implementations sat in FinOps the whole time — so an
+ * admin could spend an afternoon configuring tax rates here and change nothing.
+ * Four dead panels replaced by four working links.
+ */
+const ElsewhereSection: React.FC = () => (
+  <Card title="Finance setup" desc="These are configured in FinOps, where they take effect.">
+    <div className="s-elsewhere">
+      {[
+        { to: '/finance/tax-codes',       label: 'Tax codes & rates',  desc: 'Duty and VAT codes used by declarations, invoices and landed cost.' },
+        { to: '/finance/quotations',      label: 'Quotations',         desc: 'Templates, numbering and validity for customer quotes.' },
+        { to: '/finance/purchase-orders', label: 'Purchase orders',    desc: 'Approval flow and numbering for POs.' },
+        { to: '/finance/expenses',        label: 'Expense categories', desc: 'The categories expenses are booked against.' },
+      ].map(item => (
+        <Link key={item.to} to={item.to} className="s-elsewhere-row">
+          <div>
+            <div className="s-elsewhere-label">{item.label}</div>
+            <div className="s-elsewhere-desc">{item.desc}</div>
+          </div>
+          <Icon name="chevronRight" size={16} color="var(--ink3)" />
+        </Link>
+      ))}
+    </div>
+  </Card>
+);
+
 // -- section routing ---------------------------------------------------------
 function renderSection(key: string): React.ReactNode {
   switch (key) {
     case 'company':             return <CompanySection />;
+    case 'elsewhere':           return <ElsewhereSection />;
     case 'localization':        return <LocalizationSection />;
     case 'email':               return <EmailSection />;
     case 'notifications':       return <NotificationsSection />;

@@ -112,6 +112,22 @@ export async function identityRoutes(fastify: FastifyInstance) {
         .select(['id', 'name', 'slug', 'country', 'logo_url', 'primary_color'])
         .where('id', '=', user.tenant_id).executeTakeFirst();
 
+      /**
+       * The workspace's own language and timezone.
+       *
+       * Settings has always had a Localization section and nothing ever read
+       * it: language was chosen per browser in localStorage, so a Tanzanian
+       * workspace could not make Kiswahili its default. This is the read that
+       * was missing. It rides on /identity/me because every app already calls
+       * it once on load, so no new round-trip is added to reach it.
+       */
+      const settingsRow = await trx.selectFrom('tenant_settings')
+        .select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const tenantSettings = settingsRow
+        ? (typeof settingsRow.settings === 'string' ? JSON.parse(settingsRow.settings) : settingsRow.settings)
+        : {};
+      const loc = tenantSettings?.localization ?? {};
+
       return {
         id: row.id, tenant_id: row.tenant_id, email: row.email, name: row.name,
         role: row.role, phone: row.phone ?? undefined,
@@ -126,6 +142,14 @@ export async function identityRoutes(fastify: FastifyInstance) {
           id: tenant.id, name: tenant.name, slug: tenant.slug,
           country: tenant.country ?? null, logo_url: tenant.logo_url ?? null,
           primary_color: tenant.primary_color ?? null,
+          // Null rather than a guess when unset: the client falls back to the
+          // browser, which is the behaviour every existing session already has.
+          localization: {
+            language: typeof loc.lang === 'string' && loc.lang ? loc.lang : null,
+            timezone: typeof loc.tz === 'string' && loc.tz ? loc.tz : null,
+            base_currency: typeof tenantSettings?.currencies?.base === 'string' && tenantSettings.currencies.base
+              ? tenantSettings.currencies.base : null,
+          },
         } : undefined,
         created_at: row.created_at, updated_at: row.updated_at,
       };
