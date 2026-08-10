@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { PageHeader } from '../components/PageHeader.js';
 import { apiFetch, BASE_URL } from '../lib/api.js';
 import { useEntitlements, resetEntitlementsCache } from '../hooks/useEntitlements.js';
 import { Switch } from '../components/ui/switch.js';
@@ -47,7 +48,7 @@ function ToolCard({ icon, title, desc, action }: { icon: IconName; title: string
 }
 
 export const Utilities: React.FC = () => {
-  const [exporting, setExporting] = useState(false);
+  const [exporting, setExporting] = useState<string | null>(null);
   const [healthResult, setHealthResult] = useState<string | null>(null);
   const [pingResult, setPingResult] = useState<string | null>(null);
 
@@ -86,39 +87,113 @@ export const Utilities: React.FC = () => {
     }
   }
 
-  const exportShipments = async () => {
-    setExporting(true);
-    try {
-      const data = await apiFetch('/v1/shipments');
-      const list = data.data ?? data ?? [];
-      const csv = [
-        ['Ref', 'Type', 'Stage', 'Customer', 'BL Number', 'ETA', 'Created'].join(','),
-        ...list.map((s: any) => [
-          s.ref_number, s.type, s.stage, s.customer_name ?? '', s.bl_number ?? '', s.eta?.slice(0,10) ?? '', s.created_at?.slice(0,10) ?? '',
-        ].join(',')),
-      ].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = `clearos-shipments-${new Date().toISOString().slice(0,10)}.csv`; a.click();
-      URL.revokeObjectURL(url);
-    } catch (err: any) { showAlert(err.message); } finally { setExporting(false); }
+  /**
+   * What this workspace can take with it.
+   *
+   * Two exporters were hardcoded here — shipments and customers — out of the
+   * two dozen record types the platform holds, so "export my data" meant "some
+   * of it". This is a table instead: each dataset names its endpoint and the
+   * columns worth carrying, and adding one is a row.
+   *
+   * Only datasets whose list endpoint this workspace can actually reach appear;
+   * an export that 403s is worse than one that is not offered.
+   */
+  const DATASETS: {
+    id: string;
+    label: string;
+    desc: string;
+    path: string;
+    columns: [header: string, pick: (row: any) => unknown][];
+  }[] = [
+    {
+      id: 'shipments', label: 'Shipments', path: '/v1/shipments',
+      desc: 'Every clearance case with its stage, customer, bill of lading and ETA.',
+      columns: [
+        ['Ref', r => r.ref_number], ['Type', r => r.type], ['Stage', r => r.stage],
+        ['Customer', r => r.customer_name], ['BL number', r => r.bl_number],
+        ['ETA', r => r.eta?.slice(0, 10)], ['Created', r => r.created_at?.slice(0, 10)],
+      ],
+    },
+    {
+      id: 'customers', label: 'Customers', path: '/v1/customers',
+      desc: 'The customer directory, with contacts and tax identifiers.',
+      columns: [
+        ['Name', r => r.name], ['Email', r => r.email], ['Phone', r => r.phone ?? r.phone_wa],
+        ['TIN', r => r.tax_id ?? r.tin_number], ['Contact', r => r.contact_name ?? r.contact_person],
+        ['Country', r => r.country], ['Created', r => r.created_at?.slice(0, 10)],
+      ],
+    },
+    {
+      id: 'invoices', label: 'Invoices', path: '/v1/invoices',
+      desc: 'Issued invoices with their totals and status.',
+      columns: [
+        ['Number', r => r.invoice_number ?? r.number], ['Customer', r => r.customer_name],
+        ['Currency', r => r.currency], ['Total', r => r.total ?? r.total_amount],
+        ['Status', r => r.status], ['Issued', r => (r.issue_date ?? r.created_at)?.slice(0, 10)],
+      ],
+    },
+    {
+      id: 'declarations', label: 'Declarations', path: '/v1/declarations',
+      desc: 'Customs declarations with their assessment and status.',
+      columns: [
+        ['Reference', r => r.reference ?? r.tansad_number], ['Status', r => r.status],
+        ['Regime', r => r.regime], ['Customer', r => r.customer_name],
+        ['Created', r => r.created_at?.slice(0, 10)],
+      ],
+    },
+    {
+      id: 'leads', label: 'Leads', path: '/v1/leads',
+      desc: 'The sales pipeline, with stage and expected value.',
+      columns: [
+        ['Company', r => r.company], ['Contact', r => r.contact_name], ['Email', r => r.contact_email],
+        ['Stage', r => r.stage], ['Value', r => r.value], ['Source', r => r.source],
+      ],
+    },
+    {
+      id: 'staff', label: 'People', path: '/v1/hr/staff',
+      desc: 'Everyone with access to this workspace, and their role.',
+      columns: [
+        ['Name', r => r.name], ['Email', r => r.email], ['Role', r => r.role],
+        ['Active', r => (r.active ? 'yes' : 'no')], ['Last signed in', r => r.last_login_at?.slice(0, 10)],
+      ],
+    },
+  ];
+
+  /** RFC 4180: quotes doubled, and any field holding a comma, quote or newline quoted. */
+  const csvCell = (v: unknown): string => {
+    if (v === null || v === undefined) return '';
+    const str = String(v);
+    return /[",\r\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
   };
 
-  const exportCustomers = async () => {
-    setExporting(true);
+  const exportDataset = async (ds: typeof DATASETS[number]) => {
+    setExporting(ds.id);
     try {
-      const data = await apiFetch('/v1/customers');
-      const list = data.data ?? data ?? [];
+      const res = await apiFetch(ds.path);
+      const rows: any[] = Array.isArray(res) ? res : (res?.data ?? []);
+      if (rows.length === 0) {
+        showAlert(`There are no ${ds.label.toLowerCase()} to export yet.`, { variant: 'info' });
+        return;
+      }
       const csv = [
-        ['Name', 'Email', 'Phone', 'TIN', 'Contact Person', 'Created'].join(','),
-        ...list.map((c: any) => [c.name, c.email ?? '', c.phone_wa ?? '', c.tin_number ?? '', c.contact_person ?? '', c.created_at?.slice(0,10) ?? ''].join(',')),
-      ].join('\n');
-      const blob = new Blob([csv], { type: 'text/csv' });
+        ds.columns.map(([h]) => csvCell(h)).join(','),
+        ...rows.map(r => ds.columns.map(([, pick]) => csvCell(pick(r))).join(',')),
+      ].join('\r\n');
+
+      // A BOM, so Excel opens Kiswahili and accented names as UTF-8 rather than
+      // mojibake — the usual fate of a plain CSV on a Windows desktop.
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = `clearos-customers-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${ds.id}-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
       URL.revokeObjectURL(url);
-    } catch (err: any) { showAlert(err.message); } finally { setExporting(false); }
+    } catch (err: any) {
+      showAlert(err.message || `${ds.label} could not be exported.`, { variant: 'error' });
+    } finally {
+      setExporting(null);
+    }
   };
 
   const checkHealth = async () => {
@@ -138,10 +213,12 @@ export const Utilities: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--white)', flexShrink: 0 }}>
-        <div style={{ fontSize: 16, fontWeight: 700 }}>Utilities</div>
-        <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Data tools, export, and system diagnostics</div>
-      </div>
+      <PageHeader
+        crumbs={['Workspace', 'Tools']}
+        titlePlain="Data"
+        titleEm="tools"
+        subtitle="Export what this workspace holds, and check that the platform is reachable."
+      />
 
       <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
 
@@ -162,18 +239,29 @@ export const Utilities: React.FC = () => {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 16 }}>
 
-          <ToolCard
-            icon="package"
-            title="Export Shipments"
-            desc="Download all active shipment cases as a CSV file including ref, type, stage, customer, BL, and ETA."
-            action={<button type="button" className="btn btn-secondary btn-sm" onClick={exportShipments} disabled={exporting}>{exporting ? 'Exporting…' : 'Download CSV'}</button>}
-          />
+          {DATASETS.map(ds => (
+            <ToolCard
+              key={ds.id}
+              icon="download"
+              title={`Export ${ds.label.toLowerCase()}`}
+              desc={ds.desc}
+              action={
+                <button type="button" className="btn btn-secondary btn-sm"
+                  onClick={() => exportDataset(ds)} disabled={exporting !== null}>
+                  {exporting === ds.id ? 'Exporting…' : 'Download CSV'}
+                </button>
+              }
+            />
+          ))}
 
+          {/* Import already exists for customers — the one bulk load people
+              actually need — so this points at it rather than building a
+              second, differently-behaved importer beside it. */}
           <ToolCard
-            icon="building"
-            title="Export Customers"
-            desc="Download the full customer directory as CSV including contact details and TIN numbers."
-            action={<button type="button" className="btn btn-secondary btn-sm" onClick={exportCustomers} disabled={exporting}>{exporting ? 'Exporting…' : 'Download CSV'}</button>}
+            icon="upload"
+            title="Import customers"
+            desc="Bring a customer list in from a spreadsheet, with a template and a preview before anything is written."
+            action={<Link to="/crm/customers/bulk-upload" className="btn btn-secondary btn-sm">Open importer</Link>}
           />
 
           <ToolCard

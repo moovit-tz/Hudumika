@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../lib/api.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { MetricsRow } from '../components/MetricCard.js';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -78,15 +79,17 @@ export const Reports: React.FC = () => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-      {/* Header */}
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--white)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-        <div>
-          <div style={{ fontSize: 16, fontWeight: 700 }}>Reports</div>
-          <div style={{ fontSize: 12, color: 'var(--ink3)' }}>Operational analytics and performance metrics</div>
-        </div>
-        <div style={{ flex: 1 }} />
-        <button type="button" className="btn btn-secondary btn-sm" onClick={exportCsv} disabled={loading}>Export CSV</button>
-      </div>
+      <PageHeader
+        crumbs={['Workspace', 'Reports']}
+        titlePlain="Operational"
+        titleEm="analytics"
+        subtitle="How this workspace is performing — officer workload, bottlenecks and clearance times."
+        actions={
+          <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={loading}>
+            Export CSV
+          </button>
+        }
+      />
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
         {!loading && (

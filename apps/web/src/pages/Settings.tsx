@@ -5,6 +5,7 @@ import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { getCompany, setCompany } from '../data/companyStore.js';
 import { apiFetch } from '../lib/api.js';
+import { PageHeader } from '../components/PageHeader.js';
 import { refreshTenantLocale } from '../lib/tenantLocale.js';
 import { useBranding, pushTenantBranding } from '../hooks/useBranding.js';
 import { squareAvatarDataUrl } from '../lib/identity.js';
@@ -2333,6 +2334,71 @@ const BrandingSection: React.FC = () => {
   );
 };
 
+
+/**
+ * Split a section title so the last word carries the house emphasis.
+ *
+ * "Company Information" becomes Company *Information*. A single-word title
+ * keeps the whole word emphasised rather than rendering an empty plain half.
+ */
+function splitTitle(title: string): { plain: string; em: string } {
+  const words = title.trim().split(/\s+/);
+  if (words.length <= 1) return { plain: '', em: title.trim() };
+  return { plain: words.slice(0, -1).join(' '), em: words[words.length - 1] };
+}
+
+/**
+ * Two facts about this workspace, both counted.
+ *
+ * Replaces a five-tile strip of hardcoded values. Only what can be derived
+ * appears — a figure nobody can check is worse than no figure.
+ */
+const WorkspaceFacts: React.FC = () => {
+  const entitlements = useEntitlements();
+  const [integrations, setIntegrations] = useState<number | null>(null);
+
+  useEffect(() => {
+    apiFetch('/v1/settings')
+      .then((r: any) => {
+        const st = r?.settings ?? {};
+        // An integration counts as configured when its section holds anything
+        // beyond an off switch.
+        const configured = Object.keys(st)
+          .filter(k => k.startsWith('int-'))
+          .filter(k => Object.keys(st[k] ?? {}).some(f => f !== 'on' && st[k][f]));
+        setIntegrations(configured.length);
+      })
+      .catch(() => setIntegrations(null));
+  }, []);
+
+  const features = entitlements?.features ?? null;
+  const enabled = features ? Object.values(features).filter(Boolean).length : null;
+  const total = features ? Object.keys(features).length : null;
+
+  return (
+    <div className="sett-strip">
+      <div className="sett-strip-item">
+        <div className="sett-strip-icon sett-strip-icon--t">
+          <Icon name="grid" size={14} color="var(--teal)" />
+        </div>
+        <div className="sett-strip-info">
+          <div className="sett-strip-val">{enabled === null ? '—' : `${enabled} / ${total}`}</div>
+          <div className="sett-strip-label">Modules enabled</div>
+        </div>
+      </div>
+      <div className="sett-strip-item">
+        <div className="sett-strip-icon sett-strip-icon--bg">
+          <Icon name="zap" size={14} color="var(--ink2)" />
+        </div>
+        <div className="sett-strip-info">
+          <div className="sett-strip-val">{integrations === null ? '—' : integrations}</div>
+          <div className="sett-strip-label">Integrations configured</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // -- section routing ---------------------------------------------------------
 function renderSection(key: string): React.ReactNode {
   switch (key) {
@@ -2462,32 +2528,22 @@ export const Settings: React.FC = () => {
           </div>
         )}
 
-        {/* System overview strip � only on the main Company tab */}
-        {current === 'company' && (
-          <div className="sett-strip">
-            {([
-              { label: 'Version',        value: 'v2.1.0',  icon: 'checkCircle' as IconName, icls: 'sett-strip-icon--g',  iclr: 'var(--green)' },
-              { label: 'Active Modules', value: '4 / 8',   icon: 'grid'        as IconName, icls: 'sett-strip-icon--t',  iclr: 'var(--teal)'  },
-              { label: 'Integrations',   value: '0 live',  icon: 'zap'         as IconName, icls: 'sett-strip-icon--bg', iclr: 'var(--ink3)'  },
-              { label: 'System Status',  value: 'Healthy', icon: 'activity'    as IconName, icls: 'sett-strip-icon--g',  iclr: 'var(--green)' },
-              { label: 'Last Backup',    value: 'Today',   icon: 'clock'       as IconName, icls: 'sett-strip-icon--bg', iclr: 'var(--ink2)'  },
-            ] as const).map(s => (
-              <div key={s.label} className="sett-strip-item">
-                <div className={`sett-strip-icon ${s.icls}`}>
-                  <Icon name={s.icon} size={14} color={s.iclr} />
-                </div>
-                <div className="sett-strip-info">
-                  <div className="sett-strip-val">{s.value}</div>
-                  <div className="sett-strip-label">{s.label}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* The strip that used to sit here reported v2.1.0, "4 / 8" active
+            modules, "0 live" integrations, "Healthy" and a last backup of
+            "Today" — every one of them hardcoded. The backup line was the worst
+            of it: this platform has no backup system, so it asserted something
+            that could not be true. What is left is the two figures that can be
+            counted for real. */}
+        {current === 'company' && <WorkspaceFacts />}
 
-        <div className="sett-pg-hdr">
-          <h1 className="sett-pg-h1">{getSectionTitle(current)}</h1>
-        </div>
+        {/* The house header, driven by the selected section — the same split
+            HRM.tsx and SuperAdmin.tsx use, so this console reads like every
+            other page in the platform instead of hand-rolling an h1. */}
+        <PageHeader
+          crumbs={['Workspace', 'Settings']}
+          titlePlain={splitTitle(getSectionTitle(current)).plain}
+          titleEm={splitTitle(getSectionTitle(current)).em}
+        />
         {renderSection(current)}
       </div>
 

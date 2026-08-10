@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
+import nodeCrypto from 'node:crypto';
 import { sql } from 'kysely';
 import { requireRole } from '../middleware/rbac.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
@@ -423,6 +424,78 @@ export async function settingsRoutes(fastify: FastifyInstance) {
             if (res.ok) return { ok: true, message: 'Razorpay credentials verified.' };
             return reply.status(400).send({ ok: false, message: 'Razorpay rejected these credentials.' });
           }
+          /**
+           * Airtel Money — OAuth2 client credentials, the same shape as PayPal.
+           *
+           * The five gateways above were all non-African. In a Dar es Salaam
+           * clearing agency the rails that matter are mobile money, and they
+           * were the ones with nothing behind them.
+           */
+          case 'airtel': {
+            if (!v.clientId || !v.clientSecret) {
+              return reply.status(400).send({ ok: false, message: 'Client ID and Client Secret are required.' });
+            }
+            const res = await fetch('https://openapi.airtel.africa/auth/oauth2/token', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Accept: '*/*' },
+              body: JSON.stringify({
+                client_id: v.clientId,
+                client_secret: v.clientSecret,
+                grant_type: 'client_credentials',
+              }),
+            });
+            const body = await res.json().catch(() => ({} as any));
+            if (res.ok && body?.access_token) return { ok: true, message: 'Airtel Money credentials verified.' };
+            return reply.status(400).send({
+              ok: false,
+              message: `Airtel Money rejected these credentials${body?.error_description ? `: ${body.error_description}` : '.'}`,
+            });
+          }
+
+          /**
+           * M-Pesa (Vodacom Tanzania, OpenAPI) — a real session request.
+           *
+           * The portal issues an API key and an RSA public key; the key is
+           * RSA-encrypted with it to form the bearer token, and getSession
+           * exchanges that for a session id. Doing the encryption here is what
+           * makes this a genuine check rather than a format test: a wrong
+           * public key or a wrong API key fails at Vodacom, not locally.
+           *
+           * Read-only — getSession moves no money.
+           */
+          case 'mpesa': {
+            if (!v.apiKey || !v.publicKey) {
+              return reply.status(400).send({ ok: false, message: 'API key and public key are required — both come from the M-Pesa developer portal.' });
+            }
+            let bearer: string;
+            try {
+              const pem = `-----BEGIN PUBLIC KEY-----\n${String(v.publicKey).replace(/\s+/g, '').replace(/(.{64})/g, '$1\n')}\n-----END PUBLIC KEY-----\n`;
+              bearer = nodeCrypto.publicEncrypt(
+                { key: pem, padding: nodeCrypto.constants.RSA_PKCS1_PADDING },
+                Buffer.from(String(v.apiKey)),
+              ).toString('base64');
+            } catch {
+              // A key that will not parse is the finding, and saying so beats
+              // sending a malformed token and blaming Vodacom for the answer.
+              return reply.status(400).send({ ok: false, message: 'That public key could not be read. Paste the base64 key exactly as the portal shows it.' });
+            }
+
+            const host = v.sandbox === 'false'
+              ? 'https://openapi.m-pesa.com/openapi/ipg/v2/vodacomTZN/getSession/'
+              : 'https://openapi.m-pesa.com/sandbox/ipg/v2/vodacomTZN/getSession/';
+            const res = await fetch(host, {
+              headers: { Authorization: `Bearer ${bearer}`, Origin: '*', 'Content-Type': 'application/json' },
+            });
+            const body = await res.json().catch(() => ({} as any));
+            if (res.ok && body?.output_SessionID) {
+              return { ok: true, message: `M-Pesa session established${v.sandbox === 'false' ? '' : ' (sandbox)'}.` };
+            }
+            return reply.status(400).send({
+              ok: false,
+              message: `M-Pesa refused the session${body?.output_ResponseDesc ? `: ${body.output_ResponseDesc}` : '.'}`,
+            });
+          }
+
           case 'paypal': {
             if (!v.clientId || !v.secret) return reply.status(400).send({ ok: false, message: 'Client ID and Client Secret are required.' });
             const auth = Buffer.from(`${v.clientId}:${v.secret}`).toString('base64');
