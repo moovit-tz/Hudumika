@@ -75,9 +75,12 @@ const NAV: Array<{ group: string; items: Array<{ key: string; label: string; ico
     { key: 'int-tpa',            label: 'TPA Port Authority',   icon: 'ship'          },
     { key: 'int-shipsgo',        label: 'ShipsGo / Ship24',     icon: 'compass'       },
     { key: 'int-gpswox',         label: 'GPSWOX Fleet Tracking', icon: 'mapPin'       },
-    { key: 'int-minio',          label: 'MinIO Storage',        icon: 'layers'        },
-    { key: 'int-redis',          label: 'Redis / BullMQ',       icon: 'terminal'      },
-    { key: 'int-general',        label: 'General',              icon: 'settings'      },
+    // MinIO, Redis/BullMQ and the vague "General" tab are removed. They are
+    // platform infrastructure — the object store and the queue backend the
+    // operator configures with REDIS_URL and S3 env vars — not tenant settings.
+    // Nothing read them from a tenant's settings, and a tenant admin has no
+    // business configuring the platform's message queue; a settings tab for it
+    // is a category error, not just a dead stub.
   ]},
   { group: 'Other', items: [
     { key: 'other-calendar',     label: 'Calendar',             icon: 'calendar'      },
