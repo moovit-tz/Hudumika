@@ -162,6 +162,8 @@ export async function settingsRoutes(fastify: FastifyInstance) {
     tenantId: string,
     updates: Record<string, any>,
     replaceKeys: string[] = [],
+    /** Who is making the change, for the activity trail. */
+    actorId?: string,
   ) {
     // FOR UPDATE: a read-modify-write needs the row held for the transaction, or
     // two admins saving different sections at the same moment can each merge onto

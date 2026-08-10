@@ -1716,6 +1716,18 @@ export async function hrRoutes(fastify: FastifyInstance) {
       }).catch(() => { /* invite row exists regardless; resend is available */ });
 
       await logActivity(trx, user.tenant_id, user.sub, `Invited ${body.email} as ${body.role}`);
+      /**
+       * Also to the event stream, not only the HR log.
+       *
+       * Role changes and deactivations already emit; an invitation did not, so
+       * the one governance action that *adds* somebody to the workspace was
+       * the one missing from the workspace activity feed.
+       */
+      await emitDomainEvent(trx, user.tenant_id, {
+        type: 'hr.staff_invited', sourceApp: 'workspace', entityType: 'user', entityId: invite.id,
+        payload: { email: body.email, role: body.role },
+        actorId: user.sub,
+      }).catch(err => console.error('[HR] staff_invited emit failed:', err?.message));
       return invite;
     });
   });

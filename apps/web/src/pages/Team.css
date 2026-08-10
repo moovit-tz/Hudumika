@@ -180,3 +180,19 @@
   .team-invite-field input { min-width: 0; width: 100%; }
   .team-invite { flex-direction: column; align-items: stretch; }
 }
+
+/* Activity feed — one workspace-wide trail, read from domain_events. */
+.team-feed { list-style: none; margin: 0; padding: 0; }
+.team-feed-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.team-feed-row:last-child { border-bottom: none; }
+.team-feed-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.team-feed-what { font-size: 13px; color: var(--ink); }
+.team-feed-who  { font-size: 11.5px; color: var(--ink3); }
+.team-feed-when { font-size: 11.5px; color: var(--ink3); white-space: nowrap; flex-shrink: 0; }

@@ -6,7 +6,7 @@ import { apiFetch } from '../lib/api.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { useAuth } from '../hooks/useAuth.js';
-import { formatDate } from '../lib/tenantLocale.js';
+import { formatDate, formatDateTime } from '../lib/tenantLocale.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import './Team.css';
 
@@ -61,7 +61,7 @@ interface Invitation {
   created_at: string;
 }
 
-type Tab = 'people' | 'invitations' | 'roles';
+type Tab = 'people' | 'invitations' | 'roles' | 'activity';
 
 export function Team() {
   const { user } = useAuth();
@@ -84,6 +84,7 @@ export function Team() {
           ['people', 'People'],
           ['invitations', 'Invitations'],
           ['roles', 'Role permissions'],
+          ['activity', 'Activity'],
         ] as [Tab, string][]).map(([id, label]) => (
           <button
             key={id}
@@ -101,6 +102,7 @@ export function Team() {
       {tab === 'people' && <PeopleTab canManage={canManage} meId={user?.id} />}
       {tab === 'invitations' && <InvitationsTab canManage={canManage} />}
       {tab === 'roles' && <RolesTab canManage={canManage} />}
+      {tab === 'activity' && <ActivityTab />}
     </div>
   );
 }
@@ -462,5 +464,80 @@ function RolesTab({ canManage }: { canManage: boolean }) {
         </div>
       </div>
     </>
+  );
+}
+
+/* ── Activity ───────────────────────────────────────────────────── */
+
+interface Event {
+  id: string;
+  event_type: string;
+  source_app: string;
+  entity_type: string;
+  payload: any;
+  created_at: string;
+  actor_name: string | null;
+}
+
+/**
+ * What has been happening in this workspace, and who did it.
+ *
+ * There was no way to ask. Settings changes in particular left no trace at
+ * all — including SMTP credentials, payment gateway keys and which apps the
+ * whole workspace can see. They are recorded now, and this reads the same
+ * domain_events stream every other app already writes to, so an app added
+ * later appears here without anyone wiring it up.
+ */
+function ActivityTab() {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiFetch('/v1/activity?limit=100')
+      .then((r: any) => setEvents(Array.isArray(r) ? r : (r?.data ?? [])))
+      .catch(() => setEvents([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  /** The event type as a person would say it. */
+  const describe = (e: Event): string => {
+    const p = e.payload ?? {};
+    switch (e.event_type) {
+      case 'settings.changed':
+        // Key names, never values — the record of a credential change must not
+        // become a second copy of the credential.
+        return `Changed workspace settings: ${(p.keys ?? []).join(', ') || 'no keys recorded'}`;
+      case 'hr.staff_role_changed':  return `Changed ${p.name ?? 'someone'}'s role to ${p.role ?? 'a new role'}`;
+      case 'hr.staff_deactivated':   return `Removed access for ${p.name ?? 'someone'}`;
+      case 'hr.staff_reactivated':   return `Restored access for ${p.name ?? 'someone'}`;
+      case 'hr.staff_invited':       return `Invited ${p.email ?? 'someone'} as ${p.role ?? 'a member'}`;
+      default:
+        return e.event_type.replace(/[._]/g, ' ');
+    }
+  };
+
+  if (loading) return <div className="team-empty">Loading activity…</div>;
+  if (events.length === 0) {
+    return <div className="team-empty">Nothing has been recorded for this workspace yet.</div>;
+  }
+
+  return (
+    <div className="team-card">
+      <ul className="team-feed">
+        {events.map(e => (
+          <li key={e.id} className="team-feed-row">
+            <div className="team-feed-main">
+              <span className="team-feed-what">{describe(e)}</span>
+              <span className="team-feed-who">
+                {/* Null actor stays null — an older row simply never recorded
+                    one, and "System" would be a claim about how it happened. */}
+                {e.actor_name ?? 'Actor not recorded'} · {e.source_app}
+              </span>
+            </div>
+            <time className="team-feed-when" dateTime={e.created_at}>{formatDateTime(e.created_at)}</time>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

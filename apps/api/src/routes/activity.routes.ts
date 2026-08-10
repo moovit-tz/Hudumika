@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
+import { requireRole } from '../middleware/rbac.js';
 
 /**
  * One activity trail, for any record in the platform.
@@ -33,6 +34,59 @@ const READABLE_ENTITIES = new Set([
 
 export async function activityRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+
+  /**
+   * GET /v1/activity — everything that happened in this workspace.
+   *
+   * The per-entity trail below answers "what happened to this shipment". A
+   * tenant administrator has the other question — "what has been happening
+   * here, and who did it" — and there was no way to ask it. Settings changes in
+   * particular left no trace at all, including SMTP credentials and which apps
+   * the whole workspace can see.
+   *
+   * Restricted to administrators, because a full workspace feed names who
+   * touched what across every app; that is a governance view, not a general
+   * one.
+   */
+  fastify.get<{
+    Querystring: { limit?: string; before?: string; type?: string; entity?: string };
+  }>('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request) => {
+    const user = request.user;
+    const limit = Math.min(Math.max(Number(request.query.limit) || 50, 1), 200);
+    const { before, type, entity } = request.query;
+
+    return withTenant(user.tenant_id, async (trx) => {
+      let q = trx
+        .selectFrom('domain_events as e')
+        .leftJoin('users as u', 'u.id', 'e.actor_id')
+        .select(['e.id', 'e.event_type', 'e.source_app', 'e.entity_type', 'e.entity_id',
+                 'e.payload', 'e.created_at', 'e.actor_id', 'u.name as actor_name'])
+        .where('e.tenant_id', '=', user.tenant_id)
+        .orderBy('e.created_at', 'desc')
+        .limit(limit);
+
+      // Keyset pagination on created_at: an offset would skip or repeat rows as
+      // new events land while somebody is reading.
+      if (before) q = q.where('e.created_at', '<', new Date(before));
+      if (type) q = q.where('e.event_type', '=', type);
+      if (entity) q = q.where('e.entity_type', '=', entity);
+
+      const rows = await q.execute();
+      return rows.map(r => ({
+        id: r.id,
+        event_type: r.event_type,
+        source_app: r.source_app,
+        entity_type: r.entity_type,
+        entity_id: r.entity_id,
+        payload: r.payload,
+        created_at: r.created_at,
+        actor_id: r.actor_id,
+        // Null stays null — an older row simply never recorded an actor, and
+        // "System" would be a claim about how it happened.
+        actor_name: r.actor_name ?? null,
+      }));
+    });
+  });
 
   /**
    * GET /v1/activity/:entityType/:entityId
