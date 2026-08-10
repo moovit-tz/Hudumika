@@ -43,17 +43,36 @@ export function applyWorkspaceBranding(state: BrandingState): void {
 
 function readBranding(): BrandingState {
   return {
-    platformName:    localStorage.getItem('hudumika_platform_name')    ?? 'Hudumika',
+    // A tenant's workspace name wins inside their workspace; the platform name
+    // remains the fallback and still owns the login screen, which is shared.
+    platformName:    localStorage.getItem('hudumika_tenant_name')
+                     ?? localStorage.getItem('hudumika_platform_name')    ?? 'Hudumika',
     platformTagline: localStorage.getItem('hudumika_platform_tagline') ?? 'Smart Business, Simplified.',
-    logoLight:       localStorage.getItem('hudumika_brand_logo_light') ?? '',
-    logoDark:        localStorage.getItem('hudumika_brand_logo_dark')  ?? '',
-    favicon:         localStorage.getItem('hudumika_brand_favicon')    ?? '',
+    logoLight:       localStorage.getItem('hudumika_tenant_logo_light')
+                     ?? localStorage.getItem('hudumika_brand_logo_light') ?? '',
+    logoDark:        localStorage.getItem('hudumika_tenant_logo_dark')
+                     ?? localStorage.getItem('hudumika_brand_logo_dark')  ?? '',
+    favicon:         localStorage.getItem('hudumika_tenant_favicon')
+                     ?? localStorage.getItem('hudumika_brand_favicon')    ?? '',
     loginHeadline:   localStorage.getItem('hudumika_login_headline')   ?? 'Welcome back',
     loginSubtext:    localStorage.getItem('hudumika_login_subtext')    ?? 'Sign in to your workspace',
     loginBgStyle:    (localStorage.getItem('hudumika_login_bg') as 'navy'|'teal'|'gradient'|'white') ?? 'white',
     accentColor:     localStorage.getItem('hudumika_email_accent')     ?? '#0d7a6b',
     supportEmail:    localStorage.getItem('hudumika_support_email')    ?? '',
-    getAppColor:     (id, fallback = '#64748b') => localStorage.getItem(`hudumika_app_color_${id}`) ?? fallback,
+    /**
+     * Resolution order: the tenant's own colour for this app, then the
+     * platform's, then the tenant's overall accent, then the caller's default.
+     *
+     * The tenant accent sits *below* any per-app colour on purpose. Apps are
+     * deliberately different colours — that is why one page header renders
+     * orange in ClearOS and green in Admin — so a workspace accent fills in
+     * where no app colour has been chosen rather than flattening them all.
+     */
+    getAppColor: (id, fallback = '#64748b') =>
+      localStorage.getItem(`hudumika_tenant_app_color_${id}`)
+      ?? localStorage.getItem(`hudumika_app_color_${id}`)
+      ?? localStorage.getItem('hudumika_tenant_accent')
+      ?? fallback,
     getAppLogo:      (id) => localStorage.getItem(`hudumika_app_logo_${id}`) ?? '',
     getAppName:      (id, fallback = '') => localStorage.getItem(`hudumika_app_name_${id}`) ?? fallback,
     getAppSlogan:    (id, fallback = '') => localStorage.getItem(`hudumika_app_slogan_${id}`) ?? fallback,
@@ -77,6 +96,19 @@ export async function pushBranding(state: Partial<BrandingState> & { apps?: Reco
     method: 'PUT',
     body: JSON.stringify(state),
   });
+}
+
+/**
+ * Save this workspace's own branding. Throws on failure, like pushBranding —
+ * a silently-failed save looks identical to a successful one.
+ */
+export async function pushTenantBranding(
+  state: Record<string, unknown> & { apps?: Record<string, { color?: string }> },
+): Promise<void> {
+  await apiFetch('/v1/settings/branding', { method: 'PUT', body: JSON.stringify(state) });
+  // The same event the SuperAdmin view fires, so every mounted useBranding
+  // re-reads without a reload.
+  window.dispatchEvent(new Event('hudumika-brand-updated'));
 }
 
 export function useBranding(): BrandingState {
@@ -127,6 +159,34 @@ export function useBranding(): BrandingState {
 
       handler(); // Triggers UI update
     }).catch(() => {});
+
+    /**
+     * The workspace's own branding, layered on top.
+     *
+     * Written to its own key namespace rather than over the platform's, so the
+     * two stay distinguishable: clearing a tenant logo falls back to the
+     * platform's rather than to nothing. Fetched separately because the platform
+     * call above is public and this one needs a session.
+     */
+    apiFetch('/v1/settings/branding').then((t: any) => {
+      if (!t || typeof t !== 'object') return;
+      const put = (key: string, value: unknown) => {
+        if (value) localStorage.setItem(key, String(value));
+        else localStorage.removeItem(key);
+      };
+      put('hudumika_tenant_name', t.workspaceName);
+      put('hudumika_tenant_logo_light', t.logoLight);
+      put('hudumika_tenant_logo_dark', t.logoDark);
+      put('hudumika_tenant_favicon', t.favicon);
+      put('hudumika_tenant_accent', t.accentColor);
+      for (const [appId, cfg] of Object.entries((t.apps ?? {}) as Record<string, { color?: string }>)) {
+        put(`hudumika_tenant_app_color_${appId}`, cfg?.color);
+      }
+      handler();
+    }).catch(() => {
+      // A workspace with no branding of its own is the ordinary case, and an
+      // unreachable API must not blank the platform's.
+    });
 
     return () => {
       window.removeEventListener('hudumika-brand-updated', handler);

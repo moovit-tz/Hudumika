@@ -223,6 +223,71 @@ export async function settingsRoutes(fastify: FastifyInstance) {
     return { settings };
   }
 
+  /**
+   * The workspace's own identity.
+   *
+   * Branding and the design system were mounted only under the platform console
+   * at /admin, so a tenant administrator could not put their own logo or colours
+   * on the workspace they pay for — even though the theming engine is explicitly
+   * built to be overridden per tenant. That is why one page header renders
+   * orange in ClearOS and green in Admin.
+   *
+   * What a tenant may set is deliberately bounded. The login screen is not here:
+   * it is pre-authentication and shared by every tenant, so one workspace
+   * rebranding it would rebrand it for everybody. Neither is the platform's own
+   * name. What is here is everything a person sees *inside* their workspace.
+   */
+  const TENANT_BRANDING_FIELDS = ['workspaceName', 'logoLight', 'logoDark', 'favicon', 'accentColor'] as const;
+
+  fastify.get('/branding', async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('tenant_settings').select('settings')
+        .where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+      return settings.branding ?? {};
+    });
+  });
+
+  fastify.put('/branding', {
+    preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'),
+  }, async (request, reply) => {
+    const user = request.user;
+    const body = (request.body ?? {}) as Record<string, any>;
+
+    /**
+     * A whitelist, not a merge of whatever arrived.
+     *
+     * This writes into the same settings blob every other section uses, so an
+     * unfiltered body could set any key at all under `branding` — including
+     * ones the platform reads for its own purposes.
+     */
+    const branding: Record<string, any> = {};
+    for (const key of TENANT_BRANDING_FIELDS) {
+      if (body[key] !== undefined) branding[key] = body[key] === null ? null : String(body[key]).slice(0, 512_000);
+    }
+
+    // Per-app colour is the documented per-tenant override point: it is what
+    // keeps ClearOS orange and SEAL green while still letting a workspace
+    // recolour one app.
+    if (body.apps && typeof body.apps === 'object') {
+      const apps: Record<string, { color?: string }> = {};
+      for (const [appId, cfg] of Object.entries(body.apps as Record<string, any>)) {
+        if (cfg?.color) apps[appId] = { color: String(cfg.color).slice(0, 32) };
+      }
+      if (Object.keys(apps).length) branding.apps = apps;
+    }
+
+    if (Object.keys(branding).length === 0) {
+      return reply.status(400).send({ error: 'Nothing to save. Send a logo, colour or workspace name.' });
+    }
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const result = await applySettingsPatch(trx, user.tenant_id, { branding }, [], user.sub);
+      return (result as any).settings?.branding ?? branding;
+    });
+  });
+
   // POST /v1/settings/cron/run  — trigger a named cron job immediately
   fastify.post('/cron/run', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (request, reply) => {
     const { jobId, jobName } = request.body as { jobId: string; jobName: string };

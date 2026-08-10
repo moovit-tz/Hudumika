@@ -6,6 +6,8 @@ import type { IconName } from '../components/Icon.js';
 import { getCompany, setCompany } from '../data/companyStore.js';
 import { apiFetch } from '../lib/api.js';
 import { refreshTenantLocale } from '../lib/tenantLocale.js';
+import { useBranding, pushTenantBranding } from '../hooks/useBranding.js';
+import { squareAvatarDataUrl } from '../lib/identity.js';
 import { useLocale } from '../hooks/useLocale.js';
 import type { SupportedLocale } from '../i18n/index.js';
 import './Settings.css';
@@ -32,6 +34,9 @@ const NAV: Array<{ group: string; items: Array<{ key: string; label: string; ico
   { group: 'General', items: [
     { key: 'company',            label: 'Company Information',  icon: 'building'      },
     { key: 'localization',       label: 'Localization',         icon: 'globe'         },
+    // Branding was mounted only in the platform console, so a tenant could not
+    // put their own logo or colour on the workspace they pay for.
+    { key: 'branding',           label: 'Branding',             icon: 'sparkle'       },
     // Tax rates, quotations, purchase orders and currencies each had a panel
     // here that saved to a key nothing read, while the real implementations
     // live in FinOps. One control per thing; this one points at it.
@@ -2173,11 +2178,167 @@ const ElsewhereSection: React.FC = () => (
   </Card>
 );
 
+
+/**
+ * The workspace's own identity.
+ *
+ * Branding lived only in the platform console, so a tenant administrator could
+ * not put their own logo or colour on the workspace they pay for — even though
+ * the theming engine is explicitly built to be overridden per tenant.
+ *
+ * What is offered here is bounded on purpose. The login screen is not: it is
+ * pre-authentication and shared by every tenant, so one workspace rebranding it
+ * would rebrand it for everyone.
+ */
+const BrandingSection: React.FC = () => {
+  const branding = useBranding();
+  const [workspaceName, setWorkspaceName] = useState('');
+  const [logoLight, setLogoLight] = useState('');
+  const [favicon, setFavicon] = useState('');
+  const [accentColor, setAccentColor] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    apiFetch('/v1/settings/branding')
+      .then((t: any) => {
+        setWorkspaceName(t?.workspaceName ?? '');
+        setLogoLight(t?.logoLight ?? '');
+        setFavicon(t?.favicon ?? '');
+        setAccentColor(t?.accentColor ?? '');
+      })
+      .catch(() => { /* a workspace with no branding of its own is the norm */ })
+      .finally(() => setLoading(false));
+  }, []);
+
+  /** Downscaled through the same helper avatars use, so one idea of an image. */
+  async function pickImage(file: File, set: (v: string) => void) {
+    try {
+      set(await squareAvatarDataUrl(file));
+    } catch {
+      showAlert('That image could not be read.', { variant: 'error' });
+    }
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      // Empty string clears the override and falls back to the platform's,
+      // which is why it is sent rather than omitted.
+      await pushTenantBranding({
+        workspaceName: workspaceName.trim(),
+        logoLight,
+        favicon,
+        accentColor: accentColor.trim(),
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2200);
+    } catch (e: any) {
+      showAlert(e?.message || 'That branding could not be saved.', { variant: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (loading) return <Card title="Workspace branding"><p className="s-muted">Loading…</p></Card>;
+
+  return (
+    <>
+      <Card
+        title="Workspace branding"
+        desc="Your logo, name and colour, as everyone in this workspace sees them. Leave a field empty to use the platform default."
+        action={
+          <button type="button" className="btn btn-primary" onClick={save} disabled={saving}>
+            {saving ? 'Saving…' : saved ? 'Saved' : 'Save branding'}
+          </button>
+        }
+      >
+        <Field label="Workspace name" hint="Shown in the browser tab and beside the logo.">
+          <input
+            className="input-field"
+            value={workspaceName}
+            onChange={e => setWorkspaceName(e.target.value)}
+            placeholder={branding.platformName}
+          />
+        </Field>
+
+        <Field label="Brand colour" hint="Used by apps that have no colour of their own. Apps keep their own colours by design.">
+          <div className="s-brand-colour">
+            <input
+              type="color"
+              value={/^#[0-9a-fA-F]{6}$/.test(accentColor) ? accentColor : '#0f766e'}
+              onChange={e => setAccentColor(e.target.value)}
+              aria-label="Brand colour"
+            />
+            <input
+              className="input-field"
+              value={accentColor}
+              onChange={e => setAccentColor(e.target.value)}
+              placeholder="#0f766e"
+            />
+            {accentColor && (
+              <button type="button" className="s-brand-clear" onClick={() => setAccentColor('')}>Clear</button>
+            )}
+          </div>
+        </Field>
+
+        <Field label="Logo" full>
+          <div className="s-brand-img">
+            {logoLight
+              ? <img src={logoLight} alt="Workspace logo" />
+              : <div className="s-brand-img-none">Using the platform logo</div>}
+            <div className="s-brand-img-actions">
+              <label className="btn btn-secondary btn-sm">
+                {logoLight ? 'Replace' : 'Upload'}
+                <input type="file" accept="image/*" hidden
+                  onChange={e => { const f = e.target.files?.[0]; if (f) pickImage(f, setLogoLight); }} />
+              </label>
+              {logoLight && (
+                <button type="button" className="s-brand-clear" onClick={() => setLogoLight('')}>Remove</button>
+              )}
+            </div>
+          </div>
+        </Field>
+
+        <Field label="Favicon" full>
+          <div className="s-brand-img">
+            {favicon
+              ? <img src={favicon} alt="Workspace favicon" className="s-brand-favicon" />
+              : <div className="s-brand-img-none">Using the platform favicon</div>}
+            <div className="s-brand-img-actions">
+              <label className="btn btn-secondary btn-sm">
+                {favicon ? 'Replace' : 'Upload'}
+                <input type="file" accept="image/*" hidden
+                  onChange={e => { const f = e.target.files?.[0]; if (f) pickImage(f, setFavicon); }} />
+              </label>
+              {favicon && (
+                <button type="button" className="s-brand-clear" onClick={() => setFavicon('')}>Remove</button>
+              )}
+            </div>
+          </div>
+        </Field>
+      </Card>
+
+      <Card title="What this does not change" desc="So nobody goes looking for a control that is deliberately absent.">
+        <p className="s-muted">
+          The sign-in screen is shared by every workspace on the platform, so its
+          logo and wording are set by Hudumika rather than here. Each app also keeps
+          its own colour — ClearOS orange, SEAL green — because telling them apart
+          at a glance is what those colours are for; your brand colour applies to
+          apps that have none.
+        </p>
+      </Card>
+    </>
+  );
+};
+
 // -- section routing ---------------------------------------------------------
 function renderSection(key: string): React.ReactNode {
   switch (key) {
     case 'company':             return <CompanySection />;
     case 'elsewhere':           return <ElsewhereSection />;
+    case 'branding':            return <BrandingSection />;
     case 'localization':        return <LocalizationSection />;
     case 'email':               return <EmailSection />;
     case 'notifications':       return <NotificationsSection />;
