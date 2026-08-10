@@ -26,6 +26,21 @@ async function recordLogin(tenantId: string, userId: string, status: 'SUCCESS' |
   try {
     await db.insertInto('hr_login_history').values({ tenant_id: tenantId, user_id: userId, ip, user_agent: userAgent, status }).execute();
     if (status === 'SUCCESS') {
+      /**
+       * users.last_login_at, which nothing had ever written.
+       *
+       * The column exists, /v1/hr/staff selects it, and the staff screens
+       * display it — so every person in every workspace read "Never", forever.
+       * Login history went to hr_login_history and hr_devices and stopped
+       * there. A tenant administrator asking "who has not used this since we
+       * bought it" needs this one field to be true.
+       */
+      await db.updateTable('users')
+        .set({ last_login_at: new Date() })
+        .where('id', '=', userId)
+        .where('tenant_id', '=', tenantId)
+        .execute();
+
       // Unconditional: recordLogin used to return null when the client sent no
       // User-Agent, and a token with no device_id skips the revocation check in
       // middleware/auth.ts entirely — an unrevokable session. A nameless client

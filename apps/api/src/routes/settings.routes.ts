@@ -69,10 +69,39 @@ export async function settingsRoutes(fastify: FastifyInstance) {
     });
   });
 
+  /**
+   * What a MANAGER is allowed to change.
+   *
+   * This endpoint admitted MANAGER for everything, so a manager could rewrite
+   * the workspace's SMTP credentials, its payment gateway keys, and which apps
+   * the whole organisation can see. That is a wider blast radius than the role
+   * is meant to carry.
+   *
+   * These two are genuinely operational — the demurrage and SLA thresholds and
+   * the free-time window that shipment.service.ts reads when it scores risk.
+   * A manager runs those day to day and should not need an administrator to
+   * change one. Everything else is credentials, money or workspace-wide
+   * configuration, and belongs to TENANT_ADMIN and above.
+   */
+  const MANAGER_WRITABLE = new Set(['notifications', 'freight']);
+
   // PATCH /v1/settings
   fastify.patch('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
     const user = request.user;
     const { $replace, ...updates } = request.body as Record<string, any>;
+
+    if (user.role === 'MANAGER') {
+      const forbidden = Object.keys(updates).filter(k => !MANAGER_WRITABLE.has(k));
+      if (forbidden.length > 0) {
+        return reply.status(403).send({
+          error: forbidden.length === 1
+            ? `Changing "${forbidden[0]}" needs a workspace administrator. Managers can change notification thresholds and freight settings.`
+            : `These need a workspace administrator: ${forbidden.join(', ')}. Managers can change notification thresholds and freight settings.`,
+          code: 'ROLE_INSUFFICIENT',
+          forbidden,
+        });
+      }
+    }
 
     /**
      * Which top-level keys mean "this is the whole set now".

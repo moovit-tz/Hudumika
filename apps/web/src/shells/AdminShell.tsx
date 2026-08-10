@@ -9,6 +9,7 @@ import { RequireRoles } from '../components/RequireRoles.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
 
 import { Settings }          from '../pages/Settings.js';
+import { Team } from '../pages/Team.js';
 import { Utilities }         from '../pages/Utilities.js';
 import { Reports }           from '../pages/Reports.js';
 import { Subscription }      from '../pages/Subscription.js';
@@ -18,6 +19,10 @@ const NAV: SidebarSection[] = [
     title: 'MANAGEMENT',
     items: [
       { label: 'Settings',     icon: 'settings',  path: '/workspace/settings'  },
+      // People, roles and permissions were only reachable inside NexusHR, mixed
+      // into employment records. "Who can get into my workspace" belongs to the
+      // workspace console.
+      { label: 'Team',         icon: 'users',     path: '/workspace/team'      },
       { label: 'Tools',        icon: 'tool',      path: '/workspace/utilities' },
       { label: 'Reports',      icon: 'activity',  path: '/workspace/reports'   },
       { label: 'Subscription', icon: 'creditCard',path: '/workspace/billing'   },
@@ -41,6 +46,7 @@ export function AdminShell() {
             <Route element={<PageLayout />}>
               <Route index element={<RequireRoles roles={MGMT_ROLES}><Settings /></RequireRoles>} />
               <Route path="settings"  element={<RequireRoles roles={MGMT_ROLES}><Settings /></RequireRoles>} />
+              <Route path="team"      element={<RequireRoles roles={MGMT_ROLES}><Team /></RequireRoles>} />
               <Route path="utilities" element={<RequireRoles roles={MGMT_ROLES}><Utilities /></RequireRoles>} />
               <Route path="reports"   element={<RequireRoles roles={[...MGMT_ROLES, 'FINANCE']}><Reports /></RequireRoles>} />
               <Route path="billing"   element={<RequireRoles roles={MGMT_ROLES}><Subscription /></RequireRoles>} />
