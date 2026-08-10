@@ -21,7 +21,7 @@
 .onsite-header-title h1 {
   font-size: 1.625rem;
   font-weight: 700;
-  color: var(--ink, #18181b);
+  color: var(--ink);
   margin: 0;
   letter-spacing: -0.02em;
 }
@@ -29,7 +29,7 @@
 .onsite-header-title p {
   margin: 0.25rem 0 0 0;
   font-size: 0.875rem;
-  color: var(--ink-muted, #71717a);
+  color: var(--ink2);
 }
 
 .onsite-header-actions {
@@ -47,7 +47,7 @@
 .onsite-hero-greeting h2 {
   font-size: 1.875rem;
   font-weight: 600;
-  color: var(--ink, #18181b);
+  color: var(--ink);
   letter-spacing: -0.02em;
   margin: 0 0 1.5rem 0;
 }
@@ -55,11 +55,11 @@
 .onsite-prompt-box {
   max-width: 680px;
   margin: 0 auto;
-  background: #ffffff;
-  border: 1px solid #e4e4e7;
+  background: var(--white);
+  border: 1px solid var(--border);
   border-radius: 1.25rem;
   padding: 1rem 1.25rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -67,8 +67,8 @@
 }
 
 .onsite-prompt-box:focus-within {
-  border-color: #673de6;
-  box-shadow: 0 4px 24px rgba(103, 61, 230, 0.12);
+  border-color: var(--purple);
+  box-shadow: 0 4px 24px rgba(110, 64, 201, 0.2);
 }
 
 .onsite-prompt-input {
@@ -76,27 +76,31 @@
   outline: none;
   width: 100%;
   font-size: 0.9375rem;
-  color: var(--ink, #18181b);
+  color: var(--ink);
   background: transparent;
+}
+
+.onsite-prompt-input::placeholder {
+  color: var(--ink3);
 }
 
 .onsite-prompt-submit {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: #f4f4f5;
+  background: var(--bg);
   border: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #71717a;
+  color: var(--ink2);
   cursor: pointer;
   flex-shrink: 0;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
 .onsite-prompt-submit:hover {
-  background: #673de6;
+  background: var(--purple);
   color: #ffffff;
 }
 
@@ -115,22 +119,22 @@
   gap: 0.4rem;
   padding: 0.4rem 0.875rem;
   border-radius: 9999px;
-  background: #ffffff;
-  border: 1px solid #e4e4e7;
+  background: var(--white);
+  border: 1px solid var(--border);
   font-size: 0.8125rem;
   font-weight: 500;
-  color: #3f3f46;
+  color: var(--ink);
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .onsite-prompt-pill:hover {
-  border-color: #673de6;
-  color: #673de6;
-  background: #f8f5ff;
+  border-color: var(--purple);
+  color: var(--purple);
+  background: var(--purple-l);
 }
 
-/* Feature Showcase Banners (Hostinger style) */
+/* Feature Showcase Banners */
 .onsite-feature-banners {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -139,15 +143,15 @@
 }
 
 .onsite-feature-banner {
-  background: #ffffff;
-  border: 1px solid #e4e4e7;
+  background: var(--white);
+  border: 1px solid var(--border);
   border-radius: 1.25rem;
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: 1rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: var(--shadow-sm);
   position: relative;
   overflow: hidden;
 }
@@ -156,19 +160,32 @@
   font-size: 1.125rem;
   font-weight: 600;
   margin: 0 0 0.5rem 0;
-  color: #18181b;
+  color: var(--ink);
 }
 
 .onsite-feature-banner p {
   font-size: 0.875rem;
-  color: #71717a;
+  color: var(--ink2);
   margin: 0;
   line-height: 1.45;
 }
 
+/* Specific banner backgrounds adapting to theme */
+.onsite-banner-ai {
+  background: linear-gradient(135deg, var(--white) 0%, var(--purple-l) 100%);
+}
+
+.onsite-banner-store {
+  background: linear-gradient(135deg, var(--white) 0%, var(--blue-l) 100%);
+}
+
+.onsite-banner-email {
+  background: linear-gradient(135deg, var(--white) 0%, var(--purple-l) 100%);
+}
+
 .onsite-btn-black {
-  background: #18181b;
-  color: #ffffff;
+  background: var(--ink);
+  color: var(--white);
   border: none;
   padding: 0.55rem 1.25rem;
   border-radius: 9999px;
@@ -176,15 +193,15 @@
   font-size: 0.8125rem;
   cursor: pointer;
   width: fit-content;
-  transition: background 0.15s ease;
+  transition: opacity 0.15s ease;
 }
 
 .onsite-btn-black:hover {
-  background: #27272a;
+  opacity: 0.9;
 }
 
 .onsite-btn-purple {
-  background: #673de6;
+  background: var(--purple);
   color: #ffffff;
   border: none;
   padding: 0.55rem 1.25rem;
@@ -193,17 +210,17 @@
   font-size: 0.8125rem;
   cursor: pointer;
   width: fit-content;
-  transition: background 0.15s ease;
+  transition: opacity 0.15s ease;
 }
 
 .onsite-btn-purple:hover {
-  background: #542cc7;
+  opacity: 0.9;
 }
 
 .onsite-btn-outline {
-  background: #ffffff;
-  color: #18181b;
-  border: 1px solid #e4e4e7;
+  background: var(--white);
+  color: var(--ink);
+  border: 1px solid var(--border);
   padding: 0.5rem 1rem;
   border-radius: 9999px;
   font-weight: 600;
@@ -213,8 +230,8 @@
 }
 
 .onsite-btn-outline:hover {
-  border-color: #673de6;
-  color: #673de6;
+  border-color: var(--purple);
+  color: var(--purple);
 }
 
 /* Tabs Header */
@@ -222,7 +239,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: #f4f4f5;
+  background: var(--bg);
   padding: 0.25rem;
   border-radius: 9999px;
   width: fit-content;
@@ -233,7 +250,7 @@
   border-radius: 9999px;
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #71717a;
+  color: var(--ink2);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -241,40 +258,40 @@
 }
 
 .onsite-tab.active {
-  background: #ffffff;
-  color: #18181b;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: var(--white);
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
 }
 
-/* Hostinger Grouped Plan Card */
+/* Plan Group */
 .onsite-plan-group {
-  background: #ffffff;
-  border: 1px solid #e4e4e7;
+  background: var(--white);
+  border: 1px solid var(--border);
   border-radius: 1rem;
   padding: 1.25rem 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .onsite-plan-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #f4f4f5;
+  border-bottom: 1px solid var(--border);
   padding-bottom: 0.875rem;
 }
 
 .onsite-plan-title {
   font-size: 1rem;
   font-weight: 700;
-  color: #18181b;
+  color: var(--ink);
 }
 
 .onsite-plan-expiry {
   font-size: 0.8125rem;
-  color: #71717a;
+  color: var(--ink2);
   margin-top: 0.15rem;
 }
 
@@ -283,7 +300,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 0;
-  border-bottom: 1px solid #f4f4f5;
+  border-bottom: 1px solid var(--border);
 }
 
 .onsite-website-row:last-child {
@@ -294,13 +311,13 @@
   width: 36px;
   height: 36px;
   border-radius: 0.5rem;
-  background: #f4f4f5;
+  background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 0.875rem;
-  color: #3f3f46;
+  color: var(--ink);
   flex-shrink: 0;
 }
 
@@ -313,7 +330,7 @@
 .onsite-site-domain {
   font-weight: 600;
   font-size: 0.9375rem;
-  color: #18181b;
+  color: var(--ink);
   text-decoration: none;
   display: flex;
   align-items: center;
@@ -321,7 +338,7 @@
 }
 
 .onsite-site-domain:hover {
-  color: #673de6;
+  color: var(--purple);
 }
 
 .onsite-site-actions {
@@ -332,7 +349,8 @@
 
 /* Domain Search Gradient Hero */
 .onsite-domain-search-hero {
-  background: linear-gradient(135deg, #e9e4ff 0%, #d8cdff 50%, #c4b5fd 100%);
+  background: linear-gradient(135deg, var(--purple-l) 0%, var(--bg) 100%);
+  border: 1px solid var(--border);
   border-radius: 1.5rem;
   padding: 2.5rem 2rem;
   text-align: center;
@@ -345,7 +363,7 @@
 .onsite-domain-search-hero h2 {
   font-size: 1.75rem;
   font-weight: 700;
-  color: #1e1b4b;
+  color: var(--ink);
   margin: 0;
 }
 
@@ -360,12 +378,13 @@
 }
 
 .onsite-tld-card {
-  background: #ffffff;
+  background: var(--white);
+  border: 1px solid var(--border);
   border-radius: 0.875rem;
   padding: 0.875rem 1.25rem;
   min-width: 120px;
   text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -374,25 +393,25 @@
 .onsite-tld-name {
   font-weight: 700;
   font-size: 1.125rem;
-  color: #18181b;
+  color: var(--ink);
 }
 
 .onsite-tld-orig-price {
   font-size: 0.75rem;
-  color: #a1a1aa;
+  color: var(--ink3);
   text-decoration: line-through;
 }
 
 .onsite-tld-price {
   font-weight: 700;
   font-size: 0.9375rem;
-  color: #673de6;
+  color: var(--purple);
 }
 
 /* Transfers Illustration Box */
 .onsite-transfer-card {
-  background: #ffffff;
-  border: 1px solid #e4e4e7;
+  background: var(--white);
+  border: 1px solid var(--border);
   border-radius: 1.25rem;
   padding: 3.5rem 2rem;
   text-align: center;
@@ -408,8 +427,8 @@
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: #f4f0ff;
-  color: #673de6;
+  background: var(--purple-l);
+  color: var(--purple);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -424,22 +443,22 @@
 }
 
 .onsite-stat-card {
-  background: #ffffff;
-  border: 1px solid #e4e4e7;
+  background: var(--white);
+  border: 1px solid var(--border);
   border-radius: 0.875rem;
   padding: 1.25rem;
   display: flex;
   align-items: flex-start;
   gap: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .onsite-stat-icon {
   width: 42px;
   height: 42px;
   border-radius: 0.6rem;
-  background: #f4f0ff;
-  color: #673de6;
+  background: var(--purple-l);
+  color: var(--purple);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -454,13 +473,13 @@
 .onsite-stat-value {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #18181b;
+  color: var(--ink);
   line-height: 1.2;
 }
 
 .onsite-stat-label {
   font-size: 0.8125rem;
-  color: #71717a;
+  color: var(--ink2);
   margin-top: 0.25rem;
 }
 
@@ -479,14 +498,14 @@
 
 /* Onsite Cards */
 .onsite-card {
-  background: #ffffff;
-  border: 1px solid #e4e4e7;
+  background: var(--white);
+  border: 1px solid var(--border);
   border-radius: 0.875rem;
   padding: 1.25rem;
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-sm);
 }
 
 .onsite-card-header {
@@ -498,7 +517,7 @@
 .onsite-card-title {
   font-size: 1rem;
   font-weight: 600;
-  color: #18181b;
+  color: var(--ink);
   margin: 0;
   display: flex;
   align-items: center;
@@ -521,8 +540,8 @@
 .onsite-badge.healthy,
 .onsite-badge.succeeded,
 .onsite-badge.running {
-  background: rgba(16, 185, 129, 0.12);
-  color: #059669;
+  background: var(--green-l);
+  color: var(--green);
 }
 
 .onsite-badge.pending,
@@ -530,8 +549,8 @@
 .onsite-badge.building,
 .onsite-badge.deploying,
 .onsite-badge.syncing {
-  background: rgba(245, 158, 11, 0.12);
-  color: #d97706;
+  background: var(--gold-l);
+  color: var(--gold);
 }
 
 .onsite-badge.misconfigured,
@@ -539,21 +558,21 @@
 .onsite-badge.expired,
 .onsite-badge.critical,
 .onsite-badge.error {
-  background: rgba(239, 68, 68, 0.12);
-  color: #dc2626;
+  background: var(--red-l);
+  color: var(--red);
 }
 
 .onsite-badge.unknown,
 .onsite-badge.inactive {
-  background: rgba(107, 114, 128, 0.12);
-  color: #4b5563;
+  background: var(--bg);
+  color: var(--ink2);
 }
 
 /* Tables */
 .onsite-table-wrapper {
   overflow-x: auto;
   border-radius: 0.5rem;
-  border: 1px solid #e4e4e7;
+  border: 1px solid var(--border);
 }
 
 .onsite-table {
@@ -564,18 +583,18 @@
 }
 
 .onsite-table th {
-  background: #fafafa;
-  color: #71717a;
+  background: var(--bg);
+  color: var(--ink2);
   font-weight: 600;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e4e4e7;
+  border-bottom: 1px solid var(--border);
   white-space: nowrap;
 }
 
 .onsite-table td {
   padding: 0.875rem 1rem;
-  border-bottom: 1px solid #e4e4e7;
-  color: #18181b;
+  border-bottom: 1px solid var(--border);
+  color: var(--ink);
   vertical-align: middle;
 }
 
@@ -584,12 +603,12 @@
 }
 
 .onsite-table tr:hover td {
-  background: rgba(0, 0, 0, 0.015);
+  background: var(--bg);
 }
 
 /* Code & Mono */
 .onsite-mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--mono);
   font-size: 0.8125rem;
 }
 
@@ -603,7 +622,7 @@
 .onsite-form-group label {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: #18181b;
+  color: var(--ink);
 }
 
 .onsite-input,
@@ -611,9 +630,9 @@
 .onsite-textarea {
   padding: 0.55rem 0.875rem;
   border-radius: 0.5rem;
-  border: 1px solid #e4e4e7;
-  background: #ffffff;
-  color: #18181b;
+  border: 1px solid var(--border);
+  background: var(--white);
+  color: var(--ink);
   font-size: 0.875rem;
   outline: none;
   transition: border-color 0.15s ease;
@@ -622,21 +641,37 @@
 .onsite-input:focus,
 .onsite-select:focus,
 .onsite-textarea:focus {
-  border-color: #673de6;
+  border-color: var(--purple);
 }
 
-/* Modal backdrop.
-   Every dialog in these pages inlined the same six declarations; this is that
-   block named once so a new dialog cannot land on a different dim or a
-   different z-index. */
-.onsite-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  overflow-y: auto;
+/* Dark Mode Fine-Tuning Overrides */
+[data-theme="dark"] .onsite-btn-outline {
+  background: var(--white);
+  border-color: var(--border);
+  color: var(--ink);
+}
+
+[data-theme="dark"] .onsite-btn-outline:hover {
+  border-color: var(--purple);
+  color: var(--purple);
+}
+
+[data-theme="dark"] .onsite-card,
+[data-theme="dark"] .onsite-plan-group,
+[data-theme="dark"] .onsite-stat-card,
+[data-theme="dark"] .onsite-transfer-card,
+[data-theme="dark"] .onsite-feature-banner {
+  background: var(--white);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .onsite-prompt-box {
+  background: var(--white);
+  border-color: var(--border);
+}
+
+[data-theme="dark"] .onsite-prompt-pill {
+  background: var(--white);
+  border-color: var(--border);
+  color: var(--ink);
 }

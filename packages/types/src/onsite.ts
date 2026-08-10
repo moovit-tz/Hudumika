@@ -69,6 +69,27 @@ export interface OnsiteDomain {
   updated_at: string;
 }
 
+// ── Websites ─────────────────────────────────────────────────
+
+export interface OnsiteWebsite {
+  id: string;
+  tenant_id: string;
+  project_id: string | null;
+  domain_id: string | null;
+  name: string;
+  type: string;
+  status: string;
+  hosting_provider: string | null;
+  hosting_id: string | null;
+  url: string | null;
+  last_health_at: string | null;
+  last_health_status: number | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+
 // ── DNS ──────────────────────────────────────────────────────
 
 export type DnsRecordType =

@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { sql } from 'kysely';
 import { requireRole } from '../middleware/rbac.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
 import nodemailer from 'nodemailer';
 import { getDocSequence, setDocSequence, type DocType } from '../lib/doc-numbering.js';
 
@@ -149,11 +150,11 @@ export async function settingsRoutes(fastify: FastifyInstance) {
           };
         }
 
-        return applySettingsPatch(trx, user.tenant_id, updates, replaceKeys);
+        return applySettingsPatch(trx, user.tenant_id, updates, replaceKeys, user.sub);
       });
     }
 
-    return withTenant(user.tenant_id, (trx) => applySettingsPatch(trx, user.tenant_id, updates, replaceKeys));
+    return withTenant(user.tenant_id, (trx) => applySettingsPatch(trx, user.tenant_id, updates, replaceKeys, user.sub));
   });
 
   async function applySettingsPatch(
@@ -175,6 +176,29 @@ export async function settingsRoutes(fastify: FastifyInstance) {
         : (existing.settings ?? {});
       const merged = mergeSettings(current, updates, replaceKeys);
       await sql`UPDATE tenant_settings SET settings = ${JSON.stringify(merged)}::jsonb, updated_at = NOW() WHERE tenant_id = ${tenantId}`.execute(trx);
+
+      /**
+       * Record who changed what.
+       *
+       * Settings changes were the one thing in this platform that left no trace
+       * at all — including SMTP credentials, payment gateway keys and which apps
+       * the whole workspace can see. domain_events already carries an actor and
+       * already backs the activity trail, so this needed no new table; it needed
+       * the write that was missing.
+       *
+       * Only the key names travel, never the values. A record of a credential
+       * change must not become a second copy of the credential.
+       */
+      if (actorId && !actorId.startsWith('apikey:')) {
+        await emitDomainEvent(trx as any, tenantId, {
+          type: 'settings.changed',
+          sourceApp: 'workspace',
+          entityType: 'tenant_settings',
+          entityId: tenantId,
+          actorId,
+          payload: { keys: Object.keys(updates).sort(), replaced: replaceKeys },
+        });
+      }
     } else {
       await trx.insertInto('tenant_settings').values({
         tenant_id: tenantId,

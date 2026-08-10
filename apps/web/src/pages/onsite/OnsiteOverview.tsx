@@ -1,240 +1,188 @@
 import React, { useEffect, useState } from 'react';
-import { PageHeader } from '../../components/PageHeader.js';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
+import { useAuth } from '../../hooks/useAuth.js';
 import type { OnsiteDashboard } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import './Onsite.css';
 
 export function OnsiteOverview() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [data, setData] = useState<OnsiteDashboard | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [promptText, setPromptText] = useState('');
 
   useEffect(() => {
     setLoading(true);
     apiFetch('/v1/onsite/overview')
       .then(setData)
-      .catch((err: any) => setError(err.message ?? 'Failed to load dashboard'))
+      .catch(() => setData(null))
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) {
-    return (
-      <div className="onsite-page">
-        <div className="app-loading-bar-fill" />
-        <p style={{ color: 'var(--ink-muted)' }}>Loading infrastructure overview…</p>
-      </div>
-    );
-  }
+  const handlePromptSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!promptText.trim()) return;
+    const lower = promptText.toLowerCase();
+    if (lower.includes('domain')) {
+      navigate(`/onsite/domains/search?query=${encodeURIComponent(promptText)}`);
+    } else if (lower.includes('site') || lower.includes('website')) {
+      navigate('/onsite/websites');
+    } else if (lower.includes('email') || lower.includes('mail')) {
+      navigate('/onsite/emails');
+    } else if (lower.includes('vps') || lower.includes('server')) {
+      navigate('/onsite/servers');
+    } else {
+      navigate('/onsite/applications');
+    }
+  };
 
-  if (error || !data) {
-    return (
-      <div className="onsite-page">
-        <div className="onsite-card">
-          <p style={{ color: '#ef4444' }}>Error: {error || 'Failed to load data'}</p>
-        </div>
-      </div>
-    );
-  }
+  const userName = user?.name ? user.name.split(' ')[0] : 'there';
 
   return (
     <div className="onsite-page">
-      {/* Header */}
-      <PageHeader
-        crumbs={['Onsite']}
-        titlePlain="Infrastructure"
-        titleEm="overview"
-        subtitle="Manage domains, DNS, SSL certificates, websites, applications, and cloud compute."
-        actions={<><Link to="/onsite/domains" className="btn btn-secondary">
-                    <Icon name="globe" size={16} /> Manage Domains
-                  </Link>
-                  <Link to="/onsite/applications" className="btn btn-primary">
-                    <Icon name="plus" size={16} /> Deploy Application
-                  </Link></>}
-      />
+      {/* Hostinger AI Greeting & Prompt Hero */}
+      <div className="onsite-hero-greeting">
+        <h2>Hi, {userName}! How can I help you today?</h2>
+        <form onSubmit={handlePromptSubmit} className="onsite-prompt-box">
+          <input
+            type="text"
+            className="onsite-prompt-input"
+            placeholder="Type what you're looking for or ask a question"
+            value={promptText}
+            onChange={(e) => setPromptText(e.target.value)}
+          />
+          <button type="submit" className="onsite-prompt-submit" title="Ask AI / Search">
+            <Icon name="arrowRight" size={16} />
+          </button>
+        </form>
 
-      {/* Quick Stats */}
-      <div className="onsite-stats-grid">
-        <div className="onsite-stat-card">
-          <div className="onsite-stat-icon">
-            <Icon name="folder" size={22} />
-          </div>
-          <div className="onsite-stat-body">
-            <span className="onsite-stat-value">{data.projects}</span>
-            <span className="onsite-stat-label">Projects</span>
-          </div>
-        </div>
-
-        <div className="onsite-stat-card">
-          <div className="onsite-stat-icon">
-            <Icon name="globe" size={22} />
-          </div>
-          <div className="onsite-stat-body">
-            <span className="onsite-stat-value">{data.domains}</span>
-            <span className="onsite-stat-label">Managed Domains</span>
-            {data.domains_expiring_soon > 0 && (
-              <span className="onsite-stat-badge warning">
-                <Icon name="alertTriangle" size={12} /> {data.domains_expiring_soon} expiring soon
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="onsite-stat-card">
-          <div className="onsite-stat-icon">
-            <Icon name="shield" size={22} />
-          </div>
-          <div className="onsite-stat-body">
-            <span className="onsite-stat-value">{data.domains}</span>
-            <span className="onsite-stat-label">SSL Certificates</span>
-            {data.ssl_expiring_soon > 0 && (
-              <span className="onsite-stat-badge warning">
-                <Icon name="alertTriangle" size={12} /> {data.ssl_expiring_soon} expiring soon
-              </span>
-            )}
-          </div>
-        </div>
-
-        <div className="onsite-stat-card">
-          <div className="onsite-stat-icon">
-            <Icon name="terminal" size={22} />
-          </div>
-          <div className="onsite-stat-body">
-            <span className="onsite-stat-value">{data.applications}</span>
-            <span className="onsite-stat-label">Applications</span>
-          </div>
-        </div>
-
-        <div className="onsite-stat-card">
-          <div className="onsite-stat-icon">
-            <Icon name="monitor" size={22} />
-          </div>
-          <div className="onsite-stat-body">
-            <span className="onsite-stat-value">{data.servers}</span>
-            <span className="onsite-stat-label">Compute Servers</span>
-          </div>
-        </div>
-
-        <div className="onsite-stat-card">
-          <div className="onsite-stat-icon">
-            <Icon name="activity" size={22} />
-          </div>
-          <div className="onsite-stat-body">
-            <span className="onsite-stat-value">{data.health_checks}</span>
-            <span className="onsite-stat-label">Uptime Monitors</span>
-          </div>
+        {/* Quick Action Tag Pills */}
+        <div className="onsite-prompt-pills">
+          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/domains/search')}>
+            <Icon name="globe" size={14} /> Get domain
+          </button>
+          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/websites')}>
+            <Icon name="layoutDashboard" size={14} /> Create website
+          </button>
+          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/emails')}>
+            <Icon name="mail" size={14} /> Get email
+          </button>
+          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/applications')}>
+            <Icon name="terminal" size={14} /> Try vibe coding
+          </button>
+          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/websites')}>
+            <Icon name="refresh" size={14} /> Migrate site
+          </button>
+          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/servers')}>
+            <Icon name="monitor" size={14} /> Get VPS
+          </button>
+          <button className="onsite-prompt-pill" onClick={() => navigate('/onsite/emails')}>
+            <Icon name="send" size={14} /> Try email marketing
+          </button>
         </div>
       </div>
 
-      {/* Alerts section if any */}
-      {data.alerts.length > 0 && (
-        <div className="onsite-card">
-          <div className="onsite-card-header">
-            <h3 className="onsite-card-title" style={{ color: '#d97706' }}>
-              <Icon name="alertTriangle" size={18} /> Attention Required ({data.alerts.length})
-            </h3>
+      {/* Hostinger 3-Card Feature Banners */}
+      <div className="onsite-feature-banners">
+        {/* Banner 1: AI Website Builder */}
+        <div className="onsite-feature-banner onsite-banner-ai">
+          <div>
+            <h3>Get your website live – in minutes</h3>
+            <p>Just describe your idea and let AI build your site. From portfolios and online stores to business sites and more – get yours online today.</p>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {data.alerts.map((alert) => (
-              <div key={alert.id} className={`onsite-alert-item ${alert.severity}`}>
-                <Icon name="alertCircle" size={18} />
-                <div className="onsite-alert-content">
-                  <h4>{alert.message}</h4>
-                  <p>Resource: {alert.resource_name} ({alert.resource_type})</p>
-                </div>
+          <button className="onsite-btn-black" onClick={() => navigate('/onsite/websites')}>
+            Try AI Builder
+          </button>
+        </div>
+
+        {/* Banner 2: Ecommerce */}
+        <div className="onsite-feature-banner onsite-banner-store">
+          <div>
+            <h3>Build your online store with AI</h3>
+            <p>Sell on your site, social media, and more. Manage products, orders, and sales – all from one place.</p>
+          </div>
+          <button className="onsite-btn-outline" onClick={() => navigate('/onsite/websites')}>
+            Get started
+          </button>
+        </div>
+
+        {/* Banner 3: Email */}
+        <div className="onsite-feature-banner onsite-banner-email">
+          <div>
+            <h3>Claim your free email</h3>
+            <p>Show you're a credible business with a professional email address, like <code>you@yourdomain.com</code>.</p>
+          </div>
+          <button className="onsite-btn-outline" onClick={() => navigate('/onsite/emails')}>
+            Claim email
+          </button>
+        </div>
+      </div>
+
+      {/* Control Plane Infrastructure Summary */}
+      {data && (
+        <div style={{ marginTop: '1rem' }}>
+          <div className="onsite-header" style={{ marginBottom: '1rem' }}>
+            <div className="onsite-header-title">
+              <h1>Infrastructure Status</h1>
+              <p>Live health and resource summary across your connected services.</p>
+            </div>
+          </div>
+
+          <div className="onsite-stats-grid">
+            <div className="onsite-stat-card">
+              <div className="onsite-stat-icon">
+                <Icon name="layoutDashboard" size={22} />
               </div>
-            ))}
+              <div className="onsite-stat-body">
+                <span className="onsite-stat-value">{data.applications}</span>
+                <span className="onsite-stat-label">Websites & Apps</span>
+              </div>
+            </div>
+
+            <div className="onsite-stat-card">
+              <div className="onsite-stat-icon">
+                <Icon name="globe" size={22} />
+              </div>
+              <div className="onsite-stat-body">
+                <span className="onsite-stat-value">{data.domains}</span>
+                <span className="onsite-stat-label">Managed Domains</span>
+              </div>
+            </div>
+
+            <div className="onsite-stat-card">
+              <div className="onsite-stat-icon">
+                <Icon name="shield" size={22} />
+              </div>
+              <div className="onsite-stat-body">
+                <span className="onsite-stat-value">{data.domains}</span>
+                <span className="onsite-stat-label">Active SSL Certificates</span>
+              </div>
+            </div>
+
+            <div className="onsite-stat-card">
+              <div className="onsite-stat-icon">
+                <Icon name="monitor" size={22} />
+              </div>
+              <div className="onsite-stat-body">
+                <span className="onsite-stat-value">{data.servers}</span>
+                <span className="onsite-stat-label">Compute VPS Servers</span>
+              </div>
+            </div>
+
+            <div className="onsite-stat-card">
+              <div className="onsite-stat-icon">
+                <Icon name="activity" size={22} />
+              </div>
+              <div className="onsite-stat-body">
+                <span className="onsite-stat-value">{data.health_checks}</span>
+                <span className="onsite-stat-label">Active Uptime Probes</span>
+              </div>
+            </div>
           </div>
         </div>
       )}
-
-      {/* Main Grid: Recent Deployments + Quick Action Links */}
-      <div className="onsite-grid-2">
-        <div className="onsite-card">
-          <div className="onsite-card-header">
-            <h3 className="onsite-card-title">
-              <Icon name="gitBranch" size={18} /> Recent Deployments
-            </h3>
-            <Link to="/onsite/deployments" className="btn btn-sm btn-ghost">
-              View All
-            </Link>
-          </div>
-
-          {data.recent_deployments.length === 0 ? (
-            <p style={{ color: 'var(--ink-muted)', fontSize: '0.875rem', padding: '1rem 0' }}>
-              No deployments recorded yet. Create an application to get started.
-            </p>
-          ) : (
-            <div className="onsite-table-wrapper">
-              <table className="onsite-table">
-                <thead>
-                  <tr>
-                    <th>Version / Branch</th>
-                    <th>Commit Message</th>
-                    <th>Status</th>
-                    <th>Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.recent_deployments.map((d) => (
-                    <tr key={d.id}>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{d.version || <span style={{ color: 'var(--ink-muted)' }}>—</span>}</div>
-                        <div className="onsite-mono" style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>
-                          {d.branch || 'main'}
-                        </div>
-                      </td>
-                      <td style={{ maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {d.commit_message || 'Manual trigger'}
-                      </td>
-                      <td>
-                        <span className={`onsite-badge ${d.status}`}>
-                          {d.status}
-                        </span>
-                      </td>
-                      <td style={{ color: 'var(--ink-muted)', fontSize: '0.8125rem' }}>
-                        {new Date(d.created_at).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-        {/* Right Sidebar: Shortcuts & Integrations */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div className="onsite-card">
-            <div className="onsite-card-header">
-              <h3 className="onsite-card-title">
-                <Icon name="layers" size={18} /> Infrastructure Services
-              </h3>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <Link to="/onsite/domains" className="btn btn-ghost" style={{ justifyContent: 'flex-start' }}>
-                <Icon name="globe" size={16} /> Domains & DNS Management
-              </Link>
-              <Link to="/onsite/ssl" className="btn btn-ghost" style={{ justifyContent: 'flex-start' }}>
-                <Icon name="shield" size={16} /> SSL Certificate Provisioning
-              </Link>
-              <Link to="/onsite/applications" className="btn btn-ghost" style={{ justifyContent: 'flex-start' }}>
-                <Icon name="terminal" size={16} /> Applications & Deployments
-              </Link>
-              <Link to="/onsite/servers" className="btn btn-ghost" style={{ justifyContent: 'flex-start' }}>
-                <Icon name="monitor" size={16} /> Compute Servers & VPS
-              </Link>
-              <Link to="/onsite/monitoring" className="btn btn-ghost" style={{ justifyContent: 'flex-start' }}>
-                <Icon name="activity" size={16} /> Uptime & Health Monitors
-              </Link>
-              <Link to="/onsite/settings" className="btn btn-ghost" style={{ justifyContent: 'flex-start' }}>
-                <Icon name="link" size={16} /> Provider Connections (GitHub / CI)
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

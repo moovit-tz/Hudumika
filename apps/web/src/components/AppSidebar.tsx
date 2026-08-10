@@ -371,9 +371,6 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav }: Pr
                                   className={`app-sb-item app-sb-item--child${childActive ? ' app-sb-item--active' : ''}`}
                                   onClick={() => setMobileOpen(false)}
                                 >
-                                  <span className="app-sb-item-icon">
-                                    <Icon name={child.icon} size={13} strokeWidth={childActive ? 2.2 : 1.8} />
-                                  </span>
                                   <span className="app-sb-item-label">{child.label}</span>
                                   {child.badge && (
                                     <span className={`app-sb-badge app-sb-badge--${child.badgeVariant ?? 'tag'}`}>

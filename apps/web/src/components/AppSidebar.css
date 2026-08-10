@@ -329,7 +329,9 @@ html[data-expanded="true"] .app-sidebar {
 .app-sb-children-group {
   position: relative;
   margin-left: 21px;
+  margin-right: 8px;
   padding-left: 6px;
+  padding-right: 4px;
   border-left: 1.5px solid var(--nav-guide);
   display: flex;
   flex-direction: column;
