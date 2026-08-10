@@ -8,6 +8,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/s
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { FormPage } from '../components/FormPage.js';
+import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 
 // -- Types ---------------------------------------------------------------------
 // Field names/values below mirror the real `products` table (migration
@@ -20,12 +22,17 @@ export interface Product {
   id: string;
   name: string;
   code: string;
+  type?: 'product' | 'service';
   category: string;
   description: string;
   unit: string;
   sale_price: number;
+  purchase_price?: number;
   currency: string;
   tax_rate: number;
+  /** The tax treatment, when one was recorded — preserved through edits so a
+   *  code set elsewhere is never silently dropped. */
+  tax_code_id?: string | null;
   status: 'active' | 'inactive';
   notes?: string;
   created_at: string;
@@ -33,12 +40,23 @@ export interface Product {
 }
 
 interface ProductForm {
-  name: string; code: string; category: string; description: string;
-  unit: string; sale_price: number; currency: string; tax_rate: number;
+  name: string; code: string; type: 'product' | 'service'; category: string; description: string;
+  unit: string; sale_price: number; purchase_price: number; currency: string; tax_rate: number;
+  tax_code_id: string | null;
   status: 'active' | 'inactive'; notes: string;
 }
 
 type CatFilter = 'ALL' | string;
+
+/** A customer's agreed (contract) price for this service — overrides the
+ *  catalog sale_price on that customer's invoices/quotes/POs. */
+interface CustomerPriceRow {
+  customer_id: string;
+  customer_name: string;
+  price: number;
+  currency: string;
+  note: string;
+}
 
 // -- Constants -----------------------------------------------------------------
 
@@ -286,23 +304,39 @@ function DeleteModal({ name, onConfirm, onCancel }: { name: string; onConfirm: (
 
 function ProductForm({ initial, onSave, onClose, isMobile }: {
   initial?: Product;
-  onSave: (data: ProductForm) => Promise<void>;
+  onSave: (data: ProductForm) => Promise<Product>;
   onClose: () => void;
   isMobile: boolean;
 }) {
   const [saving, setSaving] = useState(false);
   const [f, setF] = useState<ProductForm>({
-    name:        initial?.name        ?? '',
-    code:        initial?.code        ?? '',
-    category:    initial?.category    ?? 'FREIGHT',
-    description: initial?.description ?? '',
-    unit:        initial?.unit        ?? 'shipment',
-    sale_price:  initial?.sale_price  ?? 0,
-    currency:    initial?.currency    ?? 'USD',
-    tax_rate:    initial?.tax_rate    ?? 0,
-    status:      initial?.status      ?? 'active',
-    notes:       initial?.notes       ?? '',
+    name:           initial?.name           ?? '',
+    code:           initial?.code           ?? '',
+    type:           initial?.type           ?? 'service',
+    category:       initial?.category       ?? 'FREIGHT',
+    description:    initial?.description    ?? '',
+    unit:           initial?.unit           ?? 'shipment',
+    sale_price:     initial?.sale_price     ?? 0,
+    purchase_price: initial?.purchase_price ?? 0,
+    currency:       initial?.currency       ?? 'USD',
+    tax_rate:       initial?.tax_rate       ?? 0,
+    tax_code_id:    initial?.tax_code_id    ?? null,
+    status:         initial?.status         ?? 'active',
+    notes:          initial?.notes          ?? '',
   });
+
+  // Customer-specific (contract) prices. Loaded for an existing service; for a
+  // new one they are held here and saved right after the service is created.
+  const [prices, setPrices] = useState<CustomerPriceRow[]>([]);
+  useEffect(() => {
+    if (!initial?.id) return;
+    apiFetch(`/v1/products/${initial.id}/customer-prices`)
+      .then((rows: any) => setPrices((Array.isArray(rows) ? rows : []).map((r: any) => ({
+        customer_id: r.customer_id, customer_name: r.customer_name,
+        price: Number(r.price) || 0, currency: r.currency || 'USD', note: r.note || '',
+      }))))
+      .catch(() => {});
+  }, [initial?.id]);
 
   function set<K extends keyof ProductForm>(k: K, v: ProductForm[K]) {
     setF(p => {
@@ -313,10 +347,36 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
     });
   }
 
+  function setPriceRow(i: number, patch: Partial<CustomerPriceRow>) {
+    setPrices(prev => prev.map((r, idx) => idx === i ? { ...r, ...patch } : r));
+  }
+  async function searchCustomers(q: string): Promise<PickerItem[]> {
+    const res: any = await apiFetch(`/v1/customers${q.trim() ? `?search=${encodeURIComponent(q.trim())}` : ''}`).catch(() => []);
+    const list = Array.isArray(res) ? res : (res?.data ?? []);
+    const filtered = q.trim() ? list.filter((c: any) => (c.name || '').toLowerCase().includes(q.toLowerCase())) : list;
+    return filtered.slice(0, 25).map((c: any) => ({ id: c.id, label: c.name, sublabel: c.email || undefined }));
+  }
+  function addCustomer(item: PickerItem | null) {
+    if (!item) return;
+    setPrices(prev => prev.some(p => p.customer_id === item.id) ? prev
+      : [...prev, { customer_id: item.id, customer_name: item.label, price: f.sale_price, currency: f.currency, note: '' }]);
+  }
+
   async function submit() {
     if (!f.name.trim()) { showAlert('Service name is required.'); return; }
     setSaving(true);
-    try { await onSave(f); } finally { setSaving(false); }
+    try {
+      const saved = await onSave(f);
+      // The service now has an id (whether it was just created or already
+      // existed), so its agreed prices can be written against it.
+      await apiFetch(`/v1/products/${saved.id}/customer-prices`, {
+        method: 'PUT',
+        body: JSON.stringify({ prices: prices.map(p => ({ customer_id: p.customer_id, price: Number(p.price) || 0, currency: p.currency, note: p.note })) }),
+      });
+      onClose();
+    } catch (err: any) {
+      showAlert(err.message || 'Failed to save this service.');
+    } finally { setSaving(false); }
   }
 
   const inp: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, outline: 'none', background: 'var(--white)', boxSizing: 'border-box' as const, color: 'var(--ink)', fontFamily: 'inherit' };
@@ -324,32 +384,38 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
   const row: React.CSSProperties = { marginBottom: 16 };
 
   return (
-    <>
-      {/* Backdrop */}
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.3)', zIndex: 400 }} />
-      {/* Panel */}
-      <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: isMobile ? '100%' : 480, background: 'var(--white)', zIndex: 401, display: 'flex', flexDirection: 'column', boxShadow: '-8px 0 40px rgba(0,0,0,0.14)' }}>
-        {/* Header */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{initial ? 'Edit Service' : 'New Service'}</div>
-            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{initial ? `Editing ${initial.code}` : 'Add to your service catalog'}</div>
-          </div>
-          <button type="button" title="Close" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', display: 'flex', padding: 4 }}>
-            <Icon name="x" size={18} />
+    <FormPage
+      title={initial ? 'Edit Service' : 'New Service'}
+      subtitle={initial ? `Editing ${initial.code}` : 'Add a service to your catalog — its code, price, unit and tax.'}
+      onCancel={onClose}
+      actions={
+        <>
+          <button type="button" onClick={onClose} className="btn btn-secondary">Cancel</button>
+          <button type="button" title="Save service" onClick={submit} disabled={saving} className="btn btn-primary">
+            <Icon name="save" size={13} /> {saving ? 'Saving…' : initial ? 'Update Service' : 'Add Service'}
           </button>
-        </div>
-
-        {/* Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+        </>
+      }
+    >
+      <div className="card" style={{ display: 'flex', flexDirection: 'column' }}>
           <div style={row}>
             <label style={lbl}>Service Name *</label>
             <input type="text" title="Service name" placeholder="e.g. Sea Freight — 20ft FCL" value={f.name} onChange={e => set('name', e.target.value)} style={inp} />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
             <div>
-              <label style={lbl}>Service Code / SKU</label>
+              <label style={lbl}>Type</label>
+              <Select value={f.type} onValueChange={v => set('type', v as 'product' | 'service')}>
+                <SelectTrigger aria-label="Type" style={inp}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="service">Service</SelectItem>
+                  <SelectItem value="product">Product</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label style={lbl}>Code / SKU</label>
               <input type="text" title="Service code" placeholder="e.g. SF-FCL-20" value={f.code} onChange={e => set('code', e.target.value.toUpperCase())} style={{ ...inp, fontFamily: 'var(--mono)', fontSize: 12 }} />
             </div>
             <div>
@@ -372,12 +438,20 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
           {/* Pricing */}
           <div style={{ background: 'var(--bg)', borderRadius: 9, padding: 16, marginBottom: 16 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pricing</div>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 12, marginBottom: 12 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 12, marginBottom: 12 }}>
               <div>
-                <label style={lbl}>Unit Price</label>
+                <label style={lbl}>Sale Price</label>
                 <div style={{ position: 'relative' }}>
                   <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>{f.currency}</span>
-                  <input type="number" title="Unit price" value={f.sale_price} min={0} step={0.01} onChange={e => set('sale_price', parseFloat(e.target.value) || 0)}
+                  <input type="number" title="Sale price" value={f.sale_price} min={0} step={0.01} onChange={e => set('sale_price', parseFloat(e.target.value) || 0)}
+                    style={{ ...inp, paddingLeft: f.currency.length * 8 + 14 }} />
+                </div>
+              </div>
+              <div>
+                <label style={lbl}>Purchase / Cost Price</label>
+                <div style={{ position: 'relative' }}>
+                  <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: 'var(--ink3)', fontWeight: 600 }}>{f.currency}</span>
+                  <input type="number" title="Purchase price" value={f.purchase_price} min={0} step={0.01} onChange={e => set('purchase_price', parseFloat(e.target.value) || 0)}
                     style={{ ...inp, paddingLeft: f.currency.length * 8 + 14 }} />
                 </div>
               </div>
@@ -427,6 +501,35 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
               style={{ ...inp, resize: 'vertical' }} />
           </div>
 
+          {/* Customer-specific (contract) prices */}
+          <div style={{ marginBottom: 16, border: '1px solid var(--border)', borderRadius: 9, padding: 16, background: 'var(--bg)' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Customer-specific prices</div>
+            <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12, lineHeight: 1.5 }}>
+              Agreed contract rates. When one of these customers is on an invoice, quotation or purchase order, their price for this service is triggered instead of the catalog price of{' '}
+              <strong style={{ color: 'var(--ink2)' }}>{f.sale_price > 0 ? fmt(f.sale_price, f.currency) : '—'}</strong>.
+            </div>
+            {prices.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                {prices.map((p, i) => (
+                  <div key={p.customer_id} style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0,1.4fr) 120px 92px minmax(0,1fr) 32px', gap: 8, alignItems: 'center' }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={p.customer_name}>{p.customer_name}</div>
+                    <input type="number" title="Agreed price" value={p.price} min={0} step={0.01} onChange={e => setPriceRow(i, { price: parseFloat(e.target.value) || 0 })} style={{ ...inp, padding: '7px 10px' }} />
+                    <Select value={p.currency} onValueChange={v => setPriceRow(i, { currency: v })}>
+                      <SelectTrigger aria-label="Currency" style={{ ...inp, padding: '7px 10px' }}><SelectValue /></SelectTrigger>
+                      <SelectContent>{CURRENCIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
+                    </Select>
+                    <input type="text" title="Note" placeholder="Contract ref / note" value={p.note} onChange={e => setPriceRow(i, { note: e.target.value })} style={{ ...inp, padding: '7px 10px' }} />
+                    <button type="button" title="Remove agreed price" onClick={() => setPrices(prev => prev.filter((_, idx) => idx !== i))}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', display: 'flex', justifyContent: 'center', padding: 4 }}>
+                      <Icon name="trash" size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <EntityPicker value={null} onChange={addCustomer} search={searchCustomers} placeholder="Add a customer with an agreed price…" />
+          </div>
+
           {/* Live preview */}
           <div style={{ background: 'var(--teal-l)', border: '1px solid var(--teal-m, var(--teal))', borderRadius: 9, padding: 14 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Preview</div>
@@ -443,16 +546,7 @@ function ProductForm({ initial, onSave, onClose, isMobile }: {
           </div>
         </div>
 
-        {/* Footer */}
-        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button type="button" title="Cancel" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 18px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontWeight: 600, fontSize: 13, color: 'var(--ink2)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-          <button type="button" title="Save service" onClick={submit} disabled={saving}
-            style={{ padding: 'var(--ds-btn-py) 20px', border: 'none', borderRadius: 'var(--r)', background: 'var(--teal)', color: '#fff', cursor: 'pointer', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            <Icon name="save" size={13} /> {saving ? 'Saving…' : initial ? 'Update Service' : 'Add Service'}
-          </button>
-        </div>
-      </div>
-    </>
+    </FormPage>
   );
 }
 
@@ -583,22 +677,21 @@ export const ProductsServices: React.FC = () => {
   // from the response it actually returns — no optimistic writes that could
   // drift from what's in the database, no swallowed failures.
 
-  async function handleSave(data: ProductForm) {
+  // Returns the saved product so the form can write its customer-specific
+  // prices against the id (needed for a brand-new service). The form itself
+  // reports failures and closes on success.
+  async function handleSave(data: ProductForm): Promise<Product> {
     const isNew = editing === 'new';
-    try {
-      if (isNew) {
-        const created: Product = await apiFetch('/v1/products', { method: 'POST', body: JSON.stringify(data) });
-        setProducts(prev => [created, ...prev]);
-      } else {
-        const target = editing as Product;
-        const updated: Product = await apiFetch(`/v1/products/${target.id}`, { method: 'PATCH', body: JSON.stringify(data) });
-        setProducts(prev => prev.map(p => p.id === target.id ? updated : p));
-        if (selected?.id === target.id) setSelected(updated);
-      }
-      setEditing(null);
-    } catch (err: any) {
-      showAlert(err.message || 'Failed to save this service.');
+    if (isNew) {
+      const created: Product = await apiFetch('/v1/products', { method: 'POST', body: JSON.stringify(data) });
+      setProducts(prev => [created, ...prev]);
+      return created;
     }
+    const target = editing as Product;
+    const updated: Product = await apiFetch(`/v1/products/${target.id}`, { method: 'PATCH', body: JSON.stringify(data) });
+    setProducts(prev => prev.map(p => p.id === target.id ? updated : p));
+    if (selected?.id === target.id) setSelected(updated);
+    return updated;
   }
 
   async function handleDelete(product: Product) {
@@ -741,16 +834,21 @@ export const ProductsServices: React.FC = () => {
 
   // -- Render -----------------------------------------------------------------
 
+  // The form replaces the list rather than layering over it — the same
+  // full-page pattern every other finance document create/edit now uses.
+  if (editing !== null) {
+    return (
+      <ProductForm
+        initial={editing === 'new' ? undefined : editing}
+        onSave={handleSave}
+        onClose={() => setEditing(null)}
+        isMobile={isMobile}
+      />
+    );
+  }
+
   return (
     <>
-      {editing !== null && (
-        <ProductForm
-          initial={editing === 'new' ? undefined : editing}
-          onSave={handleSave}
-          onClose={() => setEditing(null)}
-          isMobile={isMobile}
-        />
-      )}
       {deleting && (
         <DeleteModal
           name={deleting.name}

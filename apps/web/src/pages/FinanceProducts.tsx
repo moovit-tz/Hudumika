@@ -208,7 +208,7 @@ function ProductForm({ product, onSave, onClose }: {
       }
     >
 
-      <div className="card" style={{ maxWidth: 780, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      <div className="card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <F label="Name *" col2>
             <input style={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Standard Customs Clearance" />
           </F>

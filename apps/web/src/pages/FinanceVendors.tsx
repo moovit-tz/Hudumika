@@ -279,7 +279,7 @@ function VendorForm({ vendor, onSave, onClose }: {
         </>
       }
     >
-      <div className="card" style={{ maxWidth: 780, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      <div className="card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <div style={{ gridColumn: '1 / -1' }}>
             <F label="Vendor Name *">
               <input style={inp} value={form.name} onChange={e => set('name', e.target.value)} placeholder="e.g. Tanzania Ports Authority" />

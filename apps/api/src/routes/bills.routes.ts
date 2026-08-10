@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { GLService } from '../services/gl.service.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
 import { AccountingIntegrationService } from '../services/accounting-integration.service.js';
 import { TRAService } from '../services/tra.service.js';
 import { isTaxCodeUserError, resolveLineTax, resolveTaxCode, splitInputTax } from '../services/tax-code.service.js';
@@ -581,6 +582,13 @@ export async function billRoutes(fastify: FastifyInstance) {
         note: note || null,
         created_by: user.sub,
       }).execute();
+
+      // Money paid out to a supplier — the A/P counterpart of an invoice
+      // payment, so cross-app subscribers see cash leaving, not just cash in.
+      emitDomainEvent(trx, user.tenant_id, {
+        type: 'bill.payment_recorded', sourceApp: 'finops', entityType: 'bill', entityId: id,
+        payload: { amount: Number(amount), method: method || null, supplierId: (bill as any).supplier_id ?? null },
+      }).catch(err => console.error('[Finance] bill payment_recorded emit failed:', err.message));
 
       // Recalculate paid_amount from all payments
       const payments = await trx.selectFrom('bill_payments').select('amount').where('bill_id', '=', id).where('tenant_id', '=', user.tenant_id).execute();

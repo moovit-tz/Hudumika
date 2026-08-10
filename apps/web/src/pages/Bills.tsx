@@ -362,7 +362,7 @@ function BillFormView({ initial, allBills, suppliers, onSupplierCreated, onSave,
         </>
       }
     >
-      <div className="card" style={{ maxWidth: 900 }}>
+      <div className="card">
           <div style={{ ...sec, marginTop:0 }}>Bill Details</div>
           <div style={{ marginBottom:12 }}>
             <EntityPicker

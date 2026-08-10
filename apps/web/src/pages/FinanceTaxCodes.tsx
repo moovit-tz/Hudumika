@@ -337,7 +337,7 @@ function TaxCodeForm({ code, onClose, onSaved }: {
       actions={<FormPageActions onCancel={onClose} onSave={save} saving={saving}
         saveLabel={code?.id ? 'Save changes' : 'Add tax code'} />}
     >
-      <div className="card" style={{ maxWidth: 780, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+      <div className="card" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         {err && (
           <div style={{ gridColumn: '1 / -1', padding: '9px 12px', background: 'var(--red-l)',
                         border: '1px solid var(--red)', borderRadius: 'var(--r-sm)',

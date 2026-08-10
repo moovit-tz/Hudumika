@@ -6,6 +6,7 @@ import { apiFetch } from '../lib/api.js';
 import { getCompany } from '../data/companyStore.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { FormPage } from '../components/FormPage.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Popover, PopoverAnchor, PopoverContent, PopoverTrigger } from '../components/ui/popover.js';
 import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/date-picker.js';
@@ -671,28 +672,21 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
   const {subtotal,tax,total} = calcTotals(f.lines);
 
   return (
-    <div style={{ padding: '0 0 24px', flex:1, overflowY:'auto' }}>
-      {/* Header */}
-      <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:24, flexWrap:'wrap' }}>
-        <button type="button" title="Back" onClick={onCancel} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink2)', display:'flex', padding:4 }}>
-          <Icon name="arrowLeft" size={18}/>
-        </button>
-        <div>
-          <h1 style={{ fontSize:20, fontWeight:800, color:'var(--ink)', margin:0 }}>{mode==='create'?'New Quotation':`Edit ${initial?.quote_number}`}</h1>
-          <div style={{ fontSize:13, color:'var(--ink3)', marginTop:2 }}>Fill in the details below to build the proposal</div>
-        </div>
-        <div style={{ marginLeft:'auto', display:'flex', gap:8 }}>
-          <button type="button" title="Save as draft" onClick={()=>submit(true)} disabled={saving}
-            style={{ padding:'var(--ds-btn-py) 18px', border:'1px solid var(--border)', borderRadius: 'var(--r)', background:'var(--white)', color:'var(--ink)', cursor:'pointer', fontWeight:600, fontSize:13, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-            {saving?'Saving...':'Save as Draft'}
+    <FormPage
+      title={mode==='create'?'New Quotation':`Edit ${initial?.quote_number}`}
+      subtitle="Fill in the details below to build the proposal."
+      onCancel={onCancel}
+      actions={
+        <>
+          <button type="button" title="Save as draft" onClick={()=>submit(true)} disabled={saving} className="btn btn-secondary">
+            {saving?'Saving…':'Save as Draft'}
           </button>
-          <button type="button" title="Save and submit for approval" onClick={()=>submit(false)} disabled={saving}
-            style={{ padding:'var(--ds-btn-py) 18px', border:'none', borderRadius: 'var(--r)', background:'var(--teal)', color:'#fff', cursor:'pointer', fontWeight:600, fontSize:13, display:'flex', alignItems:'center', gap:6, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button type="button" title="Save and submit for approval" onClick={()=>submit(false)} disabled={saving} className="btn btn-primary">
             <Icon name="send" size={13}/> Save &amp; Submit
           </button>
-        </div>
-      </div>
-
+        </>
+      }
+    >
       <div style={{ display:'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', gap:20, alignItems:'start' }}>
         {/* Left */}
         <div>
@@ -872,7 +866,7 @@ function QuoteFormView({ mode, initial, customers, leads, onSave, onCancel, isMo
           </div>
         </div>
       </div>
-    </div>
+    </FormPage>
   );
 }
 

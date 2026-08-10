@@ -2362,6 +2362,18 @@ export interface ProductsTable {
   updated_at: Generated<Date>;
 }
 
+export interface CustomerProductPricesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  customer_id: string;
+  product_id: string;
+  price: Generated<number>;
+  currency: Generated<string>;
+  note: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface SsoProvidersTable {
   id: Generated<string>;
   tenant_id: string;
@@ -3151,6 +3163,7 @@ export interface Database {
   tax_jurisdictions: TaxJurisdictionsTable;
   // Suppliers / Vendors
   products: ProductsTable;
+  customer_product_prices: CustomerProductPricesTable;
   suppliers: SuppliersTable;
   // Ondi (Identity & Access)
   sso_providers: SsoProvidersTable;

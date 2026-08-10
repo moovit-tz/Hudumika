@@ -4,6 +4,7 @@ import { useBranding } from '../hooks/useBranding.js';
 import { useCurrency } from '../hooks/useCurrency.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { FormPage } from '../components/FormPage.js';
 import { apiFetch } from '../lib/api.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -722,13 +723,13 @@ export const PurchaseOrders: React.FC = () => {
         }
       `}</style>
 
-      {/* HEADER: compact bar for detail/create/edit only */}
-      {viewMode !== 'LIST' && (
+      {/* HEADER: compact bar for the detail view only. Create/Edit carry the
+          shared FormPage chrome (back button + title) instead, so every finance
+          document opens the same way. */}
+      {viewMode === 'DETAILS' && (
         <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '12px 24px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--ink)' }}>
-            {viewMode === 'DETAILS' && currentDetailsPo && `PO #${currentDetailsPo.po_number}`}
-            {viewMode === 'CREATE' && 'Create Purchase Order'}
-            {viewMode === 'EDIT' && `Edit PO #${pos.find(p => p.id === selectedPoId)?.po_number ?? ''}`}
+            {currentDetailsPo && `PO #${currentDetailsPo.po_number}`}
           </div>
           <button onClick={() => setViewMode('LIST')} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 14px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
             <Icon name="arrowLeft" size={13} /> Back
@@ -1707,7 +1708,18 @@ export const PurchaseOrders: React.FC = () => {
 
         {/* VIEW MODE: CREATE / EDIT PURCHASE ORDER FORM */}
         {(viewMode === 'CREATE' || viewMode === 'EDIT') && (
-          <form onSubmit={handleSavePO} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <FormPage
+            title={viewMode === 'CREATE' ? 'New Purchase Order' : `Edit PO #${pos.find(p => p.id === selectedPoId)?.po_number ?? ''}`}
+            subtitle="Request goods and services from a vendor — dates, items and terms."
+            onCancel={() => setViewMode('LIST')}
+            actions={
+              <>
+                <button type="button" onClick={() => setViewMode('LIST')} className="btn btn-secondary">Cancel</button>
+                <button type="submit" form="po-form" className="btn btn-primary">{viewMode === 'CREATE' ? 'Create' : 'Save Changes'}</button>
+              </>
+            }
+          >
+          <form id="po-form" onSubmit={handleSavePO} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             
             {/* Purchase Invoice Details Card */}
             <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: 24, display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -1974,41 +1986,9 @@ export const PurchaseOrders: React.FC = () => {
 
               </div>
 
-              {/* Form Action Buttons */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 12, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('LIST')}
-                  style={{
-                    padding: 'var(--ds-btn-py) 18px',
-                    borderRadius: 'var(--r)',
-                    border: '1px solid var(--border)',
-                    background: 'var(--white)',
-                    color: 'var(--ink2)',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  style={{
-                    padding: 'var(--ds-btn-py) 20px',
-                    borderRadius: 'var(--r)',
-                    border: 'none',
-                    background: 'var(--teal)',
-                    color: '#fff',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
-                >
-                  {viewMode === 'CREATE' ? 'Create' : 'Save Changes'}
-                </button>
-              </div>
-
             </div>
           </form>
+          </FormPage>
         )}
 
       </div>

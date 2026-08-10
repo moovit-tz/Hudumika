@@ -24,7 +24,6 @@ function buildNav(t: TFunction): SidebarSection[] {
         { label: t('finance.nav.invoices'),      icon: 'receipt',   path: '/finance/invoices'       },
         { label: t('finance.nav.quotations'),    icon: 'fileText',  path: '/finance/quotations'     },
         { label: t('finance.nav.deliveryNotes'), icon: 'package',   path: '/finance/delivery-notes' },
-        { label: t('finance.nav.salesReport'),   icon: 'barChart',  path: '/finance/reports/sales'  },
       ],
     },
     {
@@ -55,6 +54,7 @@ function buildNav(t: TFunction): SidebarSection[] {
     {
       title: t('finance.nav.reports'),
       items: [
+        { label: t('finance.nav.salesReport'),      icon: 'barChart',    path: '/finance/reports/sales'              },
         { label: t('finance.nav.incomeVsExpenses'), icon: 'barChart',    path: '/finance/reports/income-vs-expenses' },
         { label: t('finance.nav.cashFlow'),         icon: 'trendingUp',  path: '/finance/reports/cash-flow'          },
         { label: t('finance.nav.taxReport'),        icon: 'percent',     path: '/finance/reports/tax'                },
@@ -78,7 +78,9 @@ import { Expenses }               from '../pages/Expenses.js';
 import { FinanceExpenseNew }      from '../pages/FinanceExpenseNew.js';
 import { Bills }                  from '../pages/Bills.js';
 import { FinanceVendors }         from '../pages/FinanceVendors.js';
-import { FinanceProducts }        from '../pages/FinanceProducts.js';
+// One catalog, surfaced in both apps: /finance/products and /clearos/products
+// render the same component over the same /v1/products table.
+import { ProductsServices }        from '../pages/ProductsServices.js';
 import { FinanceTaxCodes }        from '../pages/FinanceTaxCodes.js';
 import { FinanceTaxClassify }     from '../pages/FinanceTaxClassify.js';
 import { FinanceVatPeriods }      from '../pages/FinanceVatPeriods.js';
@@ -129,7 +131,7 @@ export function FinOpsShell() {
 
           {/* Accounts */}
           <Route path="payments"  element={<RequireRoles roles={FIN_ROLES}><FinancePayments /></RequireRoles>} />
-          <Route path="products"  element={<RequireRoles roles={FIN_ROLES}><FinanceProducts /></RequireRoles>} />
+          <Route path="products"  element={<RequireRoles roles={FIN_ROLES}><ProductsServices /></RequireRoles>} />
           <Route path="tax-codes" element={<RequireRoles roles={FIN_ROLES}><FinanceTaxCodes /></RequireRoles>} />
           <Route path="tax-codes/classify" element={<RequireRoles roles={FIN_ROLES}><FinanceTaxClassify /></RequireRoles>} />
           <Route path="vat-periods" element={<RequireRoles roles={FIN_ROLES}><FinanceVatPeriods /></RequireRoles>} />

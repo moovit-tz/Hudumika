@@ -56,6 +56,10 @@ const STANDARD_COA: { code: string; name: string; type: 'ASSET' | 'LIABILITY' | 
   { code: '5102', name: 'Utilities', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
   { code: '5200', name: 'Bank Charges', type: 'EXPENSE', subtype: 'FINANCE_COST', normalBalance: 'DEBIT' },
   { code: '5201', name: 'Interest Expense', type: 'EXPENSE', subtype: 'FINANCE_COST', normalBalance: 'DEBIT' },
+  // Catch-all for a directly-recorded expense whose category maps to nothing
+  // more specific (e.g. "Miscellaneous"). Without it those expenses would have
+  // no GL account to post to. Backfilled to existing tenants by migration 216.
+  { code: '5900', name: 'Other Operating Expenses', type: 'EXPENSE', subtype: 'OPERATING_EXPENSE', normalBalance: 'DEBIT' },
 ];
 
 export class GLService {
@@ -156,6 +160,27 @@ export class GLService {
         .execute();
 
       return entry.id;
+    });
+  }
+
+  /**
+   * Remove every journal entry (and its lines) previously posted for a given
+   * source record, so the caller can re-post the corrected figures without
+   * double-counting. Used when a source document is edited or deleted — e.g.
+   * an expense's amount changes, or it is removed entirely. Scoped to the one
+   * source, so it can never touch another module's entries.
+   */
+  static async reverseBySource(tenantId: string, sourceModule: string, sourceId: string): Promise<void> {
+    return withTenant(tenantId, async (trx) => {
+      const entries = await trx.selectFrom('journal_entries').select('id')
+        .where('tenant_id', '=', tenantId)
+        .where('source_module', '=', sourceModule)
+        .where('source_id', '=', sourceId)
+        .execute();
+      if (entries.length === 0) return;
+      const ids = entries.map(e => e.id);
+      await trx.deleteFrom('journal_lines').where('journal_entry_id', 'in', ids).execute();
+      await trx.deleteFrom('journal_entries').where('id', 'in', ids).execute();
     });
   }
 

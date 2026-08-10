@@ -14,15 +14,22 @@ import { showAlert } from '../lib/alert.js';
 
 interface Payment {
   id: string;
-  invoice_id: string;
-  invoice_number: string;
-  client_name: string | null;
+  /** 'customer' = money received against an invoice; 'vendor' = money paid on a bill. */
+  kind: 'customer' | 'vendor';
+  direction: 'in' | 'out';
   amount: number;
+  currency: string;
   method: string | null;
   payment_date: string | null;
   note: string | null;
   logged_by: string | null;
   created_at: string;
+  /** Invoice number (customer) or bill number (vendor). */
+  document_number: string;
+  /** Customer name (in) or supplier name (out). */
+  party_name: string | null;
+  invoice_id?: string;
+  bill_id?: string;
 }
 
 interface InvoiceOption {
@@ -51,8 +58,8 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
         {/* Total Badge */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, padding: 20, background: '#f8fafc', borderRadius: 9, border: '1px solid #e2e8f0' }}>
           <div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>Amount Received</div>
-            <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--green)', fontFamily: 'var(--mono)', lineHeight: 1 }}>{fmt(payment.amount, 'TZS')}</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>{payment.direction === 'in' ? 'Amount Received' : 'Amount Paid'}</div>
+            <div style={{ fontSize: 24, fontWeight: 800, color: payment.direction === 'in' ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--mono)', lineHeight: 1 }}>{payment.direction === 'in' ? '+' : '−'}{fmt(payment.amount, (payment.currency || 'TZS') as any)}</div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>Date</div>
@@ -63,15 +70,15 @@ function PaymentDetailPanel({ payment, onClose, isMobile }: { payment: Payment; 
         {/* Links */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 16, marginBottom: 24 }}>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Linked Invoice</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>{payment.direction === 'in' ? 'Linked Invoice' : 'Linked Bill'}</div>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--blue)', background: 'var(--blue-l)', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
-              {payment.invoice_number}
+              {payment.document_number}
             </div>
           </div>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>Linked Client</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 4 }}>{payment.direction === 'in' ? 'Linked Client' : 'Linked Supplier'}</div>
             <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--green)', background: 'var(--green-l)', padding: '4px 8px', borderRadius: 6, display: 'inline-block' }}>
-              {payment.client_name || 'Unknown'}
+              {payment.party_name || 'Unknown'}
             </div>
           </div>
         </div>
@@ -213,39 +220,22 @@ export const FinancePayments: React.FC = () => {
   };
 
   const filtered = payments.filter(p => {
-    const matchesTab = activeTab === 'ALL' || (p.method || '').toLowerCase().includes(activeTab.toLowerCase());
+    const matchesTab = activeTab === 'ALL'
+      || (activeTab === 'IN' && p.direction === 'in')
+      || (activeTab === 'OUT' && p.direction === 'out');
     const matchesSearch = !search ||
-      p.invoice_number?.toLowerCase().includes(search.toLowerCase()) ||
-      (p.client_name || '').toLowerCase().includes(search.toLowerCase()) ||
+      p.document_number?.toLowerCase().includes(search.toLowerCase()) ||
+      (p.party_name || '').toLowerCase().includes(search.toLowerCase()) ||
       (p.method || '').toLowerCase().includes(search.toLowerCase());
     return matchesTab && matchesSearch;
   });
 
-  const totalAmount = payments.reduce((sum, p) => sum + Number(p.amount), 0);
-
-  const bankTransferTotal = payments
-    .filter(p => (p.method || '').toLowerCase().includes('bank'))
-    .reduce((sum, p) => sum + Number(p.amount), 0);
-  const bankTransferCount = payments
-    .filter(p => (p.method || '').toLowerCase().includes('bank')).length;
-
-  const cashTotal = payments
-    .filter(p => (p.method || '').toLowerCase().includes('cash'))
-    .reduce((sum, p) => sum + Number(p.amount), 0);
-  const cashCount = payments
-    .filter(p => (p.method || '').toLowerCase().includes('cash')).length;
-
-  const chequeTotal = payments
-    .filter(p => (p.method || '').toLowerCase().includes('cheque') || (p.method || '').toLowerCase().includes('check'))
-    .reduce((sum, p) => sum + Number(p.amount), 0);
-  const chequeCount = payments
-    .filter(p => (p.method || '').toLowerCase().includes('cheque') || (p.method || '').toLowerCase().includes('check')).length;
-
-  const mobileMoneyTotal = payments
-    .filter(p => (p.method || '').toLowerCase().includes('mobile') || (p.method || '').toLowerCase().includes('mpesa') || (p.method || '').toLowerCase().includes('m-pesa'))
-    .reduce((sum, p) => sum + Number(p.amount), 0);
-  const mobileMoneyCount = payments
-    .filter(p => (p.method || '').toLowerCase().includes('mobile') || (p.method || '').toLowerCase().includes('mpesa') || (p.method || '').toLowerCase().includes('m-pesa')).length;
+  // Money in (customer receipts) vs money out (supplier payments), and the net.
+  const inRows = payments.filter(p => p.direction === 'in');
+  const outRows = payments.filter(p => p.direction === 'out');
+  const inTotal = inRows.reduce((sum, p) => sum + Number(p.amount), 0);
+  const outTotal = outRows.reduce((sum, p) => sum + Number(p.amount), 0);
+  const netTotal = inTotal - outTotal;
 
   const thisMonth = payments.filter(p => {
     if (!p.payment_date) return false;
@@ -281,7 +271,7 @@ export const FinancePayments: React.FC = () => {
           </>
         }
       >
-        <form id="payment-form" onSubmit={handleSave} className="card" style={{ maxWidth: 620, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <form id="payment-form" onSubmit={handleSave} className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--ink2)', marginBottom: 4 }}>Select Invoice</label>
@@ -349,7 +339,7 @@ export const FinancePayments: React.FC = () => {
           crumbs={['Finance', 'Payments']}
           titlePlain="Payment"
           titleEm="records"
-          subtitle="Manage and reconcile received payments against invoices."
+          subtitle="Every payment in and out — customer receipts against invoices and supplier payments against bills."
           actions={
             <button type="button" className="btn btn-primary" onClick={() => setShowAdd(true)}>
               <Icon name="plus" size={13} /> Record Payment
@@ -359,35 +349,30 @@ export const FinancePayments: React.FC = () => {
 
         <MetricsRow cards={[
           {
-            title: 'Total Collected',
-            value: fmt(totalAmount, 'TZS'),
-            sub1Label: 'PAYMENTS', sub1Value: String(payments.length),
+            title: 'Money In',
+            value: fmt(inTotal, 'TZS'),
+            sub1Label: 'RECEIPTS', sub1Value: String(inRows.length),
             sub2Label: 'THIS MONTH', sub2Value: String(thisMonth),
             barHighlight: 'var(--green)'
           },
           {
-            title: 'Bank Transfer',
-            value: fmt(bankTransferTotal, 'TZS'),
-            sub1Label: 'TRANSACTIONS', sub1Value: String(bankTransferCount),
-            barHighlight: 'var(--teal)'
+            title: 'Money Out',
+            value: fmt(outTotal, 'TZS'),
+            sub1Label: 'PAYMENTS', sub1Value: String(outRows.length),
+            barHighlight: 'var(--red)'
           },
           {
-            title: 'Cash',
-            value: fmt(cashTotal, 'TZS'),
-            sub1Label: 'TRANSACTIONS', sub1Value: String(cashCount),
+            title: 'Net Position',
+            value: fmt(netTotal, 'TZS'),
+            sub1Label: netTotal >= 0 ? 'SURPLUS' : 'DEFICIT', sub1Value: netTotal >= 0 ? 'IN' : 'OUT',
+            barHighlight: netTotal >= 0 ? 'var(--teal)' : 'var(--gold)'
+          },
+          {
+            title: 'All Movements',
+            value: String(payments.length),
+            sub1Label: 'IN', sub1Value: String(inRows.length),
+            sub2Label: 'OUT', sub2Value: String(outRows.length),
             barHighlight: 'var(--blue)'
-          },
-          {
-            title: 'Cheque',
-            value: fmt(chequeTotal, 'TZS'),
-            sub1Label: 'TRANSACTIONS', sub1Value: String(chequeCount),
-            barHighlight: '#7c3aed'
-          },
-          {
-            title: 'Mobile Money',
-            value: fmt(mobileMoneyTotal, 'TZS'),
-            sub1Label: 'TRANSACTIONS', sub1Value: String(mobileMoneyCount),
-            barHighlight: 'var(--gold)'
           },
         ]} />
       </div>
@@ -403,10 +388,8 @@ export const FinancePayments: React.FC = () => {
               <Tabs value={activeTab} onValueChange={setActiveTab} variant="segmented">
                 <TabsList>
                   <TabsTrigger value="ALL">All ({payments.length})</TabsTrigger>
-                  <TabsTrigger value="Bank Transfer">Bank Transfer</TabsTrigger>
-                  <TabsTrigger value="Cash">Cash</TabsTrigger>
-                  <TabsTrigger value="Cheque">Cheque</TabsTrigger>
-                  <TabsTrigger value="Mobile Money">Mobile Money</TabsTrigger>
+                  <TabsTrigger value="IN">Received ({inRows.length})</TabsTrigger>
+                  <TabsTrigger value="OUT">Paid ({outRows.length})</TabsTrigger>
                 </TabsList>
               </Tabs>
 
@@ -436,8 +419,8 @@ export const FinancePayments: React.FC = () => {
             <div className="rtbl-wrap"><table className="rtbl" style={{ borderCollapse: 'collapse', textAlign: 'left', width: '100%' }}>
               <thead>
                 <tr style={{ background: 'var(--bg)', color: 'var(--ink3)', fontSize: 11.5, fontWeight: 600, borderBottom: '1px solid var(--border)' }}>
-                  <th style={{ padding: '12px 16px' }}>Invoice</th>
-                  <th style={{ padding: '12px 16px' }}>Client</th>
+                  <th style={{ padding: '12px 16px' }}>Document</th>
+                  <th style={{ padding: '12px 16px' }}>Party</th>
                   {!isSplit && <th style={{ padding: '12px 16px' }}>Mode</th>}
                   <th style={{ padding: '12px 16px' }}>Date</th>
                   <th style={{ padding: '12px 16px', textAlign: 'right' }}>Amount</th>
@@ -453,21 +436,27 @@ export const FinancePayments: React.FC = () => {
                       onMouseEnter={e => { if (selectedPayment?.id !== p.id) e.currentTarget.style.background = '#f8fafc'; }}
                       onMouseLeave={e => { e.currentTarget.style.background = selectedPayment?.id === p.id ? 'var(--bg)' : 'var(--white)'; }}>
                     <td style={{ padding: '12px 16px' }}>
-                      <span style={{ background: 'var(--blue-l)', color: 'var(--blue)', padding: '3px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
-                        {p.invoice_number}
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span title={p.direction === 'in' ? 'Received from customer' : 'Paid to supplier'}
+                          style={{ flexShrink: 0, width: 20, height: 20, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: p.direction === 'in' ? 'var(--green-l)' : 'var(--red-l)', color: p.direction === 'in' ? 'var(--green)' : 'var(--red)' }}>
+                          <Icon name={p.direction === 'in' ? 'arrowDown' : 'arrowUp'} size={12} strokeWidth={2.5} />
+                        </span>
+                        <span style={{ background: p.direction === 'in' ? 'var(--blue-l)' : 'var(--gold-l)', color: p.direction === 'in' ? 'var(--blue)' : 'var(--gold)', padding: '3px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600 }}>
+                          {p.document_number}
+                        </span>
+                      </div>
                     </td>
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: isSplit ? 120 : 200 }}>
-                        {p.client_name || 'Unknown'}
+                        {p.party_name || 'Unknown'}
                       </div>
                     </td>
                     {!isSplit && (
                       <td style={{ padding: '12px 16px' }}>{p.method || '—'}</td>
                     )}
                     <td style={{ padding: '12px 16px', color: 'var(--ink2)' }}>{p.payment_date ? new Date(p.payment_date).toLocaleDateString('en-GB') : '—'}</td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, fontFamily: 'var(--mono)' }}>
-                      {fmt(Number(p.amount), 'TZS')}
+                    <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, fontFamily: 'var(--mono)', color: p.direction === 'in' ? 'var(--green)' : 'var(--red)' }}>
+                      {p.direction === 'in' ? '+' : '−'}{fmt(Number(p.amount), (p.currency || 'TZS') as any)}
                     </td>
                   </tr>
                 ))}

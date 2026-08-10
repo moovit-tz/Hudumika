@@ -12,6 +12,7 @@ import { DatePicker, parseDateOnly, toDateOnlyString } from '../components/ui/da
 import './Billing.css';
 import { showConfirm } from '../lib/confirm.js';
 import { PageHeader } from '../components/PageHeader.js';
+import { FormPage } from '../components/FormPage.js';
 
 /* ── In-progress invoice draft, preserved across a trip to the full
    customer-onboarding page and back (see InvoiceEditor's createCustomer/
@@ -606,9 +607,12 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, onImport, onClose }: {
 /* ── Charge section editor ── */
 export type EditItem = LineItem & { uid: string };
 
-function ChargeSectionEditor({ title, color, group, currency, items, onChange }: {
+function ChargeSectionEditor({ title, color, group, currency, items, onChange, customerId }: {
   title: string; color: string; group: ChargeGroup; currency: Currency;
   items: EditItem[]; onChange: (items: EditItem[]) => void;
+  /** When set, the catalog is priced for this customer — an agreed contract
+   *  price replaces the list price on the item that is picked. */
+  customerId?: string;
 }) {
   const fmt = (n: number) => fmtAmt(n, currency);
   const add = () => onChange([...items, { uid: String(Date.now()), name: '', unit: 'PER BIL', rate: 0, qty: 1, taxPct: 0, group, currency }]);
@@ -618,7 +622,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange }:
 
   const productCacheRef = useRef<Map<string, any>>(new Map());
   async function searchProducts(q: string): Promise<PickerItem[]> {
-    const qs = `?status=active${q.trim() ? `&search=${encodeURIComponent(q.trim())}` : ''}`;
+    const qs = `?status=active${customerId ? `&customer_id=${encodeURIComponent(customerId)}` : ''}${q.trim() ? `&search=${encodeURIComponent(q.trim())}` : ''}`;
     const res: any = await apiFetch(`/v1/products${qs}`).catch(() => []);
     const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
     // This section's rate/tax math sums raw numbers under one shared currency
@@ -632,7 +636,7 @@ function ChargeSectionEditor({ title, color, group, currency, items, onChange }:
     sameCurrency.forEach((p) => productCacheRef.current.set(p.id, p));
     return sameCurrency.slice(0, 25).map((p) => ({
       id: p.id, label: p.name,
-      sublabel: [p.code, `${fmtAmt(Number(p.sale_price) || 0, (p.currency || 'TZS') as Currency)}/${p.unit}`].filter(Boolean).join(' · '),
+      sublabel: [p.code, `${fmtAmt(Number(p.sale_price) || 0, (p.currency || 'TZS') as Currency)}/${p.unit}${p.has_agreed_price ? ' · agreed' : ''}`].filter(Boolean).join(' · '),
     }));
   }
   function addFromProduct(item: PickerItem | null) {
@@ -885,18 +889,20 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--white)', overflow: 'hidden', minWidth: 0 }}>
-      {/* Header */}
-      <div style={{ padding: '11px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-        <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)', flex: 1 }}>{initial ? `Edit ${initial.id}` : 'Create New Invoice'}</span>
-        <button type="button" onClick={onCancel} style={tbBtn}>Cancel</button>
-        <button type="button" onClick={() => handleSave(true)} style={{ ...tbBtn, borderColor: 'var(--teal)', color: 'var(--teal)', background: 'var(--teal-l)' }}>Save Draft</button>
-        <button type="button" onClick={() => handleSave(false)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-          <Icon name="send" size={13} color="#fff" /> Save &amp; Send
-        </button>
-      </div>
-
-      <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '16px' : '20px 28px' }}>
+    <FormPage
+      title={initial ? `Edit ${initial.id}` : 'New Invoice'}
+      subtitle="Parties, dates, the linked shipment and every charge line."
+      onCancel={onCancel}
+      actions={
+        <>
+          <button type="button" onClick={onCancel} className="btn btn-secondary">Cancel</button>
+          <button type="button" onClick={() => handleSave(true)} className="btn btn-secondary">Save Draft</button>
+          <button type="button" onClick={() => handleSave(false)} className="btn btn-primary">
+            <Icon name="send" size={13} color="#fff" /> Save &amp; Send
+          </button>
+        </>
+      }
+    >
         {/* Top grid */}
         <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: '12px 20px', marginBottom: 18 }}>
           <FormField label="Invoice #" value={invId} disabled />
@@ -964,16 +970,17 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
           />
         )}
 
-        {/* Three charge sections */}
-        <ChargeSectionEditor title="Clearing Charges — Paid in TZS" color="var(--teal)" group="clearing" currency="TZS" items={clearing} onChange={setClearing} />
-        <ChargeSectionEditor title="Shipping Line Charges — Paid in USD" color="var(--blue)" group="shipping" currency="USD" items={shipping} onChange={setShipping} />
+        {/* Three charge sections. The customer flows in so the catalog picker
+            offers each service at this customer's agreed price when one exists. */}
+        <ChargeSectionEditor title="Clearing Charges — Paid in TZS" color="var(--teal)" group="clearing" currency="TZS" items={clearing} onChange={setClearing} customerId={customer?.id || undefined} />
+        <ChargeSectionEditor title="Shipping Line Charges — Paid in USD" color="var(--blue)" group="shipping" currency="USD" items={shipping} onChange={setShipping} customerId={customer?.id || undefined} />
         <div style={{ position: 'relative' }}>
           {shipment && activeShipmentFull && (
             <button type="button" onClick={() => setShowTimesheets(true)} style={{ position: 'absolute', top: 3, right: 10, display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', background: 'var(--purple-l)', color: 'var(--purple)', border: '1px solid var(--purple)', fontSize: 11, fontWeight: 700, cursor: 'pointer', zIndex: 10, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
               <Icon name="clock" size={12} color="var(--purple)" /> Import Unbilled Time
             </button>
           )}
-          <ChargeSectionEditor title="Other Charges — Paid in TZS" color="var(--purple)" group="other" currency="TZS" items={other} onChange={setOther} />
+          <ChargeSectionEditor title="Other Charges — Paid in TZS" color="var(--purple)" group="other" currency="TZS" items={other} onChange={setOther} customerId={customer?.id || undefined} />
         </div>
 
         {/* Grand total */}
@@ -1004,8 +1011,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
           <textarea value={terms} onChange={e => setTerms(e.target.value)} rows={3}
             style={{ width: '100%', padding: '9px 12px', borderRadius: 7, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'var(--font)', resize: 'vertical', outline: 'none', lineHeight: 1.7, boxSizing: 'border-box' as const }} />
         </div>
-      </div>
-    </div>
+    </FormPage>
   );
 }
 
@@ -1762,6 +1768,7 @@ export const Billing: React.FC = () => {
 
   return (
     <div className="inv-shell" onClick={() => showFilters && setShowFilters(false)}>
+      {mode !== 'create' && mode !== 'edit' && (
       <PageHeader
         crumbs={['Finance', 'Invoices']}
         titlePlain="Sales"
@@ -1819,6 +1826,7 @@ export const Billing: React.FC = () => {
           </div>
         }
       />
+      )}
 
       {/* While creating or editing, the form takes the whole body — the list
           panel is hidden rather than the form being squeezed into the right

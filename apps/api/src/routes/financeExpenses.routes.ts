@@ -2,8 +2,50 @@ import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { GLService } from '../services/gl.service.js';
 
 type FinanceExpenseSource = 'finance' | 'fleet_vehicle' | 'fleet_fuel' | 'fleet_maintenance';
+
+// Expense category → GL expense account (see gl.service.ts STANDARD_COA).
+// Anything unmapped falls to 5900 "Other Operating Expenses".
+const EXPENSE_ACCOUNT: Record<string, string> = {
+  PORT_CHARGES: '5000', CUSTOMS_DUTY: '5000', HANDLING: '5000', INSPECTION_FEE: '5000', AGENT_FEE: '5000',
+  FREIGHT: '5001', TRANSPORT: '5002',
+};
+const CASH_ACCOUNT = '1010';      // Bank Account (TZS)
+const OTHER_REVENUE_ACCOUNT = '4500';
+
+/**
+ * Post a finance_expenses row to the general ledger so it reaches P&L / Trial
+ * Balance / Balance Sheet. An expense debits its expense account and credits
+ * cash; an income row (the "record as revenue" toggle) does the reverse against
+ * Other Revenue. Keyed by source ('EXPENSE', id) so it can be reversed and
+ * re-posted cleanly when the row is edited or deleted.
+ */
+async function postExpenseToGl(tenantId: string, row: any, userId: string | null): Promise<void> {
+  const amount = Number(row.amount) || 0;
+  if (amount <= 0) return;
+  const entryDate = row.expense_date ? new Date(row.expense_date).toISOString() : new Date().toISOString();
+  const expenseAccount = (row.category && EXPENSE_ACCOUNT[row.category]) || '5900';
+  const lines = row.is_revenue
+    ? [
+        { accountCode: CASH_ACCOUNT, debit: amount, credit: 0, description: 'Cash received' },
+        { accountCode: OTHER_REVENUE_ACCOUNT, debit: 0, credit: amount, description: row.name || 'Other revenue' },
+      ]
+    : [
+        { accountCode: expenseAccount, debit: amount, credit: 0, description: row.name || 'Expense' },
+        { accountCode: CASH_ACCOUNT, debit: 0, credit: amount, description: 'Cash paid' },
+      ];
+  await GLService.post(tenantId, {
+    entryDate,
+    description: `${row.is_revenue ? 'Revenue' : 'Expense'}: ${row.name || ''}`.trim(),
+    reference: row.reference || null,
+    sourceModule: 'EXPENSE',
+    sourceId: row.id,
+    createdBy: userId ?? undefined,
+    lines,
+  });
+}
 
 interface FinanceExpenseListItem {
   id: string;
@@ -123,8 +165,8 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
       return reply.status(400).send({ error: 'name and amount are required' });
     }
 
-    return withTenant(user.tenant_id, async (trx) => {
-      const row = await trx.insertInto('finance_expenses').values({
+    const row = await withTenant(user.tenant_id, async (trx) => {
+      return trx.insertInto('finance_expenses').values({
         tenant_id: user.tenant_id,
         name: body.name,
         amount: Number(body.amount),
@@ -140,8 +182,12 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
         attachment_data: body.attachment_data || null,
         created_by: user.sub,
       }).returningAll().executeTakeFirstOrThrow();
-      return reply.status(201).send(row);
     });
+    // Reflect it in the ledger. Best-effort: a GL failure must not lose the
+    // recorded expense, but it is logged, never silently swallowed.
+    try { await postExpenseToGl(user.tenant_id, row, user.sub); }
+    catch (e: any) { request.log.error({ err: e }, '[Finance] expense GL post failed'); }
+    return reply.status(201).send(row);
   });
 
   /**
@@ -166,16 +212,22 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
 
     if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'No fields to update' });
 
-    return withTenant(user.tenant_id, async (trx) => {
+    const row = await withTenant(user.tenant_id, async (trx) => {
       // Scoped. Without the tenant filter this reached any expense in the
       // database given its id, and RLS does not stop it: the connection owns
       // the table, and Postgres lets an owner bypass row-level policies.
-      const row = await trx.updateTable('finance_expenses').set(patch)
+      return trx.updateTable('finance_expenses').set(patch)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirst();
-      if (!row) return reply.status(404).send({ error: 'Expense not found' });
-      return row;
     });
+    if (!row) return reply.status(404).send({ error: 'Expense not found' });
+    // Re-post: drop the prior ledger entry and post the corrected figures, so
+    // a changed amount/category/direction never double-counts in P&L.
+    try {
+      await GLService.reverseBySource(user.tenant_id, 'EXPENSE', id);
+      await postExpenseToGl(user.tenant_id, row, user.sub);
+    } catch (e: any) { request.log.error({ err: e }, '[Finance] expense GL re-post failed'); }
+    return row;
   });
 
   /**
@@ -185,12 +237,15 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     const user = request.user;
     const { id } = request.params as { id: string };
 
-    return withTenant(user.tenant_id, async (trx) => {
-      const deleted = await trx.deleteFrom('finance_expenses')
+    const deleted = await withTenant(user.tenant_id, async (trx) => {
+      return trx.deleteFrom('finance_expenses')
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirst();
-      if (!deleted) return reply.status(404).send({ error: 'Expense not found' });
-      return reply.status(204).send();
     });
+    if (!deleted) return reply.status(404).send({ error: 'Expense not found' });
+    // Remove its ledger entry so the expense leaves P&L along with the record.
+    try { await GLService.reverseBySource(user.tenant_id, 'EXPENSE', id); }
+    catch (e: any) { request.log.error({ err: e }, '[Finance] expense GL reversal failed'); }
+    return reply.status(204).send();
   });
 }
