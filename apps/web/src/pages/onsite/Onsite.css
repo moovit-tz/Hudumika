@@ -675,3 +675,49 @@
   border-color: var(--border);
   color: var(--ink);
 }
+
+/* Breadcrumb on the website sub-pages. */
+.onsite-bc {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8125rem;
+  color: var(--ink3);
+}
+.onsite-bc-link { color: var(--ink2); text-decoration: none; }
+.onsite-bc-link:hover { color: var(--teal); }
+
+/* Honest empty state for a capability with no provider behind it yet. */
+.onsite-unprovisioned {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.6rem;
+  padding: 2.5rem 1.5rem;
+  max-width: 520px;
+  margin: 0 auto;
+}
+.onsite-unprovisioned-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0.25rem;
+}
+.onsite-unprovisioned-title { margin: 0; font-size: 1.05rem; font-weight: 650; color: var(--ink); }
+.onsite-unprovisioned-what  { margin: 0; font-size: 0.875rem; color: var(--ink2); line-height: 1.55; }
+.onsite-unprovisioned-needs { margin: 0 0 0.5rem; font-size: 0.8125rem; color: var(--ink3); line-height: 1.55; }
+
+/* Section label on the services catalogue. */
+.onsite-section-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  margin: 0 0 0.75rem;
+}

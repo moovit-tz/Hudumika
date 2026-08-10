@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
+import { showAlert } from '../../lib/alert.js';
 import { Icon } from '../../components/Icon.js';
 import './Onsite.css';
 
@@ -21,10 +22,18 @@ export function OnsiteTransfers() {
         body: JSON.stringify({ domain, eppCode }),
       });
       setShowModal(false);
-      alert('Transfer initiated successfully! Your domain status will update once DNS propagation completes.');
+      // What actually happened, not what a real registrar transfer would.
+      // The endpoint records the domain as pending with its EPP code; no
+      // registrar has been contacted, so this does not claim a transfer is
+      // "initiated" — that would need a registrar integration Onsite does not
+      // have yet.
+      showAlert(
+        `${domain} has been recorded as a pending transfer. Connecting a registrar to carry it out is not available yet.`,
+        { title: 'Recorded', variant: 'info' },
+      );
       navigate('/onsite/domains');
     } catch (err: any) {
-      alert(err.message || 'Transfer failed');
+      showAlert(err.message || 'That transfer could not be recorded.', { variant: 'error' });
     } finally {
       setSubmitting(false);
     }

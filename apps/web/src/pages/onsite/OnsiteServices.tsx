@@ -1,39 +1,83 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Icon } from '../../components/Icon.js';
+import { Link } from 'react-router-dom';
+import { Icon, type IconName } from '../../components/Icon.js';
 import './Onsite.css';
 
+/**
+ * What Onsite can and cannot yet do, told straight.
+ *
+ * This page shipped as six cards — CDN, backups, malware scanning, GPU compute
+ * and so on — each with an "Enable" / "Deploy" / "Run Scan" button that did
+ * nothing at all. They described capabilities the platform does not have as if
+ * they were one click away.
+ *
+ * The ones that are real link to where they live. The rest are named as not yet
+ * built, because a control that does nothing is worse than an honest "not yet":
+ * somebody clicks it, believes something happened, and finds out later that it
+ * did not.
+ */
+interface Service {
+  icon: IconName;
+  title: string;
+  desc: string;
+  to?: string;        // present → the capability exists; the card links to it
+  cta?: string;
+}
+
+const AVAILABLE: Service[] = [
+  { icon: 'shield', title: 'SSL certificates', to: '/onsite/ssl',
+    desc: 'Read the certificate each domain actually serves — issuer, validity and expiry from a live TLS handshake.', cta: 'Open SSL' },
+  { icon: 'barChart', title: 'Uptime monitoring', to: '/onsite/monitoring',
+    desc: 'Probe a URL on a schedule and track real 30-day availability, with an alert when it goes down.', cta: 'Open monitors' },
+  { icon: 'globe', title: 'DNS management', to: '/onsite/domains',
+    desc: 'Records with validation, zone import and export, and one-click setup templates.', cta: 'Open domains' },
+  { icon: 'gitBranch', title: 'Deployments', to: '/onsite/deployments',
+    desc: 'Trigger a build through a connected CI provider and follow it to done.', cta: 'Open deployments' },
+];
+
+const PLANNED: Service[] = [
+  { icon: 'layers', title: 'Automated backups', desc: 'Scheduled snapshots with retention and one-click restore.' },
+  { icon: 'zap', title: 'CDN & DDoS protection', desc: 'Edge caching and mitigation, once a CDN provider is connected.' },
+  { icon: 'search', title: 'Malware scanning', desc: 'Scheduled scans for hosted applications.' },
+  { icon: 'zap', title: 'GPU compute', desc: 'On-demand GPU instances for AI workloads.' },
+];
+
 export function OnsiteServices() {
-  const navigate = useNavigate();
-
-  const services = [
-    { title: 'Cloud CDN & DDoS Protection', desc: 'Global edge caching and automatic DDoS mitigation.', action: 'Enable CDN' },
-    { title: 'Daily Automated Backups', desc: 'Full snapshot backups retained for 30 days with 1-click restore.', action: 'Configure' },
-    { title: 'Google Workspace Integration', desc: 'Seamlessly link custom domains with Google Workspace email.', action: 'Setup' },
-    { title: 'Staging Environment', desc: 'Clone production sites to test updates safely before deploying.', action: 'Create Staging' },
-    { title: 'Malware & Vulnerability Scanner', desc: 'Automated daily malware scan for WordPress and PHP applications.', action: 'Run Scan' },
-    { title: 'GPU & AI Workload Compute', desc: 'High-performance NVIDIA GPU instances for LLMs and AI models.', action: 'Deploy GPU' },
-  ];
-
   return (
     <div className="onsite-page">
       <div className="onsite-header">
         <div className="onsite-header-title">
-          <h1>More Services</h1>
-          <p>Extend your infrastructure with security, CDN, backups, and AI GPU compute tools.</p>
+          <h1>More services</h1>
+          <p>What Onsite can do today, and what is on the way.</p>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.25rem' }}>
-        {services.map((s, idx) => (
-          <div key={idx} className="onsite-card" style={{ justifyContent: 'space-between' }}>
+      <h2 className="onsite-section-label">Available now</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem', marginBottom: '2rem' }}>
+        {AVAILABLE.map(s => (
+          <div key={s.title} className="onsite-card" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '1rem' }}>
             <div>
-              <h3 className="onsite-card-title">{s.title}</h3>
-              <p style={{ fontSize: '0.875rem', color: '#71717a', margin: '0.5rem 0 0 0' }}>{s.desc}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
+                <Icon name={s.icon} size={18} color="var(--teal)" />
+                <h3 className="onsite-card-title" style={{ margin: 0 }}>{s.title}</h3>
+              </div>
+              <p style={{ fontSize: '0.875rem', color: 'var(--ink2)', margin: 0, lineHeight: 1.5 }}>{s.desc}</p>
             </div>
-            <button className="onsite-btn-outline" style={{ width: 'fit-content', marginTop: '1rem' }}>
-              {s.action} ↗
-            </button>
+            <Link to={s.to!} className="btn btn-secondary btn-sm" style={{ width: 'fit-content' }}>{s.cta}</Link>
+          </div>
+        ))}
+      </div>
+
+      <h2 className="onsite-section-label">Not yet available</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1rem' }}>
+        {PLANNED.map(s => (
+          <div key={s.title} className="onsite-card" style={{ opacity: 0.7 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
+              <Icon name={s.icon} size={18} color="var(--ink3)" />
+              <h3 className="onsite-card-title" style={{ margin: 0 }}>{s.title}</h3>
+              <span className="onsite-badge" style={{ marginLeft: 'auto' }}>Planned</span>
+            </div>
+            <p style={{ fontSize: '0.875rem', color: 'var(--ink3)', margin: 0, lineHeight: 1.5 }}>{s.desc}</p>
           </div>
         ))}
       </div>
