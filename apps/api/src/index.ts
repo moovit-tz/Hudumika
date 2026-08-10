@@ -101,7 +101,7 @@ import { superAdminRoutes } from './routes/superadmin.routes.js';
 import { superAdminReportsRoutes } from './routes/superadmin-reports.routes.js';
 import { superAdminTradeWizardRoutes } from './routes/superadmin-trade-wizard.routes.js';
 import { superAdminIssuesRoutes } from './routes/superadmin-issues.routes.js';
-import { announcementRoutes, superAdminAnnouncementRoutes } from './routes/announcements.routes.js';
+import { announcementRoutes, superAdminAnnouncementRoutes, tenantAnnouncementRoutes } from './routes/announcements.routes.js';
 import { intelligenceRoutes } from './routes/intelligence.routes.js';
 import { queryBuilderRoutes } from './routes/query-builder.routes.js';
 import { onboardingRoutes } from './routes/onboarding.routes.js';
@@ -255,6 +255,8 @@ async function main() {
     await server.register(superAdminIssuesRoutes, { prefix: '/v1/superadmin' });
     await server.register(superAdminAnnouncementRoutes, { prefix: '/v1/superadmin/announcements' });
     await server.register(announcementRoutes, { prefix: '/v1/announcements' });
+    // A workspace posting notices to its own staff, distinct from the platform's.
+    await server.register(tenantAnnouncementRoutes, { prefix: '/v1/workspace/announcements' });
     await server.register(intelligenceRoutes, { prefix: '/v1/intel' });
     await server.register(queryBuilderRoutes, { prefix: '/v1/superadmin/query-builder' });
     await server.register(ocrRoutes, { prefix: '/v1/ocr' });

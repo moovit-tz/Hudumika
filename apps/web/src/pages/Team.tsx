@@ -61,7 +61,7 @@ interface Invitation {
   created_at: string;
 }
 
-type Tab = 'people' | 'invitations' | 'roles' | 'activity';
+type Tab = 'people' | 'invitations' | 'roles' | 'notices' | 'activity';
 
 export function Team() {
   const { user } = useAuth();
@@ -84,6 +84,7 @@ export function Team() {
           ['people', 'People'],
           ['invitations', 'Invitations'],
           ['roles', 'Role permissions'],
+          ['notices', 'Notices'],
           ['activity', 'Activity'],
         ] as [Tab, string][]).map(([id, label]) => (
           <button
@@ -102,6 +103,7 @@ export function Team() {
       {tab === 'people' && <PeopleTab canManage={canManage} meId={user?.id} />}
       {tab === 'invitations' && <InvitationsTab canManage={canManage} />}
       {tab === 'roles' && <RolesTab canManage={canManage} />}
+      {tab === 'notices' && <NoticesTab canManage={canManage} />}
       {tab === 'activity' && <ActivityTab />}
     </div>
   );
@@ -539,5 +541,139 @@ function ActivityTab() {
         ))}
       </ul>
     </div>
+  );
+}
+
+/* ── Notices ────────────────────────────────────────────────────── */
+
+interface Notice {
+  id: string;
+  title: string;
+  body: string | null;
+  badge: string;
+  active: boolean;
+  created_at: string;
+  dismissed_count: number;
+}
+
+/**
+ * Telling your own organisation something.
+ *
+ * Announcements have always rendered for tenant users — they are the ticker in
+ * the header — but authoring was mounted only under /v1/superadmin, so a tenant
+ * administrator could not post a notice to their own staff. The table always
+ * carried a tenant_id; the surface was missing.
+ */
+function NoticesTab({ canManage }: { canManage: boolean }) {
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [title, setTitle] = useState('');
+  const [body, setBody] = useState('');
+  const [posting, setPosting] = useState(false);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    apiFetch('/v1/workspace/announcements')
+      .then((r: any) => setNotices(r?.data ?? []))
+      .catch(() => setNotices([]))
+      .finally(() => setLoading(false));
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  async function post(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setPosting(true);
+    try {
+      await apiFetch('/v1/workspace/announcements', {
+        method: 'POST',
+        body: JSON.stringify({ title: title.trim(), body: body.trim() || undefined }),
+      });
+      setTitle(''); setBody('');
+      load();
+    } catch (err: any) {
+      showAlert(err.message || 'That notice could not be posted.', { variant: 'error' });
+    } finally {
+      setPosting(false);
+    }
+  }
+
+  async function setActive(n: Notice, active: boolean) {
+    try {
+      await apiFetch(`/v1/workspace/announcements/${n.id}`, {
+        method: 'PATCH', body: JSON.stringify({ active }),
+      });
+      setNotices(prev => prev.map(x => (x.id === n.id ? { ...x, active } : x)));
+    } catch (err: any) {
+      showAlert(err.message || 'That notice could not be changed.', { variant: 'error' });
+    }
+  }
+
+  async function remove(n: Notice) {
+    const ok = await showConfirm(`Delete "${n.title}"? It disappears for everyone who has not read it.`,
+      { title: 'Delete notice?', variant: 'danger', confirmLabel: 'Delete' });
+    if (!ok) return;
+    try {
+      await apiFetch(`/v1/workspace/announcements/${n.id}`, { method: 'DELETE' });
+      setNotices(prev => prev.filter(x => x.id !== n.id));
+    } catch (err: any) {
+      showAlert(err.message || 'That notice could not be deleted.', { variant: 'error' });
+    }
+  }
+
+  return (
+    <>
+      {canManage && (
+        <form className="team-invite team-notice-form" onSubmit={post}>
+          <div className="team-invite-field team-notice-grow">
+            <label htmlFor="notice-title">Notice</label>
+            <input id="notice-title" value={title} onChange={e => setTitle(e.target.value)}
+              placeholder="Office closed Friday for Eid" required />
+          </div>
+          <div className="team-invite-field team-notice-grow">
+            <label htmlFor="notice-body">Detail (optional)</label>
+            <input id="notice-body" value={body} onChange={e => setBody(e.target.value)}
+              placeholder="Clearance desk reopens Monday at 8am" />
+          </div>
+          <button type="submit" className="btn btn-primary" disabled={posting}>
+            {posting ? 'Posting…' : 'Post to the workspace'}
+          </button>
+        </form>
+      )}
+
+      <div className="team-card">
+        {loading ? (
+          <div className="team-empty">Loading notices…</div>
+        ) : notices.length === 0 ? (
+          <div className="team-empty">Nothing has been posted to this workspace.</div>
+        ) : (
+          <ul className="team-feed">
+            {notices.map(n => (
+              <li key={n.id} className="team-feed-row">
+                <div className="team-feed-main">
+                  <span className="team-feed-what">
+                    {n.title}
+                    {!n.active && <span className="team-notice-off">not showing</span>}
+                  </span>
+                  <span className="team-feed-who">
+                    {n.body ? `${n.body} · ` : ''}
+                    {/* Dismissals are the only real signal that a notice was seen. */}
+                    read by {n.dismissed_count} {n.dismissed_count === 1 ? 'person' : 'people'} · {formatDate(n.created_at)}
+                  </span>
+                </div>
+                {canManage && (
+                  <div className="team-notice-actions">
+                    <button type="button" className="team-access team-access--off" onClick={() => setActive(n, !n.active)}>
+                      {n.active ? 'Stop showing' : 'Show again'}
+                    </button>
+                    <button type="button" className="team-access" onClick={() => remove(n)}>Delete</button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </>
   );
 }

@@ -65,6 +65,99 @@ export async function announcementRoutes(fastify: FastifyInstance) {
 }
 
 /**
+ * A workspace posting a notice to its own staff.
+ *
+ * Announcements rendered for tenant users from the start, but authoring was
+ * mounted only under /v1/superadmin — so a tenant administrator could not tell
+ * their own organisation anything. The table has always carried a tenant_id
+ * (null meaning platform-wide), so the capability was there; the surface was
+ * not.
+ *
+ * Everything here is pinned to the caller's own tenant. tenant_id is never read
+ * from the body: a workspace can address its own people and nobody else's, and
+ * the platform-wide null is reachable only from the SuperAdmin surface below.
+ */
+export async function tenantAnnouncementRoutes(fastify: FastifyInstance) {
+  fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'));
+
+  fastify.get('/', async (request) => {
+    const user = request.user;
+    const rows = await db.selectFrom('announcements')
+      .select(['id', 'title', 'body', 'link', 'badge', 'starts_at', 'ends_at', 'active', 'created_at'])
+      .where('tenant_id', '=', user.tenant_id)
+      .orderBy('created_at', 'desc')
+      .limit(100)
+      .execute();
+
+    const counts = await db.selectFrom('announcement_dismissals as d')
+      .innerJoin('announcements as a', 'a.id', 'd.announcement_id')
+      .select(['d.announcement_id'])
+      .select(eb => eb.fn.countAll<string>().as('n'))
+      .where('a.tenant_id', '=', user.tenant_id)
+      .groupBy('d.announcement_id')
+      .execute();
+    const byId = new Map(counts.map(c => [c.announcement_id, Number(c.n)]));
+    return { data: rows.map(r => ({ ...r, dismissed_count: byId.get(r.id) ?? 0 })) };
+  });
+
+  fastify.post('/', async (request, reply) => {
+    const user = request.user;
+    const b = (request.body ?? {}) as Record<string, any>;
+    const title = String(b.title ?? '').trim();
+    if (!title) return reply.status(400).send({ error: 'An announcement needs a title.' });
+
+    const row = await db.insertInto('announcements').values({
+      // The caller's own tenant, always. Never b.tenant_id — that is how a
+      // workspace would post to somebody else's staff.
+      tenant_id: user.tenant_id,
+      title,
+      body: String(b.body ?? '').trim() || null,
+      link: String(b.link ?? '').trim() || null,
+      badge: (String(b.badge ?? '').trim() || 'NOTICE').slice(0, 24).toUpperCase(),
+      starts_at: b.starts_at ? new Date(b.starts_at) : new Date(),
+      ends_at: b.ends_at ? new Date(b.ends_at) : null,
+      active: b.active !== false,
+      created_by: user.sub,
+    } as any).returningAll().executeTakeFirstOrThrow();
+
+    return reply.status(201).send(row);
+  });
+
+  fastify.patch<{ Params: { id: string } }>('/:id', async (request, reply) => {
+    const user = request.user;
+    const b = (request.body ?? {}) as Record<string, any>;
+    const patch: Record<string, any> = {};
+    if (b.title !== undefined) patch.title = String(b.title).trim();
+    if (b.body !== undefined) patch.body = String(b.body).trim() || null;
+    if (b.link !== undefined) patch.link = String(b.link).trim() || null;
+    if (b.active !== undefined) patch.active = !!b.active;
+    if (b.ends_at !== undefined) patch.ends_at = b.ends_at ? new Date(b.ends_at) : null;
+    if (Object.keys(patch).length === 0) return reply.status(400).send({ error: 'Nothing to change.' });
+
+    const updated = await db.updateTable('announcements')
+      .set(patch)
+      .where('id', '=', request.params.id)
+      .where('tenant_id', '=', user.tenant_id)
+      .returningAll()
+      .executeTakeFirst();
+    if (!updated) return reply.status(404).send({ error: 'That announcement is not in this workspace.' });
+    return updated;
+  });
+
+  fastify.delete<{ Params: { id: string } }>('/:id', async (request, reply) => {
+    const user = request.user;
+    const gone = await db.deleteFrom('announcements')
+      .where('id', '=', request.params.id)
+      .where('tenant_id', '=', user.tenant_id)
+      .returning('id')
+      .executeTakeFirst();
+    if (!gone) return reply.status(404).send({ error: 'That announcement is not in this workspace.' });
+    return reply.status(204).send();
+  });
+}
+
+/**
  * Authoring, mounted separately under /v1/superadmin so the whole surface is
  * gated on SUPER_ADMIN in one place rather than per-handler.
  */
