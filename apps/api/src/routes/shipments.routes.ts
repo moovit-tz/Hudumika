@@ -650,11 +650,31 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         note: `Workflow changed — placed at "${landing.name}".`,
       }).execute();
 
+      // Switch AND verify: re-evaluate the new landing step's own entry
+      // conditions against this shipment so the caller learns immediately which
+      // of the new workflow's checks are already satisfied and which now need
+      // action — rather than discovering them one failed Advance at a time.
+      const docs = await trx.selectFrom('case_documents')
+        .select(['type', 'status'])
+        .where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .execute();
+      const shipRow = await trx.selectFrom('shipment_cases').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      const verification = evaluateEntryConditions(shipRow as any, docs as any, landing.entryConditions);
+
       fastify.websocketServer?.clients.forEach((client: any) => {
         client.send(JSON.stringify({ type: 'case.status_changed', caseId: id, stage: landing.id }));
       });
 
-      return { success: true, workflowId: target.workflowId, kind: target.kind, stage: landing.id, stepName: landing.name };
+      return {
+        success: true, workflowId: target.workflowId, kind: target.kind,
+        stage: landing.id, stepName: landing.name,
+        verification: {
+          valid: verification.valid,
+          failures: verification.failures,
+          outcomes: verification.outcomes,
+        },
+      };
     });
   });
 

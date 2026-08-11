@@ -162,7 +162,14 @@ export async function resolveWorkflowForNewShipment(trx: any, tenantId: string, 
     destCountry: (input.destPort || '').slice(0, 2).toUpperCase(),
   };
 
-  const parsed = rows.map((w: any) => ({ ...w, triggers: typeof w.triggers === 'string' ? JSON.parse(w.triggers) : w.triggers }));
+  // Non-system (the tenant's own hand-built workflows) sort first, so a tenant's
+  // custom workflow always out-ranks a platform default that matches the same
+  // mode — the .find() calls below then naturally prefer it. This is what lets a
+  // tenant "build their own and delete the default": their build wins from the
+  // moment it exists, whether or not they've removed the seeded one yet.
+  const parsed = rows
+    .map((w: any) => ({ ...w, triggers: typeof w.triggers === 'string' ? JSON.parse(w.triggers) : w.triggers }))
+    .sort((a: any, b: any) => (a.is_system ? 1 : 0) - (b.is_system ? 1 : 0));
 
   const customerMatch = parsed.find((w: any) => w.triggers.customerIds?.length && triggerMatches(w.triggers, ctx));
   const freightConsignmentMatch = parsed.find((w: any) =>

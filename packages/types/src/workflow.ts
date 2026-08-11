@@ -49,6 +49,13 @@ export interface Workflow {
   description: string;
   isActive: boolean;
   isDefault: boolean;
+  /** True for platform-seeded default workflows (Sea/Air/Road/Sea-transit). A
+   *  tenant may delete these once they've built their own; a custom workflow of
+   *  the tenant's always out-ranks a system default at shipment-resolution time. */
+  isSystem?: boolean;
+  /** Stable key of the platform template this workflow was seeded from
+   *  (e.g. 'sys-sea-import'), used to de-duplicate re-seeds. Null for hand-built. */
+  templateKey?: string | null;
   steps: WorkflowStep[];
   triggers: WorkflowTrigger;
   createdAt: string;

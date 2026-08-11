@@ -287,6 +287,8 @@ export interface WorkflowsTable {
   description: Generated<string>;
   is_active: Generated<boolean>;
   is_default: Generated<boolean>;
+  is_system: Generated<boolean>;      // platform-seeded default (migration 217)
+  template_key: string | null;        // stable key of the source template, if system-seeded
   triggers: string; // JSONB: WorkflowTrigger
   created_by: string | null;
   created_at: Generated<Date>;

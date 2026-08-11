@@ -153,7 +153,12 @@ export class WorkflowService {
 
         const updateFields: any = {
           stage: nextStep.id,
-          workflow_step_id: nextStep.id,
+          // workflow_step_id is a UUID column. A LEGACY shipment's step id is a
+          // ClearanceStage literal ("PERMITS", "VALIDATION", …), NOT a uuid —
+          // writing it here throws `invalid input syntax for type uuid`. The
+          // migration-105 contract is: legacy keeps workflow_step_id NULL and
+          // carries its position in `stage` alone; only CUSTOM mirrors the uuid.
+          workflow_step_id: resolved.kind === 'CUSTOM' ? nextStep.id : null,
           sla_deadline: nextStep.isTerminal ? null : slaDeadline,
           updated_at: now,
         };

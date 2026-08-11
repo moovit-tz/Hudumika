@@ -3,6 +3,7 @@ import { requireRole } from '../middleware/rbac.js';
 import { db } from '../db/client.js';
 import { sql } from 'kysely';
 import { GLService } from '../services/gl.service.js';
+import { DefaultWorkflowService } from '../services/default-workflow.service.js';
 import { PlatformAdminService } from '../services/platform-admin.service.js';
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
@@ -298,6 +299,8 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       .executeTakeFirstOrThrow();
 
     await GLService.seedChartOfAccounts(db, result.id);
+    // Platform default workflows (Sea/Air/Road/Sea-transit) for the new tenant.
+    await DefaultWorkflowService.seedForTenant(db, result.id, null);
 
     await PlatformAdminService.recordActivity({
       ...actor(request), category: 'company',

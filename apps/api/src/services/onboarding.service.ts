@@ -3,6 +3,7 @@ import { db } from '../db/client.js';
 import { hashPassword } from '../lib/password.js';
 import { PaymentsIntegration } from '../integrations/payments.js';
 import { GLService } from './gl.service.js';
+import { DefaultWorkflowService } from './default-workflow.service.js';
 import type { OnboardingCompleteInput, OnboardingCompleteResponse, TenantPlan, JWTPayload } from '@hudumika/types';
 import type { FastifyInstance } from 'fastify';
 
@@ -119,6 +120,10 @@ export class OnboardingService {
         created_at: now,
         updated_at: now,
       }).returningAll().executeTakeFirstOrThrow();
+
+      // Every new tenant starts with the platform default workflows (Sea/Air/
+      // Road/Sea-transit) — same footing as the seeded chart of accounts above.
+      await DefaultWorkflowService.seedForTenant(trx, tenant.id, admin.id);
 
       if (input.configuration.hq_city) {
         await trx.insertInto('locations').values({

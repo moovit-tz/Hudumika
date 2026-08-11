@@ -42,6 +42,8 @@ function toWorkflow(row: any, steps: WorkflowStep[]): Workflow {
     description: row.description,
     isActive: row.is_active,
     isDefault: row.is_default,
+    isSystem: row.is_system ?? false,
+    templateKey: row.template_key ?? null,
     steps: steps.sort((a, b) => a.order - b.order),
     triggers: parseJson<WorkflowTrigger>(row.triggers, {
       freightModes: [], consignmentTypes: [], customerIds: [], originCountries: [], destinationCountries: [], isDefault: false,

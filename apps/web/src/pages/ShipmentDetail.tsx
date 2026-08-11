@@ -4531,6 +4531,10 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
   const [workflows, setWorkflows] = useState<any[]>([]);
   const [target, setTarget] = useState('');
   const [saving, setSaving] = useState(false);
+  // Result of the switch-and-verify: which of the NEW landing step's checks the
+  // shipment already meets, and which it now needs. Shown on the card so the
+  // operator sees the consequence of the switch without a failed Advance first.
+  const [verifyMsg, setVerifyMsg] = useState<{ valid: boolean; failures: string[]; met: number; total: number; stepName: string } | null>(null);
 
   const steps = jobUiSteps(job);
   const curIdx = jobCurrentIdx(job);
@@ -4558,7 +4562,19 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
     setSaving(true);
     try {
       if (isLive) {
-        await apiFetch(`/v1/shipments/${shipmentId}/workflow`, { method: 'POST', body: JSON.stringify({ workflow_id: target }) });
+        const res: any = await apiFetch(`/v1/shipments/${shipmentId}/workflow`, { method: 'POST', body: JSON.stringify({ workflow_id: target }) });
+        const v = res?.verification;
+        if (v && Array.isArray(v.outcomes)) {
+          setVerifyMsg({
+            valid: !!v.valid,
+            failures: v.failures ?? [],
+            met: v.outcomes.filter((o: any) => o.passed).length,
+            total: v.outcomes.length,
+            stepName: res.stepName ?? '',
+          });
+        } else {
+          setVerifyMsg(null);
+        }
         onRefresh();
       }
       setOpen(false); setTarget('');
@@ -4577,6 +4593,28 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
       {curStep && (
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
           {curStep.label}{total > 0 && curIdx >= 0 ? ` · step ${curIdx + 1} of ${total}` : ''}
+        </div>
+      )}
+
+      {verifyMsg && (
+        <div style={{ marginTop: 10, borderRadius: 8, padding: '9px 11px', fontSize: 11.5, lineHeight: 1.5,
+          background: verifyMsg.valid ? 'var(--green-l)' : 'var(--gold-l)',
+          border: `1px solid ${verifyMsg.valid ? 'var(--green)' : 'var(--gold)'}`, color: 'var(--ink2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <span style={{ fontWeight: 700, color: 'var(--ink)' }}>
+              <Icon name={verifyMsg.valid ? 'checkCircle' : 'alertCircle'} size={12} />{' '}
+              {verifyMsg.total === 0 ? 'No checks on this step' : `${verifyMsg.met} of ${verifyMsg.total} checks met`}
+            </span>
+            <button type="button" onClick={() => setVerifyMsg(null)} style={{ border: 'none', background: 'transparent', color: 'var(--ink3)', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 0 }} aria-label="Dismiss">×</button>
+          </div>
+          {!verifyMsg.valid && verifyMsg.failures.length > 0 && (
+            <ul style={{ margin: '6px 0 0', paddingLeft: 16 }}>
+              {verifyMsg.failures.map((f, i) => <li key={i} style={{ marginTop: 2 }}>{f}</li>)}
+            </ul>
+          )}
+          {verifyMsg.valid && verifyMsg.total > 0 && (
+            <div style={{ marginTop: 3, color: 'var(--ink3)' }}>This step's requirements are already satisfied — you can Advance from here.</div>
+          )}
         </div>
       )}
 
@@ -4607,7 +4645,7 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
 
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" onClick={() => { setOpen(false); setTarget(''); }} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>Cancel</button>
-            <button type="button" disabled={!target || saving} onClick={apply} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', border: 'none', borderRadius: 'var(--r)', background: target && !saving ? 'var(--teal)' : 'var(--border)', color: target && !saving ? '#fff' : 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: target && !saving ? 'pointer' : 'default', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>{saving ? 'Applying…' : 'Apply change'}</button>
+            <button type="button" disabled={!target || saving} onClick={apply} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', border: 'none', borderRadius: 'var(--r)', background: target && !saving ? 'var(--teal)' : 'var(--border)', color: target && !saving ? '#fff' : 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: target && !saving ? 'pointer' : 'default', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>{saving ? 'Applying…' : 'Apply'}</button>
           </div>
         </div>
       )}

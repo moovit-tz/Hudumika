@@ -178,6 +178,11 @@ export type DocumentType =
   | 'TBS_CHARGES'          // TBS (Tanzania Bureau of Standards) charges — optional
   | 'COC'                  // Certificate of Conformity — optional
   | 'WHARFAGE'             // Wharfage charges — optional
+  // Post-clearance / commercial phase (client-facing billing & container cycle)
+  | 'CLIENT_INVOICE'          // Clearing/freight invoice issued to the customer
+  | 'PAYMENT_RECEIPT'         // Customer payment receipt (proof of collection)
+  | 'CONTAINER_DEPOSIT'       // Shipping-line container deposit paid
+  | 'CONTAINER_RETURN'        // Empty container returned & deposit refunded
   | 'OTHER';
 
 export type DocumentStatus = 'REQUIRED' | 'RECEIVED' | 'VERIFIED' | 'REJECTED' | 'MISSING';
