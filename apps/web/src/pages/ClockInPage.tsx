@@ -1,7 +1,26 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, apiDownload } from '../lib/api.js';
 import { Icon, IconName } from '../components/Icon.js';
 import { PageHeader as SharedPageHeader } from '../components/PageHeader.js';
+import { useAuth } from '../hooks/useAuth.js';
+
+interface TimesheetApproval {
+  id: string;
+  user_id: string;
+  period_start: string;
+  period_end: string;
+  status: 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  total_worked_minutes: number;
+  session_count: number;
+  submitted_at: string;
+  reviewed_at?: string | null;
+  note?: string | null;
+  employee_name?: string;
+  employee_avatar?: string | null;
+  reviewed_by_name?: string | null;
+}
+
+const MANAGER_ROLES = ['SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR'];
 
 interface ClockSession {
   id: string;
@@ -69,6 +88,19 @@ export function ClockInPage() {
   const [manualBreakMins, setManualBreakMins] = useState('60');
   const [manualProject, setManualProject] = useState('');
   const [submittingManual, setSubmittingManual] = useState(false);
+
+  // Timesheet approval
+  const { user } = useAuth();
+  const isManager = !!user && MANAGER_ROLES.includes(user.role);
+  const [myApproval, setMyApproval] = useState<TimesheetApproval | null>(null);
+  const [approvals, setApprovals] = useState<TimesheetApproval[]>([]);
+  const [submittingSheet, setSubmittingSheet] = useState(false);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+
+  // The window the weekly view shows: last 7 days, inclusive of today.
+  const periodEnd = new Date().toISOString().slice(0, 10);
+  const periodStart = new Date(Date.now() - 6 * 86400000).toISOString().slice(0, 10);
 
   // Load Active Session
   const loadActiveState = useCallback(async () => {
@@ -218,6 +250,72 @@ export function ClockInPage() {
     }
   };
 
+  // ── Timesheet approval ──
+  const loadApprovalState = useCallback(async () => {
+    try {
+      const res = await apiFetch(`/v1/hr/clock-in/timesheet/status?period_start=${periodStart}`);
+      setMyApproval(res?.approval || null);
+    } catch { /* no submission yet */ }
+    if (isManager) {
+      try {
+        const res = await apiFetch('/v1/hr/clock-in/timesheet/approvals?status=SUBMITTED');
+        if (Array.isArray(res)) setApprovals(res);
+      } catch { /* not permitted / none */ }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isManager, periodStart]);
+
+  useEffect(() => { loadApprovalState(); }, [loadApprovalState]);
+
+  const handleSubmitForApproval = async () => {
+    setSubmittingSheet(true);
+    try {
+      const res = await apiFetch('/v1/hr/clock-in/timesheet/submit', {
+        method: 'POST',
+        body: JSON.stringify({ period_start: periodStart, period_end: periodEnd }),
+      });
+      setMyApproval(res?.approval || null);
+    } catch (err: any) {
+      alert(err.message || 'Failed to submit timesheet');
+    } finally {
+      setSubmittingSheet(false);
+    }
+  };
+
+  const handleReview = async (id: string, action: 'approve' | 'reject') => {
+    let note: string | null = null;
+    if (action === 'reject') {
+      note = window.prompt('Reason for rejection (optional):') ?? '';
+    }
+    setReviewingId(id);
+    try {
+      await apiFetch(`/v1/hr/clock-in/timesheet/approvals/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ action, note: note || undefined }),
+      });
+      // Drop the reviewed row from the pending queue.
+      setApprovals(prev => prev.filter(a => a.id !== id));
+    } catch (err: any) {
+      alert(err.message || `Failed to ${action} timesheet`);
+    } finally {
+      setReviewingId(null);
+    }
+  };
+
+  const handleExportCsv = async () => {
+    setExporting(true);
+    try {
+      await apiDownload(
+        `/v1/hr/clock-in/timesheet/export?from=${periodStart}&to=${periodEnd}`,
+        `timesheet_${periodStart}_${periodEnd}.csv`,
+      );
+    } catch (err: any) {
+      alert(err.message || 'Failed to export timesheet');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   // Format stopwatch string (HH:MM:SS)
   const formatTimer = (totalSecs: number) => {
     const h = Math.floor(totalSecs / 3600);
@@ -355,13 +453,38 @@ export function ClockInPage() {
         titleEm="timesheets"
         subtitle="Live attendance tracking, stopwatch timer, and weekly hours visualizer"
         actions={
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px', fontSize: 13, color: 'var(--ink2)' }}>
               <Icon name="clock" size={14} color="#7c3aed" />
               <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--navy)' }}>
                 {formatTimer(elapsedSeconds)}
               </span>
             </div>
+
+            {/* Weekly timesheet approval status — reflects only what the API returns. */}
+            {myApproval && (() => {
+              const map = {
+                SUBMITTED: { bg: 'var(--gold-l)', fg: 'var(--gold)', icon: 'clock' as IconName, label: 'Awaiting approval' },
+                APPROVED:  { bg: 'var(--green-l)', fg: 'var(--green)', icon: 'checkCircle' as IconName, label: 'Timesheet approved' },
+                REJECTED:  { bg: 'var(--red-l)', fg: 'var(--red)', icon: 'alertCircle' as IconName, label: 'Rejected' },
+              }[myApproval.status];
+              return (
+                <span title={myApproval.note || undefined} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: map.bg, color: map.fg, borderRadius: 8, padding: '5px 10px', fontSize: 12.5, fontWeight: 600 }}>
+                  <Icon name={map.icon} size={13} /> {map.label}
+                </span>
+              );
+            })()}
+
+            <button type="button" className="btn btn-secondary" onClick={handleExportCsv} disabled={exporting} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Icon name="download" size={14} /> {exporting ? 'Exporting…' : 'Export CSV'}
+            </button>
+
+            {(!myApproval || myApproval.status === 'REJECTED') && (
+              <button type="button" className="btn btn-primary" onClick={handleSubmitForApproval} disabled={submittingSheet} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Icon name="send" size={14} /> {submittingSheet ? 'Submitting…' : (myApproval?.status === 'REJECTED' ? 'Resubmit' : 'Submit for approval')}
+              </button>
+            )}
+
             <button type="button" className="btn btn-secondary" onClick={() => setShowManualModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <Icon name="plus" size={14} /> Entry log
             </button>
@@ -377,10 +500,10 @@ export function ClockInPage() {
           </div>
           <div>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              Welcome, {userProfile?.name || 'James Brown'} 👋
+              Welcome, {userProfile?.name || user?.name || 'there'} 👋
             </div>
             <div style={{ fontSize: 12, color: 'var(--ink3)' }}>
-              {userProfile?.role || 'HR Manager'} · Feb 11 2025, 11:44 am
+              {userProfile?.role || user?.role || 'Team member'} · {new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
             </div>
           </div>
         </div>
@@ -393,10 +516,49 @@ export function ClockInPage() {
           </select>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 8, fontSize: 13, color: 'var(--ink2)', fontWeight: 500 }}>
             <Icon name="calendar" size={14} color="var(--ink3)" />
-            <span>Feb 04 - Feb 11 2025</span>
+            <span>
+              {new Date(periodStart + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} – {new Date(periodEnd + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
+            </span>
           </div>
         </div>
       </div>
+
+      {/* Manager: timesheets awaiting approval (real submissions only) */}
+      {isManager && approvals.length > 0 && (
+        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>
+            <Icon name="checkCircle" size={16} color="#7c3aed" />
+            <span>Timesheets awaiting your approval</span>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: 'var(--gold-l)', color: 'var(--gold)' }}>{approvals.length}</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {approvals.map(a => (
+              <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--card-sunken)', flexWrap: 'wrap' }}>
+                <div style={{ width: 34, height: 34, borderRadius: '50%', overflow: 'hidden', background: '#7c3aed', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
+                  {a.employee_avatar
+                    ? <img src={a.employee_avatar} alt={a.employee_name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    : (a.employee_name || '?').slice(0, 1).toUpperCase()}
+                </div>
+                <div style={{ flex: 1, minWidth: 160 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)' }}>{a.employee_name || 'Employee'}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                    {new Date(a.period_start + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} – {new Date(a.period_end + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}
+                    {' · '}{(a.total_worked_minutes / 60).toFixed(1)}h · {a.session_count} session{a.session_count === 1 ? '' : 's'}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button type="button" onClick={() => handleReview(a.id, 'reject')} disabled={reviewingId === a.id} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: '#fff', color: 'var(--red)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Icon name="x" size={13} /> Reject
+                  </button>
+                  <button type="button" onClick={() => handleReview(a.id, 'approve')} disabled={reviewingId === a.id} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--green)', color: '#fff', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <Icon name="check" size={13} /> {reviewingId === a.id ? '…' : 'Approve'}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Top 3 Widget Cards Row (Matching Image 1 Design) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: 16 }}>

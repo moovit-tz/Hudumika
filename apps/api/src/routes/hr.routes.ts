@@ -41,6 +41,15 @@ async function logActivity(trx: any, tenantId: string, userId: string | null, ac
 
 const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
+// Roles allowed to act on another user's time / review timesheets. A regular
+// employee may always act on their own; anything targeting someone else needs
+// one of these.
+const TS_MANAGER_ROLES = ['SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR'];
+const csvCell = (v: unknown) => {
+  const s = v == null ? '' : String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
 /**
  * Attendance ⇄ header check-in link (M1).
  *
@@ -809,6 +818,197 @@ export async function hrRoutes(fastify: FastifyInstance) {
       }
 
       return { ok: true, session };
+    });
+  });
+
+  // ── Timesheet submission & manager approval ───────────────────
+
+  // An employee submits a week (or any date range) for review. Worked minutes
+  // are snapshotted now so a later session edit can't change what was approved.
+  fastify.post('/clock-in/timesheet/submit', async (req, reply) => {
+    const user = req.user;
+    const body = (req.body as any) || {};
+    if (!body.period_start || !body.period_end) {
+      return reply.status(400).send({ error: 'period_start and period_end are required' });
+    }
+    const targetUserId = body.user_id || user.sub;
+    if (targetUserId !== user.sub && !TS_MANAGER_ROLES.includes(user.role)) {
+      return reply.status(403).send({ error: 'You can only submit your own timesheet' });
+    }
+    const periodStart = isoDate(body.period_start);
+    const periodEnd = isoDate(body.period_end);
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const sessions = await trx.selectFrom('hr_clock_sessions')
+        .select(['worked_minutes'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', targetUserId)
+        .where('date', '>=', periodStart)
+        .where('date', '<=', periodEnd)
+        .where('status', '=', 'COMPLETED')
+        .execute();
+      const totalWorked = sessions.reduce((s, r) => s + (r.worked_minutes || 0), 0);
+
+      const existing = await trx.selectFrom('hr_timesheet_approvals')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', targetUserId)
+        .where('period_start', '=', periodStart)
+        .executeTakeFirst();
+
+      if (existing && existing.status === 'APPROVED') {
+        return reply.status(409).send({ error: 'This period is already approved and cannot be resubmitted.' });
+      }
+
+      if (existing) {
+        const updated = await trx.updateTable('hr_timesheet_approvals').set({
+          period_end: periodEnd,
+          status: 'SUBMITTED',
+          total_worked_minutes: totalWorked,
+          session_count: sessions.length,
+          submitted_at: new Date(),
+          reviewed_by: null,
+          reviewed_at: null,
+          note: null,
+          updated_at: new Date(),
+        }).where('id', '=', existing.id).returningAll().executeTakeFirstOrThrow();
+        return { ok: true, approval: updated };
+      }
+
+      const created = await trx.insertInto('hr_timesheet_approvals').values({
+        tenant_id: user.tenant_id,
+        user_id: targetUserId,
+        period_start: periodStart,
+        period_end: periodEnd,
+        status: 'SUBMITTED',
+        total_worked_minutes: totalWorked,
+        session_count: sessions.length,
+      }).returningAll().executeTakeFirstOrThrow();
+      return { ok: true, approval: created };
+    });
+  });
+
+  // Current status for a user's period (for the badge on the timesheet page).
+  fastify.get('/clock-in/timesheet/status', async (req, reply) => {
+    const user = req.user;
+    const q = req.query as any;
+    const targetUserId = q.user_id || user.sub;
+    if (targetUserId !== user.sub && !TS_MANAGER_ROLES.includes(user.role)) {
+      return reply.status(403).send({ error: 'You can only view your own timesheet status' });
+    }
+    return withTenant(user.tenant_id, async (trx) => {
+      let query = trx.selectFrom('hr_timesheet_approvals')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', targetUserId);
+      if (q.period_start) query = query.where('period_start', '=', isoDate(q.period_start));
+      const row = await query.orderBy('period_start', 'desc').executeTakeFirst();
+      return { approval: row || null };
+    });
+  });
+
+  // Manager queue: every submission for the tenant, newest first.
+  fastify.get('/clock-in/timesheet/approvals',
+    { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') },
+    async (req) => {
+      const user = req.user;
+      const q = req.query as any;
+      return withTenant(user.tenant_id, async (trx) => {
+        let query = trx.selectFrom('hr_timesheet_approvals as a')
+          .innerJoin('users as u', 'u.id', 'a.user_id')
+          .leftJoin('users as r', 'r.id', 'a.reviewed_by')
+          .select([
+            'a.id', 'a.user_id', 'a.period_start', 'a.period_end', 'a.status',
+            'a.total_worked_minutes', 'a.session_count', 'a.submitted_at',
+            'a.reviewed_at', 'a.note',
+            'u.name as employee_name', 'u.avatar_url as employee_avatar',
+            'r.name as reviewed_by_name',
+          ])
+          .where('a.tenant_id', '=', user.tenant_id);
+        if (q.status) query = query.where('a.status', '=', q.status);
+        return query.orderBy('a.submitted_at', 'desc').limit(200).execute();
+      });
+    });
+
+  // Approve or reject a submission.
+  fastify.patch('/clock-in/timesheet/approvals/:id',
+    { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') },
+    async (req, reply) => {
+      const user = req.user;
+      const { id } = req.params as any;
+      const body = (req.body as any) || {};
+      const action = body.action;
+      if (action !== 'approve' && action !== 'reject') {
+        return reply.status(400).send({ error: "action must be 'approve' or 'reject'" });
+      }
+      return withTenant(user.tenant_id, async (trx) => {
+        const row = await trx.selectFrom('hr_timesheet_approvals').selectAll()
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+          .executeTakeFirst();
+        if (!row) return reply.status(404).send({ error: 'Submission not found' });
+
+        // A manager cannot rubber-stamp their own timesheet.
+        if (row.user_id === user.sub) {
+          return reply.status(403).send({ error: 'You cannot review your own timesheet.' });
+        }
+
+        const updated = await trx.updateTable('hr_timesheet_approvals').set({
+          status: action === 'approve' ? 'APPROVED' : 'REJECTED',
+          reviewed_by: user.sub,
+          reviewed_at: new Date(),
+          note: body.note || null,
+          updated_at: new Date(),
+        }).where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+          .returningAll().executeTakeFirstOrThrow();
+        return { ok: true, approval: updated };
+      });
+    });
+
+  // CSV export of a user's clocked sessions over a range (own, or a manager's).
+  fastify.get('/clock-in/timesheet/export', async (req, reply) => {
+    const user = req.user;
+    const q = req.query as any;
+    const targetUserId = q.user_id || user.sub;
+    if (targetUserId !== user.sub && !TS_MANAGER_ROLES.includes(user.role)) {
+      return reply.status(403).send({ error: 'You can only export your own timesheet' });
+    }
+    const toDate = q.to ? new Date(q.to) : new Date();
+    const fromDate = q.from ? new Date(q.from) : new Date(toDate.getTime() - 6 * 86400000);
+    const fromIso = isoDate(fromDate);
+    const toIso = isoDate(toDate);
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const sessions = await trx.selectFrom('hr_clock_sessions')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', targetUserId)
+        .where('date', '>=', fromIso)
+        .where('date', '<=', toIso)
+        .orderBy('date', 'asc')
+        .orderBy('clock_in_at', 'asc')
+        .execute();
+
+      const header = ['Date', 'Clock in', 'Clock out', 'Break (min)', 'Worked (min)', 'Worked (h)', 'Project', 'Status'];
+      const lines = [header.map(csvCell).join(',')];
+      for (const s of sessions) {
+        lines.push([
+          isoDate(s.date),
+          s.clock_in_at ? hhmm(new Date(s.clock_in_at)) : '',
+          s.clock_out_at ? hhmm(new Date(s.clock_out_at)) : '',
+          s.total_break_minutes ?? 0,
+          s.worked_minutes ?? '',
+          s.worked_minutes != null ? (s.worked_minutes / 60).toFixed(2) : '',
+          s.project_name ?? '',
+          s.status,
+        ].map(csvCell).join(','));
+      }
+      const totalWorked = sessions.reduce((sum, s) => sum + (s.worked_minutes || 0), 0);
+      lines.push(['Total', '', '', '', totalWorked, (totalWorked / 60).toFixed(2), '', ''].map(csvCell).join(','));
+
+      reply
+        .header('Content-Type', 'text/csv; charset=utf-8')
+        .header('Content-Disposition', `attachment; filename="timesheet_${fromIso}_${toIso}.csv"`);
+      return lines.join('\n');
     });
   });
 
