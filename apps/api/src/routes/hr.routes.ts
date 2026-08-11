@@ -39,6 +39,114 @@ async function logActivity(trx: any, tenantId: string, userId: string | null, ac
   await trx.insertInto('hr_activity_log').values({ tenant_id: tenantId, user_id: userId, action, module }).execute();
 }
 
+const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+/**
+ * Attendance ⇄ header check-in link (M1).
+ *
+ * Two time systems used to run side by side and never speak: the header
+ * check-in widget logs task/shipment time into `hr_time_entries`, while the
+ * /nexushr/clock-in timesheet reads attendance work sessions from
+ * `hr_clock_sessions` / `hr_attendance`. You could log a whole day against a
+ * shipment and still read as "never clocked in" on the timesheet.
+ *
+ * ensureAttendanceSessionOpen makes the first check-in of the day also open an
+ * attendance session and mark you PRESENT; closeAttendanceSessionIfIdle closes
+ * that session once no open time entry remains. The link lives entirely on the
+ * server, so the timesheet reflects the header with no frontend coupling.
+ */
+async function ensureAttendanceSessionOpen(trx: any, tenantId: string, userId: string, now: Date) {
+  const open = await trx.selectFrom('hr_clock_sessions')
+    .select('id')
+    .where('tenant_id', '=', tenantId)
+    .where('user_id', '=', userId)
+    .where('status', 'in', ['ACTIVE', 'ON_BREAK'])
+    .executeTakeFirst();
+  if (open) return; // already clocked in — a task switch must not reopen a session
+
+  const dateStr = isoDate(now);
+  const timeStr = hhmm(now);
+
+  await trx.insertInto('hr_clock_sessions').values({
+    tenant_id: tenantId,
+    user_id: userId,
+    date: dateStr,
+    clock_in_at: now,
+    project_name: null,
+    status: 'ACTIVE',
+    total_break_minutes: 0,
+  }).execute();
+
+  const att = await trx.selectFrom('hr_attendance').selectAll()
+    .where('tenant_id', '=', tenantId)
+    .where('user_id', '=', userId)
+    .where('date', '=', dateStr)
+    .executeTakeFirst();
+  if (att) {
+    await trx.updateTable('hr_attendance').set({
+      clock_in: att.clock_in || timeStr, status: 'PRESENT', recorded_by: userId, updated_at: new Date(),
+    }).where('id', '=', att.id).execute();
+  } else {
+    await trx.insertInto('hr_attendance').values({
+      tenant_id: tenantId, user_id: userId, date: dateStr, status: 'PRESENT', clock_in: timeStr, recorded_by: userId,
+    }).execute();
+  }
+}
+
+async function closeAttendanceSessionIfIdle(trx: any, tenantId: string, userId: string, now: Date) {
+  // Still an open time entry today? The person hasn't left — keep the session.
+  const stillOpen = await trx.selectFrom('hr_time_entries')
+    .select('id')
+    .where('tenant_id', '=', tenantId)
+    .where('user_id', '=', userId)
+    .where('date', '=', isoDate(now))
+    .where('ended_at', 'is', null)
+    .executeTakeFirst();
+  if (stillOpen) return;
+
+  const session = await trx.selectFrom('hr_clock_sessions').selectAll()
+    .where('tenant_id', '=', tenantId)
+    .where('user_id', '=', userId)
+    .where('status', 'in', ['ACTIVE', 'ON_BREAK'])
+    .orderBy('created_at', 'desc')
+    .executeTakeFirst();
+  if (!session) return;
+
+  let totalBreak = session.total_break_minutes || 0;
+  if (session.status === 'ON_BREAK') {
+    const openBreak = await trx.selectFrom('hr_clock_breaks').selectAll()
+      .where('tenant_id', '=', tenantId)
+      .where('session_id', '=', session.id)
+      .where('end_at', 'is', null)
+      .executeTakeFirst();
+    if (openBreak) {
+      const dur = Math.max(1, Math.round((now.getTime() - new Date(openBreak.start_at).getTime()) / 60000));
+      totalBreak += dur;
+      await trx.updateTable('hr_clock_breaks').set({ end_at: now, duration_minutes: dur })
+        .where('id', '=', openBreak.id).execute();
+    }
+  }
+
+  const grossMs = now.getTime() - new Date(session.clock_in_at).getTime();
+  const workedMins = Math.max(0, Math.round(grossMs / 60000) - totalBreak);
+
+  await trx.updateTable('hr_clock_sessions').set({
+    status: 'COMPLETED', clock_out_at: now, total_break_minutes: totalBreak,
+    worked_minutes: workedMins, updated_at: now,
+  }).where('id', '=', session.id).execute();
+
+  const att = await trx.selectFrom('hr_attendance').selectAll()
+    .where('tenant_id', '=', tenantId)
+    .where('user_id', '=', userId)
+    .where('date', '=', session.date)
+    .executeTakeFirst();
+  if (att) {
+    await trx.updateTable('hr_attendance').set({
+      clock_out: hhmm(now), worked_minutes: workedMins, updated_at: now,
+    }).where('id', '=', att.id).execute();
+  }
+}
+
 export async function hrRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
@@ -1198,7 +1306,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
         .where('ended_at', 'is', null)
         .execute();
 
-      return trx.insertInto('hr_time_entries').values({
+      const created = await trx.insertInto('hr_time_entries').values({
         tenant_id: user.tenant_id,
         user_id: user.sub,
         task_id: body.task_id || null,
@@ -1212,6 +1320,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
         project_id: body.project_id || null,
         project_ref: body.project_ref || null,
       }).returningAll().executeTakeFirstOrThrow();
+
+      // Logging task/shipment time from the header also marks you present on the
+      // /nexushr/clock-in timesheet (no-op if a session is already open).
+      await ensureAttendanceSessionOpen(trx, user.tenant_id, user.sub, new Date());
+
+      return created;
     });
   });
 
@@ -1234,11 +1348,17 @@ export async function hrRoutes(fastify: FastifyInstance) {
       const endedAt = new Date();
       const settled = settleEntry(entry.started_at as any, endedAt, entry.notes ?? null);
 
-      return trx.updateTable('hr_time_entries')
+      const stopped = await trx.updateTable('hr_time_entries')
         .set({ ended_at: settled.ended_at, duration_minutes: settled.duration_minutes,
                notes: settled.notes, updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow();
+
+      // Checking out of your last task closes the attendance session too, so the
+      // timesheet's clock-out matches when you actually stopped working.
+      await closeAttendanceSessionIfIdle(trx, user.tenant_id, user.sub, new Date());
+
+      return stopped;
     });
   });
 
