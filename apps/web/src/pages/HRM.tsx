@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
-import { MetricsRow } from '../components/MetricCard.js';
+import { MetricsRow, type MetricCardProps } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { EMPLOYEES } from '../data/staffData.js';
@@ -1813,8 +1813,12 @@ export function LeavesPage() {
 
 export function AttendancePage() {
   const isMobile = useIsMobile();
-  const [employees, setEmployees] = useState<ShiftEmployee[]>(SHIFT_EMPLOYEES);
+  // Start empty and fill from the API — never seed the register with the
+  // sample EMPLOYEES fixture, which would show fabricated names before (or
+  // instead of) the tenant's real staff.
+  const [employees, setEmployees] = useState<ShiftEmployee[]>([]);
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [summary, setSummary] = useState<any | null>(null);
   const [view, setView] = useState<'grid' | 'member'>('grid');
   const [date, setDate] = useState(() => {
     const d = new Date();
@@ -1863,6 +1867,29 @@ export function AttendancePage() {
 
   const getDayFormat = (d: Date) => d.toISOString().split('T')[0];
 
+  // Real attendance aggregates for the month on screen (built manually so a
+  // timezone shift can't roll the range off the month boundary).
+  const monthFrom = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+  const monthTo = `${year}-${String(month + 1).padStart(2, '0')}-${String(daysInMonth).padStart(2, '0')}`;
+  const loadSummary = useCallback(async () => {
+    try { setSummary(await apiFetch(`/v1/hr/attendance/summary?from=${monthFrom}&to=${monthTo}`)); }
+    catch { setSummary(null); }
+  }, [monthFrom, monthTo]);
+  useEffect(() => { loadSummary(); }, [loadSummary]);
+
+  const fmtDur = (min: number | null | undefined) =>
+    min == null ? '—' : `${Math.floor(min / 60)}h ${String(min % 60).padStart(2, '0')}m`;
+  const summaryCards: MetricCardProps[] = summary ? [
+    { title: 'Attendance rate', value: summary.present_rate_pct == null ? '—' : `${summary.present_rate_pct}%`,
+      icon: 'checkCircle', barHighlight: 'var(--green)',
+      sub1Label: 'RECORDS', sub1Value: String(summary.total_records),
+      sub2Label: 'STAFF', sub2Value: String(summary.staff_count) },
+    { title: 'Present', value: String(summary.present_count), icon: 'check', barHighlight: 'var(--green)' },
+    { title: 'Absent', value: String(summary.absent_count), icon: 'x', barHighlight: 'var(--red)' },
+    { title: 'Late', value: String(summary.late_count), icon: 'clock', barHighlight: 'var(--gold)' },
+    { title: 'Avg hours / day', value: fmtDur(summary.avg_worked_minutes), icon: 'barChart2', barHighlight: 'var(--teal)' },
+  ] : [];
+
   const filteredEmps = employees.filter(e => {
     if (filterDept && e.department !== filterDept) return false;
     return true;
@@ -1910,6 +1937,9 @@ export function AttendancePage() {
           <Icon name="tasks" size={14} /> Mark Attendance
         </button>
       </PageHeader>
+
+      {/* Real attendance aggregates for the visible month */}
+      {summary && <div style={{ marginBottom: 16 }}><MetricsRow cards={summaryCards} /></div>}
 
       {/* Filters & Controls */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, background: 'var(--white)', padding: '12px 16px', borderRadius: 9, border: '1px solid var(--border)' }}>

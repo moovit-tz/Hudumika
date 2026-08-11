@@ -443,6 +443,56 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // Attendance dashboard aggregates over a date range (defaults to last 30 days).
+  fastify.get('/attendance/summary', async (req) => {
+    const user = req.user;
+    const q = req.query as any;
+    const to = q.to ? isoDate(q.to) : isoDate(new Date());
+    const from = q.from ? isoDate(q.from) : isoDate(new Date(Date.now() - 29 * 86400000));
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const rows = await trx.selectFrom('hr_attendance')
+        .select(['status', 'worked_minutes'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('date', '>=', from)
+        .where('date', '<=', to)
+        .execute();
+
+      const byStatus: Record<string, number> = {};
+      let workedSum = 0, workedCount = 0;
+      for (const r of rows) {
+        const s = String(r.status || 'UNKNOWN').toUpperCase();
+        byStatus[s] = (byStatus[s] || 0) + 1;
+        if (r.worked_minutes != null) { workedSum += r.worked_minutes; workedCount++; }
+      }
+      const total = rows.length;
+      const present = (byStatus['PRESENT'] || 0) + (byStatus['LATE'] || 0)
+        + (byStatus['HALF_DAY'] || 0) + (byStatus['HALFDAY'] || 0);
+
+      const staff = await trx.selectFrom('users')
+        .select((eb) => eb.fn.countAll<number>().as('n'))
+        .where('tenant_id', '=', user.tenant_id)
+        .where('active', '=', true)
+        .where('role', '<>', 'CUSTOMER')
+        .executeTakeFirst();
+
+      return {
+        from, to,
+        total_records: total,
+        staff_count: Number(staff?.n || 0),
+        by_status: byStatus,
+        present_count: byStatus['PRESENT'] || 0,
+        absent_count: byStatus['ABSENT'] || 0,
+        late_count: byStatus['LATE'] || 0,
+        on_leave_count: (byStatus['ON_LEAVE'] || 0) + (byStatus['LEAVE'] || 0),
+        // Null, never a number, when there are no records — a rate over zero
+        // observations is not 100%, it is no measurement (matches KPIResponse).
+        present_rate_pct: total > 0 ? Math.round((present / total) * 100) : null,
+        avg_worked_minutes: workedCount > 0 ? Math.round(workedSum / workedCount) : null,
+      };
+    });
+  });
+
   // ── Clock-in & Weekly Timesheets ───────────────────────────────
 
   fastify.get('/clock-in/active', async (req) => {
