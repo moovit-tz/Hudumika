@@ -46,6 +46,7 @@ export const APP_LABELS: Record<AppId, string> = {
   cargotracker:  'CargoTracker',
   seal:          'SEAL',
   inventory:     'Inventory Control',
+  hudubi:        'HuduBI',
 };
 
 // Every app defaults to the single brand accent (matches --teal in index.css)
@@ -67,7 +68,7 @@ export const APP_COLORS: Record<AppId, string> = {
   email: DEFAULT_APP_COLOR, crm: DEFAULT_APP_COLOR, contacts: DEFAULT_APP_COLOR,
   store: DEFAULT_APP_COLOR, calendar: DEFAULT_APP_COLOR, tasks: DEFAULT_APP_COLOR,
   demurrage: DEFAULT_APP_COLOR, cargotracker: DEFAULT_APP_COLOR, seal: DEFAULT_APP_COLOR,
-  inventory: DEFAULT_APP_COLOR,
+  inventory: DEFAULT_APP_COLOR, hudubi: DEFAULT_APP_COLOR,
 };
 
 /**
@@ -105,7 +106,7 @@ export const APP_PALETTE_SLOT: Record<AppId, number> = {
   bliss: 6, email: 6, crm: 6, contacts: 6,
   // 7 — platform, identity & tooling
   admin: 7, oneid: 7, onesite: 7, onsite: 7, workspace: 7,
-  studio: 7, ai: 7, calendar: 7, tasks: 7, cloud: 7,
+  studio: 7, ai: 7, calendar: 7, tasks: 7, cloud: 7, hudubi: 7,
 };
 
 export const ActiveAppContext = React.createContext<AppId | null>(null);

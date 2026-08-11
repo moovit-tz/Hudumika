@@ -53,6 +53,7 @@ export const ALL_FEATURE_KEYS = [
   'tasks',
   'store',
   'onesite',
+  'hudubi',
 ] as const;
 
 /** Feature keys correspond 1:1 with the appId strings the API gates on. */

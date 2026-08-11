@@ -67,6 +67,7 @@ const APP_ICONS: Record<AppId, IconName> = {
   seal:      'package',
   inventory: 'package',
   studio:    'gitBranch',
+  hudubi:    'barChart2',
 };
 
 const APP_SUBTITLES: Partial<Record<AppId, string>> = {

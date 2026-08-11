@@ -49,6 +49,7 @@ const APP_META: Record<string, Pick<HudumikaApp, 'desc' | 'category' | 'status' 
   cargotracker: { desc: 'AWB and Bill of Lading shipment tracking', category: 'Logistics', status: 'Live', userCount: 7, dataSize: '15 GB', appServicesCount: 3, tags: ['AWB', 'BL', 'Demurrage'] },
   seal:         { desc: 'Bonded warehouse ledger — customs status, storage clocks & audit-chained movements', category: 'Logistics', status: 'Beta', userCount: 1, dataSize: '0 GB', appServicesCount: 1, tags: ['Bonded', 'Customs', 'Ledger'] },
   inventory:    { desc: 'General multi-warehouse stock control — items, batches, units of measure & reorder alerts', category: 'Logistics', status: 'Beta', userCount: 0, dataSize: '0 GB', appServicesCount: 1, tags: ['Stock', 'Warehousing', 'Inventory'] },
+  hudubi:       { desc: 'Data layer, executive BI analytics, board KPIs & predictive intelligence', category: 'Analytics', status: 'Live', userCount: 18, dataSize: '85 GB', appServicesCount: 6, tags: ['BI', 'Executive', 'AI Analytics', 'Board KPIs'] },
 };
 
 const apps: HudumikaApp[] = [

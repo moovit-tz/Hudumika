@@ -32,13 +32,14 @@ export type AppId =
   | 'seal'         // Bonded / customs-controlled warehouse
   | 'inventory'    // General multi-warehouse stock control (separate from SEAL's bonded-warehouse domain)
   | 'studio'       // Workflow Studio — the platform's automation control plane
+  | 'hudubi'       // Data Layer & AI Analytics Engine
   | 'lens';        // Internal developer record — SuperAdmin only, never customer-facing
 
 export const ALL_APP_IDS: AppId[] = [
   'clearos', 'finops', 'complyos', 'bliss',
   'nexushr', 'onesite', 'onsite', 'oneid', 'tracking', 'cloud', 'ai', 'workspace', 'admin', 'email', 'crm', 'contacts', 'store',
   'calendar', 'tasks',
-  'demurrage', 'cargotracker', 'seal', 'inventory', 'studio',
+  'demurrage', 'cargotracker', 'seal', 'inventory', 'studio', 'hudubi',
   // Internal tooling. Present so the app shell and design system can resolve it
   // like any other app; the launcher filters it out for non-SuperAdmins and
   // both its route and its endpoints require that role.
