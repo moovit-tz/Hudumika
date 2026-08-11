@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
 import { ShipmentService } from '../services/shipment.service.js';
+import { loadResolvedWorkflow, evaluateEntryConditions } from '../services/workflow-resolver.service.js';
 import { co2Service } from '../services/co2.service.js';
 import { requireRole } from '../middleware/rbac.js';
 import { CHARGE_HEADS } from '../services/intelligence.service.js';
@@ -188,12 +189,37 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       return reply.status(403).send({ error: 'Forbidden: Access denied to this case' });
     }
 
-    // Resolve customer name
+    // Resolve customer name + the shipment's governing workflow, so the UI can
+    // drive its stepper and stage-advance options from the shipment's ACTUAL
+    // steps. A custom workflow has its own step ids and names — the fixed
+    // legacy stage list does not apply to it, and sending a legacy stage id
+    // (e.g. "PERMITS") to a custom-workflow case is exactly what fails.
     return withTenant(user.tenant_id, async (trx) => {
       const customer = shipment.customer_id
         ? await trx.selectFrom('customers').select(['id', 'name']).where('id', '=', shipment.customer_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst()
         : null;
-      return { ...shipment, customer_name: customer?.name ?? null };
+
+      const resolved = await loadResolvedWorkflow(trx, user.tenant_id, (shipment as any).workflow_id ?? null);
+      const wfName = resolved.kind === 'CUSTOM' && (shipment as any).workflow_id
+        ? (await trx.selectFrom('workflows').select('name').where('id', '=', (shipment as any).workflow_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst())?.name ?? 'Workflow'
+        : 'Standard stages';
+      // Evaluate each step's entry conditions against this shipment's documents
+      // and fields, so the UI can show WHY a step is blocked before you try to
+      // enter it — the same evaluation the transition engine runs.
+      const docs = await trx.selectFrom('case_documents').select(['type', 'status'])
+        .where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+      const workflow = {
+        kind: resolved.kind,
+        name: wfName,
+        currentStepId: (shipment as any).workflow_step_id ?? (shipment as any).stage,
+        steps: resolved.steps.map((s) => ({
+          id: s.id, name: s.name, order: s.order, isTerminal: s.isTerminal, nextStepIds: s.nextStepIds,
+          requirements: evaluateEntryConditions(shipment as any, docs, s.entryConditions).outcomes
+            .map((o) => ({ label: o.label, passed: o.passed })),
+        })),
+      };
+
+      return { ...shipment, customer_name: customer?.name ?? null, workflow };
     });
   });
 
@@ -560,6 +586,76 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     } catch (error: any) {
       return reply.status(400).send({ error: error.message || 'Stage transition failed' });
     }
+  });
+
+  /**
+   * POST /v1/shipments/:id/workflow — re-route a shipment onto a different
+   * workflow. 'legacy' (or null) pins the fixed stage system; a workflow id
+   * pins that custom workflow.
+   *
+   * When can this NOT be done: a completed shipment (resolved), or one already
+   * at its workflow's final step — a finished clearance is not re-routed.
+   *
+   * Effect when mid-flight: the case lands on the step the caller chooses, or —
+   * by default — on the step at the SAME ordinal position in the new workflow
+   * (clamped to its length), so progress is preserved as closely as the new
+   * workflow allows. The move is recorded in stage history.
+   */
+  fastify.post('/:id/workflow', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    const { workflow_id, step_id } = request.body as { workflow_id: string | null; step_id?: string };
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const shipment = await trx.selectFrom('shipment_cases')
+        .select(['id', 'stage', 'workflow_id', 'workflow_step_id', 'resolved_at'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!shipment) return reply.status(404).send({ error: 'Shipment case not found' });
+
+      if (shipment.resolved_at) {
+        return reply.status(409).send({ error: 'This shipment is completed — its workflow can no longer be changed.' });
+      }
+
+      // Current position in the current workflow, and the block if it is done.
+      const current = await loadResolvedWorkflow(trx, user.tenant_id, shipment.workflow_id ?? null);
+      const curStep = current.steps.find((s) => s.id === (shipment.workflow_step_id ?? shipment.stage));
+      if (curStep?.isTerminal) {
+        return reply.status(409).send({ error: 'This shipment is at its final stage — its workflow can no longer be changed.' });
+      }
+      const curOrder = curStep?.order ?? 0;
+
+      // Resolve the target workflow.
+      const targetWfId = (workflow_id === 'legacy' || !workflow_id) ? null : workflow_id;
+      const target = await loadResolvedWorkflow(trx, user.tenant_id, targetWfId);
+      if (target.steps.length === 0) return reply.status(400).send({ error: 'Target workflow has no steps.' });
+
+      // Landing step: the caller's explicit choice if it belongs to the target,
+      // else the same ordinal position, clamped.
+      const sorted = [...target.steps].sort((a, b) => a.order - b.order);
+      const landing = (step_id && sorted.find((s) => s.id === step_id))
+        || sorted[Math.min(curOrder, sorted.length - 1)]
+        || sorted[0];
+
+      const now = new Date();
+      await trx.updateTable('shipment_cases').set({
+        stage: landing.id,
+        workflow_id: target.kind === 'CUSTOM' ? target.workflowId : null,
+        workflow_step_id: target.kind === 'CUSTOM' ? landing.id : null,
+        sla_deadline: new Date(now.getTime() + landing.slaHours * 60 * 60 * 1000),
+        updated_at: now,
+      }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+
+      await trx.insertInto('stage_history').values({
+        tenant_id: user.tenant_id, shipment_id: id, stage: landing.id, entered_at: now, actor_id: user.sub,
+        note: `Workflow changed — placed at "${landing.name}".`,
+      }).execute();
+
+      fastify.websocketServer?.clients.forEach((client: any) => {
+        client.send(JSON.stringify({ type: 'case.status_changed', caseId: id, stage: landing.id }));
+      });
+
+      return { success: true, workflowId: target.workflowId, kind: target.kind, stage: landing.id, stepName: landing.name };
+    });
   });
 
   /**

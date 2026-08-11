@@ -2,6 +2,7 @@ import { withTenant } from '../db/client.js';
 import { WorkflowService } from './workflow.service.js';
 import { NotificationService } from './notification.service.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { CloudSync } from './cloud-sync.service.js';
 import { resolveWorkflowForNewShipment, loadResolvedWorkflow, pickStartStep } from './workflow-resolver.service.js';
 import { emitDomainEvent, emitDomainEventStandalone } from './domain-events.service.js';
 import type { ShipmentType, ClearanceStage, Container, DocumentType, RiskFlagType } from '@hudumika/types';
@@ -28,6 +29,7 @@ export class ShipmentService {
       location_id?: string;
       free_time_end?: string;
       consignment_type?: string;
+      workflow_id?: string | null;
     }
   ) {
     return withTenant(tenantId, async (trx) => {
@@ -55,17 +57,25 @@ export class ShipmentService {
         freeTimeDate = new Date(etaDate.getTime() + freeTimeDays * 24 * 60 * 60 * 1000);
       }
 
-      // 1b. Resolve which workflow governs this shipment (legacy fixed
-      // stages by default; a tenant's custom workflow if its triggers
-      // match). Resolved ONCE here — a workflow owns a case for its
-      // lifecycle and is never re-resolved on later transitions.
-      const resolvedWorkflow = await resolveWorkflowForNewShipment(trx, tenantId, {
-        type: input.type,
-        consignmentType,
-        customerId: input.customer_id,
-        originPort: input.origin_port,
-        destPort: input.dest_port,
-      });
+      // 1b. Resolve which workflow governs this shipment. Resolved ONCE here —
+      // a workflow owns a case for its lifecycle and is never re-resolved on
+      // later transitions. An explicit choice from the create form wins:
+      // 'legacy' pins the fixed stage system, a workflow id pins that custom
+      // workflow; otherwise the tenant's workflow triggers decide (the default).
+      let resolvedWorkflow;
+      if (input.workflow_id === 'legacy') {
+        resolvedWorkflow = await loadResolvedWorkflow(trx, tenantId, null);
+      } else if (input.workflow_id) {
+        resolvedWorkflow = await loadResolvedWorkflow(trx, tenantId, input.workflow_id);
+      } else {
+        resolvedWorkflow = await resolveWorkflowForNewShipment(trx, tenantId, {
+          type: input.type,
+          consignmentType,
+          customerId: input.customer_id,
+          originPort: input.origin_port,
+          destPort: input.dest_port,
+        });
+      }
       const startStep = pickStartStep(resolvedWorkflow.steps);
 
       // 2. Insert shipment case
@@ -136,6 +146,8 @@ export class ShipmentService {
       // 5. Create customer/BL folder in storage
       const folderName = input.bl_number || input.awb_number || refNumber;
       MinioIntegration.ensureFolder(tenantId, input.customer_id, folderName);
+      // …and in the Cloud file manager: Customers ▸ <customer> ▸ <BL>, best-effort.
+      CloudSync.ensureShipmentFolder(tenantId, input.customer_id, folderName).catch(err => console.error('[Cloud] shipment folder failed:', err.message));
 
       // 6. Trigger notifications (offloaded dynamically)
       NotificationService.triggerNotification(tenantId, shipment.id, 'CASE_OPENED').catch(console.error);

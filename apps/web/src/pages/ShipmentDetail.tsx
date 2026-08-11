@@ -15,6 +15,7 @@ import { showAlert } from '../lib/alert.js';
 import {
   getJob, updateJob, subscribe,
   STAGES, FLAG_CFG, CH_CFG, stageIdx, STAGE_API_MAP, API_STAGE_MAP, apiToJob,
+  jobUiSteps, jobCurrentIdx, jobStageLabel, jobBackendStage,
   type ClearanceJob, type Stage, type Channel, type Flag,
   type ThreadMsg, type TimelineEvent, type ShipDoc, type LedgerEntry, type DocType,
   type InternalTask, type TimeEntry, type ActivityEvent, type TaskStatus, type Listener,
@@ -59,6 +60,7 @@ function useJob(id: string) {
 function apiTaskToInternal(t: any): InternalTask {
   const statusMap: Record<string, TaskStatus> = {
     open: 'not_started', in_progress: 'in_progress', complete: 'complete', blocked: 'awaiting_feedback',
+    testing: 'testing',
   };
   return {
     id: String(t.id),
@@ -66,6 +68,7 @@ function apiTaskToInternal(t: any): InternalTask {
     status: statusMap[t.status] || 'not_started',
     priority: (t.priority || 'medium') as InternalTask['priority'],
     assignees: t.assigned_to ? [friendlyAssignee(String(t.assigned_to))] : [],
+    assignedToId: t.assigned_to ? String(t.assigned_to) : undefined,
     startDate: new Date(t.created_at || Date.now()),
     dueDate: t.due_date ? new Date(t.due_date) : new Date(Date.now() + 7 * 86400000),
     tags: [],
@@ -131,7 +134,7 @@ function docIcon(type: string): IconName {
 /* ── Shipment report — printable summary window, mirrors Billing.tsx's openPrintWindow ── */
 function openShipmentReportWindow(job: ClearanceJob) {
   const co = getCompany();
-  const stageLabel = STAGES.find(s => s.id === job.stage)?.label || job.stage;
+  const stageLabel = jobStageLabel(job);
   const genDate = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
   const timelineRows = job.timeline.map(t => `
@@ -473,11 +476,12 @@ function DSelect({ value, onChange, options }: { value: string; onChange: (v: st
 
 // ─── Stage Stepper ────────────────────────────────────────────────────────────
 
-function StageStepper({ stage }: { stage: Stage }) {
-  const currentIdx = stageIdx(stage);
+function StageStepper({ job }: { job: ClearanceJob }) {
+  const steps = jobUiSteps(job);
+  const currentIdx = jobCurrentIdx(job);
   return (
     <div style={{ display: 'flex', alignItems: 'center', padding: '0 24px', overflowX: 'auto', gap: 0 }}>
-      {STAGES.map((s, i) => {
+      {steps.map((s, i) => {
         const done = i < currentIdx; const active = i === currentIdx;
         return (
           <React.Fragment key={s.id}>
@@ -489,7 +493,7 @@ function StageStepper({ stage }: { stage: Stage }) {
                 {s.short}
               </div>
             </div>
-            {i < STAGES.length - 1 && (
+            {i < steps.length - 1 && (
               <div style={{ flex: 1, height: 2, minWidth: 8, background: i < currentIdx ? 'var(--teal)' : 'var(--border)', marginBottom: 16, transition: 'background 0.3s' }} />
             )}
           </React.Fragment>
@@ -662,22 +666,42 @@ function CustomerAgentCard({ job }: { job: ClearanceJob }) {
 
 // ─── Advance Stage Modal ──────────────────────────────────────────────────────
 
-function AdvanceStageModal({ job, onClose, onAdvance }: {
+function AdvanceStageModal({ job, onClose, onAdvance, embedded = false }: {
   job: ClearanceJob; onClose: () => void;
-  onAdvance: (stage: Stage, note: string, blocker: string, channels: Channel[]) => void;
+  onAdvance: (stage: string, note: string, blocker: string, channels: Channel[]) => void;
+  embedded?: boolean;
 }) {
-  const currentIdx = stageIdx(job.stage);
-  const nextStages = STAGES.filter((_, i) => i > currentIdx);
+  const steps = jobUiSteps(job);
+  const currentIdx = jobCurrentIdx(job);
+  const current = currentIdx >= 0 ? steps[currentIdx] : undefined;
+  // A custom workflow permits exactly the current step's declared next steps
+  // (forward) plus any earlier step (backward, for re-validation) — matching
+  // what the backend engine enforces. The legacy ladder keeps its old, looser
+  // behaviour of offering every later stage.
+  const nextStages = job.workflowKind === 'CUSTOM'
+    ? [
+        ...steps.filter(s => current?.nextStepIds?.includes(s.id)),
+        ...steps.filter((_, i) => i < currentIdx),
+      ]
+    : steps.filter((_, i) => i > currentIdx);
   const [selected, setSelected] = useState(nextStages[0]?.id || '');
   const [note, setNote] = useState('');
   const [blocker, setBlocker] = useState('');
   const [chans, setChans] = useState<Channel[]>(['whatsapp', 'email']);
   function toggle(ch: Channel) { setChans(p => p.includes(ch) ? p.filter(c => c !== ch) : [...p, ch]); }
+  // What must be true to enter the chosen step, evaluated for this shipment —
+  // shown so a blocked transition is explained up front, not after it fails.
+  const targetReqs = job.workflowKind === 'CUSTOM'
+    ? job.workflowSteps?.find(s => s.id === selected)?.requirements
+    : undefined;
+  const hasUnmet = !!targetReqs?.some(r => !r.passed);
   // Inline panel, not a popup — pushed into normal document flow directly
   // under the header instead of a darkened full-screen overlay.
   return (
-    <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', boxShadow: 'var(--elev-lg)' }}>
-      <div style={{ maxWidth: 560, margin: '0 auto' }}>
+    <div style={embedded
+      ? { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }
+      : { background: 'var(--white)', borderBottom: '1px solid var(--border)', boxShadow: 'var(--elev-lg)' }}>
+      <div style={embedded ? {} : { maxWidth: 560, margin: '0 auto' }}>
         <div style={{ padding: '16px 20px 0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Advance Stage</div>
           <button type="button" onClick={onClose} style={{ background: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink3)', padding: 6, display: 'flex' }}><Icon name="x" size={16} /></button>
@@ -685,13 +709,33 @@ function AdvanceStageModal({ job, onClose, onAdvance }: {
         <div style={{ padding: 20 }}>
           <div style={{ marginBottom: 14 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Move to Stage</label>
-            <Select value={selected} onValueChange={v => setSelected(v as Stage)}>
+            <Select value={selected} onValueChange={v => setSelected(v)}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {nextStages.map(s => <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
+
+          {targetReqs && targetReqs.length > 0 && (
+            <div style={{ marginBottom: 14, background: 'var(--bg)', border: `1px solid ${hasUnmet ? 'var(--red-l)' : 'var(--border)'}`, borderRadius: 8, padding: '10px 12px' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 7 }}>Requirements to enter this stage</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {targetReqs.map((r, i) => (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5 }}>
+                    <Icon name={r.passed ? 'checkCircle' : 'alertCircle'} size={14} color={r.passed ? 'var(--green)' : 'var(--red)'} />
+                    <span style={{ color: r.passed ? 'var(--ink2)' : 'var(--ink)', fontWeight: r.passed ? 500 : 600 }}>{r.label}</span>
+                  </div>
+                ))}
+              </div>
+              {hasUnmet && (
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 8, lineHeight: 1.45 }}>
+                  Resolve the unmet items — verify the documents in the <strong>Files</strong> tab — before this stage will accept the case.
+                </div>
+              )}
+            </div>
+          )}
+
           <div style={{ marginBottom: 14 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 5 }}>Transition Note <span style={{ fontWeight: 400, color: 'var(--ink3)' }}>(visible to listeners)</span></label>
             <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="What was completed? Any key info to share…" style={{ width: '100%', padding: '9px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, resize: 'none', fontFamily: 'var(--font)', boxSizing: 'border-box' as const }} />
@@ -715,12 +759,108 @@ function AdvanceStageModal({ job, onClose, onAdvance }: {
           </div>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 20px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            <button type="button" disabled={!selected} onClick={() => selected && onAdvance(selected as Stage, note, blocker, chans)} style={{ padding: 'var(--ds-btn-py) 20px', background: selected ? 'var(--teal)' : 'var(--border)', color: selected ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selected ? 'pointer' : 'default', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+            <button type="button" disabled={!selected} onClick={() => selected && onAdvance(selected, note, blocker, chans)} style={{ padding: 'var(--ds-btn-py) 20px', background: selected ? 'var(--teal)' : 'var(--border)', color: selected ? '#fff' : 'var(--ink3)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: selected ? 'pointer' : 'default', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
               Update Stage →
             </button>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─── Advance Stage — three-column view (previews | docs + verify | data cards) ─
+
+function DocPreview({ shipmentId, doc }: { shipmentId: string; doc: ShipDoc }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  useEffect(() => {
+    let obj: string | null = null; let cancelled = false;
+    apiFetchBlob(`/v1/shipments/${shipmentId}/documents/${doc.id}/view`)
+      .then(blob => { if (cancelled) return; obj = URL.createObjectURL(blob); setUrl(obj); setState('ready'); })
+      .catch(() => { if (!cancelled) setState('error'); });
+    return () => { cancelled = true; if (obj) URL.revokeObjectURL(obj); };
+  }, [shipmentId, doc.id]);
+  const isImg = /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(doc.name);
+  return (
+    <div style={{ border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', background: 'var(--white)', flexShrink: 0 }}>
+      <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Icon name="fileText" size={14} color="var(--ink3)" />
+        <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{doc.name}</span>
+        {doc.status === 'VERIFIED' && <Icon name="checkCircle" size={13} color="var(--green)" />}
+      </div>
+      <div style={{ height: 380, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {state === 'loading' && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Loading preview…</span>}
+        {state === 'error' && <span style={{ fontSize: 12, color: 'var(--ink3)' }}>Preview unavailable</span>}
+        {state === 'ready' && url && (isImg
+          ? <img src={url} alt={doc.name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+          : <iframe title={doc.name} src={url} style={{ width: '100%', height: '100%', border: 'none' }} />)}
+      </div>
+    </div>
+  );
+}
+
+function DocVerifyList({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shipmentId: string; isLive: boolean; onRefresh: () => void }) {
+  const { user } = useAuth();
+  const canVerify = !!(user && user.role !== 'CUSTOMER');
+  const [verifying, setVerifying] = useState<string | null>(null);
+  const docs = job.documents.filter(d => !d.pending);
+  async function verify(docId: string) {
+    if (!isLive || verifying) return;
+    setVerifying(docId);
+    try {
+      await apiFetch(`/v1/shipments/${shipmentId}/documents/${docId}/verify`, { method: 'PATCH', body: JSON.stringify({ status: 'VERIFIED' }) });
+      onRefresh();
+    } catch (err: any) { showAlert(err.message || 'Could not verify document'); }
+    finally { setVerifying(null); }
+  }
+  return (
+    <Card title="Documents & verification" padded={false}>
+      {docs.length === 0 ? (
+        <div style={{ padding: '20px 16px', fontSize: 13, color: 'var(--ink3)', textAlign: 'center' }}>No documents uploaded yet.</div>
+      ) : docs.map((d, i) => (
+        <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', borderTop: i > 0 ? '1px solid var(--border)' : 'none' }}>
+          <Icon name="fileText" size={15} color="var(--ink3)" />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</div>
+            <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{DOC_TYPE_LABEL[d.type] ?? d.type}</div>
+          </div>
+          {d.status === 'VERIFIED' ? (
+            <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: 'var(--green-l)', color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icon name="checkCircle" size={11} color="var(--green)" /> Verified</span>
+          ) : canVerify ? (
+            <button type="button" onClick={() => verify(d.id)} disabled={verifying === d.id} style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--green)', background: 'var(--white)', color: 'var(--green)', cursor: verifying === d.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+              {verifying === d.id ? '…' : 'Verify'}
+            </button>
+          ) : <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{d.status === 'RECEIVED' ? 'Received' : ''}</span>}
+        </div>
+      ))}
+    </Card>
+  );
+}
+
+function AdvanceStageView({ job, shipmentId, isLive, isMobile, onClose, onAdvance, onRefresh }: {
+  job: ClearanceJob; shipmentId: string; isLive: boolean; isMobile: boolean;
+  onClose: () => void; onAdvance: (stage: string, note: string, blocker: string, channels: Channel[]) => void; onRefresh: () => void;
+}) {
+  const docs = job.documents.filter(d => !d.pending);
+  return (
+    <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', flexWrap: isMobile ? 'wrap' : 'nowrap' }}>
+      {/* Column 1 — document previews */}
+      {!isMobile && (
+        <div style={{ flex: '1 1 300px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 'calc(100vh - 210px)', overflowY: 'auto' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Document previews</div>
+          {docs.length === 0
+            ? <div style={{ padding: '28px 16px', fontSize: 13, color: 'var(--ink3)', textAlign: 'center', border: '1px dashed var(--border)', borderRadius: 10 }}>No documents to preview.</div>
+            : docs.map(d => <DocPreview key={d.id} shipmentId={shipmentId} doc={d} />)}
+        </div>
+      )}
+      {/* Column 2 — documents + verification + the advance form */}
+      <div style={{ flex: '1 1 420px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <DocVerifyList job={job} shipmentId={shipmentId} isLive={isLive} onRefresh={onRefresh} />
+        <AdvanceStageModal job={job} onClose={onClose} onAdvance={onAdvance} embedded />
+      </div>
+      {/* Column 3 — the standard data cards */}
+      {!isMobile && <ListenersSidebar job={job} shipmentId={shipmentId} isLive={isLive} onRefresh={onRefresh} />}
     </div>
   );
 }
@@ -869,7 +1009,7 @@ function AutomationHistoryCard({ shipmentId }: { shipmentId: string }) {
   };
 
   return (
-    <Card title="Workflow automation" padded={false}>
+    <Card title="Workflow automation" padded={false} collapsible defaultOpen={false}>
       <div style={{ maxHeight: 420, overflowY: 'auto' }}>
         {runs.map(r => {
           const failed = (r.comms ?? []).filter((c: any) => c.status === 'FAILED');
@@ -1604,21 +1744,22 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
     } catch (err: any) { showAlert(err.message || 'Send failed'); } finally { setSending(false); }
   }
 
-  async function handleSetStage(stage: Stage) {
-    if (stage === job.stage) { setShowStageBar(false); return; }
+  async function handleSetStage(stage: string) {
+    const curId = job.workflowKind === 'CUSTOM' ? (job.currentStepId ?? '') : job.stage;
+    if (stage === curId) { setShowStageBar(false); return; }
     if (!clockGate(isStaff, isCheckedIn, triggerOpen)) return;
-    const stageLabel = STAGES.find(s => s.id === stage)?.label ?? stage;
+    const stageLabel = jobUiSteps(job).find(s => s.id === stage)?.label ?? stage;
     try {
       if (isLive) {
         await apiFetch(`/v1/shipments/${shipmentId}/stage`, {
           method: 'PATCH',
-          body: JSON.stringify({ stage: STAGE_API_MAP[stage] ?? stage.toUpperCase(), note: 'Stage updated from Updates tab' }),
+          body: JSON.stringify({ stage: jobBackendStage(job, stage), note: 'Stage updated from Updates tab' }),
         });
         onRefresh();
       } else {
-        const event: TimelineEvent = { id: 'ev-' + Date.now(), stage, label: stageLabel, userId: 'me', userName: 'You', ts: new Date(), note: 'Stage updated from Updates tab' };
+        const event: TimelineEvent = { id: 'ev-' + Date.now(), stage: stage as Stage, label: stageLabel, userId: 'me', userName: 'You', ts: new Date(), note: 'Stage updated from Updates tab' };
         const msg: ThreadMsg = { id: 'msg-' + Date.now(), userId: 'me', userName: 'You', content: `Stage updated → ${stageLabel}`, ts: new Date(), channels: isInternal ? ['internal'] : (chans.length ? chans : ['internal']), isInternal: false };
-        updateJob(job.id, j => ({ ...j, stage, timeline: [...j.timeline, event], thread: [...j.thread, msg] }));
+        updateJob(job.id, j => ({ ...j, stage: stage as Stage, timeline: [...j.timeline, event], thread: [...j.thread, msg] }));
       }
     } catch (err: any) { showAlert(err.message || 'Stage update failed'); }
     setShowStageBar(false);
@@ -1665,16 +1806,16 @@ function UpdatesTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob;
             <button type="button" onClick={() => setShowStageBar(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}><Icon name="x" size={13} color="var(--teal)" /></button>
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '10px 14px' }}>
-            {STAGES.map((s, i) => {
-              const cur = s.id === job.stage;
-              const past = stageIdx(s.id) < stageIdx(job.stage);
+            {(() => { const uiSteps = jobUiSteps(job); const curIdx = jobCurrentIdx(job); return uiSteps.map((s, i) => {
+              const cur = i === curIdx;
+              const past = i < curIdx;
               return (
                 <button key={s.id} type="button" onClick={() => handleSetStage(s.id)}
                   style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', cursor: 'pointer', border: `1.5px solid ${cur ? 'var(--teal)' : past ? 'var(--green)' : 'var(--border)'}`, background: cur ? 'var(--teal)' : past ? 'var(--green-l)' : 'var(--white)', color: cur ? '#fff' : past ? 'var(--green)' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 5, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
                   <span style={{ fontFamily: 'var(--mono)', fontSize: 10, opacity: .7 }}>{i + 1}</span> {s.short}
                 </button>
               );
-            })}
+            }); })()}
           </div>
         </div>
       )}
@@ -1761,16 +1902,24 @@ function CustomerOverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: b
 }
 
 // ── Card shell — one consistent card style used across the redesigned Overview ──
-function Card({ title, action, padded = true, children }: { title?: string; action?: React.ReactNode; padded?: boolean; children: React.ReactNode }) {
+function Card({ title, action, padded = true, collapsible = false, defaultOpen = true, children }: { title?: string; action?: React.ReactNode; padded?: boolean; collapsible?: boolean; defaultOpen?: boolean; children: React.ReactNode }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const showBody = !collapsible || open;
   return (
     <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
       {title && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 18px', borderBottom: '1px solid var(--border)' }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</span>
-          {action}
+        <div
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 18px', borderBottom: showBody ? '1px solid var(--border)' : 'none', gap: 8, cursor: collapsible ? 'pointer' : 'default', userSelect: collapsible ? 'none' : undefined }}
+          onClick={collapsible ? () => setOpen(o => !o) : undefined}
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            {collapsible && <Icon name={open ? 'chevronDown' : 'chevronRight'} size={13} color="var(--ink3)" />}
+            {title}
+          </span>
+          {action && <span onClick={e => e.stopPropagation()}>{action}</span>}
         </div>
       )}
-      <div style={{ padding: padded ? '18px' : 0 }}>{children}</div>
+      {showBody && <div style={{ padding: padded ? '18px' : 0 }}>{children}</div>}
     </div>
   );
 }
@@ -1784,10 +1933,22 @@ function SpecRow({ label, value, mono }: { label: string; value: React.ReactNode
   );
 }
 
-const DOC_TYPE_LABEL: Record<string, string> = { bl: 'Bill of Lading', awb: 'Air Waybill', invoice: 'Commercial Invoice', packing_list: 'Packing List', permit: 'Permit', certificate: 'Certificate', other: 'Document' };
+const DOC_TYPE_LABEL: Record<string, string> = { bl: 'Bill of Lading', awb: 'Air Waybill', invoice: 'Commercial Invoice', packing_list: 'Packing List', permit: 'Permit', certificate: 'Certificate', other: 'Document', customs_entry: 'Customs Entry', duty_receipt: 'Duty Receipt', release_order: 'Release Order', delivery_note: 'Delivery Note', pre_assessment: 'Pre-assessment', final_assessment: 'Final assessment', tiss: 'TISS', payment_note: 'Payment note', tiss_payment_invoice: 'TISS payment invoice', tbs_charges: 'TBS charges', coc: 'Certificate of Conformity', wharfage: 'Wharfage' };
 
-function OverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: boolean }) {
+function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; isMobile: boolean; isLive: boolean; onRefresh: () => void }) {
   const company = useCompany();
+  const { user } = useAuth();
+  const canVerify = !!(user && user.role !== 'CUSTOMER');
+  const [verifying, setVerifying] = useState<string | null>(null);
+  async function verifyDoc(doc: ShipDoc) {
+    if (!isLive || verifying) return;
+    setVerifying(doc.id);
+    try {
+      await apiFetch(`/v1/shipments/${job.id}/documents/${doc.id}/verify`, { method: 'PATCH', body: JSON.stringify({ status: 'VERIFIED' }) });
+      onRefresh();
+    } catch (err: any) { showAlert(err.message || 'Could not verify document'); }
+    finally { setVerifying(null); }
+  }
   const totalTasks   = job.tasks.length;
   const doneTasks    = job.tasks.filter(t => t.status === 'complete').length;
   const totalHours   = job.timeEntries.reduce((s, e) => s + e.hours, 0);
@@ -1928,6 +2089,13 @@ function OverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: boolean }
                   {d.extracted?.status === 'done' && (
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: 'rgba(124,58,237,0.1)', color: 'var(--purple)', flexShrink: 0 }}>AI ✓</span>
                   )}
+                  {d.status === 'VERIFIED' ? (
+                    <span title="Verified" style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: 'var(--green-l)', color: 'var(--green)', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icon name="checkCircle" size={11} color="var(--green)" /> Verified</span>
+                  ) : canVerify && !d.pending ? (
+                    <button type="button" onClick={() => verifyDoc(d)} disabled={verifying === d.id} title="Mark this document as verified" style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--teal)', color: 'var(--teal)', background: 'var(--white)', cursor: verifying === d.id ? 'default' : 'pointer', flexShrink: 0, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                      {verifying === d.id ? '…' : 'Verify'}
+                    </button>
+                  ) : null}
                   <button type="button" onClick={() => viewDoc(d)} title="View" style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <Icon name="eye" size={13} color="var(--ink3)" />
                   </button>
@@ -1938,6 +2106,12 @@ function OverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: boolean }
               ))
             )}
           </Card>
+
+          {/* Customs & payment documents — shown once the case reaches the
+              customs/assessment/payment phase. */}
+          {/customs|assessment|duty|payment|tax|tancis/i.test(jobStageLabel(job)) && (
+            <CustomsDocsPanel job={job} shipmentId={job.id} isLive={isLive} onRefresh={onRefresh} />
+          )}
 
           <LinkedAppsPanel shipmentId={job.id} isMobile={isMobile} />
         </div>
@@ -1963,7 +2137,7 @@ function OverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: boolean }
           <AutomationHistoryCard shipmentId={job.id} />
 
           {/* Activity feed — timeline style */}
-          <Card title="Activity Feed" padded={false}>
+          <Card title="Activity Feed" padded={false} collapsible defaultOpen={false}>
             <div style={{ maxHeight: 520, overflowY: 'auto', padding: job.activity.length ? '16px 18px' : 0 }}>
               {job.activity.length === 0 ? (
                 <div style={{ padding: '28px 18px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No activity yet.</div>
@@ -2132,6 +2306,27 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
   const { isCheckedIn, triggerOpen: triggerOpenRaw } = useClockIn();
   const triggerOpen = () => triggerOpenRaw({ shipmentId: job.id, shipmentRef: job.sysRef || job.id });
   const isStaff = !!(user && user.role !== 'CUSTOMER');
+  // A task's status is changed by whoever owns it — the assignee — or by a team
+  // lead: a senior/manager who oversees them.
+  const TEAM_LEAD_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR'];
+  const isLead = !!(user && TEAM_LEAD_ROLES.includes(user.role));
+  const canEditStatus = (task: InternalTask) => isLead || (!!task.assignedToId && task.assignedToId === user?.id);
+  const TO_BACKEND: Record<TaskStatus, string> = { not_started: 'open', in_progress: 'in_progress', testing: 'testing', awaiting_feedback: 'blocked', complete: 'complete' };
+  const [savingStatus, setSavingStatus] = useState<string | null>(null);
+  async function setTaskStatus(task: InternalTask, next: TaskStatus) {
+    if (!canEditStatus(task) || savingStatus || next === task.status) return;
+    if (!clockGate(isStaff, isCheckedIn, triggerOpen)) return;
+    setSavingStatus(task.id);
+    try {
+      if (isLive) {
+        await apiFetch(`/v1/shipments/${shipmentId}/tasks/${task.id}`, { method: 'PATCH', body: JSON.stringify({ status: TO_BACKEND[next] }) });
+        onRefresh();
+      } else {
+        updateJob(job.id, j => ({ ...j, tasks: j.tasks.map(t => t.id === task.id ? { ...t, status: next } : t) }));
+      }
+    } catch (err: any) { showAlert(err.message || 'Could not update task'); }
+    finally { setSavingStatus(null); }
+  }
 
   useEffect(() => {
     apiFetch('/v1/hr/tasks').then((res: any) => {
@@ -2312,12 +2507,12 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
       <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
         <table className="rtbl" style={{ borderCollapse: 'collapse' }}>
           <thead>
-            <tr>{['#','Task','Service','Status','Start','Due','Assignees','Priority','Tags'].map(h => (
+            <tr>{['#','Task','Service','Status','Start','Due','Assignees','Priority','Tags','Actions'].map(h => (
               <th key={h} style={{ padding: '10px 14px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
             ))}</tr>
           </thead>
           <tbody>
-            {visible.length === 0 && <tr><td colSpan={9} style={{ padding: '24px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No tasks match this filter.</td></tr>}
+            {visible.length === 0 && <tr><td colSpan={10} style={{ padding: '24px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No tasks match this filter.</td></tr>}
             {visible.map((task, i) => {
               const sCfg = TASK_STATUS_CFG[task.status];
               const pCfg = PRIORITY_CFG[task.priority];
@@ -2357,6 +2552,28 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                     <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
                       {task.tags.map(tag => <span key={tag} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 3, background: 'var(--bg)', color: 'var(--ink3)', border: '1px solid var(--border)' }}>{tag}</span>)}
                     </div>
+                  </td>
+                  <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
+                    {canEditStatus(task) ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ width: 150 }}>
+                          <Select value={task.status} onValueChange={v => setTaskStatus(task, v as TaskStatus)} disabled={savingStatus === task.id}>
+                            <SelectTrigger><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              {(['not_started', 'in_progress', 'testing', 'awaiting_feedback', 'complete'] as TaskStatus[]).map(s => (
+                                <SelectItem key={s} value={s}>{TASK_STATUS_CFG[s].label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {task.status !== 'complete' && (
+                          <button type="button" onClick={() => setTaskStatus(task, 'complete')} disabled={savingStatus === task.id} title="Mark complete"
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 9px', borderRadius: 'var(--r)', border: '1px solid var(--green)', background: 'var(--white)', color: 'var(--green)', cursor: savingStatus === task.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                            <Icon name="check" size={12} />
+                          </button>
+                        )}
+                      </div>
+                    ) : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>}
                   </td>
                 </tr>
               );
@@ -2637,8 +2854,101 @@ const DOC_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: 'DUTY_RECEIPT', label: 'Duty Receipt' },
   { value: 'RELEASE_ORDER', label: 'Release Order' },
   { value: 'DELIVERY_NOTE', label: 'Delivery Note' },
+  { value: 'PRE_ASSESSMENT', label: 'Pre-assessment' },
+  { value: 'FINAL_ASSESSMENT', label: 'Final assessment' },
+  { value: 'TISS', label: 'TISS' },
+  { value: 'PAYMENT_NOTE', label: 'Payment note' },
+  { value: 'TISS_PAYMENT_INVOICE', label: 'TISS payment invoice' },
+  { value: 'TBS_CHARGES', label: 'TBS charges' },
+  { value: 'COC', label: 'Certificate of Conformity (COC)' },
+  { value: 'WHARFAGE', label: 'Wharfage' },
   { value: 'OTHER', label: 'Other' },
 ];
+
+// The customs assessment & payment phase expects a specific document set.
+// Required ones gate the move to the payment step; optional ones vary by flow.
+const CUSTOMS_DOC_GROUPS: { title: string; required: boolean; docs: { type: string; label: string }[] }[] = [
+  { title: 'Required before payment', required: true, docs: [
+    { type: 'PRE_ASSESSMENT', label: 'Pre-assessment' },
+    { type: 'FINAL_ASSESSMENT', label: 'Final assessment' },
+    { type: 'TISS', label: 'TISS' },
+    { type: 'PAYMENT_NOTE', label: 'Payment note' },
+    { type: 'TISS_PAYMENT_INVOICE', label: 'TISS payment invoice' },
+  ] },
+  { title: 'Optional — depends on the flow', required: false, docs: [
+    { type: 'TBS_CHARGES', label: 'TBS charges' },
+    { type: 'COC', label: 'Certificate of Conformity' },
+    { type: 'WHARFAGE', label: 'Wharfage' },
+  ] },
+];
+
+function CustomsDocsPanel({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shipmentId: string; isLive: boolean; onRefresh: () => void }) {
+  const { user } = useAuth();
+  const canUpload = !!(user && user.role !== 'CUSTOMER');
+  const [uploading, setUploading] = useState<string | null>(null);
+  const fileRef = React.useRef<HTMLInputElement>(null);
+  const targetType = React.useRef('');
+
+  const docFor = (type: string) => job.documents.find(d => (d.apiType || '').toUpperCase() === type && !d.pending);
+
+  function pick(type: string) {
+    if (!isLive) { showAlert('Uploading is only available for live shipments, not demo data.'); return; }
+    targetType.current = type;
+    fileRef.current?.click();
+  }
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; e.target.value = '';
+    if (!file) return;
+    const type = targetType.current;
+    setUploading(type);
+    try {
+      const fd = new FormData(); fd.append('type', type); fd.append('file', file);
+      await apiFetch(`/v1/shipments/${shipmentId}/documents/upload?type=${encodeURIComponent(type)}`, { method: 'POST', body: fd });
+      onRefresh();
+    } catch (err: any) { showAlert(err.message || 'Upload failed'); }
+    finally { setUploading(null); }
+  }
+
+  const requiredDocs = CUSTOMS_DOC_GROUPS.find(g => g.required)!.docs;
+  const haveCount = requiredDocs.filter(d => docFor(d.type)).length;
+  const ready = haveCount === requiredDocs.length;
+
+  return (
+    <Card title="Customs & Payment Documents" collapsible defaultOpen>
+      <input ref={fileRef} type="file" style={{ display: 'none' }} onChange={onFile} />
+      <div style={{ fontSize: 12, fontWeight: 600, color: ready ? 'var(--green)' : 'var(--ink3)', marginBottom: 12 }}>
+        {haveCount} of {requiredDocs.length} required uploaded{ready ? ' — ready to move to payment.' : ' — all required before the payment step.'}
+      </div>
+      {CUSTOMS_DOC_GROUPS.map(group => (
+        <div key={group.title} style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{group.title}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {group.docs.map(d => {
+              const doc = docFor(d.type);
+              return (
+                <div key={d.type} style={{ border: `1px solid ${doc ? 'var(--green)' : 'var(--border)'}`, borderRadius: 9, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8, background: doc ? 'var(--green-l)' : 'var(--bg)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                    <Icon name={doc ? 'checkCircle' : group.required ? 'alertCircle' : 'fileText'} size={14} color={doc ? 'var(--green)' : group.required ? 'var(--gold)' : 'var(--ink3)'} />
+                    <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{d.label}</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: doc ? 'var(--ink2)' : group.required ? 'var(--gold)' : 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {doc ? doc.name : group.required ? 'Required' : 'Optional'}
+                  </div>
+                  {canUpload && (
+                    <button type="button" onClick={() => pick(d.type)} disabled={uploading === d.type}
+                      style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', cursor: uploading === d.type ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                      <Icon name="upload" size={11} /> {uploading === d.type ? 'Uploading…' : doc ? 'Replace' : 'Upload'}
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </Card>
+  );
+}
 
 interface StagedFile { id: string; file: File; type: string; }
 
@@ -2649,6 +2959,18 @@ function fmtFileSize(bytes: number): string {
 }
 
 function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: ClearanceJob; isMobile: boolean; shipmentId: string; isLive: boolean; onRefresh: () => void }) {
+  const { user } = useAuth();
+  const canVerify = !!(user && user.role !== 'CUSTOMER');
+  const [verifying, setVerifying] = useState<string | null>(null);
+  async function verifyDoc(docId: string) {
+    if (!isLive || verifying) return;
+    setVerifying(docId);
+    try {
+      await apiFetch(`/v1/shipments/${shipmentId}/documents/${docId}/verify`, { method: 'PATCH', body: JSON.stringify({ status: 'VERIFIED' }) });
+      onRefresh();
+    } catch (err: any) { showAlert(err.message || 'Could not verify document'); }
+    finally { setVerifying(null); }
+  }
   const [expanded, setExpanded] = useState<string | null>(null);
   const [uploadType, setUploadType] = useState('OTHER');
   const [uploadError, setUploadError] = useState('');
@@ -2871,6 +3193,13 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                       Extract with AI
                     </button>
                   )}
+                  {doc.status === 'VERIFIED' ? (
+                    <span title="Verified" style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 4, background: 'var(--green-l)', color: 'var(--green)', border: '1px solid var(--green)', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icon name="checkCircle" size={12} color="var(--green)" /> Verified</span>
+                  ) : canVerify ? (
+                    <button type="button" onClick={e => { e.stopPropagation(); verifyDoc(doc.id); }} disabled={verifying === doc.id} title="Mark this document as verified" style={{ fontSize: 12, padding: 'var(--ds-btn-py-sm) 12px', borderRadius: 'var(--r)', border: '1px solid var(--green)', color: 'var(--green)', background: 'var(--white)', cursor: verifying === doc.id ? 'default' : 'pointer', fontWeight: 700, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                      {verifying === doc.id ? '…' : 'Verify'}
+                    </button>
+                  ) : null}
                   <button type="button" onClick={e => { e.stopPropagation(); handleView(doc); }} title="View" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="eye" size={16} /></button>
                   <button type="button" onClick={e => { e.stopPropagation(); handleDownload(doc); }} title="Download" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="download" size={16} /></button>
                   <Icon name={isExp ? 'chevronUp' : 'chevronDown'} size={16} />
@@ -4185,6 +4514,103 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
           </div>
         </div>
       )}
+
+      {/* Workflow — which track governs this case, and (while it is still in
+          flight) the ability to move it onto another one. */}
+      <WorkflowCard job={job} shipmentId={shipmentId} isLive={isLive} onRefresh={onRefresh} canManage={canManage} />
+    </div>
+  );
+}
+
+// ─── Workflow card (re-route a shipment onto another workflow) ────────────────
+
+function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
+  job: ClearanceJob; shipmentId: string; isLive: boolean; onRefresh: () => void; canManage: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [workflows, setWorkflows] = useState<any[]>([]);
+  const [target, setTarget] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  const steps = jobUiSteps(job);
+  const curIdx = jobCurrentIdx(job);
+  const curStep = curIdx >= 0 ? steps[curIdx] : undefined;
+  const total = steps.length;
+  // A finished clearance is not re-routed: blocked once resolved or on the
+  // final step of its current workflow.
+  const locked = !!job.isDone || !!curStep?.isTerminal;
+
+  useEffect(() => {
+    if (!open || workflows.length > 0) return;
+    apiFetch('/v1/workflows').then(res => setWorkflows(((res as any).data || res || []).filter((w: any) => w.isActive !== false))).catch(() => {});
+  }, [open, workflows.length]);
+
+  // Steps of the target for the effect preview: the legacy ladder, or the
+  // chosen workflow's own steps.
+  const targetSteps: { id: string; name: string }[] = target === 'legacy'
+    ? STAGES.map(s => ({ id: s.id, name: s.label }))
+    : (workflows.find(w => w.id === target)?.steps || []).slice().sort((a: any, b: any) => a.order - b.order).map((s: any) => ({ id: s.id, name: s.name }));
+  const landingIdx = targetSteps.length > 0 ? Math.min(curIdx < 0 ? 0 : curIdx, targetSteps.length - 1) : -1;
+  const targetName = target === 'legacy' ? 'Standard stages' : (workflows.find(w => w.id === target)?.name || '');
+
+  async function apply() {
+    if (!target || saving) return;
+    setSaving(true);
+    try {
+      if (isLive) {
+        await apiFetch(`/v1/shipments/${shipmentId}/workflow`, { method: 'POST', body: JSON.stringify({ workflow_id: target }) });
+        onRefresh();
+      }
+      setOpen(false); setTarget('');
+    } catch (err: any) { showAlert(err.message || 'Could not change workflow'); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '13px 16px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Workflow</div>
+        {locked && <span title="A completed shipment cannot be re-routed" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: 'var(--ink3)' }}><Icon name="lock" size={11} /> Locked</span>}
+      </div>
+
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{job.workflowName || (job.workflowKind === 'CUSTOM' ? 'Workflow' : 'Standard stages')}</div>
+      {curStep && (
+        <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
+          {curStep.label}{total > 0 && curIdx >= 0 ? ` · step ${curIdx + 1} of ${total}` : ''}
+        </div>
+      )}
+
+      {!locked && canManage && !open && (
+        <button type="button" onClick={() => setOpen(true)} style={{ marginTop: 10, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+          <Icon name="gitBranch" size={13} /> Change workflow
+        </button>
+      )}
+
+      {!locked && canManage && open && (
+        <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <Select value={target || '__none__'} onValueChange={v => setTarget(v === '__none__' ? '' : v)}>
+            <SelectTrigger><SelectValue placeholder="Choose a workflow…" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Choose a workflow…</SelectItem>
+              {workflows.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+              <SelectItem value="legacy">Standard stages</SelectItem>
+            </SelectContent>
+          </Select>
+
+          {target && landingIdx >= 0 && (
+            <div style={{ fontSize: 11.5, lineHeight: 1.5, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 11px' }}>
+              <div><strong style={{ color: 'var(--ink)' }}>Now:</strong> {curStep?.label ?? '—'}{curIdx >= 0 ? ` (step ${curIdx + 1} of ${total})` : ''}</div>
+              <div style={{ marginTop: 3 }}><strong style={{ color: 'var(--ink)' }}>After:</strong> {targetSteps[landingIdx]?.name} (step {landingIdx + 1} of {targetSteps.length}) in {targetName}</div>
+              <div style={{ marginTop: 5, color: 'var(--ink3)' }}>Progress is kept at the same position where the new workflow has one, otherwise its nearest step. You can refine the stage afterward from Advance Stage.</div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" onClick={() => { setOpen(false); setTarget(''); }} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>Cancel</button>
+            <button type="button" disabled={!target || saving} onClick={apply} style={{ flex: 1, padding: 'var(--ds-btn-py-sm) 12px', border: 'none', borderRadius: 'var(--r)', background: target && !saving ? 'var(--teal)' : 'var(--border)', color: target && !saving ? '#fff' : 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: target && !saving ? 'pointer' : 'default', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>{saving ? 'Applying…' : 'Apply change'}</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -4339,18 +4765,19 @@ export function ShipmentDetail() {
     </div>
   );
 
-  async function handleAdvance(stage: Stage, note: string, blocker: string, channels: Channel[]) {
+  async function handleAdvance(stage: string, note: string, blocker: string, channels: Channel[]) {
     if (!job) return;
     if (!clockGate(isStaff, isCheckedIn, triggerOpen)) return;
     if (isMock) {
-      const event: TimelineEvent = { id: 'ev-' + Date.now(), stage, label: STAGES.find(s => s.id === stage)?.label || stage, userId: 'me', userName: 'You', ts: new Date(), note: note || undefined, blocker: blocker || undefined };
-      const threadMsg: ThreadMsg | null = note ? { id: 'msg-' + Date.now(), userId: 'me', userName: 'You', content: `Stage advanced to ${STAGES.find(s => s.id === stage)?.label}. ${note}${blocker ? ` — Blocker: ${blocker}` : ''}`, ts: new Date(), channels, isInternal: !channels.some(c => c !== 'internal') } : null;
-      updateJob(job.id, j => ({ ...j, stage, timeline: [...j.timeline, event], thread: threadMsg ? [...j.thread, threadMsg] : j.thread }));
+      const label = STAGES.find(s => s.id === stage)?.label || stage;
+      const event: TimelineEvent = { id: 'ev-' + Date.now(), stage: stage as Stage, label, userId: 'me', userName: 'You', ts: new Date(), note: note || undefined, blocker: blocker || undefined };
+      const threadMsg: ThreadMsg | null = note ? { id: 'msg-' + Date.now(), userId: 'me', userName: 'You', content: `Stage advanced to ${label}. ${note}${blocker ? ` — Blocker: ${blocker}` : ''}`, ts: new Date(), channels, isInternal: !channels.some(c => c !== 'internal') } : null;
+      updateJob(job.id, j => ({ ...j, stage: stage as Stage, timeline: [...j.timeline, event], thread: threadMsg ? [...j.thread, threadMsg] : j.thread }));
     } else {
       try {
         await apiFetch(`/v1/shipments/${id}/stage`, {
           method: 'PATCH',
-          body: JSON.stringify({ stage: STAGE_API_MAP[stage] ?? stage.toUpperCase(), note: note || undefined, blocker: blocker || undefined }),
+          body: JSON.stringify({ stage: jobBackendStage(job, stage), note: note || undefined, blocker: blocker || undefined }),
         });
         refreshJob();
       } catch (err: any) { showAlert(err.message || 'Stage update failed'); }
@@ -4450,7 +4877,7 @@ export function ShipmentDetail() {
 
         {/* Stage stepper — floats up over the hero band */}
         <div style={{ margin: isMobile ? '-16px 10px 0' : '-20px 14px 0', position: 'relative', background: 'var(--white)', borderRadius: 12, padding: '14px 0 12px', border: '1px solid var(--border)' }}>
-          {isStaff ? <StageStepper stage={job.stage} /> : (
+          {isStaff ? <StageStepper job={job} /> : (
             <div style={{ padding: '0 24px' }}><CustomerMilestoneTimeline job={job} compact /></div>
           )}
         </div>
@@ -4476,18 +4903,21 @@ export function ShipmentDetail() {
         </div>
       </div>
 
-      {showAdv && (
-        <AdvanceStageModal job={job} onClose={() => setShowAdv(false)} onAdvance={handleAdvance} />
-      )}
-
       {/* ── Body ── */}
       <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '0 0 14px' : '0 0 24px', background: 'var(--white)' }}>
         <div style={{
           padding: isMobile ? '14px 10px' : '20px 14px',
         }}>
+          {showAdv ? (
+            // Advancing a stage takes over the body as a three-column workspace:
+            // document previews · documents & verification + the move-to-stage
+            // form · the standard data cards.
+            <AdvanceStageView job={job} shipmentId={id || job.id} isLive={!isMock} isMobile={isMobile}
+              onClose={() => setShowAdv(false)} onAdvance={handleAdvance} onRefresh={refreshJob} />
+          ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              {tab === 'overview'     && (isStaff ? <OverviewTab job={job} isMobile={isMobile} /> : <CustomerOverviewTab job={job} isMobile={isMobile} />)}
+              {tab === 'overview'     && (isStaff ? <OverviewTab job={job} isMobile={isMobile} isLive={!isMock} onRefresh={refreshJob} /> : <CustomerOverviewTab job={job} isMobile={isMobile} />)}
               {/* Hiding the tab is not enough: `?tab=ledger` sets it directly. */}
               {tab === 'tasks'        && isStaff && <TasksTab       job={job} isMobile={isMobile} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
               {tab === 'timesheets'   && isStaff && <TimesheetsTab  job={job} isMobile={isMobile} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
@@ -4500,6 +4930,7 @@ export function ShipmentDetail() {
             {/* Who we have tagged internally is not the customer's business. */}
             {!isMobile && isStaff && <ListenersSidebar job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
           </div>
+          )}
         </div>
       </div>
     </div>

@@ -89,6 +89,7 @@ export interface ShipDoc {
   extracted?: ExtractedData;
   apiType?: string;   // raw backend DocumentType (e.g. 'BL') — needed to call the real upload endpoint
   pending?: boolean;  // true when this is a REQUIRED placeholder with no file uploaded yet
+  status?: string;    // raw backend status: REQUIRED | RECEIVED | VERIFIED | REJECTED
 }
 
 export interface LedgerEntry {
@@ -111,6 +112,7 @@ export interface InternalTask {
   status: TaskStatus;
   priority: TaskPriority;
   assignees: string[];
+  assignedToId?: string;   // raw user id of the assignee — for "assignee or their lead can close"
   startDate: Date;
   dueDate: Date;
   tags: string[];
@@ -208,6 +210,25 @@ export interface ClearanceJob {
   // matter how far along the shipment actually is.
   workflowId?: string | null;
   isDone?: boolean;
+  // The shipment's governing workflow, resolved by the API. For a custom
+  // workflow these are its real steps (own ids + names); the fixed `stage`
+  // above is only a best-effort collapse and must NOT drive the stepper or
+  // stage-advance for a custom case — use these instead (see jobUiSteps).
+  workflowKind?: 'CUSTOM' | 'LEGACY';
+  workflowName?: string;
+  workflowSteps?: WfStep[];
+  currentStepId?: string;
+}
+
+export interface WfStep {
+  id: string;
+  name: string;
+  order: number;
+  isTerminal: boolean;
+  nextStepIds: string[];
+  // Entry conditions evaluated for THIS shipment — what must be true to enter
+  // the step, and whether it currently is. Lets the UI show the blockers.
+  requirements?: { label: string; passed: boolean }[];
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -227,6 +248,56 @@ export const STAGES: { id: Stage; label: string; short: string; color: string }[
 ];
 
 export function stageIdx(s: Stage) { return STAGES.findIndex(x => x.id === s); }
+
+// ─── Workflow-aware stage helpers ────────────────────────────────────────────
+// A shipment on a tenant-defined custom workflow has its own steps (ids +
+// names) that the fixed legacy `STAGES` list knows nothing about. These helpers
+// return the right steps to render and the right id to send, for both a custom
+// workflow and the legacy ladder, so the stepper and Advance-Stage flow follow
+// whichever workflow actually governs the case.
+
+export interface UiStep { id: string; label: string; short: string; color: string; isTerminal: boolean; nextStepIds: string[] | null; }
+
+const CUSTOM_STEP_PALETTE = ['#7c3aed', '#ea580c', '#d97706', '#2563eb', '#0891b2', '#059669', '#dc2626', '#6366f1', '#0d9488', '#db2777'];
+
+type JobStageView = Pick<ClearanceJob, 'workflowKind' | 'workflowSteps' | 'currentStepId' | 'stage'>;
+
+/** Ordered steps for a job's stepper/advance UI: its own custom workflow when
+ *  it has one, else the fixed legacy stage ladder. */
+export function jobUiSteps(job: JobStageView): UiStep[] {
+  if (job.workflowKind === 'CUSTOM' && job.workflowSteps && job.workflowSteps.length > 0) {
+    return [...job.workflowSteps].sort((a, b) => a.order - b.order).map((s, i) => ({
+      id: s.id,
+      label: s.name,
+      short: s.name.length > 12 ? s.name.split(/\s+/)[0] : s.name,
+      color: CUSTOM_STEP_PALETTE[i % CUSTOM_STEP_PALETTE.length],
+      isTerminal: s.isTerminal,
+      nextStepIds: s.nextStepIds,
+    }));
+  }
+  return STAGES.map((s, i) => ({ id: s.id, label: s.label, short: s.short, color: s.color, isTerminal: i === STAGES.length - 1, nextStepIds: null }));
+}
+
+/** Index of the job's current step within jobUiSteps(job); -1 if unknown. */
+export function jobCurrentIdx(job: JobStageView): number {
+  const steps = jobUiSteps(job);
+  const target = job.workflowKind === 'CUSTOM' ? job.currentStepId : job.stage;
+  return steps.findIndex(s => s.id === target);
+}
+
+/** Human label of the job's current step. */
+export function jobStageLabel(job: JobStageView): string {
+  const steps = jobUiSteps(job);
+  const idx = jobCurrentIdx(job);
+  return steps[idx]?.label ?? (STAGES.find(s => s.id === job.stage)?.label || job.stage);
+}
+
+/** The stage id to send to the /stage endpoint for a chosen UI step. A custom
+ *  workflow takes the raw step id; the legacy ladder maps to its backend key. */
+export function jobBackendStage(job: Pick<ClearanceJob, 'workflowKind'>, targetId: string): string {
+  if (job.workflowKind === 'CUSTOM') return targetId;
+  return STAGE_API_MAP[targetId as Stage] ?? targetId.toUpperCase();
+}
 
 // Maps local Stage IDs → backend ClearanceStage keys (used when sending stage transitions to API)
 export const STAGE_API_MAP: Record<Stage, string> = {
@@ -542,6 +613,10 @@ export function apiToJob(data: any): ClearanceJob {
     invoiceValue: data.cif_value_usd ? `USD ${Number(data.cif_value_usd).toLocaleString()}` : undefined,
     stage: toStage(data.stage || ''),
     workflowId: data.workflow_id ?? null,
+    workflowKind: data.workflow?.kind,
+    workflowName: data.workflow?.name,
+    workflowSteps: data.workflow?.steps,
+    currentStepId: data.workflow?.currentStepId,
     isDone: Boolean(data.resolved_at),
     flags: ((data.active_risk_types || []) as string[]).map(r => r.toLowerCase()) as Flag[],
     assignees: data.assigned_to ? [data.assigned_to] : [],
@@ -581,7 +656,7 @@ export function apiToJob(data: any): ClearanceJob {
       // rather than printing a uuid at everyone.
       size: '—', uploadedBy: d.uploaded_by_name || (d.uploaded_by ? 'A former colleague' : 'System'),
       uploadedAt: new Date(d.created_at || Date.now()), extracted: { status: 'pending' as const },
-      apiType: d.type, pending: !d.storage_key,
+      apiType: d.type, pending: !d.storage_key, status: d.status,
     })),
     tasks: [], timeEntries: [], cloudLinks: [],
     /**

@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { NotificationService } from '../services/notification.service.js';
+import { CloudSync } from '../services/cloud-sync.service.js';
 import { requireRole } from '../middleware/rbac.js';
 import type { DocumentType, DocumentStatus } from '@hudumika/types';
 
@@ -100,6 +101,12 @@ export async function documentRoutes(fastify: FastifyInstance) {
         fastify.websocketServer?.clients.forEach((client: any) => {
           client.send(JSON.stringify({ type: 'case.document_uploaded', caseId: id, documentId: docType }));
         });
+
+        // Mirror the document into the Cloud file manager under
+        // Customers ▸ <customer> ▸ <BL>, so it turns up in Drive automatically.
+        CloudSync.syncShipmentDoc(user.tenant_id, {
+          customerId: shipment.customer_id, blRef: folderName, filename: data.filename, buffer: fileBuffer, mime: data.mimetype,
+        }).catch(err => console.error('[Cloud] shipment doc sync failed:', err.message));
 
         NotificationService.triggerNotification(user.tenant_id, id, 'DOCUMENT_UPLOADED', { docType }).catch(console.error);
       });

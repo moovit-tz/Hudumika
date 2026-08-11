@@ -129,6 +129,7 @@ export function CreateShipmentPage() {
   
   const [customers, setCustomers] = useState<any[]>([]);
   const [officers, setOfficers] = useState<any[]>([]);
+  const [workflows, setWorkflows] = useState<any[]>([]);
   
   const [dragOver, setDragOver] = useState(false);
   const [ocrFile, setOcrFile] = useState<File | null>(null);
@@ -175,6 +176,9 @@ export function CreateShipmentPage() {
     free_time_end: '',
     assigned_to: '',
     assigned_to_name: '',
+    // Which workflow governs the case. '' = let the system choose (default);
+    // a workflow id pins that workflow; 'legacy' pins the standard stage system.
+    workflow_id: '',
     // Blank, not a generated number. This used to default to
     // 'MSKU' + a random 7 digits, so a shipment saved without the field being
     // touched carried an invented container number — onto the declaration and
@@ -244,6 +248,12 @@ export function CreateShipmentPage() {
     }).catch(() => {
       apiFetch('/v1/analytics/officers').then(res => setOfficers(res.data || []));
     });
+    // Active workflows the case can be put on — names only; the full config
+    // lives in the Workflows app.
+    apiFetch('/v1/workflows').then(res => {
+      const list = (res.data || res || []) as any[];
+      setWorkflows(list.filter((w: any) => w.isActive !== false));
+    }).catch(() => setWorkflows([]));
   }, []);
 
   const handleOcrFile = async (file: File) => {
@@ -441,6 +451,7 @@ export function CreateShipmentPage() {
           eta: createForm.eta ? new Date(createForm.eta).toISOString() : undefined,
           free_time_end: createForm.free_time_end ? new Date(createForm.free_time_end).toISOString() : undefined,
           assigned_to: createForm.assigned_to || undefined,
+          workflow_id: createForm.workflow_id || undefined,
           // Only sent when a real container number was entered. An empty
           // container row is worse than none: it looks like a declared box
           // with a missing number rather than a shipment not yet stuffed.
@@ -720,7 +731,22 @@ export function CreateShipmentPage() {
 
                 <div style={{ display: 'flex', gap: '16px' }}>
                   {fld('Seal No.', createForm.seal_number, v => setCreateForm(p => ({ ...p, seal_number: v.toUpperCase() })), { placeholder: 'as printed on the seal' })}
-                  <div style={{ flex: 1 }} />
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--ink2)', marginBottom: '6px' }}>Workflow</label>
+                    <Select value={createForm.workflow_id || '__auto__'} onValueChange={v => setCreateForm(p => ({ ...p, workflow_id: v === '__auto__' ? '' : v }))}>
+                      <SelectTrigger><SelectValue placeholder="Automatic" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__auto__">Automatic (recommended)</SelectItem>
+                        {workflows.map(w => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                        <SelectItem value="legacy">Standard stages</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div style={{ marginTop: 5, fontSize: 11.5, color: 'var(--ink3)' }}>
+                      {createForm.workflow_id === '' ? 'Chosen automatically from your workflow rules.'
+                        : createForm.workflow_id === 'legacy' ? 'The built-in clearance stages.'
+                        : 'This workflow will govern the case.'}
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

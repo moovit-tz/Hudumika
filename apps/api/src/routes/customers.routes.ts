@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { CloudSync } from '../services/cloud-sync.service.js';
 import type { CreateCustomerInput, CustomerAnalytics } from '@hudumika/types';
 import { parse } from 'csv-parse/sync';
 
@@ -137,6 +138,8 @@ export async function customerRoutes(fastify: FastifyInstance) {
 
       // Create the customer's root folder in file storage
       MinioIntegration.ensureCustomerFolder(user.tenant_id, customer.id, customer.name);
+      // …and a matching folder in the Cloud file manager (Drive app), best-effort.
+      CloudSync.ensureCustomerFolder(user.tenant_id, customer.name).catch(err => console.error('[Cloud] customer folder failed:', err.message));
 
       // 201 Created — was 211, which is not a registered HTTP status.
       reply.status(201);

@@ -169,6 +169,15 @@ export type DocumentType =
   | 'DUTY_RECEIPT'    // TRA duty payment receipt
   | 'RELEASE_ORDER'   // Customs release order
   | 'DELIVERY_NOTE'   // Delivery confirmation
+  // Customs assessment & payment phase
+  | 'PRE_ASSESSMENT'       // TRA pre-assessment notice
+  | 'FINAL_ASSESSMENT'     // TRA final assessment notice
+  | 'TISS'                 // TISS (Tanzania Interbank Settlement System) instruction
+  | 'PAYMENT_NOTE'         // Payment note / control number
+  | 'TISS_PAYMENT_INVOICE' // TISS payment invoice / bank slip
+  | 'TBS_CHARGES'          // TBS (Tanzania Bureau of Standards) charges — optional
+  | 'COC'                  // Certificate of Conformity — optional
+  | 'WHARFAGE'             // Wharfage charges — optional
   | 'OTHER';
 
 export type DocumentStatus = 'REQUIRED' | 'RECEIVED' | 'VERIFIED' | 'REJECTED' | 'MISSING';

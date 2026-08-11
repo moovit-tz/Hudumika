@@ -65,6 +65,10 @@ export interface CreateShipmentInput {
   assigned_to: string;
   location_id?: string;
   free_time_end?: string;
+  // Which workflow governs the new case. Omitted → the system resolves it from
+  // the tenant's workflow triggers (the existing default). A workflow id pins
+  // that custom workflow; 'legacy' pins the built-in fixed stage system.
+  workflow_id?: string | null;
 }
 
 // ── Advance Stage Input ──────────────────────────────────────
