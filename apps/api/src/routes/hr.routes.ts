@@ -1092,6 +1092,52 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // At-a-glance leave figures for the LeavesPage header (defaults to this year).
+  fastify.get('/leaves/summary', async (req) => {
+    const user = req.user;
+    const q = req.query as any;
+    const year = Number(q.year) || new Date().getFullYear();
+    const from = `${year}-01-01`, to = `${year}-12-31`;
+    const today = isoDate(new Date());
+
+    return withTenant(user.tenant_id, async (trx) => {
+      // Pending is the approver's queue — counted across all time, not the year.
+      const pending = await trx.selectFrom('hr_leaves')
+        .select((eb) => eb.fn.countAll<number>().as('n'))
+        .where('tenant_id', '=', user.tenant_id)
+        .where('status', '=', 'PENDING')
+        .executeTakeFirst();
+
+      // Approved leaves overlapping this year → count + days taken.
+      const approved = await trx.selectFrom('hr_leaves')
+        .select(['days'])
+        .where('tenant_id', '=', user.tenant_id)
+        .where('status', '=', 'APPROVED')
+        .where('from_date', '<=', to)
+        .where('to_date', '>=', from)
+        .execute();
+      const daysTaken = approved.reduce((s, r) => s + Number(r.days || 0), 0);
+
+      // Distinct people whose approved leave covers today.
+      const onLeave = await trx.selectFrom('hr_leaves')
+        .select('user_id')
+        .distinct()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('status', '=', 'APPROVED')
+        .where('from_date', '<=', today)
+        .where('to_date', '>=', today)
+        .execute();
+
+      return {
+        year,
+        pending_count: Number(pending?.n || 0),
+        approved_count: approved.length,
+        on_leave_today: onLeave.length,
+        days_taken_ytd: daysTaken,
+      };
+    });
+  });
+
   fastify.post('/leaves', async (req, reply) => {
     const user = req.user;
     const body = req.body as any;

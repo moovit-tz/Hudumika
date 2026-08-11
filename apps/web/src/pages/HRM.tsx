@@ -1606,6 +1606,7 @@ export function LeavesPage() {
   // deciding blind even though the server now knows the answer.
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
   const [everyBalance, setEveryBalance] = useState<any[]>([]);
+  const [leaveSummary, setLeaveSummary] = useState<any | null>(null);
   const [formPerson, setFormPerson] = useState('');
   const [formType, setFormType] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -1624,8 +1625,11 @@ export function LeavesPage() {
     try { setLeaveTypes(await apiFetch('/v1/hr/leave-types') ?? []); } catch { setLeaveTypes([]); }
     try { setEveryBalance(await apiFetch('/v1/hr/leave-balances/all') ?? []); } catch { setEveryBalance([]); }
   }, []);
+  const loadSummary = useCallback(async () => {
+    try { setLeaveSummary(await apiFetch('/v1/hr/leaves/summary')); } catch { setLeaveSummary(null); }
+  }, []);
 
-  useEffect(() => { loadLeaves(); loadStaff(); loadEntitlement(); }, [loadLeaves, loadStaff, loadEntitlement]);
+  useEffect(() => { loadLeaves(); loadStaff(); loadEntitlement(); loadSummary(); }, [loadLeaves, loadStaff, loadEntitlement, loadSummary]);
 
   /** What a given person has left of a given type. */
   const balanceFor = useCallback((userId: string, code: string) =>
@@ -1640,8 +1644,8 @@ export function LeavesPage() {
     try {
       await apiFetch(`/v1/hr/leaves/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
       // Approving moves days from pending to taken, so the balances shown
-      // beside every other request are now stale.
-      loadLeaves(); loadEntitlement();
+      // beside every other request — and the header totals — are now stale.
+      loadLeaves(); loadEntitlement(); loadSummary();
     } catch { /* local update already applied */ }
   }
 
@@ -1746,6 +1750,12 @@ export function LeavesPage() {
 
       <MetricsRow cards={[
         { title:'Pending',  value:String(leaves.filter(l=>l.status==='PENDING').length),  sub1Label:'THIS MONTH', sub1Value:String(leaves.length), sub2Label:'APPROVED', sub2Value:String(leaves.filter(l=>l.status==='APPROVED').length),  barHighlight:'var(--gold)'  },
+        // Who is actually out today — a from/to date overlap the client list
+        // can't answer as cleanly, so it comes from /leaves/summary.
+        { title:'On Leave Today', value:String(leaveSummary?.on_leave_today ?? 0),
+          sub1Label:'DAYS TAKEN YTD', sub1Value:String(leaveSummary?.days_taken_ytd ?? 0),
+          sub2Label:`APPROVED ${leaveSummary?.year ?? new Date().getFullYear()}`, sub2Value:String(leaveSummary?.approved_count ?? 0),
+          barHighlight:'var(--purple)' },
         { title:'Approved', value:String(leaves.filter(l=>l.status==='APPROVED').length), sub1Label:'REJECTED',   sub1Value:String(leaves.filter(l=>l.status==='REJECTED').length), sub2Label:'TYPES', sub2Value:String(leaveTypes.length || LEAVE_TYPES.length), barHighlight:'var(--green)' },
         // Was a hardcoded "3.1 / 18 days / 15 days" shown to every tenant
         // whatever their data. Derived from the ledger now, and says so when
