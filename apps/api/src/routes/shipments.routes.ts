@@ -956,6 +956,18 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         }
       }
 
+      // HuduFreight is connected the moment a transport leg is added to a
+      // shipment's tasks: a transport-nature task raises a domain event that the
+      // hudufreight subscriber turns into a "trip to arrange" alert in the
+      // freight app. Detected by the task's title / snapshotted service name.
+      const isTransport = /transport|delivery|haulage|truck|freight|cartage|dispatch|trucking/i.test(`${title} ${snapshot.service_name ?? ''}`);
+      if (isTransport) {
+        emitDomainEvent(trx, user.tenant_id, {
+          type: 'shipment.transport_task_added', sourceApp: 'clearos', entityType: 'shipment', entityId: id,
+          actorId: user.sub, payload: { taskId: task.id, title, serviceName: snapshot.service_name ?? null },
+        }).catch((err: any) => console.error('[DomainEvents] transport_task_added emit failed:', err.message));
+      }
+
       return task;
     });
   });

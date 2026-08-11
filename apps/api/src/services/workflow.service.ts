@@ -3,6 +3,22 @@ import { co2Service } from './co2.service.js';
 import { loadResolvedWorkflow, evaluateEntryConditions, type ConditionOutcome } from './workflow-resolver.service.js';
 import { dispatchAutoComms, cancelPendingComms } from './workflow-comms.service.js';
 import { recordRun } from './workflow-runs.service.js';
+import { emitDomainEventStandalone } from './domain-events.service.js';
+
+/**
+ * The semantic role of a step, so linked apps can react to what a step MEANS
+ * rather than to a tenant-specific name or uuid. Derived from the step name +
+ * terminality — good enough to auto-wire the platform defaults and any workflow
+ * that names its steps conventionally; a step that matches nothing is 'other'
+ * and simply triggers no cross-app automation.
+ */
+function stepRole(name: string, isTerminal: boolean): 'invoicing' | 'payment' | 'closed' | 'other' {
+  const n = (name || '').toLowerCase();
+  if (isTerminal) return 'closed';
+  if (/invoic/.test(n)) return 'invoicing';
+  if (/payment|collect|receipt/.test(n)) return 'payment';
+  return 'other';
+}
 
 const CO2_MODE_MAP: Record<string, 'AIR' | 'SEA' | 'ROAD' | 'RAIL'> = {
   AIR: 'AIR', SEA_FCL: 'SEA', SEA_LCL: 'SEA', BULK: 'SEA', ROAD: 'ROAD', RAIL: 'RAIL',
@@ -27,6 +43,7 @@ export class WorkflowService {
     type Co2Trigger = { type: string; origin_port: string; dest_port: string; gross_weight_kg: number };
     const co2TriggerBox: { current: Co2Trigger | null } = { current: null };
     const commsBox: { current: { stepId: string; stepName: string; comms: any[] } | null } = { current: null };
+    const stepEnteredBox: { current: { stepId: string; stepName: string; role: string; isTerminal: boolean; customerId: string | null; shipmentRef: string | null; blNumber: string | null; workflowKind: string } | null } = { current: null };
     let exitedStepId: string | null = null;
 
     // Journalling context. Collected inside the transaction but written after
@@ -48,7 +65,7 @@ export class WorkflowService {
         // 1. Get current shipment case
         const shipment = await trx
           .selectFrom('shipment_cases')
-          .select(['id', 'stage', 'workflow_id', 'workflow_step_id', 'created_at', 'resolved_at', 'type', 'origin_port', 'dest_port', 'gross_weight_kg'])
+          .select(['id', 'stage', 'workflow_id', 'workflow_step_id', 'created_at', 'resolved_at', 'type', 'origin_port', 'dest_port', 'gross_weight_kg', 'customer_id', 'ref_number', 'bl_number'])
           .where('id', '=', shipmentId).where('tenant_id', '=', tenantId)
           .executeTakeFirst();
 
@@ -186,6 +203,11 @@ export class WorkflowService {
         if (nextStep.autoComms.length > 0) {
           commsBox.current = { stepId: nextStep.id, stepName: nextStep.name, comms: nextStep.autoComms };
         }
+        stepEnteredBox.current = {
+          stepId: nextStep.id, stepName: nextStep.name, role: stepRole(nextStep.name, nextStep.isTerminal),
+          isTerminal: nextStep.isTerminal, customerId: shipment.customer_id ?? null,
+          shipmentRef: shipment.ref_number ?? null, blNumber: shipment.bl_number ?? null, workflowKind: resolved.kind,
+        };
         if (currentStep) exitedStepId = currentStep.id;
 
         return {
@@ -229,6 +251,21 @@ export class WorkflowService {
     if (exitedStepId) {
       cancelPendingComms(tenantId, shipmentId, exitedStepId).catch(err =>
         console.error(`[WorkflowComms] failed to cancel pending comms for shipment ${shipmentId}:`, err.message));
+    }
+
+    // Announce the step entry on the domain-event bus AFTER the transition has
+    // committed, so linked apps (FinOps auto-draft on Invoicing, and any
+    // marketplace app) react to a state that is already durable. Carries the
+    // step's semantic role so a subscriber never has to know tenant step names.
+    const entered = stepEnteredBox.current;
+    if (entered && !result?.noop) {
+      emitDomainEventStandalone(tenantId, {
+        type: 'clearance.workflow_step_entered', sourceApp: 'clearos', entityType: 'shipment', entityId: shipmentId,
+        actorId, payload: {
+          stepId: entered.stepId, stepName: entered.stepName, role: entered.role, isTerminal: entered.isTerminal,
+          customerId: entered.customerId, shipmentRef: entered.shipmentRef, blNumber: entered.blNumber, workflowKind: entered.workflowKind,
+        },
+      }).catch(err => console.error(`[DomainEvents] step_entered emit failed for shipment ${shipmentId}:`, err.message));
     }
 
     // A no-op ("already in this stage") is not a run — nothing happened.
