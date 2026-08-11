@@ -17,6 +17,7 @@ import { Performance }  from '../pages/Performance.js';
 import { HrDocuments }  from '../pages/HrDocuments.js';
 import { OvertimePage } from '../pages/Overtime.js';
 import { HrAssets }     from '../pages/HrAssets.js';
+import { ClockInPage }  from '../pages/ClockInPage.js';
 import {
   HrmDashboard, EmployeesPage, DepartmentsPage, DesignationsPage, TeamsPage,
   AttendancePage, LeavesPage, ShiftsPage, HolidaysPage,
@@ -29,6 +30,7 @@ const NAV: SidebarSection[] = [
   {
     items: [
       { label: 'Dashboard', icon: 'home', path: '/nexushr', exact: true },
+      { label: 'Clock-in', icon: 'clock', path: '/nexushr/clock-in' },
     ],
   },
   {
@@ -45,7 +47,8 @@ const NAV: SidebarSection[] = [
   {
     title: 'TIME & LEAVE',
     items: [
-      { label: 'Attendance',     icon: 'clock',    path: '/nexushr/attendance' },
+      { label: 'Clock-in & Timesheets', icon: 'clock', path: '/nexushr/clock-in' },
+      { label: 'Attendance',     icon: 'check',    path: '/nexushr/attendance' },
       { label: 'Leave Requests', icon: 'calendar', path: '/nexushr/leaves'     },
       { label: 'Shift Roster',   icon: 'timer',    path: '/nexushr/shifts'     },
       { label: 'Overtime',       icon: 'zap',      path: '/nexushr/overtime'   },
@@ -113,6 +116,7 @@ export function NexusHRShell() {
               <Route path="activity-logs"     element={<RequireRoles roles={MGMT_ROLES}><ActivityLogsPage /></RequireRoles>} />
               <Route path="login-history"     element={<RequireRoles roles={MGMT_ROLES}><LoginHistoryPage /></RequireRoles>} />
               <Route path="device-management" element={<RequireRoles roles={MGMT_ROLES}><DeviceManagementPage /></RequireRoles>} />
+              <Route path="clock-in"          element={<ClockInPage />} />
               <Route path="leaves"            element={<RequireRoles roles={MGMT_ROLES}><LeavesPage /></RequireRoles>} />
               <Route path="attendance"        element={<RequireRoles roles={MGMT_ROLES}><AttendancePage /></RequireRoles>} />
               <Route path="shifts"            element={<RequireRoles roles={MGMT_ROLES}><ShiftsPage /></RequireRoles>} />

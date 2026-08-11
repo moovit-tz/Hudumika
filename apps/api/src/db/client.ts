@@ -3231,6 +3231,8 @@ export interface Database {
   hr_shifts: HrShiftsTable;
   hr_shift_assignments: HrShiftAssignmentsTable;
   hr_attendance: HrAttendanceTable;
+  hr_clock_sessions: HrClockSessionsTable;
+  hr_clock_breaks: HrClockBreaksTable;
   hr_leaves: HrLeavesTable;
   hr_payroll: HrPayrollTable;
   hr_announcements: HrAnnouncementsTable;
@@ -5679,6 +5681,31 @@ export interface OnsiteHealthChecksTable {
   created_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+}
+
+export interface HrClockSessionsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  date: DateOnly;
+  clock_in_at: Date;
+  clock_out_at: Date | null;
+  project_name: string | null;
+  status: Generated<string>;
+  total_break_minutes: Generated<number>;
+  worked_minutes: number | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface HrClockBreaksTable {
+  id: Generated<string>;
+  session_id: string;
+  tenant_id: string;
+  start_at: Date;
+  end_at: Date | null;
+  duration_minutes: number | null;
+  created_at: Generated<Date>;
 }
 
 /**

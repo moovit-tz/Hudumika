@@ -326,6 +326,384 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // ── Clock-in & Weekly Timesheets ───────────────────────────────
+
+  fastify.get('/clock-in/active', async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const session = await trx.selectFrom('hr_clock_sessions')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', user.sub)
+        .where('status', 'in', ['ACTIVE', 'ON_BREAK'])
+        .orderBy('created_at', 'desc')
+        .executeTakeFirst();
+
+      if (!session) {
+        return { active: false, session: null, activeBreak: null };
+      }
+
+      let activeBreak = null;
+      if (session.status === 'ON_BREAK') {
+        activeBreak = await trx.selectFrom('hr_clock_breaks')
+          .selectAll()
+          .where('tenant_id', '=', user.tenant_id)
+          .where('session_id', '=', session.id)
+          .where('end_at', 'is', null)
+          .orderBy('created_at', 'desc')
+          .executeTakeFirst();
+      }
+
+      return {
+        active: true,
+        session,
+        activeBreak,
+      };
+    });
+  });
+
+  fastify.post('/clock-in/start', async (req, reply) => {
+    const user = req.user;
+    const body = req.body as any || {};
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('hr_clock_sessions')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', user.sub)
+        .where('status', 'in', ['ACTIVE', 'ON_BREAK'])
+        .executeTakeFirst();
+
+      if (existing) {
+        return reply.status(400).send({ error: 'You are already clocked in' });
+      }
+
+      const now = new Date();
+      const dateStr = isoDate(now);
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      const session = await trx.insertInto('hr_clock_sessions').values({
+        tenant_id: user.tenant_id,
+        user_id: user.sub,
+        date: dateStr,
+        clock_in_at: now,
+        project_name: body.project_name || null,
+        status: 'ACTIVE',
+        total_break_minutes: 0,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const att = await trx.selectFrom('hr_attendance')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', user.sub)
+        .where('date', '=', dateStr)
+        .executeTakeFirst();
+
+      if (att) {
+        await trx.updateTable('hr_attendance').set({
+          clock_in: att.clock_in || timeStr,
+          status: 'PRESENT',
+          recorded_by: user.sub,
+          updated_at: new Date(),
+        }).where('id', '=', att.id).execute();
+      } else {
+        await trx.insertInto('hr_attendance').values({
+          tenant_id: user.tenant_id,
+          user_id: user.sub,
+          date: dateStr,
+          status: 'PRESENT',
+          clock_in: timeStr,
+          recorded_by: user.sub,
+        }).execute();
+      }
+
+      return { ok: true, session };
+    });
+  });
+
+  fastify.post('/clock-in/break', async (req, reply) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const session = await trx.selectFrom('hr_clock_sessions')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', user.sub)
+        .where('status', 'in', ['ACTIVE', 'ON_BREAK'])
+        .orderBy('created_at', 'desc')
+        .executeTakeFirst();
+
+      if (!session) {
+        return reply.status(400).send({ error: 'No active clock-in session found' });
+      }
+
+      const now = new Date();
+
+      if (session.status === 'ACTIVE') {
+        await trx.insertInto('hr_clock_breaks').values({
+          session_id: session.id,
+          tenant_id: user.tenant_id,
+          start_at: now,
+        }).execute();
+
+        const updated = await trx.updateTable('hr_clock_sessions').set({
+          status: 'ON_BREAK',
+          updated_at: now,
+        }).where('id', '=', session.id).returningAll().executeTakeFirstOrThrow();
+
+        return { ok: true, session: updated, breakStatus: 'ON_BREAK' };
+      } else {
+        const openBreak = await trx.selectFrom('hr_clock_breaks')
+          .selectAll()
+          .where('tenant_id', '=', user.tenant_id)
+          .where('session_id', '=', session.id)
+          .where('end_at', 'is', null)
+          .executeTakeFirst();
+
+        let addedMinutes = 0;
+        if (openBreak) {
+          const breakStart = new Date(openBreak.start_at).getTime();
+          addedMinutes = Math.max(1, Math.round((now.getTime() - breakStart) / 60000));
+          await trx.updateTable('hr_clock_breaks').set({
+            end_at: now,
+            duration_minutes: addedMinutes,
+          }).where('id', '=', openBreak.id).execute();
+        }
+
+        const totalBreak = (session.total_break_minutes || 0) + addedMinutes;
+
+        const updated = await trx.updateTable('hr_clock_sessions').set({
+          status: 'ACTIVE',
+          total_break_minutes: totalBreak,
+          updated_at: now,
+        }).where('id', '=', session.id).returningAll().executeTakeFirstOrThrow();
+
+        return { ok: true, session: updated, breakStatus: 'ACTIVE' };
+      }
+    });
+  });
+
+  fastify.post('/clock-in/stop', async (req, reply) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const session = await trx.selectFrom('hr_clock_sessions')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', user.sub)
+        .where('status', 'in', ['ACTIVE', 'ON_BREAK'])
+        .orderBy('created_at', 'desc')
+        .executeTakeFirst();
+
+      if (!session) {
+        return reply.status(400).send({ error: 'No active clock-in session found' });
+      }
+
+      const now = new Date();
+      let totalBreak = session.total_break_minutes || 0;
+
+      if (session.status === 'ON_BREAK') {
+        const openBreak = await trx.selectFrom('hr_clock_breaks')
+          .selectAll()
+          .where('tenant_id', '=', user.tenant_id)
+          .where('session_id', '=', session.id)
+          .where('end_at', 'is', null)
+          .executeTakeFirst();
+
+        if (openBreak) {
+          const breakStart = new Date(openBreak.start_at).getTime();
+          const duration = Math.max(1, Math.round((now.getTime() - breakStart) / 60000));
+          totalBreak += duration;
+          await trx.updateTable('hr_clock_breaks').set({
+            end_at: now,
+            duration_minutes: duration,
+          }).where('id', '=', openBreak.id).execute();
+        }
+      }
+
+      const startMs = new Date(session.clock_in_at).getTime();
+      const grossMs = now.getTime() - startMs;
+      const workedMins = Math.max(0, Math.round(grossMs / 60000) - totalBreak);
+
+      const completed = await trx.updateTable('hr_clock_sessions').set({
+        status: 'COMPLETED',
+        clock_out_at: now,
+        total_break_minutes: totalBreak,
+        worked_minutes: workedMins,
+        updated_at: now,
+      }).where('id', '=', session.id).returningAll().executeTakeFirstOrThrow();
+
+      const dateStr = session.date;
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+      const att = await trx.selectFrom('hr_attendance')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', user.sub)
+        .where('date', '=', dateStr)
+        .executeTakeFirst();
+
+      if (att) {
+        await trx.updateTable('hr_attendance').set({
+          clock_out: timeStr,
+          worked_minutes: workedMins,
+          updated_at: now,
+        }).where('id', '=', att.id).execute();
+      }
+
+      return { ok: true, session: completed };
+    });
+  });
+
+  fastify.get('/clock-in/weekly', async (req, reply) => {
+    const user = req.user;
+    const q = req.query as any;
+
+    const targetUserId = q.user_id || user.sub;
+    // A user may always read their own timesheet; reading a colleague's
+    // requires a manager/HR role. Without this any employee could pull any
+    // other user's sessions, breaks and attendance simply by passing ?user_id=.
+    if (targetUserId !== user.sub &&
+        !['SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR'].includes(user.role)) {
+      return reply.status(403).send({ error: 'You can only view your own timesheet' });
+    }
+    const toDate = q.to ? new Date(q.to) : new Date();
+    const fromDate = q.from ? new Date(q.from) : new Date(toDate.getTime() - 6 * 86400000);
+
+    const fromIso = isoDate(fromDate);
+    const toIso = isoDate(toDate);
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const userObj = await trx.selectFrom('users')
+        .select(['id', 'name', 'email', 'role', 'avatar_url'])
+        .where('id', '=', targetUserId)
+        .where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+
+      const sessions = await trx.selectFrom('hr_clock_sessions')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', targetUserId)
+        .where('date', '>=', fromIso)
+        .where('date', '<=', toIso)
+        .orderBy('date', 'desc')
+        .execute();
+
+      const sessionIds = sessions.map(s => s.id);
+      let breaks: any[] = [];
+      if (sessionIds.length > 0) {
+        breaks = await trx.selectFrom('hr_clock_breaks')
+          .selectAll()
+          .where('tenant_id', '=', user.tenant_id)
+          .where('session_id', 'in', sessionIds)
+          .execute();
+      }
+
+      const attendance = await trx.selectFrom('hr_attendance')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', targetUserId)
+        .where('date', '>=', fromIso)
+        .where('date', '<=', toIso)
+        .execute();
+
+      let workedMinutesTotal = 0;
+      sessions.forEach(s => {
+        workedMinutesTotal += (s.worked_minutes || 0);
+      });
+
+      return {
+        user: userObj || { id: targetUserId, name: user.name || 'Employee' },
+        fromDate: fromIso,
+        toDate: toIso,
+        plannedHours: 40,
+        plannedDays: 5,
+        workedMinutesTotal,
+        sessions,
+        breaks,
+        attendance,
+      };
+    });
+  });
+
+  fastify.post('/clock-in/manual', async (req, reply) => {
+    const user = req.user;
+    const body = req.body as any;
+
+    if (!body.date || !body.clock_in || !body.clock_out) {
+      return reply.status(400).send({ error: 'date, clock_in, and clock_out are required' });
+    }
+
+    const targetUserId = body.user_id || user.sub;
+    // Same guard as /weekly: a user records their own time freely, but only a
+    // manager/HR role may enter time on another user's behalf — otherwise any
+    // employee could forge a colleague's attendance by passing user_id.
+    if (targetUserId !== user.sub &&
+        !['SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR'].includes(user.role)) {
+      return reply.status(403).send({ error: 'You can only record your own time' });
+    }
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const dateStr = body.date;
+
+      const inParts = body.clock_in.split(':');
+      const outParts = body.clock_out.split(':');
+
+      // No trailing 'Z': a manual "09:00" is the wall-clock time the user typed,
+      // so it must be read in the SAME zone the live clock path uses (start/stop
+      // store `new Date()` and derive their HH:mm from now.getHours(), i.e.
+      // server-local). A 'Z' here forced UTC, so a manual entry and a live one
+      // for the same wall time landed at different instants — the entry drifted
+      // by the server's offset on display. A bare date-time is parsed as local.
+      const clockInAt = new Date(`${dateStr}T${inParts[0].padStart(2, '0')}:${inParts[1].padStart(2, '0')}:00`);
+      const clockOutAt = new Date(`${dateStr}T${outParts[0].padStart(2, '0')}:${outParts[1].padStart(2, '0')}:00`);
+
+      const grossMins = Math.max(0, Math.round((clockOutAt.getTime() - clockInAt.getTime()) / 60000));
+      const breakMins = Number(body.break_minutes) || 0;
+      const workedMins = Math.max(0, grossMins - breakMins);
+
+      const session = await trx.insertInto('hr_clock_sessions').values({
+        tenant_id: user.tenant_id,
+        user_id: targetUserId,
+        date: dateStr,
+        clock_in_at: clockInAt,
+        clock_out_at: clockOutAt,
+        project_name: body.project_name || 'Manual Entry',
+        status: 'COMPLETED',
+        total_break_minutes: breakMins,
+        worked_minutes: workedMins,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      const existingAtt = await trx.selectFrom('hr_attendance')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('user_id', '=', targetUserId)
+        .where('date', '=', dateStr)
+        .executeTakeFirst();
+
+      if (existingAtt) {
+        await trx.updateTable('hr_attendance').set({
+          clock_in: body.clock_in,
+          clock_out: body.clock_out,
+          worked_minutes: workedMins,
+          status: body.status || 'PRESENT',
+          recorded_by: user.sub,
+          updated_at: new Date(),
+        }).where('id', '=', existingAtt.id).execute();
+      } else {
+        await trx.insertInto('hr_attendance').values({
+          tenant_id: user.tenant_id,
+          user_id: targetUserId,
+          date: dateStr,
+          status: body.status || 'PRESENT',
+          clock_in: body.clock_in,
+          clock_out: body.clock_out,
+          worked_minutes: workedMins,
+          recorded_by: user.sub,
+        }).execute();
+      }
+
+      return { ok: true, session };
+    });
+  });
+
   // ── Leaves ────────────────────────────────────────────────────
 
   fastify.get('/leaves', async (req) => {
