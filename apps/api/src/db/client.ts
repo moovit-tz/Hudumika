@@ -81,6 +81,8 @@ export interface UsersTable {
    * reads should not live somewhere it can be overwritten by an unrelated
    * profile save. null everywhere means not yet captured, never zero.
    */
+  activity_consent: Generated<boolean>;      // opt-in to intensity-only activity monitoring (migration 221)
+  activity_consent_at: Date | null;
   tax_residency: 'RESIDENT' | 'NON_RESIDENT' | null;
   national_id: string | null;
   tax_id: string | null;
@@ -331,6 +333,32 @@ export interface WorkflowStepsTable {
   color: Generated<string>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
+}
+
+export interface ActivityMonitorSettingsTable {
+  tenant_id: string;
+  enabled: Generated<boolean>;
+  capture_keystrokes: Generated<boolean>;
+  capture_heatmap: Generated<boolean>;
+  interval_seconds: Generated<number>;
+  updated_by: string | null;
+  updated_at: Generated<Date>;
+}
+
+export interface ActivitySamplesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  user_id: string;
+  window_start: Date;
+  window_end: Date;
+  keystrokes: Generated<number>;
+  mouse_distance_px: Generated<number>;
+  clicks: Generated<number>;
+  active_seconds: Generated<number>;
+  zones: Generated<string>;   // JSONB heatmap buckets
+  app: string | null;
+  path: string | null;
+  created_at: Generated<Date>;
 }
 
 export interface WorkflowLearningSignalsTable {
@@ -3089,6 +3117,8 @@ export interface Database {
   workflow_templates: WorkflowTemplatesTable;
   workflow_learning_signals: WorkflowLearningSignalsTable;
   workflow_template_proposals: WorkflowTemplateProposalsTable;
+  activity_monitor_settings: ActivityMonitorSettingsTable;
+  activity_samples: ActivitySamplesTable;
   workflow_comm_queue: WorkflowCommQueueTable;
   workflow_step_runs: WorkflowStepRunsTable;
   seal_compartments: SealCompartmentsTable;

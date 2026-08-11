@@ -42,6 +42,7 @@ import { calendarRoutes } from './routes/calendar.routes.js';
 import { leaveRoutes } from './routes/leave.routes.js';
 import { overtimeRoutes } from './routes/overtime.routes.js';
 import { activityRoutes } from './routes/activity.routes.js';
+import { activityMonitorRoutes } from './routes/activity-monitor.routes.js';
 import { orgChartRoutes }   from './routes/org-chart.routes.js';
 import { permissionsRoutes } from './routes/permissions.routes.js';
 import { invoiceRoutes }  from './routes/invoices.routes.js';
@@ -271,6 +272,7 @@ async function main() {
     await server.register(overtimeRoutes, { prefix: '/v1/hr' });
     // One per-record activity trail for every app, read from domain_events.
     await server.register(activityRoutes, { prefix: '/v1/activity' });
+    await server.register(activityMonitorRoutes, { prefix: '/v1/activity-monitor' });
     await server.register(orgChartRoutes,   { prefix: '/v1/org-chart' });
     await server.register(permissionsRoutes, { prefix: '/v1/permissions' });
     await server.register(invoiceRoutes,  { prefix: '/v1/invoices' });

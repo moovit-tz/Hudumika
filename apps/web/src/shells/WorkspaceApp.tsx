@@ -8,6 +8,7 @@ import { useBranding } from '../hooks/useBranding.js';
 import { RequireAppEnabled } from '../components/RequireAppEnabled.js';
 import { parseHex, darkenHex, lightenHex, hexToHslTriplet, pickForegroundHsl, enforceContrastFloor } from '../lib/color.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
+import { ActivityMonitorIndicator } from '../components/ActivityMonitorIndicator.js';
 
 // The SuperAdmin platform panel is never gated by a tenant's enabled-apps config —
 // it's how a SuperAdmin fixes their own mistakes, so it can never lock itself out.
@@ -254,6 +255,9 @@ export function WorkspaceApp({ appId, children }: WorkspaceAppProps) {
           <React.Suspense fallback={<SkeletonPage />}>
             {children}
           </React.Suspense>
+          {/* Opt-in, intensity-only activity collector — self-disables unless the
+              tenant enabled it AND the person consented; shows a visible chip. */}
+          <ActivityMonitorIndicator appId={appId} />
         </div>
       </MobileNavContext.Provider>
     </ActiveAppContext.Provider>

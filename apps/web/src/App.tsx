@@ -17,6 +17,7 @@ import { VerifyEmail }     from './pages/VerifyEmail.js';
 import { ComplyOSSales }   from './pages/ComplyOSSales.js';
 
 import { CommandCenter }  from './pages/CommandCenter.js';
+import { ActivityMonitorPage } from './pages/ActivityMonitor.js';
 import { ShipmentsList }  from './pages/ShipmentsList.js';
 import { ShipmentDetail } from './pages/ShipmentDetail.js';
 import { TrackingShared } from './pages/TrackingShared.js';
@@ -314,6 +315,9 @@ const AppContent: React.FC = () => {
 
           {/* Full-viewport apps — no page-layout (manage their own height/overflow) */}
           <Route path="/ops" element={<RequireRoles roles={OPS_ROLES}><CommandCenter /></RequireRoles>} />
+
+          {/* Opt-in activity monitoring — reachable from the visible collector chip in any app. */}
+          <Route path="/activity-monitor" element={<div className="app-shell-content"><ActivityMonitorPage /></div>} />
 
           {/* ── App shells (prefix-based routes) ── */}
           <Route path="/clearos/*"  element={<ClearOSShell />} />
