@@ -12,6 +12,8 @@ import { db } from './db/client.js';
 import { authPlugin } from './middleware/auth.js';
 import { bootstrapJobs } from './jobs/index.js';
 import { bootstrapSubscribers } from './subscribers/index.js';
+import { workflowEngineRoutes } from './routes/workflow-engine.routes.js';
+import { registerBuiltInEntityProviders } from './services/entity-providers.js';
 import { initAisTracker, stopAisTracker } from './jobs/ais-tracker.js';
 
 import { authRoutes } from './routes/auth.routes.js';
@@ -273,6 +275,7 @@ async function main() {
     // One per-record activity trail for every app, read from domain_events.
     await server.register(activityRoutes, { prefix: '/v1/activity' });
     await server.register(activityMonitorRoutes, { prefix: '/v1/activity-monitor' });
+    await server.register(workflowEngineRoutes, { prefix: '/v1/workflow-engine' });
     await server.register(orgChartRoutes,   { prefix: '/v1/org-chart' });
     await server.register(permissionsRoutes, { prefix: '/v1/permissions' });
     await server.register(invoiceRoutes,  { prefix: '/v1/invoices' });
@@ -358,6 +361,7 @@ async function main() {
 
     // 5. Start jobs scheduler
     bootstrapSubscribers();
+    registerBuiltInEntityProviders();
     await bootstrapJobs();
     await initAisTracker();
 

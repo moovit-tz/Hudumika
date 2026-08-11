@@ -335,6 +335,34 @@ export interface WorkflowStepsTable {
   updated_at: Generated<Date>;
 }
 
+export interface WorkflowInstancesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  workflow_id: string;
+  entity_type: string;
+  entity_id: string;
+  current_step_id: string;
+  status: Generated<string>;
+  started_at: Generated<Date>;
+  resolved_at: Date | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface WorkflowInstanceEventsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  instance_id: string;
+  from_step_id: string | null;
+  to_step_id: string;
+  to_step_name: string;
+  status: string;
+  note: string | null;
+  conditions: Generated<string>;
+  actor_id: string | null;
+  created_at: Generated<Date>;
+}
+
 export interface ActivityMonitorSettingsTable {
   tenant_id: string;
   enabled: Generated<boolean>;
@@ -3119,6 +3147,8 @@ export interface Database {
   workflow_template_proposals: WorkflowTemplateProposalsTable;
   activity_monitor_settings: ActivityMonitorSettingsTable;
   activity_samples: ActivitySamplesTable;
+  workflow_instances: WorkflowInstancesTable;
+  workflow_instance_events: WorkflowInstanceEventsTable;
   workflow_comm_queue: WorkflowCommQueueTable;
   workflow_step_runs: WorkflowStepRunsTable;
   seal_compartments: SealCompartmentsTable;
