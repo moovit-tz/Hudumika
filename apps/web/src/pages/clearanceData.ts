@@ -230,7 +230,9 @@ export interface WfStep {
   nextStepIds: string[];
   // Entry conditions evaluated for THIS shipment — what must be true to enter
   // the step, and whether it currently is. Lets the UI show the blockers.
-  requirements?: { label: string; passed: boolean }[];
+  // `field` is the raw condition key: a `document:<TYPE>` field is what makes
+  // the Documents checklist workflow-driven (its required docs come from here).
+  requirements?: { label: string; passed: boolean; field?: string }[];
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────

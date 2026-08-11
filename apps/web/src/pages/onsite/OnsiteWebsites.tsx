@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { apiFetch } from '../../lib/api.js';
+import { openInAppBrowser } from '../../lib/in-app-browser.js';
 import type { OnsiteWebsite } from '@hudumika/types';
 import { Icon } from '../../components/Icon.js';
 import './Onsite.css';
@@ -163,7 +164,7 @@ export function OnsiteWebsites() {
                       Tools ▾
                     </button>
                     {site.type === 'wordpress' && (
-                      <button className="onsite-btn-outline" onClick={() => window.open(`${site.url}/wp-admin`, '_blank')}>
+                      <button className="onsite-btn-outline" onClick={() => openInAppBrowser({ url: `${site.url}/wp-admin`, title: `${site.name} — WP Admin` })}>
                         WP Admin ↗
                       </button>
                     )}

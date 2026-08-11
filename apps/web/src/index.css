@@ -165,6 +165,14 @@
   --white:  #ffffff;
   --border: #e1e4e8;
   --border2:#c9cdd4;
+  /* Sunken surface for a card's body/detail pane, so it reads distinct from
+     the white header. NOT --bg: index.css flattens --bg to --white inside
+     .page-layout (light mode), which silently turned every "grey" card body
+     white on the app pages. This token is never overridden there — it holds the
+     app's own background tone so the body reads "like the page", just a hair off
+     the white header. Every collapsible SectionCard body — and the segmented tab
+     track — reads from this one token. */
+  --card-sunken: #f5f5f5;
 
   /* The vertical tree line down the left of a nav sub-group
      (.app-sb-children-group). Its own token because neither --border nor
@@ -304,6 +312,9 @@ html:not([data-theme='dark']) .logo-dark-only { display: none !important; }
   --white:  #111218;
   --border: rgba(255,255,255,0.07);
   --border2:rgba(255,255,255,0.13);
+  /* Sunken card body surface (dark) — a hair lighter than the card so the
+     detail pane still separates from the header. See the light-mode note. */
+  --card-sunken: rgba(255,255,255,0.035);
   --nav-guide: rgba(255, 255, 255, 0.14);
 
   --navy:          #d8e4f4;
@@ -2527,6 +2538,70 @@ select.input-field { cursor: pointer; }
 .cc-toolbar-filters .filter-chips { margin-left: auto; display: flex; align-items: center; gap: 8px; }
 [data-theme="dark"] .cc-summary-chip { background: rgba(255,255,255,0.05); }
 
+/* Document row actions — bare icons, no border or resting background (the box
+   chrome is dropped); a subtle wash appears only on hover as the affordance. */
+.doc-act {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; padding: 0; flex-shrink: 0;
+  border: none; background: transparent; color: var(--ink3);
+  cursor: pointer; border-radius: var(--r-sm, 8px);
+  transition: color var(--dur-fast, 120ms) var(--ease, ease), background var(--dur-fast, 120ms) var(--ease, ease);
+}
+.doc-act:hover:not(:disabled) { color: var(--ink); background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.doc-act:disabled { opacity: .5; cursor: default; }
+.doc-act.is-verified { color: var(--teal); cursor: default; }
+.doc-act.is-delete:hover:not(:disabled) { color: var(--red); background: color-mix(in srgb, var(--red) 10%, transparent); }
+
+/* In-app browser panel spinner. */
+@keyframes iab-spin { to { transform: rotate(360deg); } }
+.iab-spinner { animation: iab-spin 0.7s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .iab-spinner { animation-duration: 1.6s; } }
+
+/* Search-all-shipments box — sits in the toolbar right group, immediately
+   left of "Filter by". It is the page's way in to any shipment (the query is
+   resolved server-side over the whole set, not the loaded page), so it reads
+   as an input, not a filter chip: rounded-rect at --r-sm rather than a pill. */
+.cc-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 1 230px;
+  min-width: 150px;
+  padding: 4px 8px 4px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 8px);
+  transition: border-color var(--dur-fast, 80ms) var(--ease, ease);
+}
+.cc-search:focus-within { border-color: var(--teal-m); }
+.cc-search > svg { flex-shrink: 0; color: var(--ink3); }
+.cc-search input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  font-family: var(--font);
+  font-size: var(--text-xs, 11.5px);
+  color: var(--ink);
+}
+.cc-search input::placeholder { color: var(--ink3); }
+.cc-search .cc-search-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 2px;
+  border: none;
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+  border-radius: var(--r-sm, 6px);
+  line-height: 0;
+}
+.cc-search .cc-search-clear:hover { color: var(--ink2); background: var(--border); }
+
 /* Responsive: below the platform's mobile breakpoint, stack the toolbar
    into full-width rows instead of squeezing everything onto one line —
    summary chips scroll horizontally, then the filter bar gets its own row. */
@@ -2556,6 +2631,10 @@ select.input-field { cursor: pointer; }
   }
   .cc-summary-chips::-webkit-scrollbar { display: none; }
   .cc-toolbar-filters { min-width: 0; width: 100%; }
+  /* Let the search box take the row's free width beside "Filter by" instead
+     of staying at its 230px basis when the toolbar is full-width. */
+  .cc-toolbar-filters .filter-chips { width: 100%; }
+  .cc-search { flex: 1 1 auto; }
 }
 
 .cc-view-toggle {

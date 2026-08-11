@@ -3,8 +3,10 @@ import {
   Building2, ChevronsUpDown, Check, Plus,
   Copy, Archive, Trash2, Pencil, Share2, FolderKanban, Layers,
   Flag, CircleDot, GripVertical, Upload, AlertTriangle, ShieldCheck, Bell, XCircle,
+  Eye, Send, Download,
 } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader.js';
+import { Tip } from '../components/ui/tooltip.js';
 import {
   Select, SelectTrigger, SelectValue, SelectContent, SelectItem,
 } from '../components/ui/select.js';
@@ -165,6 +167,20 @@ export default function ComponentShowcase() {
               <DropdownMenuItem className="text-destructive focus:text-destructive"><Trash2 /> Delete<DropdownMenuShortcut>⌫</DropdownMenuShortcut></DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+        </section>
+
+        {/* Tooltip + document actions — the platform's one tooltip (Tip), same
+            as the header, on the icon-only row actions used across documents. */}
+        <section className={SECTION}>
+          <div className={SECTION_TITLE}>Tooltip &amp; document actions</div>
+          <div className={SECTION_DESC}>The one platform tooltip (<code>Tip</code>, same style as the header) on the icon-only document actions — view, share, download, replace/upload, verified. Hover any icon.</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Tip label="View document"><button type="button" aria-label="View document" className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-lg border border-input text-muted-foreground hover:border-primary/40"><Eye className="h-4 w-4" /></button></Tip>
+            <Tip label="Share document"><button type="button" aria-label="Share document" className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-lg border border-input text-muted-foreground hover:border-primary/40"><Send className="h-4 w-4" /></button></Tip>
+            <Tip label="Download document"><button type="button" aria-label="Download document" className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-lg border border-input text-muted-foreground hover:border-primary/40"><Download className="h-4 w-4" /></button></Tip>
+            <Tip label="Replace / upload"><button type="button" aria-label="Replace or upload document" className="inline-flex h-8.5 w-8.5 items-center justify-center rounded-lg border border-input text-muted-foreground hover:border-primary/40"><Upload className="h-4 w-4" /></button></Tip>
+            <Tip label="Verified"><span className="inline-flex items-center gap-1 rounded-full bg-(--teal) px-2.5 py-1 text-[10px] font-bold text-white"><Check className="h-3 w-3" strokeWidth={3} /> Verified</span></Tip>
+          </div>
         </section>
 
         {/* Workspace switcher */}

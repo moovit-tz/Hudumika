@@ -27,4 +27,29 @@ const TooltipContent = React.forwardRef<
 ))
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
+/**
+ * The one tooltip for the whole platform. Wrap any control in <Tip label="…">
+ * to give it the same tooltip the header uses (HeaderPill) — the design-system
+ * TooltipContent above: rounded-xl, --white on --border, soft shadow, the Radix
+ * fade/zoom. Use this instead of a native `title=` so every tooltip matches.
+ * A single <TooltipProvider> up the tree (or the one this renders) supplies the
+ * timing.
+ */
+export function Tip({ label, children, side = 'top', delayDuration = 200, className }: {
+  label: React.ReactNode;
+  children: React.ReactNode;
+  side?: 'top' | 'bottom' | 'left' | 'right';
+  delayDuration?: number;
+  className?: string;
+}) {
+  return (
+    <TooltipProvider delayDuration={delayDuration}>
+      <Tooltip>
+        <TooltipTrigger asChild>{children}</TooltipTrigger>
+        <TooltipContent side={side} className={className}>{label}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }

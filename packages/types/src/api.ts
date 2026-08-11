@@ -40,7 +40,17 @@ export interface ShipmentListQuery {
 // ── Grouped Shipment Response ────────────────────────────────
 
 export interface CustomerShipmentGroup {
-  customer: Pick<Customer, 'id' | 'name' | 'avatar_initials' | 'avatar_color'>;
+  // The customer's CRM record — id/name/initials/colour plus the real profile
+  // (logo, contact, category, location) so the group header can show the
+  // company logo and link straight to the CRM.
+  customer: Pick<Customer, 'id' | 'name' | 'avatar_initials' | 'avatar_color'> & {
+    logo_url?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    category?: string | null;
+    city?: string | null;
+    country?: string | null;
+  };
   shipment_count: number;
   urgent_count: number;
   action_count: number;

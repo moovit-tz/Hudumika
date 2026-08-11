@@ -301,13 +301,19 @@ export class ShipmentService {
       if (filters.search) {
         // Ops searched ref/goods/BL/AWB. The declarations page also searched
         // the TANCIS ref, the TANSAD number and the importer name, and those
-        // are the identifiers a customs officer actually has to hand.
+        // are the identifiers a customs officer actually has to hand. Customer
+        // name is matched too: this list is grouped by customer and the name
+        // is the most prominent thing on each row, so it is the first thing
+        // someone types — matching a customer surfaces all of its shipments.
         const term = `%${filters.search}%`;
         shipmentsQuery = shipmentsQuery.where((eb) => eb.or([
           eb('ref_number', 'ilike', term),
           eb('goods_desc', 'ilike', term),
           eb('bl_number', 'ilike', term),
           eb('awb_number', 'ilike', term),
+          eb('customer_id', 'in', (sub) => sub.selectFrom('customers').select('id')
+            .where('tenant_id', '=', tenantId)
+            .where('name', 'ilike', term)),
           eb.exists(
             eb.selectFrom('declarations').select('id')
               .whereRef('declarations.shipment_id', '=', 'shipment_cases.id')
@@ -451,6 +457,15 @@ export class ShipmentService {
             name: cust.name,
             avatar_initials: cust.avatar_initials || cust.name.substring(0, 2).toUpperCase(),
             avatar_color: cust.avatar_color || '#0b7264',
+            // The real CRM profile — the header shows the company logo when
+            // there is one (else the initials), links to the CRM record, and
+            // can surface the contact/category recorded there.
+            logo_url: cust.logo_url ?? null,
+            email: cust.email ?? null,
+            phone: cust.phone ?? null,
+            category: cust.category ?? null,
+            city: cust.city ?? null,
+            country: cust.country ?? null,
           },
           shipment_count: mappedShipments.length,
           urgent_count: urgent,

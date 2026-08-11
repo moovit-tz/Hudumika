@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { apiFetch } from '../lib/api.js';
 import { TableHeader } from '../components/TableHeader.js';
 import { CustomerGroup } from '../components/CustomerGroup.js';
+import { PaginationBar } from '../components/PaginationBar.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Popover, PopoverAnchor, PopoverContent } from '../components/ui/popover.js';
 import { Button } from '../components/ui/button.js';
@@ -573,8 +574,17 @@ export const CommandCenter: React.FC = () => {
   });
 
   const totalGroups = sortedGroupedShipments.length;
-  const totalPages  = Math.max(1, Math.ceil(totalGroups / pageSize));
   const pagedGroups = sortedGroupedShipments.slice((page - 1) * pageSize, page * pageSize);
+
+  // Sort is a shared toolbar control now, so it works in Board view too — the
+  // List view could only sort by clicking a column header, which the board has
+  // none of.
+  const SORT_OPTIONS: { value: typeof sortBy; label: string }[] = [
+    { value: 'urgency', label: 'Urgency' },
+    { value: 'created', label: 'Newest' },
+    { value: 'eta',     label: 'ETA' },
+    { value: 'days',    label: 'Days open' },
+  ];
 
   const canCreate = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER'].includes(user?.role || '');
   const isJunior  = user?.role === 'JUNIOR' || user?.role === 'OFFICER';
@@ -671,13 +681,6 @@ export const CommandCenter: React.FC = () => {
 
   // Today's date label
   const todayLabel = new Date().toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-
-  const pgBtn = (disabled: boolean, onClick: () => void, label: string) => (
-    <button type="button" disabled={disabled} onClick={onClick}
-      style={{ minWidth: 28, height: 28, padding: '0 6px', fontSize: 13, fontWeight: 600, border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: disabled ? 'var(--ink3)' : 'var(--ink)', cursor: disabled ? 'default' : 'pointer' }}>
-      {label}
-    </button>
-  );
 
   if (loading) return <SkeletonPage variant="dashboard" />;
 
@@ -842,6 +845,52 @@ export const CommandCenter: React.FC = () => {
               {/* Filter bar */}
               <div className="cc-toolbar-filters" style={{ minWidth: 'auto', flex: 'none' }}>
                 <div className="filter-chips">
+                  {/* Search across ALL shipments — not the loaded page. It sets
+                      `searchQuery`, which is debounced into `serverSearch` and
+                      resolved by the API over ref/goods/BL/AWB/TANCIS/TANSAD/
+                      importer, so a match on any shipment surfaces even when it
+                      isn't in the current view. */}
+                  <div className="cc-search" role="search">
+                    <Icon name="search" size={13} />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Escape') setSearchQuery(''); }}
+                      placeholder="Search all shipments…"
+                      aria-label="Search all shipments"
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        className="cc-search-clear"
+                        aria-label="Clear search"
+                        onClick={() => setSearchQuery('')}
+                      >
+                        <Icon name="x" size={12} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Sort — shared so it works on Board and List alike. */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button type="button" className="fc fc-filterby">
+                        <Icon name="arrowUpDown" size={12} />
+                        {SORT_OPTIONS.find(o => o.value === sortBy)?.label ?? 'Sort'}
+                        <Icon name="chevronDown" size={11} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-44">
+                      {SORT_OPTIONS.map(o => (
+                        <DropdownMenuCheckboxItem key={o.value} checked={sortBy === o.value}
+                          onCheckedChange={() => setSortBy(o.value)}>{o.label}</DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button type="button" className={`fc fc-filterby${declFiltersActive ? ' on' : ''}`}>
@@ -979,38 +1028,14 @@ export const CommandCenter: React.FC = () => {
 
             {/* Pagination bar */}
             {!loading && totalGroups > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderTop: '1px solid var(--border)', flexShrink: 0, gap: 12, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>
-                  {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalGroups)} of {totalGroups} customer group{totalGroups !== 1 ? 's' : ''}
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  {pgBtn(page === 1, () => setPage(1), '«')}
-                  {pgBtn(page === 1, () => setPage(p => p - 1), '‹')}
-                  {Array.from({ length: totalPages }, (_, i) => i + 1)
-                    .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 1)
-                    .reduce<(number | '…')[]>((acc, p, idx, arr) => {
-                      if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) acc.push('…');
-                      acc.push(p);
-                      return acc;
-                    }, [])
-                    .map((p, i) => p === '…'
-                      ? <span key={`e${i}`} style={{ fontSize: 13, color: 'var(--ink3)', padding: '0 2px' }}>…</span>
-                      : <button key={p} type="button" onClick={() => setPage(p as number)}
-                          style={{ minWidth: 28, height: 28, padding: '0 6px', fontSize: 13, fontWeight: 600, border: '1px solid var(--border)', borderRadius: 'var(--r)', cursor: 'pointer', background: page === p ? 'var(--teal)' : 'var(--white)', color: page === p ? '#fff' : 'var(--ink)' }}>
-                          {p}
-                        </button>
-                    )
-                  }
-                  {pgBtn(page === totalPages, () => setPage(p => p + 1), '›')}
-                  {pgBtn(page === totalPages, () => setPage(totalPages), '»')}
-                </div>
-                <Select value={String(pageSize)} onValueChange={v => { setPageSize(Number(v)); setPage(1); }}>
-                  <SelectTrigger aria-label="Rows per page" style={{ width: 'auto', height: 'auto', fontSize: 12, padding: '3px 6px' }}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {[5, 10, 20, 25, 50].map(s => <SelectItem key={s} value={String(s)}>{s} / page</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
+              <PaginationBar
+                page={page}
+                pageSize={pageSize}
+                total={totalGroups}
+                itemLabel="customer group"
+                onPageChange={setPage}
+                onPageSizeChange={n => { setPageSize(n); setPage(1); }}
+              />
             )}
           </>
         )}

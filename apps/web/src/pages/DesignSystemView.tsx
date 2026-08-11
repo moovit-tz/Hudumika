@@ -43,7 +43,8 @@ const DEFAULT_APP_COLOR = '#0b1e3a';
 
 const NEUTRAL_LABELS: Record<keyof NeutralSet, string> = {
   ink: 'Text (primary)', ink2: 'Text (secondary)', ink3: 'Text (muted)',
-  bg: 'Page background', white: 'Surface', border: 'Border', border2: 'Border (strong)',
+  bg: 'Page background', white: 'Surface', cardSunken: 'Card background',
+  border: 'Border', border2: 'Border (strong)',
 };
 
 const SEMANTIC_LABELS: Record<keyof SemanticSet, string> = {
@@ -163,7 +164,7 @@ export function DesignSystemView() {
     }
   }
 
-  const neutralKeys: (keyof NeutralSet)[] = ['ink', 'ink2', 'ink3', 'bg', 'white', 'border', 'border2'];
+  const neutralKeys: (keyof NeutralSet)[] = ['ink', 'ink2', 'ink3', 'bg', 'white', 'cardSunken', 'border', 'border2'];
   const semanticKeys: (keyof SemanticSet)[] = ['gold', 'red', 'green', 'blue', 'purple', 'navy', 'navy2'];
 
   // ── Layout Customizer ──────────────────────────────────────────────────
@@ -329,7 +330,7 @@ export function DesignSystemView() {
             </div>
 
             {neutralKeys.map(key => (
-              <ColorField key={key} label={NEUTRAL_LABELS[key]} value={tokens.neutral[themeTab][key]}
+              <ColorField key={key} label={NEUTRAL_LABELS[key]} value={tokens.neutral[themeTab][key] ?? ''}
                 onChange={v => save('neutral', { neutral: { ...tokens.neutral, [themeTab]: { ...tokens.neutral[themeTab], [key]: v } } })} />
             ))}
             {(saveErrors.brand || saveErrors.neutral) && <p className="ds-error">{saveErrors.brand || saveErrors.neutral}</p>}

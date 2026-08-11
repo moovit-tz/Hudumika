@@ -49,6 +49,7 @@ import { DesignSystemProvider } from './components/DesignSystemProvider.js';
 import { SeoAnalyticsProvider } from './components/SeoAnalyticsProvider.js';
 import { AlertHost } from './components/AlertHost.js';
 import { ConfirmHost } from './components/ConfirmHost.js';
+import { InAppBrowserHost } from './components/InAppBrowserHost.js';
 
 import { ClearOSShell } from './shells/ClearOSShell.js';
 import { FinOpsShell }  from './shells/FinOpsShell.js';
@@ -74,6 +75,7 @@ import { TasksShell }    from './shells/TasksShell.js';
 import { CMSShell }      from './shells/CMSShell.js';
 import { StudioShell } from './shells/StudioShell.js';
 import { OnsiteShell } from './shells/OnsiteShell.js';
+import { HuduBIShell } from './shells/HuduBIShell.js';
 import { AppHeader }    from './components/AppHeader.js';
 import { WorkspaceHome } from './pages/WorkspaceHome.js';
 
@@ -353,6 +355,7 @@ const AppContent: React.FC = () => {
           <Route path="/cms/*"       element={<CMSShell />} />
           <Route path="/studio/*"    element={<StudioShell />} />
           <Route path="/onsite/*"    element={<OnsiteShell />} />
+          <Route path="/hudubi/*"    element={<HuduBIShell />} />
 
           {/* Legacy redirects for old routes */}
           <Route path="/billing"         element={<Navigate to="/finance/invoices"        replace />} />
@@ -456,6 +459,7 @@ const App: React.FC = () => (
     </BrowserRouter>
     <AlertHost />
     <ConfirmHost />
+    <InAppBrowserHost />
   </>
 );
 

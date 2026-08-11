@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { CustomerShipmentGroup, ShipmentCase } from '@hudumika/types';
 import { ShipmentRow } from './ShipmentRow.js';
 import { Icon } from './Icon.js';
@@ -40,19 +41,39 @@ export const CustomerGroup: React.FC<CustomerGroupProps> = ({ group, shipmentHre
           <Icon name="chevronRight" size={13} strokeWidth={2.4} />
         </span>
 
-        {/* Customer Avatar */}
+        {/* Customer Avatar — the real CRM logo when the company has one, else
+            the derived initials on the brand colour. */}
         <div
           className="ch-ava"
           style={{
-            backgroundColor: group.customer.avatar_color || 'var(--teal)',
+            backgroundColor: group.customer.logo_url ? 'var(--white)' : (group.customer.avatar_color || 'var(--teal)'),
+            overflow: 'hidden',
+            padding: 0,
           }}
         >
-          {group.customer.avatar_initials || '??'}
+          {group.customer.logo_url
+            ? <img src={group.customer.logo_url} alt={group.customer.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            : (group.customer.avatar_initials || '??')}
         </div>
 
-        {/* Customer Name */}
-        <div className="ch-name" style={{ fontWeight: 600 }}>
-          {group.customer.name}
+        {/* Customer name → CRM profile, with the CRM category/location under it. */}
+        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <Link
+            to={`/crm/customers?id=${group.customer.id}`}
+            onClick={(e) => e.stopPropagation()}
+            title="Open in CRM"
+            className="ch-name"
+            style={{ fontWeight: 600, color: 'var(--ink)', textDecoration: 'none' }}
+            onMouseEnter={(e) => (e.currentTarget.style.textDecoration = 'underline')}
+            onMouseLeave={(e) => (e.currentTarget.style.textDecoration = 'none')}
+          >
+            {group.customer.name}
+          </Link>
+          {(group.customer.category || group.customer.city) && (
+            <span style={{ fontSize: 11, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {[group.customer.category, group.customer.city].filter(Boolean).join(' · ')}
+            </span>
+          )}
         </div>
 
         {/* Risk Indicators */}

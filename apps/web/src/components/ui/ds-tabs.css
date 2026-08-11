@@ -94,11 +94,12 @@
    Bordered track, raised active tab — an iOS-style control. */
 :root[data-tabs="segmented"] .ds-tabs-list,
 .ds-tabs-list[data-variant="segmented"] {
-  /* --border, not --bg: index.css redefines --bg to --white inside
-     .page-layout in light mode, which left the track and its active tab both
-     white and the control looking flat. --border is a real neutral in both
-     themes and needs no hand-mixed tint. */
-  background: var(--border);
+  /* --card-sunken, the same sunken surface a collapsible card body uses, so the
+     tab track reads as one material with the panel below it. It is a real
+     neutral in both themes and — unlike --bg — is never flattened to white
+     inside .page-layout; the raised white active tab still separates via its
+     own shadow. */
+  background: var(--card-sunken);
   border-radius: calc(var(--tab-radius, 8px) + 3px);
   padding: 3px;
   gap: 3px;

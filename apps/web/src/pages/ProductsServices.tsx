@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MetricsRow } from '../components/MetricCard.js';
 import { Icon } from '../components/Icon.js';
+import { PaginationBar } from '../components/PaginationBar.js';
 import { apiFetch } from '../lib/api.js';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -242,25 +243,6 @@ function fmtDate(d: string | null | undefined) {
 // -- Pagination ------------------------------------------------------------
 
 const PAGE_SIZE = 20;
-
-function getPageNums(cur: number, total: number): (number | '…')[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages: (number | '…')[] = [1];
-  if (cur > 3) pages.push('…');
-  for (let p = Math.max(2, cur - 1); p <= Math.min(total - 1, cur + 1); p++) pages.push(p);
-  if (cur < total - 2) pages.push('…');
-  pages.push(total);
-  return pages;
-}
-
-function PagBtn({ label, active, disabled, onClick }: { label: string; active?: boolean; disabled?: boolean; onClick: () => void }) {
-  return (
-    <button type="button" disabled={disabled} onClick={onClick}
-      style={{ minWidth: 32, height: 32, padding: '0 8px', border: active ? 'none' : '1.5px solid var(--border)', borderRadius: 'var(--r)', background: active ? 'var(--navy)' : disabled ? 'var(--bg)' : 'var(--white)', color: active ? '#fff' : disabled ? 'var(--ink3)' : 'var(--ink)', fontSize: 13, fontWeight: active ? 700 : 500, cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: 'var(--font)' }}>
-      {label}
-    </button>
-  );
-}
 
 // -- Category badge ------------------------------------------------------------
 
@@ -1069,27 +1051,16 @@ export const ProductsServices: React.FC = () => {
                   ))}
                 </tbody>
               </table>
-              <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border)', fontSize: 12, color: 'var(--ink3)', display: 'flex', justifyContent: 'space-between' }}>
-                <span>Showing {paginated.length === 0 ? 0 : (safePage - 1) * PAGE_SIZE + 1}–{(safePage - 1) * PAGE_SIZE + paginated.length} of {displayed.length} services</span>
-                <span>{active} active · {inactive} inactive</span>
+              <div style={{ padding: '6px 16px 0', fontSize: 12, color: 'var(--ink3)', textAlign: 'right' }}>
+                {active} active · {inactive} inactive
               </div>
-              {totalPages > 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
-                  <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                    <PagBtn label="Prev" disabled={safePage === 1} onClick={() => setPage(p => p - 1)} />
-                    {getPageNums(safePage, totalPages).map((p, i) =>
-                      p === '…' ? <span key={`e-${i}`} style={{ padding: '0 4px', color: 'var(--ink3)', fontSize: 13 }}>···</span>
-                        : <PagBtn key={p} label={String(p)} active={p === safePage} onClick={() => setPage(p as number)} />
-                    )}
-                    <PagBtn label="Next" disabled={safePage === totalPages} onClick={() => setPage(p => p + 1)} />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--ink3)' }}>
-                    <span style={{ fontWeight: 600, letterSpacing: '0.05em' }}>PAGE</span>
-                    <input type="number" title="Go to page" value={safePage} min={1} max={totalPages} onChange={e => { const v = parseInt(e.target.value); if (v >= 1 && v <= totalPages) setPage(v); }} style={{ width: 42, padding: '4px 6px', border: '1.5px solid var(--border)', borderRadius: 6, fontSize: 13, textAlign: 'center', fontFamily: 'var(--font)', color: 'var(--ink)', background: 'var(--white)' }} />
-                    <span>OF {totalPages}</span>
-                  </div>
-                </div>
-              )}
+              <PaginationBar
+                page={safePage}
+                pageSize={PAGE_SIZE}
+                total={displayed.length}
+                itemLabel="service"
+                onPageChange={setPage}
+              />
             </div>
           )}
         </div>

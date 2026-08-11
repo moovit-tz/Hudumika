@@ -4,6 +4,8 @@ import { usePageSEO } from '../hooks/usePageSEO.js';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
+import { SectionCard } from '../components/SectionCard.js';
+import { Tip } from '../components/ui/tooltip.js';
 import type { IconName } from '../components/Icon.js';
 import { apiFetch, apiDownload, apiViewBlob, apiFetchBlob } from '../lib/api.js';
 import { HUDUMIKA_FOOTER_HTML } from '../lib/watermark.js';
@@ -12,6 +14,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
 import { useClockIn } from '../contexts/ClockInContext.js';
 import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 import {
   getJob, updateJob, subscribe,
   STAGES, FLAG_CFG, CH_CFG, stageIdx, STAGE_API_MAP, API_STAGE_MAP, apiToJob,
@@ -1462,10 +1465,13 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
         </div>
       )}
 
-      {/* Sub-tab strip */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 20, background: 'var(--bg)', borderRadius: 12, padding: 5, border: '1px solid var(--border)' }}>
+      {/* Sub-tab strip — the shared segmented ds-tabs, same as the shipment
+          tabs (was a hand-rolled pill row on a --bg track, which flattened to
+          white inside .page-layout). */}
+      <div className="ds-tabs-list" data-variant="segmented" style={{ marginBottom: 20, maxWidth: '100%' }}>
         {SUB_TABS.map(t => (
-          <button key={t.key} type="button" onClick={() => setSub(t.key)} style={{ flex: '1 1 110px', padding: 'var(--ds-btn-py) 10px', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'var(--font)', background: sub === t.key ? 'var(--white)' : 'transparent', color: sub === t.key ? 'var(--teal)' : 'var(--ink3)', boxShadow: sub === t.key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.12s', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+          <button key={t.key} type="button" className="ds-tabs-trigger" data-variant="segmented"
+            data-state={sub === t.key ? 'active' : 'inactive'} onClick={() => setSub(t.key)}>
             {t.label}
           </button>
         ))}
@@ -1904,31 +1910,13 @@ function CustomerOverviewTab({ job, isMobile }: { job: ClearanceJob; isMobile: b
 }
 
 // ── Card shell — one consistent card style used across the redesigned Overview ──
-function Card({ title, action, padded = true, collapsible = false, defaultOpen = true, children }: { title?: string; action?: React.ReactNode; padded?: boolean; collapsible?: boolean; defaultOpen?: boolean; children: React.ReactNode }) {
-  const [open, setOpen] = useState(defaultOpen);
-  const showBody = !collapsible || open;
-  return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-      {title && (
-        <div
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 18px', borderBottom: showBody ? '1px solid var(--border)' : 'none', gap: 8, cursor: collapsible ? 'pointer' : 'default', userSelect: collapsible ? 'none' : undefined }}
-          onClick={collapsible ? () => setOpen(o => !o) : undefined}
-        >
-          <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            {collapsible && <Icon name={open ? 'chevronDown' : 'chevronRight'} size={13} color="var(--ink3)" />}
-            {title}
-          </span>
-          {action && <span onClick={e => e.stopPropagation()}>{action}</span>}
-        </div>
-      )}
-      {showBody && <div style={{ padding: padded ? '18px' : 0 }}>{children}</div>}
-    </div>
-  );
-}
+// The shipment page's section card is the shared SectionCard — kept as a local
+// `Card` alias so the ~30 call sites on this page read unchanged.
+const Card = SectionCard;
 
 function SpecRow({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '9px 0', borderBottom: '1px solid var(--bg)' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
       <span style={{ fontSize: 12.5, color: 'var(--ink3)', flexShrink: 0 }}>{label}</span>
       <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', fontFamily: mono ? 'var(--mono)' : undefined, textAlign: 'right', wordBreak: 'break-word' }}>{value}</span>
     </div>
@@ -1939,18 +1927,7 @@ const DOC_TYPE_LABEL: Record<string, string> = { bl: 'Bill of Lading', awb: 'Air
 
 function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; isMobile: boolean; isLive: boolean; onRefresh: () => void }) {
   const company = useCompany();
-  const { user } = useAuth();
-  const canVerify = !!(user && user.role !== 'CUSTOMER');
-  const [verifying, setVerifying] = useState<string | null>(null);
-  async function verifyDoc(doc: ShipDoc) {
-    if (!isLive || verifying) return;
-    setVerifying(doc.id);
-    try {
-      await apiFetch(`/v1/shipments/${job.id}/documents/${doc.id}/verify`, { method: 'PATCH', body: JSON.stringify({ status: 'VERIFIED' }) });
-      onRefresh();
-    } catch (err: any) { showAlert(err.message || 'Could not verify document'); }
-    finally { setVerifying(null); }
-  }
+  // Document view/download/verify now live in the unified <DocumentsPanel/>.
   const totalTasks   = job.tasks.length;
   const doneTasks    = job.tasks.filter(t => t.status === 'complete').length;
   const totalHours   = job.timeEntries.reduce((s, e) => s + e.hours, 0);
@@ -1959,16 +1936,6 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
   const daysLeft     = job.dueDate ? Math.ceil((job.dueDate.getTime() - Date.now()) / 86400000) : null;
   const isOverdueBal = job.dueDate ? new Date() > job.dueDate : false;
   const balanceDue   = Math.max(0, totalCharges - totalPaid);
-
-  async function downloadDoc(doc: ShipDoc) {
-    try { await apiDownload(`/v1/shipments/${job.id}/documents/${doc.id}/download`, doc.name); }
-    catch (e: any) { showAlert(e.message ?? 'Download failed'); }
-  }
-
-  async function viewDoc(doc: ShipDoc) {
-    try { await apiViewBlob(`/v1/shipments/${job.id}/documents/${doc.id}/view`); }
-    catch (e: any) { showAlert(e.message ?? 'View failed'); }
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -2020,12 +1987,17 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
       )}
 
       {/* 2-col body */}
-      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '3fr 2fr', gap: 16 }}>
+      {/* minmax(0, …), not a bare 3fr/2fr: a grid item's default min-width is
+          min-content, so long values (filenames, addresses) let each column
+          refuse to shrink and the whole grid overflows its flex parent —
+          sliding under the 248px listeners rail beside it. minmax(0,…) lets the
+          columns shrink and the rail sits cleanly alongside at every width. */}
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 3fr) minmax(0, 2fr)', gap: 16 }}>
 
         {/* Left column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Card title="Shipment Details">
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '0 32px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)', gap: '0 32px' }}>
               <div>
                 <SpecRow label="B/L Number" value={job.bl || '—'} mono />
                 <SpecRow label="TANSAD" value={job.tansad || '—'} mono />
@@ -2045,7 +2017,7 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
 
           {/* Contact Details — Ship From (our company) / Ship To (customer) */}
           <Card title="Contact Details">
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: 20 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'minmax(0, 1fr) minmax(0, 1fr)', gap: 20 }}>
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
                   <Icon name="building" size={12} color="var(--ink3)" /> Ship From (Us)
@@ -2070,50 +2042,7 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
             </div>
           </Card>
 
-          {/* Documents */}
-          <Card title="Documents" padded={false} action={job.documents.length > 0 ? (
-            <button type="button" onClick={() => job.documents.forEach(downloadDoc)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-              <Icon name="download" size={12} color="var(--teal)" /> Download All
-            </button>
-          ) : undefined}>
-            {job.documents.length === 0 ? (
-              <div style={{ padding: '28px 18px', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No documents yet.</div>
-            ) : (
-              job.documents.map((d, i) => (
-                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < job.documents.length - 1 ? '1px solid var(--bg)' : 'none' }}>
-                  <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Icon name="fileText" size={15} color="var(--ink3)" />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{DOC_TYPE_LABEL[d.type] ?? d.type} · {fdate(d.uploadedAt)}</div>
-                  </div>
-                  {d.extracted?.status === 'done' && (
-                    <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: 'rgba(124,58,237,0.1)', color: 'var(--purple)', flexShrink: 0 }}>AI ✓</span>
-                  )}
-                  {d.status === 'VERIFIED' ? (
-                    <span title="Verified" style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: 'var(--green-l)', color: 'var(--green)', flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3 }}><Icon name="checkCircle" size={11} color="var(--green)" /> Verified</span>
-                  ) : canVerify && !d.pending ? (
-                    <button type="button" onClick={() => verifyDoc(d)} disabled={verifying === d.id} title="Mark this document as verified" style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--teal)', color: 'var(--teal)', background: 'var(--white)', cursor: verifying === d.id ? 'default' : 'pointer', flexShrink: 0, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-                      {verifying === d.id ? '…' : 'Verify'}
-                    </button>
-                  ) : null}
-                  <button type="button" onClick={() => viewDoc(d)} title="View" style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Icon name="eye" size={13} color="var(--ink3)" />
-                  </button>
-                  <button type="button" onClick={() => downloadDoc(d)} title="Download" style={{ width: 30, height: 30, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <Icon name="download" size={13} color="var(--ink3)" />
-                  </button>
-                </div>
-              ))
-            )}
-          </Card>
-
-          {/* Customs & payment documents — shown once the case reaches the
-              customs/assessment/payment phase. */}
-          {/customs|assessment|duty|payment|tax|tancis/i.test(jobStageLabel(job)) && (
-            <CustomsDocsPanel job={job} shipmentId={job.id} isLive={isLive} onRefresh={onRefresh} />
-          )}
+          {/* Documents live on the Files tab now, not here. */}
 
           <LinkedAppsPanel shipmentId={job.id} isMobile={isMobile} />
         </div>
@@ -2900,9 +2829,19 @@ const DOC_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: 'OTHER', label: 'Other' },
 ];
 
-// The customs assessment & payment phase expects a specific document set.
-// Required ones gate the move to the payment step; optional ones vary by flow.
-const CUSTOMS_DOC_GROUPS: { title: string; required: boolean; docs: { type: string; label: string }[] }[] = [
+// The full document manifest for a shipment — the whole clearance checklist in
+// ONE place, not two overlapping panels. `required` gates the move to payment;
+// the rest are the shipping/clearance and optional docs, including the ones
+// uploaded in later steps. Any uploaded document whose type isn't listed here
+// still shows, under "Other documents".
+const DOC_MANIFEST: { title: string; required?: boolean; optional?: boolean; docs: { type: string; label: string }[] }[] = [
+  { title: 'Shipping & clearance', docs: [
+    { type: 'BL', label: 'Bill of Lading' },
+    { type: 'INVOICE', label: 'Commercial Invoice' },
+    { type: 'PACKING_LIST', label: 'Packing List' },
+    { type: 'CUSTOMS_ENTRY', label: 'Customs Entry' },
+    { type: 'DUTY_RECEIPT', label: 'Duty Receipt' },
+  ] },
   { title: 'Required before payment', required: true, docs: [
     { type: 'PRE_ASSESSMENT', label: 'Pre-assessment' },
     { type: 'FINAL_ASSESSMENT', label: 'Final assessment' },
@@ -2910,17 +2849,20 @@ const CUSTOMS_DOC_GROUPS: { title: string; required: boolean; docs: { type: stri
     { type: 'PAYMENT_NOTE', label: 'Payment note' },
     { type: 'TISS_PAYMENT_INVOICE', label: 'TISS payment invoice' },
   ] },
-  { title: 'Optional — depends on the flow', required: false, docs: [
+  { title: 'Optional — depends on the flow', optional: true, docs: [
     { type: 'TBS_CHARGES', label: 'TBS charges' },
     { type: 'COC', label: 'Certificate of Conformity' },
     { type: 'WHARFAGE', label: 'Wharfage' },
   ] },
 ];
 
-function CustomsDocsPanel({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shipmentId: string; isLive: boolean; onRefresh: () => void }) {
+function DocumentsPanel({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; shipmentId: string; isLive: boolean; onRefresh: () => void }) {
   const { user } = useAuth();
   const canUpload = !!(user && user.role !== 'CUSTOMER');
+  const canVerify = !!(user && user.role !== 'CUSTOMER');
   const [uploading, setUploading] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
   const targetType = React.useRef('');
 
@@ -2944,43 +2886,169 @@ function CustomsDocsPanel({ job, shipmentId, isLive, onRefresh }: { job: Clearan
     finally { setUploading(null); }
   }
 
-  const requiredDocs = CUSTOMS_DOC_GROUPS.find(g => g.required)!.docs;
+  async function viewDoc(doc: ShipDoc) {
+    try { await apiViewBlob(`/v1/shipments/${shipmentId}/documents/${doc.id}/view`); }
+    catch (err: any) { showAlert(err.message || 'Could not open document'); }
+  }
+  async function shareDoc(doc: ShipDoc) {
+    try {
+      const blob = await apiFetchBlob(`/v1/shipments/${shipmentId}/documents/${doc.id}/view`);
+      const file = new File([blob], doc.name, { type: blob.type || 'application/octet-stream' });
+      const nav = navigator as any;
+      if (nav.canShare?.({ files: [file] })) {
+        await nav.share({ files: [file], title: doc.name });   // real OS share sheet with the actual file
+      } else {
+        // Most desktop browsers can't share files — hand the file over so it can
+        // be attached to whatever the user shares it through. No fake link.
+        await apiDownload(`/v1/shipments/${shipmentId}/documents/${doc.id}/download`, doc.name);
+        showAlert('This browser can’t open a share sheet, so the file was downloaded — attach it to share.', { variant: 'info', title: 'Downloaded to share' });
+      }
+    } catch (err: any) {
+      if (err?.name === 'AbortError') return;   // user dismissed the share sheet
+      showAlert(err?.message || 'Could not share document');
+    }
+  }
+  async function downloadDoc(doc: ShipDoc) {
+    try { await apiDownload(`/v1/shipments/${shipmentId}/documents/${doc.id}/download`, doc.name); }
+    catch (err: any) { showAlert(err.message || 'Download failed'); }
+  }
+  async function verifyDoc(doc: ShipDoc) {
+    if (!isLive || verifying) return;
+    setVerifying(doc.id);
+    try {
+      await apiFetch(`/v1/shipments/${shipmentId}/documents/${doc.id}/verify`, { method: 'PATCH', body: JSON.stringify({ status: 'VERIFIED' }) });
+      onRefresh();
+    } catch (err: any) { showAlert(err.message || 'Could not verify document'); }
+    finally { setVerifying(null); }
+  }
+  async function deleteDoc(doc: ShipDoc) {
+    if (!isLive) { showAlert('Deleting is only available for live shipments, not demo data.'); return; }
+    const ok = await showConfirm(`Delete "${DOC_TYPE_LABEL[doc.type] ?? doc.type}"? The file is removed and this can’t be undone.`, { title: 'Delete document', variant: 'danger', confirmLabel: 'Delete' });
+    if (!ok) return;
+    setDeleting(doc.id);
+    try {
+      await apiFetch(`/v1/shipments/${shipmentId}/documents/${doc.id}`, { method: 'DELETE' });
+      onRefresh();
+    } catch (err: any) { showAlert(err.message || 'Could not delete document'); }
+    finally { setDeleting(null); }
+  }
+
+  // Workflow-driven required list: the document entry-conditions of THIS
+  // shipment's workflow (each step's `document:<TYPE>` requirement). This is
+  // what makes the checklist change with the workflow — a Sea-import flow asks
+  // for different docs than Air or Transit. When the workflow declares none
+  // (e.g. a legacy shipment), fall back to the default required set.
+  const wfDocTypes: { type: string; label: string }[] = [];
+  {
+    const seen = new Set<string>();
+    for (const step of job.workflowSteps ?? []) {
+      for (const req of step.requirements ?? []) {
+        const f = req.field;
+        if (f && f.startsWith('document:')) {
+          const t = f.slice('document:'.length).toUpperCase();
+          if (!seen.has(t)) { seen.add(t); wfDocTypes.push({ type: t, label: DOC_TYPE_LABEL[t.toLowerCase()] ?? t }); }
+        }
+      }
+    }
+  }
+  const shipping = DOC_MANIFEST.find(g => !g.required && !g.optional)!;
+  const optionalGroup = DOC_MANIFEST.find(g => g.optional)!;
+  const requiredGroup = wfDocTypes.length > 0
+    ? { title: 'Required by this workflow', required: true, docs: wfDocTypes }
+    : DOC_MANIFEST.find(g => g.required)!;
+
+  type Grp = { title: string; required?: boolean; optional?: boolean; docs: { type: string; label: string }[] };
+  const requiredTypes = new Set(requiredGroup.docs.map(d => d.type));
+  const groups: Grp[] = [
+    requiredGroup,
+    { title: shipping.title, docs: shipping.docs.filter(d => !requiredTypes.has(d.type)) },
+    { title: optionalGroup.title, optional: true, docs: optionalGroup.docs.filter(d => !requiredTypes.has(d.type)) },
+  ].filter(g => g.docs.length > 0);
+
+  const requiredDocs = requiredGroup.docs;
   const haveCount = requiredDocs.filter(d => docFor(d.type)).length;
   const ready = haveCount === requiredDocs.length;
 
+  const listedTypes = new Set(groups.flatMap(g => g.docs.map(d => d.type)));
+  const others = job.documents.filter(d => !d.pending && !listedTypes.has((d.apiType || '').toUpperCase()));
+  const uploadedAny = job.documents.some(d => !d.pending);
+
+  // One row — a manifest slot (with or without its file) or an extra upload.
+  const row = (key: string, type: string, label: string, doc: ShipDoc | undefined, required: boolean, pendingLabel: string) => (
+    <div key={key} style={{
+      display: 'flex', alignItems: 'center', gap: 12, minWidth: 0,
+      // A lighter wash of the app accent for an uploaded row — the canonical
+      // --teal-l tint blended most of the way to white, so it still reads as
+      // "this app's colour" (orange in ClearOS, pink in NexusHR…) but softly.
+      border: `1px solid ${doc ? 'color-mix(in srgb, var(--teal-m), var(--white) 40%)' : 'var(--border)'}`,
+      borderRadius: 'var(--r, 10px)', padding: '10px 12px',
+      background: doc ? 'color-mix(in srgb, var(--teal-l), var(--white) 55%)' : 'var(--white)',
+    }}>
+      <span style={{
+        width: 30, height: 30, borderRadius: 'var(--r-sm, 8px)', flexShrink: 0,
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        background: doc ? 'var(--teal)' : required ? 'var(--gold-l)' : 'var(--bg)',
+      }}>
+        <Icon name={doc ? 'check' : required ? 'alertCircle' : 'fileText'} size={15}
+          color={doc ? '#fff' : required ? 'var(--gold)' : 'var(--ink3)'} strokeWidth={doc ? 3 : 1.75} />
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{label}</div>
+        <div title={doc ? doc.name : undefined} style={{ fontSize: 11.5, color: doc ? 'var(--ink2)' : required ? 'var(--gold)' : 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }}>
+          {doc ? `${doc.name} · ${fdate(doc.uploadedAt)}` : pendingLabel}
+        </div>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+        {doc && (
+          <>
+            {doc.status === 'VERIFIED' ? (
+              <Tip label="Verified"><span className="doc-act is-verified" aria-label="Verified"><Icon name="checkCircle" size={17} /></span></Tip>
+            ) : canVerify ? (
+              <Tip label="Mark as verified"><button type="button" className="doc-act" onClick={() => verifyDoc(doc)} disabled={verifying === doc.id} aria-label="Mark as verified"><Icon name="checkCircle" size={16} /></button></Tip>
+            ) : null}
+            <Tip label="View document"><button type="button" className="doc-act" onClick={() => viewDoc(doc)} aria-label="View document"><Icon name="eye" size={16} /></button></Tip>
+            <Tip label="Share document"><button type="button" className="doc-act" onClick={() => shareDoc(doc)} aria-label="Share document"><Icon name="send" size={16} /></button></Tip>
+            <Tip label="Download document"><button type="button" className="doc-act" onClick={() => downloadDoc(doc)} aria-label="Download document"><Icon name="download" size={16} /></button></Tip>
+            <Tip label="Delete document"><button type="button" className="doc-act is-delete" onClick={() => deleteDoc(doc)} disabled={deleting === doc.id} aria-label="Delete document"><Icon name="trash2" size={16} /></button></Tip>
+          </>
+        )}
+        {canUpload && (
+          <Tip label={doc ? 'Replace document' : 'Upload document'}>
+            <button type="button" className="doc-act" onClick={() => pick(type)} disabled={uploading === type} aria-label={doc ? 'Replace document' : 'Upload document'}>
+              <Icon name="upload" size={16} />
+            </button>
+          </Tip>
+        )}
+      </div>
+    </div>
+  );
+
   return (
-    <Card title="Customs & Payment Documents" collapsible defaultOpen>
+    <Card title="Documents" collapsible defaultOpen action={uploadedAny ? (
+      <button type="button" onClick={() => job.documents.filter(d => !d.pending).forEach(downloadDoc)} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+        <Icon name="download" size={12} color="var(--teal)" /> Download All
+      </button>
+    ) : undefined}>
       <input ref={fileRef} type="file" style={{ display: 'none' }} onChange={onFile} />
-      <div style={{ fontSize: 12, fontWeight: 600, color: ready ? 'var(--green)' : 'var(--ink3)', marginBottom: 12 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: ready ? 'var(--teal)' : 'var(--ink3)', marginBottom: 14 }}>
         {haveCount} of {requiredDocs.length} required uploaded{ready ? ' — ready to move to payment.' : ' — all required before the payment step.'}
       </div>
-      {CUSTOMS_DOC_GROUPS.map(group => (
-        <div key={group.title} style={{ marginBottom: 14 }}>
+      {groups.map(group => (
+        <div key={group.title} style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{group.title}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-            {group.docs.map(d => {
-              const doc = docFor(d.type);
-              return (
-                <div key={d.type} style={{ border: `1px solid ${doc ? 'var(--green)' : 'var(--border)'}`, borderRadius: 9, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8, background: doc ? 'var(--green-l)' : 'var(--bg)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-                    <Icon name={doc ? 'checkCircle' : group.required ? 'alertCircle' : 'fileText'} size={14} color={doc ? 'var(--green)' : group.required ? 'var(--gold)' : 'var(--ink3)'} />
-                    <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{d.label}</span>
-                  </div>
-                  <div style={{ fontSize: 11, color: doc ? 'var(--ink2)' : group.required ? 'var(--gold)' : 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {doc ? doc.name : group.required ? 'Required' : 'Optional'}
-                  </div>
-                  {canUpload && (
-                    <button type="button" onClick={() => pick(d.type)} disabled={uploading === d.type}
-                      style={{ fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 10px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', cursor: uploading === d.type ? 'default' : 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 5, minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
-                      <Icon name="upload" size={11} /> {uploading === d.type ? 'Uploading…' : doc ? 'Replace' : 'Upload'}
-                    </button>
-                  )}
-                </div>
-              );
-            })}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {group.docs.map(d => row(d.type, d.type, d.label, docFor(d.type), !!group.required, group.required ? 'Required' : group.optional ? 'Optional' : 'Not uploaded yet'))}
           </div>
         </div>
       ))}
+      {others.length > 0 && (
+        <div>
+          <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Other documents</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {others.map(d => row(d.id, (d.apiType || d.type || '').toUpperCase(), DOC_TYPE_LABEL[d.type] ?? d.type, d, false, ''))}
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
@@ -3216,8 +3284,8 @@ function FilesTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                   <Icon name={docIcon(doc.type)} size={20} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.name}</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1 }}>{doc.size} · Uploaded by {doc.uploadedBy} · {fdate(doc.uploadedAt)}</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{DOC_TYPE_LABEL[doc.type] ?? doc.type}</div>
+                  <div title={doc.name} style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.name} · Uploaded by {doc.uploadedBy} · {fdate(doc.uploadedAt)}</div>
                   {ex?.status === 'done' && ex.summary && <div style={{ fontSize: 12, color: 'var(--ink2)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.summary}</div>}
                 </div>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
@@ -4062,17 +4130,12 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
     <div style={{ width: 248, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
 
       {/* Assigned To */}
-      {/* Assigned To Card */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>Assigned To</span>
-          {canManage && (
-            <button type="button" onClick={() => setShowAssignPicker(true)}
-              style={{ fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, padding: 0 }}>
-              {job.assignees.length > 0 ? 'Change' : '+ Assign'}
-            </button>
-          )}
-        </div>
+      <Card title="Assigned To" padded={false} action={canManage ? (
+        <button type="button" onClick={() => setShowAssignPicker(true)}
+          style={{ fontSize: 11, color: 'var(--teal)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, padding: 0 }}>
+          {job.assignees.length > 0 ? 'Change' : '+ Assign'}
+        </button>
+      ) : undefined}>
         <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {job.assignees.length === 0 ? (
             canManage ? (
@@ -4146,20 +4209,18 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
             </div>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* Listeners Card */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>Listeners</span>
-          <span style={{ display: 'flex', gap: 5 }}>
-            <span style={{ padding: '1px 7px', background: 'var(--bg)', borderRadius: 12, fontSize: 10, fontWeight: 700, color: 'var(--ink3)' }}>{job.listeners.length}</span>
-            {customers.length > 0 && (
-              <span style={{ padding: '1px 7px', background: waActive ? 'var(--green-l)' : 'var(--bg)', color: waActive ? 'var(--green)' : 'var(--ink3)', borderRadius: 12, fontSize: 10, fontWeight: 700 }}>WA {waActive ? '✓' : '✕'}</span>
-            )}
-          </span>
-        </div>
-        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12, background: 'var(--bg-light, rgba(0,0,0,0.01))' }}>
+      <Card title="Listeners" padded={false} action={(
+        <span style={{ display: 'flex', gap: 5 }}>
+          <span style={{ padding: '1px 7px', background: 'var(--bg)', borderRadius: 12, fontSize: 10, fontWeight: 700, color: 'var(--ink3)' }}>{job.listeners.length}</span>
+          {customers.length > 0 && (
+            <span style={{ padding: '1px 7px', background: waActive ? 'var(--green-l)' : 'var(--bg)', color: waActive ? 'var(--green)' : 'var(--ink3)', borderRadius: 12, fontSize: 10, fontWeight: 700 }}>WA {waActive ? '✓' : '✕'}</span>
+          )}
+        </span>
+      )}>
+        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
           
           {/* Staff Section */}
           <div>
@@ -4474,7 +4535,7 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
           </div>
 
         </div>
-      </div>
+      </Card>
 
       {showAssignPicker && canManage && (
         <StaffPickerModal
@@ -4505,13 +4566,12 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
       {/* Key Dates — editable; saving notifies this shipment's listeners
           (same WhatsApp/Email/in-app channels as above) via the backend's
           KEY_DATE_CHANGED trigger, so a date change is never silent. */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--border)', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Key Dates</div>
+      <Card title="Key Dates" padded={false}>
         {[
           { key: 'created' as const, label: 'Created',  date: job.createdAt, field: 'created_at', warn: false },
           { key: 'due' as const,     label: 'Due Date', date: job.dueDate,   field: 'due_date',    warn: !!(job.dueDate && new Date() > job.dueDate) },
-        ].map(item => (
-          <div key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 16px', borderBottom: '1px solid var(--border)', gap: 10 }}>
+        ].map((item, i, arr) => (
+          <div key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 16px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none', gap: 10 }}>
             <span style={{ fontSize: 12, color: 'var(--ink3)', flexShrink: 0 }}>{item.label}</span>
             {editingDate === item.key ? (
               <DatePicker
@@ -4538,16 +4598,15 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
             )}
           </div>
         ))}
-      </div>
+      </Card>
 
       {/* Flags */}
       {job.flags.length > 0 && (
-        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '13px 16px' }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>Tags &amp; Flags</div>
+        <Card title="Tags & Flags">
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {job.flags.map(f => <FlagChip key={f} flag={f} />)}
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Workflow — which track governs this case, and (while it is still in
@@ -4618,12 +4677,9 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
   }
 
   return (
-    <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '13px 16px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Workflow</div>
-        {locked && <span title="A completed shipment cannot be re-routed" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: 'var(--ink3)' }}><Icon name="lock" size={11} /> Locked</span>}
-      </div>
-
+    <Card title="Workflow" action={locked ? (
+      <span title="A completed shipment cannot be re-routed" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: 'var(--ink3)' }}><Icon name="lock" size={11} /> Locked</span>
+    ) : undefined}>
       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{job.workflowName || (job.workflowKind === 'CUSTOM' ? 'Workflow' : 'Standard stages')}</div>
       {curStep && (
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>
@@ -4684,7 +4740,7 @@ function WorkflowCard({ job, shipmentId, isLive, onRefresh, canManage }: {
           </div>
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -4882,7 +4938,7 @@ export function ShipmentDetail() {
           {/* Top Single Row: Utility + Title + Actions */}
           <div style={{ position: 'relative', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: heroFolded ? 8 : 16, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1 }}>
-              <Link to={isStaff ? '/clearos/ops' : '/'} title={isStaff ? 'Back to Ops Command' : 'Back to your shipments'} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px 6px 8px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 12.5, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
+              <Link to={isStaff ? '/clearos/ops' : '/'} title={isStaff ? 'Back to Ops Command' : 'Back to your shipments'} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '0 12px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 12.5, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
                 <Icon name="chevronLeft" size={13} color="#fff" /> {isMobile ? '' : (isStaff ? 'Ops Command' : 'My shipments')}
               </Link>
               {job.sysRef && (
@@ -4913,12 +4969,12 @@ export function ShipmentDetail() {
             {/* Right side actions */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'flex-start' : 'flex-end' }}>
               {job.tansad && (
-                <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid rgba(255,255,255,0.35)', fontFamily: 'var(--mono)', backdropFilter: 'blur(4px)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 11, fontWeight: 700, padding: '0 12px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid rgba(255,255,255,0.35)', fontFamily: 'var(--mono)', backdropFilter: 'blur(4px)' }}>
                   TANSAD: {job.tansad}
                 </span>
               )}
               {isStaff && !isMock && (
-                <Link to={`/clearos/clearance/${id}/edit`} style={{ flex: isMobile ? 1 : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 14px', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 10, background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 12.5, fontWeight: 600, textDecoration: 'none', backdropFilter: 'blur(4px)' }}>
+                <Link to={`/clearos/clearance/${id}/edit`} style={{ flex: isMobile ? 1 : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 14px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 12.5, fontWeight: 600, textDecoration: 'none', backdropFilter: 'blur(4px)' }}>
                   <Icon name="edit" size={13} /> Edit
                 </Link>
               )}
@@ -4927,10 +4983,10 @@ export function ShipmentDetail() {
                   <Icon name="arrowRight" size={13} /> Advance Stage
                 </button>
               )}
-              <button type="button" onClick={() => openShipmentReportWindow(job)} title="Print shipment report" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: isMobile ? 'auto' : 30, height: isMobile ? 32 : 30, padding: isMobile ? '0 14px' : 0, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', flexShrink: 0 }}>
+              <button type="button" onClick={() => openShipmentReportWindow(job)} title="Print shipment report" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: isMobile ? 'auto' : 'var(--ctl-h)', minHeight: 'var(--ctl-h)', height: 'var(--ctl-h)', padding: isMobile ? '0 14px' : 0, boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', flexShrink: 0, flex: isMobile ? 1 : 'none' }}>
                 <Icon name="printer" size={14} /> {isMobile && <span style={{ marginLeft: 6, fontSize: 12.5, fontWeight: 600 }}>Print</span>}
               </button>
-              <button type="button" onClick={() => setHeroFolded(f => !f)} title={heroFolded ? 'Expand shipment summary' : 'Collapse shipment summary'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: isMobile ? 'auto' : 30, height: isMobile ? 32 : 30, padding: isMobile ? '0 14px' : 0, borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', flexShrink: 0 }}>
+              <button type="button" onClick={() => setHeroFolded(f => !f)} title={heroFolded ? 'Expand shipment summary' : 'Collapse shipment summary'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: isMobile ? 'auto' : 'var(--ctl-h)', minHeight: 'var(--ctl-h)', height: 'var(--ctl-h)', padding: isMobile ? '0 14px' : 0, boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', flexShrink: 0, flex: isMobile ? 1 : 'none' }}>
                 <Icon name={heroFolded ? 'chevronDown' : 'chevronUp'} size={14} /> {isMobile && <span style={{ marginLeft: 6, fontSize: 12.5, fontWeight: 600 }}>{heroFolded ? 'Expand' : 'Collapse'}</span>}
               </button>
             </div>
@@ -4956,23 +5012,27 @@ export function ShipmentDetail() {
         </div>
         <div style={{ height: isMobile ? 14 : 18 }} />
 
-        {/* Tabs — horizontal scroll on narrow screens instead of wrapping/clipping */}
-        <div style={{ display: 'flex', padding: isMobile ? '0 10px' : '0 14px', borderTop: '1px solid var(--border)', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
-          {TAB_CFG.filter(t => isStaff || CUSTOMER_TABS.has(t.id)).map(t => {
-            const badge =
-              t.id === 'tasks'      ? job.tasks.length :
-              t.id === 'timesheets' ? job.timeEntries.length :
-              t.id === 'updates'    ? job.thread.length :
-              t.id === 'files'      ? job.documents.length :
-              t.id === 'ledger'     ? job.ledger.length : undefined;
-            return (
-              <button key={t.id} type="button" onClick={() => setTab(t.id)} style={{ padding: isMobile ? '12px 10px' : '12px 16px', border: 'none', borderBottom: `2px solid ${tab === t.id ? 'var(--teal)' : 'transparent'}`, background: 'none', cursor: 'pointer', fontSize: 13, fontWeight: tab === t.id ? 700 : 500, color: tab === t.id ? 'var(--teal)' : 'var(--ink3)', display: 'flex', alignItems: 'center', gap: 6, transition: 'color 0.15s', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                <Icon name={t.icon} size={14} />
-                {t.label}
-                {badge !== undefined && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 12, background: tab === t.id ? 'var(--teal)' : 'var(--border)', color: tab === t.id ? '#fff' : 'var(--ink3)' }}>{badge}</span>}
-              </button>
-            );
-          })}
+        {/* Tabs — the shared segmented ds-tabs (same control as Ops Command /
+            NexusHR), scrolling horizontally when the row overflows its width. */}
+        <div style={{ padding: isMobile ? '8px 10px' : '10px 14px', borderTop: '1px solid var(--border)' }}>
+          <div className="ds-tabs-list" data-variant="segmented" style={{ maxWidth: '100%' }}>
+            {TAB_CFG.filter(t => isStaff || CUSTOMER_TABS.has(t.id)).map(t => {
+              const badge =
+                t.id === 'tasks'      ? job.tasks.length :
+                t.id === 'timesheets' ? job.timeEntries.length :
+                t.id === 'updates'    ? job.thread.length :
+                t.id === 'files'      ? job.documents.length :
+                t.id === 'ledger'     ? job.ledger.length : undefined;
+              return (
+                <button key={t.id} type="button" className="ds-tabs-trigger" data-variant="segmented"
+                  data-state={tab === t.id ? 'active' : 'inactive'} onClick={() => setTab(t.id)}>
+                  <Icon name={t.icon} size={14} />
+                  {t.label}
+                  {badge !== undefined && <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 20, lineHeight: 1.5, background: tab === t.id ? 'var(--teal-l)' : 'var(--white)', color: tab === t.id ? 'var(--teal)' : 'var(--ink3)' }}>{badge}</span>}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -4996,7 +5056,7 @@ export function ShipmentDetail() {
               {tab === 'timesheets'   && isStaff && <TimesheetsTab  job={job} isMobile={isMobile} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
               {tab === 'declaration'  && isStaff && <DeclarationTab job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
               {tab === 'updates'      && <UpdatesTab     job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
-              {tab === 'files'        && <FilesTab       job={job} isMobile={isMobile} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
+              {tab === 'files'        && <DocumentsPanel job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
               {tab === 'ledger'       && isStaff && <LedgerTab      job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
               {tab === 'co2'          && <CO2Tab         job={job} shipmentId={id || job.id} isLive={!isMock} onRefresh={refreshJob} />}
             </div>

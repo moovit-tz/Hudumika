@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
+import { PaginationBar } from '../components/PaginationBar.js';
 import { Badge } from '../components/ui/badge.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet.js';
@@ -187,7 +188,6 @@ export const LandedCostHistoryPage: React.FC = () => {
     navigate(`/clearos/customs-tools?from=${rec.id}`);
   }
 
-  const pages = Math.max(1, Math.ceil(total / LIMIT));
   const page = Math.floor(offset / LIMIT) + 1;
 
   const Th = ({ label, k, align }: { label: string; k?: SortKey; align?: 'right' }) => (
@@ -381,20 +381,15 @@ export const LandedCostHistoryPage: React.FC = () => {
           </table>
         </div>
 
-        <div className="lch-foot">
-          <span>
-            {total === 0 ? 'Nothing to show' : `${offset + 1}–${Math.min(offset + LIMIT, total)} of ${total.toLocaleString()} calculation${total === 1 ? '' : 's'}`}
-          </span>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <button type="button" className="lch-act" disabled={offset === 0} onClick={() => setOffset(o => Math.max(0, o - LIMIT))}>
-              <Icon name="arrowLeft" size={12} /> Previous
-            </button>
-            <span style={{ minWidth: 70, textAlign: 'center' }}>Page {page} of {pages}</span>
-            <button type="button" className="lch-act" disabled={offset + LIMIT >= total} onClick={() => setOffset(o => o + LIMIT)}>
-              Next <Icon name="arrowRight" size={12} />
-            </button>
-          </div>
-        </div>
+        {total > 0 && (
+          <PaginationBar
+            page={page}
+            pageSize={LIMIT}
+            total={total}
+            itemLabel="calculation"
+            onPageChange={p => setOffset((p - 1) * LIMIT)}
+          />
+        )}
       </div>
 
       <Sheet open={!!detail} onOpenChange={o => !o && setDetail(null)}>

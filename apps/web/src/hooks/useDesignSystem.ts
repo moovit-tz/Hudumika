@@ -21,6 +21,10 @@ export interface NeutralSet {
   ink: string; ink2: string; ink3: string;
   bg: string; white: string;
   border: string; border2: string;
+  /** Sunken surface for a card's body/detail pane (and the segmented tab
+   *  track) — reads as "the page" against the white header. Optional so tenant
+   *  configs saved before it existed still load; falls back per theme. */
+  cardSunken?: string;
 }
 
 export interface SemanticSet {
@@ -299,12 +303,14 @@ export const NEUTRAL_LIGHT_DEFAULT: NeutralSet = {
   ink: '#0d1117', ink2: '#57606a', ink3: '#8b949e',
   bg: '#F7F5F0', white: '#ffffff',
   border: '#e1e4e8', border2: '#c9cdd4',
+  cardSunken: '#f5f5f5',
 };
 
 export const NEUTRAL_DARK_DEFAULT: NeutralSet = {
   ink: '#e2e8f0', ink2: '#94a3b8', ink3: '#64748b',
   bg: '#080b10', white: '#111218',
   border: 'rgba(255,255,255,0.07)', border2: 'rgba(255,255,255,0.13)',
+  cardSunken: 'rgba(255,255,255,0.035)',
 };
 
 export const SEMANTIC_LIGHT_DEFAULT: SemanticSet = {
@@ -658,6 +664,7 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--ink3': tokens.neutral.light.ink3,
     '--bg': tokens.neutral.light.bg,
     '--white': tokens.neutral.light.white,
+    '--card-sunken': tokens.neutral.light.cardSunken ?? '#f5f5f5',
     '--border': tokens.neutral.light.border,
     '--border2': tokens.neutral.light.border2,
 
@@ -780,6 +787,7 @@ export function applyDesignTokens(tokens: DesignTokens): void {
     '--ink3': tokens.neutral.dark.ink3,
     '--bg': tokens.neutral.dark.bg,
     '--white': tokens.neutral.dark.white,
+    '--card-sunken': tokens.neutral.dark.cardSunken ?? 'rgba(255,255,255,0.035)',
     '--border': tokens.neutral.dark.border,
     '--border2': tokens.neutral.dark.border2,
 
