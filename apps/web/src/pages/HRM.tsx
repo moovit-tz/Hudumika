@@ -8,7 +8,6 @@ import { apiFetch } from '../lib/api.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { EMPLOYEES } from '../data/staffData.js';
 import type { EmpStatus, Employee } from '../data/staffData.js';
-import { EMPLOYEES as SHIFT_EMPLOYEES, SHIFT_TYPES } from '../data/hrmData.js';
 import type { AttendanceStatus, AttendanceRecord, ShiftType, ShiftAssignment, Employee as ShiftEmployee } from '../data/hrmData.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { Combobox } from '../components/ui/combobox.js';
@@ -2254,8 +2253,11 @@ export function AttendancePage() {
 
 export function ShiftsPage() {
   const isMobile = useIsMobile();
-  const [employees, setEmployees] = useState<ShiftEmployee[]>(SHIFT_EMPLOYEES);
-  const [shiftTypes, setShiftTypes] = useState<ShiftType[]>(SHIFT_TYPES);
+  // Start empty and fill from the API — never seed with the sample fixtures,
+  // which would render fabricated staff and shift types as if they were the
+  // tenant's real roster/schedule.
+  const [employees, setEmployees] = useState<ShiftEmployee[]>([]);
+  const [shiftTypes, setShiftTypes] = useState<ShiftType[]>([]);
   const [assignments, setAssignments] = useState<ShiftAssignment[]>([]);
   const [view, setView] = useState<'week' | 'month'>('week');
   const [startDate, setStartDate] = useState(() => {
