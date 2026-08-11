@@ -1555,6 +1555,8 @@ export interface ShipmentTasksTable {
   service_rate: number | null;
   service_currency: string | null;
   service_unit: string | null;
+  closed_by: string | null;    // who signed the task off (migration 220)
+  closed_at: Date | null;      // when — NULL means still open
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

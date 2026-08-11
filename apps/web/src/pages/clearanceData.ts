@@ -113,6 +113,8 @@ export interface InternalTask {
   priority: TaskPriority;
   assignees: string[];
   assignedToId?: string;   // raw user id of the assignee — for "assignee or their lead can close"
+  closedAt?: Date;         // set when the task has been signed off / closed
+  closedById?: string;     // who closed it
   startDate: Date;
   dueDate: Date;
   tags: string[];

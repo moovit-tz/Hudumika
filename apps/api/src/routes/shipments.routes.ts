@@ -1032,9 +1032,63 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       if (k in body) patch[k] = k === 'labels' ? JSON.stringify(body[k]) : body[k];
     }
     return withTenant(user.tenant_id, async (trx) => {
+      // A closed task is locked: it must be reopened (dedicated route, with the
+      // same assignee-or-team-lead permission) before any field can change.
+      const existing = await trx.selectFrom('shipment_tasks').select(['closed_at']).where('id', '=', taskId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Task not found' });
+      if (existing.closed_at) return reply.status(409).send({ error: 'This task is closed. Reopen it before editing.' });
       if ('product_id' in body) Object.assign(patch, await snapshotProduct(trx, user.tenant_id, body.product_id));
       const t = await trx.updateTable('shipment_tasks').set(patch).where('id', '=', taskId).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
       if (!t) return reply.status(404).send({ error: 'Task not found' });
+      return t;
+    });
+  });
+
+  /**
+   * POST /v1/shipments/:id/tasks/:taskId/close — final sign-off.
+   * Permitted only to the task's assignee or a team lead (senior-role user).
+   * Records who closed it and when, marks it complete, and locks it.
+   */
+  fastify.post('/:id/tasks/:taskId/close', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { taskId } = request.params as { id: string; taskId: string };
+    const SENIOR_TASK_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR']);
+    return withTenant(user.tenant_id, async (trx) => {
+      const task = await trx.selectFrom('shipment_tasks').selectAll().where('id', '=', taskId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!task) return reply.status(404).send({ error: 'Task not found' });
+      const isAssignee = !!task.assigned_to && task.assigned_to === user.sub;
+      if (!isAssignee && !SENIOR_TASK_ROLES.has(user.role)) {
+        return reply.status(403).send({ error: 'Only the assignee or a team lead can close this task.' });
+      }
+      if (task.closed_at) return reply.status(409).send({ error: 'Task is already closed.' });
+      const now = new Date();
+      const t = await trx.updateTable('shipment_tasks')
+        .set({ status: 'complete', closed_by: user.sub, closed_at: now, updated_at: now })
+        .where('id', '=', taskId).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
+      return t;
+    });
+  });
+
+  /**
+   * POST /v1/shipments/:id/tasks/:taskId/reopen — undo a sign-off.
+   * Same assignee-or-team-lead permission.
+   */
+  fastify.post('/:id/tasks/:taskId/reopen', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
+    const user = request.user;
+    const { taskId } = request.params as { id: string; taskId: string };
+    const SENIOR_TASK_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR']);
+    return withTenant(user.tenant_id, async (trx) => {
+      const task = await trx.selectFrom('shipment_tasks').selectAll().where('id', '=', taskId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!task) return reply.status(404).send({ error: 'Task not found' });
+      const isAssignee = !!task.assigned_to && task.assigned_to === user.sub;
+      if (!isAssignee && !SENIOR_TASK_ROLES.has(user.role)) {
+        return reply.status(403).send({ error: 'Only the assignee or a team lead can reopen this task.' });
+      }
+      if (!task.closed_at) return reply.status(409).send({ error: 'Task is not closed.' });
+      const now = new Date();
+      const t = await trx.updateTable('shipment_tasks')
+        .set({ status: 'in_progress', closed_by: null, closed_at: null, updated_at: now })
+        .where('id', '=', taskId).where('tenant_id', '=', user.tenant_id).returningAll().executeTakeFirst();
       return t;
     });
   });

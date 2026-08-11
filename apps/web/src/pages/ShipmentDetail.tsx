@@ -69,6 +69,8 @@ function apiTaskToInternal(t: any): InternalTask {
     priority: (t.priority || 'medium') as InternalTask['priority'],
     assignees: t.assigned_to ? [friendlyAssignee(String(t.assigned_to))] : [],
     assignedToId: t.assigned_to ? String(t.assigned_to) : undefined,
+    closedAt: t.closed_at ? new Date(t.closed_at) : undefined,
+    closedById: t.closed_by ? String(t.closed_by) : undefined,
     startDate: new Date(t.created_at || Date.now()),
     dueDate: t.due_date ? new Date(t.due_date) : new Date(Date.now() + 7 * 86400000),
     tags: [],
@@ -2328,6 +2330,22 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
     finally { setSavingStatus(null); }
   }
 
+  // Formal sign-off: close (or reopen) a task. Same permission as status —
+  // assignee or team lead — enforced again on the server.
+  async function closeTask(task: InternalTask, action: 'close' | 'reopen') {
+    if (!canEditStatus(task) || savingStatus) return;
+    if (!clockGate(isStaff, isCheckedIn, triggerOpen)) return;
+    setSavingStatus(task.id);
+    try {
+      if (isLive) {
+        await apiFetch(`/v1/shipments/${shipmentId}/tasks/${task.id}/${action}`, { method: 'POST', body: JSON.stringify({}) });
+        onRefresh();
+      }
+    } catch (err: any) { showAlert(err.message || `Could not ${action} task`); }
+    finally { setSavingStatus(null); }
+  }
+  const nameFor = (id?: string) => (id ? (staff.find(s => s.id === id)?.name || friendlyAssignee(id)) : '');
+
   useEffect(() => {
     apiFetch('/v1/hr/tasks').then((res: any) => {
       const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
@@ -2554,7 +2572,20 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                     </div>
                   </td>
                   <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
-                    {canEditStatus(task) ? (
+                    {task.closedAt ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span title={`Closed ${fdate(task.closedAt)}${task.closedById ? ` by ${nameFor(task.closedById)}` : ''}`}
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, color: 'var(--green)' }}>
+                          <Icon name="lock" size={12} /> Closed{task.closedById ? ` · ${nameFor(task.closedById)}` : ''}
+                        </span>
+                        {canEditStatus(task) && (
+                          <button type="button" onClick={() => closeTask(task, 'reopen')} disabled={savingStatus === task.id} title="Reopen this task"
+                            style={{ fontSize: 11, fontWeight: 600, padding: 'var(--ds-btn-py-xs) 9px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: savingStatus === task.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                            Reopen
+                          </button>
+                        )}
+                      </div>
+                    ) : canEditStatus(task) ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <div style={{ width: 150 }}>
                           <Select value={task.status} onValueChange={v => setTaskStatus(task, v as TaskStatus)} disabled={savingStatus === task.id}>
@@ -2572,6 +2603,10 @@ function TasksTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: Clear
                             <Icon name="check" size={12} />
                           </button>
                         )}
+                        <button type="button" onClick={() => closeTask(task, 'close')} disabled={savingStatus === task.id} title="Close & sign off this task"
+                          style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, padding: 'var(--ds-btn-py-xs) 9px', borderRadius: 'var(--r)', border: '1px solid var(--teal)', background: 'var(--teal-l)', color: 'var(--teal-d)', cursor: savingStatus === task.id ? 'default' : 'pointer', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+                          <Icon name="lock" size={11} /> Close
+                        </button>
                       </div>
                     ) : <span style={{ fontSize: 12, color: 'var(--ink3)' }}>—</span>}
                   </td>
