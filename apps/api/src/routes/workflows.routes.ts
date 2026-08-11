@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { evaluateEntryConditions } from '../services/workflow-resolver.service.js';
+import { WorkflowTemplateService } from '../services/workflow-template.service.js';
 import { resolveComm } from '../services/workflow-comms.service.js';
 import { recordRun } from '../services/workflow-runs.service.js';
 import type { CreateWorkflowInput, UpdateWorkflowInput, Workflow, WorkflowStep, WorkflowTrigger } from '@hudumika/types';
@@ -101,6 +102,43 @@ export async function workflowRoutes(fastify: FastifyInstance) {
       const data = wfRows.map((w) => toWorkflow(w, stepsByWorkflow.get(w.id) ?? []));
       return { data };
     });
+  });
+
+  /**
+   * GET /v1/workflows/templates — the platform template library the tenant can
+   * adopt (latest published version per template key). Read-only; global rows,
+   * not tenant-scoped. Must precede GET /:id so "templates" isn't read as an id.
+   */
+  fastify.get('/templates', { preHandler: requireRole(...OPS_ROLES) }, async (request, reply) => {
+    const published = await WorkflowTemplateService.listPublished();
+    return {
+      data: published.map((p) => ({
+        id: p.id, templateKey: p.def.templateKey, version: p.version, source: p.source, isSystem: p.isSystem,
+        name: p.def.name, description: p.def.description,
+        freightModes: p.def.freightModes, consignmentTypes: p.def.consignmentTypes,
+        stepCount: p.def.steps.length,
+        steps: p.def.steps.map((s, i) => ({ name: s.name, order: i, isTerminal: !!s.isTerminal, checks: (s.conditions ?? []).length })),
+      })),
+    };
+  });
+
+  /**
+   * POST /v1/workflows/templates/:id/adopt — clone a platform template into a
+   * fully tenant-owned, editable workflow ("Use template"). The clone out-ranks
+   * the matching system default at shipment resolution and can be freely edited
+   * or deleted, exactly like any hand-built workflow.
+   */
+  fastify.post('/templates/:id/adopt', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+    try {
+      return await withTenant(user.tenant_id, async (trx) => {
+        const res = await WorkflowTemplateService.adopt(trx, user.tenant_id, id, user.sub);
+        return { success: true, workflowId: res.workflowId, name: res.name };
+      });
+    } catch (err: any) {
+      return reply.status(err.message === 'Template not found' ? 404 : 400).send({ error: err.message || 'Could not adopt template' });
+    }
   });
 
   /** GET /v1/workflows/:id — single, with steps. */

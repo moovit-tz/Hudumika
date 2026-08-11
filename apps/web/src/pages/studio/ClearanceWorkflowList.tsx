@@ -50,6 +50,8 @@ export function ClearanceWorkflowList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [assignment, setAssignment] = useState<AssignmentMap>({});
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [adopting, setAdopting] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -64,6 +66,26 @@ export function ClearanceWorkflowList() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // The platform template library (superadmin-published, latest version each).
+  useEffect(() => {
+    apiFetch('/v1/workflows/templates')
+      .then(res => setTemplates((res as any).data ?? []))
+      .catch(() => {});
+  }, []);
+
+  // "Use template" → clone it into a fully editable, tenant-owned workflow,
+  // then open the copy so it can be tailored straight away.
+  const handleAdopt = async (tpl: any) => {
+    setAdopting(tpl.id);
+    try {
+      const res: any = await apiFetch(`/v1/workflows/templates/${tpl.id}/adopt`, { method: 'POST' });
+      if (res?.workflowId) navigate(`/studio/clearance/${res.workflowId}`);
+      else load();
+    } catch (err: any) {
+      showAlert(err.message || 'Could not use this template.');
+    } finally { setAdopting(null); }
+  };
 
   const handleDelete = async (id: string) => {
     if (!(await showConfirm('Delete this workflow? This cannot be undone.', { confirmLabel: 'Delete' }))) return;
@@ -183,6 +205,38 @@ export function ClearanceWorkflowList() {
         </div>
       )}
 
+      {/* Template library — start from a platform template (superadmin-published) */}
+      {templates.length > 0 && (
+        <div style={{ marginBottom: 18, padding: '14px 16px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <Icon name="layers" size={14} color="var(--teal)" />
+            <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--navy)' }}>Start from a template</span>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>
+            Platform-maintained workflows for each freight mode. Adopt one to get a fully editable copy of your own.
+          </div>
+          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
+            {templates.map(tpl => (
+              <div key={tpl.id} style={{ flex: '0 0 240px', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px', background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{tpl.name}</span>
+                  <span className="wf-badge wf-badge-gray" style={{ whiteSpace: 'nowrap' }}>v{tpl.version}</span>
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink3)', lineHeight: 1.45, minHeight: 34 }}>{tpl.description}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                  <span className="wf-badge wf-badge-teal">{tpl.stepCount} steps</span>
+                  {(tpl.freightModes || []).map((m: string) => <span key={m} className="wf-badge wf-badge-blue">{m}</span>)}
+                  {(tpl.consignmentTypes || []).map((c: string) => <span key={c} className="wf-badge wf-badge-orange">{c}</span>)}
+                </div>
+                <button className="btn btn-secondary btn-sm" style={{ marginTop: 2 }} disabled={adopting === tpl.id} onClick={() => handleAdopt(tpl)}>
+                  {adopting === tpl.id ? 'Adding…' : <><Icon name="plus" size={12} /> Use template</>}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Body: list + matrix */}
       <div className="wf-body">
         {/* Workflow list panel */}
@@ -229,6 +283,7 @@ export function ClearanceWorkflowList() {
                       {wf.isActive ? '● Active' : '○ Inactive'}
                     </span>
                     <span className="wf-badge wf-badge-teal">{wf.steps.length} steps</span>
+                    {wf.isSystem && <span className="wf-badge wf-badge-gray" title="Platform default — delete once you've built your own">Default</span>}
                     {wf.triggers.freightModes.map(m => (
                       <span key={m} className="wf-badge wf-badge-blue">{m}</span>
                     ))}

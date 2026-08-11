@@ -289,11 +289,30 @@ export interface WorkflowsTable {
   is_default: Generated<boolean>;
   is_system: Generated<boolean>;      // platform-seeded default (migration 217)
   template_key: string | null;        // stable key of the source template, if system-seeded
+  origin_template_key: string | null;      // template this workflow was seeded/adopted from (migration 218)
+  origin_template_version: number | null;  // …and which version of it — the self-learning diff baseline
   triggers: string; // JSONB: WorkflowTrigger
   created_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
   deleted_at: Date | null;
+}
+
+export interface WorkflowTemplatesTable {
+  id: Generated<string>;
+  template_key: string;
+  version: Generated<number>;
+  name: string;
+  description: Generated<string>;
+  freight_modes: string;      // JSONB: string[]
+  consignment_types: string;  // JSONB: string[]
+  steps: string;              // JSONB: DefaultStepDef[]
+  status: Generated<string>;  // draft | published | archived
+  is_system: Generated<boolean>;
+  source: Generated<string>;  // platform | superadmin | learned
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 export interface WorkflowStepsTable {
@@ -3030,6 +3049,7 @@ export interface Database {
   stage_history: StageHistoryTable;
   workflows: WorkflowsTable;
   workflow_steps: WorkflowStepsTable;
+  workflow_templates: WorkflowTemplatesTable;
   workflow_comm_queue: WorkflowCommQueueTable;
   workflow_step_runs: WorkflowStepRunsTable;
   seal_compartments: SealCompartmentsTable;

@@ -20,6 +20,7 @@ import { shipmentRoutes } from './routes/shipments.routes.js';
 import { customerRoutes } from './routes/customers.routes.js';
 import { leadsRoutes } from './routes/leads.routes.js';
 import { workflowRoutes } from './routes/workflows.routes.js';
+import { workflowTemplateRoutes } from './routes/workflow-templates.routes.js';
 import { documentRoutes } from './routes/documents.routes.js';
 import { financeRoutes } from './routes/finance.routes.js';
 import { financeExpensesRoutes } from './routes/financeExpenses.routes.js';
@@ -254,6 +255,7 @@ async function main() {
     await server.register(superAdminTradeWizardRoutes, { prefix: '/v1/superadmin/trade-wizard' });
     await server.register(superAdminIssuesRoutes, { prefix: '/v1/superadmin' });
     await server.register(superAdminAnnouncementRoutes, { prefix: '/v1/superadmin/announcements' });
+    await server.register(workflowTemplateRoutes, { prefix: '/v1/superadmin/workflow-templates' });
     await server.register(announcementRoutes, { prefix: '/v1/announcements' });
     // A workspace posting notices to its own staff, distinct from the platform's.
     await server.register(tenantAnnouncementRoutes, { prefix: '/v1/workspace/announcements' });
