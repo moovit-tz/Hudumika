@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { requireRole } from '../middleware/rbac.js';
 import { WorkflowTemplateService, type TemplateDef } from '../services/workflow-template.service.js';
+import { WorkflowLearningService } from '../services/workflow-learning.service.js';
 
 /**
  * Platform superadmin management of the workflow template library
@@ -51,5 +52,48 @@ export async function workflowTemplateRoutes(fastify: FastifyInstance) {
     }
     await WorkflowTemplateService.setStatus(id, status);
     return { success: true, status };
+  });
+
+  // ── Self-learning (Phase 3) ───────────────────────────────────────────────
+
+  /** POST /learn — run the analysis now (also runs daily via the scheduler). */
+  fastify.post('/learn', async () => {
+    const summary = await WorkflowLearningService.analyze();
+    return { success: true, summary };
+  });
+
+  /** GET /proposals — machine-proposed template versions (default: pending). */
+  fastify.get('/proposals', async (request) => {
+    const { status } = request.query as { status?: string };
+    return { data: await WorkflowLearningService.listProposals(status ?? 'pending') };
+  });
+
+  /** GET /signals — the aggregated cross-tenant learning evidence. */
+  fastify.get('/signals', async (request) => {
+    const { templateKey } = request.query as { templateKey?: string };
+    return { data: await WorkflowLearningService.getSignals(templateKey) };
+  });
+
+  /** POST /proposals/:id/approve — publish it as a real new template version. */
+  fastify.post('/proposals/:id/approve', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      const res = await WorkflowLearningService.approve(id, request.user?.sub ?? null);
+      return { success: true, ...res };
+    } catch (err: any) {
+      return reply.status(err.message === 'Proposal not found' ? 404 : 400).send({ error: err.message });
+    }
+  });
+
+  /** POST /proposals/:id/reject */
+  fastify.post('/proposals/:id/reject', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { note } = (request.body ?? {}) as { note?: string };
+    try {
+      await WorkflowLearningService.reject(id, request.user?.sub ?? null, note);
+      return { success: true };
+    } catch (err: any) {
+      return reply.status(err.message === 'Proposal not found' ? 404 : 400).send({ error: err.message });
+    }
   });
 }

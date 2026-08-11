@@ -333,6 +333,41 @@ export interface WorkflowStepsTable {
   updated_at: Generated<Date>;
 }
 
+export interface WorkflowLearningSignalsTable {
+  id: Generated<string>;
+  template_key: string;
+  base_version: number;
+  edit_type: string;
+  step_signature: string;
+  anchor_after: Generated<string>;
+  detail: string;                 // JSONB
+  support_tenants: Generated<number>;
+  editing_tenants: Generated<number>;
+  support_pct: Generated<number>;
+  computed_at: Generated<Date>;
+}
+
+export interface WorkflowTemplateProposalsTable {
+  id: Generated<string>;
+  template_key: string;
+  base_version: number;
+  proposed_version: number;
+  name: string;
+  description: Generated<string>;
+  freight_modes: Generated<string>;      // JSONB
+  consignment_types: Generated<string>;  // JSONB
+  steps: Generated<string>;              // JSONB
+  rationale: Generated<string>;          // JSONB
+  supporting_tenants: Generated<number>;
+  editing_tenants: Generated<number>;
+  confidence: Generated<number>;
+  status: Generated<string>;
+  created_at: Generated<Date>;
+  decided_by: string | null;
+  decided_at: Date | null;
+  decision_note: string | null;
+}
+
 export interface WorkflowCommQueueTable {
   id: Generated<string>;
   tenant_id: string;
@@ -3050,6 +3085,8 @@ export interface Database {
   workflows: WorkflowsTable;
   workflow_steps: WorkflowStepsTable;
   workflow_templates: WorkflowTemplatesTable;
+  workflow_learning_signals: WorkflowLearningSignalsTable;
+  workflow_template_proposals: WorkflowTemplateProposalsTable;
   workflow_comm_queue: WorkflowCommQueueTable;
   workflow_step_runs: WorkflowStepRunsTable;
   seal_compartments: SealCompartmentsTable;

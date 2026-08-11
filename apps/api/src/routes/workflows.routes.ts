@@ -4,6 +4,7 @@ import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { evaluateEntryConditions } from '../services/workflow-resolver.service.js';
 import { WorkflowTemplateService } from '../services/workflow-template.service.js';
+import { WorkflowLearningService } from '../services/workflow-learning.service.js';
 import { resolveComm } from '../services/workflow-comms.service.js';
 import { recordRun } from '../services/workflow-runs.service.js';
 import type { CreateWorkflowInput, UpdateWorkflowInput, Workflow, WorkflowStep, WorkflowTrigger } from '@hudumika/types';
@@ -139,6 +140,35 @@ export async function workflowRoutes(fastify: FastifyInstance) {
     } catch (err: any) {
       return reply.status(err.message === 'Template not found' ? 404 : 400).send({ error: err.message || 'Could not adopt template' });
     }
+  });
+
+  /**
+   * GET /v1/workflows/learning — tenant-admin visibility into the self-learning
+   * tool: the cross-tenant edit signals and any pending consensus proposal, but
+   * only for the templates THIS tenant actually uses (by their workflows'
+   * origin lineage). Read-only; approval stays with the platform superadmin.
+   */
+  fastify.get('/learning', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request) => {
+    const user = request.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const mine = await trx.selectFrom('workflows').select('origin_template_key')
+        .where('tenant_id', '=', user.tenant_id).where('origin_template_key', 'is not', null).where('deleted_at', 'is', null)
+        .execute();
+      const keys = [...new Set(mine.map((r) => r.origin_template_key).filter(Boolean) as string[])];
+      if (keys.length === 0) return { data: { keys: [], signals: [], proposals: [] } };
+
+      const [allSignals, allProposals] = await Promise.all([
+        WorkflowLearningService.getSignals(),
+        WorkflowLearningService.listProposals('pending'),
+      ]);
+      return {
+        data: {
+          keys,
+          signals: allSignals.filter((s: any) => keys.includes(s.templateKey)),
+          proposals: allProposals.filter((p: any) => keys.includes(p.templateKey)),
+        },
+      };
+    });
   });
 
   /** GET /v1/workflows/:id — single, with steps. */

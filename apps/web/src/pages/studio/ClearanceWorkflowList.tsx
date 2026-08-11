@@ -8,6 +8,7 @@ import { showAlert } from '../../lib/alert.js';
 import './Workflows.css';
 import { showConfirm } from '../../lib/confirm.js';
 import { PageHeader } from '../../components/PageHeader.js';
+import { useAuth } from '../../hooks/useAuth.js';
 
 export type { FieldCondition, AutoComm, WorkflowStep, WorkflowTrigger, Workflow } from '@hudumika/types';
 
@@ -52,6 +53,16 @@ export function ClearanceWorkflowList() {
   const [assignment, setAssignment] = useState<AssignmentMap>({});
   const [templates, setTemplates] = useState<any[]>([]);
   const [adopting, setAdopting] = useState<string | null>(null);
+  const [learning, setLearning] = useState<{ signals: any[]; proposals: any[] }>({ signals: [], proposals: [] });
+  const [deciding, setDeciding] = useState<string | null>(null);
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+
+  const loadLearning = useCallback(() => {
+    apiFetch('/v1/workflows/learning')
+      .then(res => setLearning({ signals: (res as any).data?.signals ?? [], proposals: (res as any).data?.proposals ?? [] }))
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -73,6 +84,27 @@ export function ClearanceWorkflowList() {
       .then(res => setTemplates((res as any).data ?? []))
       .catch(() => {});
   }, []);
+
+  useEffect(() => { loadLearning(); }, [loadLearning]);
+
+  // Superadmin approves/rejects a machine-proposed template version. Approval
+  // publishes it as a real new version tenants can then adopt.
+  const decideProposal = async (id: string, decision: 'approve' | 'reject') => {
+    if (decision === 'reject' && !(await showConfirm('Reject this proposed version? It will be archived.', { confirmLabel: 'Reject' }))) return;
+    setDeciding(id);
+    try {
+      await apiFetch(`/v1/superadmin/workflow-templates/proposals/${id}/${decision}`, { method: 'POST', body: JSON.stringify({}) });
+      loadLearning();
+      if (decision === 'approve') { setTemplates([]); apiFetch('/v1/workflows/templates').then(res => setTemplates((res as any).data ?? [])).catch(() => {}); }
+    } catch (err: any) {
+      showAlert(err.message || 'Could not update this proposal.');
+    } finally { setDeciding(null); }
+  };
+
+  const editLabel = (t: string) => ({
+    STEP_ADDED: 'add step', STEP_REMOVED: 'remove step', CONDITION_ADDED: 'add check',
+    CONDITION_REMOVED: 'remove check', SLA_CHANGED: 'change SLA',
+  } as Record<string, string>)[t] ?? t;
 
   // "Use template" → clone it into a fully editable, tenant-owned workflow,
   // then open the copy so it can be tailored straight away.
@@ -234,6 +266,65 @@ export function ClearanceWorkflowList() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Self-learning — what tenants are changing about these templates, and any
+          consensus version the tool has proposed (superadmin approves). */}
+      {(learning.proposals.length > 0 || learning.signals.length > 0) && (
+        <div style={{ marginBottom: 18, padding: '14px 16px', background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <Icon name="zap" size={14} color="var(--teal)" />
+            <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--navy)' }}>Workflow self-learning</span>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>
+            Learned from how workspaces across the platform edit these templates. {isSuperAdmin ? 'Approve a proposal to publish it as a new template version.' : 'A platform admin reviews and approves proposed versions.'}
+          </div>
+
+          {learning.proposals.map(p => (
+            <div key={p.id} style={{ border: '1px solid var(--teal-m)', background: 'var(--teal-l)', borderRadius: 10, padding: '12px 14px', marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+                <div>
+                  <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{p.name}</span>
+                  <span style={{ marginLeft: 8, fontSize: 12, color: 'var(--ink3)' }}>proposed v{p.proposedVersion} · from v{p.baseVersion}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span className="wf-badge wf-badge-teal">{Math.round(p.confidence * 100)}% consensus</span>
+                  <span className="wf-badge wf-badge-blue">{p.supportingTenants} workspaces</span>
+                </div>
+              </div>
+              <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12, color: 'var(--ink2)' }}>
+                {(p.rationale ?? []).slice(0, 5).map((r: any, i: number) => (
+                  <li key={i} style={{ marginTop: 2 }}>
+                    <strong>{editLabel(r.editType)}</strong>{' '}
+                    {r.detail?.name || r.detail?.field || r.stepSignature}
+                    {r.anchorAfter ? ` (after "${r.anchorAfter}")` : ''} — {Math.round(r.supportPct * 100)}% of workspaces
+                  </li>
+                ))}
+              </ul>
+              {isSuperAdmin && (
+                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  <button className="btn btn-primary btn-sm" disabled={deciding === p.id} onClick={() => decideProposal(p.id, 'approve')}>
+                    {deciding === p.id ? 'Working…' : <><Icon name="check" size={12} color="white" /> Approve &amp; publish v{p.proposedVersion}</>}
+                  </button>
+                  <button className="btn btn-secondary btn-sm" disabled={deciding === p.id} onClick={() => decideProposal(p.id, 'reject')}>Reject</button>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {learning.signals.length > 0 && (
+            <details style={{ fontSize: 12, color: 'var(--ink3)' }}>
+              <summary style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--ink2)' }}>Evidence — {learning.signals.length} recurring edit{learning.signals.length === 1 ? '' : 's'}</summary>
+              <ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>
+                {learning.signals.slice(0, 12).map((s: any, i: number) => (
+                  <li key={i} style={{ marginTop: 2 }}>
+                    {editLabel(s.editType)}: <strong>{s.detail?.name || s.detail?.field || s.stepSignature}</strong> — {Math.round(s.supportPct * 100)}% of workspaces that edited it ({s.supportTenants}/{s.editingTenants})
+                  </li>
+                ))}
+              </ul>
+            </details>
+          )}
         </div>
       )}
 

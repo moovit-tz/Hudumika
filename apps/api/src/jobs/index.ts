@@ -14,6 +14,7 @@ import { runSealLedgerAnchorJob, runSealLedgerAnchorConfirmationSweepJob } from 
 import { runDeclarationLedgerAnchorJob, runDeclarationLedgerAnchorConfirmationSweepJob } from './declaration-ledger-anchor.job.js';
 import { runOnsiteDeploymentSyncJob } from './onsite-deployment-sync.job.js';
 import { runOnsiteUptimeJob, runOnsiteSslSweepJob } from './onsite-uptime.job.js';
+import { runWorkflowLearningJob } from './workflow-learning.job.js';
 
 let redisConnection: Redis | null = null;
 let riskQueue: Queue | null = null;
@@ -154,6 +155,8 @@ function startBullMQ(): void {
           await runTRAZReportJob();
         } else if (job.name === 'support-rules') {
           await runSupportRulesJob();
+        } else if (job.name === 'workflow-learning') {
+          await runWorkflowLearningJob();
         }
       },
       { connection: redisConnection as any }
@@ -238,6 +241,10 @@ function startBullMQ(): void {
 
     reminderQueue.add('comply-renewal', {}, {
       repeat: { pattern: '0 8 * * *' } // Daily at 8:00 AM
+    }).catch(console.error);
+
+    reminderQueue.add('workflow-learning', {}, {
+      repeat: { pattern: '0 4 * * *' } // Daily at 4:00 AM — mine tenant workflow edits, refresh proposals
     }).catch(console.error);
 
     reminderQueue.add('comply-expiry-reminders', {}, {
@@ -377,4 +384,10 @@ function startIntervalFallback(): void {
   setInterval(() => {
     runDeclarationLedgerAnchorConfirmationSweepJob().catch(console.error);
   }, 60 * 60 * 1000);
+
+  // Self-learning workflow analysis — daily, not on startup (tsx watch restarts
+  // frequently in dev; a fresh proposal on every save would be noise).
+  setInterval(() => {
+    runWorkflowLearningJob().catch(console.error);
+  }, 24 * 60 * 60 * 1000);
 }
