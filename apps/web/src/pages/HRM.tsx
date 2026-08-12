@@ -2748,7 +2748,8 @@ export function PayrollPage() {
   const [runs, setRuns] = useState<PayRun[]>([]);
   const [selId, setSelId] = useState<string | null>(null);
   const [detail, setDetail] = useState<{ run: PayRun; payslips: Payslip[]; totals: any } | null>(null);
-  const [busy, setBusy] = useState<'' | 'create' | 'calc' | 'approve'>('');
+  const [busy, setBusy] = useState<'' | 'create' | 'calc' | 'approve' | 'distribute'>('');
+  const [distMsg, setDistMsg] = useState<string | null>(null);
   const [slip, setSlip] = useState<Payslip | null>(null);
   const [showPay, setShowPay] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -2788,12 +2789,21 @@ export function PayrollPage() {
     catch (e: any) { setErr(e?.message || 'Approval failed.'); }
     finally { setBusy(''); }
   };
+  const distribute = async () => {
+    if (!selId) return; setBusy('distribute'); setErr(null); setDistMsg(null);
+    try {
+      const r = await apiFetch(`/v1/payroll/runs/${selId}/distribute`, { method: 'POST' });
+      setDistMsg(`Sent ${r.sent} payslip${r.sent === 1 ? '' : 's'}${r.skipped ? `, ${r.skipped} skipped` : ''}.`);
+    } catch (e: any) { setErr(e?.message || 'Could not send payslips.'); }
+    finally { setBusy(''); }
+  };
 
   const run = detail?.run;
   const payslips = detail?.payslips ?? [];
   const totals = detail?.totals;
   const canCalc = !!run && ['DRAFT', 'CALCULATED', 'PENDING_APPROVAL'].includes(run.status);
   const canApprove = !!run && ['CALCULATED', 'PENDING_APPROVAL'].includes(run.status);
+  const canDistribute = !!run && ['APPROVED', 'PAID'].includes(run.status) && payslips.length > 0;
   const st = run ? (RUN_STATUS_STYLE[run.status] ?? RUN_STATUS_STYLE.DRAFT) : RUN_STATUS_STYLE.DRAFT;
 
   const exportCsv = () => {
@@ -2833,10 +2843,12 @@ export function PayrollPage() {
         <div style={{ display:'flex', gap:8 }}>
           {canCalc && <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={calculate}><Icon name="refresh" size={13} /> {busy === 'calc' ? 'Calculating…' : (run?.status === 'DRAFT' ? 'Calculate' : 'Recalculate')}</button>}
           {canApprove && <button type="button" className="btn btn-primary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={approve}><Icon name="check" size={13} /> {busy === 'approve' ? 'Approving…' : 'Approve run'}</button>}
+          {canDistribute && <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={distribute}><Icon name="send" size={13} /> {busy === 'distribute' ? 'Sending…' : 'Email payslips'}</button>}
         </div>
       </div>
 
       {err && <div style={{ fontSize:12.5, color:'var(--red)', background:'var(--red-l)', borderRadius:8, padding:'8px 12px', marginBottom:12 }}>{err}</div>}
+      {distMsg && <div style={{ fontSize:12.5, color:'var(--green)', background:'var(--green-l)', borderRadius:8, padding:'8px 12px', marginBottom:12 }}>{distMsg}</div>}
 
       {totals && (
         <MetricsRow cards={[
