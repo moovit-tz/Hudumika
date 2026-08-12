@@ -1,605 +1,193 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../lib/api.js';
-import { Icon } from '../components/Icon.js';
+import { Icon, IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 
-interface DashboardData {
+interface Dashboard {
   period: string;
-  summary: {
-    monthlyRevenue: number;
-    revenueVsForecastPercent: number;
-    profitMarginPercent: number;
-    arrGrowthPercent: number;
-    enterpriseCustomers: number;
-    businessHealthScore: number;
-    confidenceScorePercent: number;
-    upsideValue: number;
-    strategicRisksCount: number;
-    totalRecordsAnalyzed: number;
-    aiBoardText: string;
-  };
-  regionalPerformance: Array<{
-    region: string;
-    revenue: number;
-    percentage: number;
-    status: string;
-  }>;
-  topOpportunities: Array<{
-    title: string;
-    annualImpact: number;
-    label: string;
-  }>;
-  executiveDecisions: Array<{
-    id: string;
-    text: string;
-    status: string;
-  }>;
-  financialSummary: {
-    grossRevenueMonthly: number;
-    cogs: number;
-    opex: number;
-    netProfit: number;
-    netMarginPercent: number;
-  };
+  generatedAt: string;
+  dataLayer: { totalRecords: number; tables: number };
+  kpis: { consignmentValueUsd: number; activeCases: number; customers: number; declarations: number; revenueTzs: number; expensesTzs: number };
+  shipmentPipeline: { label: string; count: number }[];
+  shipmentsByMode: { mode: string; label: string; count: number }[];
+  customersBySegment: { segment: string; count: number }[];
+  monthlyVolume: { month: string; count: number }[];
+}
+
+const usd = (v: number) => v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(2)}M` : `$${Math.round(v).toLocaleString()}`;
+const tzs = (v: number) => v >= 1_000_000 ? `TZS ${(v / 1_000_000).toFixed(1)}M` : `TZS ${Math.round(v).toLocaleString()}`;
+const monthLabel = (m: string) => { const [y, mo] = m.split('-'); return new Date(Number(y), Number(mo) - 1, 1).toLocaleDateString('en-US', { month: 'short' }); };
+
+const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' };
+const cardTitle: React.CSSProperties = { fontSize: 14, fontWeight: 700, color: 'var(--navy)' };
+const cardSub: React.CSSProperties = { fontSize: 12, color: 'var(--ink3)', marginTop: 2 };
+
+// A labelled horizontal bar list, shares of a total. Colour comes from the
+// per-app accent (var(--teal) = HuduBI's own colour), never a hardcoded hue.
+function BarList({ rows }: { rows: { label: string; value: number }[] }) {
+  const max = Math.max(1, ...rows.map(r => r.value));
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {rows.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No data yet.</div>}
+      {rows.map(r => (
+        <div key={r.label}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
+            <span style={{ color: 'var(--ink2)' }}>{r.label}</span>
+            <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.value}</span>
+          </div>
+          <div style={{ height: 7, borderRadius: 4, background: 'var(--bg)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${Math.round((r.value / max) * 100)}%`, background: 'var(--teal)', borderRadius: 4, transition: 'width 0.5s' }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function HuduBIDashboard() {
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [data, setData] = useState<Dashboard | null>(null);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState('Q3 2026');
-  const [showPeriodMenu, setShowPeriodMenu] = useState(false);
-  const [showExplainDrawer, setShowExplainDrawer] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [decisions, setDecisions] = useState<Array<{ id: string; text: string; status: string }>>([]);
+  const [explain, setExplain] = useState<any | null>(null);
+  const [showExplain, setShowExplain] = useState(false);
 
-  const loadData = useCallback(async () => {
-    try {
-      const res = await apiFetch('/v1/hudubi/dashboard');
-      if (res) {
-        setData(res);
-        setDecisions(res.executiveDecisions || []);
-      }
-    } catch (err) {
-      console.error('Failed to load HuduBI dashboard data', err);
-    } finally {
-      setLoading(false);
-    }
+  const load = useCallback(async () => {
+    try { const res = await apiFetch('/v1/hudubi/dashboard'); if (res) setData(res); }
+    catch (e) { console.error('HuduBI dashboard load failed', e); }
+    finally { setLoading(false); }
   }, []);
+  useEffect(() => { load(); }, [load]);
 
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
-
-  const showToast = (msg: string) => {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
+  const openExplain = async () => {
+    setShowExplain(true);
+    if (!explain) { try { setExplain(await apiFetch('/v1/hudubi/explain')); } catch { /* ignore */ } }
   };
 
-  const handleDecision = async (id: string, action: 'Approve' | 'Defer') => {
-    try {
-      await apiFetch('/v1/hudubi/action', {
-        method: 'POST',
-        body: JSON.stringify({ action, decisionId: id }),
-      });
-      setDecisions(prev => prev.map(d => d.id === id ? { ...d, status: action.toUpperCase() } : d));
-      showToast(action === 'Approve' ? 'Decision approved and updated.' : 'Decision deferred to next board session.');
-    } catch {
-      showToast(action === 'Approve' ? 'Decision approved.' : 'Decision deferred.');
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) {
-      return `$${(amount / 1000000).toFixed(1)}M`;
-    }
-    return `$${amount.toLocaleString()}`;
-  };
+  const k = data?.kpis;
+  const kpis: { label: string; value: string; icon: IconName }[] = k ? [
+    { label: 'Consignment value (CIF)', value: usd(k.consignmentValueUsd), icon: 'package' },
+    { label: 'Active shipment cases', value: String(k.activeCases), icon: 'truck' },
+    { label: 'Customers', value: String(k.customers), icon: 'users' },
+    { label: 'Declarations', value: String(k.declarations), icon: 'fileText' },
+    { label: 'Invoiced revenue', value: tzs(k.revenueTzs), icon: 'dollarSign' },
+    { label: 'Recorded expenses', value: tzs(k.expensesTzs), icon: 'trendingDown' },
+  ] : [];
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', background: '#fafafa', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-      
-      {/* Page Header */}
+    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
         crumbs={['HuduBI', 'Overview']}
-        titlePlain="Executive Business"
+        titlePlain="Executive"
         titleEm="snapshot"
-        subtitle="Consolidated multi-tenant AI data engine, board KPIs, and strategic intelligence"
+        subtitle="Live figures aggregated directly from your operational and finance data — no forecasts, no invented numbers."
         actions={
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', position: 'relative' }}>
-            <div style={{ position: 'relative' }}>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setShowPeriodMenu(!showPeriodMenu)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}
-              >
-                <Icon name="calendar" size={14} />
-                <span>{period}</span>
-                <Icon name="chevronDown" size={12} />
-              </button>
-              {showPeriodMenu && (
-                <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 6, width: 160, background: '#fff', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', zIndex: 50, padding: 4 }}>
-                  {['Q1 2026', 'Q2 2026', 'Q3 2026', 'Q4 2026', 'FY 2026'].map(p => (
-                    <button
-                      key={p}
-                      type="button"
-                      onClick={() => { setPeriod(p); setShowPeriodMenu(false); }}
-                      style={{ width: '100%', textAlign: 'left', padding: '6px 12px', border: 'none', background: period === p ? '#18181B' : 'transparent', color: period === p ? '#fff' : 'var(--navy)', borderRadius: 6, fontSize: 12, fontWeight: period === p ? 700 : 500, cursor: 'pointer' }}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => showToast('Exporting Q3 2026 Board Report PDF...')}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#18181B', color: '#fff' }}
-            >
-              <Icon name="fileText" size={14} color="#fff" />
-              Board Report
-            </button>
-          </div>
+          <button type="button" className="btn btn-secondary btn-sm" onClick={openExplain} style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }}>
+            <Icon name="info" size={14} /> How this is computed
+          </button>
         }
       />
 
-      {/* AI Board Executive Summary Card */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 24, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: '#18181B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Icon name="zap" size={16} color="#fcd34d" />
-          </div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>AI Board Executive Summary</div>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>Real-time synthesis across 18.4M data points</div>
-          </div>
-        </div>
+      {loading && <div style={{ ...card, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading your data…</div>}
 
-        <p style={{ fontSize: 13, color: '#374151', lineHeight: 1.6, margin: 0, maxWidth: 960 }}>
-          {data?.summary.aiBoardText || `AI analyzed 18.4 million records across Hudumika platform today. Monthly revenue of $28.4M is tracking 18.6% above forecast, with a projected quarterly increase of 14.8% and a business health score of 96.4. One strategic anomaly was flagged in Region A customer acquisition, posing a modest risk to next quarter's growth trajectory. Board recommendation: reallocate marketing budget toward the Enterprise segment to compound the current growth advantage.`}
-        </p>
-
-        {/* AI Confidence Badges */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f3f4f6', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, color: '#374151' }}>
-            <Icon name="activity" size={13} color="#18181b" /> 97.8% confidence score
-          </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#f3f4f6', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, color: '#374151' }}>
-            <Icon name="clock" size={13} color="#18181b" /> Generated 18 minutes ago
-          </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#d1fae5', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, color: '#065f46' }}>
-            <Icon name="trendingUp" size={13} color="#10b981" /> Business impact +$1.8M upside
-          </span>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fef3c7', padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 600, color: '#92400e' }}>
-            <Icon name="alertTriangle" size={13} color="#f59e0b" /> 1 strategic risk flagged
-          </span>
-        </div>
-
-        {/* AI Action Triggers */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>
-          <button
-            type="button"
-            onClick={() => setShowExplainDrawer(true)}
-            style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #e5e7eb', background: '#fff', fontSize: 12, fontWeight: 600, color: '#111827', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <Icon name="info" size={14} /> Explain AI
-          </button>
-          <button
-            type="button"
-            onClick={() => showToast('Opening AI reasoning model explainability log...')}
-            style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: '#f3f4f6', fontSize: 12, fontWeight: 600, color: '#4b5563', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <Icon name="helpCircle" size={14} /> Learn Why
-          </button>
-          <button
-            type="button"
-            onClick={() => showToast('Marketing budget reallocation request sent to Finance for approval.')}
-            style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: '#18181B', color: '#fff', fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
-          >
-            <Icon name="send" size={14} color="#fff" /> Act on Recommendation
-          </button>
-        </div>
-      </div>
-
-      {/* Board KPI Strip */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', overflow: 'hidden' }}>
-        
-        {/* Metric 1 */}
-        <div style={{ padding: '20px 24px', borderRight: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>Monthly Revenue</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: 2 }}>+18.6%</span>
-          </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>$28.4M</div>
-          <div style={{ fontSize: 11, color: '#9ca3af' }}>vs. forecast</div>
-        </div>
-
-        {/* Metric 2 */}
-        <div style={{ padding: '20px 24px', borderRight: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>Profit Margin</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: 2 }}>+1.6 pts</span>
-          </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>24.8%</div>
-          <div style={{ fontSize: 11, color: '#9ca3af' }}>vs. last quarter</div>
-        </div>
-
-        {/* Metric 3 */}
-        <div style={{ padding: '20px 24px', borderRight: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>ARR Growth</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: 2 }}>YoY</span>
-          </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>+21.4%</div>
-          <div style={{ fontSize: 11, color: '#9ca3af' }}>accelerating</div>
-        </div>
-
-        {/* Metric 4 */}
-        <div style={{ padding: '20px 24px', borderRight: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>Enterprise Accounts</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', display: 'flex', alignItems: 'center', gap: 2 }}>+6.2%</span>
-          </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>8,420</div>
-          <div style={{ fontSize: 11, color: '#9ca3af' }}>vs. last quarter</div>
-        </div>
-
-        {/* Metric 5 */}
-        <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>Health Score</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#6b7280' }}>Stable</span>
-          </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>96.4</div>
-          <div style={{ fontSize: 11, color: '#9ca3af' }}>vs. last quarter</div>
-        </div>
-
-      </div>
-
-      {/* Strategic Risk & Opportunity 3-Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 16 }}>
-        
-        {/* Card 1: Red Risk */}
-        <div style={{ background: '#fef2f2', border: '1px solid #fee2e2', borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 6, background: '#fff', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="alertTriangle" size={15} color="#ef4444" />
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#991b1b' }}>Region A Acquisition Anomaly</div>
+      {data && (
+        <>
+          {/* Data-layer strip */}
+          <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon name="layers" size={18} color="var(--teal)" />
             </div>
-            <p style={{ fontSize: 12.5, color: '#7f1d1d', lineHeight: 1.5, margin: 0 }}>
-              Customer acquisition in Region A fell 31% below baseline this week. AI flags a moderate risk to Q4 growth if unaddressed.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => showToast('Region A anomaly escalated to the growth strategy team.')}
-            style={{ marginTop: 14, background: 'none', border: 'none', color: '#991b1b', fontSize: 12, fontWeight: 700, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 4 }}
-          >
-            Escalate to Strategy Team <Icon name="arrowRight" size={12} color="#991b1b" />
-          </button>
-        </div>
-
-        {/* Card 2: Dark Enterprise Opportunity */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 6, background: '#18181B', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="trendingUp" size={15} color="#fff" />
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>
+                {data.dataLayer.totalRecords.toLocaleString()} records across {data.dataLayer.tables} core tables
               </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Enterprise Segment Opportunity</div>
+              <div style={{ fontSize: 12, color: 'var(--ink3)' }}>{data.period} · scoped to this workspace · every figure below is a live count or sum of these rows</div>
             </div>
-            <p style={{ fontSize: 12.5, color: '#374151', lineHeight: 1.5, margin: 0 }}>
-              Enterprise accounts are growing 2.4× faster than blended average. Reallocating budget could add an estimated $6.2M in annual revenue.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => showToast('Enterprise expansion business case added to the board packet.')}
-            style={{ marginTop: 14, background: 'none', border: 'none', color: '#111827', fontSize: 12, fontWeight: 700, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 4 }}
-          >
-            Add to Board Packet <Icon name="arrowRight" size={12} color="#111827" />
-          </button>
-        </div>
-
-        {/* Card 3: Amber FX Compression */}
-        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <div style={{ width: 28, height: 28, borderRadius: 6, background: '#fff', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Icon name="info" size={15} color="#f59e0b" />
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#92400e' }}>APAC Margin Compression</div>
-            </div>
-            <p style={{ fontSize: 12.5, color: '#78350f', lineHeight: 1.5, margin: 0 }}>
-              FX headwinds have compressed APAC gross margin by 3.2 points this quarter. Finance recommends a hedging policy review.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => showToast('Hedging policy review request sent to Finance.')}
-            style={{ marginTop: 14, background: 'none', border: 'none', color: '#92400e', fontSize: 12, fontWeight: 700, cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 4 }}
-          >
-            Request Hedging Review <Icon name="arrowRight" size={12} color="#92400e" />
-          </button>
-        </div>
-
-      </div>
-
-      {/* Visual Analytics Charts Grid: Revenue Bridge & Regional Performance */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 20 }}>
-        
-        {/* Revenue Bridge Waterfall */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 24, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>Revenue Bridge</div>
-            <div style={{ fontSize: 12, color: '#9ca3af' }}>Monthly revenue walk · new business, expansion, churn & discounts</div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 10 }}>
-            {[
-              { label: 'Starting MRR', val: '$24.2M', barPct: 80, color: '#4b5563' },
-              { label: 'New Business', val: '+$2.8M', barPct: 20, color: '#10b981' },
-              { label: 'Expansion MRR', val: '+$2.3M', barPct: 16, color: '#10b981' },
-              { label: 'Churn & Contraction', val: '-$0.9M', barPct: 8, color: '#ef4444' },
-              { label: 'Ending Revenue', val: '$28.4M', barPct: 95, color: '#18181B' },
-            ].map(item => (
-              <div key={item.label} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 600, color: '#374151' }}>
-                  <span>{item.label}</span>
-                  <span>{item.val}</span>
-                </div>
-                <div style={{ width: '100%', height: 8, background: '#f3f4f6', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${item.barPct}%`, background: item.color, borderRadius: 4 }}></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Regional Performance */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 24, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>Regional Performance</div>
-              <div style={{ fontSize: 12, color: '#9ca3af' }}>Monthly revenue contribution by region</div>
-            </div>
-            <span style={{ fontSize: 11, fontWeight: 700, background: '#d1fae5', color: '#065f46', padding: '4px 10px', borderRadius: 12 }}>
-              Fastest: APAC (+9.4%)
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 600, color: 'var(--green)', background: 'var(--green-l)', padding: '4px 10px', borderRadius: 20 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green)' }} /> Live
             </span>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {(data?.regionalPerformance || [
-              { region: 'North America', revenue: 12900000, percentage: 88, status: 'Strong' },
-              { region: 'Europe', revenue: 8200000, percentage: 58, status: 'Growing' },
-              { region: 'Asia Pacific', revenue: 5100000, percentage: 36, status: 'Fastest (+9.4% QoQ)' },
-              { region: 'Latin America', revenue: 2200000, percentage: 16, status: 'Emerging' },
-            ]).map(r => (
-              <div key={r.region} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, fontWeight: 600, color: '#111827' }}>
-                  <span>{r.region}</span>
-                  <span style={{ color: '#6b7280' }}>{formatCurrency(r.revenue)}</span>
+          {/* KPI grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: 14 }}>
+            {kpis.map(kpi => (
+              <div key={kpi.label} style={card}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name={kpi.icon} size={16} color="var(--teal)" />
+                  </div>
                 </div>
-                <div style={{ width: '100%', height: 8, background: '#f3f4f6', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${r.percentage}%`, background: '#18181B', borderRadius: 4 }}></div>
-                </div>
+                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{kpi.value}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 3 }}>{kpi.label}</div>
               </div>
             ))}
           </div>
 
-          <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 12, marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12.5 }}>
-            <span style={{ color: '#9ca3af' }}>Total Regional Revenue</span>
-            <span style={{ fontWeight: 800, color: '#111827', fontSize: 14 }}>$28.4M</span>
+          {/* Pipeline + mode */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+            <div style={card}>
+              <div style={cardTitle}>Clearance pipeline</div>
+              <div style={{ ...cardSub, marginBottom: 16 }}>Active shipment cases by clearance stage</div>
+              <BarList rows={data.shipmentPipeline.map(s => ({ label: s.label, value: s.count }))} />
+            </div>
+            <div style={card}>
+              <div style={cardTitle}>Shipment mix</div>
+              <div style={{ ...cardSub, marginBottom: 16 }}>Cases by transport mode</div>
+              <BarList rows={data.shipmentsByMode.map(m => ({ label: m.label, value: m.count }))} />
+            </div>
           </div>
-        </div>
 
-      </div>
-
-      {/* Opportunities & Executive Decisions Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 20 }}>
-        
-        {/* Top Opportunities */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 24, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Top Opportunities</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {(data?.topOpportunities || [
-                { title: 'Expand Enterprise+ to EU market', annualImpact: 6200000, label: 'Est. annual impact' },
-                { title: 'Cross-sell AI Copilot add-on', annualImpact: 3800000, label: 'Est. annual impact' },
-                { title: 'Renegotiate cloud infra contract', annualImpact: 1100000, label: 'Est. annual savings' },
-              ]).map(opp => (
-                <div key={opp.title} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{opp.title}</div>
-                    <div style={{ fontSize: 11, color: '#9ca3af' }}>{opp.label}</div>
+          {/* Segments + monthly volume */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+            <div style={card}>
+              <div style={cardTitle}>Customer segments</div>
+              <div style={{ ...cardSub, marginBottom: 16 }}>Customers by category</div>
+              <BarList rows={data.customersBySegment.map(s => ({ label: s.segment.charAt(0).toUpperCase() + s.segment.slice(1), value: s.count }))} />
+            </div>
+            <div style={card}>
+              <div style={cardTitle}>Shipment volume</div>
+              <div style={{ ...cardSub, marginBottom: 16 }}>New cases per month</div>
+              {data.monthlyVolume.length === 0 ? (
+                <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No cases yet.</div>
+              ) : (() => {
+                const max = Math.max(1, ...data.monthlyVolume.map(m => m.count));
+                return (
+                  <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12, height: 140, paddingTop: 8 }}>
+                    {data.monthlyVolume.map(m => (
+                      <div key={m.month} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, height: '100%', justifyContent: 'flex-end' }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{m.count}</span>
+                        <div style={{ width: '100%', maxWidth: 46, height: `${Math.max(4, (m.count / max) * 100)}%`, background: 'var(--teal)', borderRadius: '5px 5px 0 0', transition: 'height 0.5s' }} />
+                        <span style={{ fontSize: 11, color: 'var(--ink3)' }}>{monthLabel(m.month)}</span>
+                      </div>
+                    ))}
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#111827' }}>
-                    +{formatCurrency(opp.annualImpact)}
-                  </div>
-                </div>
-              ))}
+                );
+              })()}
             </div>
           </div>
+        </>
+      )}
 
-          <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 14, marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: '#9ca3af' }}>Total identified upside</span>
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#111827' }}>+$11.1M annualized</span>
-          </div>
-        </div>
-
-        {/* Executive Decisions Pending */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 24, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 16 }}>Executive Decisions Pending</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {decisions.map(dec => (
-                <div key={dec.id} style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 500, color: '#111827', flex: 1, minWidth: 200 }}>{dec.text}</span>
-                  {dec.status === 'PENDING' ? (
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      <button
-                        type="button"
-                        onClick={() => handleDecision(dec.id, 'Approve')}
-                        style={{ padding: '5px 12px', borderRadius: 6, background: '#18181B', color: '#fff', border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
-                      >
-                        Approve
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDecision(dec.id, 'Defer')}
-                        style={{ padding: '5px 12px', borderRadius: 6, background: '#fff', color: '#374151', border: '1px solid #e5e7eb', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
-                      >
-                        Defer
-                      </button>
-                    </div>
-                  ) : (
-                    <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 10, background: dec.status === 'APPROVE' ? '#d1fae5' : '#f3f4f6', color: dec.status === 'APPROVE' ? '#065f46' : '#6b7280' }}>
-                      {dec.status}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 14, marginTop: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: '#9ca3af' }}>3 decisions awaiting sign-off</span>
-            <button type="button" onClick={() => showToast('Opening full decision audit log...')} style={{ background: 'none', border: 'none', fontSize: 11, fontWeight: 700, color: '#111827', cursor: 'pointer' }}>
-              View Decision Log
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-      {/* P&L Financial Summary & Board Reports */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 20 }}>
-        
-        {/* Profit & Loss Summary */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 24, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 14 }}>Profit & Loss Summary</div>
-            <table style={{ width: '100%', fontSize: 12.5, borderCollapse: 'collapse' }}>
-              <tbody>
-                <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                  <td style={{ padding: '8px 0', color: '#6b7280' }}>Gross Revenue (monthly)</td>
-                  <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 700, color: '#111827' }}>$28.4M</td>
-                </tr>
-                <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                  <td style={{ padding: '8px 0', color: '#6b7280' }}>Cost of Goods Sold (COGS)</td>
-                  <td style={{ padding: '8px 0', textAlign: 'right', color: '#111827' }}>-$12.1M</td>
-                </tr>
-                <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                  <td style={{ padding: '8px 0', color: '#6b7280' }}>Operating Expenses (OpEx)</td>
-                  <td style={{ padding: '8px 0', textAlign: 'right', color: '#111827' }}>-$9.3M</td>
-                </tr>
-                <tr>
-                  <td style={{ padding: '10px 0', fontWeight: 800, color: '#111827' }}>Net Profit</td>
-                  <td style={{ padding: '10px 0', textAlign: 'right', fontWeight: 800, color: '#111827', fontSize: 14 }}>$7.0M</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 12, marginTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: '#9ca3af' }}>Net Margin</span>
-            <span style={{ fontSize: 13, fontWeight: 800, color: '#10b981' }}>24.8%</span>
-          </div>
-        </div>
-
-        {/* Board Reports Archive */}
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 16, padding: 24, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#111827', marginBottom: 14 }}>Board Reports & Decks</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {[
-                { title: 'Q3 2026 Board Deck', type: 'PDF' },
-                { title: 'Annual Strategy Review', type: 'PDF' },
-                { title: 'Financial Audit 2025', type: 'XLSX' },
-              ].map(rep => (
-                <button
-                  key={rep.title}
-                  type="button"
-                  onClick={() => showToast(`Downloading ${rep.title}...`)}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', border: '1px solid #e5e7eb', borderRadius: 10, background: '#fff', cursor: 'pointer', textAlign: 'left' }}
-                >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, fontWeight: 600, color: '#111827' }}>
-                    <Icon name="fileText" size={15} color={rep.type === 'PDF' ? '#ef4444' : '#10b981'} />
-                    {rep.title}
-                  </span>
-                  <Icon name="download" size={14} color="#9ca3af" />
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 12, marginTop: 14, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: '#9ca3af' }}>3 of 22 board reports shown</span>
-            <button type="button" onClick={() => showToast('Opening board report archive...')} style={{ background: 'none', border: 'none', fontSize: 11, fontWeight: 700, color: '#111827', cursor: 'pointer' }}>
-              View Archive
-            </button>
-          </div>
-        </div>
-
-      </div>
-
-      {/* AI Explainability Sliding Drawer */}
-      {showExplainDrawer && (
+      {/* Explain drawer */}
+      {showExplain && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', justifyContent: 'flex-end' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(24,24,27,0.3)', backdropFilter: 'blur(2px)' }} onClick={() => setShowExplainDrawer(false)}></div>
-          <div style={{ position: 'relative', width: 420, maxWidth: '100%', background: '#fff', borderLeft: '1px solid #e5e7eb', boxShadow: '-10px 0 25px rgba(0,0,0,0.1)', padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(2px)' }} onClick={() => setShowExplain(false)} />
+          <div style={{ position: 'relative', width: 420, maxWidth: '100%', background: 'var(--white)', borderLeft: '1px solid var(--border)', boxShadow: '-10px 0 25px rgba(0,0,0,0.12)', padding: 24, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>Explain Board Summary</div>
-              <button type="button" onClick={() => setShowExplainDrawer(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>
-                <Icon name="x" size={18} />
-              </button>
+              <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>How this is computed</div>
+              <button type="button" onClick={() => setShowExplain(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}><Icon name="x" size={18} /></button>
             </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 14 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 4 }}>Model</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>Executive Insights Engine v3.1</div>
-                <div style={{ fontSize: 12, color: '#4b5563', marginTop: 2 }}>Synthesis over consolidated financial & operational data</div>
+            {explain ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {([['Method', explain.modelName], ['What it does', explain.description], ['Basis', explain.rationale], ['Note', explain.note]] as const).map(([label, val]) => val && (
+                  <div key={label} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 14 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 4 }}>{label}</div>
+                    <div style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.5 }}>{val}</div>
+                  </div>
+                ))}
               </div>
-
-              <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 14 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 4 }}>Data Sources</div>
-                <div style={{ fontSize: 12, color: '#374151' }}>
-                  Revenue Forecasting v2.7, Churn Prediction v3.2, and 185 connected data sources across 14 global regions.
-                </div>
-              </div>
-
-              <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 14 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 4 }}>Why 97.8% Confidence</div>
-                <div style={{ fontSize: 12, color: '#374151' }}>
-                  Trailing 12-week forecast variance was within ±1.8%, and Revenue Forecasting v2.7 has scored above its 95% minimum accuracy threshold for six consecutive quarters.
-                </div>
-              </div>
-
-              <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 14 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 4 }}>Recommendation Rationale</div>
-                <div style={{ fontSize: 12, color: '#374151' }}>
-                  Enterprise segment revenue is growing 2.4x faster than blended account average, while Region A acquisition volume fell 31% below baseline.
-                </div>
-              </div>
-            </div>
+            ) : <div style={{ fontSize: 13, color: 'var(--ink3)' }}>Loading…</div>}
           </div>
         </div>
       )}
-
-      {/* Floating Toast Notification */}
-      {toastMessage && (
-        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 110, background: '#18181B', color: '#fff', padding: '12px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Icon name="check" size={16} color="#10b981" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
-
     </div>
   );
 }

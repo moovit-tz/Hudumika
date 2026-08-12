@@ -1,92 +1,123 @@
 import type { FastifyInstance } from 'fastify';
+import { sql } from 'kysely';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { withTenant } from '../db/client.js';
+
+/**
+ * HuduBI — the tenant's data layer surfaced as an executive snapshot.
+ *
+ * Every figure here is computed from the tenant's OWN rows (customs cases,
+ * customers, declarations, finance). There are no invented numbers, no external
+ * warehouses, and no fabricated "board narrative": the previous version returned
+ * hardcoded constants ($28.4M revenue, 8,420 customers, Snowflake sources) that
+ * belonged to no tenant. If a section has no data it returns empty, and the UI
+ * says so rather than filling the gap.
+ */
+
+const STAGE_LABELS: Record<string, string> = {
+  BL_AWB: 'BL / AWB', DOCS_RECEIVED: 'Docs received', PERMITS: 'Permits',
+  ENTRY_PREP: 'Entry prep', ASSESSMENT: 'Assessment', INSPECTION_BOOKING: 'Inspection',
+  TAX_PAYMENT: 'Tax payment', RELEASE: 'Release', TRANSPORT: 'Transport',
+  DELIVERED: 'Delivered', CLOSED: 'Closed',
+};
+const MODE_LABELS: Record<string, string> = {
+  SEA_FCL: 'Sea (FCL)', SEA_LCL: 'Sea (LCL)', AIR: 'Air', ROAD: 'Road', RAIL: 'Rail',
+};
+const isUuid = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(s);
 
 export async function hudubiRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('hudubi'));
 
-  // ── Executive Dashboard Data ──────────────────────────────────────
+  const count = async (trx: any, table: string, tenantId: string) => {
+    try {
+      const r: any = await sql`SELECT count(*)::int AS n FROM ${sql.table(table)} WHERE tenant_id = ${tenantId}`.execute(trx);
+      return Number(r.rows?.[0]?.n ?? 0);
+    } catch { return 0; }
+  };
+  const scalar = async (trx: any, q: any) => { try { const r: any = await q.execute(trx); return Number(r.rows?.[0]?.v ?? 0); } catch { return 0; } };
+
+  // ── Executive dashboard over real tenant data ─────────────────────
   fastify.get('/dashboard', async (req) => {
     const user = req.user;
+    const tenantId = user.tenant_id;
 
-    return withTenant(user.tenant_id, async (trx) => {
-      // Aggregate executive numbers
+    return withTenant(tenantId, async (trx) => {
+      const [customers, activeCases, declarations, invoices] = await Promise.all([
+        count(trx, 'customers', tenantId),
+        count(trx, 'shipment_cases', tenantId),
+        count(trx, 'declarations', tenantId),
+        count(trx, 'sales_invoices', tenantId),
+      ]);
+
+      const consignmentValueUsd = await scalar(trx, sql`SELECT coalesce(sum(cif_value_usd),0)::float AS v FROM shipment_cases WHERE tenant_id = ${tenantId}`);
+      const revenueTzs = await scalar(trx, sql`SELECT coalesce(sum(tra_total_incl),0)::float AS v FROM sales_invoices WHERE tenant_id = ${tenantId}`);
+      const expensesTzs = (await scalar(trx, sql`SELECT coalesce(sum(amount_tzs),0)::float AS v FROM expenses WHERE tenant_id = ${tenantId}`))
+        + (await scalar(trx, sql`SELECT coalesce(sum(amount),0)::float AS v FROM finance_expenses WHERE tenant_id = ${tenantId}`));
+
+      // Records HuduBI is reading across the core tables — the "data layer" size.
+      const layerTables = ['customers', 'shipment_cases', 'declarations', 'sales_invoices', 'expenses', 'finance_expenses', 'users', 'hr_attendance', 'payroll_payslips'];
+      const layerCounts = await Promise.all(layerTables.map(t => count(trx, t, tenantId)));
+      const totalRecords = layerCounts.reduce((s, n) => s + n, 0);
+
+      // Shipment pipeline by stage — custom-workflow UUID stages folded together.
+      const stageRows: any = await sql`SELECT stage, count(*)::int AS n FROM shipment_cases WHERE tenant_id = ${tenantId} GROUP BY stage`.execute(trx);
+      const stageMap = new Map<string, number>();
+      for (const r of (stageRows.rows || [])) {
+        const key = isUuid(r.stage) ? 'Custom workflow' : (STAGE_LABELS[r.stage] || r.stage);
+        stageMap.set(key, (stageMap.get(key) || 0) + Number(r.n));
+      }
+      const shipmentPipeline = [...stageMap.entries()].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count);
+
+      const modeRows: any = await sql`SELECT type, count(*)::int AS n FROM shipment_cases WHERE tenant_id = ${tenantId} GROUP BY type ORDER BY n DESC`.execute(trx);
+      const shipmentsByMode = (modeRows.rows || []).map((r: any) => ({ mode: r.type, label: MODE_LABELS[r.type] || r.type, count: Number(r.n) }));
+
+      const segRows: any = await sql`SELECT coalesce(category,'unset') AS category, count(*)::int AS n FROM customers WHERE tenant_id = ${tenantId} GROUP BY 1 ORDER BY n DESC`.execute(trx);
+      const customersBySegment = (segRows.rows || []).map((r: any) => ({ segment: r.category, count: Number(r.n) }));
+
+      const monthRows: any = await sql`SELECT to_char(created_at,'YYYY-MM') AS m, count(*)::int AS n FROM shipment_cases WHERE tenant_id = ${tenantId} GROUP BY 1 ORDER BY 1 DESC LIMIT 6`.execute(trx);
+      const monthlyVolume = (monthRows.rows || []).map((r: any) => ({ month: r.m, count: Number(r.n) })).reverse();
+
+      const now = new Date();
       return {
-        period: 'Q3 2026',
-        summary: {
-          monthlyRevenue: 28400000,
-          revenueVsForecastPercent: 18.6,
-          profitMarginPercent: 24.8,
-          arrGrowthPercent: 21.4,
-          enterpriseCustomers: 8420,
-          businessHealthScore: 96.4,
-          confidenceScorePercent: 97.8,
-          upsideValue: 1800000,
-          strategicRisksCount: 1,
-          totalRecordsAnalyzed: 18400000,
-          aiBoardText: `AI analyzed 18.4 million records across Hudumika platform today. Monthly revenue of $28.4M is tracking 18.6% above forecast, with a projected quarterly increase of 14.8% and a business health score of 96.4. One strategic anomaly was flagged in Region A customer acquisition, posing a modest risk to next quarter's growth trajectory. Board recommendation: reallocate marketing budget toward the Enterprise segment to compound the current growth advantage.`,
-        },
-        regionalPerformance: [
-          { region: 'North America', revenue: 12900000, percentage: 88, status: 'Strong' },
-          { region: 'Europe', revenue: 8200000, percentage: 58, status: 'Growing' },
-          { region: 'Asia Pacific', revenue: 5100000, percentage: 36, status: 'Fastest growing (+9.4% QoQ)' },
-          { region: 'Latin America', revenue: 2200000, percentage: 16, status: 'Emerging' },
-        ],
-        topOpportunities: [
-          { title: 'Expand Enterprise+ to EU market', annualImpact: 6200000, label: 'Est. annual impact' },
-          { title: 'Cross-sell AI Copilot add-on', annualImpact: 3800000, label: 'Est. annual impact' },
-          { title: 'Renegotiate cloud infra contract', annualImpact: 1100000, label: 'Est. annual savings' },
-        ],
-        executiveDecisions: [
-          { id: 'dec-1', text: 'Approve Q4 marketing budget increase', status: 'PENDING' },
-          { id: 'dec-2', text: 'Sign off on APAC hiring plan', status: 'PENDING' },
-          { id: 'dec-3', text: 'Approve cloud infra contract renegotiation', status: 'PENDING' },
-        ],
-        financialSummary: {
-          grossRevenueMonthly: 28400000,
-          cogs: 12100000,
-          opex: 9300000,
-          netProfit: 7000000,
-          netMarginPercent: 24.8,
-        },
+        period: now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+        generatedAt: now.toISOString(),
+        dataLayer: { totalRecords, tables: layerTables.length },
+        kpis: { consignmentValueUsd, activeCases, customers, declarations, revenueTzs, expensesTzs },
+        shipmentPipeline,
+        shipmentsByMode,
+        customersBySegment,
+        monthlyVolume,
       };
     });
   });
 
-  // ── AI Model Explainability Metadata ──────────────────────────────
-  fastify.get('/explain', async (req) => {
-    return {
-      modelName: 'Executive Insights Engine v3.1',
-      description: 'Synthesis over consolidated financial & operational data across 185 connected sources.',
-      confidencePercent: 97.8,
-      dataSourcesCount: 185,
-      historyVariancePercent: 1.8,
-      rationale: 'Enterprise segment revenue is growing 2.4x faster than blended account average, while Region A acquisition volume fell 31% below baseline.',
-      recommendation: 'Route the marketing budget reallocation to Finance for sign-off this week to preserve Q4 growth trajectory.',
-    };
-  });
-
-  // ── Data Sources Overview ──────────────────────────────────────────
+  // ── What HuduBI is reading (real connected source) ────────────────
   fastify.get('/data-sources', async (req) => {
-    return {
-      sources: [
-        { name: 'Snowflake Data Warehouse', type: 'WAREHOUSE', status: 'CONNECTED', recordsCount: 12400000, lastSync: '10 min ago' },
-        { name: 'Postgres Operational DB', type: 'DATABASE', status: 'CONNECTED', recordsCount: 4200000, lastSync: 'Live' },
-        { name: 'Google BigQuery Analytics', type: 'ANALYTICS', status: 'CONNECTED', recordsCount: 1800000, lastSync: '1 hour ago' },
-        { name: 'AWS S3 Data Lake', type: 'STORAGE', status: 'CONNECTED', recordsCount: 8500000, lastSync: '30 min ago' },
-      ],
-    };
+    const user = req.user;
+    const tenantId = user.tenant_id;
+    return withTenant(tenantId, async (trx) => {
+      const tables = ['customers', 'shipment_cases', 'declarations', 'sales_invoices', 'expenses', 'users', 'hr_attendance', 'payroll_payslips'];
+      const counts = await Promise.all(tables.map(t => count(trx, t, tenantId)));
+      const total = counts.reduce((s, n) => s + n, 0);
+      // One real source: this platform's own operational database, scoped to the
+      // tenant. No Snowflake / BigQuery / S3 — those never existed here.
+      return {
+        sources: [
+          { name: 'Hudumika operational database', type: 'DATABASE', status: 'CONNECTED', recordsCount: total, lastSync: 'Live' },
+        ],
+        breakdown: tables.map((t, i) => ({ table: t, records: counts[i] })),
+      };
+    });
   });
 
-  // ── Action Executions ──────────────────────────────────────────────
-  fastify.post('/action', async (req, reply) => {
-    const body = req.body as any || {};
+  // ── How the snapshot is produced (honest, no fake confidence score) ──
+  fastify.get('/explain', async () => {
     return {
-      ok: true,
-      action: body.action || 'EXECUTE',
-      message: body.message || 'Action executed successfully.',
-      timestamp: new Date().toISOString(),
+      modelName: 'HuduBI aggregation',
+      description: 'Direct SQL aggregation over the tenant\'s own operational and finance tables — no external model, no forecast.',
+      rationale: 'Every figure is a live count or sum scoped to this tenant. Percentages are shares of the tenant\'s own totals.',
+      note: 'HuduBI reports what the data says; it does not predict or invent figures.',
     };
   });
 }
