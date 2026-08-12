@@ -21,6 +21,7 @@ import { ClockInPage }  from '../pages/ClockInPage.js';
 import { MyHubPage }    from '../pages/MyHub.js';
 import { RecruitmentPage } from '../pages/Recruitment.js';
 import { ITAdminDashboard } from '../pages/ITAdminDashboard.js';
+import { Calls } from '../pages/Calls.js';
 import {
   HrmDashboard, EmployeesPage, DepartmentsPage, DesignationsPage, TeamsPage,
   AttendancePage, LeavesPage, ShiftsPage, HolidaysPage,
@@ -34,6 +35,7 @@ const NAV: SidebarSection[] = [
     items: [
       { label: 'Dashboard', icon: 'home', path: '/nexushr', exact: true },
       { label: 'My HR', icon: 'user', path: '/nexushr/me' },
+      { label: 'Calls', icon: 'camera', path: '/nexushr/calls' },
       { label: 'Clock-in', icon: 'clock', path: '/nexushr/clock-in' },
     ],
   },
@@ -125,6 +127,7 @@ export function NexusHRShell() {
               <Route path="login-history"     element={<RequireRoles roles={MGMT_ROLES}><LoginHistoryPage /></RequireRoles>} />
               <Route path="device-management" element={<RequireRoles roles={MGMT_ROLES}><DeviceManagementPage /></RequireRoles>} />
               <Route path="me"                element={<MyHubPage />} />
+              <Route path="calls"             element={<Calls />} />
               <Route path="clock-in"          element={<ClockInPage />} />
               <Route path="leaves"            element={<RequireRoles roles={MGMT_ROLES}><LeavesPage /></RequireRoles>} />
               <Route path="attendance"        element={<RequireRoles roles={MGMT_ROLES}><AttendancePage /></RequireRoles>} />

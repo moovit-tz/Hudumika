@@ -38,6 +38,7 @@ import { rateCardRoutes } from './routes/rate-card.routes.js';
 import { consignmentRoutes } from './routes/consignments.routes.js';
 import { ocrRoutes } from './routes/ocr.routes.js';
 import { hrRoutes } from './routes/hr.routes.js';
+import { callsRoutes } from './routes/calls.routes.js';
 import { payrollRoutes } from './routes/payroll.routes.js';
 import { identityRoutes } from './routes/identity.routes.js';
 import { calendarRoutes } from './routes/calendar.routes.js';
@@ -267,6 +268,7 @@ async function main() {
     await server.register(queryBuilderRoutes, { prefix: '/v1/superadmin/query-builder' });
     await server.register(ocrRoutes, { prefix: '/v1/ocr' });
     await server.register(hrRoutes, { prefix: '/v1/hr' });
+    await server.register(callsRoutes, { prefix: '/v1/hr' });
     await server.register(payrollRoutes, { prefix: '/v1/payroll' });
     // Shared across every app: who a person is, and whether the country is open.
     await server.register(identityRoutes, { prefix: '/v1/identity' });
