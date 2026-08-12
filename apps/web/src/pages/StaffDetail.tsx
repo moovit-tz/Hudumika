@@ -4,7 +4,6 @@ import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 import { BackButton } from '../components/ui/BackButton.js';
 import { useAuth } from '../hooks/useAuth.js';
-import { EMPLOYEES } from '../data/staffData.js';
 import type { EmpStatus } from '../data/staffData.js';
 import type { UserProfileFields } from '@hudumika/types';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -355,25 +354,12 @@ export const StaffDetail: React.FC = () => {
         });
         return;
       }
-    } catch { /* fall through */ }
-    
-    // Fallback for mock data (e1, e2, etc)
-    const mock = EMPLOYEES.find(e => e.id === id);
-    if (mock) {
-      setStaff({
-        id: mock.id, name: mock.name, email: mock.email, phone: mock.phone,
-        role: mock.role, active: mock.status !== 'INACTIVE',
-        status: mock.status, created_at: mock.hireDate,
-        last_login_at: null, hireDate: mock.hireDate,
-        dept: mock.dept, designation: mock.designation,
-        employee_code: `EMP-00${mock.id.replace('e', '')}`,
-        reports_to: 'Ariana Cole',
-        employment_type: 'Not set',
-        member_since: formatDate(mock.hireDate),
-        profile: {}
-      });
-    }
+    } catch { /* fall through to the honest not-found state below */ }
 
+    // No sample-fixture fallback: an id the API can't resolve is a staff member
+    // this tenant does not have, and the page must say so (the "Staff not found"
+    // state) rather than render a fabricated profile ("Ariana Cole", a made-up
+    // employee code) that reads as a real person.
     setLoading(false);
   }, [id]);
 
