@@ -3078,6 +3078,7 @@ export function PayrollPage() {
   const [detail, setDetail] = useState<{ run: PayRun; payslips: Payslip[]; totals: any } | null>(null);
   const [busy, setBusy] = useState<'' | 'create' | 'calc' | 'approve'>('');
   const [slip, setSlip] = useState<Payslip | null>(null);
+  const [showPay, setShowPay] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const loadRuns = useCallback(async () => {
@@ -3135,6 +3136,9 @@ export function PayrollPage() {
   return (
     <div style={{ flex:1, overflowY:'auto' }}>
       <PageHeader icon="dollarSign" title="Monthly Payroll" sub="Statutory payroll runs, payslips and remittances" backTo="/nexushr">
+        <button type="button" className="btn btn-secondary" onClick={() => setShowPay(true)} style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <Icon name="users" size={13} /> Pay setup
+        </button>
         <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!payslips.length} style={{ display:'flex', alignItems:'center', gap:6 }}>
           <Icon name="download" size={13} /> Export
         </button>
@@ -3197,6 +3201,7 @@ export function PayrollPage() {
       ))}
 
       {slip && <PayslipDetailModal slip={slip} runName={run?.name ?? ''} onClose={() => setSlip(null)} />}
+      {showPay && <PayComponentsModal onClose={() => setShowPay(false)} />}
     </div>
   );
 }
@@ -3242,6 +3247,123 @@ function PayslipDetailModal({ slip, runName, onClose }: { slip: Payslip; runName
                   <span style={{ fontFamily:'var(--mono)' }}>{payMoney(ln.amount ?? ln.value ?? 0)}</span>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Employee salary-components editor. Components are effective-dated and add-only
+// on the server (a new row supersedes; the calculator reads whatever is in force
+// on the run's period-end), so this adds — it never edits or deletes in place.
+// A person with no basic-pay component is *skipped and named* by /calculate,
+// which is why setting pay here is the prerequisite for paying a new hire.
+function PayComponentsModal({ onClose }: { onClose: () => void }) {
+  const [staff, setStaff] = useState<any[]>([]);
+  const [types, setTypes] = useState<any[]>([]);
+  const [userId, setUserId] = useState('');
+  const [components, setComponents] = useState<any[]>([]);
+  const [typeId, setTypeId] = useState('');
+  const [amount, setAmount] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; kind: 'ok' | 'err' } | null>(null);
+
+  useEffect(() => {
+    apiFetch('/v1/hr/staff').then(d => { if (Array.isArray(d)) setStaff(d); }).catch(() => {});
+    apiFetch('/v1/payroll/settings').then(s => setTypes(s?.component_types ?? [])).catch(() => {});
+  }, []);
+
+  const loadComponents = useCallback(async (uid: string) => {
+    if (!uid) { setComponents([]); return; }
+    try { setComponents(await apiFetch(`/v1/payroll/employees/${uid}/components`) ?? []); } catch { setComponents([]); }
+  }, []);
+  useEffect(() => { loadComponents(userId); }, [userId, loadComponents]);
+
+  const add = async () => {
+    if (!userId || !typeId || amount === '') { setMsg({ text: 'Pick an employee, a component and an amount.', kind: 'err' }); return; }
+    setSaving(true); setMsg(null);
+    try {
+      await apiFetch(`/v1/payroll/employees/${userId}/components`, {
+        method: 'POST',
+        body: JSON.stringify({ component_type_id: typeId, amount: Number(amount) }),
+      });
+      setAmount(''); setTypeId('');
+      setMsg({ text: 'Component added — effective today.', kind: 'ok' });
+      loadComponents(userId);
+    } catch (e: any) { setMsg({ text: e?.message || 'Could not add the component.', kind: 'err' }); }
+    finally { setSaving(false); }
+  };
+
+  const isEarn = (dir: string) => String(dir || '').toUpperCase().startsWith('EARN');
+
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:1500, background:'rgba(0,0,0,0.4)', backdropFilter:'blur(3px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={onClose}>
+      <div style={{ width:520, maxWidth:'100%', maxHeight:'88vh', overflowY:'auto', background:'var(--white)', borderRadius:16, border:'1px solid var(--border)', boxShadow:'var(--elev-lg)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
+          <div>
+            <div style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>Employee pay setup</div>
+            <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Set the salary components a payroll run reads to calculate pay.</div>
+          </div>
+          <button type="button" onClick={onClose} title="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:4 }}><Icon name="x" size={18} /></button>
+        </div>
+
+        <div style={{ padding:'16px 24px 22px', display:'flex', flexDirection:'column', gap:14 }}>
+          <div>
+            <label style={ltLabel}>Employee</label>
+            <Select value={userId} onValueChange={setUserId}>
+              <SelectTrigger style={{ width:'100%' }}><SelectValue placeholder="Select an employee" /></SelectTrigger>
+              <SelectContent>
+                {staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {userId && (
+            <div>
+              <div style={ltLabel}>Current components</div>
+              {components.length === 0 ? (
+                <div style={{ fontSize:12.5, color:'var(--ink3)', background:'var(--bg)', border:'1px dashed var(--border)', borderRadius:8, padding:'12px' }}>
+                  None yet. A run will skip this person until a basic-pay component is set.
+                </div>
+              ) : (
+                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                  {components.map(c => (
+                    <div key={c.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 12px', border:'1px solid var(--border)', borderRadius:8, background:'var(--card-sunken)' }}>
+                      <span style={{ width:8, height:8, borderRadius:'50%', background: isEarn(c.direction) ? 'var(--green)' : 'var(--red)', flexShrink:0 }} />
+                      <span style={{ fontSize:13, fontWeight:600, color:'var(--ink)', flex:1 }}>{c.name}
+                        {c.taxable && <span style={{ marginLeft:8, fontSize:10, fontWeight:700, padding:'1px 6px', borderRadius:8, background:'var(--gold-l)', color:'var(--gold)' }}>TAXABLE</span>}
+                      </span>
+                      <span style={{ fontSize:11, color:'var(--ink3)' }}>from {String(c.effective_from).slice(0,10)}</span>
+                      <span style={{ fontSize:13, fontFamily:'var(--mono)', fontWeight:700, color: isEarn(c.direction) ? 'var(--ink)' : 'var(--red)' }}>{isEarn(c.direction) ? '' : '−'}{payMoney(c.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {userId && (
+            <div style={{ borderTop:'1px solid var(--border)', paddingTop:14, display:'flex', flexDirection:'column', gap:10 }}>
+              <div style={ltLabel}>Add a component</div>
+              <div style={{ display:'flex', gap:10, flexWrap:'wrap', alignItems:'flex-end' }}>
+                <div style={{ flex:'1 1 200px' }}>
+                  <Select value={typeId} onValueChange={setTypeId}>
+                    <SelectTrigger style={{ width:'100%' }}><SelectValue placeholder="Pay component" /></SelectTrigger>
+                    <SelectContent>
+                      {types.map(t => <SelectItem key={t.id} value={t.id}>{t.name}{isEarn(t.direction) ? '' : ' (deduction)'}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div style={{ flex:'0 1 160px' }}>
+                  <input style={ltInput} type="number" min="0" step="1000" placeholder="Amount (TZS)" value={amount} onChange={e => setAmount(e.target.value)} />
+                </div>
+                <button type="button" className="btn btn-primary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }} disabled={saving} onClick={add}>
+                  {saving ? 'Adding…' : 'Add'}
+                </button>
+              </div>
+              {msg && <div style={{ fontSize:12, fontWeight:500, color: msg.kind === 'err' ? 'var(--red)' : 'var(--green)' }}>{msg.text}</div>}
             </div>
           )}
         </div>
