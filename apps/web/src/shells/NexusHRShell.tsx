@@ -20,6 +20,7 @@ import { HrAssets }     from '../pages/HrAssets.js';
 import { ClockInPage }  from '../pages/ClockInPage.js';
 import { MyHubPage }    from '../pages/MyHub.js';
 import { RecruitmentPage } from '../pages/Recruitment.js';
+import { ITAdminDashboard } from '../pages/ITAdminDashboard.js';
 import {
   HrmDashboard, EmployeesPage, DepartmentsPage, DesignationsPage, TeamsPage,
   AttendancePage, LeavesPage, ShiftsPage, HolidaysPage,
@@ -82,6 +83,7 @@ const NAV: SidebarSection[] = [
   {
     title: 'ACCESS & SECURITY',
     items: [
+      { label: 'IT Admin',            icon: 'barChart2',  path: '/nexushr/it-admin'          },
       { label: 'Roles & Permissions', icon: 'shield',     path: '/nexushr/roles'             },
       { label: 'Permission Matrix',   icon: 'key',        path: '/nexushr/permissions'       },
       { label: 'Activity Logs',       icon: 'activity',   path: '/nexushr/activity-logs'     },
@@ -118,6 +120,7 @@ export function NexusHRShell() {
               <Route path="invitations"       element={<RequireRoles roles={MGMT_ROLES}><InvitationsPage /></RequireRoles>} />
               <Route path="staff-directory"   element={<Navigate to="/nexushr/employees" replace />} />
               <Route path="staff/:id"         element={<RequireSelfOrRoles roles={MGMT_ROLES}><StaffDetail /></RequireSelfOrRoles>} />
+              <Route path="it-admin"          element={<RequireRoles roles={['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN']}><ITAdminDashboard /></RequireRoles>} />
               <Route path="activity-logs"     element={<RequireRoles roles={MGMT_ROLES}><ActivityLogsPage /></RequireRoles>} />
               <Route path="login-history"     element={<RequireRoles roles={MGMT_ROLES}><LoginHistoryPage /></RequireRoles>} />
               <Route path="device-management" element={<RequireRoles roles={MGMT_ROLES}><DeviceManagementPage /></RequireRoles>} />
