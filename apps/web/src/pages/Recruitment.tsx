@@ -9,9 +9,11 @@ interface Opening {
   employment_type: string; status: string; description: string | null;
   openings_count: number; candidate_count?: number; created_by_name?: string | null;
 }
+interface Interview { id: string; scheduled_at: string; mode: string; status: string; interviewer_name: string | null; notes: string | null }
 interface Candidate {
   id: string; job_opening_id: string; name: string; email: string | null;
   phone: string | null; stage: string; rating: number | null; source: string | null; notes: string | null;
+  interviews?: Interview[]; next_interview?: Interview | null;
 }
 
 const STAGES: { key: string; label: string; color: string; tint: string }[] = [
@@ -40,6 +42,26 @@ export function RecruitmentPage() {
   const [onboard, setOnboard] = useState<Candidate | null>(null);
   const [onboardRole, setOnboardRole] = useState('JUNIOR');
   const [onboardMsg, setOnboardMsg] = useState<{ text: string; kind: 'ok' | 'err' } | null>(null);
+  const [sched, setSched] = useState<Candidate | null>(null);
+  const [schedForm, setSchedForm] = useState({ scheduled_at: '', mode: 'VIDEO', interviewer_id: '', notes: '' });
+  const [staff, setStaff] = useState<{ id: string; name: string }[]>([]);
+
+  useEffect(() => { apiFetch('/v1/hr/staff').then(d => { if (Array.isArray(d)) setStaff(d); }).catch(() => {}); }, []);
+
+  const scheduleInterview = async () => {
+    if (!sched || !schedForm.scheduled_at) return;
+    setBusy(true);
+    try {
+      await apiFetch(`/v1/hr/recruitment/candidates/${sched.id}/interviews`, {
+        method: 'POST',
+        body: JSON.stringify({ scheduled_at: new Date(schedForm.scheduled_at).toISOString(), mode: schedForm.mode, interviewer_id: schedForm.interviewer_id || undefined, notes: schedForm.notes || undefined }),
+      });
+      setSched(null); setSchedForm({ scheduled_at: '', mode: 'VIDEO', interviewer_id: '', notes: '' });
+      if (selId) loadCandidates(selId);
+    } catch (e: any) { alert(e?.message || 'Could not schedule the interview'); }
+    finally { setBusy(false); }
+  };
+  const fmtWhen = (iso: string) => new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
   const loadOpenings = useCallback(async () => {
     try {
@@ -185,6 +207,30 @@ export function RecruitmentPage() {
             <div style={{ fontSize: 12.5, fontWeight: 500, marginBottom: 16, color: onboardMsg.kind === 'err' ? 'var(--red)' : 'var(--green)', background: onboardMsg.kind === 'err' ? 'var(--red-l)' : 'var(--green-l)', borderRadius: 8, padding: '8px 12px' }}>{onboardMsg.text}</div>
           )}
 
+          {/* Schedule interview */}
+          {sched && (
+            <div style={{ background: 'var(--purple-l)', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, alignItems: 'end' }}>
+              <div style={{ gridColumn: '1 / -1', fontSize: 13, color: 'var(--ink)' }}>Schedule an interview with <strong>{sched.name}</strong></div>
+              <div><label style={lbl}>When</label><input style={inp} type="datetime-local" value={schedForm.scheduled_at} onChange={e => setSchedForm({ ...schedForm, scheduled_at: e.target.value })} /></div>
+              <div><label style={lbl}>Mode</label>
+                <Select value={schedForm.mode} onValueChange={v => setSchedForm({ ...schedForm, mode: v })}>
+                  <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                  <SelectContent>{['VIDEO', 'PHONE', 'ONSITE'].map(m => <SelectItem key={m} value={m}>{m.charAt(0) + m.slice(1).toLowerCase()}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div><label style={lbl}>Interviewer</label>
+                <Select value={schedForm.interviewer_id || '__none__'} onValueChange={v => setSchedForm({ ...schedForm, interviewer_id: v === '__none__' ? '' : v })}>
+                  <SelectTrigger style={{ width: '100%' }}><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="__none__">Unassigned</SelectItem>{staff.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button type="button" className="btn btn-primary btn-sm" disabled={busy || !schedForm.scheduled_at} style={{ minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} onClick={scheduleInterview}>{busy ? 'Saving…' : 'Schedule'}</button>
+                <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} onClick={() => setSched(null)}>Cancel</button>
+              </div>
+            </div>
+          )}
+
           {/* Pipeline board */}
           <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, flex: 1 }}>
             {STAGES.map(stage => {
@@ -203,10 +249,20 @@ export function RecruitmentPage() {
                           {stars(c.rating)}
                         </div>
                         {(c.email || c.source) && <div style={{ fontSize: 11.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.email || c.source}</div>}
+                        {c.next_interview && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: 'var(--purple)', background: 'var(--purple-l)', borderRadius: 6, padding: '3px 7px' }}>
+                            <Icon name="calendar" size={11} /> {fmtWhen(c.next_interview.scheduled_at)}{c.next_interview.interviewer_name ? ` · ${c.next_interview.interviewer_name.split(' ')[0]}` : ''}
+                          </div>
+                        )}
                         <Select value={c.stage} onValueChange={v => moveCandidate(c.id, v)}>
                           <SelectTrigger style={{ width: '100%', height: 30, fontSize: 12 }}><SelectValue /></SelectTrigger>
                           <SelectContent>{STAGES.map(s => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}</SelectContent>
                         </Select>
+                        {!['HIRED', 'REJECTED'].includes(c.stage) && (
+                          <button type="button" className="btn btn-secondary btn-sm" style={{ width: '100%', height: 28, fontSize: 11.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, minHeight: 28, boxSizing: 'border-box', lineHeight: 1.2 }} onClick={() => { setSched(c); }}>
+                            <Icon name="calendar" size={12} /> {c.next_interview ? 'Reschedule' : 'Schedule interview'}
+                          </button>
+                        )}
                         {c.stage === 'HIRED' && (
                           c.email ? (
                             <button type="button" className="btn btn-secondary btn-sm" style={{ width: '100%', height: 28, fontSize: 11.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, minHeight: 28, boxSizing: 'border-box', lineHeight: 1.2 }} onClick={() => { setOnboard(c); setOnboardMsg(null); }}>

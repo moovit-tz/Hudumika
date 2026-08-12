@@ -3236,6 +3236,7 @@ export interface Database {
   hr_timesheet_approvals: HrTimesheetApprovalsTable;
   hr_job_openings: HrJobOpeningsTable;
   hr_candidates: HrCandidatesTable;
+  hr_interviews: HrInterviewsTable;
   hr_calls: HrCallsTable;
   hr_leaves: HrLeavesTable;
   hr_payroll: HrPayrollTable;
@@ -5737,6 +5738,20 @@ export interface HrJobOpeningsTable {
   status: Generated<string>;
   description: string | null;
   openings_count: Generated<number>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface HrInterviewsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  candidate_id: string;
+  interviewer_id: string | null;
+  scheduled_at: Date;
+  mode: Generated<string>;
+  status: Generated<string>;
+  notes: string | null;
   created_by: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;

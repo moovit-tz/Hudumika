@@ -1466,12 +1466,32 @@ export async function hrRoutes(fastify: FastifyInstance) {
     const user = req.user;
     const { id } = req.params as any;
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.selectFrom('hr_candidates')
+      const candidates = await trx.selectFrom('hr_candidates')
         .selectAll()
         .where('tenant_id', '=', user.tenant_id)
         .where('job_opening_id', '=', id)
         .orderBy('created_at', 'desc')
         .execute();
+
+      const ids = candidates.map(c => c.id);
+      let interviews: any[] = [];
+      if (ids.length) {
+        interviews = await trx.selectFrom('hr_interviews as i')
+          .leftJoin('users as u', 'u.id', 'i.interviewer_id')
+          .select(['i.id', 'i.candidate_id', 'i.scheduled_at', 'i.mode', 'i.status', 'i.notes', 'u.name as interviewer_name'])
+          .where('i.tenant_id', '=', user.tenant_id)
+          .where('i.candidate_id', 'in', ids)
+          .orderBy('i.scheduled_at', 'asc')
+          .execute();
+      }
+      const byCand = new Map<string, any[]>();
+      for (const iv of interviews) { if (!byCand.has(iv.candidate_id)) byCand.set(iv.candidate_id, []); byCand.get(iv.candidate_id)!.push(iv); }
+      const now = Date.now();
+      return candidates.map(c => {
+        const list = byCand.get(c.id) || [];
+        const upcoming = list.filter(x => x.status === 'SCHEDULED' && new Date(x.scheduled_at).getTime() >= now);
+        return { ...c, interviews: list, next_interview: upcoming[0] || list.find(x => x.status === 'SCHEDULED') || null };
+      });
     });
   });
 
@@ -1523,6 +1543,54 @@ export async function hrRoutes(fastify: FastifyInstance) {
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirst();
       if (!updated) return reply.status(404).send({ error: 'Candidate not found' });
+      return updated;
+    });
+  });
+
+  // Schedule an interview for a candidate.
+  fastify.post('/recruitment/candidates/:id/interviews', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    const b = (req.body as any) || {};
+    if (!b.scheduled_at || Number.isNaN(new Date(b.scheduled_at).getTime())) return reply.status(400).send({ error: 'a valid scheduled_at is required' });
+    return withTenant(user.tenant_id, async (trx) => {
+      const cand = await trx.selectFrom('hr_candidates').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!cand) return reply.status(404).send({ error: 'Candidate not found' });
+      if (b.interviewer_id) {
+        const iv = await trx.selectFrom('users').select('id').where('id', '=', b.interviewer_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!iv) return reply.status(404).send({ error: 'Interviewer not found' });
+      }
+      return trx.insertInto('hr_interviews').values({
+        tenant_id: user.tenant_id, candidate_id: id,
+        interviewer_id: b.interviewer_id || null,
+        scheduled_at: new Date(b.scheduled_at),
+        mode: ['PHONE', 'VIDEO', 'ONSITE'].includes(b.mode) ? b.mode : 'VIDEO',
+        status: 'SCHEDULED', notes: b.notes || null, created_by: user.sub,
+      }).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  // Update an interview (reschedule, complete, cancel, note).
+  fastify.patch('/recruitment/interviews/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    const b = (req.body as any) || {};
+    const patch: Record<string, unknown> = { updated_at: new Date() };
+    if (b.status !== undefined) {
+      if (!['SCHEDULED', 'COMPLETED', 'CANCELLED'].includes(b.status)) return reply.status(400).send({ error: 'invalid status' });
+      patch.status = b.status;
+    }
+    if (b.scheduled_at !== undefined) {
+      if (Number.isNaN(new Date(b.scheduled_at).getTime())) return reply.status(400).send({ error: 'invalid scheduled_at' });
+      patch.scheduled_at = new Date(b.scheduled_at);
+    }
+    if (b.mode !== undefined && ['PHONE', 'VIDEO', 'ONSITE'].includes(b.mode)) patch.mode = b.mode;
+    if (b.notes !== undefined) patch.notes = b.notes || null;
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('hr_interviews').set(patch as any)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Interview not found' });
       return updated;
     });
   });
