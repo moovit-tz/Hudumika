@@ -1606,6 +1606,128 @@ function apiLeaveToRow(l: any): LeaveRow {
   };
 }
 
+// A small pill toggle used for the boolean leave-type flags.
+function FlagToggle({ label, on, onChange }: { label: string; on: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button type="button" onClick={() => onChange(!on)}
+      style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'5px 10px', fontSize:11.5, fontWeight:600, border:'1px solid var(--border)', borderRadius:'var(--r-sm)', cursor:'pointer', fontFamily:'var(--font)',
+        background: on ? 'var(--teal-l)' : 'var(--bg)', color: on ? 'var(--teal)' : 'var(--ink3)' }}>
+      <span style={{ width:14, height:14, borderRadius:'50%', display:'inline-flex', alignItems:'center', justifyContent:'center', background: on ? 'var(--teal)' : 'var(--ink3)', color:'#fff' }}>
+        <Icon name={on ? 'check' : 'x'} size={9} strokeWidth={3} />
+      </span>
+      {label}
+    </button>
+  );
+}
+
+const ltInput: React.CSSProperties = { width:'100%', boxSizing:'border-box', padding:'7px 10px', border:'1px solid var(--border)', borderRadius:'var(--r-sm)', fontSize:13, fontFamily:'var(--font)', color:'var(--ink)', background:'var(--white)' };
+const ltLabel: React.CSSProperties = { display:'block', fontSize:10.5, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.4px', marginBottom:4 };
+
+function LeaveTypeCard({ t, onSaved }: { t: any; onSaved: () => void }) {
+  const [name, setName] = useState(String(t.name));
+  const [days, setDays] = useState(String(t.days_entitled));
+  const [cycle, setCycle] = useState(String(t.cycle_months));
+  const [carry, setCarry] = useState(String(t.carry_forward_max));
+  const [paid, setPaid] = useState(!!t.paid);
+  const [reqDoc, setReqDoc] = useState(!!t.requires_document);
+  const [active, setActive] = useState(!!t.active);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<{ text: string; kind: 'ok' | 'warn' | 'err' } | null>(null);
+
+  const dirty = name !== String(t.name) || days !== String(t.days_entitled) || cycle !== String(t.cycle_months)
+    || carry !== String(t.carry_forward_max) || paid !== !!t.paid || reqDoc !== !!t.requires_document || active !== !!t.active;
+
+  const save = async () => {
+    setSaving(true); setMsg(null);
+    try {
+      const res = await apiFetch(`/v1/hr/leave-types/${t.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ name, days_entitled: Number(days), cycle_months: Number(cycle), carry_forward_max: Number(carry), paid, requires_document: reqDoc, active }),
+      });
+      setMsg(res?.warning ? { text: res.warning, kind: 'warn' } : { text: 'Saved', kind: 'ok' });
+      onSaved();
+    } catch (e: any) {
+      setMsg({ text: e?.message || 'Save failed', kind: 'err' });
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:12, padding:16, display:'flex', flexDirection:'column', gap:12, opacity: active ? 1 : 0.72 }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <span style={{ width:10, height:10, borderRadius:3, background: leaveTypeColor(t.code), flexShrink:0 }} />
+        <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', fontFamily:'var(--mono)' }}>{t.code}</span>
+        {t.statutory && <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:10, background:'var(--blue-l)', color:'var(--blue)' }}>STATUTORY</span>}
+        {t.applies_to && t.applies_to !== 'ALL' && <span style={{ fontSize:10, fontWeight:700, padding:'2px 7px', borderRadius:10, background:'var(--purple-l)', color:'var(--purple)' }}>{t.applies_to}</span>}
+      </div>
+
+      <div><label style={ltLabel}>Name</label><input style={ltInput} value={name} onChange={e => setName(e.target.value)} /></div>
+
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+        <div><label style={ltLabel}>Days entitled</label><input style={ltInput} type="number" min="0" step="0.5" value={days} onChange={e => setDays(e.target.value)} /></div>
+        <div><label style={ltLabel}>Cycle (months)</label><input style={ltInput} type="number" min="1" max="120" value={cycle} onChange={e => setCycle(e.target.value)} /></div>
+      </div>
+      <div><label style={ltLabel}>Carry-forward max (days)</label><input style={ltInput} type="number" min="0" step="0.5" value={carry} onChange={e => setCarry(e.target.value)} /></div>
+
+      <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+        <FlagToggle label="Paid" on={paid} onChange={setPaid} />
+        <FlagToggle label="Needs document" on={reqDoc} onChange={setReqDoc} />
+        <FlagToggle label="Active" on={active} onChange={setActive} />
+      </div>
+
+      {msg && (
+        <div style={{ fontSize:12, fontWeight:500, color: msg.kind==='err' ? 'var(--red)' : msg.kind==='warn' ? 'var(--gold)' : 'var(--green)' }}>{msg.text}</div>
+      )}
+
+      <div style={{ display:'flex', justifyContent:'flex-end', borderTop:'1px solid var(--border)', paddingTop:12 }}>
+        <button type="button" className="btn btn-primary btn-sm" disabled={!dirty || saving}
+          style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, opacity:(!dirty||saving)?0.55:1 }} onClick={save}>
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function LeaveTypesConfig({ types, onReload }: { types: any[]; onReload: () => void }) {
+  const [genMsg, setGenMsg] = useState<string | null>(null);
+  const [gen, setGen] = useState(false);
+  const generate = async () => {
+    setGen(true); setGenMsg(null);
+    try {
+      const r = await apiFetch('/v1/hr/leave-types/generate-statutory', { method: 'POST' });
+      setGenMsg(`${r.created?.length ?? 0} created, ${r.kept?.length ?? 0} left as configured (${r.country}).`);
+      onReload();
+    } catch (e: any) {
+      setGenMsg(e?.message || 'Could not generate statutory leave types.');
+    } finally { setGen(false); }
+  };
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+        <div style={{ fontSize:12.5, color:'var(--ink3)' }}>
+          These entitlements drive every leave balance and the request checks. Statutory rows are seeded from the tenant's country.
+        </div>
+        <button type="button" className="btn btn-secondary btn-sm" disabled={gen} style={{ display:'flex', alignItems:'center', gap:6, minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }} onClick={generate}>
+          <Icon name="download" size={14} /> {gen ? 'Generating…' : 'Generate statutory types'}
+        </button>
+      </div>
+      {genMsg && <div style={{ fontSize:12.5, color:'var(--ink2)', background:'var(--bg)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px' }}>{genMsg}</div>}
+
+      {types.length === 0 ? (
+        <div style={{ background:'var(--white)', border:'1px dashed var(--border)', borderRadius:12, padding:'40px 20px', textAlign:'center' }}>
+          <div style={{ fontSize:14, fontWeight:700, color:'var(--navy)', marginBottom:6 }}>No leave types configured</div>
+          <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Generate the statutory set to start, then adjust the days and rules per type.</div>
+        </div>
+      ) : (
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(300px, 1fr))', gap:14 }}>
+          {types.map(t => <LeaveTypeCard key={t.id} t={t} onSaved={onReload} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function LeavesPage() {
   const [filter, setFilter] = useState('');
   const [leaves, setLeaves] = useState<LeaveRow[]>([]);
@@ -1616,7 +1738,7 @@ export function LeavesPage() {
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
   const [everyBalance, setEveryBalance] = useState<any[]>([]);
   const [leaveSummary, setLeaveSummary] = useState<any | null>(null);
-  const [leaveView, setLeaveView] = useState<'list' | 'calendar'>('list');
+  const [leaveView, setLeaveView] = useState<'list' | 'calendar' | 'types'>('list');
   const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [formPerson, setFormPerson] = useState('');
   const [formType, setFormType] = useState('');
@@ -1799,12 +1921,16 @@ export function LeavesPage() {
           };
         })(),
       ]} />
-      {/* List / calendar toggle */}
-      <div style={{ display:'flex', gap:8, marginBottom:14 }}>
-        {(['list','calendar'] as const).map(v => (
-          <button key={v} type="button" onClick={() => setLeaveView(v)}
-            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py-sm) 14px', fontSize:12.5, fontWeight:600, border:'1px solid var(--border)', borderRadius:'var(--r)', cursor:'pointer', background: leaveView===v ? 'var(--teal)' : 'var(--white)', color: leaveView===v ? '#fff' : 'var(--ink2)', fontFamily:'var(--font)', minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }}>
-            <Icon name={v==='list' ? 'list' : 'calendar'} size={14} /> {v==='list' ? 'Requests' : 'Team calendar'}
+      {/* View toggle: requests · team calendar · leave-type config */}
+      <div style={{ display:'flex', gap:8, marginBottom:14, flexWrap:'wrap' }}>
+        {([
+          { v: 'list' as const, icon: 'list' as IconName, label: 'Requests' },
+          { v: 'calendar' as const, icon: 'calendar' as IconName, label: 'Team calendar' },
+          { v: 'types' as const, icon: 'settings' as IconName, label: 'Leave types' },
+        ]).map(o => (
+          <button key={o.v} type="button" onClick={() => setLeaveView(o.v)}
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py-sm) 14px', fontSize:12.5, fontWeight:600, border:'1px solid var(--border)', borderRadius:'var(--r)', cursor:'pointer', background: leaveView===o.v ? 'var(--teal)' : 'var(--white)', color: leaveView===o.v ? '#fff' : 'var(--ink2)', fontFamily:'var(--font)', minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }}>
+            <Icon name={o.icon} size={14} /> {o.label}
           </button>
         ))}
       </div>
@@ -1860,6 +1986,8 @@ export function LeavesPage() {
             ))}
           </div>
         </div>
+      ) : leaveView === 'types' ? (
+        <LeaveTypesConfig types={leaveTypes} onReload={loadEntitlement} />
       ) : (
       <>
       <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }}>
