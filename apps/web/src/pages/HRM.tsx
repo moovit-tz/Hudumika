@@ -3206,6 +3206,52 @@ export function PayrollPage() {
   );
 }
 
+// Print a payslip via a clean pop-up the browser can save as PDF — no server
+// PDF dependency. Reads whatever fields the slip carries; a manager's slip and
+// an employee's own /payslips/:id both fit.
+function printPayslipPdf(slip: any) {
+  const money = (v: any) => 'TZS ' + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+  const period = (slip.period_year && slip.period_month)
+    ? new Date(slip.period_year, slip.period_month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : (slip.run_name ?? '');
+  const esc = (s: any) => String(s ?? '').replace(/[&<>]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[ch] as string));
+  const row = (label: string, value: any, opts: { strong?: boolean; neg?: boolean } = {}) =>
+    `<tr><td class="l${opts.strong ? ' b' : ''}">${esc(label)}</td><td class="v${opts.strong ? ' b' : ''}${opts.neg ? ' neg' : ''}">${opts.neg && Number(value) > 0 ? '−' : ''}${money(value)}</td></tr>`;
+  const lines: any[] = Array.isArray(slip.lines) ? slip.lines : [];
+  const w = window.open('', '_blank', 'width=760,height=900');
+  if (!w) return;
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Payslip — ${esc(slip.name)} — ${esc(period)}</title>
+    <style>
+      *{box-sizing:border-box} body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#111;margin:0;padding:40px;background:#fff}
+      .wrap{max-width:640px;margin:0 auto}
+      .hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:16px;margin-bottom:20px}
+      .hd h1{font-size:20px;margin:0} .hd .sub{font-size:12px;color:#666;margin-top:4px}
+      .hd .pd{text-align:right;font-size:12px;color:#666}
+      table{width:100%;border-collapse:collapse} td{padding:8px 0;border-bottom:1px solid #eee;font-size:13px}
+      td.v{text-align:right;font-variant-numeric:tabular-nums} td.b{font-weight:700} td.neg{color:#b91c1c}
+      .net{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:12px;border-top:2px solid #111}
+      .net .lab{font-size:15px;font-weight:800} .net .amt{font-size:18px;font-weight:800;color:#047857}
+      .foot{margin-top:20px;font-size:11px;color:#888} h3{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#888;margin:20px 0 6px}
+      @media print{body{padding:0}}
+    </style></head><body><div class="wrap">
+      <div class="hd"><div><h1>${esc(slip.name)}</h1><div class="sub">${esc(slip.email ?? '')}</div></div>
+        <div class="pd"><div><b>Payslip</b></div><div>${esc(period)}</div><div>${esc(slip.run_name ?? '')}</div></div></div>
+      <table>
+        ${slip.basic_pay !== undefined ? row('Basic pay', slip.basic_pay) : ''}
+        ${row('Gross pay', slip.gross_pay, { strong: true })}
+        ${row('Taxable pay', slip.taxable_pay)}
+        ${row('Income tax (PAYE)', slip.income_tax, { neg: true })}
+        ${row('Employee contributions', slip.employee_contributions, { neg: true })}
+        ${row('Other deductions', slip.other_deductions, { neg: true })}
+        ${row('Total deductions', slip.total_deductions, { neg: true, strong: true })}
+      </table>
+      <div class="net"><span class="lab">Net pay</span><span class="amt">${money(slip.net_pay)}</span></div>
+      ${lines.length ? `<h3>Breakdown</h3><table>${lines.map(l => row(l.label ?? l.name ?? l.code ?? 'Line', l.amount ?? l.value ?? 0)).join('')}</table>` : ''}
+      ${slip.employer_contributions !== undefined ? `<div class="foot">Employer cost on top of gross: ${money(slip.employer_contributions)} in employer contributions. This payslip is computer-generated.</div>` : '<div class="foot">This payslip is computer-generated.</div>'}
+    </div><script>window.onload=function(){window.print();}</script></body></html>`);
+  w.document.close();
+}
+
 function PayslipDetailModal({ slip, runName, onClose }: { slip: Payslip; runName: string; onClose: () => void }) {
   const Row = ({ label, value, strong, negative }: { label: string; value: any; strong?: boolean; negative?: boolean }) => (
     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:'1px solid var(--border)' }}>
@@ -3237,6 +3283,12 @@ function PayslipDetailModal({ slip, runName, onClose }: { slip: Payslip; runName
             <span style={{ fontSize:16, fontWeight:800, fontFamily:'var(--mono)', color:'var(--green)' }}>{payMoney(slip.net_pay)}</span>
           </div>
           <div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:10 }}>Employer cost (on top of gross): {payMoney(slip.employer_contributions)} in employer contributions.</div>
+
+          <div style={{ display:'flex', justifyContent:'flex-end', marginTop:14 }}>
+            <button type="button" className="btn btn-secondary btn-sm" style={{ display:'flex', alignItems:'center', gap:6, minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }} onClick={() => printPayslipPdf({ ...slip, run_name: runName })}>
+              <Icon name="download" size={13} /> Print / Save PDF
+            </button>
+          </div>
 
           {lines.length > 0 && (
             <div style={{ marginTop:16 }}>
@@ -3368,6 +3420,60 @@ function PayComponentsModal({ onClose }: { onClose: () => void }) {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Employee self-service: your own approved payslips. Not manager-gated — the
+// server (/me/payslips, /payslips/:id) only ever returns the caller's own,
+// approved slips, so identity comes from the token, not this route's guard.
+export function MyPayslipsPage() {
+  const [slips, setSlips] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [viewing, setViewing] = useState<any | null>(null);
+
+  useEffect(() => {
+    apiFetch('/v1/payroll/me/payslips')
+      .then(d => setSlips(Array.isArray(d) ? d : []))
+      .catch(() => setSlips([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const period = (p: any) => (p.period_year && p.period_month)
+    ? new Date(p.period_year, p.period_month - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+    : (p.run_name ?? '');
+  const openFull = async (id: string) => { try { setViewing(await apiFetch(`/v1/payroll/payslips/${id}`)); } catch { /* ignore */ } };
+  const pdf = async (id: string) => { try { printPayslipPdf(await apiFetch(`/v1/payroll/payslips/${id}`)); } catch { /* ignore */ } };
+
+  return (
+    <div style={{ flex:1, overflowY:'auto' }}>
+      <PageHeader icon="dollarSign" title="My Payslips" sub="Your approved payslips and pay history" backTo="/nexushr" />
+      {loading ? (
+        <div style={{ padding:'40px', textAlign:'center', color:'var(--ink3)', fontSize:13 }}>Loading…</div>
+      ) : slips.length === 0 ? (
+        <div style={{ background:'var(--white)', border:'1px dashed var(--border)', borderRadius:12, padding:'48px 20px', textAlign:'center' }}>
+          <div style={{ fontSize:14, fontWeight:700, color:'var(--navy)', marginBottom:6 }}>No payslips yet</div>
+          <div style={{ fontSize:12.5, color:'var(--ink3)' }}>Once a payroll run that includes you is approved, your payslip appears here.</div>
+        </div>
+      ) : (
+        <Wrap>
+          <thead><tr><TH>Period</TH><TH>Run</TH><TH right>Gross</TH><TH right>PAYE</TH><TH right>Deductions</TH><TH right>Net pay</TH><TH right>Actions</TH></tr></thead>
+          <tbody>
+            {slips.map(s => (
+              <tr key={s.id} style={{ borderBottom:'1px solid var(--border)' }}>
+                <TD bold>{period(s)}</TD>
+                <TD muted>{s.run_name}</TD>
+                <TD right mono muted>{payMoney(s.gross_pay)}</TD>
+                <TD right mono muted>{payMoney(s.income_tax)}</TD>
+                <TD right mono muted>{payMoney(s.total_deductions)}</TD>
+                <TD right mono bold>{payMoney(s.net_pay)}</TD>
+                <TD right><ActionBtn label="View" onClick={() => openFull(s.id)} /><ActionBtn label="PDF" onClick={() => pdf(s.id)} /></TD>
+              </tr>
+            ))}
+          </tbody>
+        </Wrap>
+      )}
+      {viewing && <PayslipDetailModal slip={viewing} runName={viewing.run_name ?? ''} onClose={() => setViewing(null)} />}
     </div>
   );
 }

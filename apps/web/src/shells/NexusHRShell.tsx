@@ -21,7 +21,7 @@ import { ClockInPage }  from '../pages/ClockInPage.js';
 import {
   HrmDashboard, EmployeesPage, DepartmentsPage, DesignationsPage, TeamsPage,
   AttendancePage, LeavesPage, ShiftsPage, HolidaysPage,
-  PayrollPage,
+  PayrollPage, MyPayslipsPage,
   RolesPage, PermissionsPage, ActivityLogsPage, LoginHistoryPage, DeviceManagementPage, DeleteRequestsPage, InvitationsPage,
   AnnouncementsPage,
 } from '../pages/HRM.js';
@@ -72,6 +72,7 @@ const NAV: SidebarSection[] = [
     title: 'FINANCE',
     items: [
       { label: 'Payroll', icon: 'dollarSign', path: '/nexushr/payroll' },
+      { label: 'My Payslips', icon: 'fileText', path: '/nexushr/my-payslips' },
     ],
   },
   {
@@ -124,6 +125,7 @@ export function NexusHRShell() {
               <Route path="holidays"          element={<RequireRoles roles={MGMT_ROLES}><HolidaysPage /></RequireRoles>} />
               <Route path="designations"      element={<RequireRoles roles={MGMT_ROLES}><DesignationsPage /></RequireRoles>} />
               <Route path="payroll"           element={<RequireRoles roles={MGMT_ROLES}><PayrollPage /></RequireRoles>} />
+              <Route path="my-payslips"       element={<MyPayslipsPage />} />
               <Route path="announcements"     element={<RequireRoles roles={MGMT_ROLES}><AnnouncementsPage /></RequireRoles>} />
               <Route path="org-chart"         element={<RequireRoles roles={MGMT_ROLES}><OrgChart /></RequireRoles>} />
               <Route path="employment"        element={<RequireRoles roles={MGMT_ROLES}><EmploymentRecords /></RequireRoles>} />
