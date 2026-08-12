@@ -3051,100 +3051,201 @@ export function DesignationsPage() {
   );
 }
 
-type PayRow = { id?: string; emp: string; basic: number; allow: number; ded: number; status: PayStatus };
+type PayRun = { id: string; name: string; period_month: number; period_year: number; status: string; total_employer_cost?: any; total_remitted?: any; total_net?: any };
+type Payslip = { id: string; user_id: string; name: string; email?: string; basic_pay: any; gross_pay: any; taxable_pay: any; income_tax: any; employee_contributions: any; other_deductions: any; total_deductions: any; employer_contributions: any; net_pay: any; lines?: any };
 
+const RUN_STATUS_STYLE: Record<string, { bg: string; fg: string }> = {
+  DRAFT:            { bg:'var(--bg)',      fg:'var(--ink3)'  },
+  CALCULATED:       { bg:'var(--blue-l)',  fg:'var(--blue)'  },
+  PENDING_APPROVAL: { bg:'var(--gold-l)',  fg:'var(--gold)'  },
+  APPROVED:         { bg:'var(--green-l)', fg:'var(--green)' },
+  PAID:             { bg:'var(--green-l)', fg:'var(--green)' },
+  CANCELLED:        { bg:'var(--red-l)',   fg:'var(--red)'   },
+};
+const payNum = (v: any) => Number(v || 0);
+const payMoney = (v: any) => 'TZS ' + payNum(v).toLocaleString(undefined, { maximumFractionDigits: 0 });
+const payM = (v: any) => 'TZS ' + (payNum(v) / 1_000_000).toFixed(2) + 'M';
+
+// Rewired onto the real statutory payroll engine (/v1/payroll/*): runs are
+// created, calculated (PAYE + social-security bands from payroll_tax_bands /
+// contribution schemes), then approved. Replaces the old naive /v1/hr/payroll
+// page whose deductions were a single number and whose "PAYE 70% / NSSF 30%"
+// split was hardcoded.
 export function PayrollPage() {
   const now = new Date();
-  const [monthIdx,    setMonthIdx]    = useState(now.getMonth() + 1);
-  const [year,        setYear]        = useState(now.getFullYear());
-  const [payroll,     setPayroll]     = useState<PayRow[]>([]);
-  const [slipRow,     setSlipRow]     = useState<PayRow | null>(null);
-  const [running,     setRunning]     = useState(false);
-  const monthLabel = new Date(year, monthIdx - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const [runs, setRuns] = useState<PayRun[]>([]);
+  const [selId, setSelId] = useState<string | null>(null);
+  const [detail, setDetail] = useState<{ run: PayRun; payslips: Payslip[]; totals: any } | null>(null);
+  const [busy, setBusy] = useState<'' | 'create' | 'calc' | 'approve'>('');
+  const [slip, setSlip] = useState<Payslip | null>(null);
+  const [err, setErr] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  const loadRuns = useCallback(async () => {
     try {
-      const res = await apiFetch(`/v1/hr/payroll?month=${monthIdx}&year=${year}`);
-      const data = Array.isArray(res) ? res : [];
-      setPayroll(data.map((p: any) => ({
-        id: p.id, emp: p.employee_name || p.emp || '',
-        basic: Number(p.basic_pay || p.basic), allow: Number(p.allowances || p.allow),
-        ded: Number(p.deductions || p.ded), status: p.status as PayStatus,
-      })));
-    } catch { /* leave the list empty — see note at top of file */ }
-  }, [monthIdx, year]);
-  useEffect(() => { load(); }, [load]);
+      const r = await apiFetch('/v1/payroll/runs');
+      const list: PayRun[] = Array.isArray(r) ? r : [];
+      setRuns(list);
+      setSelId(prev => (prev && list.some(x => x.id === prev)) ? prev : (list[0]?.id ?? null));
+    } catch { setRuns([]); }
+  }, []);
+  useEffect(() => { loadRuns(); }, [loadRuns]);
 
-  async function handlePay(id: string) {
-    setPayroll(prev => prev.map(p => p.id === id ? { ...p, status: 'PAID' as PayStatus } : p));
-    try { await apiFetch(`/v1/hr/payroll/${id}`, { method: 'PATCH', body: JSON.stringify({ status: 'PAID' }) }); } catch { load(); }
-  }
+  const loadDetail = useCallback(async (id: string) => {
+    try { setDetail(await apiFetch(`/v1/payroll/runs/${id}`)); } catch { setDetail(null); }
+  }, []);
+  useEffect(() => { if (selId) loadDetail(selId); else setDetail(null); }, [selId, loadDetail]);
 
-  async function runPayroll() {
-    setRunning(true);
+  const createRun = async () => {
+    setBusy('create'); setErr(null);
     try {
-      const staff: any[] = await apiFetch('/v1/hr/staff');
-      const existingNames = new Set(payroll.map(p => p.emp));
-      const active = staff.filter((s: any) => s.status !== 'INACTIVE' && !existingNames.has(s.name));
-      for (const s of active) {
-        await apiFetch('/v1/hr/payroll', {
-          method: 'POST',
-          body: JSON.stringify({ user_id: s.id, period_month: monthIdx, period_year: year, basic_pay: 0, allowances: 0, deductions: 0, status: 'PENDING' }),
-        });
-      }
-      load();
-    } catch { /* ignore */ }
-    finally { setRunning(false); }
-  }
+      const r = await apiFetch('/v1/payroll/runs', { method: 'POST', body: JSON.stringify({ period_month: now.getMonth() + 1, period_year: now.getFullYear() }) });
+      await loadRuns(); if (r?.id) setSelId(r.id);
+    } catch (e: any) { setErr(e?.message || 'Could not create a run.'); }
+    finally { setBusy(''); }
+  };
+  const calculate = async () => {
+    if (!selId) return; setBusy('calc'); setErr(null);
+    try { await apiFetch(`/v1/payroll/runs/${selId}/calculate`, { method: 'POST' }); await loadDetail(selId); await loadRuns(); }
+    catch (e: any) { setErr(e?.message || 'Calculation failed.'); }
+    finally { setBusy(''); }
+  };
+  const approve = async () => {
+    if (!selId) return; setBusy('approve'); setErr(null);
+    try { await apiFetch(`/v1/payroll/runs/${selId}/approve`, { method: 'POST' }); await loadDetail(selId); await loadRuns(); }
+    catch (e: any) { setErr(e?.message || 'Approval failed.'); }
+    finally { setBusy(''); }
+  };
 
-  const total = payroll.reduce((s, p) => s + (p.basic + p.allow - p.ded), 0);
+  const run = detail?.run;
+  const payslips = detail?.payslips ?? [];
+  const totals = detail?.totals;
+  const canCalc = !!run && ['DRAFT', 'CALCULATED', 'PENDING_APPROVAL'].includes(run.status);
+  const canApprove = !!run && ['CALCULATED', 'PENDING_APPROVAL'].includes(run.status);
+  const st = run ? (RUN_STATUS_STYLE[run.status] ?? RUN_STATUS_STYLE.DRAFT) : RUN_STATUS_STYLE.DRAFT;
 
-  function exportCsv() {
-    const header = ['Employee', 'Basic Pay', 'Allowances', 'Deductions', 'Net Pay', 'Status'];
-    const lines = payroll.map(p => [p.emp, p.basic, p.allow, p.ded, p.basic + p.allow - p.ded, p.status].join(','));
+  const exportCsv = () => {
+    const header = ['Employee', 'Basic', 'Gross', 'Income tax', 'Employee contributions', 'Other deductions', 'Net pay'];
+    const lines = payslips.map(p => [p.name, payNum(p.basic_pay), payNum(p.gross_pay), payNum(p.income_tax), payNum(p.employee_contributions), payNum(p.other_deductions), payNum(p.net_pay)].join(','));
     const csv = [header.join(','), ...lines].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `payroll-${year}-${String(monthIdx).padStart(2, '0')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
+    a.href = url; a.download = `payroll-${run?.period_year}-${String(run?.period_month).padStart(2, '0')}.csv`; a.click(); URL.revokeObjectURL(url);
+  };
 
   return (
     <div style={{ flex:1, overflowY:'auto' }}>
-      <PageHeader icon="dollarSign" title="Monthly Payroll" sub={`Monthly payroll — ${monthLabel}`} backTo="/nexushr">
-        <button type="button" className="btn btn-secondary" onClick={exportCsv} style={{ display:'flex', alignItems:'center', gap:6 }}>
-          <Icon name="download" size={13} color="var(--ink2)" /> Export
+      <PageHeader icon="dollarSign" title="Monthly Payroll" sub="Statutory payroll runs, payslips and remittances" backTo="/nexushr">
+        <button type="button" className="btn btn-secondary" onClick={exportCsv} disabled={!payslips.length} style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <Icon name="download" size={13} /> Export
         </button>
-        <PrimaryBtn label={running ? 'Running—' : 'Run Payroll'} onClick={running ? undefined : runPayroll} />
+        <PrimaryBtn label={busy === 'create' ? 'Creating…' : 'New run'} icon="plus" onClick={busy ? undefined : createRun} />
       </PageHeader>
-      <MetricsRow cards={[
-        { title:'Total Payroll', value:'TZS ' + (total/1_000_000).toFixed(1) + 'M', sub1Label:'BASIC',      sub1Value:'TZS '+(payroll.reduce((s,p)=>s+p.basic,0)/1_000_000).toFixed(1)+'M', sub2Label:'ALLOWANCES', sub2Value:'TZS '+(payroll.reduce((s,p)=>s+p.allow,0)/1_000_000).toFixed(1)+'M', barHighlight:'var(--green)' },
-        { title:'Paid',       value:String(payroll.filter(p=>p.status==='PAID').length),       sub1Label:'PROCESSING', sub1Value:String(payroll.filter(p=>p.status==='PROCESSING').length), sub2Label:'PENDING', sub2Value:String(payroll.filter(p=>p.status==='PENDING').length),  barHighlight:'var(--blue)'  },
-        { title:'Deductions', value:'TZS '+(payroll.reduce((s,p)=>s+p.ded,0)/1_000_000).toFixed(1)+'M', sub1Label:'PAYE',sub1Value:'70%', sub2Label:'NSSF',sub2Value:'30%',   barHighlight:'var(--red)'   },
-      ]} />
-      <Wrap>
-        <thead><tr><TH>Employee</TH><TH right>Basic Pay</TH><TH right>Allowances</TH><TH right>Deductions</TH><TH right>Net Pay</TH><TH>Status</TH><TH right>Actions</TH></tr></thead>
-        <tbody>
-          {payroll.map(p => {
-            const net = p.basic + p.allow - p.ded;
-            return (
-              <tr key={p.emp} style={{ borderBottom:'1px solid var(--border)' }}>
-                <TD><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={p.emp} size={24} />{p.emp}</div></TD>
-                <TD right mono muted>{fmtTZS(p.basic)}</TD>
-                <TD right mono muted>{fmtTZS(p.allow)}</TD>
-                <TD right mono muted>{fmtTZS(p.ded)}</TD>
-                <TD right mono bold>{fmtTZS(net)}</TD>
-                <TD><Badge status={p.status} /></TD>
-                <TD right><ActionBtn label="Slip" onClick={() => setSlipRow(p)} />{p.status==='PENDING' && p.id && <ActionBtn label="Pay Now" color="var(--green)" onClick={() => handlePay(p.id!)} />}</TD>
+
+      {/* Run selector + run actions */}
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, marginBottom:14, flexWrap:'wrap' }}>
+        <div style={{ display:'flex', alignItems:'center', gap:10, flexWrap:'wrap' }}>
+          {runs.length > 0 ? (
+            <Select value={selId ?? ''} onValueChange={setSelId}>
+              <SelectTrigger style={{ width:260 }}><SelectValue placeholder="Select a run" /></SelectTrigger>
+              <SelectContent>
+                {runs.map(r => <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          ) : <span style={{ fontSize:13, color:'var(--ink3)' }}>No payroll runs yet — create one to begin.</span>}
+          {run && <span style={{ fontSize:11, fontWeight:700, padding:'4px 10px', borderRadius:12, background:st.bg, color:st.fg, textTransform:'uppercase', letterSpacing:'0.4px' }}>{run.status.replace('_', ' ')}</span>}
+        </div>
+        <div style={{ display:'flex', gap:8 }}>
+          {canCalc && <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={calculate}><Icon name="refresh" size={13} /> {busy === 'calc' ? 'Calculating…' : (run?.status === 'DRAFT' ? 'Calculate' : 'Recalculate')}</button>}
+          {canApprove && <button type="button" className="btn btn-primary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={approve}><Icon name="check" size={13} /> {busy === 'approve' ? 'Approving…' : 'Approve run'}</button>}
+        </div>
+      </div>
+
+      {err && <div style={{ fontSize:12.5, color:'var(--red)', background:'var(--red-l)', borderRadius:8, padding:'8px 12px', marginBottom:12 }}>{err}</div>}
+
+      {totals && (
+        <MetricsRow cards={[
+          { title:'Net to employees', value: payM(totals.net_to_employees), barHighlight:'var(--green)', sub1Label:'HEADCOUNT', sub1Value:String(payslips.length) },
+          { title:'Remitted to authorities', value: payM(totals.remitted_to_authorities), barHighlight:'var(--gold)', sub1Label:'PAYE + CONTRIBUTIONS', sub1Value:'statutory' },
+          { title:'Employer cost', value: payM(totals.employer_cost), barHighlight:'var(--blue)' },
+          { title:'Total cash out', value: payM(totals.total_cash_out), barHighlight:'var(--purple)' },
+        ]} />
+      )}
+
+      {run && (payslips.length ? (
+        <Wrap>
+          <thead><tr><TH>Employee</TH><TH right>Basic</TH><TH right>Gross</TH><TH right>Income tax</TH><TH right>Contributions</TH><TH right>Other</TH><TH right>Net pay</TH><TH right>Actions</TH></tr></thead>
+          <tbody>
+            {payslips.map(p => (
+              <tr key={p.id} style={{ borderBottom:'1px solid var(--border)' }}>
+                <TD><div style={{ display:'flex', alignItems:'center', gap:8 }}><Avatar name={p.name} size={24} />{p.name}</div></TD>
+                <TD right mono muted>{payMoney(p.basic_pay)}</TD>
+                <TD right mono muted>{payMoney(p.gross_pay)}</TD>
+                <TD right mono muted>{payMoney(p.income_tax)}</TD>
+                <TD right mono muted>{payMoney(p.employee_contributions)}</TD>
+                <TD right mono muted>{payMoney(p.other_deductions)}</TD>
+                <TD right mono bold>{payMoney(p.net_pay)}</TD>
+                <TD right><ActionBtn label="Slip" onClick={() => setSlip(p)} /></TD>
               </tr>
-            );
-          })}
-        </tbody>
-      </Wrap>
-      {slipRow && <PayslipModal row={slipRow} monthLabel={monthLabel} onClose={() => setSlipRow(null)} />}
+            ))}
+          </tbody>
+        </Wrap>
+      ) : (
+        <div style={{ background:'var(--white)', border:'1px dashed var(--border)', borderRadius:12, padding:'40px 20px', textAlign:'center' }}>
+          <div style={{ fontSize:14, fontWeight:700, color:'var(--navy)', marginBottom:6 }}>No payslips in this run yet</div>
+          <div style={{ fontSize:12.5, color:'var(--ink3)' }}>{canCalc ? 'Calculate the run to generate payslips from each employee’s salary components.' : 'This run has no payslips.'}</div>
+        </div>
+      ))}
+
+      {slip && <PayslipDetailModal slip={slip} runName={run?.name ?? ''} onClose={() => setSlip(null)} />}
+    </div>
+  );
+}
+
+function PayslipDetailModal({ slip, runName, onClose }: { slip: Payslip; runName: string; onClose: () => void }) {
+  const Row = ({ label, value, strong, negative }: { label: string; value: any; strong?: boolean; negative?: boolean }) => (
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:'1px solid var(--border)' }}>
+      <span style={{ fontSize:13, color: strong ? 'var(--ink)' : 'var(--ink2)', fontWeight: strong ? 700 : 500 }}>{label}</span>
+      <span style={{ fontSize:13, fontFamily:'var(--mono)', fontWeight: strong ? 700 : 500, color: negative ? 'var(--red)' : 'var(--ink)' }}>{negative && payNum(value) > 0 ? '−' : ''}{payMoney(value)}</span>
+    </div>
+  );
+  const lines: any[] = Array.isArray(slip.lines) ? slip.lines : [];
+  return (
+    <div style={{ position:'fixed', inset:0, zIndex:1500, background:'rgba(0,0,0,0.4)', backdropFilter:'blur(3px)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }} onClick={onClose}>
+      <div style={{ width:440, maxWidth:'100%', maxHeight:'88vh', overflowY:'auto', background:'var(--white)', borderRadius:16, border:'1px solid var(--border)', boxShadow:'var(--elev-lg)' }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
+          <div>
+            <div style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>{slip.name}</div>
+            <div style={{ fontSize:12.5, color:'var(--ink3)' }}>{runName}{slip.email ? ` · ${slip.email}` : ''}</div>
+          </div>
+          <button type="button" onClick={onClose} title="Close" style={{ background:'none', border:'none', cursor:'pointer', color:'var(--ink3)', padding:4 }}><Icon name="x" size={18} /></button>
+        </div>
+        <div style={{ padding:'12px 24px 20px' }}>
+          <Row label="Basic pay" value={slip.basic_pay} />
+          <Row label="Gross pay" value={slip.gross_pay} strong />
+          <Row label="Taxable pay" value={slip.taxable_pay} />
+          <Row label="Income tax (PAYE)" value={slip.income_tax} negative />
+          <Row label="Employee contributions" value={slip.employee_contributions} negative />
+          <Row label="Other deductions" value={slip.other_deductions} negative />
+          <Row label="Total deductions" value={slip.total_deductions} negative />
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 0 4px', marginTop:6, borderTop:'2px solid var(--border)' }}>
+            <span style={{ fontSize:14, fontWeight:800, color:'var(--ink)' }}>Net pay</span>
+            <span style={{ fontSize:16, fontWeight:800, fontFamily:'var(--mono)', color:'var(--green)' }}>{payMoney(slip.net_pay)}</span>
+          </div>
+          <div style={{ fontSize:11.5, color:'var(--ink3)', marginTop:10 }}>Employer cost (on top of gross): {payMoney(slip.employer_contributions)} in employer contributions.</div>
+
+          {lines.length > 0 && (
+            <div style={{ marginTop:16 }}>
+              <div style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.4px', marginBottom:6 }}>Breakdown</div>
+              {lines.map((ln, i) => (
+                <div key={i} style={{ display:'flex', justifyContent:'space-between', fontSize:12, padding:'3px 0', color:'var(--ink2)' }}>
+                  <span>{ln.label ?? ln.name ?? ln.code ?? `Line ${i + 1}`}</span>
+                  <span style={{ fontFamily:'var(--mono)' }}>{payMoney(ln.amount ?? ln.value ?? 0)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
