@@ -37,6 +37,15 @@ type PayStatus  = 'PAID' | 'PENDING' | 'PROCESSING';
 
 const LEAVE_TYPES = ['Annual Leave','Sick Leave','Casual Leave','Maternity Leave','Emergency Leave'];
 
+// Colour a leave by its entitlement code, so the same type reads the same on
+// the team calendar and the type chips. Unknown codes fall back to the accent.
+const LEAVE_TYPE_COLORS: Record<string, string> = {
+  ANNUAL: 'var(--teal)', SICK: 'var(--red)', CASUAL: 'var(--gold)',
+  MATERNITY: 'var(--purple)', PATERNITY: 'var(--blue)', COMPASSIONATE: 'var(--gold)',
+  EMERGENCY: 'var(--red)', UNPAID: 'var(--ink3)',
+};
+const leaveTypeColor = (code: string) => LEAVE_TYPE_COLORS[String(code || '').toUpperCase()] || 'var(--teal)';
+
 const ATT = [
   { emp:'Amina Hassan',  date:'2026-06-14', in:'08:02', out:'17:05', hrs:9.1, status:'PRESENT' as AttStatus },
   { emp:'John Baraka',   date:'2026-06-14', in:'07:58', out:'17:00', hrs:9.0, status:'PRESENT' as AttStatus },
@@ -1607,6 +1616,8 @@ export function LeavesPage() {
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
   const [everyBalance, setEveryBalance] = useState<any[]>([]);
   const [leaveSummary, setLeaveSummary] = useState<any | null>(null);
+  const [leaveView, setLeaveView] = useState<'list' | 'calendar'>('list');
+  const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [formPerson, setFormPerson] = useState('');
   const [formType, setFormType] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -1659,6 +1670,17 @@ export function LeavesPage() {
       : LEAVE_TYPES.map(t => ({ v: t, l: t }))),
   ];
   const rows = filter ? leaves.filter(l => l.typeCode === filter || l.type === filter) : leaves;
+
+  // Team-calendar computation: which approved leaves cover each day of the
+  // visible month (string date compare is safe on YYYY-MM-DD).
+  const calYear = calMonth.getFullYear();
+  const calMo = calMonth.getMonth();
+  const calDays = new Date(calYear, calMo + 1, 0).getDate();
+  const calLead = (new Date(calYear, calMo, 1).getDay() + 6) % 7; // Monday-first offset
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const approvedLeaves = leaves.filter(l => l.status === 'APPROVED');
+  const calDayStr = (d: number) => `${calYear}-${String(calMo + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  const leavesOn = (ds: string) => approvedLeaves.filter(l => l.from <= ds && l.to >= ds);
   return (
     <div style={{ flex:1, overflowY:'auto' }}>
       <PageHeader icon="calendar" title="Leave Management" sub="Employee leave requests and approvals" backTo="/nexushr">
@@ -1777,6 +1799,69 @@ export function LeavesPage() {
           };
         })(),
       ]} />
+      {/* List / calendar toggle */}
+      <div style={{ display:'flex', gap:8, marginBottom:14 }}>
+        {(['list','calendar'] as const).map(v => (
+          <button key={v} type="button" onClick={() => setLeaveView(v)}
+            style={{ display:'flex', alignItems:'center', gap:6, padding:'var(--ds-btn-py-sm) 14px', fontSize:12.5, fontWeight:600, border:'1px solid var(--border)', borderRadius:'var(--r)', cursor:'pointer', background: leaveView===v ? 'var(--teal)' : 'var(--white)', color: leaveView===v ? '#fff' : 'var(--ink2)', fontFamily:'var(--font)', minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }}>
+            <Icon name={v==='list' ? 'list' : 'calendar'} size={14} /> {v==='list' ? 'Requests' : 'Team calendar'}
+          </button>
+        ))}
+      </div>
+
+      {leaveView === 'calendar' ? (
+        <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:9, padding:16 }}>
+          {/* Month navigation */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12, flexWrap:'wrap', gap:8 }}>
+            <div style={{ fontSize:15, fontWeight:700, color:'var(--navy)' }}>{calMonth.toLocaleDateString('en-US', { month:'long', year:'numeric' })}</div>
+            <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+              <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }} onClick={() => setCalMonth(new Date(calYear, calMo - 1, 1))}><Icon name="chevronLeft" size={14} /></button>
+              <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }} onClick={() => { const d=new Date(); setCalMonth(new Date(d.getFullYear(), d.getMonth(), 1)); }}>Today</button>
+              <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }} onClick={() => setCalMonth(new Date(calYear, calMo + 1, 1))}><Icon name="chevronRight" size={14} /></button>
+            </div>
+          </div>
+          {/* Weekday header */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,minmax(0,1fr))', gap:6, marginBottom:6 }}>
+            {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => (
+              <div key={d} style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textAlign:'center', textTransform:'uppercase', letterSpacing:'0.4px' }}>{d}</div>
+            ))}
+          </div>
+          {/* Day cells */}
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(7,minmax(0,1fr))', gap:6 }}>
+            {Array.from({ length: calLead }).map((_, i) => <div key={'b'+i} />)}
+            {Array.from({ length: calDays }, (_, i) => i + 1).map(d => {
+              const ds = calDayStr(d);
+              const on = leavesOn(ds);
+              const isToday = ds === todayStr;
+              const dow = new Date(calYear, calMo, d).getDay();
+              const weekend = dow === 0 || dow === 6;
+              return (
+                <div key={d} style={{ minHeight:94, border: isToday ? '2px solid var(--teal)' : '1px solid var(--border)', borderRadius:8, padding:6, background: weekend ? 'var(--card-sunken)' : 'var(--white)', display:'flex', flexDirection:'column', gap:4 }}>
+                  <div style={{ fontSize:12, fontWeight: isToday ? 700 : 600, color: isToday ? 'var(--teal)' : 'var(--ink2)', textAlign:'right' }}>{d}</div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:3, overflow:'hidden' }}>
+                    {on.slice(0, 3).map(l => (
+                      <div key={l.id} title={`${l.emp} — ${l.type} (${l.from} → ${l.to})`}
+                        style={{ display:'flex', alignItems:'center', gap:4, fontSize:10.5, background:'var(--bg)', borderLeft:`3px solid ${leaveTypeColor(l.typeCode)}`, borderRadius:4, padding:'2px 5px', whiteSpace:'nowrap', overflow:'hidden' }}>
+                        <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{l.emp.split(' ')[0]}</span>
+                      </div>
+                    ))}
+                    {on.length > 3 && <div style={{ fontSize:10, color:'var(--ink3)', fontWeight:600 }}>+{on.length - 3} more</div>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {/* Legend */}
+          <div style={{ display:'flex', gap:14, flexWrap:'wrap', marginTop:14, paddingTop:12, borderTop:'1px solid var(--border)' }}>
+            {(chips.filter(c => c.v).length ? chips.filter(c => c.v) : LEAVE_TYPES.map(t => ({ v: t.split(' ')[0].toUpperCase(), l: t }))).map(c => (
+              <div key={c.v} style={{ display:'flex', alignItems:'center', gap:6, fontSize:11.5, color:'var(--ink2)' }}>
+                <span style={{ width:10, height:10, borderRadius:3, background: leaveTypeColor(c.v) }} />{c.l}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+      <>
       <div style={{ display:'flex', gap:6, marginBottom:16, flexWrap:'wrap' }}>
         {chips.map(c => (
           <button key={c.v||'all'} type="button" onClick={()=>setFilter(c.v)}
@@ -1816,6 +1901,8 @@ export function LeavesPage() {
           ))}
         </tbody>
       </Wrap>
+      </>
+      )}
     </div>
   );
 }
