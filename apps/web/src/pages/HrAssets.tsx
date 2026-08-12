@@ -73,6 +73,14 @@ export function HrAssets() {
   }
 
   const out = useMemo(() => assets.filter(a => a.out).length, [assets]);
+  // A real by-type breakdown (laptops / phones / vehicles …) computed from the
+  // loaded assets — no invented inventory.
+  const byType = useMemo(() => {
+    const m: Record<string, number> = {};
+    for (const a of assets) { const t = (a.type || 'OTHER').toUpperCase(); m[t] = (m[t] || 0) + 1; }
+    return Object.entries(m).sort((x, y) => y[1] - x[1]);
+  }, [assets]);
+  const prettyType = (t: string) => t.charAt(0) + t.slice(1).toLowerCase();
 
   if (loading) return <SkeletonPage variant="table" />;
 
@@ -107,6 +115,18 @@ export function HrAssets() {
           </div>
         ))}
       </div>
+
+      {byType.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', margin: '0 0 16px' }}>
+          {byType.map(([t, n]) => (
+            <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', fontSize: 12.5, background: 'var(--white)' }}>
+              <Icon name={(TYPE_ICON[t] || 'package') as any} size={13} color="var(--ink3)" />
+              <span style={{ color: 'var(--ink2)' }}>{prettyType(t)}</span>
+              <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{n}</span>
+            </span>
+          ))}
+        </div>
+      )}
 
       {adding && <AssetPane busy={busy}
         onCreate={d => act('asset', () => apiFetch('/v1/hr/assets', { method: 'POST', body: JSON.stringify(d) }))} />}
