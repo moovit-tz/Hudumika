@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { sql } from 'kysely';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { withTenant } from '../db/client.js';
+import { callAI } from './ai.routes.js';
 
 /**
  * HuduBI — the tenant's data layer surfaced as an executive snapshot.
@@ -109,6 +110,74 @@ export async function hudubiRoutes(fastify: FastifyInstance) {
         breakdown: tables.map((t, i) => ({ table: t, records: counts[i] })),
       };
     });
+  });
+
+  // ── Deeper analytics over real rows ───────────────────────────────
+  fastify.get('/analytics', async (req) => {
+    const user = req.user;
+    const tenantId = user.tenant_id;
+    return withTenant(tenantId, async (trx) => {
+      const topCustomers: any = await sql`
+        SELECT c.name, count(*)::int AS cases, coalesce(sum(s.cif_value_usd),0)::float AS cif
+        FROM shipment_cases s JOIN customers c ON c.id = s.customer_id
+        WHERE s.tenant_id = ${tenantId} GROUP BY c.name ORDER BY cases DESC, cif DESC LIMIT 6`.execute(trx);
+      const cifByMode: any = await sql`
+        SELECT type, coalesce(sum(cif_value_usd),0)::float AS cif, count(*)::int AS cases
+        FROM shipment_cases WHERE tenant_id = ${tenantId} GROUP BY type ORDER BY cif DESC`.execute(trx);
+      const byOrigin: any = await sql`
+        SELECT coalesce(nullif(origin_port,''),'Unspecified') AS port, count(*)::int AS n
+        FROM shipment_cases WHERE tenant_id = ${tenantId} GROUP BY 1 ORDER BY n DESC LIMIT 6`.execute(trx);
+      return {
+        topCustomers: (topCustomers.rows || []).map((r: any) => ({ name: r.name, cases: Number(r.cases), cifUsd: Number(r.cif) })),
+        cifByMode: (cifByMode.rows || []).map((r: any) => ({ mode: r.type, cifUsd: Number(r.cif), cases: Number(r.cases) })),
+        byOriginPort: (byOrigin.rows || []).map((r: any) => ({ port: r.port, count: Number(r.n) })),
+      };
+    });
+  });
+
+  // ── Executive AI narrative over the real figures (BYO key, gated) ──
+  fastify.get('/ai-insights', async (req, reply) => {
+    const user = req.user;
+    const tenantId = user.tenant_id;
+
+    const settings = await withTenant(tenantId, async (trx) => {
+      const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+      return (row?.settings as any) ?? {};
+    });
+    const aiCfg = settings['int-ai'] ?? {};
+    if (!aiCfg.on || !aiCfg.apiKey) {
+      return reply.status(400).send({ error: 'AI is not configured. Enable it in Settings › Integrations › AI Integration.' });
+    }
+
+    const signals = await withTenant(tenantId, async (trx) => {
+      const one = async (q: any) => { try { const r: any = await q.execute(trx); return r.rows?.[0] ?? {}; } catch { return {}; } };
+      const rows = async (q: any) => { try { const r: any = await q.execute(trx); return r.rows ?? []; } catch { return []; } };
+      const kpis = await one(sql`SELECT
+        (SELECT count(*) FROM customers WHERE tenant_id=${tenantId})::int AS customers,
+        (SELECT count(*) FROM shipment_cases WHERE tenant_id=${tenantId})::int AS active_cases,
+        (SELECT count(*) FROM declarations WHERE tenant_id=${tenantId})::int AS declarations,
+        (SELECT coalesce(sum(cif_value_usd),0) FROM shipment_cases WHERE tenant_id=${tenantId})::float AS cif_usd,
+        (SELECT coalesce(sum(amount_tzs),0) FROM expenses WHERE tenant_id=${tenantId})::float AS expenses_tzs`);
+      const modes = await rows(sql`SELECT type AS mode, count(*)::int AS cases FROM shipment_cases WHERE tenant_id=${tenantId} GROUP BY type ORDER BY cases DESC`);
+      const segments = await rows(sql`SELECT coalesce(category,'unset') AS segment, count(*)::int AS n FROM customers WHERE tenant_id=${tenantId} GROUP BY 1 ORDER BY n DESC`);
+      return { kpis, shipmentsByMode: modes, customersBySegment: segments };
+    });
+
+    try {
+      const digest = await callAI(
+        aiCfg.apiKey,
+        aiCfg.model || 'claude-sonnet-4-6',
+        aiCfg.provider || 'anthropic',
+        [{
+          role: 'user',
+          content: `You are an executive analyst for a customs-clearance and logistics operator. Given this real, computed data (JSON below), write a short board digest (3-5 bullet points, plain text with "- " prefixes, no markdown headers) on the state of the business. Use only the numbers provided; never invent figures, customers, forecasts or trends the data does not contain. If a section is empty or zero, say so plainly rather than embellishing.\n\n${JSON.stringify(signals, null, 2)}`,
+        }],
+        512, 0.3,
+      );
+      return { digest, signals };
+    } catch (e: any) {
+      return reply.status(500).send({ error: e?.message || 'AI request failed' });
+    }
   });
 
   // ── How the snapshot is produced (honest, no fake confidence score) ──

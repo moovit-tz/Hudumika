@@ -1,139 +1,97 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
-import { Icon } from '../components/Icon.js';
+import { apiFetch } from '../lib/api.js';
+
+interface Analytics {
+  topCustomers: { name: string; cases: number; cifUsd: number }[];
+  cifByMode: { mode: string; cifUsd: number; cases: number }[];
+  byOriginPort: { port: string; count: number }[];
+}
+
+const MODE_LABELS: Record<string, string> = { SEA_FCL: 'Sea (FCL)', SEA_LCL: 'Sea (LCL)', AIR: 'Air', ROAD: 'Road', RAIL: 'Rail' };
+const usd = (v: number) => v >= 1_000_000 ? `$${(v / 1_000_000).toFixed(2)}M` : `$${Math.round(v).toLocaleString()}`;
+
+const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 16 };
+
+function BarList({ rows }: { rows: { label: string; value: number; display: string }[] }) {
+  const max = Math.max(1, ...rows.map(r => r.value));
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {rows.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No data yet.</div>}
+      {rows.map(r => (
+        <div key={r.label}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 4 }}>
+            <span style={{ color: 'var(--ink2)' }}>{r.label}</span>
+            <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{r.display}</span>
+          </div>
+          <div style={{ height: 7, borderRadius: 4, background: 'var(--bg)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${Math.round((r.value / max) * 100)}%`, background: 'var(--teal)', borderRadius: 4 }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function HuduBIAnalytics() {
-  const [activeTab, setActiveTab] = useState<'kpi' | 'reports' | 'forecasting'>('kpi');
+  const [data, setData] = useState<Analytics | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try { const res = await apiFetch('/v1/hudubi/analytics'); if (res) setData(res); }
+      catch (e) { console.error('HuduBI analytics load failed', e); }
+      finally { setLoading(false); }
+    })();
+  }, []);
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', background: '#fafafa', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
         crumbs={['HuduBI', 'Analytics']}
         titlePlain="Analytics &"
-        titleEm="reports center"
-        subtitle="Custom report builder, KPI target monitoring, and revenue forecasting"
+        titleEm="reports"
+        subtitle="Where your consignment value and volume concentrate — computed from your shipment and customer records."
       />
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid #e5e7eb', paddingBottom: 12 }}>
-        <button
-          type="button"
-          onClick={() => setActiveTab('kpi')}
-          style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: activeTab === 'kpi' ? '#18181B' : 'transparent', color: activeTab === 'kpi' ? '#fff' : '#6b7280', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-        >
-          KPI Center
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('reports')}
-          style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: activeTab === 'reports' ? '#18181B' : 'transparent', color: activeTab === 'reports' ? '#fff' : '#6b7280', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-        >
-          Reports Library
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('forecasting')}
-          style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: activeTab === 'forecasting' ? '#18181B' : 'transparent', color: activeTab === 'forecasting' ? '#fff' : '#6b7280', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
-        >
-          Revenue Forecasting
-        </button>
-      </div>
+      {loading && <div style={{ ...card, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>}
 
-      {activeTab === 'kpi' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-          {[
-            { title: 'Gross Revenue Target', current: '$28.4M', target: '$25.0M', status: 'Exceeded', pct: 113, color: '#10b981' },
-            { title: 'Customer Churn Rate', current: '1.2%', target: '1.5%', status: 'On Track', pct: 80, color: '#10b981' },
-            { title: 'Customer Acquisition Cost', current: '$420', target: '$400', status: 'Attention', pct: 105, color: '#f59e0b' },
-            { title: 'Net Promoter Score (NPS)', current: '68', target: '65', status: 'Exceeded', pct: 104, color: '#10b981' },
-            { title: 'Data Pipeline Uptime', current: '99.98%', target: '99.90%', status: 'Exceeded', pct: 100, color: '#10b981' },
-            { title: 'ML Prediction Latency', current: '42ms', target: '50ms', status: 'Exceeded', pct: 84, color: '#10b981' },
-          ].map(k => (
-            <div key={k.title} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{k.title}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: k.status === 'Exceeded' ? '#d1fae5' : '#fef3c7', color: k.status === 'Exceeded' ? '#065f46' : '#92400e' }}>
-                  {k.status}
-                </span>
+      {data && (
+        <>
+          {/* Top customers */}
+          <div style={card}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>Top customers by volume</div>
+            <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: -8 }}>Shipment cases and total CIF value per customer</div>
+            {data.topCustomers.length === 0 ? (
+              <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No customer activity yet.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {data.topCustomers.map((c, i) => (
+                  <div key={c.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: i < data.topCustomers.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                    <span style={{ width: 20, fontSize: 12, fontWeight: 700, color: 'var(--ink3)' }}>{i + 1}</span>
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{c.name}</span>
+                    <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{c.cases} case{c.cases === 1 ? '' : 's'}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', minWidth: 80, textAlign: 'right', fontFamily: 'var(--mono)' }}>{usd(c.cifUsd)}</span>
+                  </div>
+                ))}
               </div>
+            )}
+          </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <span style={{ fontSize: 24, fontWeight: 800, color: '#111827' }}>{k.current}</span>
-                <span style={{ fontSize: 12, color: '#6b7280' }}>Target: {k.target}</span>
-              </div>
-
-              <div style={{ width: '100%', height: 6, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${Math.min(100, k.pct)}%`, background: k.color, borderRadius: 3 }}></div>
-              </div>
+          {/* CIF by mode + origin ports */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+            <div style={card}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>Consignment value by mode</div>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: -8 }}>Total CIF (USD) carried by each transport mode</div>
+              <BarList rows={data.cifByMode.map(m => ({ label: `${MODE_LABELS[m.mode] || m.mode} · ${m.cases} cases`, value: m.cifUsd, display: usd(m.cifUsd) }))} />
             </div>
-          ))}
-        </div>
-      )}
-
-      {activeTab === 'reports' && (
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>Saved Executive Reports</span>
-            <button type="button" className="btn btn-primary" style={{ background: '#18181B', color: '#fff' }}>+ Create Report</button>
+            <div style={card}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>Top origin ports</div>
+              <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: -8 }}>Where your shipments come from</div>
+              <BarList rows={data.byOriginPort.map(p => ({ label: p.port, value: p.count, display: String(p.count) }))} />
+            </div>
           </div>
-
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase', fontSize: 11, color: '#9ca3af', textAlign: 'left' }}>
-                <th style={{ padding: '10px 12px' }}>Report Name</th>
-                <th style={{ padding: '10px 12px' }}>Category</th>
-                <th style={{ padding: '10px 12px' }}>Frequency</th>
-                <th style={{ padding: '10px 12px' }}>Last Run</th>
-                <th style={{ padding: '10px 12px', textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {[
-                { name: 'Monthly Executive Financial Statement', category: 'Finance', freq: 'Monthly', last: 'Today, 08:00 AM' },
-                { name: 'Customer Cohort Churn Analysis', category: 'Product', freq: 'Weekly', last: 'Yesterday' },
-                { name: 'Regional Freight Revenue Breakdown', category: 'Operations', freq: 'Daily', last: '2 hours ago' },
-                { name: 'AI Model Accuracy & Drift Audit', category: 'ML Engineering', freq: 'Weekly', last: '3 days ago' },
-              ].map(r => (
-                <tr key={r.name} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                  <td style={{ padding: '12px', fontWeight: 600, color: '#111827' }}>{r.name}</td>
-                  <td style={{ padding: '12px', color: '#4b5563' }}>{r.category}</td>
-                  <td style={{ padding: '12px', color: '#4b5563' }}>{r.freq}</td>
-                  <td style={{ padding: '12px', color: '#6b7280' }}>{r.last}</td>
-                  <td style={{ padding: '12px', textAlign: 'right' }}>
-                    <button type="button" style={{ background: 'none', border: 'none', color: '#18181B', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Run Now</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {activeTab === 'forecasting' && (
-        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>4-Quarter Machine Learning Revenue Forecast</div>
-          <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
-            Model parameters trained on 18.4M transaction logs, seasonality adjustments, and macroeconomic indicators.
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginTop: 10 }}>
-            {[
-              { q: 'Q4 2026 (Projected)', rev: '$31.2M', growth: '+9.8% QoQ', conf: '98.2%' },
-              { q: 'Q1 2027 (Projected)', rev: '$34.0M', growth: '+8.9% QoQ', conf: '96.5%' },
-              { q: 'Q2 2027 (Projected)', rev: '$37.5M', growth: '+10.2% QoQ', conf: '94.1%' },
-              { q: 'Q3 2027 (Projected)', rev: '$41.8M', growth: '+11.4% QoQ', conf: '91.8%' },
-            ].map(f => (
-              <div key={f.q} style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ fontSize: 12, color: '#9ca3af', fontWeight: 600 }}>{f.q}</div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: '#111827' }}>{f.rev}</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 600, color: '#10b981' }}>
-                  <span>{f.growth}</span>
-                  <span style={{ color: '#6b7280' }}>Conf: {f.conf}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        </>
       )}
     </div>
   );

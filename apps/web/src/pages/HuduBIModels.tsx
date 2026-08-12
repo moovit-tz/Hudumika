@@ -1,78 +1,86 @@
 import React, { useState } from 'react';
 import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
+import { apiFetch } from '../lib/api.js';
 
+// This page used to advertise fabricated ML models ("18.4M samples", "0.02
+// drift", "38ms/query") that do not exist. There is no trained model here.
+// What HuduBI can honestly offer is an AI-written executive analysis over the
+// tenant's REAL figures, using the tenant's own configured model (BYO key,
+// same contract as the rest of the platform), instructed never to invent.
 export function HuduBIModels() {
-  const [selectedModel, setSelectedModel] = useState('Executive Insights Engine v3.1');
+  const [digest, setDigest] = useState<string | null>(null);
+  const [signals, setSignals] = useState<any | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const generate = async () => {
+    setLoading(true); setErr(null); setDigest(null); setSignals(null);
+    try {
+      const r = await apiFetch('/v1/hudubi/ai-insights');
+      setDigest(r?.digest || 'No analysis returned.');
+      setSignals(r?.signals || null);
+    } catch (e: any) { setErr(e?.message || 'Could not generate the analysis.'); }
+    finally { setLoading(false); }
+  };
+
+  const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' };
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', background: '#fafafa', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
-        crumbs={['HuduBI', 'Machine Learning']}
-        titlePlain="AI & Machine Learning"
-        titleEm="models center"
-        subtitle="Predictive models, accuracy tracking, anomaly detection engines, and model training pipelines"
+        crumbs={['HuduBI', 'Intelligence']}
+        titlePlain="Executive AI"
+        titleEm="analysis"
+        subtitle="An AI-written read of your real figures, produced by your configured model — grounded in the data, never invented."
       />
 
-      {/* Model Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-        {[
-          { name: 'Executive Insights Engine v3.1', task: 'Strategic Synthesis & Board Deck Summaries', accuracy: '97.8%', status: 'ACTIVE', version: 'v3.1' },
-          { name: 'Revenue Forecasting v2.7', task: '4-Quarter Revenue & ARR Projection', accuracy: '96.2%', status: 'ACTIVE', version: 'v2.7' },
-          { name: 'Customer Churn Predictor v3.2', task: 'Early Attrition Risk Flagging', accuracy: '94.5%', status: 'ACTIVE', version: 'v3.2' },
-          { name: 'Financial Anomaly Detector v1.9', task: 'Real-time Outlier & Fraud Detection', accuracy: '99.1%', status: 'ACTIVE', version: 'v1.9' },
-        ].map(m => (
-          <div
-            key={m.name}
-            onClick={() => setSelectedModel(m.name)}
-            style={{ background: '#fff', border: selectedModel === m.name ? '2px solid #18181B' : '1px solid #e5e7eb', borderRadius: 14, padding: 20, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 12, boxShadow: '0 2px 10px rgba(0,0,0,0.03)' }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#18181B', color: '#fff' }}>
-                {m.version}
-              </span>
-              <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#d1fae5', color: '#065f46' }}>
-                {m.status}
-              </span>
+      <div style={card}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Icon name="sparkle" size={20} color="var(--teal)" />
             </div>
-
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#111827' }}>{m.name}</div>
-            <div style={{ fontSize: 12, color: '#6b7280' }}>{m.task}</div>
-
-            <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-              <span style={{ color: '#9ca3af' }}>Accuracy Score</span>
-              <span style={{ fontWeight: 800, color: '#10b981' }}>{m.accuracy}</span>
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>Board digest</div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>Generated from your live customers, shipments, declarations and finance figures.</div>
             </div>
           </div>
-        ))}
-      </div>
-
-      {/* Model Performance & Retraining Log */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 24, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>Selected Model: {selectedModel}</div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-          <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 14 }}>
-            <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>Training Datasets</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginTop: 4 }}>18.4M Samples</div>
-          </div>
-
-          <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 14 }}>
-            <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>Inference Latency</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginTop: 4 }}>38 ms / query</div>
-          </div>
-
-          <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 14 }}>
-            <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>Drift Score</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#10b981', marginTop: 4 }}>0.02 (Low)</div>
-          </div>
-
-          <div style={{ border: '1px solid #e5e7eb', borderRadius: 10, padding: 14 }}>
-            <div style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>Last Retrained</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#111827', marginTop: 4 }}>Yesterday 6:12 PM</div>
-          </div>
+          <button type="button" className="btn btn-primary btn-sm" disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: 6, minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} onClick={generate}>
+            <Icon name="sparkle" size={14} /> {loading ? 'Analysing…' : (digest ? 'Regenerate' : 'Generate analysis')}
+          </button>
         </div>
+
+        {err && (
+          <div style={{ marginTop: 16, fontSize: 12.5, color: 'var(--ink2)', background: 'var(--gold-l)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>{err}</div>
+        )}
+
+        {digest && (
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {digest.split('\n').filter(l => l.trim()).map((line, i) => (
+              <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.55 }}>
+                <span style={{ color: 'var(--teal)', flexShrink: 0 }}>•</span><span>{line.replace(/^[-*•]\s*/, '')}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!digest && !err && !loading && (
+          <div style={{ marginTop: 16, fontSize: 12.5, color: 'var(--ink3)' }}>
+            No trained forecasting model runs here — HuduBI does not predict. This produces a plain-language summary of what your current data shows.
+          </div>
+        )}
       </div>
+
+      {/* Transparency: the exact figures the analysis was given */}
+      {signals && (
+        <div style={card}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--navy)', marginBottom: 12 }}>Figures the analysis was given</div>
+          <pre style={{ margin: 0, fontSize: 11.5, color: 'var(--ink2)', fontFamily: 'var(--mono)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: 14, overflowX: 'auto', whiteSpace: 'pre-wrap' }}>
+{JSON.stringify(signals, null, 2)}
+          </pre>
+        </div>
+      )}
     </div>
   );
 }
