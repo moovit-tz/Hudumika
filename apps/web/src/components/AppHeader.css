@@ -1094,3 +1094,105 @@
 /* While the pill holds the slot the search box stands down. It stays mounted
    so the Radix popover keeps its anchor. */
 .app-header-hub-search--hidden { display: none !important; }
+
+/* ── Clock-in active header card widget ── */
+.app-header-clock-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px 4px 6px;
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  max-width: 280px;
+  height: 38px;
+  box-sizing: border-box;
+}
+
+.app-header-clock-card:hover {
+  border-color: var(--teal);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.app-header-clock-icon-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #6366f1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.app-header-clock-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 100px;
+  overflow: hidden;
+}
+
+.app-header-clock-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.2;
+}
+
+.app-header-clock-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-header-clock-bar-bg {
+  width: 70px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.app-header-clock-bar-fill {
+  height: 100%;
+  background: #6366f1;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.app-header-clock-time {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink3);
+  white-space: nowrap;
+  font-family: var(--font-mono, monospace);
+  line-height: 1;
+}
+
+.app-header-clock-link-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  color: var(--ink2);
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+.app-header-clock-link-btn:hover {
+  background: var(--bg);
+  color: var(--teal);
+}
+

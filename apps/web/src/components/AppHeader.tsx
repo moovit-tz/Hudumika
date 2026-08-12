@@ -88,7 +88,7 @@ export function AppHeader({
    * Check-in state and the shipment context to open it with. A CUSTOMER has no
    * timesheet, so they get no clock — same rule CheckInWidget itself applies.
    */
-  const { isCheckedIn, triggerOpen } = useClockIn();
+  const { isCheckedIn, currentEntry, triggerOpen } = useClockIn();
   const location = useLocation();
   const isStaff = !!(user && user.role !== 'CUSTOMER');
   const clockContext = () => {
@@ -102,6 +102,31 @@ export function AppHeader({
   const { setMobileOpen } = useContext(MobileNavContext);
   const branding = useBranding();
   const { t, language, setLanguage, LANGUAGES } = useLocale();
+
+  // ── Header live clock timer for active task card ──
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    if (!isCheckedIn) return;
+    const interval = setInterval(() => {
+      setNowTick(Date.now());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isCheckedIn]);
+
+  const clockStats = useMemo(() => {
+    if (!isCheckedIn || !currentEntry?.started_at) {
+      return { formatted: '00:00:00', percent: 0 };
+    }
+    const start = new Date(currentEntry.started_at).getTime();
+    const diffSec = Math.max(0, Math.floor((nowTick - start) / 1000));
+    const hrs = Math.floor(diffSec / 3600);
+    const mins = Math.floor((diffSec % 3600) / 60);
+    const secs = diffSec % 60;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const formatted = hrs > 0 ? `${pad(hrs)}:${pad(mins)}:${pad(secs)}` : `${pad(mins)}:${pad(secs)}`;
+    const percent = Math.min(100, Math.max(12, Math.round((diffSec / 28800) * 100)));
+    return { formatted, percent };
+  }, [isCheckedIn, currentEntry, nowTick]);
 
   // ── Dark mode ──
   const [isDark, setIsDark] = useState(
@@ -584,15 +609,48 @@ export function AppHeader({
                 The ref comes from the clearance store, so it reads
                 "CLR-2026-0087" rather than a uuid. */}
             {isStaff && (
-              <button
-                type="button"
-                className="app-header-icon-btn"
-                onClick={() => triggerOpen(clockContext())}
-                title={isCheckedIn ? t('header.switchTask') : t('header.clockIn')}
-                aria-pressed={isCheckedIn}
-              >
-                <Icon name="clock" size={19} color={isCheckedIn ? 'var(--teal)' : 'var(--ink)'} />
-              </button>
+              isCheckedIn ? (
+                <div
+                  className="app-header-clock-card"
+                  onClick={() => triggerOpen(clockContext())}
+                  title="Click to switch task or check out"
+                >
+                  <div className="app-header-clock-icon-badge">
+                    <Icon name="clock" size={15} color="#fff" />
+                  </div>
+                  <div className="app-header-clock-info">
+                    <div className="app-header-clock-title">
+                      {currentEntry?.task_name || 'Active Task'}
+                    </div>
+                    <div className="app-header-clock-progress-row">
+                      <div className="app-header-clock-bar-bg">
+                        <div
+                          className="app-header-clock-bar-fill"
+                          style={{ width: `${clockStats.percent}%` }}
+                        />
+                      </div>
+                      <span className="app-header-clock-time">{clockStats.formatted}</span>
+                    </div>
+                  </div>
+                  <Link
+                    to="/nexushr/clock-in"
+                    className="app-header-clock-link-btn"
+                    onClick={(e) => e.stopPropagation()}
+                    title="View full task details & weekly timesheet"
+                  >
+                    <Icon name="arrowUpRight" size={14} />
+                  </Link>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="app-header-icon-btn"
+                  onClick={() => triggerOpen(clockContext())}
+                  title={t('header.clockIn')}
+                >
+                  <Icon name="clock" size={19} color="var(--ink)" />
+                </button>
+              )
             )}
 
             {/* Full page */}

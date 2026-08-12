@@ -444,7 +444,7 @@ export function ClockInPage() {
   const dayRows = generateWeeklyRows();
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', background: '#f8fafc', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ flex: 1, overflowY: 'auto', background: 'var(--bg)', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
       
       {/* Shared Standard Page Header */}
       <SharedPageHeader
@@ -454,7 +454,7 @@ export function ClockInPage() {
         subtitle="Live attendance tracking, stopwatch timer, and weekly hours visualizer"
         actions={
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px', fontSize: 13, color: 'var(--ink2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px', fontSize: 13, color: 'var(--ink2)' }}>
               <Icon name="clock" size={14} color="#7c3aed" />
               <span style={{ fontFamily: 'var(--mono)', fontWeight: 700, color: 'var(--navy)' }}>
                 {formatTimer(elapsedSeconds)}
@@ -509,12 +509,12 @@ export function ClockInPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <select value={dateRangeFilter} onChange={e => setDateRangeFilter(e.target.value)} style={{ padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: '#fff', color: 'var(--ink)', fontFamily: 'var(--font)' }}>
+          <select value={dateRangeFilter} onChange={e => setDateRangeFilter(e.target.value)} style={{ padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)', fontFamily: 'var(--font)' }}>
             <option value="7days">Last 7 days</option>
             <option value="14days">Last 14 days</option>
             <option value="month">This Month</option>
           </select>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 8, fontSize: 13, color: 'var(--ink2)', fontWeight: 500 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--white)', border: '1px solid var(--border)', padding: '6px 12px', borderRadius: 8, fontSize: 13, color: 'var(--ink2)', fontWeight: 500 }}>
             <Icon name="calendar" size={14} color="var(--ink3)" />
             <span>
               {new Date(periodStart + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit' })} – {new Date(periodEnd + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' })}
@@ -525,7 +525,7 @@ export function ClockInPage() {
 
       {/* Manager: timesheets awaiting approval (real submissions only) */}
       {isManager && approvals.length > 0 && (
-        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>
             <Icon name="checkCircle" size={16} color="#7c3aed" />
             <span>Timesheets awaiting your approval</span>
@@ -547,7 +547,7 @@ export function ClockInPage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button type="button" onClick={() => handleReview(a.id, 'reject')} disabled={reviewingId === a.id} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: '#fff', color: 'var(--red)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <button type="button" onClick={() => handleReview(a.id, 'reject')} disabled={reviewingId === a.id} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--red)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
                     <Icon name="x" size={13} /> Reject
                   </button>
                   <button type="button" onClick={() => handleReview(a.id, 'approve')} disabled={reviewingId === a.id} style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: 'var(--green)', color: '#fff', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -564,7 +564,7 @@ export function ClockInPage() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(310px, 1fr))', gap: 16 }}>
         
         {/* Widget 1: Clock-in Control Widget */}
-        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 14, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>
               <Icon name="clock" size={16} color="#7c3aed" />
@@ -575,7 +575,7 @@ export function ClockInPage() {
                 {activeSession.status === 'ON_BREAK' ? 'ON BREAK' : 'ONGOING'}
               </span>
             ) : (
-              <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 12, background: 'var(--bg)', color: 'var(--ink3)' }}>
+              <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 12, background: 'var(--card-sunken)', color: 'var(--ink3)' }}>
                 NOT CLOCKED IN
               </span>
             )}
@@ -586,7 +586,7 @@ export function ClockInPage() {
             <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: 4 }}>
               {activeSession ? (activeSession.status === 'ON_BREAK' ? 'PAUSED' : 'ONGOING') : 'IDLE'}
             </div>
-            <div style={{ fontSize: 36, fontWeight: 800, fontFamily: 'var(--mono)', color: activeSession ? '#0f172a' : 'var(--ink3)', letterSpacing: '-1px' }}>
+            <div style={{ fontSize: 36, fontWeight: 800, fontFamily: 'var(--mono)', color: activeSession ? 'var(--navy)' : 'var(--ink3)', letterSpacing: '-1px' }}>
               {formatTimer(elapsedSeconds)}
             </div>
 
@@ -594,8 +594,8 @@ export function ClockInPage() {
             <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 12 }}>
               {activeSession ? (
                 <>
-                  <button type="button" onClick={handleToggleBreak} style={{ padding: '8px 16px', borderRadius: 20, border: '1px solid var(--border)', background: activeSession.status === 'ON_BREAK' ? 'var(--gold-l)' : '#f1f5f9', color: activeSession.status === 'ON_BREAK' ? 'var(--gold)' : '#475569', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: activeSession.status === 'ON_BREAK' ? 'var(--gold)' : '#64748b' }}></span>
+                  <button type="button" onClick={handleToggleBreak} style={{ padding: '8px 16px', borderRadius: 20, border: '1px solid var(--border)', background: activeSession.status === 'ON_BREAK' ? 'var(--gold-l)' : 'var(--card-sunken)', color: activeSession.status === 'ON_BREAK' ? 'var(--gold)' : 'var(--ink2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 8, height: 8, borderRadius: '50%', background: activeSession.status === 'ON_BREAK' ? 'var(--gold)' : 'var(--ink3)' }}></span>
                     {activeSession.status === 'ON_BREAK' ? 'Resume Work' : 'Break'}
                   </button>
                   <button type="button" onClick={handleStopClockOut} style={{ padding: '8px 20px', borderRadius: 20, border: 'none', background: '#ef4444', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px rgba(239,68,68,0.3)' }}>
@@ -624,7 +624,7 @@ export function ClockInPage() {
                 value={selectedProject || projectInput}
                 onChange={e => { setProjectInput(e.target.value); setSelectedProject(e.target.value); }}
                 placeholder="Add projects you are working on..."
-                style={{ flex: 1, padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, background: '#fff', color: 'var(--ink)' }}
+                style={{ flex: 1, padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, background: 'var(--white)', color: 'var(--ink)' }}
               />
               {projectInput && (
                 <button type="button" onClick={handleAddProject} style={{ padding: '7px 12px', borderRadius: 8, background: '#7c3aed', color: '#fff', border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
@@ -636,7 +636,7 @@ export function ClockInPage() {
         </div>
 
         {/* Widget 2: Planned Hours Widget */}
-        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>
@@ -666,14 +666,14 @@ export function ClockInPage() {
         </div>
 
         {/* Widget 3: Worked Hours Widget */}
-        <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: 'var(--navy)', marginBottom: 16 }}>
               <Icon name="activity" size={16} color="#10b981" />
               <span>Worked hours</span>
             </div>
 
-            <div style={{ background: '#f8fafc', borderRadius: 10, padding: '16px 18px', textAlign: 'center', border: '1px solid #e2e8f0', marginBottom: 14 }}>
+            <div style={{ background: 'var(--card-sunken)', borderRadius: 10, padding: '16px 18px', textAlign: 'center', border: '1px solid var(--border)', marginBottom: 14 }}>
               <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 6 }}>Total hours (Until today)</div>
               <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--navy)' }}>
                 {formatHoursMins(workedMinutesTotal || 1932)}
@@ -690,7 +690,7 @@ export function ClockInPage() {
       </div>
 
       {/* Main Section: My Timesheets Timeline */}
-      <div style={{ background: '#fff', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
         
         {/* Header & Legend Bar */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
@@ -720,7 +720,7 @@ export function ClockInPage() {
               </div>
             </div>
 
-            <button type="button" onClick={() => setShowManualModal(true)} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: '#fff', fontSize: 12, fontWeight: 600, color: 'var(--navy)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button type="button" onClick={() => setShowManualModal(true)} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--white)', fontSize: 12, fontWeight: 600, color: 'var(--navy)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}>
               + Entry log
             </button>
           </div>
@@ -760,7 +760,7 @@ export function ClockInPage() {
                 </div>
 
                 {/* Center Timeline Segment Bar */}
-                <div style={{ flex: 1, height: 16, background: '#f1f5f9', borderRadius: 8, position: 'relative', overflow: 'hidden', display: 'flex' }}>
+                <div style={{ flex: 1, height: 16, background: 'var(--card-sunken)', borderRadius: 8, position: 'relative', overflow: 'hidden', display: 'flex' }}>
                   {row.blocks.map((b, idx) => {
                     const bg = b.type === 'working' ? '#7c3aed' : b.type === 'break' ? '#06b6d4' : b.type === 'overtime' ? '#f59e0b' : '#ef4444';
                     return (
@@ -799,8 +799,8 @@ export function ClockInPage() {
 
       {/* Manual Entry Log Modal */}
       {showManualModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 440, padding: 24, boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--white)', borderRadius: 16, width: '100%', maxWidth: 440, padding: 24, boxShadow: 'var(--shadow-lg)', display: 'flex', flexDirection: 'column', gap: 16, border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--navy)' }}>+ Log Manual Time Entry</div>
               <button type="button" onClick={() => setShowManualModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)' }}>
@@ -816,7 +816,7 @@ export function ClockInPage() {
                   value={manualDate}
                   onChange={e => setManualDate(e.target.value)}
                   required
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
                 />
               </div>
 
@@ -828,7 +828,7 @@ export function ClockInPage() {
                     value={manualClockIn}
                     onChange={e => setManualClockIn(e.target.value)}
                     required
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: '#fff', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
                   />
                 </div>
                 <div>
@@ -838,7 +838,7 @@ export function ClockInPage() {
                     value={manualClockOut}
                     onChange={e => setManualClockOut(e.target.value)}
                     required
-                    style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: '#fff', boxSizing: 'border-box' }}
+                    style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
                   />
                 </div>
               </div>
@@ -850,7 +850,7 @@ export function ClockInPage() {
                   value={manualBreakMins}
                   onChange={e => setManualBreakMins(e.target.value)}
                   min="0"
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
                 />
               </div>
 
@@ -861,7 +861,7 @@ export function ClockInPage() {
                   value={manualProject}
                   onChange={e => setManualProject(e.target.value)}
                   placeholder="e.g. Mobile App Redesign"
-                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: '#fff', boxSizing: 'border-box' }}
+                  style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, background: 'var(--white)', color: 'var(--ink)', boxSizing: 'border-box' }}
                 />
               </div>
 

@@ -188,10 +188,10 @@ export const CheckInWidget: React.FC = () => {
       <div style={{ position: 'fixed', inset: 0, zIndex: 1500, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center' }}
         onClick={() => setOpen(false)}>
       <div style={{ width: isMobile ? '100%' : 460, maxWidth: '100%', position: 'relative' }} onClick={e => e.stopPropagation()}>
-        <div style={{ background: 'var(--white)', borderRadius: isMobile ? '16px 16px 0 0' : 16, border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: isMobile ? '90vh' : '85vh' }}>
-
+        <div style={{ background: 'var(--white)', borderRadius: isMobile ? '16px 16px 0 0' : 16, border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)', overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: isMobile ? '80vh' : '500px' }}>
+          
           {/* Header */}
-          <div style={{ padding: '24px 24px 16px', position: 'relative' }}>
+          <div style={{ padding: '20px 24px 14px', position: 'relative' }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>
               {checkedIn ? 'Switch Task' : 'Start Work'}
             </div>
@@ -201,7 +201,7 @@ export const CheckInWidget: React.FC = () => {
                 : checkedIn ? `Currently: ${entry?.task_name || 'No task'}` : 'Select a task to begin your session'}
             </div>
             <button type="button" title="Close" onClick={() => setOpen(false)}
-              style={{ position: 'absolute', top: 20, right: 20, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, borderRadius: '50%', transition: 'background 0.2s' }}>
+              style={{ position: 'absolute', top: 18, right: 20, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink3)', padding: 4, borderRadius: '50%', transition: 'background 0.2s' }}>
               <Icon name="x" size={18} />
             </button>
           </div>
@@ -239,7 +239,7 @@ export const CheckInWidget: React.FC = () => {
           </div>
 
           {/* List */}
-          <div style={{ flex: 1, overflowY: 'auto', paddingBottom: 8 }}>
+          <div style={{ flex: '1 1 auto', maxHeight: '240px', overflowY: 'auto', paddingBottom: 8 }}>
             {checkInMode === 'shipment' ? (
               filteredShipments.length === 0 ? (
                 <div style={{ padding: '24px', fontSize: 13, color: 'var(--ink3)', textAlign: 'center' }}>
