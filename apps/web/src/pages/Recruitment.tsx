@@ -37,6 +37,9 @@ export function RecruitmentPage() {
   const [job, setJob] = useState({ title: '', department: '', location: '', employment_type: 'FULL_TIME', openings_count: '1' });
   const [cand, setCand] = useState({ name: '', email: '', phone: '', source: '' });
   const [busy, setBusy] = useState(false);
+  const [onboard, setOnboard] = useState<Candidate | null>(null);
+  const [onboardRole, setOnboardRole] = useState('JUNIOR');
+  const [onboardMsg, setOnboardMsg] = useState<{ text: string; kind: 'ok' | 'err' } | null>(null);
 
   const loadOpenings = useCallback(async () => {
     try {
@@ -79,6 +82,21 @@ export function RecruitmentPage() {
     setCandidates(prev => prev.map(c => c.id === id ? { ...c, stage } : c)); // optimistic
     try { await apiFetch(`/v1/hr/recruitment/candidates/${id}`, { method: 'PATCH', body: JSON.stringify({ stage }) }); }
     catch { if (selId) loadCandidates(selId); }
+  };
+
+  // Offer → onboarding handoff: a HIRED candidate becomes a staff invitation
+  // (the existing /v1/hr/invitations flow), so accepting it creates their real
+  // user account. Reuses that infra rather than a parallel recruitment one.
+  const ONBOARD_ROLES = ['JUNIOR', 'SENIOR', 'OFFICER', 'FINANCE', 'SALES', 'MANAGER'];
+  const sendOnboardInvite = async () => {
+    if (!onboard?.email) return;
+    setBusy(true); setOnboardMsg(null);
+    try {
+      await apiFetch('/v1/hr/invitations', { method: 'POST', body: JSON.stringify({ email: onboard.email, role: onboardRole }) });
+      setOnboardMsg({ text: `Invitation sent to ${onboard.email} as ${onboardRole}.`, kind: 'ok' });
+      setOnboard(null);
+    } catch (e: any) { setOnboardMsg({ text: e?.message || 'Could not send the invitation.', kind: 'err' }); }
+    finally { setBusy(false); }
   };
 
   const stars = (r: number | null) => r == null ? null : (
@@ -148,6 +166,25 @@ export function RecruitmentPage() {
             </div>
           )}
 
+          {/* Offer → onboarding handoff */}
+          {onboard && (
+            <div style={{ background: 'var(--green-l)', border: '1px solid var(--green-m, var(--border))', borderRadius: 12, padding: 14, marginBottom: 16, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+              <Icon name="userPlus" size={16} color="var(--green)" />
+              <span style={{ fontSize: 13, color: 'var(--ink)' }}>Onboard <strong>{onboard.name}</strong> ({onboard.email}) as</span>
+              <div style={{ width: 150 }}>
+                <Select value={onboardRole} onValueChange={setOnboardRole}>
+                  <SelectTrigger style={{ width: '100%', height: 32 }}><SelectValue /></SelectTrigger>
+                  <SelectContent>{ONBOARD_ROLES.map(r => <SelectItem key={r} value={r}>{prettyType(r)}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+              <button type="button" className="btn btn-primary btn-sm" disabled={busy} style={{ minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} onClick={sendOnboardInvite}>{busy ? 'Sending…' : 'Send invite'}</button>
+              <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25 }} onClick={() => setOnboard(null)}>Cancel</button>
+            </div>
+          )}
+          {onboardMsg && (
+            <div style={{ fontSize: 12.5, fontWeight: 500, marginBottom: 16, color: onboardMsg.kind === 'err' ? 'var(--red)' : 'var(--green)', background: onboardMsg.kind === 'err' ? 'var(--red-l)' : 'var(--green-l)', borderRadius: 8, padding: '8px 12px' }}>{onboardMsg.text}</div>
+          )}
+
           {/* Pipeline board */}
           <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, flex: 1 }}>
             {STAGES.map(stage => {
@@ -170,6 +207,15 @@ export function RecruitmentPage() {
                           <SelectTrigger style={{ width: '100%', height: 30, fontSize: 12 }}><SelectValue /></SelectTrigger>
                           <SelectContent>{STAGES.map(s => <SelectItem key={s.key} value={s.key}>{s.label}</SelectItem>)}</SelectContent>
                         </Select>
+                        {c.stage === 'HIRED' && (
+                          c.email ? (
+                            <button type="button" className="btn btn-secondary btn-sm" style={{ width: '100%', height: 28, fontSize: 11.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, minHeight: 28, boxSizing: 'border-box', lineHeight: 1.2 }} onClick={() => { setOnboard(c); setOnboardMsg(null); }}>
+                              <Icon name="userPlus" size={12} /> Onboard
+                            </button>
+                          ) : (
+                            <span style={{ fontSize: 10.5, color: 'var(--ink3)', textAlign: 'center' }}>Add an email to onboard</span>
+                          )
+                        )}
                       </div>
                     ))}
                     {inStage.length === 0 && <div style={{ fontSize: 11.5, color: 'var(--ink3)', textAlign: 'center', padding: '12px 0' }}>—</div>}
