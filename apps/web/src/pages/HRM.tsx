@@ -3603,7 +3603,7 @@ export function HrmDashboard() {
   const isMobile = useIsMobile();
   const [metrics, setMetrics] = useState<any>(null);
   const [depts, setDepts] = useState<{ name: string; employees: number }[]>([]);
-  const [payroll, setPayroll] = useState<{ status: string; basic: number; allow: number; ded: number }[]>([]);
+  const [runs, setRuns] = useState<any[]>([]);
 
   useEffect(() => {
     apiFetch('/v1/hr/tools-overview').then(d => setMetrics(d)).catch(() => {});
@@ -3613,12 +3613,11 @@ export function HrmDashboard() {
     apiFetch('/v1/hr/departments')
       .then((r: any) => setDepts((Array.isArray(r) ? r : []).map((d: any) => ({ name: d.name, employees: d.employee_count || 0 }))))
       .catch(() => setDepts([]));
-    const now = new Date();
-    apiFetch(`/v1/hr/payroll?month=${now.getMonth() + 1}&year=${now.getFullYear()}`)
-      .then((r: any) => setPayroll((Array.isArray(r) ? r : []).map((p: any) => ({
-        status: p.status, basic: Number(p.basic_pay) || 0, allow: Number(p.allowances) || 0, ded: Number(p.deductions) || 0,
-      }))))
-      .catch(() => setPayroll([]));
+    // The real statutory payroll engine (runs) — not the naive hr_payroll this
+    // panel used to sum, which the payroll rewire left disconnected.
+    apiFetch('/v1/payroll/runs')
+      .then((r: any) => setRuns(Array.isArray(r) ? r : []))
+      .catch(() => setRuns([]));
   }, []);
 
   // Zeros, not invented staffing. A dashboard that cannot reach the API says
@@ -3720,29 +3719,43 @@ export function HrmDashboard() {
           </div>
         </div>
 
-        {/* Payroll summary */}
+        {/* Payroll summary — real statutory runs */}
         <div style={{ background:'var(--white)', borderRadius:9, border:'1px solid var(--border)', overflow:'hidden' }}>
           <div style={{ padding:'11px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Payroll — This Month</span>
+            <span style={{ fontSize:11, fontWeight:700, color:'var(--ink3)', textTransform:'uppercase', letterSpacing:'0.07em' }}>Payroll — Recent Runs</span>
             <Link to="/nexushr/payroll" style={{ fontSize:11, fontWeight:600, color:'var(--teal)', background:'none', border:'none', cursor:'pointer', fontFamily:'var(--font)', textDecoration:'none' }}>View All →</Link>
           </div>
           <div style={{ padding:'16px 18px' }}>
-            {[
-              { label:'Paid',       count:payroll.filter(p=>p.status==='PAID').length,       color:'var(--green)', bg:'rgba(16,185,129,0.1)' },
-              { label:'Processing', count:payroll.filter(p=>p.status==='PROCESSING').length, color:'var(--blue)',  bg:'rgba(59,130,246,0.1)' },
-              { label:'Pending',    count:payroll.filter(p=>p.status==='PENDING').length,    color:'var(--gold)',      bg:'rgba(245,158,11,0.1)' },
-            ].map(row => (
-              <div key={row.label} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 12px', background:row.bg, borderRadius:7, marginBottom:8 }}>
-                <span style={{ fontSize:13, fontWeight:600, color:'var(--ink)' }}>{row.label}</span>
-                <span style={{ fontSize:16, fontWeight:800, color:row.color }}>{row.count}</span>
-              </div>
-            ))}
-            <div style={{ marginTop:10, padding:'10px 12px', background:'var(--bg)', borderRadius:7, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              <span style={{ fontSize:12, color:'var(--ink3)' }}>Total Net Pay</span>
-              <span style={{ fontSize:14, fontWeight:800, color:'var(--ink)' }}>
-                TZS {(payroll.reduce((s,p) => s + (p.basic + p.allow - p.ded), 0) / 1_000_000).toFixed(1)}M
-              </span>
-            </div>
+            {runs.length === 0 ? (
+              <div style={{ fontSize:12.5, color:'var(--ink3)', padding:'6px 0' }}>No payroll runs yet.</div>
+            ) : (() => {
+              const latest = runs[0];
+              const st = RUN_STATUS_STYLE[latest.status] ?? RUN_STATUS_STYLE.DRAFT;
+              return (
+                <>
+                  <div style={{ padding:'12px 14px', background:'var(--bg)', borderRadius:7, marginBottom:10 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 }}>
+                      <span style={{ fontSize:12, color:'var(--ink3)' }}>{latest.name}</span>
+                      <span style={{ fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:10, background:st.bg, color:st.fg, textTransform:'uppercase', letterSpacing:'0.4px' }}>{String(latest.status).replace('_',' ')}</span>
+                    </div>
+                    <div style={{ fontSize:22, fontWeight:800, color:'var(--green)', fontFamily:'var(--mono)' }}>TZS {(Number(latest.total_net || 0) / 1_000_000).toFixed(2)}M</div>
+                    <div style={{ fontSize:11, color:'var(--ink3)' }}>net to employees</div>
+                  </div>
+                  {runs.slice(1, 4).map((r: any) => {
+                    const rs = RUN_STATUS_STYLE[r.status] ?? RUN_STATUS_STYLE.DRAFT;
+                    return (
+                      <div key={r.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 2px', borderTop:'1px solid var(--border)' }}>
+                        <span style={{ fontSize:12.5, color:'var(--ink2)' }}>{r.name}</span>
+                        <span style={{ display:'flex', alignItems:'center', gap:8 }}>
+                          <span style={{ fontSize:12, fontFamily:'var(--mono)', color:'var(--ink2)' }}>{(Number(r.total_net || 0) / 1_000_000).toFixed(1)}M</span>
+                          <span style={{ fontSize:9.5, fontWeight:700, padding:'2px 7px', borderRadius:9, background:rs.bg, color:rs.fg, textTransform:'uppercase' }}>{String(r.status).replace('_',' ')}</span>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </>
+              );
+            })()}
           </div>
         </div>
 
