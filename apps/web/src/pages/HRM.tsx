@@ -3604,6 +3604,18 @@ export function HrmDashboard() {
   const [metrics, setMetrics] = useState<any>(null);
   const [depts, setDepts] = useState<{ name: string; employees: number }[]>([]);
   const [runs, setRuns] = useState<any[]>([]);
+  const [aiDigest, setAiDigest] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiErr, setAiErr] = useState<string | null>(null);
+
+  const genInsights = async () => {
+    setAiLoading(true); setAiErr(null); setAiDigest(null);
+    try {
+      const r = await apiFetch('/v1/hr/ai-insights');
+      setAiDigest(r?.digest || 'No insights returned.');
+    } catch (e: any) { setAiErr(e?.message || 'Could not generate insights.'); }
+    finally { setAiLoading(false); }
+  };
 
   useEffect(() => {
     apiFetch('/v1/hr/tools-overview').then(d => setMetrics(d)).catch(() => {});
@@ -3636,6 +3648,41 @@ export function HrmDashboard() {
   return (
     <div style={{ flex: 1, overflowY: 'auto' }}>
       <PageHeader icon="briefcase" title="HR Dashboard" sub="Live view of your workforce" />
+
+      {/* AI insights — a narrative over the real HR figures */}
+      <div style={{ background:'var(--white)', border:'1px solid var(--border)', borderRadius:12, padding:'16px 18px', marginBottom:20 }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:12, flexWrap:'wrap' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+            <div style={{ width:34, height:34, borderRadius:9, background:'var(--purple-l)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+              <Icon name="sparkle" size={17} color="var(--purple)" />
+            </div>
+            <div>
+              <div style={{ fontSize:14, fontWeight:700, color:'var(--navy)' }}>AI insights</div>
+              <div style={{ fontSize:12, color:'var(--ink3)' }}>A digest over your live headcount, attendance, leave and payroll figures.</div>
+            </div>
+          </div>
+          <button type="button" className="btn btn-secondary btn-sm" disabled={aiLoading} style={{ display:'flex', alignItems:'center', gap:6, minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25 }} onClick={genInsights}>
+            <Icon name="sparkle" size={13} /> {aiLoading ? 'Analysing…' : (aiDigest ? 'Refresh' : 'Generate insights')}
+          </button>
+        </div>
+        {aiErr && (
+          <div style={{ marginTop:12, fontSize:12.5, color:'var(--ink2)', background:'var(--gold-l)', border:'1px solid var(--border)', borderRadius:8, padding:'10px 12px' }}>
+            {aiErr}
+          </div>
+        )}
+        {aiDigest && (
+          <div style={{ marginTop:12, display:'flex', flexDirection:'column', gap:6 }}>
+            {aiDigest.split('\n').filter(l => l.trim()).map((line, i) => {
+              const clean = line.replace(/^[-*•]\s*/, '');
+              return (
+                <div key={i} style={{ display:'flex', gap:8, fontSize:13, color:'var(--ink)', lineHeight:1.5 }}>
+                  <span style={{ color:'var(--purple)', flexShrink:0 }}>•</span><span>{clean}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       {/* KPI Row */}
       <div style={{ display:'flex', gap:16, marginBottom:24, flexWrap:'wrap' }}>

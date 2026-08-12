@@ -10,6 +10,7 @@ import { workingDaysBetween } from '../services/holiday-calendar.service.js';
 import { checkRequest as checkLeaveRequest, splitPayDays, computeBalances as computeLeaveBalances } from '../services/leave-entitlement.service.js';
 import { env } from '../config/env.js';
 import { settleEntry } from '../services/time-entry.service.js';
+import { callAI } from './ai.routes.js';
 
 /**
  * YYYY-MM-DD from a `date` column, whatever the driver hands back.
@@ -1488,6 +1489,78 @@ export async function hrRoutes(fastify: FastifyInstance) {
       if (!updated) return reply.status(404).send({ error: 'Candidate not found' });
       return updated;
     });
+  });
+
+  // ── AI insights (HR) ──────────────────────────────────────────
+  // A narrative digest over REAL, computed HR figures. The model is told to use
+  // only the numbers given and never invent — same contract as /v1/ai/insights.
+  fastify.get('/ai-insights', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+
+    const settings = await withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      return (row?.settings as any) ?? {};
+    });
+    const aiCfg = settings['int-ai'] ?? {};
+    if (!aiCfg.on || !aiCfg.apiKey) {
+      return reply.status(400).send({ error: 'AI is not configured. Enable it in Settings › Integrations › AI Integration.' });
+    }
+
+    const todayStr = isoDate(new Date());
+    const from30 = isoDate(new Date(Date.now() - 29 * 86400000));
+    const year = new Date().getFullYear();
+
+    const signals = await withTenant(user.tenant_id, async (trx) => {
+      const staff = await trx.selectFrom('users').select(['role', 'active'])
+        .where('tenant_id', '=', user.tenant_id).where('role', '<>', 'CUSTOMER').execute();
+      const byRole: Record<string, number> = {};
+      staff.forEach(s => { byRole[s.role] = (byRole[s.role] || 0) + 1; });
+
+      const att = await trx.selectFrom('hr_attendance').select(['status', 'worked_minutes'])
+        .where('tenant_id', '=', user.tenant_id).where('date', '>=', from30).where('date', '<=', todayStr).execute();
+      const attByStatus: Record<string, number> = {};
+      let workedSum = 0, workedN = 0;
+      att.forEach(a => { const s = String(a.status).toUpperCase(); attByStatus[s] = (attByStatus[s] || 0) + 1; if (a.worked_minutes != null) { workedSum += a.worked_minutes; workedN++; } });
+      const present = (attByStatus['PRESENT'] || 0) + (attByStatus['LATE'] || 0);
+
+      const pendingLeave = await trx.selectFrom('hr_leaves').select((eb) => eb.fn.countAll<number>().as('n'))
+        .where('tenant_id', '=', user.tenant_id).where('status', '=', 'PENDING').executeTakeFirst();
+      const onLeaveToday = await trx.selectFrom('hr_leaves').select('user_id').distinct()
+        .where('tenant_id', '=', user.tenant_id).where('status', '=', 'APPROVED')
+        .where('from_date', '<=', todayStr).where('to_date', '>=', todayStr).execute();
+      const approvedYtd = await trx.selectFrom('hr_leaves').select(['days'])
+        .where('tenant_id', '=', user.tenant_id).where('status', '=', 'APPROVED')
+        .where('from_date', '<=', `${year}-12-31`).where('to_date', '>=', `${year}-01-01`).execute();
+      const daysTakenYtd = approvedYtd.reduce((s, r) => s + Number(r.days || 0), 0);
+
+      const run = await trx.selectFrom('payroll_runs')
+        .select(['name', 'status', 'total_net', 'total_remitted', 'total_employer_cost'])
+        .where('tenant_id', '=', user.tenant_id)
+        .orderBy('period_year', 'desc').orderBy('period_month', 'desc').executeTakeFirst();
+
+      return {
+        headcount: { active: staff.filter(s => s.active).length, total: staff.length, by_role: byRole },
+        attendance_last_30_days: { records: att.length, by_status: attByStatus, present_rate_pct: att.length > 0 ? Math.round((present / att.length) * 100) : null, avg_worked_minutes: workedN > 0 ? Math.round(workedSum / workedN) : null },
+        leave: { pending_requests: Number(pendingLeave?.n || 0), on_leave_today: onLeaveToday.length, days_taken_ytd: daysTakenYtd },
+        latest_payroll_run: run ? { name: run.name, status: run.status, net_to_employees: Number(run.total_net || 0), remitted_to_authorities: Number(run.total_remitted || 0), employer_cost: Number(run.total_employer_cost || 0) } : null,
+      };
+    });
+
+    try {
+      const digest = await callAI(
+        aiCfg.apiKey,
+        aiCfg.model || 'claude-sonnet-4-6',
+        aiCfg.provider || 'anthropic',
+        [{
+          role: 'user',
+          content: `You are an HR analyst for a logistics company. Given this real, computed HR data (JSON below), write a short digest (3-5 bullet points, plain text with "- " prefixes, no markdown headers) covering workforce, attendance, leave and payroll — what an HR manager should notice this month. Use only the numbers provided; never invent figures, names, or trends the data does not contain. If a section is empty or null, skip it rather than noting its absence.\n\n${JSON.stringify(signals, null, 2)}`,
+        }],
+        512, 0.3,
+      );
+      return { digest, signals };
+    } catch (e: any) {
+      return reply.status(500).send({ error: e?.message || 'AI request failed' });
+    }
   });
 
   // ── Announcements ─────────────────────────────────────────────
