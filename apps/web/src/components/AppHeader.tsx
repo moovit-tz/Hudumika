@@ -128,6 +128,10 @@ export function AppHeader({
     return { formatted, percent };
   }, [isCheckedIn, currentEntry, nowTick]);
 
+  const headerClockColor = activeApp && APP_COLORS[activeApp] && APP_COLORS[activeApp] !== '#0b1e3a'
+    ? branding.getAppColor(activeApp, APP_COLORS[activeApp])
+    : 'var(--teal)';
+
   // ── Dark mode ──
   const [isDark, setIsDark] = useState(
     () => document.documentElement.getAttribute('data-theme') === 'dark'
@@ -615,7 +619,7 @@ export function AppHeader({
                   onClick={() => triggerOpen(clockContext())}
                   title="Click to switch task or check out"
                 >
-                  <div className="app-header-clock-icon-badge">
+                  <div className="app-header-clock-icon-badge" style={{ background: headerClockColor }}>
                     <Icon name="clock" size={15} color="#fff" />
                   </div>
                   <div className="app-header-clock-info">
@@ -626,7 +630,7 @@ export function AppHeader({
                       <div className="app-header-clock-bar-bg">
                         <div
                           className="app-header-clock-bar-fill"
-                          style={{ width: `${clockStats.percent}%` }}
+                          style={{ width: `${clockStats.percent}%`, background: headerClockColor }}
                         />
                       </div>
                       <span className="app-header-clock-time">{clockStats.formatted}</span>

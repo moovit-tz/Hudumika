@@ -4927,16 +4927,16 @@ export function ShipmentDetail() {
             here: it has to change between light and dark, and an inline
             background beats every theme rule that would try to. */}
         <div className="shipdetail-cover-bleed shipdetail-hero-band" style={{
-          padding: heroFolded ? (isMobile ? '14px 16px' : '16px 28px') : (isMobile ? '20px 16px 28px' : '26px 28px 36px'),
+          padding: isMobile ? '12px 14px 20px' : '14px 20px 24px',
           position: 'relative', overflow: 'hidden', transition: 'padding 0.15s ease',
         }}>
           {/* Decorative freight-crate motif */}
-          {!heroFolded && <div aria-hidden style={{ position: 'absolute', right: -30, top: -30, width: 200, height: 200, borderRadius: 28, background: 'rgba(255,255,255,0.06)', transform: 'rotate(18deg)' }} />}
-          {!heroFolded && <div aria-hidden style={{ position: 'absolute', right: 60, bottom: -50, width: 120, height: 120, borderRadius: 24, background: 'rgba(255,255,255,0.05)', transform: 'rotate(-12deg)' }} />}
+          <div aria-hidden style={{ position: 'absolute', right: -30, top: -30, width: 200, height: 200, borderRadius: 28, background: 'rgba(255,255,255,0.06)', transform: 'rotate(18deg)' }} />
+          <div aria-hidden style={{ position: 'absolute', right: 60, bottom: -50, width: 120, height: 120, borderRadius: 24, background: 'rgba(255,255,255,0.05)', transform: 'rotate(-12deg)' }} />
 
-          {/* Utility row — back button + status badges + primary actions; always visible, folded or not */}
+          {/* Utility row — back button + status badges + primary actions; always visible */}
           {/* Top Single Row: Utility + Title + Actions */}
-          <div style={{ position: 'relative', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: heroFolded ? 8 : 16, flexWrap: 'wrap' }}>
+          <div style={{ position: 'relative', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 0, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1 }}>
               <Link to={isStaff ? '/clearos/ops' : '/'} title={isStaff ? 'Back to Ops Command' : 'Back to your shipments'} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '0 12px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 12.5, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
                 <Icon name="chevronLeft" size={13} color="#fff" /> {isMobile ? '' : (isStaff ? 'Ops Command' : 'My shipments')}
@@ -4967,55 +4967,36 @@ export function ShipmentDetail() {
             </div>
 
             {/* Right side actions */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'flex-start' : 'flex-end' }}>
-              {job.tansad && (
-                <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 11, fontWeight: 700, padding: '0 12px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid rgba(255,255,255,0.35)', fontFamily: 'var(--mono)', backdropFilter: 'blur(4px)' }}>
-                  TANSAD: {job.tansad}
-                </span>
-              )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', width: isMobile ? '100%' : 'auto', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', justifyContent: isMobile ? 'flex-start' : 'flex-end', paddingBottom: isMobile ? 4 : 0 }}>
               {isStaff && !isMock && (
-                <Link to={`/clearos/clearance/${id}/edit`} style={{ flex: isMobile ? 1 : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '0 14px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 12.5, fontWeight: 600, textDecoration: 'none', backdropFilter: 'blur(4px)' }}>
-                  <Icon name="edit" size={13} /> Edit
+                <Link to={`/clearos/clearance/${id}/edit`} title="Edit shipment details" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'var(--ctl-h)', height: 'var(--ctl-h)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.1)', color: '#fff', textDecoration: 'none', backdropFilter: 'blur(4px)', flexShrink: 0 }}>
+                  <Icon name="edit" size={15} />
                 </Link>
               )}
               {isStaff && (
-                <button type="button" onClick={() => setShowAdv(true)} style={{ flex: isMobile ? 1 : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: '#fff', color: 'var(--teal)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                <button type="button" onClick={() => setShowAdv(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: '#fff', color: 'var(--teal)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, flexShrink: 0 }}>
                   <Icon name="arrowRight" size={13} /> Advance Stage
                 </button>
               )}
-              <button type="button" onClick={() => openShipmentReportWindow(job)} title="Print shipment report" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: isMobile ? 'auto' : 'var(--ctl-h)', minHeight: 'var(--ctl-h)', height: 'var(--ctl-h)', padding: isMobile ? '0 14px' : 0, boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', flexShrink: 0, flex: isMobile ? 1 : 'none' }}>
-                <Icon name="printer" size={14} /> {isMobile && <span style={{ marginLeft: 6, fontSize: 12.5, fontWeight: 600 }}>Print</span>}
-              </button>
-              <button type="button" onClick={() => setHeroFolded(f => !f)} title={heroFolded ? 'Expand shipment summary' : 'Collapse shipment summary'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: isMobile ? 'auto' : 'var(--ctl-h)', minHeight: 'var(--ctl-h)', height: 'var(--ctl-h)', padding: isMobile ? '0 14px' : 0, boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', flexShrink: 0, flex: isMobile ? 1 : 'none' }}>
-                <Icon name={heroFolded ? 'chevronDown' : 'chevronUp'} size={14} /> {isMobile && <span style={{ marginLeft: 6, fontSize: 12.5, fontWeight: 600 }}>{heroFolded ? 'Expand' : 'Collapse'}</span>}
+              <button type="button" onClick={() => openShipmentReportWindow(job)} title="Print shipment report" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'var(--ctl-h)', height: 'var(--ctl-h)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', flexShrink: 0 }}>
+                <Icon name="printer" size={15} />
               </button>
             </div>
-          </div>
-
-          {/* Info strip (condensed if folded) */}
-          <div style={{ position: 'relative', display: 'flex', gap: isMobile ? 10 : 20, flexWrap: 'wrap', fontSize: heroFolded ? 11.5 : 12.5, color: 'rgba(255,255,255,0.85)', alignItems: 'center', marginTop: heroFolded ? 0 : 8 }}>
-            {job.mode && <span style={{ fontWeight: 700, color: '#fff', fontSize: heroFolded ? 12 : 13 }}>{job.mode}</span>}
-            {job.bl         && <span><span style={{ color: 'rgba(255,255,255,0.6)' }}>B/L:</span> <span style={{ fontFamily: 'var(--mono)', fontWeight: 600, color: '#fff' }}>{job.bl}</span></span>}
-            {job.vessel     && <span><span style={{ color: 'rgba(255,255,255,0.6)' }}>Vessel:</span> <span style={{ color: '#fff', fontWeight: 600 }}>{job.vessel}</span></span>}
-            {job.origin && job.origin !== '—' && <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>{job.origin} <Icon name="arrowRight" size={11} color="rgba(255,255,255,0.6)" /> {job.destination}</span>}
-            {job.weight     && <span><span style={{ color: 'rgba(255,255,255,0.6)' }}>Weight:</span> {job.weight}</span>}
-            {job.invoiceValue && <span><span style={{ color: 'rgba(255,255,255,0.6)' }}>Value:</span> <span style={{ fontWeight: 600, color: '#fff' }}>{job.invoiceValue}</span></span>}
-            {job.containers && job.containers.length > 0 && <span><span style={{ color: 'rgba(255,255,255,0.6)' }}>Containers:</span> {job.containers.join(', ')}</span>}
           </div>
         </div>
 
         {/* Stage stepper — floats up over the hero band */}
-        <div style={{ margin: isMobile ? '-16px 10px 0' : '-20px 14px 0', position: 'relative', background: 'var(--white)', borderRadius: 12, padding: '14px 0 12px', border: '1px solid var(--border)' }}>
+        <div style={{ margin: isMobile ? '-10px 10px 0' : '-12px 14px 0', position: 'relative', background: 'var(--white)', borderRadius: 12, padding: '10px 0 8px', border: '1px solid var(--border)' }}>
           {isStaff ? <StageStepper job={job} /> : (
             <div style={{ padding: '0 24px' }}><CustomerMilestoneTimeline job={job} compact /></div>
           )}
         </div>
-        <div style={{ height: isMobile ? 14 : 18 }} />
+        <div style={{ height: isMobile ? 8 : 10 }} />
 
         {/* Tabs — the shared segmented ds-tabs (same control as Ops Command /
             NexusHR), scrolling horizontally when the row overflows its width. */}
-        <div style={{ padding: isMobile ? '8px 10px' : '10px 14px', borderTop: '1px solid var(--border)' }}>
-          <div className="ds-tabs-list" data-variant="segmented" style={{ maxWidth: '100%' }}>
+        <div style={{ padding: isMobile ? '6px 10px' : '8px 14px', borderTop: '1px solid var(--border)', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
+          <div className="ds-tabs-list" data-variant="segmented" style={{ maxWidth: '100%', flexWrap: 'nowrap', display: 'inline-flex', width: 'max-content' }}>
             {TAB_CFG.filter(t => isStaff || CUSTOMER_TABS.has(t.id)).map(t => {
               const badge =
                 t.id === 'tasks'      ? job.tasks.length :

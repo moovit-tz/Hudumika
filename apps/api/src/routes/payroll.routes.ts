@@ -18,6 +18,7 @@ import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { overtimeAmount } from '../services/attendance.service.js';
+import { EmailIntegration } from '../integrations/email.js';
 import {
   computePayslip, summariseRun,
   type TaxBand, type ContributionScheme, type PayslipResult, type Residency,
@@ -474,6 +475,48 @@ export async function payrollRoutes(fastify: FastifyInstance) {
         status: 'APPROVED', approved_by: user.sub, approved_at: new Date(), updated_at: new Date(),
       } as any).where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  // Email each employee their payslip for an approved run. Delivery uses the
+  // tenant's own SMTP config (Workspace ▸ Settings ▸ Email); the count reflects
+  // what was actually accepted for sending, and a payslip with no email is
+  // reported skipped rather than silently dropped.
+  fastify.post('/runs/:id/distribute', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'FINANCE') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const run = await trx.selectFrom('payroll_runs').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!run) return reply.status(404).send({ error: 'Payroll run not found' });
+      if (!['APPROVED', 'PAID'].includes(String(run.status))) {
+        return reply.status(409).send({ error: 'Only an approved run’s payslips can be sent to employees.' });
+      }
+      const slips = await trx.selectFrom('payroll_payslips as p')
+        .innerJoin('users as u', 'u.id', 'p.user_id')
+        .select(['p.gross_pay', 'p.income_tax', 'p.total_deductions', 'p.net_pay', 'u.name', 'u.email'])
+        .where('p.tenant_id', '=', user.tenant_id).where('p.run_id', '=', id).execute();
+
+      const money = (v: any) => 'TZS ' + Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 0 });
+      let sent = 0, skipped = 0;
+      const failures: string[] = [];
+      for (const s of slips) {
+        if (!s.email) { skipped++; failures.push(`${s.name} (no email on file)`); continue; }
+        const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#111;max-width:520px">
+          <h2 style="margin:0 0 4px">Your payslip</h2>
+          <div style="color:#666;font-size:13px;margin-bottom:16px">${run.name}</div>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <tr><td style="padding:6px 0;color:#666">Gross pay</td><td style="padding:6px 0;text-align:right;font-weight:700">${money(s.gross_pay)}</td></tr>
+            <tr><td style="padding:6px 0;color:#666">Income tax (PAYE)</td><td style="padding:6px 0;text-align:right;color:#b91c1c">-${money(s.income_tax)}</td></tr>
+            <tr><td style="padding:6px 0;color:#666">Total deductions</td><td style="padding:6px 0;text-align:right;color:#b91c1c">-${money(s.total_deductions)}</td></tr>
+            <tr><td style="padding:10px 0;font-weight:800;border-top:2px solid #111">Net pay</td><td style="padding:10px 0;text-align:right;font-weight:800;border-top:2px solid #111;color:#047857">${money(s.net_pay)}</td></tr>
+          </table>
+          <p style="color:#888;font-size:12px;margin-top:18px">The full breakdown is available under My Payslips in NexusHR. This payslip is computer-generated.</p>
+        </div>`;
+        const r = await EmailIntegration.sendEmail({ to: s.email, subject: `Your payslip — ${run.name}`, bodyHtml: html, tenantId: user.tenant_id });
+        if (r.success) sent++; else { skipped++; failures.push(`${s.name} (${r.error || 'send failed'})`); }
+      }
+      return { ok: true, total: slips.length, sent, skipped, failures };
     });
   });
 
