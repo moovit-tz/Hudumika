@@ -3,121 +3,98 @@ import { PageHeader } from '../components/PageHeader.js';
 import { Icon } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
 
-interface DataSource {
-  name: string;
-  type: string;
-  status: string;
-  recordsCount: number;
-  lastSync: string;
-}
+interface DataSource { name: string; type: string; status: string; recordsCount: number; lastSync: string }
+interface TableRow { table: string; records: number }
+
+const TABLE_LABELS: Record<string, string> = {
+  customers: 'Customers', shipment_cases: 'Shipment cases', declarations: 'Declarations',
+  sales_invoices: 'Sales invoices', expenses: 'Expenses', finance_expenses: 'Finance expenses',
+  users: 'Staff & users', hr_attendance: 'Attendance records', payroll_payslips: 'Payslips',
+};
 
 export function HuduBIDataSources() {
   const [sources, setSources] = useState<DataSource[]>([]);
+  const [breakdown, setBreakdown] = useState<TableRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadSources() {
+    (async () => {
       try {
         const res = await apiFetch('/v1/hudubi/data-sources');
-        if (res && res.sources) {
-          setSources(res.sources);
-        }
-      } catch (err) {
-        console.error('Failed to load data sources', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadSources();
+        if (res?.sources) setSources(res.sources);
+        if (Array.isArray(res?.breakdown)) setBreakdown([...res.breakdown].sort((a, b) => b.records - a.records));
+      } catch (err) { console.error('Failed to load data sources', err); }
+      finally { setLoading(false); }
+    })();
   }, []);
 
+  const card: React.CSSProperties = { background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 14, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 16 };
+
   return (
-    <div style={{ flex: 1, overflowY: 'auto', background: '#fafafa', padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 20 }}>
       <PageHeader
         crumbs={['HuduBI', 'Data Management']}
-        titlePlain="Data Sources &"
-        titleEm="warehouse pipelines"
-        subtitle="Connected enterprise warehouses, ETL jobs, data quality checks, and real-time ingestion"
-        actions={
-          <button type="button" className="btn btn-primary" style={{ background: '#18181B', color: '#fff', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <Icon name="plus" size={14} color="#fff" /> Connect Source
-          </button>
-        }
+        titlePlain="Data"
+        titleEm="sources"
+        subtitle="The tables HuduBI reads to build your snapshot — scoped to this workspace, with live row counts."
       />
 
-      {/* Connected Sources List */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 24, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>Active Data Connections</div>
+      {loading && <div style={{ ...card, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>}
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
-          {(sources.length > 0 ? sources : [
-            { name: 'Snowflake Data Warehouse', type: 'WAREHOUSE', status: 'CONNECTED', recordsCount: 12400000, lastSync: '10 min ago' },
-            { name: 'Postgres Operational DB', type: 'DATABASE', status: 'CONNECTED', recordsCount: 4200000, lastSync: 'Live' },
-            { name: 'Google BigQuery Analytics', type: 'ANALYTICS', status: 'CONNECTED', recordsCount: 1800000, lastSync: '1 hour ago' },
-            { name: 'AWS S3 Data Lake', type: 'STORAGE', status: 'CONNECTED', recordsCount: 8500000, lastSync: '30 min ago' },
-          ]).map(s => (
-            <div key={s.name} style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Icon name="layers" size={18} color="#18181b" />
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#111827' }}>{s.name}</span>
+      {!loading && (
+        <>
+          {/* Connected sources (the real one) */}
+          <div style={card}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>Connected sources</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+              {sources.map(s => (
+                <div key={s.name} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Icon name="layers" size={18} color="var(--teal)" />
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{s.name}</span>
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: 'var(--green-l)', color: 'var(--green)' }}>{s.status}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink3)' }}>
+                    <span>Type: <strong style={{ color: 'var(--ink)' }}>{s.type}</strong></span>
+                    <span>Sync: {s.lastSync}</span>
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+                    {s.recordsCount.toLocaleString()} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink3)' }}>records</span>
+                  </div>
                 </div>
-                <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#d1fae5', color: '#065f46' }}>
-                  {s.status}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#6b7280' }}>
-                <span>Type: <strong style={{ color: '#111827' }}>{s.type}</strong></span>
-                <span>Last sync: {s.lastSync}</span>
-              </div>
-
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#111827', borderTop: '1px solid #f3f4f6', paddingTop: 10 }}>
-                {s.recordsCount.toLocaleString()} <span style={{ fontSize: 11, fontWeight: 500, color: '#9ca3af' }}>records indexed</span>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
 
-      {/* ETL Pipeline Jobs Status */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 14, padding: 24, boxShadow: '0 2px 10px rgba(0,0,0,0.03)', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#111827' }}>ETL Data Pipelines Status</div>
-
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #e5e7eb', textTransform: 'uppercase', fontSize: 11, color: '#9ca3af', textAlign: 'left' }}>
-              <th style={{ padding: '10px 12px' }}>Pipeline Name</th>
-              <th style={{ padding: '10px 12px' }}>Source → Target</th>
-              <th style={{ padding: '10px 12px' }}>Status</th>
-              <th style={{ padding: '10px 12px' }}>Throughput</th>
-              <th style={{ padding: '10px 12px', textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              { name: 'Financial Ledger Sync', route: 'Postgres → Snowflake', status: 'Healthy', rate: '12,400 rows/min' },
-              { name: 'Customs & Demurrage Events Stream', route: 'Kafka → BigQuery', status: 'Healthy', rate: '45,000 msg/sec' },
-              { name: 'NexusHR Shift Logs Ingestion', route: 'API → S3 Data Lake', status: 'Healthy', rate: '8,200 rows/min' },
-              { name: 'ComplyOS BRELA Audit Mirror', route: 'Postgres → Postgres Read Replica', status: 'Healthy', rate: 'Sync' },
-            ].map(p => (
-              <tr key={p.name} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                <td style={{ padding: '12px', fontWeight: 600, color: '#111827' }}>{p.name}</td>
-                <td style={{ padding: '12px', color: '#4b5563' }}>{p.route}</td>
-                <td style={{ padding: '12px' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 10, background: '#d1fae5', color: '#065f46' }}>
-                    {p.status}
-                  </span>
-                </td>
-                <td style={{ padding: '12px', color: '#6b7280' }}>{p.rate}</td>
-                <td style={{ padding: '12px', textAlign: 'right' }}>
-                  <button type="button" style={{ background: 'none', border: 'none', color: '#18181B', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>Configure</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          {/* Real per-table breakdown (replaces the fabricated ETL pipeline table) */}
+          <div style={card}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)' }}>Tables in your data layer</div>
+            {breakdown.length === 0 ? (
+              <div style={{ fontSize: 12.5, color: 'var(--ink3)' }}>No data yet.</div>
+            ) : (() => {
+              const max = Math.max(1, ...breakdown.map(r => r.records));
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {breakdown.map(r => (
+                    <div key={r.table} style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <span style={{ fontSize: 13, color: 'var(--ink)', width: 160, flexShrink: 0 }}>{TABLE_LABELS[r.table] || r.table}</span>
+                      <div style={{ flex: 1, height: 7, borderRadius: 4, background: 'var(--bg)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${Math.round((r.records / max) * 100)}%`, background: 'var(--teal)', borderRadius: 4 }} />
+                      </div>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', minWidth: 48, textAlign: 'right' }}>{r.records.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+            <div style={{ fontSize: 11.5, color: 'var(--ink3)', borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+              These are the live tables HuduBI aggregates. It reads them directly — there is no separate warehouse or ETL copy to fall out of sync.
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
