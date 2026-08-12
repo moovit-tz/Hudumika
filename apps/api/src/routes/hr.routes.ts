@@ -157,6 +157,36 @@ async function closeAttendanceSessionIfIdle(trx: any, tenantId: string, userId: 
   }
 }
 
+/**
+ * The reverse of ensureAttendanceSessionOpen: clocking in on the /nexushr/clock-in
+ * timesheet also opens a header time entry, so the top-bar check-in widget shows
+ * you as checked in (it reads /hr/time/today). Without this, the two systems only
+ * synced one way — the header could mark the timesheet, but not the reverse.
+ */
+async function ensureTimeEntryOpen(trx: any, tenantId: string, userId: string, now: Date) {
+  const open = await trx.selectFrom('hr_time_entries').select('id')
+    .where('tenant_id', '=', tenantId).where('user_id', '=', userId)
+    .where('date', '=', isoDate(now)).where('ended_at', 'is', null)
+    .executeTakeFirst();
+  if (open) return;
+  await trx.insertInto('hr_time_entries').values({
+    tenant_id: tenantId, user_id: userId, task_id: null, task_name: 'Clocked in',
+    is_billable: false, entry_type: 'CHECK_IN', date: isoDate(now), is_full_day: false,
+    started_at: now, last_ack_at: now, project_id: null, project_ref: null,
+  }).execute();
+}
+
+async function closeOpenTimeEntries(trx: any, tenantId: string, userId: string, now: Date) {
+  const open = await trx.selectFrom('hr_time_entries').select(['id', 'started_at'])
+    .where('tenant_id', '=', tenantId).where('user_id', '=', userId)
+    .where('date', '=', isoDate(now)).where('ended_at', 'is', null)
+    .execute();
+  for (const e of open) {
+    const dur = Math.max(0, Math.round((now.getTime() - new Date(e.started_at as any).getTime()) / 60000));
+    await trx.updateTable('hr_time_entries').set({ ended_at: now, duration_minutes: dur, updated_at: now }).where('id', '=', e.id).execute();
+  }
+}
+
 export async function hrRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('nexushr'));
@@ -584,6 +614,9 @@ export async function hrRoutes(fastify: FastifyInstance) {
         }).execute();
       }
 
+      // Also open a header time entry so the top-bar check-in widget reflects it.
+      await ensureTimeEntryOpen(trx, user.tenant_id, user.sub, now);
+
       return { ok: true, session };
     });
   });
@@ -715,6 +748,9 @@ export async function hrRoutes(fastify: FastifyInstance) {
           updated_at: now,
         }).where('id', '=', att.id).execute();
       }
+
+      // Close the matching header time entry so the widget flips back to idle.
+      await closeOpenTimeEntries(trx, user.tenant_id, user.sub, now);
 
       return { ok: true, session: completed };
     });
