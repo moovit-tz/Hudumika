@@ -3234,6 +3234,8 @@ export interface Database {
   hr_clock_sessions: HrClockSessionsTable;
   hr_clock_breaks: HrClockBreaksTable;
   hr_timesheet_approvals: HrTimesheetApprovalsTable;
+  hr_job_openings: HrJobOpeningsTable;
+  hr_candidates: HrCandidatesTable;
   hr_leaves: HrLeavesTable;
   hr_payroll: HrPayrollTable;
   hr_announcements: HrAnnouncementsTable;
@@ -5707,6 +5709,37 @@ export interface HrClockBreaksTable {
   end_at: Date | null;
   duration_minutes: number | null;
   created_at: Generated<Date>;
+}
+
+export interface HrJobOpeningsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  title: string;
+  department: string | null;
+  location: string | null;
+  employment_type: Generated<string>;
+  status: Generated<string>;
+  description: string | null;
+  openings_count: Generated<number>;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface HrCandidatesTable {
+  id: Generated<string>;
+  tenant_id: string;
+  job_opening_id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  stage: Generated<string>;
+  rating: number | null;
+  source: string | null;
+  notes: string | null;
+  created_by: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
 export interface HrTimesheetApprovalsTable {

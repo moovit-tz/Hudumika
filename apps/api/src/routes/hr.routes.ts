@@ -1361,6 +1361,135 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // ── Recruitment: job openings & candidate pipeline ────────────
+
+  fastify.get('/recruitment/openings', async (req) => {
+    const user = req.user;
+    return withTenant(user.tenant_id, async (trx) => {
+      const openings = await trx.selectFrom('hr_job_openings as o')
+        .leftJoin('users as c', 'c.id', 'o.created_by')
+        .select(['o.id', 'o.title', 'o.department', 'o.location', 'o.employment_type',
+                 'o.status', 'o.description', 'o.openings_count', 'o.created_at',
+                 'c.name as created_by_name'])
+        .where('o.tenant_id', '=', user.tenant_id)
+        .orderBy('o.created_at', 'desc')
+        .execute();
+
+      // Candidate counts per opening so the list can show a pipeline size
+      // without a second round-trip per row.
+      const counts = await trx.selectFrom('hr_candidates')
+        .select(['job_opening_id', (eb) => eb.fn.countAll<number>().as('n')])
+        .where('tenant_id', '=', user.tenant_id)
+        .groupBy('job_opening_id')
+        .execute();
+      const byOpening = new Map(counts.map(r => [r.job_opening_id, Number(r.n)]));
+      return openings.map(o => ({ ...o, candidate_count: byOpening.get(o.id) ?? 0 }));
+    });
+  });
+
+  fastify.post('/recruitment/openings', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const b = (req.body as any) || {};
+    if (!b.title || !String(b.title).trim()) return reply.status(400).send({ error: 'title is required' });
+    return withTenant(user.tenant_id, async (trx) => {
+      return trx.insertInto('hr_job_openings').values({
+        tenant_id: user.tenant_id,
+        title: String(b.title).trim(),
+        department: b.department || null,
+        location: b.location || null,
+        employment_type: b.employment_type || 'FULL_TIME',
+        status: b.status || 'OPEN',
+        description: b.description || null,
+        openings_count: Number(b.openings_count) > 0 ? Number(b.openings_count) : 1,
+        created_by: user.sub,
+      }).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  fastify.patch('/recruitment/openings/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    const b = (req.body as any) || {};
+    const patch: Record<string, unknown> = { updated_at: new Date() };
+    if (b.title !== undefined) { if (!String(b.title).trim()) return reply.status(400).send({ error: 'title cannot be empty' }); patch.title = String(b.title).trim(); }
+    for (const k of ['department', 'location', 'employment_type', 'status', 'description'] as const) {
+      if (b[k] !== undefined) patch[k] = b[k] || null;
+    }
+    if (b.openings_count !== undefined) patch.openings_count = Number(b.openings_count) > 0 ? Number(b.openings_count) : 1;
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('hr_job_openings').set(patch as any)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Job opening not found' });
+      return updated;
+    });
+  });
+
+  fastify.get('/recruitment/openings/:id/candidates', async (req) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    return withTenant(user.tenant_id, async (trx) => {
+      return trx.selectFrom('hr_candidates')
+        .selectAll()
+        .where('tenant_id', '=', user.tenant_id)
+        .where('job_opening_id', '=', id)
+        .orderBy('created_at', 'desc')
+        .execute();
+    });
+  });
+
+  fastify.post('/recruitment/candidates', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const b = (req.body as any) || {};
+    if (!b.job_opening_id) return reply.status(400).send({ error: 'job_opening_id is required' });
+    if (!b.name || !String(b.name).trim()) return reply.status(400).send({ error: 'name is required' });
+    return withTenant(user.tenant_id, async (trx) => {
+      // Confirm the opening belongs to this tenant before attaching a candidate.
+      const opening = await trx.selectFrom('hr_job_openings').select('id')
+        .where('id', '=', b.job_opening_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!opening) return reply.status(404).send({ error: 'Job opening not found' });
+      return trx.insertInto('hr_candidates').values({
+        tenant_id: user.tenant_id,
+        job_opening_id: b.job_opening_id,
+        name: String(b.name).trim(),
+        email: b.email || null,
+        phone: b.phone || null,
+        stage: b.stage || 'APPLIED',
+        rating: b.rating != null ? Number(b.rating) : null,
+        source: b.source || null,
+        notes: b.notes || null,
+        created_by: user.sub,
+      }).returningAll().executeTakeFirstOrThrow();
+    });
+  });
+
+  fastify.patch('/recruitment/candidates/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as any;
+    const b = (req.body as any) || {};
+    const VALID_STAGES = ['APPLIED', 'SCREENING', 'INTERVIEW', 'OFFER', 'HIRED', 'REJECTED'];
+    const patch: Record<string, unknown> = { updated_at: new Date() };
+    if (b.stage !== undefined) {
+      if (!VALID_STAGES.includes(b.stage)) return reply.status(400).send({ error: 'invalid stage' });
+      patch.stage = b.stage;
+    }
+    if (b.rating !== undefined) {
+      const r = Number(b.rating);
+      if (b.rating !== null && (!Number.isFinite(r) || r < 0 || r > 5)) return reply.status(400).send({ error: 'rating must be 0–5' });
+      patch.rating = b.rating === null ? null : r;
+    }
+    for (const k of ['name', 'email', 'phone', 'source', 'notes'] as const) {
+      if (b[k] !== undefined) patch[k] = b[k] || null;
+    }
+    return withTenant(user.tenant_id, async (trx) => {
+      const updated = await trx.updateTable('hr_candidates').set(patch as any)
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirst();
+      if (!updated) return reply.status(404).send({ error: 'Candidate not found' });
+      return updated;
+    });
+  });
+
   // ── Announcements ─────────────────────────────────────────────
 
   fastify.get('/announcements', async (req) => {
