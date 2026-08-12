@@ -6,7 +6,6 @@ import type { IconName } from '../components/Icon.js';
 import { MetricsRow, type MetricCardProps } from '../components/MetricCard.js';
 import { apiFetch } from '../lib/api.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
-import { EMPLOYEES } from '../data/staffData.js';
 import type { EmpStatus, Employee } from '../data/staffData.js';
 import type { AttendanceStatus, AttendanceRecord, ShiftType, ShiftAssignment, Employee as ShiftEmployee } from '../data/hrmData.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -523,7 +522,9 @@ export function EmployeesPage() {
   const [statusF,   setStatusF]   = useState('');
   const [viewMode,  setViewMode]  = useState<'list' | 'grid'>('list');
   const [showOnboard, setShowOnboard] = useState(false);
-  const [employees, setEmployees] = useState<Employee[]>(EMPLOYEES);
+  // Start empty and fill from /v1/hr/staff — never seed with the sample fixture,
+  // which would flash fabricated names before (or instead of) the real roster.
+  const [employees, setEmployees] = useState<Employee[]>([]);
 
   const loadEmployees = useCallback(async () => {
     try {
@@ -546,7 +547,13 @@ export function EmployeesPage() {
   }, []);
   useEffect(() => { loadEmployees(); }, [loadEmployees]);
 
-  const depts = [...new Set(employees.map(e => e.dept))];
+  const depts = [...new Set(employees.map(e => e.dept).filter(d => d && d !== '—'))];
+  // Real figures for the metrics row — no hardcoded "2 new / 4 roles / 1 pending".
+  const thisMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const hiredThisMonth = employees.filter(e => (e.hireDate || '').startsWith(thisMonth)).length;
+  const roleCount = new Set(employees.map(e => e.role).filter(Boolean)).size;
+  const onLeaveCount = employees.filter(e => e.status === 'ON_LEAVE').length;
+  const inactiveCount = employees.filter(e => e.status === 'INACTIVE').length;
   const rows  = employees.filter(e =>
     (!search   || e.name.toLowerCase().includes(search.toLowerCase()) || e.email.toLowerCase().includes(search.toLowerCase())) &&
     (!deptF    || e.dept   === deptF) &&
@@ -576,9 +583,9 @@ export function EmployeesPage() {
       </PageHeader>
 
       <MetricsRow cards={[
-        { title: 'Total Staff',    value: String(employees.length),                                          sub1Label: 'ACTIVE',   sub1Value: String(employees.filter(e => e.status === 'ACTIVE').length),   sub2Label: 'ON LEAVE', sub2Value: String(employees.filter(e => e.status === 'ON_LEAVE').length),  barHighlight: 'var(--blue)'  },
-        { title: 'New This Month', value: '2',                                                               sub1Label: 'DEPT',      sub1Value: String(depts.length),                                           sub2Label: 'ROLES',    sub2Value: '4', barHighlight: 'var(--green)' },
-        { title: 'Inactive',       value: String(employees.filter(e => e.status === 'INACTIVE').length),     sub1Label: 'PENDING',   sub1Value: '1',                                                            sub2Label: 'LEFT YTD', sub2Value: '2',   barHighlight: 'var(--red)'   },
+        { title: 'Total Staff',    value: String(employees.length),   sub1Label: 'ACTIVE',      sub1Value: String(employees.filter(e => e.status === 'ACTIVE').length), sub2Label: 'ON LEAVE',    sub2Value: String(onLeaveCount),   barHighlight: 'var(--blue)'  },
+        { title: 'New This Month', value: String(hiredThisMonth),     sub1Label: 'DEPARTMENTS', sub1Value: String(depts.length),                                       sub2Label: 'ROLES',       sub2Value: String(roleCount),      barHighlight: 'var(--green)' },
+        { title: 'Inactive',       value: String(inactiveCount),      sub1Label: 'ON LEAVE',    sub1Value: String(onLeaveCount),                                       sub2Label: 'DEPARTMENTS', sub2Value: String(depts.length),   barHighlight: 'var(--red)'   },
       ]} />
 
       {/* -- Toolbar -- */}
