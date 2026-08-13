@@ -315,11 +315,14 @@ export const FinanceDashboard: React.FC = () => {
                 <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No notifications yet</div>
               ) : rawNotifications.slice(0, 6).map((n, i, arr) => (
                 <div key={n.id || i} style={{ display: 'flex', gap: 12, paddingBottom: 16, marginBottom: 16, borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none', position: 'relative' }}>
-                  {/* Timeline dot */}
+                  {/* Timeline dot — connector is absolutely positioned off the row
+                      (not flex:1 inside the dot column) so it reaches all the way
+                      to the next dot, spanning this row's own paddingBottom/marginBottom
+                      gap instead of collapsing to the dot column's near-zero content height. */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0, flexShrink: 0, width: 52 }}>
                     <div style={{ width: 10, height: 10, borderRadius: '50%', background: n.read ? 'var(--ink3)' : 'var(--teal)', flexShrink: 0, marginTop: 4 }} />
-                    {i < arr.length - 1 && <div style={{ width: 1, flex: 1, background: 'var(--border)', marginTop: 4 }} />}
                   </div>
+                  {i < arr.length - 1 && <div style={{ position: 'absolute', left: 25, top: 14, bottom: -16, width: 1, background: 'var(--border)' }} />}
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
