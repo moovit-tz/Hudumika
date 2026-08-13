@@ -39,6 +39,7 @@ interface Props {
   beforeNav?: (opts: { collapsed: boolean }) => React.ReactNode;
   fillNav?: (opts: { collapsed: boolean }) => React.ReactNode;
   afterNav?: (opts: { collapsed: boolean }) => React.ReactNode;
+  loading?: boolean;
 }
 
 const APP_ICONS: Record<AppId, IconName> = {
@@ -92,11 +93,33 @@ const APP_SUBTITLES: Partial<Record<AppId, string>> = {
   inventory:     'Inventory Control',
 };
 
-export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav }: Props) {
+export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav, loading }: Props) {
   const location    = useLocation();
   const { logout }  = useAuth();
   const { t }       = useLocale();
   const { mobileOpen, setMobileOpen } = useContext(MobileNavContext);
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // Clear pending state on location change or fallback timeout
+  useEffect(() => {
+    if (pendingPath) {
+      setPendingPath(null);
+      setIsNavigating(false);
+    }
+  }, [location.pathname, location.search]);
+
+  function handleItemClick(path: string) {
+    setMobileOpen(false);
+    const [p, q] = path.split('?');
+    const currentQuery = location.search ? location.search.substring(1) : '';
+    const isSamePath = location.pathname === p && currentQuery === (q || '');
+    if (!isSamePath) {
+      setPendingPath(path);
+      setIsNavigating(true);
+    }
+  }
+
   // Sidebar is open/expanded by default, and only collapses when the user explicitly closes it
   const [collapsed, setCollapsed] = useState(() => {
     return localStorage.getItem(`${appId}-sidebar-closed-user`) === 'true';
@@ -241,6 +264,9 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav }: Pr
   function renderContent() {
     return (
       <>
+        {/* ── Top loading progress bar ── */}
+        <div className={`app-sb-loading-bar${isNavigating || loading ? ' app-sb-loading-bar--active' : ''}`} />
+
         {/* ── Brand header ── */}
         <div className="app-sb-brand">
           <div className="app-sb-brand-icon">
@@ -280,115 +306,142 @@ export function AppSidebar({ appId, sections, beforeNav, fillNav, afterNav }: Pr
 
             {/* ── Nav ── */}
             <nav className="app-sb-nav">
-              {sections.map((section, si) => {
-                const isCollapsible = !!section.title && (section.collapsible ?? true);
-                const isOpen = !section.title || (openSections[section.title] ?? true);
-                return (
-                <div key={si} className="app-sb-section-group">
-                  {section.title && !collapsed && (
-                    <div
-                      className={`app-sb-section-hdr${isCollapsible ? ' app-sb-section-hdr--collapsible' : ''}`}
-                      onClick={isCollapsible ? () => toggleSection(section.title!) : undefined}
-                    >
-                      <span>{section.title}</span>
-                      {isCollapsible && <span className="app-sb-section-toggle">{isOpen ? '−' : '+'}</span>}
-                    </div>
-                  )}
-                  {(isOpen || collapsed) && section.items.map(item => {
-                    const active = isActive(item.path, item.exact);
-                    const hasChildren = !!item.children?.length;
-
-                    if (!hasChildren) {
-                      return (
-                        <Link
-                          key={item.path}
-                          to={item.path}
-                          className={`app-sb-item${active ? ' app-sb-item--active' : ''}`}
-                          onClick={() => setMobileOpen(false)}
-                          title={collapsed ? item.label : undefined}
-                        >
-                          <span className="app-sb-item-icon">
-                            <Icon name={item.icon} size={16} strokeWidth={active ? 2.2 : 1.8} />
-                          </span>
-                          {!collapsed && (
-                            <>
-                              <span className="app-sb-item-label">{item.label}</span>
-                              {item.badge && (
-                                <span className={`app-sb-badge app-sb-badge--${item.badgeVariant ?? 'tag'}`}>
-                                  {item.badge}
-                                </span>
-                              )}
-                            </>
-                          )}
-                        </Link>
-                      );
-                    }
-
-                    // Item with children: auto-expand whenever it or a
-                    // descendant is the active route, otherwise follow the
-                    // manual toggle. The parent itself is a toggle only —
-                    // not a navigable link — matching how section headers
-                    // (OPERATIONS, TOOLS, ...) behave.
-                    const isParentOpen = openParents[item.path] ?? hasActiveDescendant(item);
-
-                    if (collapsed) {
-                      // Icon rail: children never render, so fall back to a
-                      // plain navigable icon like a leaf item.
-                      return (
-                        <Link
-                          key={item.path}
-                          to={item.path}
-                          className={`app-sb-item${active ? ' app-sb-item--active' : ''}`}
-                          onClick={() => setMobileOpen(false)}
-                          title={item.label}
-                        >
-                          <span className="app-sb-item-icon">
-                            <Icon name={item.icon} size={16} strokeWidth={active ? 2.2 : 1.8} />
-                          </span>
-                        </Link>
-                      );
-                    }
-
-                    return (
-                      <React.Fragment key={item.path}>
+              {loading ? (
+                <div className="app-sb-skeleton-group">
+                  {[80, 65, 90, 70, 85, 60, 75].map((w, idx) => (
+                    <div key={idx} className="app-sb-skeleton-item">
+                      <div className="app-sb-skeleton-icon skeleton-shimmer" />
+                      {!collapsed && (
                         <div
-                          className="app-sb-item app-sb-item--parent-hdr"
-                          onClick={() => toggleParent(item.path)}
-                        >
-                          <span className="app-sb-item-icon">
-                            <Icon name={item.icon} size={16} strokeWidth={1.8} />
-                          </span>
-                          <span className="app-sb-item-label">{item.label}</span>
-                          <span className="app-sb-item-parent-toggle">{isParentOpen ? '−' : '+'}</span>
-                        </div>
-                        {isParentOpen && (
-                          <div className="app-sb-children-group">
-                            {item.children!.map(child => {
-                              const childActive = isActive(child.path, child.exact);
-                              return (
-                                <Link
-                                  key={child.path}
-                                  to={child.path}
-                                  className={`app-sb-item app-sb-item--child${childActive ? ' app-sb-item--active' : ''}`}
-                                  onClick={() => setMobileOpen(false)}
-                                >
-                                  <span className="app-sb-item-label">{child.label}</span>
-                                  {child.badge && (
-                                    <span className={`app-sb-badge app-sb-badge--${child.badgeVariant ?? 'tag'}`}>
-                                      {child.badge}
-                                    </span>
-                                  )}
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </React.Fragment>
-                    );
-                  })}
+                          className="app-sb-skeleton-text skeleton-shimmer"
+                          style={{ width: `${w}%` }}
+                        />
+                      )}
+                    </div>
+                  ))}
                 </div>
-                );
-              })}
+              ) : (
+                sections.map((section, si) => {
+                  const isCollapsible = !!section.title && (section.collapsible ?? true);
+                  const isOpen = !section.title || (openSections[section.title] ?? true);
+                  return (
+                  <div key={si} className="app-sb-section-group">
+                    {section.title && !collapsed && (
+                      <div
+                        className={`app-sb-section-hdr${isCollapsible ? ' app-sb-section-hdr--collapsible' : ''}`}
+                        onClick={isCollapsible ? () => toggleSection(section.title!) : undefined}
+                      >
+                        <span>{section.title}</span>
+                        {isCollapsible && <span className="app-sb-section-toggle">{isOpen ? '−' : '+'}</span>}
+                      </div>
+                    )}
+                    {(isOpen || collapsed) && section.items.map(item => {
+                      const active = isActive(item.path, item.exact);
+                      const hasChildren = !!item.children?.length;
+                      const isPending = pendingPath === item.path;
+
+                      if (!hasChildren) {
+                        return (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            className={`app-sb-item${active ? ' app-sb-item--active' : ''}${isPending ? ' app-sb-item--pending' : ''}`}
+                            onClick={() => handleItemClick(item.path)}
+                            title={collapsed ? item.label : undefined}
+                          >
+                            <span className="app-sb-item-icon">
+                              {isPending ? (
+                                <span className="app-sb-item-spinner" />
+                              ) : (
+                                <Icon name={item.icon} size={16} strokeWidth={active ? 2.2 : 1.8} />
+                              )}
+                            </span>
+                            {!collapsed && (
+                              <>
+                                <span className="app-sb-item-label">{item.label}</span>
+                                {item.badge && (
+                                  <span className={`app-sb-badge app-sb-badge--${item.badgeVariant ?? 'tag'}`}>
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </Link>
+                        );
+                      }
+
+                      // Item with children: auto-expand whenever it or a
+                      // descendant is the active route, otherwise follow the
+                      // manual toggle. The parent itself is a toggle only —
+                      // not a navigable link — matching how section headers
+                      // (OPERATIONS, TOOLS, ...) behave.
+                      const isParentOpen = openParents[item.path] ?? hasActiveDescendant(item);
+
+                      if (collapsed) {
+                        // Icon rail: children never render, so fall back to a
+                        // plain navigable icon like a leaf item.
+                        return (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            className={`app-sb-item${active ? ' app-sb-item--active' : ''}${isPending ? ' app-sb-item--pending' : ''}`}
+                            onClick={() => handleItemClick(item.path)}
+                            title={item.label}
+                          >
+                            <span className="app-sb-item-icon">
+                              {isPending ? (
+                                <span className="app-sb-item-spinner" />
+                              ) : (
+                                <Icon name={item.icon} size={16} strokeWidth={active ? 2.2 : 1.8} />
+                              )}
+                            </span>
+                          </Link>
+                        );
+                      }
+
+                      return (
+                        <React.Fragment key={item.path}>
+                          <div
+                            className="app-sb-item app-sb-item--parent-hdr"
+                            onClick={() => toggleParent(item.path)}
+                          >
+                            <span className="app-sb-item-icon">
+                              <Icon name={item.icon} size={16} strokeWidth={1.8} />
+                            </span>
+                            <span className="app-sb-item-label">{item.label}</span>
+                            <span className="app-sb-item-parent-toggle">{isParentOpen ? '−' : '+'}</span>
+                          </div>
+                          {isParentOpen && (
+                            <div className="app-sb-children-group">
+                              {item.children!.map(child => {
+                                const childActive = isActive(child.path, child.exact);
+                                const isChildPending = pendingPath === child.path;
+                                return (
+                                  <Link
+                                    key={child.path}
+                                    to={child.path}
+                                    className={`app-sb-item app-sb-item--child${childActive ? ' app-sb-item--active' : ''}${isChildPending ? ' app-sb-item--pending' : ''}`}
+                                    onClick={() => handleItemClick(child.path)}
+                                  >
+                                    {isChildPending && <span className="app-sb-item-spinner app-sb-item-spinner--sm" />}
+                                    <span className="app-sb-item-label">{child.label}</span>
+                                    {child.badge && (
+                                      <span className={`app-sb-badge app-sb-badge--${child.badgeVariant ?? 'tag'}`}>
+                                        {child.badge}
+                                      </span>
+                                    )}
+                                  </Link>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </div>
+                  );
+                })
+              )}
               {afterNav?.({ collapsed })}
             </nav>
           </>

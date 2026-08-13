@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { MetricsRow, MiniBar } from '../components/MetricCard.js';
@@ -66,6 +67,7 @@ function timeAgo(iso: string): string {
    Main dashboard component
 --------------------------------------------------- */
 export const FinanceDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { fmt } = useCurrency();
   const { t } = useLocale();
@@ -95,6 +97,7 @@ export const FinanceDashboard: React.FC = () => {
   const derived = useMemo(() => {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const yearStart = new Date(now.getFullYear(), 0, 1);
     const weekStart = new Date(now.getTime() - 7 * 86400000);
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
 
@@ -130,6 +133,16 @@ export const FinanceDashboard: React.FC = () => {
     const invoicesThisMonth = invoices.filter(i => i.date && i.date >= monthStart);
     const invoicesThisMonthAmount = invoicesThisMonth.reduce((s, i) => s + i.total, 0);
 
+    // Invoiced-in-period, keyed by the Overview/This Year/All Time tabs above
+    // the Clearance Overview card. Those tabs used to only move an underline —
+    // the figures under them never changed with the selection.
+    const invoicesThisYear = invoices.filter(i => i.date && i.date >= yearStart);
+    const invoicedByPeriod = {
+      overview: { amount: invoicesThisMonthAmount, count: invoicesThisMonth.length },
+      year: { amount: invoicesThisYear.reduce((s, i) => s + i.total, 0), count: invoicesThisYear.length },
+      alltime: { amount: totalRevenue, count: invoices.length },
+    };
+
     // Top customers by revenue — real substitute for a "top service plans" breakdown
     // that had no equivalent concept anywhere in the real invoice/shipment model.
     const byClient = new Map<string, number>();
@@ -138,16 +151,21 @@ export const FinanceDashboard: React.FC = () => {
       .sort((a, b) => b[1] - a[1]).slice(0, 5)
       .map(([name, amt], idx) => ({ name, pct: totalRevenue > 0 ? Math.round((amt / totalRevenue) * 1000) / 10 : 0, color: PLAN_COLORS[idx % PLAN_COLORS.length] }));
 
-    // Recent activity — merged real invoice/bill/payment events, not fabricated names.
-    const events: { name: string; action: string; time: string; ts: number; color: string }[] = [];
+    // Recent activity — merged real invoice/bill/payment events, not fabricated
+    // names. `kind` backs the All/Cancel filter below: 'cancel' only for
+    // invoices actually credited and bills actually voided — real status
+    // fields, not a filter invented to give the toggle something to do.
+    const events: { name: string; action: string; time: string; ts: number; color: string; kind: 'all' | 'cancel' }[] = [];
     invoices.forEach(i => {
-      if (i.raw.created_at) events.push({ name: i.mapped.client || 'Unknown', action: `was issued invoice ${i.mapped.id}.`, time: timeAgo(i.raw.created_at), ts: new Date(i.raw.created_at).getTime(), color: ACTIVITY_COLORS[0] });
+      if (i.raw.created_at) events.push({ name: i.mapped.client || 'Unknown', action: `was issued invoice ${i.mapped.id}.`, time: timeAgo(i.raw.created_at), ts: new Date(i.raw.created_at).getTime(), color: ACTIVITY_COLORS[0], kind: 'all' });
+      if (i.mapped.status === 'Credited') events.push({ name: i.mapped.client || 'Unknown', action: `had invoice ${i.mapped.id} credited.`, time: timeAgo(i.raw.created_at || i.raw.updated_at), ts: new Date(i.raw.updated_at || i.raw.created_at).getTime(), color: ACTIVITY_COLORS[3], kind: 'cancel' });
     });
     bills.forEach(b => {
-      if (b.raw.created_at) events.push({ name: b.raw.supplier_name || 'Vendor', action: `billed ${b.raw.bill_number} to this account.`, time: timeAgo(b.raw.created_at), ts: new Date(b.raw.created_at).getTime(), color: ACTIVITY_COLORS[1] });
+      if (b.raw.created_at) events.push({ name: b.raw.supplier_name || 'Vendor', action: `billed ${b.raw.bill_number} to this account.`, time: timeAgo(b.raw.created_at), ts: new Date(b.raw.created_at).getTime(), color: ACTIVITY_COLORS[1], kind: 'all' });
+      if (b.raw.status === 'VOID') events.push({ name: b.raw.supplier_name || 'Vendor', action: `had bill ${b.raw.bill_number} voided.`, time: timeAgo(b.raw.updated_at || b.raw.created_at), ts: new Date(b.raw.updated_at || b.raw.created_at).getTime(), color: ACTIVITY_COLORS[3], kind: 'cancel' });
     });
     rawPayments.forEach((p: any) => {
-      if (p.created_at) events.push({ name: p.client_name || 'Unknown', action: `paid against invoice ${p.invoice_number}.`, time: timeAgo(p.created_at), ts: new Date(p.created_at).getTime(), color: ACTIVITY_COLORS[2] });
+      if (p.created_at) events.push({ name: p.client_name || 'Unknown', action: `paid against invoice ${p.invoice_number}.`, time: timeAgo(p.created_at), ts: new Date(p.created_at).getTime(), color: ACTIVITY_COLORS[2], kind: 'all' });
     });
     events.sort((a, b) => b.ts - a.ts);
 
@@ -159,7 +177,8 @@ export const FinanceDashboard: React.FC = () => {
       balance, monthBalance, weekBalance,
       outstandingCount: outstanding.length, outstandingAmount,
       invoicesThisMonthCount: invoicesThisMonth.length, invoicesThisMonthAmount,
-      topCustomers, activities: events.slice(0, 5), recentInvoices,
+      invoicedByPeriod,
+      topCustomers, events, recentInvoices,
     };
   }, [rawInvoices, rawBills, rawPayments]);
 
@@ -197,7 +216,15 @@ export const FinanceDashboard: React.FC = () => {
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)', marginBottom: 4 }}>{t('finance.clearanceOverview')}</div>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 14 }}>
               {t('finance.revenueOverviewOf')}{' '}
-              <span style={{ color: 'var(--teal)', fontWeight: 600, cursor: 'pointer' }}>{t('finance.allShipments')}</span>
+              <span
+                role="link"
+                tabIndex={0}
+                onClick={() => navigate('/clearos/ops')}
+                onKeyDown={e => { if (e.key === 'Enter') navigate('/clearos/ops'); }}
+                style={{ color: 'var(--teal)', fontWeight: 600, cursor: 'pointer' }}
+              >
+                {t('finance.allShipments')}
+              </span>
             </div>
 
             {/* Tabs */}
@@ -229,17 +256,21 @@ export const FinanceDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* This Month */}
+            {/* Invoiced in period — reflects the Overview/This Year/All Time
+                tabs above. Those tabs used to only move the underline; the
+                figures underneath never changed with the selection. */}
             <div>
-              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Invoiced This Month</div>
+              <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Invoiced {overviewTab === 'overview' ? 'This Month' : overviewTab === 'year' ? 'This Year' : 'All Time'}
+              </div>
               <div style={{ display: 'flex', gap: 28 }}>
                 <div>
-                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.5px' }}>{fmt(derived.invoicesThisMonthAmount, 'TZS')}</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)', letterSpacing: '-0.5px' }}>{fmt(derived.invoicedByPeriod[overviewTab].amount, 'TZS')}</div>
                   <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginTop: 2 }}>{t('finance.amount')}</div>
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 18, fontWeight: 800, color: 'var(--navy)' }}>
-                    {derived.invoicesThisMonthCount}
+                    {derived.invoicedByPeriod[overviewTab].count}
                   </div>
                   <div style={{ fontSize: 9.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.05em', marginTop: 2 }}>invoices</div>
                 </div>
@@ -251,7 +282,14 @@ export const FinanceDashboard: React.FC = () => {
           <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 4 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--navy)' }}>Top Customers</div>
-              <Icon name="moreHorizontal" size={16} strokeWidth={1.75} style={{ color: 'var(--ink3)', flexShrink: 0, marginTop: 2 } as React.CSSProperties} />
+              <button
+                type="button"
+                title="View all customers"
+                onClick={() => navigate('/crm/customers')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', flexShrink: 0, marginTop: 2 }}
+              >
+                <Icon name="moreHorizontal" size={16} strokeWidth={1.75} style={{ color: 'var(--ink3)' } as React.CSSProperties} />
+              </button>
             </div>
             <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 18 }}>By total invoiced revenue</div>
 
@@ -286,10 +324,14 @@ export const FinanceDashboard: React.FC = () => {
             </div>
 
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0, overflowY: 'auto' }}>
-              {derived.activities.length === 0 ? (
-                <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No recent activity</div>
-              ) : derived.activities.map((act, i) => (
-                <div key={i} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: i < derived.activities.length - 1 ? '1px solid var(--border)' : 'none' }}>
+              {(() => {
+                const filteredActivities = (actFilter === 'cancel' ? derived.events.filter(e => e.kind === 'cancel') : derived.events).slice(0, 5);
+                return filteredActivities.length === 0 ? (
+                  <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>
+                    {actFilter === 'cancel' ? 'No credited invoices or voided bills' : 'No recent activity'}
+                  </div>
+                ) : filteredActivities.map((act, i) => (
+                <div key={i} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: i < filteredActivities.length - 1 ? '1px solid var(--border)' : 'none' }}>
                   <Av name={act.name} color={act.color} size={38} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, lineHeight: 1.4 }}>
@@ -299,7 +341,8 @@ export const FinanceDashboard: React.FC = () => {
                     <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 2 }}>{act.time}</div>
                   </div>
                 </div>
-              ))}
+                ));
+              })()}
             </div>
           </div>
         </div>
@@ -309,12 +352,23 @@ export const FinanceDashboard: React.FC = () => {
 
           {/* Notifications */}
           <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
-            <SHdr title={t('finance.notifications')} action={t('finance.viewAll')} />
+            <SHdr title={t('finance.notifications')} action={t('finance.viewAll')} onAction={() => navigate('/bliss/notifications')} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
               {rawNotifications.length === 0 ? (
                 <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>No notifications yet</div>
               ) : rawNotifications.slice(0, 6).map((n, i, arr) => (
-                <div key={n.id || i} style={{ display: 'flex', gap: 12, paddingBottom: 16, marginBottom: 16, borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none', position: 'relative' }}>
+                <div key={n.id || i}
+                  onClick={() => {
+                    if (n.id) {
+                      apiFetch(`/v1/notifications/${n.id}/read`, { method: 'PATCH' }).catch(() => {});
+                      setRawNotifications(list => list.map(x => x.id === n.id ? { ...x, read: true } : x));
+                    }
+                    if (n.link) navigate(n.link);
+                  }}
+                  style={{ display: 'flex', gap: 12, paddingBottom: 16, marginBottom: 16, borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none', position: 'relative', cursor: n.link ? 'pointer' : 'default', borderRadius: 6, transition: 'background 0.1s' }}
+                  onMouseEnter={e => { if (n.link) e.currentTarget.style.background = 'var(--bg)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = ''; }}
+                >
                   {/* Timeline dot — connector is absolutely positioned off the row
                       (not flex:1 inside the dot column) so it reaches all the way
                       to the next dot, spanning this row's own paddingBottom/marginBottom
@@ -339,7 +393,7 @@ export const FinanceDashboard: React.FC = () => {
 
           {/* Recent Invoices / Transactions */}
           <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)' }}>
-            <SHdr title={t('finance.recentInvoices')} action={t('finance.viewAll')} />
+            <SHdr title={t('finance.recentInvoices')} action={t('finance.viewAll')} onAction={() => navigate('/finance/invoices')} />
 
             <div style={{ overflowX: 'auto' }}>
             {/* Table header */}
@@ -357,6 +411,7 @@ export const FinanceDashboard: React.FC = () => {
                 const statusStyle = STATUS_STYLE[row.mapped.status] || STATUS_STYLE.Draft;
                 return (
                 <div key={row.mapped.id + i}
+                  onClick={() => navigate(`/finance/invoices?id=${row.mapped.id}`)}
                   style={{ display: 'grid', gridTemplateColumns: '2.2fr 1.6fr 1fr 1.4fr 1fr 32px', gap: 8, padding: '12px 10px', borderBottom: i < derived.recentInvoices.length - 1 ? '1px solid var(--border)' : 'none', alignItems: 'center', cursor: 'pointer', borderRadius: 6, transition: 'background 0.1s', minWidth: 480 }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
                   onMouseLeave={e => (e.currentTarget.style.background = '')}

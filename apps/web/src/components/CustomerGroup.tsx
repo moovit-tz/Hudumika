@@ -10,7 +10,7 @@ interface CustomerGroupProps {
 }
 
 export const CustomerGroup: React.FC<CustomerGroupProps> = ({ group, shipmentHref }) => {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
     <div className="cust-group" style={{ borderBottom: '1px solid var(--border)' }}>

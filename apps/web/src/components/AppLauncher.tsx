@@ -203,7 +203,7 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
                     className="app-lnch-panel-item app-lnch-panel-item--recent"
                     onClick={() => closeLauncher()}
                   >
-                    <LauncherAppSvg id={app.id} color={branding.getAppColor(app.id, app.color)} logoUrl={branding.getAppLogo(app.id)} size={42} />
+                    <LauncherAppSvg id={app.id} color={branding.getAppColor(app.id, app.color)} logoUrl={branding.getAppLogo(app.id)} size={38} />
                     <span className="app-lnch-panel-name">{branding.getAppName(app.id, app.name)}</span>
                   </Link>
                 ))}
@@ -226,7 +226,7 @@ export function AppLauncher({ renderTrigger }: AppLauncherProps) {
                 onDragEnd={editMode ? handleDragEnd : undefined}
                 onClick={e => { if (editMode) { e.preventDefault(); return; } closeLauncher(); }}
               >
-                <LauncherAppSvg id={app.id} color={branding.getAppColor(app.id, app.color)} logoUrl={branding.getAppLogo(app.id)} size={46} />
+                <LauncherAppSvg id={app.id} color={branding.getAppColor(app.id, app.color)} logoUrl={branding.getAppLogo(app.id)} size={38} />
                 <span className="app-lnch-panel-name">{branding.getAppName(app.id, app.name)}</span>
               </Link>
             ))}

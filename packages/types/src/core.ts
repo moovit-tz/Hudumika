@@ -289,6 +289,7 @@ export interface ShipmentCase {
   active_risk_types?: RiskFlagType[];
   assigned_to: string;          // officer user_id
   assigned_officer_name?: string;
+  assigned_officer_avatar_url?: string | null;
   location_id?: string;
   location_name?: string;
   sla_deadline?: string;

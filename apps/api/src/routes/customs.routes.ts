@@ -83,6 +83,44 @@ export async function customsRoutes(fastify: FastifyInstance) {
     return entry;
   });
 
+  /**
+   * GET /v1/customs/duty-check/:code
+   *
+   * The single-code counterpart to landed cost calculation: given one HS
+   * code, what duty and excise apply, and what else could this actually be.
+   * Backs the Duty Check tool, but deliberately lives as a plain versioned
+   * REST route rather than page-specific logic — same auth (JWT) and
+   * entitlement gate ('clearos') as every other /v1/customs/* route, so any
+   * other page in the platform, or an external integration holding a valid
+   * token, can call it the same way.
+   *
+   * "Alternatives" are sibling tariff lines under the same 4-digit heading
+   * (e.g. 8471.30 → the other 8471.xx lines) — not a text search. A
+   * classification a person isn't fully sure of is usually one heading over,
+   * not a different chapter; the AI/word-match suggester (POST
+   * /hs-suggest, /hs-suggest/ai-pick) is the tool for "I don't have a code
+   * at all, only a description".
+   */
+  fastify.get('/duty-check/:code', async (request, reply) => {
+    const { code } = request.params as { code: string };
+    const entry: any = await getHsCode(code);
+    if (!entry) return reply.status(404).send({ error: `HS code ${code} not found` });
+
+    const digits4 = entry.code.replace(/\./g, '').slice(0, 4);
+    const alternatives = digits4.length === 4
+      ? await db.selectFrom('hs_codes')
+          .select(['code', 'description', 'import_duty_rate', 'excise_rate', 'vat_rate'])
+          .where(sql<boolean>`replace(code, '.', '') LIKE ${digits4 + '%'}`)
+          .where('level', '=', 8)
+          .where('code', '!=', entry.code)
+          .orderBy('code')
+          .limit(8)
+          .execute()
+      : [];
+
+    return { ...entry, alternatives };
+  });
+
   // ── GET /v1/customs/countries?q= ─────────────────────────────────────────
   // Async country search for the origin picker. Prefix matches rank above
   // substring ones so typing "tan" offers Tanzania before Mauritania.

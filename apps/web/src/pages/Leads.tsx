@@ -186,31 +186,74 @@ function exportLeadsCSV(rows: Lead[]) {
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
-/* ── Stage pipeline bar ── */
-function StagePipeline({ current }: { current: string }) {
-  const active = STAGES.indexOf(current);
+/* ── Stage pipeline bar ──
+   One row, not two: each pill IS the "move to this stage" control (past
+   stages jump back, future stages jump forward), so the pipeline no longer
+   repeats every stage name a second time as a separate row of "→ Stage"
+   buttons underneath. Completed stages carry a check so progress reads at a
+   glance without comparing colour saturation. */
+function StagePipeline({ current, onSelect, interactive }: { current: string; onSelect: (stage: string) => void; interactive: boolean }) {
   const activeStages = STAGES.filter(s => s !== 'LOST');
+  const active = activeStages.indexOf(current);
   const isLost = current === 'LOST';
+
+  if (isLost) {
+    return (
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 14px', borderRadius: 20, fontSize: 12.5, fontWeight: 700, background: STAGE_CFG.LOST.bg, color: STAGE_CFG.LOST.color, border: `1.5px solid ${STAGE_CFG.LOST.color}` }}>
+        <Icon name="x" size={12} strokeWidth={3} />
+        Lost
+      </div>
+    );
+  }
+
   return (
-    <div style={{ display: 'flex', gap: 3, alignItems: 'center', flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: 8 }}>
       {activeStages.map((s, i) => {
-        const done = !isLost && i <= active && active < activeStages.length;
-        const cur  = !isLost && s === current;
-        const cfg  = STAGE_CFG[s];
+        const cfg = STAGE_CFG[s];
+        const done = i < active;
+        const cur = i === active;
+        const clickable = interactive && !cur;
         return (
           <React.Fragment key={s}>
-            <div style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11.5, fontWeight: cur ? 700 : 500, background: cur ? cfg.bg : done ? 'var(--teal-l)' : 'var(--bg)', color: cur ? cfg.color : done ? 'var(--teal)' : 'var(--ink3)', border: cur ? `1.5px solid ${cfg.color}` : '1px solid var(--border)' }}>
+            <button
+              type="button"
+              disabled={!clickable}
+              onClick={() => clickable && onSelect(s)}
+              title={clickable ? `Move to ${cfg.label}` : cfg.label}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '6px 13px', borderRadius: 20,
+                fontSize: 12.5, fontWeight: cur ? 700 : 600,
+                fontFamily: 'var(--font)',
+                background: cur ? cfg.bg : done ? 'var(--teal-l)' : 'var(--white)',
+                color: cur ? cfg.color : done ? 'var(--teal)' : 'var(--ink3)',
+                border: cur ? `1.5px solid ${cfg.color}` : done ? '1px solid transparent' : '1px solid var(--border)',
+                cursor: clickable ? 'pointer' : 'default',
+                transition: 'background 0.12s, border-color 0.12s, color 0.12s',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={e => {
+                if (!clickable) return;
+                e.currentTarget.style.background = cfg.bg;
+                e.currentTarget.style.color = cfg.color;
+                e.currentTarget.style.borderColor = cfg.color;
+              }}
+              onMouseLeave={e => {
+                if (!clickable) return;
+                e.currentTarget.style.background = done ? 'var(--teal-l)' : 'var(--white)';
+                e.currentTarget.style.color = done ? 'var(--teal)' : 'var(--ink3)';
+                e.currentTarget.style.borderColor = done ? 'transparent' : 'var(--border)';
+              }}
+            >
+              {done && <Icon name="check" size={12} strokeWidth={3} />}
               {cfg.label}
-            </div>
-            {i < activeStages.length - 1 && <div style={{ width: 12, height: 1, background: i < active ? 'var(--teal)' : 'var(--border)' }} />}
+            </button>
+            {i < activeStages.length - 1 && (
+              <div style={{ width: 18, height: 2, borderRadius: 1, background: i < active ? 'var(--teal)' : 'var(--border)', flexShrink: 0, margin: '0 2px' }} />
+            )}
           </React.Fragment>
         );
       })}
-      {isLost && (
-        <div style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11.5, fontWeight: 700, background: STAGE_CFG.LOST.bg, color: STAGE_CFG.LOST.color, border: `1.5px solid ${STAGE_CFG.LOST.color}` }}>
-          Lost
-        </div>
-      )}
     </div>
   );
 }
@@ -482,21 +525,23 @@ export const Leads: React.FC = () => {
             <div style={{ padding: '24px 28px' }}>
               {/* Stage pipeline */}
               <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '18px 20px', marginBottom: 20 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink3)', marginBottom: 14 }}>Pipeline Stage</div>
-                <StagePipeline current={sel.stage} />
-                {!['WON', 'LOST'].includes(sel.stage) && (
-                  <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-                    {STAGES.filter(s => s !== sel.stage).map(s => (
-                      <button key={s} type="button"
-                        onClick={() => updateStage(s)}
-                        style={{ padding: 'var(--ds-btn-py-sm) 12px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg)', cursor: 'pointer', fontSize: 12, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink2)', minHeight: 'var(--ctl-h-sm)', boxSizing: 'border-box', lineHeight: 1.25}}
-                        onMouseEnter={e => (e.currentTarget.style.background = STAGE_CFG[s].bg)}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg)')}>
-                        → {STAGE_CFG[s].label}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink3)' }}>Pipeline Stage</div>
+                  {!['WON', 'LOST'].includes(sel.stage) && (
+                    <button type="button"
+                      onClick={() => updateStage('LOST')}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 11px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 600, fontFamily: 'var(--font)', color: 'var(--ink3)', transition: 'color 0.12s, border-color 0.12s, background 0.12s' }}
+                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--red)'; e.currentTarget.style.borderColor = 'var(--red)'; e.currentTarget.style.background = 'var(--red-l)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--ink3)'; e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'none'; }}
+                    >
+                      <Icon name="x" size={12} strokeWidth={2.5} />
+                      Mark as Lost
+                    </button>
+                  )}
+                </div>
+                <div style={{ overflowX: 'auto', paddingBottom: 2 }}>
+                  <StagePipeline current={sel.stage} onSelect={updateStage} interactive={!['WON', 'LOST'].includes(sel.stage)} />
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 300px', gap: 20 }}>

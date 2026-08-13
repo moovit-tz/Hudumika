@@ -30,6 +30,7 @@ import { FreightBookingsPage } from '../pages/FreightBookingsPage.js';
 import { CreateFreightBookingPage } from '../pages/CreateFreightBookingPage.js';
 import { ProductsServices } from '../pages/ProductsServices.js';
 import { RateCardPage } from '../pages/RateCardPage.js';
+import { DutyCheckPage } from '../pages/DutyCheckPage.js';
 
 /**
  * Carries a workflow id across the move to Studio.
@@ -65,6 +66,7 @@ const NAV: SidebarSection[] = [
     title: 'OPERATIONS',
     items: [
       { label: 'Ops Command',   icon: 'monitor',    path: '/clearos/ops' },
+      { label: 'Duty Check',    icon: 'percent',    path: '/clearos/duty-check' },
       { label: 'Landed Cost',   icon: 'package',    path: '/clearos/customs-tools', exact: true, children: [
         { label: 'Calculator', icon: 'calculator', path: '/clearos/customs-tools', exact: true },
         { label: 'History',    icon: 'clock',      path: '/clearos/customs-tools/history' },
@@ -102,10 +104,8 @@ const NAV: SidebarSection[] = [
       { label: 'Team Chat',         icon: 'chatBubble', path: '/bliss/team-chat' },
       { label: 'Workflows',         icon: 'gitBranch',  path: '/studio/clearance' },
       { label: 'Trips',             icon: 'truck',      path: '/tracking/shipments' },
-      { label: 'BL / AWB Tracker',  icon: 'map',        path: '/cargotracker/track' },
-      { label: 'Demurrage',         icon: 'alertTriangle', path: '/cargotracker/demurrage' },
-      { label: 'Invoices',          icon: 'dollarSign', path: '/finance/invoices' },
-      { label: 'Quotations',        icon: 'fileText',   path: '/finance/quotations' },
+      { label: 'Demurrage',         icon: 'alertTriangle', path: '/cargotracker' },
+      { label: 'Finance',           icon: 'dollarSign', path: '/finance' },
       { label: 'Staff',             icon: 'users',      path: '/nexushr/employees' },
     ],
   },
@@ -124,6 +124,7 @@ export function ClearOSShell() {
                 <Route index element={<ClearOSLanding />} />
                 <Route path="ops" element={<RequireRoles roles={OPS_ROLES}><CommandCenter /></RequireRoles>} />
                 <Route path="ops/new" element={<RequireRoles roles={OPS_ROLES}><CreateShipmentPage /></RequireRoles>} />
+                <Route path="duty-check" element={<RequireRoles roles={OPS_ROLES}><DutyCheckPage /></RequireRoles>} />
                 <Route path="clearance/:id" element={<RequireRoles roles={[...OPS_ROLES, 'FINANCE']}><ShipmentDetail /></RequireRoles>} />
                 <Route path="clearance/:id/edit" element={<RequireRoles roles={OPS_ROLES}><ShipmentEdit /></RequireRoles>} />
                 <Route path="tracker"         element={<Navigate to="/cargotracker/track" replace />} />

@@ -24,9 +24,13 @@ const SECTIONS: Record<string, SectionCopy> = {
     seoDesc: 'Overview, quick checks and the guided Trade Compliance Wizard.',
   },
   quick: {
-    crumb: 'Quick Check',
-    titlePlain: 'Quick',
-    titleEm: 'compliance check',
+    // Short on purpose: the breadcrumb already reads "… · Compliance · …",
+    // so a full "Compliance Check" here would repeat the word right next to
+    // itself. The page's own H1 (titlePlain/titleEm below) carries the full
+    // "Compliance check." wording the crumb doesn't need to restate.
+    crumb: 'Check',
+    titlePlain: 'Compliance',
+    titleEm: 'check',
     subtitle: 'Fast per-shipment lookup — PVoC, Destination Inspection, GCLA, TBS, CAMARTEC, TCRA, SUMATRA, EWURA and Weights & Measures (WMA), by HS code and origin.',
     seoDesc: 'Fast PVoC/GCLA/TBS/WMA compliance lookup by HS code and origin.',
   },

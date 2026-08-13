@@ -741,3 +741,129 @@ html[data-expanded="true"] .app-sidebar {
 [data-theme="dark"] .em-shell-compose-btn:hover {
   background: rgba(255,255,255,.12);
 }
+
+/* ── Top loading progress bar for Sidebar ── */
+.app-sb-loading-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: transparent;
+  z-index: 50;
+  overflow: hidden;
+  pointer-events: none;
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+}
+
+.app-sb-loading-bar--active {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] .app-sb-loading-bar--active,
+[data-semi-dark="true"] .app-sb-loading-bar--active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.app-sb-loading-bar--active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 45%;
+  background: linear-gradient(90deg, transparent, var(--sb-color, var(--teal)), transparent);
+  box-shadow: 0 0 10px var(--sb-color, var(--teal));
+  animation: app-sb-bar-sweep 1.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes app-sb-bar-sweep {
+  0%   { left: -45%; width: 30%; }
+  50%  { left: 30%;  width: 55%; }
+  100% { left: 105%; width: 30%; }
+}
+
+/* ── Item pending navigation state ── */
+.app-sb-item--pending {
+  position: relative;
+  background: color-mix(in srgb, var(--sb-color, #64748b) 10%, transparent) !important;
+  color: var(--sb-color, #64748b) !important;
+}
+
+.app-sb-item--pending::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: skeleton-shimmer-sweep 1.4s ease-in-out infinite;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+[data-theme="dark"] .app-sb-item--pending::after,
+[data-semi-dark="true"] .app-sb-item--pending::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+}
+
+.app-sb-item-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid color-mix(in srgb, var(--sb-color, var(--teal)) 30%, transparent);
+  border-top-color: var(--sb-color, var(--teal));
+  border-radius: 50%;
+  animation: app-sb-spin 0.7s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.app-sb-item-spinner--sm {
+  width: 11px;
+  height: 11px;
+  border-width: 1.5px;
+  margin-right: 6px;
+}
+
+@keyframes app-sb-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Skeleton loading menu state ── */
+.app-sb-skeleton-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 8px;
+}
+
+.app-sb-skeleton-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+}
+
+.app-sb-skeleton-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.07);
+  flex-shrink: 0;
+}
+
+.app-sb-skeleton-text {
+  height: 12px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.07);
+  flex: 1;
+}
+
+[data-theme="dark"] .app-sb-skeleton-icon,
+[data-theme="dark"] .app-sb-skeleton-text,
+[data-semi-dark="true"] .app-sb-skeleton-icon,
+[data-semi-dark="true"] .app-sb-skeleton-text {
+  background: rgba(255, 255, 255, 0.08);
+}
+

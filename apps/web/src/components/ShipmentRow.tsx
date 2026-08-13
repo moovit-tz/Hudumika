@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { ShipmentCase } from '@hudumika/types';
 import { StatusPill, ProgressSegments } from '@hudumika/ui';
 import { Icon } from './Icon.js';
@@ -12,6 +12,7 @@ interface ShipmentRowProps {
 }
 
 export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
+  const navigate = useNavigate();
   /**
    * Risk marker. Two states get one, and only because they cost money:
    * demurrage accruing, and an SLA already breached.
@@ -50,8 +51,8 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
   };
 
   return (
-    <Link
-      to={to}
+    <div
+      onClick={() => navigate(to)}
       className={`ship-row${risk}`}
       style={{
         display: 'flex',
@@ -65,6 +66,13 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
         color: 'inherit',
       }}
     >
+      {/* Leading spacer — mirrors TableHeader's blank th-urgency column
+          (15px + 12px margin) so every column below lines up under its
+          label. The risk marker itself is an inset box-shadow on the row,
+          which takes no layout width, so without this every column here
+          rendered ~27px left of its header. */}
+      <div style={{ width: '15px', marginRight: '12px', flexShrink: 0 }} />
+
       {/* Ref Number */}
       <div className="sr-ref" style={{ width: '130px', flexShrink: 0, fontFamily: 'var(--mono)', fontSize: '12px' }}>
         {shipment.ref_number}
@@ -73,6 +81,20 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
       {/* Type */}
       <div className="sr-type" style={{ width: '80px', flexShrink: 0, fontFamily: 'var(--mono)', fontSize: '11px' }}>
         {shipment.type.replace('_', ' ')}
+      </div>
+
+      {/* Description — rendered before Declaration to match TableHeader's
+          column order (Cargo Description, then Declaration). They used to
+          be swapped here, so every row's declaration badges sat under the
+          "Cargo Description" label and the goods description sat under
+          "Declaration". */}
+      <div className="sr-desc" style={{ flex: 1, minWidth: 0, paddingRight: '12px' }}>
+        <div className="sr-goods" style={{ fontWeight: 600, fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {shipment.goods_desc}
+        </div>
+        <div className="sr-vessel" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '10.5px', color: 'var(--ink3)', marginTop: '2px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <Icon name="ship" size={11} /> {shipment.vessel || 'N/A'} • {shipment.origin_port || 'Origin'} ➔ {shipment.dest_port || 'Dest'}
+        </div>
       </div>
 
       {/* Declaration — TANCIS ref, filing status, TRA lane, declared value and
@@ -107,16 +129,6 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
         )}
       </div>
 
-      {/* Description */}
-      <div className="sr-desc" style={{ flex: 1, minWidth: 0, paddingRight: '12px' }}>
-        <div className="sr-goods" style={{ fontWeight: 600, fontSize: '13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {shipment.goods_desc}
-        </div>
-        <div className="sr-vessel" style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: '10.5px', color: 'var(--ink3)', marginTop: '2px', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          <Icon name="ship" size={11} /> {shipment.vessel || 'N/A'} • {shipment.origin_port || 'Origin'} ➔ {shipment.dest_port || 'Dest'}
-        </div>
-      </div>
-
       {/* Stage Progress Bar */}
       <div className="sr-stage" style={{ width: '160px', flexShrink: 0, padding: '0 12px' }}>
         <ProgressSegments currentStage={shipment.stage} workflowStepOrder={shipment.workflow_step_order} workflowStepCount={shipment.workflow_step_count} />
@@ -131,28 +143,69 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
         <StatusPill stage={(shipment as any).workflow_step_name || shipment.stage} />
       </div>
 
-      {/* Officer assigned */}
+      {/* Officer assigned — links to their staff profile when the shipment
+          actually has one on file. stopPropagation keeps the click from also
+          firing the row's own navigate-to-shipment handler. */}
       <div className="sr-officer" style={{ width: '100px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <div
-          className="sro-ava"
-          style={{
-            width: '24px',
-            height: '24px',
-            borderRadius: '50%',
-            background: 'var(--navy2)',
-            color: '#fff',
-            fontSize: '9px',
-            fontWeight: 700,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          {getInitials(shipment.assigned_officer_name)}
-        </div>
-        <div className="sro-name" style={{ fontSize: '11.5px', color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {shipment.assigned_officer_name || 'Unassigned'}
-        </div>
+        {shipment.assigned_to ? (
+          <Link
+            to={`/nexushr/staff/${shipment.assigned_to}`}
+            onClick={(e) => e.stopPropagation()}
+            title={`Open ${shipment.assigned_officer_name || 'officer'}'s profile`}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, textDecoration: 'none', color: 'inherit' }}
+            onMouseEnter={(e) => (e.currentTarget.querySelector('.sro-name') as HTMLElement)?.style.setProperty('text-decoration', 'underline')}
+            onMouseLeave={(e) => (e.currentTarget.querySelector('.sro-name') as HTMLElement)?.style.setProperty('text-decoration', 'none')}
+          >
+            <div
+              className="sro-ava"
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                background: shipment.assigned_officer_avatar_url ? 'var(--bg)' : 'var(--navy2)',
+                color: '#fff',
+                fontSize: '9px',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                overflow: 'hidden',
+              }}
+            >
+              {shipment.assigned_officer_avatar_url
+                ? <img src={shipment.assigned_officer_avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : getInitials(shipment.assigned_officer_name)}
+            </div>
+            <div className="sro-name" style={{ fontSize: '11.5px', color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {shipment.assigned_officer_name || 'Unassigned'}
+            </div>
+          </Link>
+        ) : (
+          <>
+            <div
+              className="sro-ava"
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                background: 'var(--navy2)',
+                color: '#fff',
+                fontSize: '9px',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              {getInitials(shipment.assigned_officer_name)}
+            </div>
+            <div className="sro-name" style={{ fontSize: '11.5px', color: 'var(--ink2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              Unassigned
+            </div>
+          </>
+        )}
       </div>
 
       {/* Days elapsed */}
@@ -161,9 +214,9 @@ export const ShipmentRow: React.FC<ShipmentRowProps> = ({ shipment, to }) => {
       </div>
 
       {/* Arrow — visual indicator that row is clickable */}
-      <div className="sr-arrow-btn" style={{ width: 28, height: 28, flexShrink: 0, color: 'var(--teal)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="sr-arrow-btn" style={{ width: 24, height: 24, flexShrink: 0, color: 'var(--teal)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         →
       </div>
-    </Link>
+    </div>
   );
 };

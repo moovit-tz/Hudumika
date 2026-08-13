@@ -53,7 +53,7 @@
   z-index: 1001;
   display: flex;
   flex-direction: column;
-  padding: 16px 14px 14px 14px;
+  padding: 12px 14px 12px 14px;
   transform-origin: top right;
   transform: scale(0.94) translateY(-10px);
   opacity: 0;
@@ -75,7 +75,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 6px 14px 6px;
+  padding: 2px 6px 10px 6px;
   flex-shrink: 0;
 }
 
@@ -163,26 +163,26 @@
   letter-spacing: 0.06em;
   color: var(--ink3);
   font-family: var(--font);
-  margin: 0 0 8px 4px;
+  margin: 0 0 6px 4px;
 }
 
 /* Section divider */
 .app-lnch-section-divider {
   height: 1px;
   background: #f1f5f9;
-  margin: 10px 0 12px;
+  margin: 8px 0 10px;
 }
 
 /* Recently viewed */
 .app-lnch-recent-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-  margin-bottom: 4px;
+  gap: 4px;
+  margin-bottom: 2px;
 }
 
 .app-lnch-panel-item--recent {
-  padding: 8px 4px;
+  padding: 6px 3px;
 }
 
 /* Scrollable grid area */
@@ -222,11 +222,15 @@
 .app-lnch-panel-scroll::-webkit-scrollbar-track { background: transparent; }
 .app-lnch-panel-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
 
-/* Adobe 3-column app grid */
+/* Adobe-style app grid — 4 columns (matches the Recently Viewed row above
+   it) rather than 3, so the same app count settles into fewer rows without
+   shrinking icons into illegibility. This is the main lever on the panel's
+   total height: at 3 columns, 23 apps ran to 8 rows and forced a scroll on
+   most laptop windows; at 4 it's 6. */
 .app-lnch-panel-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px 6px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px 4px;
 }
 
 /* App item tile */
@@ -234,8 +238,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 10px 4px 8px 4px;
+  gap: 6px;
+  padding: 7px 3px 6px 3px;
   border-radius: 14px;
   cursor: pointer;
   transition: background 0.15s ease, transform 0.15s ease;
@@ -259,12 +263,12 @@
 }
 
 .app-lnch-panel-name {
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 600;
   color: var(--ink);
   text-align: center;
   font-family: var(--font);
-  line-height: 1.25;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -299,10 +303,10 @@
 
 /* ── Adobe Bottom Card Footer ── */
 .app-lnch-adobe-footer-card {
-  margin-top: 12px;
+  margin-top: 9px;
   background: #f1f5f9;
   border-radius: 14px;
-  padding: 10px 14px;
+  padding: 7px 10px;
   display: flex;
   align-items: center;
   justify-content: space-around;
@@ -315,9 +319,9 @@
   gap: 8px;
   text-decoration: none;
   color: var(--ink);
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
-  padding: 6px 10px;
+  padding: 5px 8px;
   border-radius: 8px;
   transition: background 0.15s ease, color 0.15s ease;
 }
@@ -328,15 +332,15 @@
 }
 
 .app-lnch-adobe-brand-icon {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .app-lnch-adobe-footer-label {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: -0.01em;
 }
@@ -440,9 +444,5 @@
   .app-lnch-panel--open {
     transform: translateY(0);
     opacity: 1;
-  }
-
-  .app-lnch-panel-grid {
-    grid-template-columns: repeat(3, 1fr);
   }
 }

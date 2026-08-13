@@ -136,7 +136,7 @@ function OfficerMentionInput({
   );
 }
 
-type Metric = 'active' | 'demurrage' | 'sla' | 'delivered' | 'checked_in' | 'pending' | null;
+type Metric = 'active' | 'demurrage' | 'sla' | 'delivered' | 'checked_in' | 'pending' | 'penalty' | 'ontime' | 'month' | null;
 
 /* Shipment type, for the "Filter by" menu. Was seven chips in the toolbar. */
 const SHIPMENT_TYPES: { value: ShipmentType | 'ALL'; label: string }[] = [
@@ -512,6 +512,9 @@ export const CommandCenter: React.FC = () => {
 
   const filteredGroupedShipments = groupedShipments
     .map(group => {
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       let ships = group.shipments.filter((s: ShipmentCase) => {
         // No search test here — the API resolves it now, over a wider set of
         // fields than this could see (AWB, TANCIS ref, TANSAD number, importer
@@ -521,7 +524,23 @@ export const CommandCenter: React.FC = () => {
         if (selectedMetric === 'demurrage' && !s.active_risk_types?.includes('DEMURRAGE')) return false;
         if (selectedMetric === 'sla' && !s.active_risk_types?.includes('SLA_BREACH')) return false;
         if (selectedMetric === 'active' && (s.stage === 'CLOSED' || s.stage === 'DELIVERY')) return false;
-        if (selectedMetric === 'delivered' && s.stage !== 'DELIVERY' && s.stage !== 'CLOSED') return false;
+        // Matches the KPI's own definition (analytics.routes.ts): delivered
+        // or closed, and moved into that state today — not just "delivered
+        // at some point", which is what this used to show.
+        if (selectedMetric === 'delivered' && (
+          (s.stage !== 'DELIVERY' && s.stage !== 'CLOSED') ||
+          new Date(s.updated_at) < todayStart
+        )) return false;
+        // Penalty Exposure: shipments actively accruing demurrage cost right
+        // now — free time already elapsed and not yet closed/delivered.
+        if (selectedMetric === 'penalty' && (
+          !s.free_time_end || new Date(s.free_time_end) >= now ||
+          s.stage === 'CLOSED' || s.stage === 'DELIVERY'
+        )) return false;
+        // On-Time Rate is a percentage over closed cases — clicking it shows
+        // the population the rate is computed from.
+        if (selectedMetric === 'ontime' && s.stage !== 'CLOSED') return false;
+        if (selectedMetric === 'month' && new Date(s.created_at) < monthStart) return false;
         return true;
       });
 
@@ -630,9 +649,9 @@ export const CommandCenter: React.FC = () => {
     { key: 'dem',       label: 'Demurrage Risk',      value: loading ? '—' : fmt(kpis?.demurrage_risk),          icon: 'alertTriangle', color: 'var(--red)',   bg: 'var(--red-l)',   cell: 'alert', metric: 'demurrage' as Metric },
     { key: 'sla',       label: 'SLA Breached',        value: loading ? '—' : fmt(kpis?.sla_breached),            icon: 'clock',         color: 'var(--red)',   bg: 'var(--red-l)',   cell: 'alert', metric: 'sla' as Metric },
     { key: 'del',       label: 'Delivered Today',     value: loading ? '—' : fmt(kpis?.delivered_today),         icon: 'checkCircle',   color: 'var(--green)', bg: '#ecfdf5',        metric: 'delivered' as Metric },
-    { key: 'penalty',   label: 'Penalty Exposure',    value: loading ? '—' : `${fmtM(kpis?.penalty_exposure_tzs)} TZS`, icon: 'dollarSign', color: 'var(--gold)',  bg: '#fffbeb',        cell: 'warn', metric: null },
-    { key: 'ontime',    label: 'On-Time Rate',        value: loading || kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`, icon: 'trendingUp', color: 'var(--blue)',  bg: '#eff6ff',        metric: null },
-    { key: 'month',     label: 'This Month',          value: loading ? '—' : fmt(kpis?.cases_this_month),        icon: 'calendar',      color: 'var(--navy)',  bg: 'var(--bg)',      metric: null },
+    { key: 'penalty',   label: 'Penalty Exposure',    value: loading ? '—' : `${fmtM(kpis?.penalty_exposure_tzs)} TZS`, icon: 'dollarSign', color: 'var(--gold)',  bg: '#fffbeb',        cell: 'warn', metric: 'penalty' as Metric },
+    { key: 'ontime',    label: 'On-Time Rate',        value: loading || kpis?.on_time_rate_pct == null ? '—' : `${kpis.on_time_rate_pct}%`, icon: 'trendingUp', color: 'var(--blue)',  bg: '#eff6ff',        metric: (kpis?.on_time_rate_pct == null ? null : 'ontime') as Metric },
+    { key: 'month',     label: 'This Month',          value: loading ? '—' : fmt(kpis?.cases_this_month),        icon: 'calendar',      color: 'var(--navy)',  bg: 'var(--bg)',      metric: 'month' as Metric },
   ];
 
   // Renders one KPI card — interactive button for filter metrics or div for informational numbers.

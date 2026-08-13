@@ -2,13 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { apiFetch } from '../lib/api.js';
 import { Icon } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
-import { useIsMobile } from '../hooks/useIsMobile.js';
 import { useAuth } from '../hooks/useAuth.js';
 import { MGMT_ROLES } from '../lib/permissions.js';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
 import { EntityPicker, PickerItem } from '../components/EntityPicker.js';
 import { showAlert } from '../lib/alert.js';
+import { showConfirm } from '../lib/confirm.js';
 
 // ── Rate Card — the tenant's own per-consignment ICD & C&F/agency charges,
 // used to preload the Landed Cost Calculator's defaults instead of the
@@ -53,7 +53,6 @@ const td: React.CSSProperties = { padding: '9px 12px', borderBottom: '1px solid 
 const editInput: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '5px 7px', borderRadius: 6, border: '1px solid var(--teal)', background: 'var(--white)', color: 'var(--ink)', fontSize: 12.5, fontFamily: 'var(--font)' };
 
 export const RateCardPage: React.FC = () => {
-  const isMobile = useIsMobile();
   const { user } = useAuth();
   const canEdit = !!user && MGMT_ROLES.includes(user.role as any);
 
@@ -153,7 +152,7 @@ export const RateCardPage: React.FC = () => {
 
   async function removeExtra(row: RateCardItem) {
     if (!row.id) return;
-    if (!window.confirm(`Remove "${row.charge_name}"?`)) return;
+    if (!(await showConfirm(`Remove "${row.charge_name}"?`, { title: 'Remove charge', confirmLabel: 'Remove' }))) return;
     try {
       await apiFetch(`/v1/rate-card/${card}/${row.id}`, { method: 'DELETE' });
       setItems(prev => prev.filter(r => r.id !== row.id));
@@ -198,9 +197,13 @@ export const RateCardPage: React.FC = () => {
                     <td style={td}>
                       {isEditing ? (
                         <div style={{ display: 'flex', gap: 6 }}>
-                          <select style={{ ...editInput, width: 70, flex: 'none' }} value={draft.rate_currency} onChange={e => setDraft(d => ({ ...d, rate_currency: e.target.value }))}>
-                            <option value="USD">USD</option><option value="TZS">TZS</option>
-                          </select>
+                          <Select value={draft.rate_currency} onValueChange={v => setDraft(d => ({ ...d, rate_currency: v }))}>
+                            <SelectTrigger style={{ width: 78, height: 30, minHeight: 30, fontSize: 12.5, flex: 'none' }}><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="USD">USD</SelectItem>
+                              <SelectItem value="TZS">TZS</SelectItem>
+                            </SelectContent>
+                          </Select>
                           <input style={editInput} type="number" min="0" step="0.01" value={draft.rate_amount} onChange={e => setDraft(d => ({ ...d, rate_amount: e.target.value }))} />
                         </div>
                       ) : (
@@ -214,7 +217,7 @@ export const RateCardPage: React.FC = () => {
                         which is correct for every per-container FCL row. */}
                     <td style={td}>
                       {isEditing ? (
-                        <input style={editInput} type="number" min="0" step="0.01" placeholder="none"
+                        <input style={editInput} type="number" min="0" step="0.01" placeholder="None"
                           value={draft.min_charge} onChange={e => setDraft(d => ({ ...d, min_charge: e.target.value }))} />
                       ) : (
                         row.min_charge != null && Number(row.min_charge) > 0
@@ -274,43 +277,48 @@ export const RateCardPage: React.FC = () => {
       )}
 
       <Tabs value={card} onValueChange={v => setCard(v as CardKey)} variant="segmented" className="mb-5">
-        <TabsList>
-          {CARDS.map(c => (
-            <TabsTrigger key={c.key} value={c.key}>
-              {c.label}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+        {/* Tabs left, "Rates for" cluster right — one row on desktop; wraps
+            to two only when the combined width genuinely doesn't fit. */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+          <TabsList>
+            {CARDS.map(c => (
+              <TabsTrigger key={c.key} value={c.key}>
+                {c.label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-      {card === 'road' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.03em' }}>Rates for</span>
+            <Select value={icdOperatorId ?? '__generic__'} onValueChange={v => setIcdOperatorId(v === '__generic__' ? null : v)}>
+              <SelectTrigger style={{ width: 260, height: 34, fontSize: 13 }}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__generic__">Generic default</SelectItem>
+                {operators.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {canEdit && (addingOperator ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ width: 260 }}>
+                  <EntityPicker value={operatorPicker} onChange={item => item && selectOperator(item)} search={searchIcdOperators} placeholder="Search ICD operators…" />
+                </div>
+                <button type="button" onClick={() => setAddingOperator(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => setAddingOperator(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', fontSize: 13, fontWeight: 700, color: 'var(--teal)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                <Icon name="plusCircle" size={13} /> Link an ICD operator
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {card === 'road' && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--gold-l)', border: '1px solid var(--gold)', borderRadius: 9, fontSize: 12.5, color: 'var(--gold)', fontWeight: 600, marginBottom: 16 }}>
             <Icon name="info" size={13} />
             The Landed Cost Calculator doesn't have a road-freight mode yet, so this tab isn't read by it — populate it for your own reference until that's added.
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
-          <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '.03em' }}>Rates for</span>
-          <Select value={icdOperatorId ?? '__generic__'} onValueChange={v => setIcdOperatorId(v === '__generic__' ? null : v)}>
-            <SelectTrigger style={{ width: 260, height: 34, fontSize: 13 }}><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__generic__">Generic default</SelectItem>
-              {operators.map(o => <SelectItem key={o.id} value={o.id}>{o.name}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          {canEdit && (addingOperator ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 260 }}>
-                <EntityPicker value={operatorPicker} onChange={item => item && selectOperator(item)} search={searchIcdOperators} placeholder="Search ICD operators…" />
-              </div>
-              <button type="button" onClick={() => setAddingOperator(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-            </div>
-          ) : (
-            <button type="button" onClick={() => setAddingOperator(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: '1px dashed var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 12px', fontSize: 13, fontWeight: 700, color: 'var(--teal)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
-              <Icon name="plusCircle" size={13} /> Link an ICD operator
-            </button>
-          ))}
-        </div>
         {icdOperatorId && (
           <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: -8, marginBottom: 16 }}>
             Showing {operators.find(o => o.id === icdOperatorId)?.name ?? 'this operator'}'s own rates — the calculator's ICD picker lets you choose which one applies per shipment.
@@ -323,21 +331,36 @@ export const RateCardPage: React.FC = () => {
               <div style={{ padding: 24, textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading…</div>
             ) : (
               <>
-                {renderTable(icdRows, c.key === 'sea' ? 'ICD / CFS Charges' : 'ICD Charges', c.key === 'sea' ? 'Per-CBM handling, corridor levy, removal, storage and stripping charges for consolidated cargo.' : 'The charges common to every consignment at your ICD.')}
+                {/* Air freight never routes through an ICD — an empty "ICD
+                    Charges" table here isn't a gap to fill, it's a category
+                    that doesn't apply. Still shown if something was added to
+                    it anyway (e.g. after switching a shipment's mode), so
+                    nothing already saved goes missing. */}
+                {(c.key !== 'air' || icdRows.length > 0) &&
+                  renderTable(icdRows, c.key === 'sea' ? 'ICD / CFS Charges' : 'ICD Charges', c.key === 'sea' ? 'Per-CBM handling, corridor levy, removal, storage and stripping charges for consolidated cargo.' : 'The charges common to every consignment at your ICD.')}
                 {renderTable(agencyRows, c.key === 'air' ? 'Documentation & Agency Charges' : 'C&F / Agency Charges', c.key === 'air' ? 'Per-AWB documentation, notification and your standard agency fee.' : 'Verification, documentation and your standard agency fee.')}
                 {renderTable(otherRows, c.key === 'air' ? 'Airport / Handling Charges' : 'Other Charges', c.key === 'air' ? 'Airport authority, handling, equipment, security and data-discharge fees, mostly per kg.' : c.key === 'sea' ? 'Shipping line, consolidation and DO fees for LCL cargo.' : 'Extra charges specific to this card — not read by the calculator, shown for reference alongside your quote.')}
 
                 {canEdit && (
                   addingExtra ? (
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', padding: 12, border: '1px dashed var(--border)', borderRadius: 10 }}>
-                      <select style={{ ...editInput, width: 110 }} value={extraDraft.category} onChange={e => setExtraDraft(d => ({ ...d, category: e.target.value as any }))}>
-                        <option value="OTHER">Other</option><option value="ICD">ICD</option><option value="AGENCY">Agency</option>
-                      </select>
+                      <Select value={extraDraft.category} onValueChange={v => setExtraDraft(d => ({ ...d, category: v as any }))}>
+                        <SelectTrigger style={{ width: 118, height: 30, minHeight: 30, fontSize: 12.5 }}><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="OTHER">Other</SelectItem>
+                          <SelectItem value="ICD">ICD</SelectItem>
+                          <SelectItem value="AGENCY">Agency</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <input style={{ ...editInput, width: 180 }} placeholder="Charge name" value={extraDraft.charge_name} onChange={e => setExtraDraft(d => ({ ...d, charge_name: e.target.value }))} />
                       <input style={{ ...editInput, width: 120 }} placeholder="Unit" value={extraDraft.unit} onChange={e => setExtraDraft(d => ({ ...d, unit: e.target.value }))} />
-                      <select style={{ ...editInput, width: 70 }} value={extraDraft.rate_currency} onChange={e => setExtraDraft(d => ({ ...d, rate_currency: e.target.value }))}>
-                        <option value="USD">USD</option><option value="TZS">TZS</option>
-                      </select>
+                      <Select value={extraDraft.rate_currency} onValueChange={v => setExtraDraft(d => ({ ...d, rate_currency: v }))}>
+                        <SelectTrigger style={{ width: 78, height: 30, minHeight: 30, fontSize: 12.5 }}><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="TZS">TZS</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <input style={{ ...editInput, width: 100 }} type="number" min="0" step="0.01" placeholder="Rate" value={extraDraft.rate_amount} onChange={e => setExtraDraft(d => ({ ...d, rate_amount: e.target.value }))} />
                       <button type="button" disabled={saving} onClick={addExtra} style={{ background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Add</button>
                       <button type="button" onClick={() => setAddingExtra(false)} style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 'var(--ds-btn-py) 14px', fontSize: 13, fontWeight: 600, color: 'var(--ink3)', cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>

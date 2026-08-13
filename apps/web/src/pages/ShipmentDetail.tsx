@@ -1695,6 +1695,15 @@ function DeclarationTab({ job, shipmentId, isLive, onRefresh }: { job: Clearance
                 <DField label="HS Code"><DInput value={line.hs} onChange={v => setItems(p => p.map((l, j) => j === i ? { ...l, hs: v } : l))} placeholder="8471.30.00" mono /></DField>
                 <DField label="Country of Origin"><DInput value={line.origin} onChange={v => setItems(p => p.map((l, j) => j === i ? { ...l, origin: v } : l))} placeholder="CN" /></DField>
               </div>
+              {/* The Duty Rate field below is typed by hand — this cross-checks
+                  it against the EAC CET database in one click, in a new tab so
+                  the declaration form here isn't disturbed mid-edit. */}
+              {line.hs.trim() && (
+                <a href={`/clearos/duty-check?hs=${encodeURIComponent(line.hs.trim())}`} target="_blank" rel="noreferrer"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: -2, marginBottom: 8, fontSize: 11.5, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}>
+                  <Icon name="percent" size={11} color="var(--teal)" /> Check duty for {line.hs.trim()} <Icon name="externalLink" size={10} color="var(--teal)" />
+                </a>
+              )}
               <DField label="Description of Goods">
                 <input className="input-field" title="Goods description" placeholder="Full description per invoice" value={line.desc} onChange={e => setItems(p => p.map((l, j) => j === i ? { ...l, desc: e.target.value } : l))} style={{ fontSize: 12, padding: '5px 8px', marginTop: 2 }} />
               </DField>
@@ -4998,7 +5007,7 @@ export function ShipmentDetail() {
         {/* Tabs — the shared segmented ds-tabs (same control as Ops Command /
             NexusHR), scrolling horizontally when the row overflows its width. */}
         <div style={{ padding: isMobile ? '6px 10px' : '8px 14px', borderTop: '1px solid var(--border)', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}>
-          <div className="ds-tabs-list" data-variant="segmented" style={{ maxWidth: '100%', flexWrap: 'nowrap', display: 'inline-flex', width: 'max-content' }}>
+          <div className="ds-tabs-list" data-variant="segmented" style={{ width: '100%', flexWrap: 'nowrap' }}>
             {TAB_CFG.filter(t => isStaff || CUSTOMER_TABS.has(t.id)).map(t => {
               const badge =
                 t.id === 'tasks'      ? job.tasks.length :

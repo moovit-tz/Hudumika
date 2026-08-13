@@ -149,6 +149,35 @@ export class ShipmentService {
       // …and in the Cloud file manager: Customers ▸ <customer> ▸ <BL>, best-effort.
       CloudSync.ensureShipmentFolder(tenantId, input.customer_id, folderName).catch(err => console.error('[Cloud] shipment folder failed:', err.message));
 
+      // 5b. Auto-add the declared customer as a Listener. Every shipment has a
+      // customer at creation time, and that customer is exactly who "Add
+      // Customer Listener" on the sidebar exists to tag — requiring the same
+      // click on every single shipment was pure busywork, and the common
+      // failure mode was simply forgetting, which meant the customer never
+      // heard about their own shipment's updates. Same default channels the
+      // manual picker uses (email + WhatsApp).
+      const customerRow = await trx
+        .selectFrom('customers')
+        .select(['name', 'contact_name', 'email', 'phone'])
+        .where('id', '=', input.customer_id)
+        .where('tenant_id', '=', tenantId)
+        .executeTakeFirst();
+      if (customerRow) {
+        await trx
+          .insertInto('shipment_listeners')
+          .values({
+            tenant_id: tenantId,
+            shipment_id: shipment.id,
+            type: 'customer',
+            user_id: input.customer_id,
+            name: customerRow.contact_name || customerRow.name,
+            role: 'Customer',
+            channels: JSON.stringify(['email', 'whatsapp']),
+            created_by: input.assigned_to,
+          })
+          .execute();
+      }
+
       // 6. Trigger notifications (offloaded dynamically)
       NotificationService.triggerNotification(tenantId, shipment.id, 'CASE_OPENED').catch(console.error);
       emitDomainEvent(trx, tenantId, {
@@ -329,12 +358,16 @@ export class ShipmentService {
 
       const shipments = await shipmentsQuery.execute();
 
-      // Batch-resolve officer names from users table
+      // Batch-resolve officer names (and avatars, when the officer has one on
+      // file) from the users table. avatar_url used to be left off this
+      // select entirely, so every officer chip fell back to initials even
+      // when the account had a real profile photo.
       const officerIds = [...new Set(shipments.map((s) => s.assigned_to).filter(Boolean))] as string[];
       const officerRows = officerIds.length > 0
-        ? await trx.selectFrom('users').select(['id', 'name']).where('id', 'in', officerIds).execute()
+        ? await trx.selectFrom('users').select(['id', 'name', 'avatar_url']).where('id', 'in', officerIds).execute()
         : [];
       const officerNameMap = new Map(officerRows.map((u) => [u.id, u.name]));
+      const officerAvatarMap = new Map(officerRows.map((u) => [u.id, u.avatar_url]));
 
       // Fetch risk flags
       const riskFlags = await trx
@@ -429,6 +462,7 @@ export class ShipmentService {
                 }
               : null,
             assigned_officer_name: s.assigned_to ? (officerNameMap.get(s.assigned_to) ?? null) : null,
+            assigned_officer_avatar_url: s.assigned_to ? (officerAvatarMap.get(s.assigned_to) ?? null) : null,
             containers: (typeof s.containers === 'string' ? JSON.parse(s.containers) : s.containers) as Container[],
             risk_flags: sFlags,
             active_risk_types: sFlags.map((f) => f.type),
@@ -508,7 +542,7 @@ export class ShipmentService {
       const officer = shipment.assigned_to
         ? await trx
             .selectFrom('users')
-            .select(['name', 'email', 'phone'])
+            .select(['name', 'email', 'phone', 'avatar_url'])
             .where('id', '=', shipment.assigned_to)
             .executeTakeFirst()
         : null;
@@ -595,6 +629,7 @@ export class ShipmentService {
         assigned_officer_name: officer?.name,
         assigned_officer_email: officer?.email ?? null,
         assigned_officer_phone: officer?.phone ?? null,
+        assigned_officer_avatar_url: officer?.avatar_url ?? null,
         stage_history: stageHistory,
         documents,
         expenses,

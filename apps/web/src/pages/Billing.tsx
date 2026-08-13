@@ -1513,6 +1513,19 @@ export const Billing: React.FC = () => {
       .catch(() => {});
   }, [location.search]);
 
+  // Arriving from the Finance dashboard's "Recent Invoices" row — deep-link
+  // straight to that invoice's detail panel instead of the generic list.
+  // Waits on `invoices` since the id only resolves once the list has loaded.
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const invoiceId = params.get('id');
+    if (!invoiceId || !invoices.length) return;
+    if (invoices.some(i => i.id === invoiceId)) {
+      setSelectedId(invoiceId);
+      setMode('view');
+    }
+  }, [location.search, invoices]);
+
   /* ── Filters popover ── */
   const [showFilters, setShowFilters]     = useState(false);
   const [filterMode, setFilterMode]       = useState<'all' | Invoice['mode']>('all');

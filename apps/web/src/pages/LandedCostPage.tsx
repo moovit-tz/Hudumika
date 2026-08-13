@@ -4647,6 +4647,13 @@ export const LandedCostPage: React.FC = () => {
                             <Icon name="shield" size={13} color="var(--gold)" /> DI
                           </span>
                         )}
+                        {/* Excise, alternatives and an HS finder all live on the
+                            dedicated tool — opened in a new tab so a
+                            part-filled calculation here isn't lost. */}
+                        <a href={`/clearos/duty-check?hs=${encodeURIComponent(hsSelected.code)}`} target="_blank" rel="noreferrer"
+                          style={{ marginLeft: 'auto', color: 'var(--teal)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
+                          Full duty check <Icon name="externalLink" size={11} color="var(--teal)" />
+                        </a>
                       </div>
                     </div>
                   )}
