@@ -105,10 +105,28 @@ export async function callsRoutes(fastify: FastifyInstance) {
     return { online: onlineUserIds(user.tenant_id).filter(id => id !== user.sub) };
   });
 
-  fastify.get('/config', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async () => {
-    // Public STUN is enough for same-network / simple-NAT calls. A production
-    // rollout across strict NATs needs a TURN server configured here.
-    return { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
+  fastify.get('/config', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any) => {
+    const user = req.user;
+    // Public STUN handles same-network / simple-NAT calls on its own. For strict
+    // NATs a TURN relay is required — read it from the tenant's own settings
+    // (settings.calls.turn = { urls, username, credential }), then fall back to a
+    // platform-wide one in the environment. The frontend uses whatever we return,
+    // so configuring TURN makes calls work across strict NATs with no code change.
+    const iceServers: any[] = [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+    ];
+    const settings = await withTenant(user.tenant_id, async (trx) => {
+      const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      return (row?.settings as any) ?? {};
+    });
+    const turn = settings?.calls?.turn;
+    if (turn?.urls) {
+      iceServers.push({ urls: turn.urls, username: turn.username, credential: turn.credential });
+    } else if (process.env.TURN_URL) {
+      iceServers.push({ urls: process.env.TURN_URL, username: process.env.TURN_USERNAME, credential: process.env.TURN_CREDENTIAL });
+    }
+    return { iceServers, turnConfigured: iceServers.length > 2 };
   });
 
   fastify.get('/calls', { preHandler: [fastify.authenticate, requireEntitlement('nexushr')] }, async (req: any) => {
