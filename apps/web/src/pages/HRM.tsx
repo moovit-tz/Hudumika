@@ -4,7 +4,7 @@ import { useIsMobile } from '../hooks/useIsMobile.js';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { MetricsRow, type MetricCardProps } from '../components/MetricCard.js';
-import { apiFetch } from '../lib/api.js';
+import { apiFetch, apiDownload } from '../lib/api.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import type { EmpStatus, Employee } from '../data/staffData.js';
 import type { AttendanceStatus, AttendanceRecord, ShiftType, ShiftAssignment, Employee as ShiftEmployee } from '../data/hrmData.js';
@@ -2844,6 +2844,7 @@ export function PayrollPage() {
           {canCalc && <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={calculate}><Icon name="refresh" size={13} /> {busy === 'calc' ? 'Calculating…' : (run?.status === 'DRAFT' ? 'Calculate' : 'Recalculate')}</button>}
           {canApprove && <button type="button" className="btn btn-primary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={approve}><Icon name="check" size={13} /> {busy === 'approve' ? 'Approving…' : 'Approve run'}</button>}
           {canDistribute && <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} disabled={!!busy} onClick={distribute}><Icon name="send" size={13} /> {busy === 'distribute' ? 'Sending…' : 'Email payslips'}</button>}
+          {canDistribute && <button type="button" className="btn btn-secondary btn-sm" style={{ minHeight:'var(--ctl-h-sm)', boxSizing:'border-box', lineHeight:1.25, display:'flex', alignItems:'center', gap:6 }} onClick={() => apiDownload(`/v1/payroll/runs/${selId}/bank-file`, `bank-file-${run?.period_year}-${String(run?.period_month).padStart(2, '0')}.csv`)}><Icon name="download" size={13} /> Bank file</button>}
         </div>
       </div>
 

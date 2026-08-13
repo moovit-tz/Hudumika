@@ -520,6 +520,42 @@ export async function payrollRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // Bank payment file: a CSV of net pay + each employee's bank / mobile-money
+  // details for an approved run, ready to hand to the bank for a bulk transfer.
+  fastify.get('/runs/:id/bank-file', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'FINANCE') }, async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const run = await trx.selectFrom('payroll_runs').select(['status', 'period_year', 'period_month'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!run) return reply.status(404).send({ error: 'Payroll run not found' });
+      if (!['APPROVED', 'PAID'].includes(String(run.status))) {
+        return reply.status(409).send({ error: 'Only an approved run can produce a bank file.' });
+      }
+      const rows = await trx.selectFrom('payroll_payslips as p')
+        .innerJoin('users as u', 'u.id', 'p.user_id')
+        .select(['u.name', 'u.bank_name', 'u.bank_branch', 'u.bank_account_no', 'u.bank_account_name',
+                 'u.mobile_money_provider', 'u.mobile_money_number', 'p.net_pay'])
+        .where('p.tenant_id', '=', user.tenant_id).where('p.run_id', '=', id).orderBy('u.name').execute();
+
+      const cell = (v: unknown) => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+      const header = ['Employee', 'Bank', 'Branch', 'Account number', 'Account name', 'Mobile money', 'Mobile number', 'Net pay (TZS)'];
+      const lines = [header.map(cell).join(',')];
+      let total = 0;
+      for (const r of rows) {
+        total += Number(r.net_pay || 0);
+        lines.push([r.name, r.bank_name, r.bank_branch, r.bank_account_no, r.bank_account_name,
+                    r.mobile_money_provider, r.mobile_money_number, Math.round(Number(r.net_pay || 0))].map(cell).join(','));
+      }
+      lines.push(['TOTAL', '', '', '', '', '', '', Math.round(total)].map(cell).join(','));
+
+      reply
+        .header('Content-Type', 'text/csv; charset=utf-8')
+        .header('Content-Disposition', `attachment; filename="bank-file_${run.period_year}-${String(run.period_month).padStart(2, '0')}.csv"`);
+      return lines.join('\n');
+    });
+  });
+
   // ── Payslips ────────────────────────────────────────────────────────────
 
   /** Your own payslips. The identity comes from the token, not the request. */
