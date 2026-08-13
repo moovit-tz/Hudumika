@@ -43,6 +43,16 @@ function clockGate(isStaff: boolean, isCheckedIn: boolean, triggerOpen: () => vo
   return true;
 }
 
+// Shared by the Timesheets and Ledger tabs so both read the same number:
+// hourly-unit services bill hours × rate; everything else (per-shipment,
+// per-container, per-set, ...) bills the flat rate once per logged entry.
+// Returns null when the entry was logged with no service attached — nothing
+// to bill, not a rate of zero.
+function entryAmount(e: TimeEntry): number | null {
+  if (e.serviceRate == null) return null;
+  return e.serviceUnit === 'hour' || e.serviceUnit === 'hr' ? e.hours * e.serviceRate : e.serviceRate;
+}
+
 // ─── Store hook ───────────────────────────────────────────────────────────────
 
 function useJob(id: string) {
@@ -2579,13 +2589,6 @@ function TimesheetsTab({ job, isMobile, shipmentId, isLive, onRefresh }: { job: 
     }).catch(() => {});
   }, []);
 
-  // hourly-unit services bill hours × rate; everything else (per-shipment,
-  // per-container, per-set, ...) bills the flat rate once per logged entry —
-  // multiplying a per-shipment clearance fee by hours worked would overstate it.
-  function entryAmount(e: TimeEntry): number | null {
-    if (e.serviceRate == null) return null;
-    return e.serviceUnit === 'hour' || e.serviceUnit === 'hr' ? e.hours * e.serviceRate : e.serviceRate;
-  }
   const billableByCurrency = job.timeEntries.reduce<Record<string, number>>((acc, e) => {
     const amt = entryAmount(e);
     if (amt != null && e.serviceCurrency) acc[e.serviceCurrency] = (acc[e.serviceCurrency] || 0) + amt;
@@ -3493,9 +3496,16 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
         const expenses      = totalCharges;
         const grossMargin   = revenue - expenses;
         const marginPct     = revenue > 0 ? Math.round((grossMargin / revenue) * 100) : 0;
-        const opsBudget     = expenses * 0.20; // 20% of all fees charged
-        const opsBudgetUsed = job.timeEntries.reduce((s, e) => s + e.hours * 50000, 0); // TZS 50k/hr estimate
-        const opsUtil       = opsBudget > 0 ? Math.min(100, Math.round((opsBudgetUsed / opsBudget) * 100)) : 0;
+        // Real logged-time value, using each entry's own snapshotted rate —
+        // the same rule the Timesheets tab uses. There is no "ops budget"
+        // anywhere in the data model, so this reports what was actually
+        // logged rather than measuring it against an invented reservation.
+        const billableByCurrency = job.timeEntries.reduce<Record<string, number>>((acc, e) => {
+          const amt = entryAmount(e);
+          if (amt != null && e.serviceCurrency) acc[e.serviceCurrency] = (acc[e.serviceCurrency] || 0) + amt;
+          return acc;
+        }, {});
+        const billableSummary = Object.entries(billableByCurrency);
         return (
           <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, padding: '20px 22px', marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
@@ -3504,12 +3514,12 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
                 {marginPct >= 0 ? '+' : ''}{marginPct}% margin
               </span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(4, 1fr)', gap: 12, marginBottom: billableSummary.length ? 16 : 0 }}>
               {([
                 { label: 'Revenue',        value: fmtTZS(revenue),     color: 'var(--green)', icon: 'arrowUp' },
                 { label: 'Expenses',       value: fmtTZS(expenses),    color: 'var(--red)', icon: 'arrowDown' },
                 { label: 'Gross Margin',   value: fmtTZS(Math.abs(grossMargin)), color: grossMargin >= 0 ? 'var(--green)' : 'var(--red)', icon: grossMargin >= 0 ? 'checkCircle' : 'alertTriangle' },
-                { label: 'Ops Budget (20%)', value: fmtTZS(opsBudget), color: 'var(--blue)', icon: 'sliders' },
+                { label: 'Time Logged, Billable', value: billableSummary.length ? billableSummary.map(([cur, amt]) => fmtServiceRate(amt, cur)).join(' + ') : '—', color: 'var(--blue)', icon: 'clock' },
               ] as { label: string; value: string; color: string; icon: IconName }[]).map(c => (
                 <div key={c.label} style={{ padding: '14px 16px', background: 'var(--bg)', borderRadius: 12, border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}><Icon name={c.icon} size={10} /> {c.label}</div>
@@ -3517,17 +3527,9 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
                 </div>
               ))}
             </div>
-            {/* Ops budget utilisation bar */}
-            <div style={{ marginBottom: 6 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--ink3)', marginBottom: 5 }}>
-                <span>Operations budget utilisation</span>
-                <span style={{ fontWeight: 700, color: opsUtil > 90 ? 'var(--red)' : 'var(--ink)' }}>{opsUtil}% of {fmtTZS(opsBudget)}</span>
-              </div>
-              <div style={{ height: 8, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${opsUtil}%`, background: opsUtil > 90 ? 'var(--red)' : opsUtil > 60 ? 'var(--gold)' : 'var(--green)', borderRadius: 4, transition: 'width 0.4s' }} />
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--ink3)', marginTop: 4 }}>20% of billed charges reserved for operations spend</div>
-            </div>
+            {billableSummary.length > 0 && (
+              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>From rated time entries on the Timesheets tab — not yet reflected in Revenue above until invoiced.</div>
+            )}
           </div>
         );
       })()}

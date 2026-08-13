@@ -7,7 +7,7 @@ import { Icon } from '../components/Icon.js';
 import { useBranding } from '../hooks/useBranding.js';
 import {
   type Invoice, type Status,
-  invoiceTotals, STATUS_STYLE, mapApiInvoice, fmtTZS, INITIAL_INVOICES,
+  invoiceTotals, STATUS_STYLE, mapApiInvoice, fmtTZS,
 } from './Billing.js';
 
 /* ── helpers ── */
@@ -349,15 +349,22 @@ export const CustomerInvoices: React.FC = () => {
   usePageSEO('Billing & Invoices', 'Manage your outstanding invoices and billing history.');
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading]   = useState(true);
+  // A failed fetch used to silently substitute five invented invoices — a
+  // customer would see fabricated amounts and a fake client name in place of
+  // their real bill. It now says the load failed and offers to retry, the same
+  // as every other honest error state in the app.
+  const [loadError, setLoadError] = useState(false);
   const [filter, setFilter]     = useState<FilterKey>('ALL');
   const [selected, setSelected] = useState<Invoice | null>(null);
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true); setLoadError(false);
     apiFetch('/v1/invoices')
       .then((rows: any[]) => setInvoices(rows.map(mapApiInvoice)))
-      .catch(() => setInvoices(INITIAL_INVOICES))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, []);
+  };
+  useEffect(() => { load(); }, []);
 
   if (selected) {
     return <InvoiceDetail inv={selected} onBack={() => setSelected(null)} />;
@@ -410,6 +417,15 @@ export const CustomerInvoices: React.FC = () => {
           Array.from({ length: 3 }).map((_, i) => (
             <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: 16, height: 88 }} />
           ))
+        ) : loadError ? (
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
+            <Icon name="alertCircle" size={36} color="var(--red)" />
+            <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your invoices</p>
+            <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
+            <button type="button" onClick={load} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+              Retry
+            </button>
+          </div>
         ) : filtered.length === 0 ? (
           <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
             <Icon name="invoice" size={36} color="var(--ink3)" />

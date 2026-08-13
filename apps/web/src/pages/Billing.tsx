@@ -186,132 +186,6 @@ function MoreItem({ icon, label, onClick, danger }: { icon: import('../component
   );
 }
 
-/* ── Mock data ── */
-export const INITIAL_INVOICES: Invoice[] = [
-  {
-    id: 'CLR-2026-0028 INV', client: 'Karibu Traders Ltd', version: 1,
-    clientAddress: ['P.O. Box 4521', 'Kariakoo, Dar es Salaam', 'Tanzania', 'VAT: TZ 1234561-C'],
-    blNumber: 'MSCU2456789', origin: 'SINGAPORE', destination: 'DAR ES SALAAM, TANZANIA', mode: 'SEA',
-    billDate: '13-06-2026', dueDate: '27-06-2026', status: 'Draft', received: 0, exchangeRate: 2650,
-    saleAgent: 'Amani Mwangi', hasNote: true,
-    refCode: genRefCode('CLR-2026-0028 INV', 1),
-    terms: 'Payment due within 14 days. All 3rd party charges are estimates and subject to actuals.',
-    items: [
-      { name: 'DOCUMENTATION',          unit: 'PER BIL',       rate: 132000,  qty: 1,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'AGENCY FEES – SEA 20"',  unit: 'PER CONT',      rate: 400000,  qty: 2,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'TRANSPORTATION',         unit: 'PER CONT',      rate: 700000,  qty: 2,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'DELIVERY ORDER CHARGES', unit: 'PER BIL',       rate: 15,      qty: 1,  taxPct: 18, group: 'shipping', currency: 'USD' },
-      { name: 'SHIPPING FEES',          unit: 'PER CONTAINER', rate: 49.84,   qty: 2,  taxPct: 0,  group: 'shipping', currency: 'USD' },
-      { name: 'FACILITATION',           unit: 'PER BIL',       rate: 950000,  qty: 1,  taxPct: 0,  group: 'other',    currency: 'TZS' },
-      { name: 'TBS CHARGES',            unit: 'PER BIL',       rate: 180000,  qty: 1,  taxPct: 0,  group: 'other',    currency: 'TZS' },
-      { name: 'WHARFAGE CHARGES',       unit: 'PER BIL',       rate: 320000,  qty: 1,  taxPct: 18, group: 'other',    currency: 'TZS' },
-    ],
-  },
-  {
-    id: 'CLR-2026-0027 INV', client: 'Tanga Cement Co.', version: 1,
-    clientAddress: ['Industrial Area, Plot 14', 'Tanga, Tanzania', 'TZ 30100', 'VAT: TZ 9876543-B'],
-    blNumber: 'TRHU3456789', origin: 'CHINA (GUANGZHOU)', destination: 'DAR ES SALAAM, TANZANIA', mode: 'SEA',
-    billDate: '08-06-2026', dueDate: '22-06-2026', status: 'Draft', received: 0, exchangeRate: 2650,
-    saleAgent: 'Fatuma Ally',
-    refCode: genRefCode('CLR-2026-0027 INV', 1),
-    terms: 'Payment due 14 days from invoice date.',
-    items: [
-      { name: 'DOCUMENTATION',          unit: 'PER BIL',   rate: 132000,   qty: 1,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'AGENCY FEES – BULK',     unit: 'PER CONT',  rate: 350000,   qty: 4,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'TRANSPORTATION',         unit: 'PER CONT',  rate: 700000,   qty: 4,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'DELIVERY ORDER CHARGES', unit: 'PER BIL',   rate: 15,       qty: 1,  taxPct: 18, group: 'shipping', currency: 'USD' },
-      { name: 'DEMURRAGE (2 DAYS)',      unit: 'PER BILL',  rate: 470,      qty: 1,  taxPct: 0,  group: 'shipping', currency: 'USD' },
-      { name: 'TBS CHARGES',            unit: 'PER BIL',   rate: 180000,   qty: 1,  taxPct: 0,  group: 'other',    currency: 'TZS' },
-      { name: 'WHARFAGE CHARGES',       unit: 'PER BIL',   rate: 477696,   qty: 1,  taxPct: 18, group: 'other',    currency: 'TZS' },
-    ],
-  },
-  {
-    id: 'CLR-2026-0024 INV', client: 'Mombasa Freight Ltd', version: 1,
-    clientAddress: ['Moi Avenue, Floor 3', 'Mombasa, Kenya', 'KE 80100', 'VAT: KE P051234567A'],
-    blNumber: 'MAEU5678901', origin: 'DUBAI (UAE)', destination: 'MOMBASA, KENYA', mode: 'SEA',
-    billDate: '13-06-2026', dueDate: '26-06-2026', status: 'Partial', received: 1550000, exchangeRate: 2650,
-    saleAgent: 'Bakari Juma',
-    refCode: genRefCode('CLR-2026-0024 INV', 1),
-    terms: 'Remaining balance due immediately. A surcharge applies after 7 days.',
-    items: [
-      { name: 'DOCUMENTATION',          unit: 'PER BIL',       rate: 132000,  qty: 1,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'AGENCY FEES – SEA 20"',  unit: 'PER CONT',      rate: 400000,  qty: 2,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'TRANSPORTATION',         unit: 'PER CONT',      rate: 600000,  qty: 2,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'DELIVERY ORDER CHARGES', unit: 'PER BIL',       rate: 15,      qty: 1,  taxPct: 18, group: 'shipping', currency: 'USD' },
-      { name: 'SHIPPING FEES',          unit: 'PER CONTAINER', rate: 49.84,   qty: 2,  taxPct: 0,  group: 'shipping', currency: 'USD' },
-      { name: 'FACILITATION',           unit: 'PER BIL',       rate: 200000,  qty: 1,  taxPct: 0,  group: 'other',    currency: 'TZS' },
-      { name: 'WHARFAGE CHARGES',       unit: 'PER BIL',       rate: 180000,  qty: 1,  taxPct: 18, group: 'other',    currency: 'TZS' },
-    ],
-  },
-  {
-    id: 'CLR-2026-0023 INV', client: 'Dar Engineering Co.', version: 1,
-    clientAddress: ['Pugu Road, Block C', 'Dar es Salaam, Tanzania', 'TZ 11101', 'VAT: TZ 1122334-A'],
-    blNumber: 'HLCU6789012', origin: 'CHINA (SHANGHAI)', destination: 'DAR ES SALAAM, TANZANIA', mode: 'SEA',
-    billDate: '07-06-2026', dueDate: '21-06-2026', status: 'Paid', received: 0, exchangeRate: 2650,
-    saleAgent: 'Amani Mwangi',
-    refCode: genRefCode('CLR-2026-0023 INV', 1),
-    terms: 'Payment received in full. Thank you.',
-    items: [
-      { name: 'DOCUMENTATION',          unit: 'PER BIL',   rate: 132000,  qty: 1,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'AGENCY FEES – FCL 20"',  unit: 'PER CONT',  rate: 400000,  qty: 1,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'TRANSPORTATION',         unit: 'PER CONT',  rate: 700000,  qty: 1,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'DELIVERY ORDER CHARGES', unit: 'PER BIL',   rate: 15,      qty: 1,  taxPct: 18, group: 'shipping', currency: 'USD' },
-      { name: 'FACILITATION',           unit: 'PER BIL',   rate: 280000,  qty: 1,  taxPct: 0,  group: 'other',    currency: 'TZS' },
-      { name: 'TBS CHARGES',            unit: 'PER BIL',   rate: 180000,  qty: 1,  taxPct: 0,  group: 'other',    currency: 'TZS' },
-    ],
-  },
-  {
-    id: 'CLR-2026-0019 INV', client: 'Arusha Supplies Ltd', version: 1,
-    clientAddress: ['Sokoine Road, Shop 22', 'Arusha, Tanzania', 'TZ 23100', 'VAT: TZ 5566778-D'],
-    blNumber: 'CMDU7890123', origin: 'INDIA (MUMBAI)', destination: 'DAR ES SALAAM, TANZANIA', mode: 'SEA',
-    billDate: '05-06-2026', dueDate: '17-06-2026', status: 'Unpaid', received: 0, exchangeRate: 2650,
-    saleAgent: 'Amani Mwangi',
-    refCode: genRefCode('CLR-2026-0019 INV', 1),
-    terms: 'Payment is overdue. Please settle immediately.',
-    items: [
-      { name: 'DOCUMENTATION',         unit: 'PER BIL',   rate: 132000,  qty: 1,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'AGENCY FEES – LCL',     unit: 'PER BIL',   rate: 350000,  qty: 1,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'TRANSPORTATION',        unit: 'PER BIL',   rate: 450000,  qty: 1,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'DELIVERY ORDER',        unit: 'PER BIL',   rate: 15,      qty: 1,  taxPct: 18, group: 'shipping', currency: 'USD' },
-      { name: 'CFS HANDLING CHARGES',  unit: 'PER BIL',   rate: 85,      qty: 1,  taxPct: 0,  group: 'shipping', currency: 'USD' },
-      { name: 'FACILITATION',          unit: 'PER BIL',   rate: 280000,  qty: 1,  taxPct: 0,  group: 'other',    currency: 'TZS' },
-      { name: 'TBS CHARGES',           unit: 'PER BIL',   rate: 180000,  qty: 1,  taxPct: 0,  group: 'other',    currency: 'TZS' },
-    ],
-  },
-  {
-    id: 'CLR-2026-0014 INV', client: 'Moshi Tea Exporters', version: 2,
-    clientAddress: ['Old Moshi Road, Unit 7', 'Moshi, Tanzania', 'TZ 25100', 'VAT: TZ 7788990-E'],
-    blNumber: 'JKIA20240601', origin: 'NAIROBI (JKIA)', destination: 'MOSHI, TANZANIA', mode: 'AIR',
-    billDate: '01-06-2026', dueDate: '15-06-2026', status: 'Overdue', received: 0, exchangeRate: 2650,
-    saleAgent: 'Bakari Juma',
-    refCode: genRefCode('CLR-2026-0014 INV', 2),
-    terms: 'This invoice is overdue. Please contact our accounts team immediately.',
-    items: [
-      { name: 'AIR FREIGHT CLEARANCE', unit: 'PER AWB',  rate: 420000,  qty: 1,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'DOCUMENTATION',         unit: 'PER AWB',  rate: 80000,   qty: 1,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'AIRLINE DELIVERY FEE',  unit: 'PER AWB',  rate: 45,      qty: 1,  taxPct: 0,  group: 'shipping', currency: 'USD' },
-      { name: 'FACILITATION',          unit: 'PER AWB',  rate: 200000,  qty: 1,  taxPct: 0,  group: 'other',    currency: 'TZS' },
-      { name: 'PHYTOSANITARY CERT',    unit: 'PER AWB',  rate: 220000,  qty: 1,  taxPct: 0,  group: 'other',    currency: 'TZS' },
-    ],
-  },
-  {
-    id: 'CLR-2026-0010 INV', client: 'Dodoma Agri Exports', version: 1,
-    clientAddress: ['Dodoma Municipal Road', 'Dodoma, Tanzania', 'TZ 41000', 'VAT: TZ 4433221-G'],
-    blNumber: 'RDTUND20240522', origin: 'DODOMA, TANZANIA', destination: 'LUSAKA, ZAMBIA', mode: 'ROAD',
-    billDate: '22-05-2026', dueDate: '05-06-2026', status: 'Partial', received: 320000, exchangeRate: 2650,
-    saleAgent: 'Fatuma Ally',
-    refCode: genRefCode('CLR-2026-0010 INV', 1),
-    terms: 'Balance due immediately. Account on hold pending payment.',
-    items: [
-      { name: 'ROAD TRANSIT BOND',     unit: 'PER BIL',  rate: 280000,  qty: 1,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'DOCUMENTATION',         unit: 'PER BIL',  rate: 80000,   qty: 1,  taxPct: 0,  group: 'clearing', currency: 'TZS' },
-      { name: 'BORDER AGENCY FEES',    unit: 'PER BIL',  rate: 250,     qty: 1,  taxPct: 0,  group: 'shipping', currency: 'USD' },
-      { name: 'FACILITATION',          unit: 'PER BIL',  rate: 180000,  qty: 1,  taxPct: 0,  group: 'other',    currency: 'TZS' },
-      { name: 'TBS EXPORT CERT',       unit: 'PER BIL',  rate: 120000,  qty: 1,  taxPct: 0,  group: 'other',    currency: 'TZS' },
-    ],
-  },
-];
-
 /* ── Print / PDF ── */
 export function openPrintWindow(inv: Invoice) {
   const T = invoiceTotals(inv);
@@ -519,61 +393,91 @@ function ChargeSectionView({ title, color, currency, items, subTotal, taxAmt, se
 }
 
 /* ── Import Timesheets Modal ── */
-function ImportTimesheetsModal({ shipmentId, shipmentRef, onImport, onClose }: {
-  shipmentId: string; shipmentRef: string;
+// A logged time entry that carries its own rate — snapshotted at log time from
+// the Products & Services catalog (see migration 143), never a re-join, so it
+// still reads correctly a year later even if the catalog price changed since.
+interface RatedTimeEntry {
+  id: string; member: string; task_ref: string | null; hours: number;
+  log_date: string; product_id: string | null; service_name: string | null;
+  service_rate: number | null; service_currency: string | null; service_unit: string | null;
+}
+
+// hourly-unit services bill hours × rate; everything else (per-shipment,
+// per-container, per-set, ...) bills the flat rate once — the same rule
+// TimesheetsTab.entryAmount() uses, kept in sync with it.
+function timeEntryAmount(e: RatedTimeEntry): number {
+  if (e.service_rate == null) return 0;
+  return e.service_unit === 'hour' || e.service_unit === 'hr' ? e.hours * e.service_rate : e.service_rate;
+}
+
+function ImportTimesheetsModal({ shipmentId, shipmentRef, sectionCurrency, onImport, onClose }: {
+  shipmentId: string; shipmentRef: string; sectionCurrency: Currency;
   onImport: (lines: Omit<EditItem, 'uid'>[]) => void;
   onClose: () => void;
 }) {
-  const [entries, setEntries] = useState<any[]>([]);
+  const [entries, setEntries] = useState<RatedTimeEntry[]>([]);
+  const [otherCurrencyCount, setOtherCurrencyCount] = useState(0);
+  const [taxByProduct, setTaxByProduct] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [rate, setRate] = useState(50000);
 
   useEffect(() => {
-    // Attempt to fetch shipment details to get timeEntries
-    apiFetch(`/v1/shipments/${shipmentId}`)
-      .then((r: any) => {
-        const timesheets = (r.timeEntries || []).filter((t: any) => t.billable);
-        setEntries(timesheets);
-        setSelected(new Set(timesheets.map((t: any) => t.id)));
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [shipmentId]);
+    Promise.all([
+      // The real source: logged, rated shipment time entries — not the
+      // shipment record itself, which never carries them.
+      apiFetch(`/v1/shipments/${shipmentId}/time-entries`).catch(() => ({ data: [] })),
+      apiFetch('/v1/products?status=active').catch(() => []),
+    ]).then(([teRes, prodRes]: [any, any]) => {
+      const rows: any[] = Array.isArray(teRes) ? teRes : (teRes?.data ?? []);
+      // Billable = actually tagged with a real service at log time. An entry
+      // logged with no product has no rate to bill and is left off the list
+      // rather than guessed at.
+      const rated = rows.filter(r => r.service_rate != null);
+      const sameCurrency = rated.filter(r => (r.service_currency || 'TZS') === sectionCurrency);
+      setOtherCurrencyCount(rated.length - sameCurrency.length);
+      setEntries(sameCurrency);
+      setSelected(new Set(sameCurrency.map((r: any) => r.id)));
+
+      const products: any[] = Array.isArray(prodRes) ? prodRes : (prodRes?.data ?? []);
+      setTaxByProduct(new Map(products.map(p => [p.id, Number(p.tax_rate) || 0])));
+    }).finally(() => setLoading(false));
+  }, [shipmentId, sectionCurrency]);
 
   function handleImport() {
-    const toImport = entries.filter(e => selected.has(e.id));
-    const lines = toImport.map(t => ({
-      name: `Consulting: ${t.taskTitle || 'General'} (${t.memberName || 'Staff'})`,
-      unit: 'PER HR',
-      rate: rate,
-      qty: Number(t.hours) || 1,
-      taxPct: 18,
+    const lines = entries.filter(e => selected.has(e.id)).map(e => ({
+      name: e.service_name || 'Logged time',
+      unit: e.service_unit || 'PER HR',
+      rate: e.service_rate || 0,
+      qty: e.service_unit === 'hour' || e.service_unit === 'hr' ? e.hours : 1,
+      taxPct: e.product_id ? (taxByProduct.get(e.product_id) ?? 0) : 0,
       group: 'other' as ChargeGroup,
-      currency: 'TZS' as Currency,
+      currency: sectionCurrency,
     }));
     onImport(lines);
   }
 
+  const selectedTotal = entries.filter(e => selected.has(e.id)).reduce((s, e) => s + timeEntryAmount(e), 0);
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: 20 }}>
-      <div style={{ background: 'var(--white)', borderRadius: 12, width: '100%', maxWidth: 500, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '90vh', boxShadow: 'var(--elev-lg)' }}>
+      <div style={{ background: 'var(--white)', borderRadius: 12, width: '100%', maxWidth: 520, overflow: 'hidden', display: 'flex', flexDirection: 'column', maxHeight: '90vh', boxShadow: 'var(--elev-lg)' }}>
         <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg)' }}>
           <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>Import Timesheets</span>
           <button type="button" onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer' }}><Icon name="x" size={16} color="var(--ink2)" /></button>
         </div>
         <div style={{ padding: 20, overflowY: 'auto' }}>
-          <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 16 }}>
-            Found {entries.length} billable time entries for shipment <strong style={{ color: 'var(--ink)' }}>{shipmentRef}</strong>.
+          <div style={{ fontSize: 13, color: 'var(--ink2)', marginBottom: 4 }}>
+            {loading ? 'Loading…' : `${entries.length} rated time entr${entries.length === 1 ? 'y' : 'ies'} for`} <strong style={{ color: 'var(--ink)' }}>{shipmentRef}</strong>, each at the rate it was logged against.
           </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', marginBottom: 6 }}>Hourly Rate (TZS)</label>
-            <input type="number" value={rate} onChange={e => setRate(Number(e.target.value))} style={{ width: '100%', padding: '8px 12px', borderRadius: 7, border: '1px solid var(--border)', fontFamily: 'var(--mono)' }} />
-          </div>
+          {otherCurrencyCount > 0 && (
+            <div style={{ fontSize: 12, color: 'var(--ink3)', marginBottom: 12 }}>
+              {otherCurrencyCount} more {otherCurrencyCount === 1 ? 'entry is' : 'entries are'} rated in a different currency — add {otherCurrencyCount === 1 ? 'it' : 'them'} from the matching charges section instead.
+            </div>
+          )}
           {loading ? (
-            <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)' }}>Loading timesheets...</div>
+            <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)' }}>Loading timesheets…</div>
           ) : entries.length === 0 ? (
-            <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)' }}>No billable time entries found.</div>
+            <div style={{ padding: 20, textAlign: 'center', color: 'var(--ink3)' }}>No time entries with a billable rate found. Time logged with no service attached has nothing to bill and isn't listed.</div>
           ) : (
             <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
               {entries.map(e => (
@@ -586,18 +490,26 @@ function ImportTimesheetsModal({ shipmentId, shipmentRef, onImport, onClose }: {
                     });
                   }} />
                   <div style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>
-                    <div style={{ fontWeight: 600 }}>{e.taskTitle || 'General Task'}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{e.memberName} · {new Date(e.date || e.started_at).toLocaleDateString()}</div>
+                    <div style={{ fontWeight: 600 }}>{e.service_name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{e.member} · {new Date(e.log_date).toLocaleDateString()} · {fmtAmt(e.service_rate || 0, sectionCurrency)}/{e.service_unit || 'unit'}</div>
                   </div>
-                  <div style={{ fontWeight: 700, fontFamily: 'var(--mono)', fontSize: 13 }}>{Number(e.hours).toFixed(1)} hrs</div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 700, fontFamily: 'var(--mono)', fontSize: 13 }}>{fmtAmt(timeEntryAmount(e), sectionCurrency)}</div>
+                    {(e.service_unit === 'hour' || e.service_unit === 'hr') && <div style={{ fontSize: 10.5, color: 'var(--ink3)' }}>{Number(e.hours).toFixed(1)} hrs</div>}
+                  </div>
                 </label>
               ))}
             </div>
           )}
         </div>
-        <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: 10, background: 'var(--bg)' }}>
-          <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
-          <button type="button" onClick={handleImport} disabled={selected.size === 0} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, cursor: selected.size ? 'pointer' : 'default', opacity: selected.size ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Import {selected.size} Entries</button>
+        <div style={{ padding: '16px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: 'var(--bg)' }}>
+          <div style={{ fontSize: 12.5, color: 'var(--ink2)' }}>
+            {selected.size > 0 && <>Total: <strong style={{ fontFamily: 'var(--mono)' }}>{fmtAmt(selectedTotal, sectionCurrency)}</strong></>}
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button type="button" onClick={onClose} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', fontWeight: 600, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Cancel</button>
+            <button type="button" onClick={handleImport} disabled={selected.size === 0} style={{ padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontWeight: 600, cursor: selected.size ? 'pointer' : 'default', opacity: selected.size ? 1 : 0.5, minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>Import {selected.size} {selected.size === 1 ? 'Entry' : 'Entries'}</button>
+          </div>
         </div>
       </div>
     </div>
@@ -959,6 +871,7 @@ export function InvoiceEditor({ initial, nextId, onSave, onCancel, isMobile = fa
           <ImportTimesheetsModal
             shipmentId={activeShipmentFull.id}
             shipmentRef={activeShipmentFull.ref_number}
+            sectionCurrency="TZS"
             onClose={() => setShowTimesheets(false)}
             onImport={(lines) => {
               setOther(prev => [
