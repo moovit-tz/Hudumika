@@ -1,6 +1,9 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useParams, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth.js';
+import { OrgAuthProvider, useOrgAuth } from './hooks/useOrgAuth.js';
+import { OrgLogin } from './pages/OrgLogin.js';
+import { OrgShell } from './pages/OrgShell.js';
 import { useBranding } from './hooks/useBranding.js';
 import { AutoSEO } from './components/AutoSEO.js';
 import type { UserRole } from '@hudumika/types';
@@ -38,6 +41,7 @@ import { CalendarApp }    from './pages/CalendarApp.js';
 import { CustomerDashboard }  from './pages/CustomerDashboard.js';
 import { CustomerSupport }    from './pages/CustomerSupport.js';
 import { CustomerInvoices }   from './pages/CustomerInvoices.js';
+import { CustomerDocuments }  from './pages/CustomerDocuments.js';
 import { CustomerQuotations } from './pages/CustomerQuotations.js';
 import { TermsOfService }     from './pages/TermsOfService.js';
 import { PrivacyPolicy }      from './pages/PrivacyPolicy.js';
@@ -239,7 +243,7 @@ const CustomerShell: React.FC = () => {
           <Route path="/"                element={<CustomerDashboard />} />
           <Route path="/billing"         element={<CustomerInvoices />} />
           <Route path="/quotations"      element={<CustomerQuotations />} />
-          <Route path="/documents"       element={<FileManager />} />
+          <Route path="/documents"       element={<CustomerDocuments />} />
           <Route path="/support/tickets" element={<CustomerSupport />} />
           <Route path="/support"         element={<CustomerSupport />} />
           <Route path="/chat"            element={<Chat />} />
@@ -259,8 +263,20 @@ const CustomerShell: React.FC = () => {
 /* ── Main app shell ── */
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
+  const { orgUser, orgLoading } = useOrgAuth();
   const { pathname } = useLocation();
   const isHub = pathname === '/';
+
+  /* ── Organization portal — a completely separate session from the
+     staff/customer one above (see useOrgAuth.tsx). Checked first: an org
+     session can exist with or without a staff/customer session in the same
+     browser, and /org/login must be reachable regardless of either. ── */
+  if (pathname === '/org/login' && !orgUser) {
+    return <OrgLogin />;
+  }
+  if (!orgLoading && orgUser) {
+    return <OrgShell />;
+  }
 
   if (loading) {
     return (
@@ -443,17 +459,19 @@ const App: React.FC = () => (
     <BrowserRouter>
       <SeoAnalyticsProvider>
         <AuthProvider>
-          <ClockInProvider>
-            <WorkspaceProvider>
-              <DesignSystemProvider>
-                {/* Every route gets a derived title; pages calling usePageSEO
-                    override it. Mounted here so new routes are covered the
-                    moment they exist, rather than when someone remembers. */}
-                <AutoSEO />
-                <AppContent />
-              </DesignSystemProvider>
-            </WorkspaceProvider>
-          </ClockInProvider>
+          <OrgAuthProvider>
+            <ClockInProvider>
+              <WorkspaceProvider>
+                <DesignSystemProvider>
+                  {/* Every route gets a derived title; pages calling usePageSEO
+                      override it. Mounted here so new routes are covered the
+                      moment they exist, rather than when someone remembers. */}
+                  <AutoSEO />
+                  <AppContent />
+                </DesignSystemProvider>
+              </WorkspaceProvider>
+            </ClockInProvider>
+          </OrgAuthProvider>
         </AuthProvider>
       </SeoAnalyticsProvider>
     </BrowserRouter>

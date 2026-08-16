@@ -8,6 +8,7 @@ import type { IconName } from '../components/Icon.js';
 import { PageHeader } from '../components/PageHeader.js';
 import { PersonAvatar } from '../components/PersonAvatar.js';
 import { AvatarPicker } from '../components/AvatarPicker.js';
+import { EntityPicker } from '../components/EntityPicker.js';
 import { mapApiInvoice, invoiceTotals } from './Billing.js';
 import type { ExpenseListItem } from './Expenses.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -18,6 +19,82 @@ import {
 } from '../components/ui/dropdown-menu.js';
 import { showConfirm } from '../lib/confirm.js';
 import { SkeletonPage } from '../components/ui/skeleton.js';
+import { getCompany } from '../data/companyStore.js';
+
+/* ── Statement of Account — print/PDF ──
+   Same open-window/write-html/auto-print structure as Billing.tsx's
+   openPrintWindow(), but shaped for a customer's whole transaction history
+   (many invoices + payments, oldest→newest, running balance) rather than
+   one invoice's line groups. */
+function openStatementPrintWindow(
+  customer: { name: string },
+  transactions: { type: 'invoice' | 'payment'; date: string; ref: string; amount: number; debit: boolean; balance: number }[],
+  totals: { totalInvoiced: number; totalPaid: number; outstanding: number },
+) {
+  const co = getCompany();
+  const money = (n: number) => `TZS ${Math.round(n).toLocaleString()}`;
+  const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+  const rows = transactions.map(tx => `<tr>
+    <td>${tx.date ? new Date(tx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+    <td>${tx.ref}</td>
+    <td style="text-transform:capitalize">${tx.type}</td>
+    <td style="text-align:right;font-family:monospace;color:${tx.debit ? '#dc2626' : '#059669'}">${tx.debit ? '-' : '+'}${money(tx.amount)}</td>
+    <td style="text-align:right;font-family:monospace;font-weight:700;${tx.balance < 0 ? 'color:#dc2626' : ''}">${money(tx.balance)}</td>
+  </tr>`).join('');
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>Statement of Account — ${customer.name}</title><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;color:#111;padding:24px 32px;font-size:11px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid #0b1e3a}
+.from strong{font-size:15px;color:#111}
+.from div{color:#555;line-height:1.6;margin-top:4px}
+.title{text-align:right}
+.title h1{font-size:18px;color:#0b1e3a}
+.title .sub{color:#9ca3af;font-size:10px;margin-top:4px}
+.to{margin-bottom:16px}
+.to .lbl{font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:4px}
+.to .name{font-size:13px;font-weight:700}
+.totals{display:flex;gap:24px;margin-bottom:16px;padding:12px 14px;background:#f9fafb;border-radius:6px}
+.totals div{flex:1}
+.totals .lbl{font-size:8px;font-weight:800;text-transform:uppercase;color:#9ca3af;margin-bottom:2px}
+.totals .val{font-size:14px;font-weight:800;font-family:monospace}
+table{width:100%;border-collapse:collapse}
+thead tr{background:#f9fafb;border-bottom:1px solid #e5e7eb}
+th{padding:6px 8px;text-align:left;font-size:9px;font-weight:700;color:#6b7280;letter-spacing:.04em;text-transform:uppercase}
+th:nth-child(4),th:nth-child(5){text-align:right}
+td{padding:7px 8px;border-bottom:1px solid #f3f4f6;font-size:10.5px}
+@media print{body{padding:10px 16px}}
+</style></head><body>
+<div class="top">
+  <div class="from">
+    ${co.logoUrl ? `<img src="${co.logoUrl}" style="max-height:36px;max-width:140px;object-fit:contain" alt="${co.name}">` : `<strong>${co.name}</strong>`}
+    <div>${co.address}<br>${co.city}, ${co.country} · VAT: ${co.taxId}</div>
+  </div>
+  <div class="title">
+    <h1>Statement of Account</h1>
+    <div class="sub">Generated ${today}</div>
+  </div>
+</div>
+<div class="to">
+  <div class="lbl">Account</div>
+  <div class="name">${customer.name}</div>
+</div>
+<div class="totals">
+  <div><div class="lbl">Total Invoiced</div><div class="val">${money(totals.totalInvoiced)}</div></div>
+  <div><div class="lbl">Total Paid</div><div class="val" style="color:#059669">${money(totals.totalPaid)}</div></div>
+  <div><div class="lbl">Outstanding</div><div class="val" style="color:${totals.outstanding > 0 ? '#dc2626' : '#059669'}">${money(totals.outstanding)}</div></div>
+</div>
+<table><thead><tr>
+  <th>Date</th><th>Reference</th><th>Type</th><th>Amount</th><th>Balance</th>
+</tr></thead><tbody>${rows || '<tr><td colspan="5" style="color:#9ca3af;font-style:italic;padding:12px">No transactions</td></tr>'}</tbody></table>
+<script>window.onload=function(){window.print()}</script>
+</body></html>`;
+
+  const win = window.open('', '_blank', 'width=860,height=1000');
+  if (win) { win.document.write(html); win.document.close(); }
+}
 
 /* ── Types ── */
 interface Customer {
@@ -44,6 +121,11 @@ interface Customer {
   notes?: string;
   currency?: string;
   tancis_number?: string;
+  /** Links this tenant-private record to a platform-level Organization
+   *  (migration 230) — the same real-world company tracked across every
+   *  tenant that has linked a customer record to it. Staff-linked only. */
+  organization_id?: string;
+  organization_name?: string;
 }
 
 /* ── Avatar helper ──
@@ -84,6 +166,24 @@ function maskTin(tin?: string) {
   if (!tin) return null;
   const last4 = tin.replace(/\D/g, '').slice(-4);
   return `**** ${last4 || '????'}`;
+}
+
+/* ── File type → icon/colour, for the Documents tab's Drive-linked list ── */
+const FILE_TYPE_STYLE: Record<string, { icon: IconName; color: string; bg: string }> = {
+  pdf:  { icon: 'file',     color: 'var(--red)',    bg: 'var(--red-l)'    },
+  doc:  { icon: 'fileText', color: 'var(--blue)',   bg: 'var(--blue-l)'   },
+  docx: { icon: 'fileText', color: 'var(--blue)',   bg: 'var(--blue-l)'   },
+  xls:  { icon: 'barChart', color: 'var(--green)',  bg: 'var(--green-l)'  },
+  xlsx: { icon: 'barChart', color: 'var(--green)',  bg: 'var(--green-l)'  },
+  csv:  { icon: 'barChart', color: 'var(--green)',  bg: 'var(--green-l)'  },
+  zip:  { icon: 'briefcase',color: 'var(--gold)',   bg: 'var(--gold-l)'   },
+  png:  { icon: 'image',    color: 'var(--purple)', bg: 'var(--purple-l)' },
+  jpg:  { icon: 'image',    color: 'var(--purple)', bg: 'var(--purple-l)' },
+  jpeg: { icon: 'image',    color: 'var(--purple)', bg: 'var(--purple-l)' },
+  webp: { icon: 'image',    color: 'var(--purple)', bg: 'var(--purple-l)' },
+};
+function fileTypeStyle(type: string) {
+  return FILE_TYPE_STYLE[(type || '').toLowerCase()] ?? { icon: 'file' as IconName, color: 'var(--ink3)', bg: 'var(--bg)' };
 }
 
 function getPageNums(cur: number, total: number): (number | '…')[] {
@@ -163,12 +263,22 @@ function ViewField({ label, value, mono }: { label: string; value?: string | nul
   );
 }
 
-/* ── Stat chip used in hero ── */
-function HeroStat({ label, value }: { label: string; value: string | number }) {
+/* ── Stat chip used in hero — an icon-square + value/label pair, matching
+   the KPI card language used on the Overview tab, so a profile fact reads
+   as data rather than a bare label-over-number. A missing profile field
+   (Preferred Port, Freight Terms, TIN — all optional) shows a muted italic
+   "Not set" instead of a bare "—", which used to read like a rendering bug
+   rather than an honestly-empty optional field. ── */
+function HeroStat({ icon, label, value, color, bg, muted }: { icon: IconName; label: string; value: string | number; color: string; bg: string; muted?: boolean }) {
   return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--navy)', lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 3 }}>{label}</div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ width: 34, height: 34, borderRadius: 9, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Icon name={icon} size={16} color={color} strokeWidth={1.75} />
+      </div>
+      <div>
+        <div style={{ fontSize: 14.5, fontWeight: 800, color: muted ? 'var(--ink3)' : 'var(--navy)', fontStyle: muted ? 'italic' : 'normal', lineHeight: 1.15 }}>{value}</div>
+        <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 2 }}>{label}</div>
+      </div>
     </div>
   );
 }
@@ -204,6 +314,7 @@ export const Customers: React.FC = () => {
   const [editMode, setEditMode]   = useState(false);
   const [form, setForm]           = useState<Partial<Customer>>({});
   const [saving, setSaving]       = useState(false);
+  const [sendingClaimCode, setSendingClaimCode] = useState(false);
 
   /* Shipments */
   const [custShipments, setCustShipments] = useState<any[]>([]);
@@ -226,9 +337,17 @@ export const Customers: React.FC = () => {
   const [custSealLots, setCustSealLots] = useState<any[]>([]);
   const [sealLoading, setSealLoading] = useState(false);
 
-  /* Documents */
-  const [custDocuments, setCustDocuments] = useState<any[]>([]);
-  const [docsLoading, setDocsLoading] = useState(false);
+  /* Documents — files linked in from Drive (cloud_files, tagged
+     entity_type='customer'), not a separate upload silo. */
+  const [linkedFiles, setLinkedFiles] = useState<any[]>([]);
+  const [filesLoading, setFilesLoading] = useState(false);
+  const [defaultDriveId, setDefaultDriveId] = useState<string | null>(null);
+  const [fileUploading, setFileUploading] = useState(false);
+  const [showLinkFileModal, setShowLinkFileModal] = useState(false);
+  const [fileSearch, setFileSearch] = useState('');
+  const [fileSearchResults, setFileSearchResults] = useState<any[]>([]);
+  const [fileSearching, setFileSearching] = useState(false);
+  const [fileLinking, setFileLinking] = useState<string | null>(null);
 
   /* Contacts */
   const [showAddContact, setShowAddContact] = useState(false);
@@ -259,11 +378,20 @@ export const Customers: React.FC = () => {
 
   useEffect(() => { loadCustomers(); }, [loadCustomers]);
 
-  /* Auto-open customer when navigated from Support with ?id= */
+  /* Auto-open customer when navigated from Support with ?id= — and, when
+     the link also carries ?tab=/&financeTab=, land straight on that tab
+     (e.g. Aged Receivables' "View Statement" opens finance/statement
+     directly) rather than always resetting to Overview the way a plain
+     openProfile() does when a row is clicked from the list. */
   useEffect(() => {
     if (!deepLinkId || !customers.length) return;
     const match = customers.find(c => c.id === deepLinkId);
-    if (match && !selected) openProfile(match);
+    if (!match || selected) return;
+    openProfile(match);
+    const tab = searchParams.get('tab');
+    const finTab = searchParams.get('financeTab');
+    if (tab) setMainTab(tab);
+    if (finTab) setFinanceTab(finTab);
   }, [deepLinkId, customers]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openProfile = (c: Customer) => {
@@ -330,17 +458,90 @@ export const Customers: React.FC = () => {
     if (selected && mainTab === 'seal') loadSealLots(selected.id);
   }, [selected, mainTab, loadSealLots]);
 
-  const loadDocuments = useCallback(async (customerId: string) => {
-    setDocsLoading(true);
+  const loadLinkedFiles = useCallback(async (customerId: string) => {
+    setFilesLoading(true);
     try {
-      const res = await apiFetch(`/v1/customers/${customerId}/documents`).catch(() => ({ data: [] }));
-      setCustDocuments(Array.isArray(res?.data) ? res.data : []);
-    } catch { /* empty */ } finally { setDocsLoading(false); }
+      const res = await apiFetch(`/v1/files?entity_type=customer&entity_id=${customerId}`).catch(() => []);
+      setLinkedFiles(Array.isArray(res) ? res : []);
+    } catch { /* empty */ } finally { setFilesLoading(false); }
   }, []);
 
   useEffect(() => {
-    if (selected && mainTab === 'documents') loadDocuments(selected.id);
-  }, [selected, mainTab, loadDocuments]);
+    if (selected && mainTab === 'documents') loadLinkedFiles(selected.id);
+  }, [selected, mainTab, loadLinkedFiles]);
+
+  // The tenant's default drive to upload straight-from-this-page files into —
+  // fetched once per profile visit, lazily, the first time it's actually
+  // needed (Drive auto-creates "My Drive" on first GET if none exist yet).
+  const ensureDefaultDrive = useCallback(async () => {
+    if (defaultDriveId) return defaultDriveId;
+    const drives = await apiFetch('/v1/drives').catch(() => []);
+    const id = Array.isArray(drives) && drives.length ? drives[0].id : null;
+    setDefaultDriveId(id);
+    return id;
+  }, [defaultDriveId]);
+
+  // Debounced search across the tenant's Drive files, for the "Link existing
+  // file" picker — mirrors EntityPicker's search(q) shape without pulling in
+  // its combobox chrome, since this needs a multi-select list, not a field.
+  useEffect(() => {
+    if (!showLinkFileModal) return;
+    const q = fileSearch.trim();
+    if (!q) { setFileSearchResults([]); return; }
+    setFileSearching(true);
+    const t = setTimeout(() => {
+      apiFetch(`/v1/files?q=${encodeURIComponent(q)}`)
+        .then((res: any) => setFileSearchResults(Array.isArray(res) ? res : []))
+        .catch(() => setFileSearchResults([]))
+        .finally(() => setFileSearching(false));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [fileSearch, showLinkFileModal]);
+
+  async function linkExistingFile(fileId: string) {
+    if (!selected) return;
+    setFileLinking(fileId);
+    try {
+      await apiFetch(`/v1/files/${fileId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ entity_type: 'customer', entity_id: selected.id }),
+      });
+      await loadLinkedFiles(selected.id);
+      setShowLinkFileModal(false);
+      setFileSearch('');
+      setFileSearchResults([]);
+    } catch (err: any) { showAlert(err.message || 'Failed to link file'); } finally { setFileLinking(null); }
+  }
+
+  async function unlinkFile(fileId: string, name: string) {
+    if (!selected) return;
+    if (!(await showConfirm(`Remove "${name}" from this customer? The file stays in Drive.`, { confirmLabel: 'Remove' }))) return;
+    try {
+      await apiFetch(`/v1/files/${fileId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ entity_type: null, entity_id: null }),
+      });
+      setLinkedFiles(prev => prev.filter(f => f.id !== fileId));
+    } catch (err: any) { showAlert(err.message || 'Failed to remove file'); }
+  }
+
+  async function uploadFilesToDrive(files: File[]) {
+    if (!selected || !files.length) return;
+    setFileUploading(true);
+    try {
+      const driveId = await ensureDefaultDrive();
+      if (!driveId) throw new Error('No Drive available to upload into');
+      for (const f of files) {
+        const fd = new FormData();
+        fd.append('file', f);
+        await apiFetch(`/v1/files/upload?drive_id=${driveId}&entity_type=customer&entity_id=${selected.id}`, {
+          method: 'POST', body: fd,
+        });
+      }
+      showAlert(`${files.length} file(s) uploaded to Drive`, { variant: 'success' });
+      await loadLinkedFiles(selected.id);
+    } catch (err: any) { showAlert(err.message || 'Upload failed'); } finally { setFileUploading(false); }
+  }
 
   useEffect(() => {
     if (selected) setNotes(selected.notes || '');
@@ -387,6 +588,7 @@ export const Customers: React.FC = () => {
           freight_terms: form.freight_terms, commodity_type: form.commodity_type,
           credit_days: form.credit_days ? Number(form.credit_days) : null, client_type: form.client_type,
           currency: form.currency, tancis_number: form.tancis_number,
+          organization_id: form.organization_id || null,
         }),
       });
       setSelected(prev => prev ? { ...prev, ...form } : prev);
@@ -394,6 +596,30 @@ export const Customers: React.FC = () => {
       setEditMode(false);
     } catch (err: any) { showAlert(err.message || 'Save failed'); } finally { setSaving(false); }
   };
+
+  async function handleSendClaimCode() {
+    if (!selected || sendingClaimCode) return;
+    setSendingClaimCode(true);
+    try {
+      const res = await apiFetch(`/v1/customers/${selected.id}/claim-code`, { method: 'POST' });
+      const sentTo = [res.sent_to?.email, res.sent_to?.phone_wa].filter(Boolean);
+      showAlert(
+        `Code: ${res.token}`,
+        {
+          title: 'Claim code sent',
+          variant: 'success',
+          items: [
+            sentTo.length ? `Sent to ${sentTo.join(' and ')}` : 'No email/WhatsApp on file — share the code above directly.',
+            'Valid for 7 days, single use — enter it under "Link an Agent" in the organization portal.',
+          ],
+        },
+      );
+    } catch (err: any) {
+      showAlert(err.message || 'Could not send a claim code');
+    } finally {
+      setSendingClaimCode(false);
+    }
+  }
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -906,7 +1132,14 @@ export const Customers: React.FC = () => {
       if (!editMode) {
         return (
           <div style={{ padding: '24px 28px' }}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 20 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 20 }}>
+              {!sel.organization_name && (
+                <button type="button" onClick={handleSendClaimCode} disabled={sendingClaimCode}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: sendingClaimCode ? 'default' : 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}
+                  title="Send a one-time code this customer can enter in their own organization portal to self-link, instead of picking an Organization here yourself.">
+                  <Icon name="link" size={14} strokeWidth={1.75} /> {sendingClaimCode ? 'Sending…' : 'Send Claim Code'}
+                </button>
+              )}
               <button type="button" onClick={() => setEditMode(true)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25}}>
                 <Icon name="edit" size={14} strokeWidth={1.75} /> Edit Profile
               </button>
@@ -923,6 +1156,7 @@ export const Customers: React.FC = () => {
                 <ViewField label="Client Type" value={sel.client_type} />
                 <ViewField label="Currency" value={sel.currency || 'TZS'} />
                 <ViewField label="Credit Terms" value={sel.credit_days ? `Net ${sel.credit_days} days` : 'Cash on Delivery'} />
+                <ViewField label="Linked Organization" value={sel.organization_name} />
               </div>
             </Section>
 
@@ -1003,6 +1237,23 @@ export const Customers: React.FC = () => {
                       <SelectItem value="60">Net 60 days</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="prof-field full">
+                  <EntityPicker
+                    label="Linked Organization"
+                    value={form.organization_id ? { id: form.organization_id, label: form.organization_name || 'Linked organization' } : null}
+                    onChange={item => setForm(p => ({ ...p, organization_id: item?.id, organization_name: item?.label }))}
+                    search={async q => {
+                      const res = await apiFetch(`/v1/organizations?q=${encodeURIComponent(q)}`).catch(() => []);
+                      return (Array.isArray(res) ? res : []).map((o: any) => ({ id: o.id, label: o.name, sublabel: o.tax_id ? `TIN ${o.tax_id}` : undefined }));
+                    }}
+                    onCreate={async name => {
+                      const created = await apiFetch('/v1/organizations', { method: 'POST', body: JSON.stringify({ name }) });
+                      return { id: created.id, label: created.name };
+                    }}
+                    placeholder="Search or create an organization…"
+                    hint="Links this customer to one shared identity across every tenant serving them — for a company also served by another clearing agent on Hudumika."
+                  />
                 </div>
               </div>
             </Section>
@@ -1305,8 +1556,30 @@ export const Customers: React.FC = () => {
           )}
 
           {/* Statement */}
-          {financeTab === 'statement' && (
+          {financeTab === 'statement' && (() => {
+            // Balance is computed chronologically (oldest first) regardless
+            // of display order, so each row's figure is the true running
+            // balance at that point — then displayed newest-first, matching
+            // every other list on this tab, with the balance already baked
+            // into each row rather than recomputed for the reversed order.
+            const chronological = [
+              ...custInvoices.map((i: any) => ({ type: 'invoice' as const, date: i.bill_date, ref: i.invoice_number || `INV-${i.id?.slice(-5)}`, amount: invoiceTotals(mapApiInvoice(i)).grandTotalTZS, debit: true })),
+              ...custPayments.map((p: any) => ({ type: 'payment' as const, date: p.payment_date, ref: p.invoice_number || `PAY-${p.id?.slice(-5)}`, amount: parseFloat(p.amount ?? 0), debit: false })),
+            ].sort((a, b) => new Date(a.date || 0).getTime() - new Date(b.date || 0).getTime());
+            let bal = 0;
+            const withBalance = chronological.map(tx => { bal += tx.debit ? tx.amount : -tx.amount; return { ...tx, balance: bal }; });
+            const transactions = [...withBalance].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime());
+
+            return (
             <div style={{ padding: '24px 28px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>Statement of Account</div>
+                <button type="button" className="btn btn-secondary btn-sm"
+                  disabled={transactions.length === 0}
+                  onClick={() => selected && openStatementPrintWindow(selected, transactions, { totalInvoiced, totalPaid, outstanding })}>
+                  <Icon name="printer" size={13} /> Print Statement
+                </button>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 24 }}>
                 {[
                   { label: 'Total Invoiced', value: totalInvoiced, color: 'var(--navy)' },
@@ -1320,15 +1593,12 @@ export const Customers: React.FC = () => {
                   </div>
                 ))}
               </div>
-              {custInvoices.length === 0 && custPayments.length === 0 ? (
+              {transactions.length === 0 ? (
                 <EmptyState icon="barChart" title="No financial activity" sub="Invoices and payments will build your statement" />
               ) : (
                 <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
                   <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', fontSize: 12, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Transaction History</div>
-                  {[
-                    ...custInvoices.map((i: any) => ({ type: 'invoice', date: i.bill_date, ref: i.invoice_number || `INV-${i.id?.slice(-5)}`, amount: invoiceTotals(mapApiInvoice(i)).grandTotalTZS, debit: true })),
-                    ...custPayments.map((p: any) => ({ type: 'payment', date: p.payment_date, ref: p.invoice_number || `PAY-${p.id?.slice(-5)}`, amount: parseFloat(p.amount ?? 0), debit: false })),
-                  ].sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()).map((tx, i) => (
+                  {transactions.map((tx, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '12px 20px', borderBottom: '1px solid var(--border)', gap: 14 }}>
                       <div style={{ width: 32, height: 32, borderRadius: 8, background: tx.debit ? 'var(--red-l)' : 'var(--green-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <Icon name={tx.debit ? 'fileText' : 'creditCard'} size={14} color={tx.debit ? 'var(--red)' : 'var(--green)'} strokeWidth={1.75} />
@@ -1338,13 +1608,15 @@ export const Customers: React.FC = () => {
                         <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 1, textTransform: 'capitalize' }}>{tx.type}</div>
                       </div>
                       <span style={{ fontSize: 12, color: 'var(--ink3)' }}>{tx.date ? new Date(tx.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</span>
-                      <span style={{ fontSize: 14, fontWeight: 700, fontFamily: 'var(--mono)', color: tx.debit ? 'var(--red)' : 'var(--green)' }}>{tx.debit ? '-' : '+'}{tx.amount.toLocaleString()}</span>
+                      <span style={{ fontSize: 14, fontWeight: 700, fontFamily: 'var(--mono)', color: tx.debit ? 'var(--red)' : 'var(--green)', width: 130, textAlign: 'right' }}>{tx.debit ? '-' : '+'}{tx.amount.toLocaleString()}</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'var(--mono)', color: tx.balance >= 0 ? 'var(--ink)' : 'var(--red)', width: 130, textAlign: 'right' }}>{tx.balance.toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {/* Expenses */}
           {financeTab === 'expenses' && (
@@ -1582,34 +1854,43 @@ export const Customers: React.FC = () => {
       );
     }
 
-    /* ── Documents ── */
+    /* ── Documents — a filtered view into Drive, not a separate store.
+       Files live in cloud_files (tagged entity_type='customer'), so
+       "Upload" lands a new file straight in Drive, and "Link existing
+       file" tags a file the user already has sitting in Drive. ── */
     if (mainTab === 'documents') {
       return (
         <div style={{ padding: '24px 28px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Documents</span>
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 9, background: 'var(--teal)', color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
-              <Icon name="upload" size={13} strokeWidth={2} />
-              Upload File
-              <input type="file" multiple style={{ display: 'none' }}
-                onChange={async e => {
-                  const files = Array.from(e.target.files || []);
-                  if (!files.length) return;
-                  const fd = new FormData();
-                  files.forEach(f => fd.append('files', f));
-                  try {
-                    await apiFetch(`/v1/customers/${sel.id}/documents`, { method: 'POST', body: fd });
-                    showAlert(`${files.length} file(s) uploaded`);
-                    loadDocuments(sel.id);
-                  } catch (err: any) { showAlert(err.message || 'Upload failed'); }
-                  e.target.value = '';
-                }} />
-            </label>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+            <div>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--navy)' }}>Documents</span>
+              <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Files linked from Drive — the same storage as the Drive app, filtered to this customer.</div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+              <Link to="/cloud" target="_blank" rel="noreferrer"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font)', textDecoration: 'none' }}>
+                <Icon name="externalLink" size={13} /> Open Drive
+              </Link>
+              <button type="button" onClick={() => setShowLinkFileModal(true)}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+                <Icon name="link" size={13} /> Link Existing File
+              </button>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 14px', border: '1.5px solid var(--teal)', borderRadius: 9, background: fileUploading ? 'var(--ink3)' : 'var(--teal)', borderColor: fileUploading ? 'var(--ink3)' : 'var(--teal)', color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: fileUploading ? 'default' : 'pointer', fontFamily: 'var(--font)' }}>
+                <Icon name="upload" size={13} strokeWidth={2} />
+                {fileUploading ? 'Uploading…' : 'Upload to Drive'}
+                <input type="file" multiple disabled={fileUploading} style={{ display: 'none' }}
+                  onChange={async e => {
+                    const files = Array.from(e.target.files || []);
+                    e.target.value = '';
+                    if (files.length) await uploadFilesToDrive(files);
+                  }} />
+              </label>
+            </div>
           </div>
 
           {/* Drop zone */}
           <div
-            style={{ border: '2px dashed var(--border)', borderRadius: 9, padding: '40px 24px', textAlign: 'center', color: 'var(--ink3)', marginBottom: 18, background: 'var(--bg)' }}
+            style={{ border: '2px dashed var(--border)', borderRadius: 9, padding: '28px 24px', textAlign: 'center', color: 'var(--ink3)', margin: '18px 0', background: 'var(--bg)' }}
             onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--teal)'; e.currentTarget.style.background = 'var(--teal-l)'; }}
             onDragLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg)'; }}
             onDrop={async e => {
@@ -1617,50 +1898,95 @@ export const Customers: React.FC = () => {
               e.currentTarget.style.borderColor = 'var(--border)';
               e.currentTarget.style.background = 'var(--bg)';
               const files = Array.from(e.dataTransfer.files);
-              if (!files.length) return;
-              const fd = new FormData();
-              files.forEach(f => fd.append('files', f));
-              try {
-                await apiFetch(`/v1/customers/${sel.id}/documents`, { method: 'POST', body: fd });
-                showAlert(`${files.length} file(s) uploaded`);
-                loadDocuments(sel.id);
-              } catch (err: any) { showAlert(err.message || 'Upload failed'); }
+              if (files.length) await uploadFilesToDrive(files);
             }}>
-            <Icon name="upload" size={28} strokeWidth={1.25} />
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink2)', marginTop: 10 }}>Drop files here to upload</div>
-            <div style={{ fontSize: 12, marginTop: 4 }}>PDF, DOCX, XLSX, images — any file type accepted</div>
+            <Icon name="upload" size={24} strokeWidth={1.25} />
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink2)', marginTop: 8 }}>Drop files here to upload straight into Drive</div>
+            <div style={{ fontSize: 11.5, marginTop: 3 }}>Linked to {sel.name} automatically</div>
           </div>
 
-          {docsLoading && <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading documents…</div>}
-          {!docsLoading && custDocuments.length === 0 && (
-            <EmptyState icon="folder" title="No documents yet" sub="Uploaded documents for this customer will appear here" />
+          {filesLoading && <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 13 }}>Loading documents…</div>}
+          {!filesLoading && linkedFiles.length === 0 && (
+            <EmptyState icon="folder" title="No documents linked yet" sub="Upload a new file or link one already sitting in Drive" />
           )}
-          {!docsLoading && custDocuments.length > 0 && (
+          {!filesLoading && linkedFiles.length > 0 && (
             <div style={{ background: 'var(--white)', borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
-              {custDocuments.map((d: any, i: number) => (
-                <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < custDocuments.length - 1 ? '1px solid var(--bg)' : 'none' }}>
-                  <Icon name="fileText" size={18} color="var(--ink3)" />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.filename}</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
-                      {(d.size / 1024).toFixed(1)} KB · {new Date(d.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+              {linkedFiles.map((f: any, i: number) => {
+                const ft = fileTypeStyle(f.type);
+                return (
+                  <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 18px', borderBottom: i < linkedFiles.length - 1 ? '1px solid var(--bg)' : 'none' }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon name={ft.icon} size={16} color={ft.color} strokeWidth={1.75} />
                     </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink3)' }}>
+                        {f.size != null ? `${(f.size / 1024).toFixed(1)} KB · ` : ''}{new Date(f.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} · {f.owner_name}
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => apiDownload(`/v1/files/${f.id}/download`, f.name).catch((err: any) => showAlert(err.message || 'Download failed'))}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                      <Icon name="download" size={13} /> Download
+                    </button>
+                    <button type="button" onClick={() => unlinkFile(f.id, f.name)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--ink3)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}
+                      title="Remove from this customer (file stays in Drive)">
+                      <Icon name="x" size={13} />
+                    </button>
                   </div>
-                  <button type="button" onClick={() => apiDownload(`/v1/customers/${sel.id}/documents/${d.id}/download`, d.filename).catch((err: any) => showAlert(err.message || 'Download failed'))}
-                    style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--teal)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                    <Icon name="download" size={13} /> Download
-                  </button>
-                  <button type="button" onClick={async () => {
-                    if (!(await showConfirm(`Delete "${d.filename}"?`, { confirmLabel: 'Delete' }))) return;
-                    try {
-                      await apiFetch(`/v1/customers/${sel.id}/documents/${d.id}`, { method: 'DELETE' });
-                      setCustDocuments(prev => prev.filter(x => x.id !== d.id));
-                    } catch (err: any) { showAlert(err.message || 'Delete failed'); }
-                  }} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'none', border: 'none', color: 'var(--red, #dc2626)', fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 'var(--ds-btn-py-xs) 8px', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
-                    <Icon name="trash" size={13} />
-                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Link existing file modal */}
+          {showLinkFileModal && (
+            <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) { setShowLinkFileModal(false); setFileSearch(''); setFileSearchResults([]); } }}>
+              <div className="card" style={{ width: '90%', maxWidth: 480, padding: 24, borderRadius: 9, boxShadow: 'var(--shadow-lg)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <h2 style={{ fontSize: 15, fontWeight: 700, color: 'var(--navy)', margin: 0 }}>Link a file from Drive</h2>
+                  <button type="button" className="dp-close" aria-label="Close" onClick={() => { setShowLinkFileModal(false); setFileSearch(''); setFileSearchResults([]); }}>×</button>
                 </div>
-              ))}
+                <div style={{ position: 'relative', marginBottom: 12 }}>
+                  <Icon name="search" size={14} color="var(--ink3)" style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }} />
+                  <input type="text" className="input-field" placeholder="Search files by name…" autoFocus
+                    style={{ paddingLeft: 32 }}
+                    value={fileSearch} onChange={e => setFileSearch(e.target.value)} />
+                </div>
+                <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+                  {fileSearching && <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Searching…</div>}
+                  {!fileSearching && fileSearch.trim() && fileSearchResults.length === 0 && (
+                    <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>No matching files in Drive</div>
+                  )}
+                  {!fileSearching && !fileSearch.trim() && (
+                    <div style={{ padding: '20px 0', textAlign: 'center', color: 'var(--ink3)', fontSize: 12.5 }}>Type to search every file in your Drive</div>
+                  )}
+                  {fileSearchResults.map(f => {
+                    const ft = fileTypeStyle(f.type);
+                    const alreadyLinked = f.entity_type === 'customer' && f.entity_id === sel.id;
+                    return (
+                      <button key={f.id} type="button" disabled={alreadyLinked || fileLinking === f.id}
+                        onClick={() => linkExistingFile(f.id)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '9px 8px', border: 'none', borderRadius: 8, background: 'none', cursor: alreadyLinked ? 'default' : 'pointer', fontFamily: 'var(--font)' }}
+                        onMouseEnter={e => { if (!alreadyLinked) e.currentTarget.style.background = 'var(--bg)'; }}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
+                        <div style={{ width: 28, height: 28, borderRadius: 7, background: ft.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <Icon name={ft.icon} size={14} color={ft.color} strokeWidth={1.75} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
+                          <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{f.size != null ? `${(f.size / 1024).toFixed(1)} KB` : ''}</div>
+                        </div>
+                        {alreadyLinked
+                          ? <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--green)' }}>Linked</span>
+                          : fileLinking === f.id
+                            ? <span style={{ fontSize: 11, color: 'var(--ink3)' }}>Linking…</span>
+                            : <Icon name="link" size={13} color="var(--teal)" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -1703,16 +2029,12 @@ export const Customers: React.FC = () => {
               </div>
 
               {/* Stats row */}
-              <div style={{ display: 'flex', gap: 28, paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
-                <HeroStat label="Shipments" value={shipCount || 0} />
-                <div style={{ width: 1, background: 'var(--border)' }} />
-                <HeroStat label="Preferred Port" value={sel.preferred_port || '—'} />
-                <div style={{ width: 1, background: 'var(--border)' }} />
-                <HeroStat label="Freight Terms" value={sel.freight_terms || '—'} />
-                <div style={{ width: 1, background: 'var(--border)' }} />
-                <HeroStat label="Credit Terms" value={sel.credit_days ? `Net ${sel.credit_days}d` : 'COD'} />
-                <div style={{ width: 1, background: 'var(--border)' }} />
-                <HeroStat label="TIN" value={maskTin(sel.tax_id) || '—'} />
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', paddingBottom: 20, borderBottom: '1px solid var(--border)' }}>
+                <HeroStat icon="ship" label="Shipments" value={shipCount || 0} color="var(--blue)" bg="var(--blue-l)" />
+                <HeroStat icon="anchor" label="Preferred Port" value={sel.preferred_port || 'Not set'} muted={!sel.preferred_port} color="var(--teal)" bg="var(--teal-l)" />
+                <HeroStat icon="truck" label="Freight Terms" value={sel.freight_terms || 'Not set'} muted={!sel.freight_terms} color="var(--gold)" bg="var(--gold-l)" />
+                <HeroStat icon="creditCard" label="Credit Terms" value={sel.credit_days ? `Net ${sel.credit_days}d` : 'COD'} color="var(--green)" bg="var(--green-l)" />
+                <HeroStat icon="shield" label="TIN" value={maskTin(sel.tax_id) || 'Not set'} muted={!sel.tax_id} color="var(--purple)" bg="var(--purple-l)" />
               </div>
             </div>
 

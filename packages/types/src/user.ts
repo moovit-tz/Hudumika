@@ -55,7 +55,14 @@ export type UserRole =
   | 'SALES'          // Sales officer — leads, quotations, customers
   | 'SENIOR'         // Senior clearing officer — all cases, limited metrics
   | 'JUNIOR'         // Junior clearing officer — assigned cases, escalates up
-  | 'CUSTOMER'       // Customer portal — own consignments only
+  | 'CUSTOMER'       // Customer portal — own consignments only, one tenant
+  | 'ORG'            // Organization portal — same real-world company tracked
+                      // across every tenant that has linked a customer record
+                      // to it. Structurally different from CUSTOMER: no
+                      // tenant_id claim at all: see customer-identity vs
+                      // organizations.routes.ts. Locked to an explicit route
+                      // allowlist in middleware/auth.ts, not free to browse
+                      // the rest of the API the way other roles are.
   // Legacy aliases kept for backward compatibility
   | 'TENANT_ADMIN'   // @deprecated — treated as ADMIN
   | 'OFFICER';       // @deprecated — treated as JUNIOR
@@ -248,4 +255,64 @@ export interface JWTPayload {
   iat: number;
   exp: number;
   device_id?: string;   // hr_devices.id created at sign-in — lets a specific session be revoked (see hr_devices.revoked_at)
+  // Set only by /auth/impersonate and /auth/impersonate-customer — the real
+  // SUPER_ADMIN users.id (and a name snapshot, so audit/UI never need a join
+  // back to a possibly-deleted user) behind a session whose role/tenant_id
+  // claims belong to whoever is being impersonated. Absent on every normal
+  // login. See isPlatformSuperAdmin() in middleware/rbac.ts.
+  impersonated_by?: string;
+  impersonated_by_name?: string;
+}
+
+// ── Organization (platform-level identity, spans tenants) ──────
+
+/** Login credentials for `POST /auth/org-login`. A separate table
+ *  (organization_users) and endpoint from staff/customer login — see
+ *  migration 230 and auth.routes.ts. */
+export interface OrgLoginInput {
+  email: string;
+  password: string;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+  email?: string;
+  tax_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Client-safe shape of an organization_users row. No tenant_id — an
+ *  Organization is a peer of `tenants`, not scoped to one. */
+export interface SafeOrgUser {
+  id: string;
+  org_id: string;
+  email: string;
+  name: string;
+  active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrgAuthTokens {
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  user: SafeOrgUser;
+}
+
+/** JWT claims for an 'ORG'-role login. Structurally different from
+ *  JWTPayload: no tenant_id at all, and no device_id (V1 has no
+ *  per-device "sign out" support for org logins). middleware/auth.ts locks
+ *  this role to an explicit route allowlist rather than trusting every
+ *  route file to reject an unfamiliar shape on its own. */
+export interface OrgJWTPayload {
+  sub: string;          // organization_users.id
+  org_id: string;
+  role: 'ORG';
+  email: string;
+  name: string;
+  iat: number;
+  exp: number;
 }

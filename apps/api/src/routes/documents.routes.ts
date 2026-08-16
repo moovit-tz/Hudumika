@@ -105,7 +105,7 @@ export async function documentRoutes(fastify: FastifyInstance) {
         // Mirror the document into the Cloud file manager under
         // Customers ▸ <customer> ▸ <BL>, so it turns up in Drive automatically.
         CloudSync.syncShipmentDoc(user.tenant_id, {
-          customerId: shipment.customer_id, blRef: folderName, filename: data.filename, buffer: fileBuffer, mime: data.mimetype,
+          customerId: shipment.customer_id, shipmentId: id, blRef: folderName, filename: data.filename, buffer: fileBuffer, mime: data.mimetype,
         }).catch(err => console.error('[Cloud] shipment doc sync failed:', err.message));
 
         NotificationService.triggerNotification(user.tenant_id, id, 'DOCUMENT_UPLOADED', { docType }).catch(console.error);

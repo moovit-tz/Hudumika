@@ -26,6 +26,7 @@ import { SealEquipment } from '../pages/SealEquipment.js';
 import { SealAutomation } from '../pages/SealAutomation.js';
 import { SealFulfillment } from '../pages/SealFulfillment.js';
 import { SealFulfillmentDetail } from '../pages/SealFulfillmentDetail.js';
+import { SealDispatchRequests } from '../pages/SealDispatchRequests.js';
 import { SealSortingDashboard } from '../pages/SealSortingDashboard.js';
 import { SealCompartmentSwitcher } from '../components/SealCompartmentSwitcher.js';
 import { SealExWarehouseEntries } from '../pages/seal/SealExWarehouseEntries.js';
@@ -91,6 +92,7 @@ const NAV: SidebarSection[] = [
       { label: 'Equipment', icon: 'tool', path: '/seal/equipment' },
       { label: 'Automation', icon: 'zap', path: '/seal/automation' },
       { label: 'Fulfillment', icon: 'truck', path: '/seal/fulfillment' },
+      { label: 'Dispatch Requests', icon: 'link', path: '/seal/dispatch-requests' },
     ],
   },
 ];
@@ -137,6 +139,7 @@ export function SealShell() {
                 <Route path="automation"        element={<SealAutomation />}         />
                 <Route path="fulfillment"       element={<SealFulfillment />}        />
                 <Route path="fulfillment/:id"   element={<SealFulfillmentDetail />}  />
+                <Route path="dispatch-requests" element={<SealDispatchRequests />}   />
               </Route>
             </Routes>
           </div>

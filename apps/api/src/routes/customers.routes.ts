@@ -1,8 +1,11 @@
 import type { FastifyInstance } from 'fastify';
+import crypto from 'crypto';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
+import { EmailIntegration } from '../integrations/email.js';
+import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import type { CreateCustomerInput, CustomerAnalytics } from '@hudumika/types';
 import { parse } from 'csv-parse/sync';
 
@@ -57,13 +60,18 @@ export async function customerRoutes(fastify: FastifyInstance) {
       // regardless of the SET LOCAL app.tenant_id session variable.
       const list = await trx
         .selectFrom('customers')
-        .selectAll()
-        .where('tenant_id', '=', user.tenant_id)
+        // organizations has no tenant_id (platform-level, migration 230) and
+        // no RLS — a plain left join, just for the display name of whichever
+        // org this customer has been linked to, if any.
+        .leftJoin('organizations', 'organizations.id', 'customers.organization_id')
+        .selectAll('customers')
+        .select(['organizations.name as organization_name'])
+        .where('customers.tenant_id', '=', user.tenant_id)
         // Symmetrical with /partners. Filtering only one side left a
         // partner-only company still showing up as a customer, which is half
         // the bug this was meant to fix.
-        .where('is_customer', '=', true)
-        .orderBy('name', 'asc')
+        .where('customers.is_customer', '=', true)
+        .orderBy('customers.name', 'asc')
         .execute();
       return { data: list };
     });
@@ -139,7 +147,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
       // Create the customer's root folder in file storage
       MinioIntegration.ensureCustomerFolder(user.tenant_id, customer.id, customer.name);
       // …and a matching folder in the Cloud file manager (Drive app), best-effort.
-      CloudSync.ensureCustomerFolder(user.tenant_id, customer.name).catch(err => console.error('[Cloud] customer folder failed:', err.message));
+      CloudSync.ensureCustomerFolder(user.tenant_id, customer.id, customer.name).catch(err => console.error('[Cloud] customer folder failed:', err.message));
 
       // 201 Created — was 211, which is not a registered HTTP status.
       reply.status(201);
@@ -210,98 +218,6 @@ export async function customerRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * GET /v1/customers/:id/documents
-   */
-  fastify.get('/:id/documents', async (request) => {
-    const user = request.user;
-    const { id } = request.params as { id: string };
-    return withTenant(user.tenant_id, async (trx) => {
-      const list = await trx.selectFrom('customer_documents')
-        .selectAll()
-        .where('customer_id', '=', id)
-        .where('tenant_id', '=', user.tenant_id)
-        .orderBy('created_at', 'desc')
-        .execute();
-      return { data: list };
-    });
-  });
-
-  /**
-   * POST /v1/customers/:id/documents
-   * Multipart, one or more files under the "files" field.
-   */
-  fastify.post('/:id/documents', async (request, reply) => {
-    const user = request.user;
-    const { id } = request.params as { id: string };
-
-    return withTenant(user.tenant_id, async (trx) => {
-      const customer = await trx.selectFrom('customers').select('id')
-        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
-      if (!customer) return reply.status(404).send({ error: 'Customer not found' });
-
-      const parts = request.files();
-      const inserted: any[] = [];
-      for await (const part of parts) {
-        const buf = await part.toBuffer();
-        const uploadRes = await MinioIntegration.uploadDocument(user.tenant_id, id, 'documents', part.filename, buf);
-        const doc = await trx.insertInto('customer_documents').values({
-          tenant_id: user.tenant_id,
-          customer_id: id,
-          filename: part.filename,
-          storage_key: uploadRes.storageKey,
-          size: uploadRes.size,
-          uploaded_by: user.sub,
-        }).returningAll().executeTakeFirstOrThrow();
-        inserted.push(doc);
-      }
-
-      if (inserted.length === 0) return reply.status(400).send({ error: 'No files uploaded' });
-      reply.status(201);
-      return { data: inserted };
-    });
-  });
-
-  /**
-   * GET /v1/customers/:id/documents/:docId/download
-   */
-  fastify.get('/:id/documents/:docId/download', async (request, reply) => {
-    const user = request.user;
-    const { id, docId } = request.params as { id: string; docId: string };
-    return withTenant(user.tenant_id, async (trx) => {
-      const doc = await trx.selectFrom('customer_documents').selectAll()
-        .where('id', '=', docId).where('customer_id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .executeTakeFirst();
-      if (!doc) return reply.status(404).send({ error: 'Document not found' });
-
-      const fileBuffer = MinioIntegration.readFile(doc.storage_key);
-      if (!fileBuffer) return reply.status(404).send({ error: 'File not found in storage' });
-
-      reply.header('Content-Type', 'application/octet-stream');
-      reply.header('Content-Disposition', `attachment; filename="${doc.filename}"`);
-      return reply.send(fileBuffer);
-    });
-  });
-
-  /**
-   * DELETE /v1/customers/:id/documents/:docId
-   */
-  fastify.delete('/:id/documents/:docId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
-    const user = request.user;
-    const { id, docId } = request.params as { id: string; docId: string };
-    return withTenant(user.tenant_id, async (trx) => {
-      const doc = await trx.selectFrom('customer_documents').selectAll()
-        .where('id', '=', docId).where('customer_id', '=', id).where('tenant_id', '=', user.tenant_id)
-        .executeTakeFirst();
-      if (!doc) return reply.status(404).send({ error: 'Document not found' });
-
-      await MinioIntegration.deleteDocument(user.tenant_id, doc.storage_key);
-      await trx.deleteFrom('customer_documents').where('id', '=', docId).execute();
-      reply.status(204);
-      return null;
-    });
-  });
-
-  /**
    * PATCH /v1/customers/:id
    * Update customer profile fields
    */
@@ -315,7 +231,8 @@ export async function customerRoutes(fastify: FastifyInstance) {
                      'notes', 'account_status', 'active', 'assigned_officer_id',
                      'registry_number', 'entity_type', 'registration_status', 'registered_address', 'incorporation_date',
                      'website', 'city', 'country', 'vat_number', 'import_license', 'preferred_port',
-                     'freight_terms', 'commodity_type', 'credit_days', 'client_type', 'currency', 'tancis_number'];
+                     'freight_terms', 'commodity_type', 'credit_days', 'client_type', 'currency', 'tancis_number',
+                     'organization_id'];
 
     const patch: Record<string, any> = { updated_at: new Date() };
     for (const key of allowed) {
@@ -344,6 +261,57 @@ export async function customerRoutes(fastify: FastifyInstance) {
 
       if (!updated) return reply.status(404).send({ error: 'Customer not found' });
       return updated;
+    });
+  });
+
+  /**
+   * POST /v1/customers/:id/claim-code
+   * Issues a one-time code an Organization can redeem (POST /v1/org/claim)
+   * to self-service-link itself to this customer record, instead of staff
+   * doing the linking directly. Sent only to this customer's own registered
+   * email/WhatsApp — never returned to, or enterable by, an org that hasn't
+   * already reached that address — so possession of the code is what proves
+   * the claim, the same trust model password-reset and staff-invite tokens
+   * already rely on elsewhere in this codebase.
+   */
+  fastify.post('/:id/claim-code', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'SALES') }, async (request, reply) => {
+    const user = request.user;
+    const { id } = request.params as { id: string };
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const customer = await trx.selectFrom('customers').select(['id', 'name', 'email', 'phone_wa'])
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!customer) return reply.status(404).send({ error: 'Customer not found' });
+      if (!customer.email && !customer.phone_wa) {
+        return reply.status(400).send({ error: 'This customer has no email or WhatsApp number on file to send a code to' });
+      }
+
+      const token = crypto.randomBytes(24).toString('hex');
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      await trx.insertInto('customer_claim_codes').values({
+        tenant_id: user.tenant_id, customer_id: id, token, issued_by: user.sub, expires_at: expiresAt,
+      }).execute();
+
+      if (customer.email) {
+        await EmailIntegration.sendEmail({
+          to: customer.email,
+          subject: 'Your Hudumika organization link code',
+          bodyHtml: `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
+            <p>Use this code to link <strong>${customer.name}</strong> to your organization's Hudumika account:</p>
+            <p style="font-size: 22px; font-weight: 700; letter-spacing: 2px;">${token}</p>
+            <p>Enter it under "Link an Agent" in your organization portal. This code expires in 7 days and can only be used once.</p>
+          </div>`,
+          tenantId: user.tenant_id,
+        }).catch(() => { /* claim code exists regardless; staff can read/share it manually below */ });
+      }
+      if (customer.phone_wa) {
+        await WhatsAppIntegration.sendMessage(
+          customer.phone_wa,
+          `Your Hudumika organization link code for ${customer.name}: ${token}\nEnter it under "Link an Agent" in your organization portal. Expires in 7 days, single use.`,
+        ).catch(() => {});
+      }
+
+      return { token, expires_at: expiresAt, sent_to: { email: customer.email || null, phone_wa: customer.phone_wa || null } };
     });
   });
 

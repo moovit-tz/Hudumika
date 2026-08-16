@@ -59,8 +59,16 @@ export async function settingsRoutes(fastify: FastifyInstance) {
       const row = await trx.selectFrom('tenant_settings').selectAll().where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
       const tenant = await trx.selectFrom('tenants')
-        .select(['id', 'slug', 'name', 'plan', 'active', 'logo_url', 'primary_color', 'created_at'])
-        .where('id', '=', user.tenant_id)
+        // organizations has no tenant_id (platform-level, migration 230) and
+        // no RLS — a plain left join, just for the display name of whichever
+        // org this tenant has self-declared as its own identity, if any.
+        .leftJoin('organizations', 'organizations.id', 'tenants.organization_id')
+        .select([
+          'tenants.id', 'tenants.slug', 'tenants.name', 'tenants.plan', 'tenants.active',
+          'tenants.logo_url', 'tenants.primary_color', 'tenants.created_at',
+          'tenants.organization_id', 'organizations.name as organization_name',
+        ])
+        .where('tenants.id', '=', user.tenant_id)
         .executeTakeFirst();
       const seatRow = await trx.selectFrom('users')
         .select(({ fn }) => fn.countAll<number>().as('count'))
@@ -214,6 +222,11 @@ export async function settingsRoutes(fastify: FastifyInstance) {
       const tenantUpdates: any = { updated_at: new Date() };
       if (co.name) tenantUpdates.name = co.name;
       if (co.logoUrl !== undefined) tenantUpdates.logo_url = co.logoUrl;
+      // Self-declared only — a tenant admin saying "our own company is this
+      // Organization" is describing themselves, not claiming to be someone
+      // else's customer (that's customers.organization_id, staff-linked only
+      // for exactly that reason — see organizations.routes.ts).
+      if (co.organizationId !== undefined) tenantUpdates.organization_id = co.organizationId || null;
       await trx.updateTable('tenants').set(tenantUpdates).where('id', '=', tenantId).execute();
     }
     if (updates.plan) {

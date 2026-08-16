@@ -49,42 +49,6 @@ const STATUS_CFG: Record<QuoteStatus, { label: string; color: string; bg: string
   EXPIRED:   { label: 'Expired',   color: 'var(--ink3)', bg: '#f3f4f6' },
 };
 
-/* ── Mock quotes for fallback ── */
-const MOCK_QUOTES: Quote[] = [
-  {
-    id: 'q1', quote_number: 'QTE-2026-0012', title: 'Sea Freight — 2×FCL 20ft Singapore',
-    customer_name: 'Karibu Traders Ltd', shipment_type: 'SEA',
-    origin_port: 'SINGAPORE', destination_port: 'DAR ES SALAAM',
-    subtotal: 4200000, tax_amount: 252000, total_amount: 4452000, currency: 'TZS',
-    status: 'PENDING', valid_until: '2026-07-05', created_at: '2026-06-15T08:00:00Z',
-    notes: 'Rates valid for FCL containers only. Subject to vessel space availability.',
-    terms: 'Payment due within 7 days of acceptance.',
-    lines: [
-      { id: 'l1', line_number: 1, description: 'Sea Freight — 20ft FCL', category: 'FREIGHT', quantity: 2, unit_price: 1200000, tax_rate: 0, line_total: 2400000 },
-      { id: 'l2', line_number: 2, description: 'Port Handling Fees',     category: 'HANDLING', quantity: 2, unit_price: 400000,  tax_rate: 0, line_total: 800000  },
-      { id: 'l3', line_number: 3, description: 'Customs Documentation',  category: 'CLEARING', quantity: 1, unit_price: 1000000, tax_rate: 0, line_total: 1000000 },
-    ],
-  },
-  {
-    id: 'q2', quote_number: 'QTE-2026-0009', title: 'Air Freight — Pharmaceuticals Nairobi',
-    customer_name: 'Karibu Traders Ltd', shipment_type: 'AIR',
-    origin_port: 'NAIROBI (NBO)', destination_port: 'DAR ES SALAAM (DAR)',
-    subtotal: 2800000, tax_amount: 504000, total_amount: 3304000, currency: 'TZS',
-    status: 'APPROVED', valid_until: '2026-06-28', created_at: '2026-06-10T10:00:00Z',
-    lines: [
-      { id: 'l1', line_number: 1, description: 'Air Freight — 350 kg',  category: 'FREIGHT', quantity: 350, unit_price: 4500, tax_rate: 0,  line_total: 1575000 },
-      { id: 'l2', line_number: 2, description: 'Customs Clearance',     category: 'CLEARING', quantity: 1,  unit_price: 1225000, tax_rate: 0,  line_total: 1225000 },
-    ],
-  },
-  {
-    id: 'q3', quote_number: 'QTE-2026-0005', title: 'Road Freight — Zambia via TAZARA',
-    customer_name: 'Karibu Traders Ltd', shipment_type: 'ROAD',
-    origin_port: 'DAR ES SALAAM', destination_port: 'LUSAKA, ZAMBIA',
-    subtotal: 6500000, tax_amount: 0, total_amount: 6500000, currency: 'TZS',
-    status: 'EXPIRED', valid_until: '2026-06-01', created_at: '2026-05-20T14:00:00Z',
-  },
-];
-
 /* ── helpers ── */
 function fmtAmt(n: number, currency = 'TZS') {
   if (currency === 'USD') return `$${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -423,15 +387,22 @@ function QuoteCard({ quote, onClick }: { quote: Quote; onClick: () => void }) {
 export const CustomerQuotations: React.FC = () => {
   const [quotes, setQuotes]     = useState<Quote[]>([]);
   const [loading, setLoading]   = useState(true);
+  // A failed fetch used to silently substitute mock quotes — a customer
+  // would see fabricated amounts and a fake client name in place of their
+  // real quotations. Same fix as CustomerInvoices.tsx: say the load failed
+  // and offer to retry, rather than showing invented data as if it were real.
+  const [loadError, setLoadError] = useState(false);
   const [selected, setSelected] = useState<Quote | null>(null);
   const [filter, setFilter]     = useState<'ALL' | QuoteStatus>('ALL');
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true); setLoadError(false);
     apiFetch('/v1/quotations')
       .then((data: any) => setQuotes(Array.isArray(data) ? data : (data.quotes ?? [])))
-      .catch(() => setQuotes(MOCK_QUOTES))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, []);
+  };
+  useEffect(() => { load(); }, []);
 
   // Update selected quote if the quotes list changes (after accept/reject)
   useEffect(() => {
@@ -488,6 +459,15 @@ export const CustomerQuotations: React.FC = () => {
           Array.from({ length: 3 }).map((_, i) => (
             <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, height: 120 }} />
           ))
+        ) : loadError ? (
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
+            <Icon name="alertCircle" size={36} color="var(--red)" />
+            <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your quotations</p>
+            <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
+            <button type="button" onClick={load} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+              Retry
+            </button>
+          </div>
         ) : filtered.length === 0 ? (
           <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
             <Icon name="clipboard" size={36} color="var(--ink3)" />

@@ -490,10 +490,15 @@ export const CommandCenter: React.FC = () => {
     ...(selectedMetric === 'pending' ? { pending: true } : {}),
   });
 
-  // Auto-refresh data every 15 seconds
+  // Auto-refresh data every 15 seconds. Silent: this used to call the same
+  // refresh() a filter change does, which set `loading`, which the render
+  // below turns into a full-page skeleton (line ~704) — so every 15s the
+  // whole board unmounted and remounted, dropping scroll position, open
+  // customer groups, and anything mid-interaction. The data still needs to
+  // stay fresh for a live ops board; only the disruptive remount was the bug.
   useEffect(() => {
     const timer = setInterval(() => {
-      refresh();
+      refresh({ silent: true });
     }, 15000);
     return () => clearInterval(timer);
   }, [refresh]);

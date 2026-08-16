@@ -23,6 +23,7 @@ interface AuthContextType {
   completeOnboarding: (res: OnboardingCompleteResponse) => void;
   logout: () => void;
   impersonate: (tenantId: string) => Promise<void>;
+  impersonateCustomer: (customerId: string) => Promise<void>;
   stopImpersonating: () => void;
   updateUser: (patch: Partial<SafeUser>) => void;
   loading: boolean;
@@ -204,6 +205,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.location.href = '/';
   };
 
+  const impersonateCustomer = async (customerId: string) => {
+    const res = await apiFetch('/auth/impersonate-customer', {
+      method: 'POST',
+      body: JSON.stringify({ customer_id: customerId }),
+    });
+    localStorage.setItem(KEYS.superToken, localStorage.getItem(KEYS.token)!);
+    localStorage.setItem(KEYS.superUser,  localStorage.getItem(KEYS.user)!);
+    localStorage.setItem(KEYS.token, res.access_token);
+    if (res.refresh_token) localStorage.setItem(KEYS.refresh, res.refresh_token);
+    localStorage.setItem(KEYS.user,  JSON.stringify(res.user));
+    setUser(res.user);
+    window.location.href = '/';
+  };
+
   const updateUser = (patch: Partial<SafeUser>) => {
     setUser(prev => {
       if (!prev) return prev;
@@ -217,15 +232,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedToken = localStorage.getItem(KEYS.superToken);
     const savedUser  = localStorage.getItem(KEYS.superUser);
     if (!savedToken || !savedUser) return;
+    // Read the impersonated identity before it's overwritten below, so the
+    // audit call (issued after restoring the real token) can describe what
+    // session just ended.
+    const impersonatedUserRaw = localStorage.getItem(KEYS.user);
     localStorage.setItem(KEYS.token, savedToken);
     localStorage.setItem(KEYS.user,  savedUser);
     localStorage.removeItem(KEYS.superToken);
     localStorage.removeItem(KEYS.superUser);
+    try {
+      const target = impersonatedUserRaw ? JSON.parse(impersonatedUserRaw) : null;
+      if (target) {
+        apiFetch('/auth/stop-impersonating', {
+          method: 'POST',
+          body: JSON.stringify({
+            target_id: target.id ?? null, target_role: target.role ?? null,
+            tenant_id: target.tenant_id ?? null, target_name: target.name ?? null,
+          }),
+        }).catch(() => {});
+      }
+    } catch { /* best-effort audit call, never blocks exiting impersonation */ }
     window.location.href = '/admin?v=companies';
   };
 
   return (
-    <AuthContext.Provider value={{ user, isImpersonating, login, completeOnboarding, logout, impersonate, stopImpersonating, updateUser, loading }}>
+    <AuthContext.Provider value={{ user, isImpersonating, login, completeOnboarding, logout, impersonate, impersonateCustomer, stopImpersonating, updateUser, loading }}>
       {children}
     </AuthContext.Provider>
   );

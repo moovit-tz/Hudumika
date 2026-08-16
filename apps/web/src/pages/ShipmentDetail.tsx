@@ -23,7 +23,7 @@ import {
   type ThreadMsg, type TimelineEvent, type ShipDoc, type LedgerEntry, type DocType,
   type InternalTask, type TimeEntry, type ActivityEvent, type TaskStatus, type Listener,
 } from './clearanceData.js';
-import { FlagChip, ChBadge } from '../components/ClearanceChips.js';
+import { ChBadge } from '../components/ClearanceChips.js';
 import { EMPLOYEES, empInitials, empAvatarColor } from '../data/staffData.js';
 import type { Employee } from '../data/staffData.js';
 import { CUSTOMER_MILESTONES, MILESTONE_LABELS, STAGE_TO_MILESTONE } from '@hudumika/types';
@@ -1961,7 +1961,7 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
       {/* Stats cards */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr' : 'repeat(5, 1fr)', gap: 12 }}>
         {[
-          { label: 'Tasks',        value: `${doneTasks}/${totalTasks}`, sub: `${totalTasks - doneTasks} open`,         color: 'var(--teal)', icon: 'checkCircle' as IconName },
+          { label: 'Tasks',        value: `${doneTasks}/${totalTasks}`, sub: `${totalTasks - doneTasks} open`,         color: 'var(--ink)', icon: 'checkCircle' as IconName },
           { label: 'Days Left',    value: daysLeft !== null ? (daysLeft >= 0 ? String(daysLeft) : 'Overdue') : '—', sub: job.dueDate ? fdate(job.dueDate) : 'No due date', color: daysLeft !== null && daysLeft < 0 ? 'var(--red)' : 'var(--ink)', icon: 'clock' as IconName },
           { label: 'Hours Logged', value: totalHours.toFixed(1),        sub: `${job.timeEntries.length} entries`,     color: 'var(--blue)', icon: 'activity' as IconName },
           { label: 'Documents',    value: String(job.documents.length),  sub: `${job.documents.filter(d => d.extracted?.status === 'done').length} AI extracted`, color: 'var(--purple)', icon: 'folder' as IconName },
@@ -2068,20 +2068,10 @@ function OverviewTab({ job, isMobile, isLive, onRefresh }: { job: ClearanceJob; 
 
         {/* Right column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Assigned officer */}
-          {job.assigneeName && (
-            <Card title="Assigned Officer">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                {/* Drew initials unconditionally, so this card showed "SA" for
-                    someone who has a picture while the header showed the photo. */}
-                <Av name={job.assigneeName ?? ''} userId={job.assignees[0]} size={36} />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{job.assigneeName}</div>
-                  {job.assigneeEmail && <div style={{ fontSize: 11.5, color: 'var(--ink3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{job.assigneeEmail}</div>}
-                </div>
-              </div>
-            </Card>
-          )}
+          {/* The "Assigned Officer" card that used to open this column was a
+              plain, read-only duplicate of the sidebar's "Assigned To" card
+              (ListenersSidebar, below) — same avatar and name, minus the
+              Change/+Assign action that card already has. One is enough. */}
 
           {/* What the workflow did, next to what people did. */}
           <AutomationHistoryCard shipmentId={job.id} />
@@ -3456,9 +3446,15 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
 
   const charges  = job.ledger.filter(e => e.type === 'charge');
   const payments = job.ledger.filter(e => e.type === 'payment');
+  // 'refund' is a real value of LedgerEntry['type'] that neither table below
+  // nor any total here used to account for — a refunded entry used to
+  // vanish from this tab entirely: not in Charges, not in Payments, not in
+  // Balance, with nothing to show it had ever been recorded.
+  const refunds  = job.ledger.filter(e => e.type === 'refund');
   const totalCharges = charges.reduce((s, e) => s + e.amount, 0);
   const totalPaid    = payments.reduce((s, e) => s + e.amount, 0);
-  const balance      = totalPaid - totalCharges;
+  const totalRefunds = refunds.reduce((s, e) => s + e.amount, 0);
+  const balance      = totalPaid - totalCharges - totalRefunds;
 
   function sColor(s: string) { return s === 'paid' ? 'var(--green)' : s === 'overdue' ? 'var(--red)' : 'var(--gold)'; }
 
@@ -3613,59 +3609,60 @@ function LedgerTab({ job, shipmentId, isLive, onRefresh }: { job: ClearanceJob; 
         )}
       </div>
 
-      {/* Charges table */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+      {/* Ledger — charges, payments and refunds in one chronological table
+          instead of two separate ones (charges, payments — refunds weren't
+          shown anywhere at all), with a running balance so the shipment's
+          financial story reads top to bottom like a real statement rather
+          than requiring a mental merge of two disconnected lists. */}
+      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
         <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Charges</span><span style={{ fontFamily: 'var(--mono)', color: 'var(--red)' }}>{fmtTZS(totalCharges)}</span>
+          <span>Ledger</span>
+          <span style={{ fontFamily: 'var(--mono)', color: balance >= 0 ? 'var(--green)' : 'var(--red)' }}>{balance >= 0 ? '+' : '−'}{fmtTZS(Math.abs(balance))}</span>
         </div>
-        {charges.length === 0 ? (
-          <div style={{ padding: '16px 20px', fontSize: 13, color: 'var(--ink3)' }}>No charges recorded.</div>
+        {job.ledger.length === 0 ? (
+          <div style={{ padding: '16px 20px', fontSize: 13, color: 'var(--ink3)' }}>No entries recorded.</div>
         ) : (
           <div className="rtbl-wrap">
           <table className="rtbl" style={{ borderCollapse: 'collapse' }}>
             <thead>
-              <tr>{['Description', 'Reference', 'Date', 'Status', 'Amount'].map(h => (
-                <th key={h} style={{ padding: '9px 20px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textAlign: 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{h}</th>
+              <tr>{['Date', 'Type', 'Description', 'Reference', 'Status', 'Amount', 'Balance'].map((h, i) => (
+                <th key={h} style={{ padding: '9px 20px', background: 'var(--bg)', borderBottom: '1px solid var(--border)', textAlign: i >= 5 ? 'right' : 'left', fontSize: 11, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>{h}</th>
               ))}</tr>
             </thead>
             <tbody>
-              {charges.map((e, i) => (
-                <tr key={e.id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--white)' : 'var(--bg)' }}>
-                  <td style={{ padding: '11px 20px', fontSize: 13, fontWeight: 500 }}>{e.description}</td>
-                  <td style={{ padding: '11px 20px', fontSize: 12, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{e.reference || '—'}</td>
-                  <td style={{ padding: '11px 20px', fontSize: 12, color: 'var(--ink3)' }}>{fdate(e.date)}</td>
-                  <td style={{ padding: '11px 20px' }}><span style={{ fontSize: 11, fontWeight: 700, color: sColor(e.status), background: sColor(e.status) + '18', padding: '2px 8px', borderRadius: 4 }}>{e.status.toUpperCase()}</span></td>
-                  <td style={{ padding: '11px 20px', fontSize: 13, fontWeight: 700, textAlign: 'right' }}>{fmtTZS(e.amount)}</td>
-                </tr>
-              ))}
+              {(() => {
+                // Oldest first, so the running balance accumulates the way a
+                // real statement reads. Every other list on this page sorts
+                // newest-first; this one deliberately doesn't.
+                const sorted = [...job.ledger].sort((a, b) => a.date.getTime() - b.date.getTime());
+                let running = 0;
+                return sorted.map((e, i) => {
+                  const signed = e.type === 'payment' ? e.amount : -e.amount;
+                  running += signed;
+                  const typeColor = e.type === 'payment' ? 'var(--green)' : e.type === 'refund' ? 'var(--gold)' : 'var(--red)';
+                  const typeLabel = e.type === 'payment' ? 'Payment' : e.type === 'refund' ? 'Refund' : 'Charge';
+                  return (
+                    <tr key={e.id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? 'var(--white)' : 'var(--bg)' }}>
+                      <td style={{ padding: '11px 20px', fontSize: 12, color: 'var(--ink3)', whiteSpace: 'nowrap' }}>{fdate(e.date)}</td>
+                      <td style={{ padding: '11px 20px' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: typeColor, background: typeColor + '18', padding: '2px 8px', borderRadius: 4, whiteSpace: 'nowrap' }}>{typeLabel}</span>
+                      </td>
+                      <td style={{ padding: '11px 20px', fontSize: 13, fontWeight: 500 }}>{e.description}</td>
+                      <td style={{ padding: '11px 20px', fontSize: 12, color: 'var(--ink3)', fontFamily: 'var(--mono)' }}>{e.reference || '—'}</td>
+                      <td style={{ padding: '11px 20px' }}><span style={{ fontSize: 11, fontWeight: 700, color: sColor(e.status), background: sColor(e.status) + '18', padding: '2px 8px', borderRadius: 4 }}>{e.status.toUpperCase()}</span></td>
+                      <td style={{ padding: '11px 20px', fontSize: 13, fontWeight: 700, textAlign: 'right', color: signed >= 0 ? 'var(--green)' : 'var(--red)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>
+                        {signed >= 0 ? '+' : '−'}{fmtTZS(Math.abs(signed))}
+                      </td>
+                      <td style={{ padding: '11px 20px', fontSize: 13, fontWeight: 700, textAlign: 'right', color: running >= 0 ? 'var(--ink)' : 'var(--red)', fontFamily: 'var(--mono)', whiteSpace: 'nowrap' }}>
+                        {fmtTZS(running)}
+                      </td>
+                    </tr>
+                  );
+                });
+              })()}
             </tbody>
-            <tfoot>
-              <tr style={{ background: 'var(--bg)', borderTop: '2px solid var(--border)' }}>
-                <td colSpan={4} style={{ padding: '11px 20px', fontSize: 12, fontWeight: 700, color: 'var(--ink2)' }}>TOTAL</td>
-                <td style={{ padding: '11px 20px', fontSize: 15, fontWeight: 700, color: 'var(--red)', textAlign: 'right' }}>{fmtTZS(totalCharges)}</td>
-              </tr>
-            </tfoot>
           </table></div>
         )}
-      </div>
-
-      {/* Payments */}
-      <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg)', fontSize: 13, fontWeight: 700, color: 'var(--ink2)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between' }}>
-          <span>Payments Received</span><span style={{ fontFamily: 'var(--mono)', color: 'var(--green)' }}>{fmtTZS(totalPaid)}</span>
-        </div>
-        {payments.length === 0 ? (
-          <div style={{ padding: '20px', fontSize: 13, color: 'var(--ink3)' }}>No payments recorded.</div>
-        ) : payments.map((e, i) => (
-          <div key={e.id} style={{ display: 'flex', alignItems: 'center', padding: '12px 20px', borderBottom: i < payments.length - 1 ? '1px solid var(--border)' : 'none', background: i % 2 === 0 ? 'var(--white)' : 'var(--bg)' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{e.description}</div>
-              {e.reference && <div style={{ fontSize: 11, color: 'var(--ink3)', fontFamily: 'var(--mono)', marginTop: 1 }}>Ref: {e.reference}</div>}
-              <div style={{ fontSize: 11, color: 'var(--ink3)' }}>{fdate(e.date)}</div>
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--green)' }}>+{fmtTZS(e.amount)}</div>
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -4611,14 +4608,10 @@ function ListenersSidebar({ job, shipmentId, isLive, onRefresh }: { job: Clearan
         ))}
       </Card>
 
-      {/* Flags */}
-      {job.flags.length > 0 && (
-        <Card title="Tags & Flags">
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {job.flags.map(f => <FlagChip key={f} flag={f} />)}
-          </div>
-        </Card>
-      )}
+      {/* Tags & Flags — pulled off this sidebar for now, tracked as
+          LENS-xxxx (area: clearos) for a proper pass later rather than left
+          silently unused: job.flags/FlagChip are untouched, so restoring
+          this is a one-block re-add, not a rebuild. */}
 
       {/* Workflow — which track governs this case, and (while it is still in
           flight) the ability to move it onto another one. */}
@@ -4941,55 +4934,55 @@ export function ShipmentDetail() {
           padding: isMobile ? '12px 14px 20px' : '14px 20px 24px',
           position: 'relative', overflow: 'hidden', transition: 'padding 0.15s ease',
         }}>
-          {/* Decorative freight-crate motif */}
-          <div aria-hidden style={{ position: 'absolute', right: -30, top: -30, width: 200, height: 200, borderRadius: 28, background: 'rgba(255,255,255,0.06)', transform: 'rotate(18deg)' }} />
-          <div aria-hidden style={{ position: 'absolute', right: 60, bottom: -50, width: 120, height: 120, borderRadius: 24, background: 'rgba(255,255,255,0.05)', transform: 'rotate(-12deg)' }} />
-
           {/* Utility row — back button + status badges + primary actions; always visible */}
           {/* Top Single Row: Utility + Title + Actions */}
           <div style={{ position: 'relative', display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 0, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flex: 1 }}>
-              <Link to={isStaff ? '/clearos/ops' : '/'} title={isStaff ? 'Back to Ops Command' : 'Back to your shipments'} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '0 12px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.28)', background: 'rgba(255,255,255,0.1)', color: '#fff', fontSize: 12.5, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
-                <Icon name="chevronLeft" size={13} color="#fff" /> {isMobile ? '' : (isStaff ? 'Ops Command' : 'My shipments')}
+              <Link to={isStaff ? '/clearos/ops' : '/'} title={isStaff ? 'Back to Ops Command' : 'Back to your shipments'} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '0 12px', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}>
+                <Icon name="chevronLeft" size={13} color="var(--ink2)" /> {isMobile ? '' : (isStaff ? 'Ops Command' : 'My shipments')}
               </Link>
               {job.sysRef && (
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: 'rgba(255,255,255,0.8)', letterSpacing: '0.06em' }}>{job.sysRef}</span>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 11.5, fontWeight: 700, color: 'var(--ink3)', letterSpacing: '0.06em' }}>{job.sysRef}</span>
               )}
               {bookingRef && (
-                <Link to="/clearos/freight-booking/bookings" title="View freight booking" style={{ fontSize: 10.5, padding: '2px 8px', background: 'rgba(255,255,255,0.16)', color: '#fff', borderRadius: 4, fontWeight: 700, textDecoration: 'none' }}>
+                <Link to="/clearos/freight-booking/bookings" title="View freight booking" style={{ fontSize: 10.5, padding: '2px 8px', background: 'var(--white)', border: '1px solid var(--border)', color: 'var(--ink2)', borderRadius: 4, fontWeight: 700, textDecoration: 'none' }}>
                   Booked via {bookingRef.booking_number}
                 </Link>
               )}
-              {!isMock && <span style={{ fontSize: 10.5, padding: '2px 7px', background: 'rgba(255,255,255,0.16)', color: '#fff', borderRadius: 4, fontWeight: 700 }}>LIVE</span>}
-              {isOverdue && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: 'var(--red-l)' }}><Icon name="alertTriangle" size={11} /> Overdue</span>}
-              
-              {!isMobile && <div style={{ width: 1, height: 18, background: 'rgba(255,255,255,0.3)', margin: '0 4px' }} />}
-              
+              {!isMock && <span style={{ fontSize: 10.5, padding: '2px 7px', background: 'var(--green-l)', color: 'var(--green)', borderRadius: 4, fontWeight: 700 }}>LIVE</span>}
+              {isOverdue && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 12, fontWeight: 700, color: 'var(--red)' }}><Icon name="alertTriangle" size={11} /> Overdue</span>}
+
+              {!isMobile && <div style={{ width: 1, height: 18, background: 'var(--border)', margin: '0 4px' }} />}
+
               {/* Title & Customer (Moved to same row) */}
-              <h1 style={{ margin: 0, fontSize: isMobile ? 16 : 18, fontWeight: 800, color: '#fff', lineHeight: 1.2, letterSpacing: '-0.01em' }}>{job.title}</h1>
+              <h1 style={{ margin: 0, fontSize: isMobile ? 16 : 18, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.2, letterSpacing: '-0.01em' }}>{job.title}</h1>
               {job.customerId ? (
-                <Link to={`/crm/customers?id=${job.customerId}`} onClick={e => e.stopPropagation()} style={{ fontSize: isMobile ? 13 : 14, fontWeight: 600, color: 'rgba(255,255,255,0.82)', textDecoration: 'none' }}
+                <Link to={`/crm/customers?id=${job.customerId}`} onClick={e => e.stopPropagation()} style={{ fontSize: isMobile ? 13 : 14, fontWeight: 600, color: 'var(--teal)', textDecoration: 'none' }}
                   onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')} onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}>
                   · {job.customer}
                 </Link>
               ) : (
-                <span style={{ fontSize: isMobile ? 13 : 14, fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>· {job.customer}</span>
+                <span style={{ fontSize: isMobile ? 13 : 14, fontWeight: 600, color: 'var(--ink3)' }}>· {job.customer}</span>
               )}
             </div>
 
             {/* Right side actions */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'nowrap', width: isMobile ? '100%' : 'auto', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none', justifyContent: isMobile ? 'flex-start' : 'flex-end', paddingBottom: isMobile ? 4 : 0 }}>
               {isStaff && !isMock && (
-                <Link to={`/clearos/clearance/${id}/edit`} title="Edit shipment details" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'var(--ctl-h)', height: 'var(--ctl-h)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', border: '1px solid rgba(255,255,255,0.3)', borderRadius: 'var(--r)', background: 'rgba(255,255,255,0.1)', color: '#fff', textDecoration: 'none', backdropFilter: 'blur(4px)', flexShrink: 0 }}>
+                <Link to={`/clearos/clearance/${id}/edit`} title="Edit shipment details" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'var(--ctl-h)', height: 'var(--ctl-h)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--white)', color: 'var(--ink2)', textDecoration: 'none', flexShrink: 0 }}>
                   <Icon name="edit" size={15} />
                 </Link>
               )}
               {isStaff && (
-                <button type="button" onClick={() => setShowAdv(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', background: '#fff', color: 'var(--teal)', border: 'none', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, flexShrink: 0 }}>
-                  <Icon name="arrowRight" size={13} /> Advance Stage
+                // The one saturated-colour element in this row, deliberately —
+                // it's the actual primary action, same as accent-colour links
+                // and CTAs are the only colour in the Hostinger reference this
+                // page's palette is being brought closer to.
+                <button type="button" onClick={() => setShowAdv(true)} className="btn btn-primary" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: 'var(--ds-btn-py) 16px', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', lineHeight: 1.25, flexShrink: 0 }}>
+                  <Icon name="arrowRight" size={13} color="#fff" /> Advance Stage
                 </button>
               )}
-              <button type="button" onClick={() => openShipmentReportWindow(job)} title="Print shipment report" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'var(--ctl-h)', height: 'var(--ctl-h)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid rgba(255,255,255,0.3)', background: 'rgba(255,255,255,0.1)', color: '#fff', cursor: 'pointer', flexShrink: 0 }}>
+              <button type="button" onClick={() => openShipmentReportWindow(job)} title="Print shipment report" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 'var(--ctl-h)', height: 'var(--ctl-h)', minHeight: 'var(--ctl-h)', boxSizing: 'border-box', borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'var(--white)', color: 'var(--ink2)', cursor: 'pointer', flexShrink: 0 }}>
                 <Icon name="printer" size={15} />
               </button>
             </div>

@@ -6,7 +6,8 @@ import { hashPassword, verifyPassword } from '../lib/password.js';
 import { verifyTotp } from '../lib/totp.js';
 import { EmailIntegration } from '../integrations/email.js';
 import { env } from '../config/env.js';
-import type { LoginInput, CustomerOTPInput, CustomerVerifyInput, SafeUser, JWTPayload } from '@hudumika/types';
+import { PlatformAdminService } from '../services/platform-admin.service.js';
+import type { LoginInput, CustomerOTPInput, CustomerVerifyInput, SafeUser, JWTPayload, OrgLoginInput, SafeOrgUser } from '@hudumika/types';
 
 // Simple in-memory storage for customer OTPs in dev
 const OTP_STORE = new Map<string, { otp: string; expiresAt: number }>();
@@ -350,6 +351,51 @@ export async function authRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * POST /auth/org-login
+   * Login for an Organization — a platform-level identity spanning every
+   * tenant that has linked one of its own customers to it (migration 230).
+   * A separate table (organization_users) and endpoint, not folded into
+   * /auth/login, matching this file's existing convention of one dedicated
+   * mechanism per identity type (staff vs. legacy customer-OTP vs. this).
+   * No tenant_id in the issued token at all — see OrgJWTPayload and the
+   * ORG_ALLOWED_ROUTES gate in middleware/auth.ts.
+   */
+  fastify.post('/org-login', async (request, reply) => {
+    const { email, password } = request.body as OrgLoginInput;
+
+    const orgUser = await db
+      .selectFrom('organization_users')
+      .selectAll()
+      .where('email', '=', email)
+      .where('active', '=', true)
+      .executeTakeFirst();
+
+    if (!orgUser || !verifyPassword(password, orgUser.password_hash)) {
+      return reply.status(401).send({ error: 'Invalid email or password' });
+    }
+
+    const payload = {
+      sub: orgUser.id,
+      org_id: orgUser.organization_id,
+      role: 'ORG' as const,
+      email: orgUser.email,
+      name: orgUser.name,
+    };
+    const tokens = issueTokens(fastify, payload as any);
+    const safeOrgUser: SafeOrgUser = {
+      id: orgUser.id,
+      org_id: orgUser.organization_id,
+      email: orgUser.email,
+      name: orgUser.name,
+      active: orgUser.active,
+      created_at: orgUser.created_at.toISOString(),
+      updated_at: orgUser.updated_at.toISOString(),
+    };
+
+    return { ...tokens, user: safeOrgUser };
+  });
+
+  /**
    * POST /auth/impersonate
    * SUPER_ADMIN only — generate a token acting as a tenant's admin user
    */
@@ -384,6 +430,8 @@ export async function authRoutes(fastify: FastifyInstance) {
       role: target.role,
       email: target.email,
       name: target.name,
+      impersonated_by: actor.sub,
+      impersonated_by_name: actor.name,
     };
 
     const tokens = issueTokens(fastify, payload as any);
@@ -399,6 +447,82 @@ export async function authRoutes(fastify: FastifyInstance) {
       created_at: target.created_at.toISOString(),
       updated_at: target.updated_at.toISOString(),
     };
+
+    await PlatformAdminService.recordActivity({
+      actorUserId: actor.sub, actorName: actor.name || actor.email || 'Unknown superadmin',
+      action: 'Logged in as company admin', category: 'user',
+      targetType: 'tenant', targetId: target.tenant_id, targetName: target.name, tenantId: target.tenant_id,
+      metadata: { impersonated_user_id: target.id },
+    });
+
+    return { ...tokens, user: safeUser };
+  });
+
+  /**
+   * POST /auth/impersonate-customer
+   * SUPER_ADMIN only — generate a token acting as a specific customer, the
+   * customer-side counterpart to /auth/impersonate above. Mints whichever of
+   * the two CUSTOMER JWT shapes this codebase actually issues at real login:
+   * the modern users.customer_id-linked shape (migration 207) when such a
+   * user row exists, otherwise the legacy phone-OTP shape (sub = customers.id
+   * directly, see POST /auth/customer/verify) — matching resolveCustomerId()'s
+   * own precedence in customer-identity.service.ts.
+   */
+  fastify.post('/impersonate-customer', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const actor = request.user;
+    if (actor.role !== 'SUPER_ADMIN') {
+      return reply.status(403).send({ error: 'Only SUPER_ADMIN can impersonate' });
+    }
+
+    const { customer_id } = request.body as { customer_id: string };
+    if (!customer_id) {
+      return reply.status(400).send({ error: 'customer_id is required' });
+    }
+
+    const customer = await db.selectFrom('customers').selectAll()
+      .where('id', '=', customer_id).where('active', '=', true).executeTakeFirst();
+    if (!customer) {
+      return reply.status(404).send({ error: 'Customer not found or inactive' });
+    }
+
+    const linkedUser = await db.selectFrom('users').selectAll()
+      .where('customer_id', '=', customer.id).where('tenant_id', '=', customer.tenant_id)
+      .where('role', '=', 'CUSTOMER').where('active', '=', true)
+      .orderBy('created_at', 'asc').executeTakeFirst();
+
+    const payload: Omit<JWTPayload, 'iat' | 'exp'> = linkedUser
+      ? {
+          sub: linkedUser.id, tenant_id: linkedUser.tenant_id, role: 'CUSTOMER',
+          email: linkedUser.email, name: linkedUser.name,
+          impersonated_by: actor.sub, impersonated_by_name: actor.name,
+        }
+      : {
+          sub: customer.id, tenant_id: customer.tenant_id, role: 'CUSTOMER',
+          email: customer.email || `${customer.id}@hudumika.co`, name: customer.name,
+          impersonated_by: actor.sub, impersonated_by_name: actor.name,
+        };
+
+    const tokens = issueTokens(fastify, payload as any);
+    const safeUser: SafeUser = linkedUser
+      ? {
+          id: linkedUser.id, tenant_id: linkedUser.tenant_id, email: linkedUser.email, role: 'CUSTOMER',
+          name: linkedUser.name, active: linkedUser.active,
+          created_at: linkedUser.created_at.toISOString(), updated_at: linkedUser.updated_at.toISOString(),
+        }
+      : {
+          id: customer.id, tenant_id: customer.tenant_id, email: customer.email || '', role: 'CUSTOMER',
+          name: customer.name, phone: customer.phone_wa || undefined, active: customer.active,
+          created_at: customer.created_at.toISOString(), updated_at: customer.updated_at.toISOString(),
+        };
+
+    await PlatformAdminService.recordActivity({
+      actorUserId: actor.sub, actorName: actor.name || actor.email || 'Unknown superadmin',
+      action: 'Logged in as customer', category: 'user',
+      targetType: 'customer', targetId: customer.id, targetName: customer.name, tenantId: customer.tenant_id,
+      metadata: { via: linkedUser ? 'linked_user' : 'legacy_customer_login' },
+    });
 
     return { ...tokens, user: safeUser };
   });
@@ -450,6 +574,9 @@ export async function authRoutes(fastify: FastifyInstance) {
     return issueTokens(fastify, {
       sub: user.id, tenant_id: user.tenant_id, role: user.role,
       email: user.email, name: user.name, device_id: claims.device_id,
+      // Impersonation is a property of the session (the verified refresh
+      // token), not the re-fetched target user — carried through as-is.
+      ...(claims.impersonated_by ? { impersonated_by: claims.impersonated_by, impersonated_by_name: claims.impersonated_by_name } : {}),
     });
   });
 
@@ -580,9 +707,26 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   /**
    * POST /auth/stop-impersonating
-   * No-op on server — client restores original token. Endpoint exists for audit/logging.
+   * Client restores the SuperAdmin's own token to localStorage before
+   * calling this, so it authenticates as the real actor with no JWT
+   * trickery needed — the impersonated identity being exited is described
+   * in the body instead, since by the time this lands the token no longer
+   * carries it.
    */
   fastify.post('/stop-impersonating', {
     preHandler: [fastify.authenticate],
-  }, async () => ({ success: true }));
+  }, async (request) => {
+    const actor = request.user;
+    const body = request.body as { target_id?: string; target_role?: string; tenant_id?: string; target_name?: string } | undefined;
+    if (actor.role === 'SUPER_ADMIN' && body?.target_id) {
+      await PlatformAdminService.recordActivity({
+        actorUserId: actor.sub, actorName: actor.name || actor.email || 'Unknown superadmin',
+        action: body.target_role === 'CUSTOMER' ? 'Stopped impersonating customer' : 'Stopped impersonating company admin',
+        category: 'user',
+        targetType: body.target_role === 'CUSTOMER' ? 'customer' : 'tenant',
+        targetId: body.target_id, targetName: body.target_name ?? null, tenantId: body.tenant_id ?? null,
+      });
+    }
+    return { success: true };
+  });
 }

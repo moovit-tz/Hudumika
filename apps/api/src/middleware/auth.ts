@@ -23,6 +23,36 @@ declare module 'fastify' {
   }
 }
 
+/**
+ * An 'ORG'-role token (see organizations.routes.ts / org.routes.ts, migration
+ * 230) carries no tenant_id claim at all — structurally different from every
+ * other login this API issues. `request.user` stays typed as JWTPayload
+ * everywhere (changing that would ripple `user.tenant_id` type errors across
+ * the ~100 route files that read it directly), so nothing stops an org token
+ * from being replayed against an ordinary tenant-scoped route and hitting
+ * `user.tenant_id` as `undefined` at runtime unless it's rejected before any
+ * route handler runs. This allowlist is that rejection, checked once here
+ * rather than trusted to every route file individually — the same reasoning
+ * that produced the CUSTOMER-role allowlist in support.routes.ts, just at
+ * the one shared chokepoint every route's preHandler already passes through.
+ */
+const ORG_ALLOWED_ROUTES: { method: string; url: string }[] = [
+  { method: 'GET', url: '/v1/org/workspaces' },
+  { method: 'GET', url: '/v1/org/customers' },
+  { method: 'POST', url: '/v1/org/claim' },
+  { method: 'GET', url: '/v1/org/shipments' },
+  { method: 'GET', url: '/v1/org/invoices' },
+  { method: 'GET', url: '/v1/org/documents' },
+  { method: 'GET', url: '/v1/org/documents/:id/download' },
+  { method: 'GET', url: '/v1/org/tickets' },
+  { method: 'POST', url: '/v1/org/tickets' },
+  { method: 'GET', url: '/v1/org/tickets/:id' },
+  { method: 'POST', url: '/v1/org/tickets/:id/reply' },
+  { method: 'GET', url: '/v1/org/seal-lots' },
+  { method: 'POST', url: '/v1/org/seal-lots/:lotId/dispatch-request' },
+  { method: 'GET', url: '/v1/org/dispatch-requests' },
+];
+
 import fp from 'fastify-plugin';
 
 export function hashApiKey(rawKey: string): string {
@@ -113,6 +143,14 @@ export const authPlugin = fp(async (fastify: FastifyInstance) => {
     // two lifetimes would buy nothing.
     if ((request.user as any).typ === 'refresh') {
       return reply.status(401).send({ error: 'Unauthorized: refresh tokens cannot be used for API requests' });
+    }
+
+    // See ORG_ALLOWED_ROUTES above — an org token has no tenant_id claim and
+    // must never reach a route that assumes one.
+    if ((request.user.role as string) === 'ORG') {
+      const url = request.routeOptions?.url;
+      const allowed = ORG_ALLOWED_ROUTES.some(r => r.method === request.method && r.url === url);
+      if (!allowed) return reply.status(401).send({ error: 'Not available for this account type' });
     }
 
     // Access tokens now expire, but expiry alone cannot end a session early —

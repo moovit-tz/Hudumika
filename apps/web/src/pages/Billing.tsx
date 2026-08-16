@@ -991,8 +991,8 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
       .then(() => { loadNotes(); loadActivity(); }).catch(() => {});
     setNewNote('');
   }
-  function deleteNote(id: string) {
-    if (!dbId) return;
+  async function deleteNote(id: string) {
+    if (!dbId || !(await showConfirm('Delete this note?', { confirmLabel: 'Delete' }))) return;
     apiFetch(`/v1/invoices/${dbId}/notes/${id}`, { method: 'DELETE' }).then(loadNotes).catch(() => {});
   }
 
@@ -1011,8 +1011,8 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
     apiFetch(`/v1/invoices/${dbId}/tasks/${id}`, { method: 'PATCH', body: JSON.stringify({ done: !t.done }) })
       .then(() => { loadTasks(); loadActivity(); }).catch(() => {});
   }
-  function deleteTask(id: string) {
-    if (!dbId) return;
+  async function deleteTask(id: string) {
+    if (!dbId || !(await showConfirm('Delete this task?', { confirmLabel: 'Delete' }))) return;
     apiFetch(`/v1/invoices/${dbId}/tasks/${id}`, { method: 'DELETE' }).then(loadTasks).catch(() => {});
   }
 
@@ -1030,8 +1030,8 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
     apiFetch(`/v1/invoices/${dbId}/reminders/${id}`, { method: 'PATCH', body: JSON.stringify({ done: !r.done }) })
       .then(loadReminders).catch(() => {});
   }
-  function deleteReminder(id: string) {
-    if (!dbId) return;
+  async function deleteReminder(id: string) {
+    if (!dbId || !(await showConfirm('Delete this reminder?', { confirmLabel: 'Delete' }))) return;
     apiFetch(`/v1/invoices/${dbId}/reminders/${id}`, { method: 'DELETE' }).then(loadReminders).catch(() => {});
   }
 
@@ -1091,10 +1091,17 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
           ))}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-          {!isMobile && (['mail', 'eye', 'maximize'] as const).map((icon, i) => (
+          {/* Was three icons (mail / eye / maximize) — "Export PDF" opened the
+              exact same print window as "View / Print" (there's no separate
+              PDF export, just the browser's own print-to-PDF), and the mail
+              icon fired a bare `mailto:?subject=` with no body while the
+              proper message lived only in sendEmail() below. Down to the two
+              that do something distinct, both routed through the real
+              implementations. */}
+          {!isMobile && (['mail', 'eye'] as const).map((icon, i) => (
             <button key={icon} type="button"
-              title={i === 0 ? 'Send email' : i === 1 ? 'View / Print' : 'Export PDF'}
-              onClick={() => i === 0 ? (window.location.href = `mailto:?subject=${inv.id}`) : openPrintWindow(inv)}
+              title={i === 0 ? 'Send email' : 'View / Print'}
+              onClick={() => i === 0 ? sendEmail() : openPrintWindow(inv)}
               style={{ width: 32, height: 32, borderRadius: 'var(--r)', border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
@@ -1139,12 +1146,12 @@ export function InvoiceDetailPanel({ inv, onClose, onEdit, onCopy, onDelete, onR
             <div onClick={e => e.stopPropagation()} className="billing-more-menu">
               <MoreItem icon="mail"        label="Send by Email" onClick={() => { sendEmail(); setShowMore(false); }} />
               <MoreItem icon="eye"         label="View / Print"  onClick={() => { openPrintWindow(inv); setShowMore(false); }} />
-              <MoreItem icon="fileText"    label="Export PDF"    onClick={() => { openPrintWindow(inv); setShowMore(false); }} />
               <div className="billing-more-sep" />
-              <MoreItem icon="clipboard"   label="Add Note"      onClick={() => { setShowMore(false); setTab('notes');     }} />
+              {/* Add Note / Assign Task / Audit Log dropped — each just
+                  switched to a tab that's already one click away in the tab
+                  bar above, with no other effect. Add Reminder earns its
+                  keep by also pre-opening the new-reminder form. */}
               <MoreItem icon="bell"        label="Add Reminder"  onClick={() => { setShowMore(false); setTab('reminders'); setShowRemForm(true); }} />
-              <MoreItem icon="checkCircle" label="Assign Task"   onClick={() => { setShowMore(false); setTab('tasks');     setShowTaskForm(true); }} />
-              <MoreItem icon="activity"    label="Audit Log"     onClick={() => { setShowMore(false); setTab('activity');  }} />
               <div className="billing-more-sep" />
               <MoreItem icon="trash" label="Delete Invoice" onClick={() => { setShowMore(false); onDelete(); }} danger />
             </div>
@@ -1584,9 +1591,13 @@ export const Billing: React.FC = () => {
   }
 
   function exportCsv() {
+    // Exports what the table is currently showing (filtered), not every
+    // invoice regardless of the status chips / mode / date range / search
+    // the user has applied — those visibly narrow the table, so the export
+    // has to agree with it.
     const rows = [
       ['Invoice ID', 'Client', 'BL/AWB', 'Origin', 'Destination', 'Mode', 'Date', 'Due Date', 'Status', 'Grand Total (TZS)', 'Received (TZS)', 'Balance Due (TZS)'],
-      ...invoices.map(inv => {
+      ...filtered.map(inv => {
         const total = invoiceTotal(inv);
         return [inv.id, inv.client, inv.blNumber, inv.origin, inv.destination, inv.mode, inv.billDate, inv.dueDate ?? '', inv.status, Math.round(total), Math.round(inv.received), Math.round(Math.max(0, total - inv.received))];
       }),
@@ -1613,6 +1624,13 @@ export const Billing: React.FC = () => {
 
     const apiPayload = {
       invoice_number: inv.id,
+      // Both accepted by the backend (see fastify.post/patch '/v1/invoices'
+      // in invoices.routes.ts) since before this page existed — the editor's
+      // Client and Linked Shipment pickers set inv.customerId/inv.shipmentRef
+      // correctly, but this payload never sent either, so the link only
+      // ever lived in local state and was gone on the next page load.
+      customer_id: inv.customerId || null,
+      shipment_ref: inv.shipmentRef || null,
       client_name: inv.client,
       client_address: inv.clientAddress,
       bl_number: inv.blNumber,
@@ -1813,14 +1831,19 @@ export const Billing: React.FC = () => {
                       <td><span className="inv-cell-id">{inv.id}</span></td>
                       {!isSplit && (
                         <td>
-                          <Link to={`/?search=${encodeURIComponent(inv.blNumber)}`} onClick={e => e.stopPropagation()}
+                          <Link to={`/clearos/ops?search=${encodeURIComponent(inv.blNumber)}`} onClick={e => e.stopPropagation()}
                             title={`Open shipment ${inv.blNumber} in Ops Command`} className="inv-cell-link">
                             {inv.blNumber}
                           </Link>
                         </td>
                       )}
                       <td className="inv-cell-client">
-                        <Link to={`/customers?search=${encodeURIComponent(inv.client)}`} onClick={e => e.stopPropagation()}
+                        {/* Customers.tsx only reads ?id=, not ?search= — a
+                            name-search param there was silently ignored, so
+                            this deep-links straight to the record instead
+                            (falls back to the plain list on legacy invoices
+                            with no linked customer). */}
+                        <Link to={inv.customerId ? `/crm/customers?id=${encodeURIComponent(inv.customerId)}` : '/crm/customers'} onClick={e => e.stopPropagation()}
                           title={`View ${inv.client} profile`} className="inv-cell-client-link">
                           {inv.client}
                         </Link>

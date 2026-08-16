@@ -102,12 +102,11 @@ export interface FileMenuHandlers {
   onRestore: (item: CloudFile) => void;
   onPermanentDelete: (item: CloudFile) => void;
 }
-function fileMenuEntries(item: CloudFile, isTrashed: boolean, h: FileMenuHandlers) {
+function fileMenuEntries(item: CloudFile, isTrashed: boolean, h: FileMenuHandlers, canPermanentlyDelete: boolean) {
   return isTrashed
     ? [
         { icon:'refresh' as IconName,  label:'Restore',       action:()=>h.onRestore(item) },
-        null,
-        { icon:'trash2' as IconName,   label:'Delete forever', action:()=>h.onPermanentDelete(item), danger:true },
+        ...(canPermanentlyDelete ? [null, { icon:'trash2' as IconName, label:'Delete forever', action:()=>h.onPermanentDelete(item), danger:true }] : []),
       ]
     : [
         { icon:'eye' as IconName,         label:'Preview',     action:()=>h.onOpen(item) },
@@ -127,7 +126,8 @@ function FileMenuItems({ item, isTrashed, handlers, ItemComp, SeparatorComp }: {
   ItemComp: React.ComponentType<any>;
   SeparatorComp: React.ComponentType<any>;
 }) {
-  const entries = fileMenuEntries(item, isTrashed, handlers);
+  const { canPermanentlyDelete } = useCloud();
+  const entries = fileMenuEntries(item, isTrashed, handlers, canPermanentlyDelete);
   return (
     <>
       {entries.map((it, idx) =>
@@ -699,7 +699,7 @@ export const FileManager: React.FC = () => {
     currentView, currentFolderId, breadcrumb, openFolder, navToBreadcrumb, goToView,
     previewItemId, setPreviewItemId, search,
     uploadFiles, starItem, moveItem, renameItem,
-    trashItem, restoreItem, permanentlyDelete, emptyTrash, shareItem, downloadItem,
+    trashItem, restoreItem, permanentlyDelete, emptyTrash, shareItem, downloadItem, canPermanentlyDelete,
     connections, loadConnections,
   } = useCloud();
 
@@ -916,7 +916,7 @@ export const FileManager: React.FC = () => {
             </div>
 
             <div style={{ display:'flex', alignItems:'center', gap:10, flex:'1 1 40%', minWidth:0, justifyContent:'flex-end' }}>
-              {isTrashView && trashedItems.length > 0 && (
+              {isTrashView && trashedItems.length > 0 && canPermanentlyDelete && (
                 <button onClick={async ()=>{ if((await showConfirm('Empty trash? This permanently deletes all items in Trash.', { confirmLabel: 'Empty Trash' }))) emptyTrash(); }} className="btn btn-secondary btn-sm" style={{ gap:6, whiteSpace:'nowrap', flexShrink:0 }}>
                   <Icon name="trash2" size={13} /> Empty trash
                 </button>
@@ -951,7 +951,9 @@ export const FileManager: React.FC = () => {
               {isTrashView ? (
                 <>
                   <button className="btn btn-ghost btn-sm" onClick={()=>bulkAction(i=>restoreItem(i.id))}><Icon name="refresh" size={14} /> Restore</button>
-                  <button className="btn btn-ghost btn-sm" style={{ color:'var(--red)' }} onClick={async ()=>{ if((await showConfirm(`Permanently delete ${selectedIds.size} item(s)?`, { confirmLabel: 'Delete Forever' }))) bulkAction(i=>permanentlyDelete(i.id)); }}><Icon name="trash2" size={14} color="var(--red)" /> Delete forever</button>
+                  {canPermanentlyDelete && (
+                    <button className="btn btn-ghost btn-sm" style={{ color:'var(--red)' }} onClick={async ()=>{ if((await showConfirm(`Permanently delete ${selectedIds.size} item(s)?`, { confirmLabel: 'Delete Forever' }))) bulkAction(i=>permanentlyDelete(i.id)); }}><Icon name="trash2" size={14} color="var(--red)" /> Delete forever</button>
+                  )}
                 </>
               ) : (
                 <>

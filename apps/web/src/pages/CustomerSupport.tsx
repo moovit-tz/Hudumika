@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth.js';
+import { apiFetch } from '../lib/api.js';
+import { showAlert } from '../lib/alert.js';
 import { Icon } from '../components/Icon.js';
 import { LiveChatWidget } from '../components/LiveChatWidget.js';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
@@ -16,58 +18,42 @@ interface Ticket {
   id: string;
   ref: string;
   subject: string;
+  description?: string;
   status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'CLOSED';
-  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  priority: 'LOW' | 'NORMAL' | 'MEDIUM' | 'HIGH' | 'URGENT';
   category: string;
   lastMessage: string;
   updatedAt: string;
   messages: Message[];
 }
 
-/* ── Mock data ── */
-const MOCK_TICKETS: Ticket[] = [
-  {
-    id: 't1',
-    ref: 'TKT-0041',
-    subject: 'Documents missing for CLR-2026-0003',
-    status: 'IN_PROGRESS',
-    priority: 'HIGH',
-    category: 'Documentation',
-    lastMessage: 'We are reviewing your packing list and will update you shortly.',
-    updatedAt: '2026-06-14T10:22:00Z',
-    messages: [
-      { id: 'm1', from: 'customer', body: 'The packing list I uploaded seems to be rejected. Can you advise?', ts: '2026-06-14T09:05:00Z' },
-      { id: 'm2', from: 'agent',    body: 'We are reviewing your packing list and will update you shortly.', ts: '2026-06-14T10:22:00Z' },
-    ],
-  },
-  {
-    id: 't2',
-    ref: 'TKT-0038',
-    subject: 'Customs delay — ETA update needed',
-    status: 'OPEN',
-    priority: 'URGENT',
-    category: 'Clearance',
-    lastMessage: 'Please provide an updated ETA for our shipment CLR-2026-0001.',
-    updatedAt: '2026-06-13T16:44:00Z',
-    messages: [
-      { id: 'm1', from: 'customer', body: 'Please provide an updated ETA for our shipment CLR-2026-0001.', ts: '2026-06-13T16:44:00Z' },
-    ],
-  },
-  {
-    id: 't3',
-    ref: 'TKT-0031',
-    subject: 'Invoice TZS 4.2M — payment receipt',
-    status: 'RESOLVED',
-    priority: 'NORMAL',
-    category: 'Billing',
-    lastMessage: 'Payment confirmed. Receipt has been sent to your email.',
-    updatedAt: '2026-06-10T08:00:00Z',
-    messages: [
-      { id: 'm1', from: 'customer', body: 'Can I get a receipt for the payment I made on June 9th?', ts: '2026-06-09T14:00:00Z' },
-      { id: 'm2', from: 'agent',    body: 'Payment confirmed. Receipt has been sent to your email.', ts: '2026-06-10T08:00:00Z' },
-    ],
-  },
-];
+/** Maps a GET /v1/support/tickets (list) or /tickets/:id row to the shape
+ *  this page renders. The list endpoint has no `messages` — a ticket opened
+ *  from the list starts with an empty thread until loadThread() below fills
+ *  it in from the detail endpoint. */
+function mapTicket(row: any): Ticket {
+  return {
+    id: row.id,
+    ref: row.ref,
+    subject: row.subject,
+    description: row.description ?? undefined,
+    status: row.status,
+    priority: row.priority,
+    category: row.category,
+    lastMessage: row.description ? String(row.description).slice(0, 140) : '',
+    updatedAt: row.updated_at,
+    messages: [],
+  };
+}
+
+function mapMessage(row: any): Message {
+  return {
+    id: row.id,
+    from: row.author_type === 'CUSTOMER' ? 'customer' : 'agent',
+    body: row.content,
+    ts: row.created_at,
+  };
+}
 
 const STATUS_CFG: Record<Ticket['status'], { label: string; color: string; bg: string }> = {
   OPEN:        { label: 'Open',        color: '#0891b2', bg: '#ecfeff' },
@@ -149,13 +135,15 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick: () => void }
       </div>
 
       {/* Last message preview */}
-      <div style={{
-        fontSize: 13, color: 'var(--ink2)', lineHeight: 1.45,
-        display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-        marginBottom: 10,
-      }}>
-        {ticket.lastMessage}
-      </div>
+      {ticket.lastMessage && (
+        <div style={{
+          fontSize: 13, color: 'var(--ink2)', lineHeight: 1.45,
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          marginBottom: 10,
+        }}>
+          {ticket.lastMessage}
+        </div>
+      )}
 
       {/* Footer: category + priority */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -166,7 +154,7 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick: () => void }
           {ticket.category}
         </span>
         <span style={{ fontSize: 11, fontWeight: 600, color: pr.color }}>
-          {pr.label} Priority
+          {(PRIORITY_CFG[ticket.priority] || PRIORITY_CFG.NORMAL).label} Priority
         </span>
       </div>
     </button>
@@ -174,20 +162,29 @@ function TicketCard({ ticket, onClick }: { ticket: Ticket; onClick: () => void }
 }
 
 /* ── Thread view ── */
-function TicketThread({ ticket, onBack, onReply }: {
+function TicketThread({ ticket, threadLoading, onBack, onReply }: {
   ticket: Ticket;
+  threadLoading: boolean;
   onBack: () => void;
-  onReply: (msg: string) => void;
+  onReply: (msg: string) => Promise<void>;
 }) {
   const { user } = useAuth();
   const [reply, setReply] = useState('');
+  const [sending, setSending] = useState(false);
   const st = STATUS_CFG[ticket.status];
 
-  function submit() {
+  async function submit() {
     const t = reply.trim();
-    if (!t) return;
-    onReply(t);
-    setReply('');
+    if (!t || sending) return;
+    setSending(true);
+    try {
+      await onReply(t);
+      setReply('');
+    } catch (err: any) {
+      showAlert(err.message || 'Could not send your message — please try again.');
+    } finally {
+      setSending(false);
+    }
   }
 
   return (
@@ -220,11 +217,20 @@ function TicketThread({ ticket, onBack, onReply }: {
           {ticket.subject}
         </div>
         <div style={{ fontSize: 12, color: 'var(--ink3)', marginTop: 2 }}>{ticket.category}</div>
+        {ticket.description && (
+          <div style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 8, background: 'var(--bg)', borderRadius: 8, padding: '8px 10px', lineHeight: 1.5 }}>
+            {ticket.description}
+          </div>
+        )}
       </div>
 
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {ticket.messages.map((msg) => {
+        {threadLoading ? (
+          <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13, margin: 'auto' }}>Loading conversation…</div>
+        ) : ticket.messages.length === 0 ? (
+          <div style={{ textAlign: 'center', color: 'var(--ink3)', fontSize: 13, margin: 'auto' }}>No replies yet</div>
+        ) : ticket.messages.map((msg) => {
           const isMe = msg.from === 'customer';
           return (
             <div key={msg.id} style={{
@@ -262,6 +268,7 @@ function TicketThread({ ticket, onBack, onReply }: {
             title="Your reply"
             placeholder="Type your message…"
             value={reply}
+            disabled={sending}
             onChange={e => setReply(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); } }}
             rows={2}
@@ -276,11 +283,11 @@ function TicketThread({ ticket, onBack, onReply }: {
             type="button"
             title="Send reply"
             onClick={submit}
-            disabled={!reply.trim()}
+            disabled={!reply.trim() || sending}
             style={{
-              background: reply.trim() ? 'var(--teal)' : 'var(--border)',
+              background: reply.trim() && !sending ? 'var(--teal)' : 'var(--border)',
               color: '#fff', border: 'none', borderRadius: 'var(--r)',
-              width: 44, height: 44, cursor: reply.trim() ? 'pointer' : 'default',
+              width: 44, height: 44, cursor: reply.trim() && !sending ? 'pointer' : 'default',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0, transition: 'background 0.15s',
             }}>
@@ -293,17 +300,22 @@ function TicketThread({ ticket, onBack, onReply }: {
 }
 
 /* ── New ticket modal ── */
-function NewTicketModal({ onClose, onCreate }: {
+function NewTicketModal({ onClose, onCreate, creating }: {
   onClose: () => void;
-  onCreate: (subject: string, category: string, body: string) => void;
+  onCreate: (subject: string, category: string, body: string) => Promise<void>;
+  creating: boolean;
 }) {
   const [subject, setSubject]   = useState('');
   const [category, setCategory] = useState('Clearance');
   const [body, setBody]         = useState('');
 
-  function submit() {
-    if (!subject.trim() || !body.trim()) return;
-    onCreate(subject.trim(), category, body.trim());
+  async function submit() {
+    if (!subject.trim() || !body.trim() || creating) return;
+    try {
+      await onCreate(subject.trim(), category, body.trim());
+    } catch (err: any) {
+      showAlert(err.message || 'Could not submit your ticket — please try again.');
+    }
   }
 
   return (
@@ -387,15 +399,15 @@ function NewTicketModal({ onClose, onCreate }: {
             type="button"
             title="Submit ticket"
             onClick={submit}
-            disabled={!subject.trim() || !body.trim()}
+            disabled={!subject.trim() || !body.trim() || creating}
             style={{
-              background: subject.trim() && body.trim() ? 'var(--teal)' : 'var(--border)',
+              background: subject.trim() && body.trim() && !creating ? 'var(--teal)' : 'var(--border)',
               color: '#fff', border: 'none', borderRadius: 'var(--r)',
               padding: '14px', fontSize: 15, fontWeight: 700,
-              cursor: subject.trim() && body.trim() ? 'pointer' : 'default',
+              cursor: subject.trim() && body.trim() && !creating ? 'pointer' : 'default',
               fontFamily: 'var(--font)', letterSpacing: '0.01em',
             }}>
-            Submit Ticket
+            {creating ? 'Submitting…' : 'Submit Ticket'}
           </button>
         </div>
       </div>
@@ -405,10 +417,39 @@ function NewTicketModal({ onClose, onCreate }: {
 
 /* ── Main page ── */
 export const CustomerSupport: React.FC = () => {
-  const [tickets, setTickets]           = useState<Ticket[]>(MOCK_TICKETS);
+  const [tickets, setTickets]           = useState<Ticket[]>([]);
+  const [loading, setLoading]           = useState(true);
+  const [loadError, setLoadError]       = useState(false);
   const [selected, setSelected]         = useState<Ticket | null>(null);
+  const [threadLoading, setThreadLoading] = useState(false);
   const [showNew, setShowNew]           = useState(false);
+  const [creating, setCreating]         = useState(false);
   const [filter, setFilter]             = useState<'ALL' | 'OPEN' | 'RESOLVED'>('ALL');
+
+  const load = () => {
+    setLoading(true); setLoadError(false);
+    apiFetch('/v1/support/tickets')
+      .then((rows: any[]) => setTickets(Array.isArray(rows) ? rows.map(mapTicket) : []))
+      .catch(() => setLoadError(true))
+      .finally(() => setLoading(false));
+  };
+  useEffect(() => { load(); }, []);
+
+  async function openTicket(ticket: Ticket) {
+    setSelected(ticket);
+    setThreadLoading(true);
+    try {
+      const detail = await apiFetch(`/v1/support/tickets/${ticket.id}`);
+      const full: Ticket = { ...mapTicket(detail), messages: (detail.messages ?? []).map(mapMessage) };
+      setSelected(full);
+      setTickets(prev => prev.map(t => t.id === full.id ? full : t));
+    } catch {
+      showAlert("Couldn't load this conversation — please try again.");
+      setSelected(null);
+    } finally {
+      setThreadLoading(false);
+    }
+  }
 
   const filtered = tickets.filter(t => {
     if (filter === 'ALL')      return true;
@@ -417,44 +458,31 @@ export const CustomerSupport: React.FC = () => {
     return true;
   });
 
-  function handleReply(ticketId: string, msg: string) {
-    setTickets(prev => prev.map(t => {
-      if (t.id !== ticketId) return t;
-      const newMsg: Message = {
-        id: `m${Date.now()}`,
-        from: 'customer',
-        body: msg,
-        ts: new Date().toISOString(),
-      };
-      return { ...t, messages: [...t.messages, newMsg], lastMessage: msg, updatedAt: new Date().toISOString() };
-    }));
-    setSelected(prev => {
-      if (!prev || prev.id !== ticketId) return prev;
-      const newMsg: Message = {
-        id: `m${Date.now()}`,
-        from: 'customer',
-        body: msg,
-        ts: new Date().toISOString(),
-      };
-      return { ...prev, messages: [...prev.messages, newMsg], lastMessage: msg, updatedAt: new Date().toISOString() };
+  async function handleReply(ticketId: string, msg: string) {
+    const row = await apiFetch(`/v1/support/tickets/${ticketId}/customer-reply`, {
+      method: 'POST', body: JSON.stringify({ content: msg }),
     });
+    const newMsg = mapMessage(row);
+    setSelected(prev => (prev && prev.id === ticketId) ? { ...prev, messages: [...prev.messages, newMsg] } : prev);
+    setTickets(prev => prev.map(t => t.id === ticketId
+      ? { ...t, lastMessage: msg, updatedAt: new Date().toISOString() }
+      : t));
   }
 
-  function handleCreate(subject: string, category: string, body: string) {
-    const newTicket: Ticket = {
-      id: `t${Date.now()}`,
-      ref: `TKT-${String(Math.floor(Math.random() * 9000) + 1000)}`,
-      subject,
-      status: 'OPEN',
-      priority: 'NORMAL',
-      category,
-      lastMessage: body,
-      updatedAt: new Date().toISOString(),
-      messages: [{ id: 'm1', from: 'customer', body, ts: new Date().toISOString() }],
-    };
-    setTickets(prev => [newTicket, ...prev]);
-    setShowNew(false);
-    setSelected(newTicket);
+  async function handleCreate(subject: string, category: string, body: string) {
+    setCreating(true);
+    try {
+      const row = await apiFetch('/v1/support/tickets', {
+        method: 'POST',
+        body: JSON.stringify({ subject, category, description: body, priority: 'NORMAL', channel: 'IN_APP' }),
+      });
+      const ticket = mapTicket(row);
+      setTickets(prev => [ticket, ...prev]);
+      setShowNew(false);
+      setSelected(ticket);
+    } finally {
+      setCreating(false);
+    }
   }
 
   /* ── Thread view ── */
@@ -463,10 +491,11 @@ export const CustomerSupport: React.FC = () => {
       <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 130px)', background: 'var(--bg)' }}>
         <TicketThread
           ticket={selected}
+          threadLoading={threadLoading}
           onBack={() => setSelected(null)}
           onReply={(msg) => handleReply(selected.id, msg)}
         />
-        {showNew && <NewTicketModal onClose={() => setShowNew(false)} onCreate={handleCreate} />}
+        {showNew && <NewTicketModal onClose={() => setShowNew(false)} onCreate={handleCreate} creating={creating} />}
       </div>
     );
   }
@@ -483,7 +512,7 @@ export const CustomerSupport: React.FC = () => {
         <div>
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>Support</h2>
           <p style={{ margin: '2px 0 0', fontSize: 13, color: 'var(--ink3)' }}>
-            {tickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length} open ticket(s)
+            {loading ? 'Loading…' : `${tickets.filter(t => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length} open ticket(s)`}
           </p>
         </div>
         <button
@@ -522,7 +551,20 @@ export const CustomerSupport: React.FC = () => {
 
       {/* Card list */}
       <div style={{ padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {filtered.length === 0 ? (
+        {loading ? (
+          Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, height: 120 }} />
+          ))
+        ) : loadError ? (
+          <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9, padding: '40px 20px', textAlign: 'center' }}>
+            <Icon name="alertCircle" size={36} color="var(--red)" />
+            <p style={{ color: 'var(--ink2)', fontSize: 14, margin: '12px 0 4px', fontWeight: 600 }}>Couldn't load your tickets</p>
+            <p style={{ color: 'var(--ink3)', fontSize: 13, margin: '0 0 16px' }}>Check your connection and try again.</p>
+            <button type="button" onClick={load} style={{ padding: 'var(--ds-btn-py) 20px', borderRadius: 'var(--r)', border: 'none', background: 'var(--teal)', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', minHeight: 'var(--ctl-h)', boxSizing: 'border-box' }}>
+              Retry
+            </button>
+          </div>
+        ) : filtered.length === 0 ? (
           <div style={{
             background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 9,
             padding: '40px 20px', textAlign: 'center',
@@ -542,12 +584,12 @@ export const CustomerSupport: React.FC = () => {
           </div>
         ) : (
           filtered.map(t => (
-            <TicketCard key={t.id} ticket={t} onClick={() => setSelected(t)} />
+            <TicketCard key={t.id} ticket={t} onClick={() => openTicket(t)} />
           ))
         )}
       </div>
 
-      {showNew && <NewTicketModal onClose={() => setShowNew(false)} onCreate={handleCreate} />}
+      {showNew && <NewTicketModal onClose={() => setShowNew(false)} onCreate={handleCreate} creating={creating} />}
       <LiveChatWidget />
     </div>
   );

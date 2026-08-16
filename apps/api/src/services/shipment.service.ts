@@ -147,7 +147,7 @@ export class ShipmentService {
       const folderName = input.bl_number || input.awb_number || refNumber;
       MinioIntegration.ensureFolder(tenantId, input.customer_id, folderName);
       // …and in the Cloud file manager: Customers ▸ <customer> ▸ <BL>, best-effort.
-      CloudSync.ensureShipmentFolder(tenantId, input.customer_id, folderName).catch(err => console.error('[Cloud] shipment folder failed:', err.message));
+      CloudSync.ensureShipmentFolder(tenantId, input.customer_id, shipment.id, folderName).catch(err => console.error('[Cloud] shipment folder failed:', err.message));
 
       // 5b. Auto-add the declared customer as a Listener. Every shipment has a
       // customer at creation time, and that customer is exactly who "Add

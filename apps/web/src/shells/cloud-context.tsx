@@ -1,11 +1,17 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { apiFetch, apiDownload } from '../lib/api.js';
+import { useAuth } from '../hooks/useAuth.js';
 
 // ── Shared types ───────────────────────────────────────────────────────────
 
 export interface SharedPerson {
   name: string;
   role: 'Viewer' | 'Editor';
+  // Real principal behind the share (migration 233) — absent for legacy/
+  // free-text shares, which stay display-only. Only 'customer' and
+  // 'organization' are ever enforced.
+  principal_type?: string | null;
+  principal_id?: string | null;
 }
 
 export interface CloudFile {
@@ -113,6 +119,10 @@ export interface CloudCtxValue {
   restoreItem: (id: string) => Promise<void>;
   permanentlyDelete: (id: string) => Promise<void>;
   emptyTrash: () => Promise<void>;
+  /** Only the platform SuperAdmin — real or currently impersonating (see
+   *  isPlatformSuperAdmin() in the API's rbac.ts) — can forever-delete a
+   *  file or empty Trash; everyone else can only move things to Trash. */
+  canPermanentlyDelete: boolean;
   shareItem: (id: string, shared: SharedPerson[]) => Promise<{ share_token: string | null }>;
   downloadItem: (item: CloudFile) => Promise<void>;
 
@@ -170,6 +180,7 @@ export const CloudCtx = createContext<CloudCtxValue>({
   restoreItem: noopAsync,
   permanentlyDelete: noopAsync,
   emptyTrash: noopAsync,
+  canPermanentlyDelete: false,
   shareItem: async () => ({ share_token: null }),
   downloadItem: noopAsync,
   connections: [],
@@ -187,6 +198,9 @@ export function useCloud() {
 // ── Provider ───────────────────────────────────────────────────────────────
 
 export function CloudProvider({ children }: { children: React.ReactNode }) {
+  const { user, isImpersonating } = useAuth();
+  const canPermanentlyDelete = user?.role === 'SUPER_ADMIN' || isImpersonating;
+
   const [files, setFiles]         = useState<CloudFile[]>([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState<string | null>(null);
@@ -523,7 +537,7 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
       previewItemId, setPreviewItemId,
       search, setSearch,
       createFolder, uploadFiles, uploadFolder, renameItem, starItem, moveItem,
-      trashItem, restoreItem, permanentlyDelete, emptyTrash, shareItem, downloadItem,
+      trashItem, restoreItem, permanentlyDelete, emptyTrash, shareItem, downloadItem, canPermanentlyDelete,
       connections, connectionsLoading, loadConnections, connectProvider, disconnectProvider, syncProvider,
     }}>
       {children}

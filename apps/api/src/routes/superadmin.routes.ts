@@ -5,6 +5,7 @@ import { sql } from 'kysely';
 import { GLService } from '../services/gl.service.js';
 import { DefaultWorkflowService } from '../services/default-workflow.service.js';
 import { PlatformAdminService } from '../services/platform-admin.service.js';
+import { CloudSync } from '../services/cloud-sync.service.js';
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
 
@@ -407,6 +408,38 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
       metadata: { enabledApps },
     });
     return { enabledApps: settings['enabled-apps'] || {} };
+  });
+
+  // 5d. GET /v1/superadmin/tenants/:id/customers — for the "Login As Customer"
+  // picker (auth.routes.ts POST /impersonate-customer). Plain db query, not
+  // withTenant — SuperAdmin cross-tenant reads in this file are always done
+  // this way, matching every other route here.
+  fastify.get('/tenants/:id/customers', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const rows = await db.selectFrom('customers')
+      .select(['id', 'name', 'email', 'phone', 'phone_wa', 'account_status', 'active', 'created_at'])
+      .where('tenant_id', '=', id)
+      .orderBy('name', 'asc')
+      .execute();
+    return { data: rows };
+  });
+
+  // 5e. POST /v1/superadmin/tenants/:id/resync-cloud-links — explicit,
+  // repeatable remediation for a tenant whose customer/shipment folders
+  // predate entity-linking (see cloud-sync.service.ts backfillTenant()).
+  fastify.post('/tenants/:id/resync-cloud-links', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const tenant = await db.selectFrom('tenants').select('name').where('id', '=', id).executeTakeFirst();
+    if (!tenant) return reply.status(404).send({ error: 'Tenant not found' });
+
+    const result = await CloudSync.backfillTenant(id);
+    await PlatformAdminService.recordActivity({
+      ...actor(request), category: 'system',
+      action: `Resynced Cloud links (${result.customersTagged} customers, ${result.shipmentsTagged} shipments)`,
+      targetType: 'tenant', targetId: id, targetName: tenant.name, tenantId: id,
+      metadata: result,
+    });
+    return result;
   });
 
   // 6. GET /v1/superadmin/settings

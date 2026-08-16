@@ -495,9 +495,14 @@ const TENANT_APPS: { id: string; name: string; color: string }[] = [
   { id: 'cargotracker',  name: 'CargoTracker', color: 'var(--purple)' },
 ];
 
+interface TenantCustomer {
+  id: string; name: string; email: string | null; phone: string | null; phone_wa: string | null;
+  account_status: string; active: boolean; created_at: string;
+}
+
 export function CompaniesView() {
   const isMobile = useIsMobile();
-  const { impersonate } = useAuth();
+  const { impersonate, impersonateCustomer } = useAuth();
   const [impersonating, setImpersonating] = useState<string|null>(null);
   const [tenants, setTenants]     = useState<ApiTenant[]>([]);
   const [apiLoaded, setApiLoaded] = useState(false);
@@ -511,6 +516,12 @@ export function CompaniesView() {
   const [editForm, setEditForm] = useState<CoForm>(CO_FORM_DEFAULT);
   const [selectedCoId, setSelectedCoId] = useState<string|null>(null);
   const [editEnabledApps, setEditEnabledApps] = useState<Record<string, boolean>>({});
+
+  const [customersCo, setCustomersCo] = useState<Company|null>(null);
+  const [tenantCustomers, setTenantCustomers] = useState<TenantCustomer[]>([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const [impersonatingCustomerId, setImpersonatingCustomerId] = useState<string|null>(null);
+  const [resyncingCloud, setResyncingCloud] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -564,6 +575,42 @@ export function CompaniesView() {
     } catch (err: any) {
       setImpersonating(null);
       showAlert(`Login As failed: ${err?.message ?? 'No active admin found for this company.'}`);
+    }
+  }
+
+  async function openCustomers(co: Company) {
+    setCustomersCo(co);
+    setLoadingCustomers(true);
+    try {
+      const res = await apiFetch(`/v1/superadmin/tenants/${co.id}/customers`);
+      setTenantCustomers(Array.isArray(res?.data) ? res.data : []);
+    } catch {
+      setTenantCustomers([]);
+    } finally {
+      setLoadingCustomers(false);
+    }
+  }
+
+  async function handleImpersonateCustomer(customer: TenantCustomer) {
+    setImpersonatingCustomerId(customer.id);
+    try {
+      await impersonateCustomer(customer.id);
+    } catch (err: any) {
+      setImpersonatingCustomerId(null);
+      showAlert(`Login As Customer failed: ${err?.message ?? 'Unknown error'}`);
+    }
+  }
+
+  async function handleResyncCloudLinks() {
+    if (!customersCo || resyncingCloud) return;
+    setResyncingCloud(true);
+    try {
+      const res = await apiFetch(`/v1/superadmin/tenants/${customersCo.id}/resync-cloud-links`, { method: 'POST' });
+      showAlert(`Retagged ${res.customersTagged} customer folder(s) and ${res.shipmentsTagged} shipment folder(s).`, { title: 'Cloud links resynced', variant: 'success' });
+    } catch (err: any) {
+      showAlert(`Resync failed: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setResyncingCloud(false);
     }
   }
 
@@ -702,6 +749,7 @@ export function CompaniesView() {
                     <Icon name="eye" size={11} color="var(--teal)" />
                     {impersonating === co.id ? 'Switching…' : 'Login As'}
                   </button>
+                  <ActBtn icon="users" color="var(--blue)" title="View customers" onClick={()=>openCustomers(co)} />
                   <ActBtn icon="edit" color="var(--teal)" title="Edit company" onClick={()=>openEdit(co)} />
                   <ActBtn icon="trash" color="var(--red)" title="Delete company" onClick={()=>deleteCompany(co.id)} />
                 </div>
@@ -796,6 +844,52 @@ export function CompaniesView() {
               <button type="button" title="Cancel" onClick={()=>setShowEdit(false)} className="btn btn-secondary btn-sm">Cancel</button>
               <button type="button" title="Save changes" onClick={saveEditCompany} className="btn btn-primary btn-sm" disabled={!editForm.name.trim()}>Save Changes</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {customersCo && (
+        <div className="modal-overlay" onClick={()=>setCustomersCo(null)}>
+          <div className="card" style={{ width:640, padding:28, maxHeight:'85vh', overflowY:'auto' }} onClick={e=>e.stopPropagation()}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18, gap:10 }}>
+              <span style={{ fontSize:16, fontWeight:700, color:'var(--ink)' }}>{customersCo.name} — Customers</span>
+              <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                <button type="button" title="Retag customer/shipment Cloud folders created before entity linking existed" disabled={resyncingCloud}
+                  onClick={handleResyncCloudLinks} className="btn btn-secondary btn-sm">
+                  {resyncingCloud ? 'Resyncing…' : 'Resync Cloud Links'}
+                </button>
+                <button type="button" title="Close" onClick={()=>setCustomersCo(null)} className="dp-close"><Icon name="close" size={16} /></button>
+              </div>
+            </div>
+            {loadingCustomers ? (
+              <div style={{ textAlign:'center', padding:'32px 0', color:'var(--ink3)', fontSize:13 }}>Loading customers…</div>
+            ) : tenantCustomers.length === 0 ? (
+              <div style={{ textAlign:'center', padding:'32px 0', color:'var(--ink3)', fontSize:13 }}>This company has no customers yet.</div>
+            ) : (
+              <DataTable headers={['Customer','Contact','Status','Actions']}>
+                {tenantCustomers.map(cust => (
+                  <TR key={cust.id}>
+                    <TD><span style={{ fontWeight:600 }}>{cust.name}</span></TD>
+                    <TD>
+                      <div style={{ fontSize:12 }}>{cust.email || '—'}</div>
+                      <div style={{ fontSize:11, color:'var(--ink3)' }}>{cust.phone || cust.phone_wa || ''}</div>
+                    </TD>
+                    <TD><Badge cfg={cust.active ? { label: cust.account_status || 'Active', color:'var(--green)', bg:'var(--green-l)' } : { label:'Inactive', color:'var(--ink3)', bg:'var(--bg)' }} /></TD>
+                    <TD right>
+                      <button
+                        type="button"
+                        title={`Login as ${cust.name}`}
+                        disabled={!!impersonatingCustomerId}
+                        onClick={() => handleImpersonateCustomer(cust)}
+                        style={{ display:'inline-flex', alignItems:'center', gap:5, padding:'var(--ds-btn-py-xs) 10px', borderRadius:'var(--r)', border:'1px solid var(--teal)', background:'var(--teal-l)', color:'var(--teal)', fontSize:11, fontWeight:700, cursor: impersonatingCustomerId ? 'not-allowed' : 'pointer', fontFamily:'var(--font)', opacity: impersonatingCustomerId===cust.id ? 0.6 : 1, whiteSpace:'nowrap', minHeight: 'var(--ctl-h-xs)', boxSizing: 'border-box', lineHeight: 1.25}}>
+                        <Icon name="eye" size={11} color="var(--teal)" />
+                        {impersonatingCustomerId === cust.id ? 'Switching…' : 'Login As Customer'}
+                      </button>
+                    </TD>
+                  </TR>
+                ))}
+              </DataTable>
+            )}
           </div>
         </div>
       )}

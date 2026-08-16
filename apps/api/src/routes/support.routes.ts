@@ -3,10 +3,31 @@ import type { Transaction } from 'kysely';
 import { db, withTenant, type Database } from '../db/client.js';
 import { MessagingService } from '../services/messaging.service.js';
 import { requireRole } from '../middleware/rbac.js';
+import { resolveCustomerId } from '../services/customer-identity.service.js';
 import type { MessageChannel, TicketPriority, TicketStatus, UserRole } from '@hudumika/types';
 
 const MGMT_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'];
 const AGENT_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER'];
+
+/** Never a real row — filters a query to nothing when a CUSTOMER login's
+ *  resolveCustomerId() comes back null. Same convention as shipments.routes.ts. */
+const NIL_UUID = '00000000-0000-0000-0000-000000000000';
+
+/**
+ * Everything in this file besides these four was built for staff: ticket
+ * metrics, the agent directory, rules/groups/views config, and broadcasting
+ * to a customer over WhatsApp/SMS/Email as 'OFFICER'. None of it was ever
+ * scoped by customer_id — a CUSTOMER-role login could already list/read any
+ * ticket in the tenant by id or by passing `?customer_id=`, so an allowlist
+ * (checked once, here) is safer than trusting each route below to remember
+ * its own guard as this file grows.
+ */
+const CUSTOMER_ALLOWED_ROUTES: { method: string; url: string }[] = [
+  { method: 'GET',  url: '/v1/support/tickets' },
+  { method: 'POST', url: '/v1/support/tickets' },
+  { method: 'GET',  url: '/v1/support/tickets/:id' },
+  { method: 'POST', url: '/v1/support/tickets/:id/customer-reply' },
+];
 
 // SLA deadline defaults by priority — no per-rule config in v1, just a
 // sane system default so sla_escalation rules have something real to act on.
@@ -109,6 +130,12 @@ export async function fireNotificationTrigger(
 
 export default async function supportRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
+  fastify.addHook('preHandler', async (request, reply) => {
+    if (request.user.role !== 'CUSTOMER') return;
+    const url = request.routeOptions?.url;
+    const allowed = CUSTOMER_ALLOWED_ROUTES.some(r => r.method === request.method && r.url === url);
+    if (!allowed) return reply.status(403).send({ error: 'Not available for customer accounts' });
+  });
 
   // 1. List all tickets
   fastify.get<{ Querystring: { customer_id?: string } }>('/tickets', async (request, reply) => {
@@ -128,7 +155,13 @@ export default async function supportRoutes(fastify: FastifyInstance) {
           'g.id as group_id', 'g.name as group_name', 'g.color as group_color',
         ])
         .where('st.tenant_id', '=', user.tenant_id);
-      if (request.query.customer_id) {
+      if (user.role === 'CUSTOMER') {
+        // Their own tickets only — ?customer_id= is ignored for a customer
+        // login rather than trusted, the same way every other customer-scoped
+        // read in this codebase treats resolveCustomerId() as authoritative.
+        const cid = await resolveCustomerId(user);
+        query = query.where('st.customer_id', '=', cid ?? NIL_UUID);
+      } else if (request.query.customer_id) {
         query = query.where('st.customer_id', '=', request.query.customer_id);
       }
       const tickets = await query
@@ -155,8 +188,20 @@ export default async function supportRoutes(fastify: FastifyInstance) {
     const user = request.user;
     return withTenant(user.tenant_id, async (trx) => {
       const b = request.body;
+
+      // A CUSTOMER login can only ever open a ticket for themself — whatever
+      // customer_id the body carries is ignored, not merely validated,
+      // otherwise any customer could open (and later read, via the ticket id)
+      // a ticket filed under another customer's name.
+      let customerId = b.customer_id;
+      if (user.role === 'CUSTOMER') {
+        const cid = await resolveCustomerId(user);
+        if (!cid) { reply.status(403); return { error: 'Account is not linked to a customer' }; }
+        customerId = cid;
+      }
+
       const customer = await trx.selectFrom('customers').select('id')
-        .where('id', '=', b.customer_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        .where('id', '=', customerId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!customer) {
         reply.status(404);
         return { error: 'Customer not found' };
@@ -167,11 +212,11 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         .insertInto('support_tickets')
         .values({
           tenant_id: user.tenant_id,
-          customer_id: b.customer_id,
+          customer_id: customerId,
           ref_number: `SUP-${Math.floor(1000 + Math.random() * 9000)}`,
           subject: b.subject,
           description: b.description || null,
-          channel: b.channel,
+          channel: user.role === 'CUSTOMER' ? 'IN_APP' : b.channel,
           priority: b.priority,
           category: b.category,
           status: 'OPEN',
@@ -212,6 +257,10 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         .executeTakeFirst();
 
       if (!ticket) {
+        reply.status(404);
+        return { error: 'Ticket not found' };
+      }
+      if (user.role === 'CUSTOMER' && ticket.customer_id !== await resolveCustomerId(user)) {
         reply.status(404);
         return { error: 'Ticket not found' };
       }
@@ -344,6 +393,71 @@ export default async function supportRoutes(fastify: FastifyInstance) {
 
       reply.status(201);
       return msg;
+    });
+  });
+
+  // 5b. Customer-authored reply from the portal. Deliberately separate from
+  // #5/#4 above: those dispatch OUTBOUND to an external channel and hardcode
+  // author_type 'OFFICER' — the shape is wrong for "a customer typed a
+  // message in the app" (INBOUND, author_type 'CUSTOMER', no WhatsApp/SMS/
+  // Email send to trigger). Reachable only by CUSTOMER role (see the
+  // allowlist above) and only against a ticket the caller owns.
+  fastify.post<{ Params: { id: string }; Body: { content: string } }>('/tickets/:id/customer-reply', async (request, reply) => {
+    const user = request.user;
+    const content = request.body.content?.trim();
+    if (!content) { reply.status(400); return { error: 'Message is required' }; }
+
+    return withTenant(user.tenant_id, async (trx) => {
+      const cid = await resolveCustomerId(user);
+      const ticket = await trx.selectFrom('support_tickets')
+        .select(['id', 'customer_id', 'ref_number', 'subject', 'assigned_to'])
+        .where('id', '=', request.params.id).where('tenant_id', '=', user.tenant_id)
+        .executeTakeFirst();
+      if (!ticket || ticket.customer_id !== cid) {
+        reply.status(404);
+        return { error: 'Ticket not found' };
+      }
+
+      const message = await trx.insertInto('support_messages').values({
+        tenant_id: user.tenant_id,
+        ticket_id: ticket.id,
+        channel: 'IN_APP',
+        direction: 'INBOUND',
+        author_id: user.sub,
+        author_name: user.name,
+        author_type: 'CUSTOMER',
+        content,
+      }).returningAll().executeTakeFirstOrThrow();
+
+      // A customer reply is time-sensitive and should reach the assigned
+      // agent directly, rather than waiting on the configurable
+      // notification_trigger rules (those are for staff-driven events).
+      if (ticket.assigned_to) {
+        await trx.insertInto('notifications').values({
+          tenant_id: user.tenant_id,
+          user_id: ticket.assigned_to,
+          app: 'bliss',
+          type: 'support',
+          title: `New reply on ${ticket.ref_number}`,
+          message: content.slice(0, 200),
+          link: `/bliss/tickets?id=${ticket.id}`,
+          metadata: '{}',
+          entity_type: 'support_ticket',
+          entity_id: ticket.id,
+          entity_label: ticket.subject,
+          shipment_id: null,
+          customer_id: cid,
+          trigger_type: null,
+          channel: null,
+          recipient: null,
+          content: null,
+        } as any).execute();
+      }
+
+      await trx.updateTable('support_tickets').set({ updated_at: new Date() }).where('id', '=', ticket.id).execute();
+
+      reply.status(201);
+      return message;
     });
   });
 

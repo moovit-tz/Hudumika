@@ -117,6 +117,8 @@ import { customsRoutes } from './routes/customs.routes.js';
 import { tradeWizardRoutes } from './routes/trade-wizard.routes.js';
 import { filesRoutes, filesPublicRoutes } from './routes/files.routes.js';
 import { drivesRoutes } from './routes/drives.routes.js';
+import { orgRoutes } from './routes/org.routes.js';
+import { organizationsRoutes } from './routes/organizations.routes.js';
 import supportRoutes from './routes/support.routes.js';
 import { platformRoutes } from './routes/platform.routes.js';
 import { landedCostShareRoutes } from './routes/landed-cost-share.routes.js';
@@ -345,6 +347,8 @@ async function main() {
     await server.register(filesRoutes, { prefix: '/v1/files' });
     await server.register(filesPublicRoutes, { prefix: '/v1/files-public' });
     await server.register(drivesRoutes, { prefix: '/v1/drives' });
+    await server.register(orgRoutes, { prefix: '/v1/org' });
+    await server.register(organizationsRoutes, { prefix: '/v1/organizations' });
     await server.register(supportRoutes, { prefix: '/v1/support' });
     await server.register(platformRoutes, { prefix: '/v1/platform' });
     await server.register(entitlementsRoutes, { prefix: '/v1/entitlements' });

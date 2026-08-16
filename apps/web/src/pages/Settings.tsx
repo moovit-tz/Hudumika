@@ -13,6 +13,7 @@ import { useLocale } from '../hooks/useLocale.js';
 import type { SupportedLocale } from '../i18n/index.js';
 import './Settings.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { EntityPicker } from '../components/EntityPicker.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
 import { useEntitlements, resetEntitlementsCache } from '../hooks/useEntitlements.js';
@@ -187,6 +188,18 @@ const CompanySection: React.FC = () => {
   const [faviconUrl, setFaviconUrl] = useState<string | null>(co.faviconUrl);
   const [saved, setSaved] = useState(false);
 
+  // organization_id lives on the real tenants row, not the tenant_settings
+  // JSONB blob SettingsCtx carries — fetched independently here rather than
+  // threading a new field through the shared context, same as WorkspaceFacts
+  // below does its own GET /v1/settings for what it needs.
+  const [linkedOrg, setLinkedOrg] = useState<{ id: string; label: string } | null>(null);
+  useEffect(() => {
+    apiFetch('/v1/settings').then((r: any) => {
+      const t = r?.tenant;
+      if (t?.organization_id) setLinkedOrg({ id: t.organization_id, label: t.organization_name || 'Linked organization' });
+    }).catch(() => {});
+  }, []);
+
   function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -206,7 +219,7 @@ const CompanySection: React.FC = () => {
   async function handleSave() {
     setSaving(true);
     setCompany({ name: f.name, email: f.email, phone: f.phone, website: f.website, taxId: f.vat, address: f.address, city: f.city, tagline: f.desc, logoUrl, faviconUrl });
-    try { await apiSave('company', { name: f.name, email: f.email, phone: f.phone, website: f.website, vat: f.vat, address: f.address, city: f.city, state: f.state, zip: f.zip, country: f.country, desc: f.desc, logoUrl, faviconUrl }); } catch {}
+    try { await apiSave('company', { name: f.name, email: f.email, phone: f.phone, website: f.website, vat: f.vat, address: f.address, city: f.city, state: f.state, zip: f.zip, country: f.country, desc: f.desc, logoUrl, faviconUrl, organizationId: linkedOrg?.id ?? null }); } catch {}
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -237,6 +250,21 @@ const CompanySection: React.FC = () => {
         </Field>
         <Field label="Company Description" full>
           <textarea className="input-field s-resize-v" rows={3} value={f.desc} onChange={e => set('desc', e.target.value)} placeholder="Short description of your company�" />
+        </Field>
+        <Field label="Linked Organization" full hint="If this workspace also serves as a customer of another clearing agent on Hudumika, link the same shared identity here so your team's own portal usage and your customer-portal usage (if any) are traceable to one company.">
+          <EntityPicker
+            value={linkedOrg}
+            onChange={setLinkedOrg}
+            search={async q => {
+              const res = await apiFetch(`/v1/organizations?q=${encodeURIComponent(q)}`).catch(() => []);
+              return (Array.isArray(res) ? res : []).map((o: any) => ({ id: o.id, label: o.name, sublabel: o.tax_id ? `TIN ${o.tax_id}` : undefined }));
+            }}
+            onCreate={async name => {
+              const created = await apiFetch('/v1/organizations', { method: 'POST', body: JSON.stringify({ name }) });
+              return { id: created.id, label: created.name };
+            }}
+            placeholder="Search or create an organization…"
+          />
         </Field>
       </Card>
       <Card title="Document Branding" desc="Logo and favicon used on PDF invoices, quotes, and portal documents. Platform login and UI branding is managed separately by your platform administrator.">

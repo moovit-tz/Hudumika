@@ -57,10 +57,19 @@ export function useShipments(filters: {
     }
   }, []);
 
-  const refreshAll = useCallback(async () => {
-    setLoading(true);
+  /**
+   * `silent` skips the loading flag — for the periodic background poll
+   * (see CommandCenter's 15s auto-refresh) and the WebSocket-triggered
+   * refetch, where the caller wants fresh data without the consumer
+   * unmounting to a full-page skeleton every time. A user-initiated refresh
+   * (initial mount, a filter change, "move shipment" completing) still
+   * wants the loading state, since the user just did something and a beat
+   * of feedback is expected there.
+   */
+  const refreshAll = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     await Promise.all([fetchGrouped(), fetchKPIs()]);
-    setLoading(false);
+    if (!opts?.silent) setLoading(false);
   }, [fetchGrouped, fetchKPIs]);
 
   // Initial load

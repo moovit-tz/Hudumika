@@ -5,9 +5,30 @@ import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
 import { withTenant, db } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { resolveCustomerId } from '../services/customer-identity.service.js';
+import { isPlatformSuperAdmin } from '../middleware/rbac.js';
 
 function extOf(name: string) {
   return name.split('.').pop()?.toLowerCase() || 'txt';
+}
+
+/** Never a real row — filters a query to nothing when a CUSTOMER login's
+ *  resolveCustomerId() comes back null, rather than one wrong branch away
+ *  from filtering to everything. Same convention as shipments.routes.ts. */
+const NIL_UUID = '00000000-0000-0000-0000-000000000000';
+
+/** A CUSTOMER-role upload has no drive of its own to post into — it lands in
+ *  the tenant's default (first-created) drive, auto-creating one the same
+ *  way GET /v1/drives does for a brand-new tenant, rather than trusting
+ *  whatever drive_id the client happened to send. */
+async function ensureDefaultDrive(trx: Transaction<Database>, tenantId: string): Promise<string> {
+  const existing = await trx.selectFrom('cloud_drives').select('id')
+    .where('tenant_id', '=', tenantId).orderBy('created_at').executeTakeFirst();
+  if (existing) return existing.id;
+  const created = await trx.insertInto('cloud_drives').values({
+    tenant_id: tenantId, name: 'My Drive', type: 'personal', owner_name: 'You',
+  }).returningAll().executeTakeFirstOrThrow();
+  return created.id;
 }
 
 const STORAGE_PROVIDERS = ['box', 'dropbox', 'mega', 'onedrive'] as const;
@@ -67,7 +88,7 @@ function daysAgo(days: number) {
 }
 
 /** Rows come back from pg with BIGINT columns as strings — normalize for the frontend. */
-function serialize(row: any, shared: { name: string; role: string }[] = []) {
+function serialize(row: any, shared: { name: string; role: string; principal_type?: string | null; principal_id?: string | null }[] = []) {
   return {
     ...row,
     size: row.size != null ? Number(row.size) : null,
@@ -80,8 +101,8 @@ async function attachShares(trx: Transaction<Database>, files: any[]) {
   const ids = files.map(f => f.id);
   if (ids.length === 0) return [];
   const shares = await trx.selectFrom('cloud_file_shares').selectAll().where('file_id', 'in', ids).execute();
-  const byFile: Record<string, { name: string; role: string }[]> = {};
-  for (const s of shares) (byFile[s.file_id] ??= []).push({ name: s.person_name, role: s.role });
+  const byFile: Record<string, { name: string; role: string; principal_type: string | null; principal_id: string | null }[]> = {};
+  for (const s of shares) (byFile[s.file_id] ??= []).push({ name: s.person_name, role: s.role, principal_type: s.principal_type, principal_id: s.principal_id });
   return files.map(f => serialize(f, byFile[f.id] ?? []));
 }
 
@@ -207,10 +228,108 @@ export async function filesRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('cloud'));
 
-  // GET / — list every file/folder for a drive (seeds sample data into a brand-new tenant's only drive)
+  // GET /share-targets — CUSTOMER-role only. Who this customer could
+  // possibly share a file with, kept to the one safe surface this platform
+  // actually has for it: their own linked Organization (customers.
+  // organization_id, migration 230), if any. Deliberately not an open
+  // name/email search — a customer has no business browsing other tenants'
+  // customers or organizations to find one to share with.
+  fastify.get('/share-targets', async (req, reply) => {
+    const user = req.user;
+    if (user.role !== 'CUSTOMER') return reply.status(403).send({ error: 'Not available for this account type' });
+    const cid = await resolveCustomerId(user);
+    if (!cid) return { organization: null };
+    return withTenant(user.tenant_id, async trx => {
+      const row = await trx.selectFrom('customers')
+        .leftJoin('organizations', 'organizations.id', 'customers.organization_id')
+        .select(['organizations.id as org_id', 'organizations.name as org_name'])
+        .where('customers.id', '=', cid).where('customers.tenant_id', '=', user.tenant_id).executeTakeFirst();
+      return { organization: row?.org_id ? { id: row.org_id, name: row.org_name } : null };
+    });
+  });
+
+  // GET / — three modes:
+  //  - ?entity_type=&entity_id= — every file linked to a business entity
+  //    (e.g. a customer profile's Documents tab), across all of the
+  //    tenant's drives, newest first. No drive_id needed: a linked file can
+  //    live in any drive, the link is what the caller is asking for.
+  //  - ?q= — name search across the tenant's non-trashed files (for a
+  //    "link an existing Drive file" picker), independent of drive_id.
+  //  - ?drive_id= — the original behavior: every file/folder in one drive
+  //    (and seeds sample data into a brand-new tenant's only drive).
   fastify.get('/', async (req, reply) => {
     const user = req.user;
-    const { drive_id } = req.query as { drive_id?: string };
+
+    // A CUSTOMER login never sees the tenant's general Drive — only files a
+    // staff member (or the customer themself, via upload below) explicitly
+    // linked to them. Whatever drive_id/q/entity_type the caller passes is
+    // irrelevant here; this decides the query on its own, full stop.
+    if (user.role === 'CUSTOMER') {
+      const cid = await resolveCustomerId(user);
+      try {
+        return await withTenant(user.tenant_id, async (trx) => {
+          // A customer sees files linked to them directly, plus files linked
+          // to any of their own shipments — closing the loop so shipment
+          // paperwork (mirrored by CloudSync.syncShipmentDoc) actually shows
+          // up in their own Documents view, not just staff's.
+          const shipmentIds = cid
+            ? (await trx.selectFrom('shipment_cases').select('id')
+                .where('tenant_id', '=', user.tenant_id).where('customer_id', '=', cid).execute()).map(s => s.id)
+            : [];
+          const rows = await trx.selectFrom('cloud_files').selectAll()
+            .where('tenant_id', '=', user.tenant_id)
+            .where('is_trash', '=', false)
+            .where(eb => eb.or([
+              eb.and([eb('entity_type', '=', 'customer'), eb('entity_id', '=', cid ?? NIL_UUID)]),
+              ...(shipmentIds.length > 0 ? [eb.and([eb('entity_type', '=', 'shipment'), eb('entity_id', 'in', shipmentIds)])] : []),
+              // A file explicitly shared with this customer (migration 233)
+              // is visible even with no entity link to them at all — a share
+              // only ever adds visibility, never removes what entity-linking
+              // already grants.
+              ...(cid ? [eb('id', 'in', eb.selectFrom('cloud_file_shares').select('file_id')
+                .where('principal_type', '=', 'customer').where('principal_id', '=', cid))] : []),
+            ]))
+            .orderBy('created_at', 'desc').execute();
+          return attachShares(trx, rows);
+        });
+      } catch (err: any) {
+        return reply.status(500).send({ error: err.message });
+      }
+    }
+
+    const { drive_id, entity_type, entity_id, q } = req.query as
+      { drive_id?: string; entity_type?: string; entity_id?: string; q?: string };
+
+    if (entity_type && entity_id) {
+      try {
+        return await withTenant(user.tenant_id, async (trx) => {
+          const rows = await trx.selectFrom('cloud_files').selectAll()
+            .where('tenant_id', '=', user.tenant_id)
+            .where('entity_type', '=', entity_type).where('entity_id', '=', entity_id)
+            .where('is_trash', '=', false)
+            .orderBy('created_at', 'desc').execute();
+          return attachShares(trx, rows);
+        });
+      } catch (err: any) {
+        return reply.status(500).send({ error: err.message });
+      }
+    }
+
+    if (q && q.trim()) {
+      try {
+        return await withTenant(user.tenant_id, async (trx) => {
+          const rows = await trx.selectFrom('cloud_files').selectAll()
+            .where('tenant_id', '=', user.tenant_id)
+            .where('type', '!=', 'folder').where('is_trash', '=', false)
+            .where('name', 'ilike', `%${q.trim()}%`)
+            .orderBy('created_at', 'desc').limit(30).execute();
+          return attachShares(trx, rows);
+        });
+      } catch (err: any) {
+        return reply.status(500).send({ error: err.message });
+      }
+    }
+
     if (!drive_id) return reply.status(400).send({ error: 'drive_id is required' });
     try {
       return await withTenant(user.tenant_id, async (trx) => {
@@ -240,11 +359,23 @@ export async function filesRoutes(fastify: FastifyInstance) {
   // POST /folder — create a folder
   fastify.post('/folder', async (req, reply) => {
     const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
     const body = req.body as { name?: string; parent_id?: string | null; color?: string; drive_id?: string };
     if (!body.name?.trim()) return reply.status(400).send({ error: 'Folder name is required' });
     if (!body.drive_id) return reply.status(400).send({ error: 'drive_id is required' });
     try {
       return await withTenant(user.tenant_id, async (trx) => {
+        // A folder created directly inside an already entity-tagged folder
+        // (e.g. browsing into Customers ▸ Acme ▸ BL12345 and adding
+        // "Photos") inherits that tag — every ancestor already carries the
+        // correct one by construction, so a single parent lookup is enough.
+        let entityType: string | null = null;
+        let entityId: string | null = null;
+        if (body.parent_id) {
+          const parent = await trx.selectFrom('cloud_files').select(['entity_type', 'entity_id'])
+            .where('id', '=', body.parent_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+          if (parent?.entity_type && parent.entity_id) { entityType = parent.entity_type; entityId = parent.entity_id; }
+        }
         const row = await trx.insertInto('cloud_files').values({
           tenant_id: user.tenant_id,
           drive_id: body.drive_id!,
@@ -256,6 +387,8 @@ export async function filesRoutes(fastify: FastifyInstance) {
           color: body.color ?? '#f59e0b',
           owner_name: user.name ?? 'You',
           owner_id: user.sub,
+          entity_type: entityType,
+          entity_id: entityId,
         }).returningAll().executeTakeFirstOrThrow();
         if (body.parent_id) await bumpParentCount(trx, body.parent_id, user.tenant_id, 1, 0);
         return serialize(row);
@@ -268,6 +401,7 @@ export async function filesRoutes(fastify: FastifyInstance) {
   // POST /upload — multipart file upload
   fastify.post('/upload', async (req, reply) => {
     const user = req.user;
+    const isCustomer = user.role === 'CUSTOMER';
     const data = await req.file();
     if (!data) return reply.status(400).send({ error: 'No file uploaded' });
     // Fields sent after the file part in the multipart stream aren't available on `data.fields`
@@ -275,24 +409,64 @@ export async function filesRoutes(fastify: FastifyInstance) {
     const queryParent = (req.query as any)?.parent_id as string | undefined;
     const fieldParent = (data.fields as any).parent_id?.value as string | undefined;
     const raw = queryParent ?? fieldParent;
-    const parentId = raw && raw !== 'null' && raw !== '' ? raw : null;
+    // A customer's uploads are always flat (no folder concept in their scoped view).
+    const parentId = isCustomer ? null : (raw && raw !== 'null' && raw !== '' ? raw : null);
 
-    const driveId = ((req.query as any)?.drive_id as string | undefined) ?? (data.fields as any).drive_id?.value as string | undefined;
-    if (!driveId) return reply.status(400).send({ error: 'drive_id is required' });
+    let driveId = ((req.query as any)?.drive_id as string | undefined) ?? (data.fields as any).drive_id?.value as string | undefined;
+
+    // Optional business-entity tag (e.g. a customer profile uploading
+    // straight into Drive) — same query-param-preferred quirk as parent_id
+    // above, since fields after the file part aren't reliably on data.fields.
+    const entityType = ((req.query as any)?.entity_type as string | undefined) ?? (data.fields as any).entity_type?.value as string | undefined;
+    const entityId = ((req.query as any)?.entity_id as string | undefined) ?? (data.fields as any).entity_id?.value as string | undefined;
+
+    // A CUSTOMER login can never tag a file as anyone but themself, and
+    // never picks their own drive_id — both are decided here, not trusted
+    // from the request, however the fields above were populated.
+    let customerId: string | null = null;
+    if (isCustomer) {
+      customerId = await resolveCustomerId(user);
+      if (!customerId) return reply.status(403).send({ error: 'Account is not linked to a customer' });
+    } else if (!driveId) {
+      return reply.status(400).send({ error: 'drive_id is required' });
+    }
 
     try {
       const buffer = await data.toBuffer();
       return await withTenant(user.tenant_id, async (trx) => {
+        if (isCustomer) driveId = await ensureDefaultDrive(trx, user.tenant_id);
+
+        // A staff upload straight into an already entity-tagged folder (e.g.
+        // browsing into Customers ▸ Acme ▸ BL12345 and clicking Upload)
+        // inherits that folder's tag when the caller didn't explicitly pass
+        // one — the CUSTOMER branch below is untouched, already forced flat.
+        let inheritedEntityType: string | null = null;
+        let inheritedEntityId: string | null = null;
+        if (!isCustomer && !entityType && parentId) {
+          const parent = await trx.selectFrom('cloud_files').select(['entity_type', 'entity_id'])
+            .where('id', '=', parentId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+          if (parent?.entity_type && parent.entity_id) { inheritedEntityType = parent.entity_type; inheritedEntityId = parent.entity_id; }
+        }
+
         const row = await trx.insertInto('cloud_files').values({
           tenant_id: user.tenant_id,
-          drive_id: driveId,
+          drive_id: driveId!,
           name: data.filename,
           type: extOf(data.filename),
           size: buffer.length,
           parent_id: parentId,
           owner_name: user.name ?? 'You',
-          owner_id: user.sub,
+          // owner_id references users(id). The legacy customer-OTP login path
+          // (POST /auth/customer/verify) signs `sub` as the customers.id, not
+          // a users row, so setting it unconditionally violates
+          // cloud_files_owner_id_fkey for any customer who logged in that
+          // way. owner_name plus the entity_type/entity_id link already
+          // identify the uploader for a CUSTOMER login; owner_id is left
+          // unset (nullable) rather than assumed to be a real users.id.
+          owner_id: isCustomer ? null : user.sub,
           mime_type: data.mimetype,
+          entity_type: isCustomer ? 'customer' : (entityType || inheritedEntityType),
+          entity_id: isCustomer ? customerId : (entityId || inheritedEntityId),
         }).returningAll().executeTakeFirstOrThrow();
 
         const { storageKey } = await MinioIntegration.uploadCloudFile(user.tenant_id, row.id, data.filename, buffer);
@@ -316,6 +490,15 @@ export async function filesRoutes(fastify: FastifyInstance) {
       const file = await trx.selectFrom('cloud_files').selectAll()
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!file || !file.storage_key) return reply.status(404).send({ error: 'File content not available' });
+      if (user.role === 'CUSTOMER') {
+        const cid = await resolveCustomerId(user);
+        const isOwnFile = file.entity_type === 'customer' && file.entity_id === cid;
+        const isOwnShipmentDoc = file.entity_type === 'shipment' && cid && await trx.selectFrom('shipment_cases').select('id')
+          .where('id', '=', file.entity_id!).where('tenant_id', '=', user.tenant_id).where('customer_id', '=', cid).executeTakeFirst();
+        const isSharedWithMe = cid && await trx.selectFrom('cloud_file_shares').select('id')
+          .where('file_id', '=', id).where('principal_type', '=', 'customer').where('principal_id', '=', cid).executeTakeFirst();
+        if (!isOwnFile && !isOwnShipmentDoc && !isSharedWithMe) return reply.status(403).send({ error: 'Not found' });
+      }
       const buf = MinioIntegration.readFile(file.storage_key);
       if (!buf) return reply.status(404).send({ error: 'File content not found' });
       reply.header('Content-Disposition', `attachment; filename="${file.name.replace(/"/g, '')}"`);
@@ -324,15 +507,18 @@ export async function filesRoutes(fastify: FastifyInstance) {
     });
   });
 
-  // PATCH /:id — rename / recolor / describe / star
+  // PATCH /:id — rename / recolor / describe / star / link-unlink to an entity.
+  // entity_type/entity_id double as the "link an existing Drive file" and
+  // "unlink" actions: pass both to link, pass both as null to unlink.
   fastify.patch('/:id', async (req, reply) => {
     const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
     const { id } = req.params as { id: string };
     const body = req.body as any;
     try {
       return await withTenant(user.tenant_id, async (trx) => {
         const update: Record<string, any> = { updated_at: new Date() };
-        for (const f of ['name', 'color', 'description', 'starred']) {
+        for (const f of ['name', 'color', 'description', 'starred', 'entity_type', 'entity_id']) {
           if (body[f] !== undefined) update[f] = body[f];
         }
         const row = await trx.updateTable('cloud_files').set(update)
@@ -348,6 +534,7 @@ export async function filesRoutes(fastify: FastifyInstance) {
   // POST /:id/move — { parent_id }
   fastify.post('/:id/move', async (req, reply) => {
     const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
     const { id } = req.params as { id: string };
     const { parent_id } = req.body as { parent_id: string | null };
     try {
@@ -378,6 +565,7 @@ export async function filesRoutes(fastify: FastifyInstance) {
   // POST /:id/trash — soft delete
   fastify.post('/:id/trash', async (req, reply) => {
     const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
     const { id } = req.params as { id: string };
     try {
       return await withTenant(user.tenant_id, async (trx) => {
@@ -395,6 +583,7 @@ export async function filesRoutes(fastify: FastifyInstance) {
   // POST /:id/restore — bring back out of Trash
   fastify.post('/:id/restore', async (req, reply) => {
     const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
     const { id } = req.params as { id: string };
     try {
       return await withTenant(user.tenant_id, async (trx) => {
@@ -412,6 +601,8 @@ export async function filesRoutes(fastify: FastifyInstance) {
   // POST /trash/empty — permanently delete everything in a drive's Trash
   fastify.post('/trash/empty', async (req, reply) => {
     const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    if (!isPlatformSuperAdmin(user)) return reply.status(403).send({ error: 'Only the platform SuperAdmin can empty Trash.' });
     const { drive_id } = req.body as { drive_id?: string };
     if (!drive_id) return reply.status(400).send({ error: 'drive_id is required' });
     try {
@@ -430,7 +621,9 @@ export async function filesRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // DELETE /:id — permanent delete (only meaningful once already in Trash, but allowed directly too)
+  // DELETE /:id — permanent delete (only meaningful once already in Trash, but allowed directly too).
+  // A CUSTOMER login may only delete a file it owns (removing something it
+  // mistakenly uploaded) — never a staff-owned or another customer's file.
   fastify.delete('/:id', async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
@@ -439,6 +632,12 @@ export async function filesRoutes(fastify: FastifyInstance) {
         const item = await trx.selectFrom('cloud_files').selectAll()
           .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
         if (!item) return reply.status(404).send({ error: 'Not found' });
+        if (user.role === 'CUSTOMER') {
+          const cid = await resolveCustomerId(user);
+          if (item.entity_type !== 'customer' || item.entity_id !== cid) return reply.status(403).send({ error: 'Not found' });
+        } else if (!isPlatformSuperAdmin(user)) {
+          return reply.status(403).send({ error: 'Only the platform SuperAdmin can permanently delete a file. Move it to Trash instead.' });
+        }
         if (item.storage_key) await MinioIntegration.deleteDocument(user.tenant_id, item.storage_key);
         if (item.parent_id) await bumpParentCount(trx, item.parent_id, user.tenant_id, -1, -(Number(item.size) || 0));
         await trx.deleteFrom('cloud_files').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
@@ -457,17 +656,35 @@ export async function filesRoutes(fastify: FastifyInstance) {
   fastify.put('/:id/share', async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    const { shared } = req.body as { shared: { name: string; role: 'Viewer' | 'Editor' }[] };
+    const { shared } = req.body as { shared: { name: string; role: 'Viewer' | 'Editor'; principal_type?: string; principal_id?: string }[] };
     try {
       return await withTenant(user.tenant_id, async (trx) => {
-        const file = await trx.selectFrom('cloud_files').select(['id', 'share_token', 'type'])
+        const file = await trx.selectFrom('cloud_files').select(['id', 'share_token', 'type', 'entity_type', 'entity_id'])
           .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
         if (!file) return reply.status(404).send({ error: 'Not found' });
+
+        // A customer may edit shares on a file they can already reach at
+        // Editor level: it's entity-linked to them directly (fundamentally
+        // theirs — consistent with already being able to upload/delete
+        // there), or an existing share for them is role='Editor'. Same
+        // full-replace semantics as staff already have on this route,
+        // nothing new invented — just who may call it.
+        if (user.role === 'CUSTOMER') {
+          const cid = await resolveCustomerId(user);
+          const ownsDirectly = file.entity_type === 'customer' && file.entity_id === cid;
+          const isEditor = cid && await trx.selectFrom('cloud_file_shares').select('id')
+            .where('file_id', '=', id).where('principal_type', '=', 'customer').where('principal_id', '=', cid)
+            .where('role', '=', 'Editor').executeTakeFirst();
+          if (!ownsDirectly && !isEditor) return reply.status(403).send({ error: 'Not available for customer accounts' });
+        }
 
         await trx.deleteFrom('cloud_file_shares').where('file_id', '=', id).execute();
         if (shared?.length) {
           await trx.insertInto('cloud_file_shares').values(
-            shared.map(s => ({ file_id: id, person_name: s.name, role: s.role }))
+            shared.map(s => ({
+              file_id: id, person_name: s.name, role: s.role,
+              principal_type: s.principal_type ?? null, principal_id: s.principal_id ?? null,
+            }))
           ).execute();
         }
         const shareToken = shared?.length
@@ -492,6 +709,7 @@ export async function filesRoutes(fastify: FastifyInstance) {
   // GET /connections — one row per provider, auto-created on first read
   fastify.get('/connections', async (req, reply) => {
     const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
     try {
       return await withTenant(user.tenant_id, async (trx) => {
         for (const provider of STORAGE_PROVIDERS) {
@@ -526,6 +744,7 @@ export async function filesRoutes(fastify: FastifyInstance) {
   // POST /connections/:provider/connect — mock OAuth: records the label the user typed in
   fastify.post('/connections/:provider/connect', async (req, reply) => {
     const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
     const { provider } = req.params as { provider: string };
     if (!STORAGE_PROVIDERS.includes(provider as StorageProvider)) return reply.status(400).send({ error: 'Unknown provider' });
     const { account_label } = req.body as { account_label?: string };
@@ -551,6 +770,7 @@ export async function filesRoutes(fastify: FastifyInstance) {
   // GET /connections/:provider/files — the (mocked) synced folders/files for this provider
   fastify.get('/connections/:provider/files', async (req, reply) => {
     const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
     const { provider } = req.params as { provider: string };
     if (!STORAGE_PROVIDERS.includes(provider as StorageProvider)) return reply.status(400).send({ error: 'Unknown provider' });
     try {
@@ -570,6 +790,7 @@ export async function filesRoutes(fastify: FastifyInstance) {
   // POST /connections/:provider/disconnect
   fastify.post('/connections/:provider/disconnect', async (req, reply) => {
     const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
     const { provider } = req.params as { provider: string };
     if (!STORAGE_PROVIDERS.includes(provider as StorageProvider)) return reply.status(400).send({ error: 'Unknown provider' });
     try {
@@ -588,6 +809,7 @@ export async function filesRoutes(fastify: FastifyInstance) {
   // POST /connections/:provider/sync — mock sync: just stamps last_synced_at
   fastify.post('/connections/:provider/sync', async (req, reply) => {
     const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
     const { provider } = req.params as { provider: string };
     if (!STORAGE_PROVIDERS.includes(provider as StorageProvider)) return reply.status(400).send({ error: 'Unknown provider' });
     try {

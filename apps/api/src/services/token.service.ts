@@ -34,6 +34,10 @@ export interface AccessClaims {
   email: string;
   name: string;
   device_id: string;
+  // See JWTPayload.impersonated_by in @hudumika/types — optional, set only
+  // for an impersonation-issued session.
+  impersonated_by?: string;
+  impersonated_by_name?: string;
 }
 
 /** Seconds in a duration like '15m', '1h', '30d'. Used for `expires_in`. */
@@ -56,7 +60,10 @@ export function issueTokens(fastify: FastifyInstance, claims: AccessClaims): Iss
   // claim only these two functions and the auth middleware read.
   const access = fastify.jwt.sign({ ...claims, typ: 'access' } as any, { expiresIn: env.JWT_EXPIRES_IN });
   const refresh = fastify.jwt.sign(
-    { sub: claims.sub, tenant_id: claims.tenant_id, device_id: claims.device_id, typ: 'refresh' } as any,
+    {
+      sub: claims.sub, tenant_id: claims.tenant_id, device_id: claims.device_id, typ: 'refresh',
+      ...(claims.impersonated_by ? { impersonated_by: claims.impersonated_by, impersonated_by_name: claims.impersonated_by_name } : {}),
+    } as any,
     { expiresIn: env.JWT_REFRESH_EXPIRES_IN },
   );
   return {

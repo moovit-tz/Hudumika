@@ -2506,6 +2506,23 @@ export const LandedCostPage: React.FC = () => {
   const [customerEmail, setCustomerEmail] = useState(() => fromDraft(d, 'customerEmail', ''));
   const [customerPhone, setCustomerPhone] = useState(() => fromDraft(d, 'customerPhone', ''));
   const [destination,   setDestination]   = useState(() => fromDraft(d, 'destination', 'Dar es Salaam, Tanzania'));
+  // Ties this estimate to a real shipment so its actual costs, once logged
+  // on the shipment's Ledger, can be compared against it — see
+  // shipmentVariance() / EstimateVarianceCard. The backend has taken
+  // shipment_id on every save since migration 167; nothing on this page
+  // ever collected or sent it, so the link was always null in practice.
+  const [linkedShipment, setLinkedShipment] = useState<PickerItem | null>(() => fromDraft(d, 'linkedShipment', null));
+  const shipmentCacheRef = useRef<Map<string, any>>(new Map());
+  async function searchShipments(q: string): Promise<PickerItem[]> {
+    const qs = q.trim() ? `?search=${encodeURIComponent(q.trim())}` : '';
+    const res = await apiFetch(`/v1/shipments${qs}`).catch(() => ({ data: [] }));
+    const list: any[] = Array.isArray(res) ? res : (res.data ?? []);
+    list.forEach((s) => shipmentCacheRef.current.set(s.id, s));
+    return list.slice(0, 25).map((s) => ({
+      id: s.id, label: s.ref_number,
+      sublabel: [s.bl_number || s.awb_number, s.customer_name, s.goods_desc].filter(Boolean).join(' · '),
+    }));
+  }
 
   const [cif,        setCif]       = useState(() => fromDraft(d, 'cif', ''));
   // Plain-language replacement for asking the customer an Incoterm. The two
@@ -2788,7 +2805,8 @@ export const LandedCostPage: React.FC = () => {
           hs_code: hs,
           cif_usd: cifVal,
           qty: parseInt(qty) || 1,
-          shipment_ref: undefined,
+          shipment_ref: linkedShipment ? shipmentCacheRef.current.get(linkedShipment.id)?.ref_number : undefined,
+          shipment_id: linkedShipment?.id || undefined,
           mode,
           container: mode === 'sea_fcl' ? container : undefined,
           num_containers: numContainersVal,
@@ -2877,6 +2895,8 @@ export const LandedCostPage: React.FC = () => {
           customer_name: customerName.trim() || undefined,
           customer_email: customerEmail.trim() || undefined,
           destination: destination.trim() || undefined,
+          shipment_ref: linkedShipment ? shipmentCacheRef.current.get(linkedShipment.id)?.ref_number : undefined,
+          shipment_id: linkedShipment?.id || undefined,
           parent_record_id: amendingFrom?.id,
           parent_version: amendingFrom?.version,
         }),
@@ -2967,7 +2987,7 @@ export const LandedCostPage: React.FC = () => {
    */
   useEffect(() => {
     writeDraft({
-      customerName, customerEmail, customerPhone, destination,
+      customerName, customerEmail, customerPhone, destination, linkedShipment,
       cif, priceInclFreight, priceInclInsurance, originCountry, loadingPoint, originFromPort,
       fob, freight, insurancePct, hs, qty, container, isAir, containerLots,
       importNote, invoiceCurrency, hsSuggestions, hsWhy, hsMem, aiPicks, declaredFob, showAdvanced,
@@ -2978,7 +2998,7 @@ export const LandedCostPage: React.FC = () => {
       calcSig: calcSigRef.current, calcRowIds: calcRowIdsRef.current,
     });
   }, [
-    customerName, customerEmail, customerPhone, destination,
+    customerName, customerEmail, customerPhone, destination, linkedShipment,
     cif, priceInclFreight, priceInclInsurance, originCountry, loadingPoint, originFromPort,
     fob, freight, insurancePct, hs, qty, container, isAir, containerLots,
     importNote, invoiceCurrency, hsSuggestions, hsWhy, hsMem, aiPicks, declaredFob, showAdvanced,
@@ -4508,6 +4528,9 @@ export const LandedCostPage: React.FC = () => {
                 </div>
                 <Field label="Destination" hint="Where the cargo is being cleared to — shown on the estimate and used for the DDP label.">
                   <TextInput value={destination} onChange={setDestination} placeholder="Dar es Salaam, Tanzania" />
+                </Field>
+                <Field label="Linked Shipment (optional)" hint="Ties this estimate to a real shipment, so once its actual costs are logged on the Ledger tab, they can be compared against this estimate.">
+                  <EntityPicker value={linkedShipment} onChange={setLinkedShipment} search={searchShipments} placeholder="Search by ref, BL number or goods description…" />
                 </Field>
               </div>
 

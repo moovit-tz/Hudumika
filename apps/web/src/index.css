@@ -3632,22 +3632,15 @@ html:not([data-theme="dark"]) .page-layout {
 }
 
 /* The hero band's fill.
-   Both stops are background tokens, deliberately. --navy flips to a pale
-   blue in dark mode (it's a heading-text token — see the two theme blocks
-   above) whereas --nav-header-bg stays a dark navy in both. --teal has the
-   same split: it is lightened 45% in dark mode so accent *text* stays
-   readable, which made this band glow. --teal-fill is the accent as a
-   surface — the true brand colour in light, taken down in dark — so one
-   rule covers both themes and the band is still orange in ClearOS and
-   green in SEAL with no per-app code.
-
-   The fallback matters: --teal-fill is written by WorkspaceApp at runtime
-   and defined nowhere in this stylesheet, so on a route rendering outside
-   that shell the substitution fails, the whole shorthand is invalid at
-   computed-value time, and the band computes to `unset` — transparent,
-   not some earlier rule. */
+   Pilot of a more restrained palette (Hostinger-style): the app accent is
+   reserved for actual links, icons and the one primary action in this row
+   (Advance Stage) rather than painting the whole band. --bg is the same
+   neutral the page body sits on, so the band reads as a header row on the
+   page surface, not a coloured banner — and it needs no per-theme handling
+   of its own, unlike the gradient it replaces. */
 .shipdetail-hero-band {
-  background: linear-gradient(120deg, var(--teal-fill, var(--teal)) 0%, var(--nav-header-bg) 100%);
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
 }
 
 /* ── Page footer ── */

@@ -10,7 +10,13 @@ function handleUnauthorized() {
   localStorage.removeItem('hudumika_user');
   localStorage.removeItem('hudumika_super_token');
   localStorage.removeItem('hudumika_super_user');
-  if (!window.location.pathname.startsWith('/login')) {
+  // The org portal (see useOrgAuth.tsx) is a completely separate session
+  // from this one, reached at /org/*. A background call made by a provider
+  // that mounts regardless of route (e.g. useDesignSystem.ts's unconditional
+  // design-tokens fetch) has no staff token there and 401s — that must not
+  // bounce an org-portal visitor into the staff login page.
+  const path = window.location.pathname;
+  if (!path.startsWith('/login') && !path.startsWith('/org')) {
     window.location.href = '/login?expired=1';
   }
 }

@@ -9,6 +9,13 @@ type DriveRole = typeof DRIVE_ROLES[number];
 export async function drivesRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('cloud'));
+  // A CUSTOMER login has no drive of its own (its uploads land in the
+  // tenant's default drive server-side, see files.routes.ts POST /upload)
+  // and has no legitimate reason to list, create, rename, delete, or manage
+  // members of the tenant's drives — every route in this file is staff-only.
+  fastify.addHook('preHandler', async (req, reply) => {
+    if (req.user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+  });
 
   // GET / — list every drive for the tenant, auto-creating the default "My Drive" if none exist yet
   fastify.get('/', async (req, reply) => {

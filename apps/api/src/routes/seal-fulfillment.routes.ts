@@ -30,6 +30,16 @@ function mapLine(row: any) {
   };
 }
 
+function mapDispatchRequest(row: any) {
+  return {
+    id: row.id, lotId: row.lot_id, lotDescription: row.lot_description ?? undefined, lotUom: row.uom ?? undefined,
+    requestedByOrgId: row.requested_by_org_id, requestedByOrgName: row.org_name ?? undefined,
+    qtyRequested: Number(row.qty_requested), note: row.note,
+    status: row.status, decidedBy: row.decided_by, decidedAt: row.decided_at,
+    fulfillmentOrderId: row.fulfillment_order_id, createdAt: row.created_at,
+  };
+}
+
 export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('seal'));
@@ -269,6 +279,86 @@ export async function sealFulfillmentRoutes(fastify: FastifyInstance) {
           .where('id', '=', o.id).returningAll().executeTakeFirstOrThrow();
       });
       return mapOrder(order);
+    } catch (err: any) {
+      return reply.status(422).send({ error: err.message });
+    }
+  });
+
+  // GET /dispatch-requests — the queue of cross-tenant requests an org has
+  // filed against this tenant's own stored goods (migration 232, filed via
+  // POST /v1/org/seal-lots/:lotId/dispatch-request). Optional status filter,
+  // same shape as GET /fulfillment-orders.
+  fastify.get('/dispatch-requests', async (request: any, reply) => {
+    try {
+      const { status } = request.query as { status?: string };
+      const rows = await withTenant(request.user.tenant_id, trx => {
+        let q = trx.selectFrom('seal_dispatch_requests')
+          .leftJoin('seal_lots', 'seal_lots.id', 'seal_dispatch_requests.lot_id')
+          .leftJoin('organizations', 'organizations.id', 'seal_dispatch_requests.requested_by_org_id')
+          .select([
+            'seal_dispatch_requests.id', 'seal_dispatch_requests.lot_id', 'seal_dispatch_requests.requested_by_org_id',
+            'seal_dispatch_requests.qty_requested', 'seal_dispatch_requests.note', 'seal_dispatch_requests.status',
+            'seal_dispatch_requests.decided_by', 'seal_dispatch_requests.decided_at',
+            'seal_dispatch_requests.fulfillment_order_id', 'seal_dispatch_requests.created_at',
+            'seal_lots.description as lot_description', 'seal_lots.uom', 'organizations.name as org_name',
+          ])
+          .where('seal_dispatch_requests.tenant_id', '=', request.user.tenant_id)
+          .orderBy('seal_dispatch_requests.created_at', 'desc');
+        if (status) q = q.where('seal_dispatch_requests.status', '=', status);
+        return q.execute();
+      });
+      return rows.map(mapDispatchRequest);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // PATCH /dispatch-requests/:id — approve or reject. Approval performs the
+  // exact same insert POST /fulfillment-orders above already does (draft
+  // order + one line, same qty-on-hand check) — this route is the only
+  // caller of that shape from a cross-tenant-originated request; the actual
+  // pick/pack/dispatch afterward stays the existing staff flow untouched.
+  fastify.patch('/dispatch-requests/:id', async (request: any, reply) => {
+    try {
+      const b = request.body as { status?: 'APPROVED' | 'REJECTED' };
+      if (b.status !== 'APPROVED' && b.status !== 'REJECTED') {
+        return reply.status(400).send({ error: 'status must be APPROVED or REJECTED' });
+      }
+      const result = await withTenant(request.user.tenant_id, async trx => {
+        const reqRow = await trx.selectFrom('seal_dispatch_requests').selectAll()
+          .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirstOrThrow();
+        if (reqRow.status !== 'PENDING') throw new Error(`This request is already ${reqRow.status.toLowerCase()}.`);
+
+        if (b.status === 'REJECTED') {
+          return trx.updateTable('seal_dispatch_requests')
+            .set({ status: 'REJECTED', decided_by: request.user.sub, decided_at: new Date() })
+            .where('id', '=', reqRow.id).returningAll().executeTakeFirstOrThrow();
+        }
+
+        const lot = await trx.selectFrom('seal_lots').select(['id', 'compartment_id', 'owner_id', 'qty_on_hand'])
+          .where('id', '=', reqRow.lot_id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirstOrThrow();
+        if (Number(reqRow.qty_requested) > Number(lot.qty_on_hand)) {
+          throw new Error(`Requested qty (${reqRow.qty_requested}) exceeds qty on hand (${lot.qty_on_hand}) for this lot.`);
+        }
+
+        const order = await trx.insertInto('seal_fulfillment_orders').values({
+          tenant_id: request.user.tenant_id,
+          compartment_id: lot.compartment_id,
+          customer_id: lot.owner_id,
+          reference: `FUL-${Date.now().toString(36).toUpperCase()}`,
+          notes: reqRow.note ? `Org dispatch request: ${reqRow.note}` : 'Org dispatch request',
+          created_by: request.user.sub,
+        }).returningAll().executeTakeFirstOrThrow();
+
+        await trx.insertInto('seal_fulfillment_lines').values({
+          tenant_id: request.user.tenant_id, order_id: order.id, lot_id: lot.id, requested_qty: reqRow.qty_requested,
+        }).execute();
+
+        return trx.updateTable('seal_dispatch_requests')
+          .set({ status: 'APPROVED', decided_by: request.user.sub, decided_at: new Date(), fulfillment_order_id: order.id })
+          .where('id', '=', reqRow.id).returningAll().executeTakeFirstOrThrow();
+      });
+      return mapDispatchRequest(result);
     } catch (err: any) {
       return reply.status(422).send({ error: err.message });
     }

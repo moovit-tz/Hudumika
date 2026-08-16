@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { apiFetch } from '../lib/api.js';
@@ -14,6 +15,7 @@ export const FinanceAgedReceivables: React.FC = () => {
   const [report, setReport] = useState<AgedReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [customerIdByName, setCustomerIdByName] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let alive = true;
@@ -21,6 +23,27 @@ export const FinanceAgedReceivables: React.FC = () => {
       .then((res: AgedReport) => { if (alive) setReport(res); })
       .catch((err: any) => { if (alive) setError(err?.message ?? 'Failed to load aged receivables'); })
       .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, []);
+
+  // Aged-receivables rows are grouped by the invoice's free-text client_name
+  // (no customer_id on sales_invoices historically), so entity_id here is a
+  // name, not a customer UUID. Resolve it against real customer records the
+  // same way the invoice→customer backfill did: case-insensitive, trimmed
+  // name match — so "View statement" only links when a profile truly exists.
+  useEffect(() => {
+    let alive = true;
+    apiFetch('/v1/customers')
+      .then((res: any) => {
+        if (!alive) return;
+        const list = Array.isArray(res) ? res : (res?.data ?? []);
+        const map: Record<string, string> = {};
+        for (const c of list) {
+          if (c?.name && c?.id) map[String(c.name).trim().toLowerCase()] = c.id;
+        }
+        setCustomerIdByName(map);
+      })
+      .catch(() => {});
     return () => { alive = false; };
   }, []);
 
@@ -131,7 +154,7 @@ export const FinanceAgedReceivables: React.FC = () => {
             <table className="rtbl" style={{ borderCollapse: 'collapse', fontSize: 12, width: '100%', minWidth: 800 }}>
               <thead>
                 <tr style={{ background: 'var(--bg)' }}>
-                  {['Customer', 'Current', '1–30 Days', '31–60 Days', '61–90 Days', '90+ Days', 'Total', 'Status'].map(h => (
+                  {['Customer', 'Current', '1–30 Days', '31–60 Days', '61–90 Days', '90+ Days', 'Total', 'Status', ''].map(h => (
                     <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontSize: 10, fontWeight: 700, color: 'var(--ink3)', textTransform: 'uppercase', letterSpacing: '0.07em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap' }}>{h}</th>
                   ))}
                 </tr>
@@ -139,6 +162,7 @@ export const FinanceAgedReceivables: React.FC = () => {
               <tbody>
                 {rows.map((c, i) => {
                   const badge = riskBadge(c);
+                  const customerId = customerIdByName[c.entity_name.trim().toLowerCase()];
                   return (
                     <tr key={c.entity_id} style={{ borderBottom: i < rows.length - 1 ? '1px solid var(--border)' : 'none' }}>
                       <td style={{ padding: '10px 16px', color: 'var(--ink)', fontWeight: 600, whiteSpace: 'nowrap' }}>{c.entity_name}</td>
@@ -151,6 +175,16 @@ export const FinanceAgedReceivables: React.FC = () => {
                       <td style={{ padding: '10px 16px' }}>
                         <span style={{ fontSize: 10, fontWeight: 700, color: badge.color, background: badge.bg, borderRadius: 5, padding: '2px 7px' }}>{badge.label}</span>
                       </td>
+                      <td style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>
+                        {customerId && (
+                          <Link
+                            to={`/crm/customers?id=${encodeURIComponent(customerId)}&tab=finance&financeTab=statement`}
+                            style={{ fontSize: 11, fontWeight: 700, color: 'var(--teal)', textDecoration: 'none' }}
+                          >
+                            View statement
+                          </Link>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -162,6 +196,7 @@ export const FinanceAgedReceivables: React.FC = () => {
                   <td style={{ padding: '10px 16px', color: 'var(--red)',    fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_61_90)}</td>
                   <td style={{ padding: '10px 16px', color: '#7c3aed',       fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.days_90_plus)}</td>
                   <td style={{ padding: '10px 16px', color: 'var(--ink)',    fontWeight: 800, fontFamily: 'var(--mono)', borderTop: '2px solid var(--border)' }}>{fmtFull(totals.total)}</td>
+                  <td style={{ borderTop: '2px solid var(--border)' }} />
                   <td style={{ borderTop: '2px solid var(--border)' }} />
                 </tr>
               </tbody>

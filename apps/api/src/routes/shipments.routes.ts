@@ -135,14 +135,10 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
     if (user.role === 'JUNIOR' || user.role === 'OFFICER') {
       filters.assigned_to = user.sub;
     } else if (user.role === 'CUSTOMER') {
-      // Look up the customer record linked to this user's email
-      const customerRecord = await db
-        .selectFrom('customers')
-        .select('id')
-        .where('tenant_id', '=', user.tenant_id)
-        .where('email', '=', user.email)
-        .executeTakeFirst();
-      if (customerRecord) filters.customer_id = customerRecord.id;
+      // Their customers row, not their login id — see customer-identity.service.
+      // A null link must return nothing rather than everything.
+      const cid = await resolveCustomerId(user);
+      if (cid) filters.customer_id = cid;
       else return { data: [] };
     } else if (query.assigned_to) {
       filters.assigned_to = query.assigned_to;

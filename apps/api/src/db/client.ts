@@ -46,6 +46,11 @@ export interface TenantsTable {
    */
   country: string | null;
   active: Generated<boolean>;
+  /** Links this tenant back to a platform-level Organization (see
+   *  OrganizationsTable) when the same real-world company also runs its own
+   *  tenant independent of being anyone's customer. Additive/nullable — the
+   *  flow to set it is separate follow-on work, not built alongside this column. */
+  organization_id: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }
@@ -204,6 +209,53 @@ export interface CustomersTable {
   // onValueChange at all; TANCIS input had no value/onChange).
   currency: Generated<string>;
   tancis_number: string | null;
+  /** Links this tenant-private customer record to a platform-level
+   *  Organization (migration 230), so the same real-world company served by
+   *  more than one tenant can be tracked as one identity. Nullable/additive —
+   *  staff-linked only, no self-service claiming (see organizations.routes.ts). */
+  organization_id: string | null;
+}
+
+/** Platform-level identity for a real-world company, sitting above `tenants`
+ *  as a peer — not scoped to any one tenant (no tenant_id column). Lets the
+ *  same company, served by more than one clearing agent, be tracked as one
+ *  entity instead of N disconnected `customers` rows. See migration 230. */
+export interface OrganizationsTable {
+  id:         Generated<string>;
+  name:       string;
+  email:      string | null;
+  tax_id:     string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+/** A separate login mechanism for an Organization — its own table, own
+ *  password, own JWT shape (role 'ORG', no tenant_id claim at all). A third
+ *  identity type alongside staff `users` and per-tenant CUSTOMER logins. */
+export interface OrganizationUsersTable {
+  id:              Generated<string>;
+  organization_id: string;
+  email:           string;
+  password_hash:   string;
+  name:            string;
+  active:          Generated<boolean>;
+  created_at:      Generated<Date>;
+  updated_at:      Generated<Date>;
+}
+
+/** A one-time code letting an Organization self-service-link to one
+ *  customer record — only redeemable by whoever received it at that
+ *  customer's own registered contact channel. See migration 231. */
+export interface CustomerClaimCodesTable {
+  id:              Generated<string>;
+  tenant_id:       string;
+  customer_id:     string;
+  token:           string;
+  issued_by:       string | null;
+  expires_at:      Date;
+  used_at:         Date | null;
+  used_by_org_id:  string | null;
+  created_at:      Generated<Date>;
 }
 
 export interface ShipmentCasesTable {
@@ -880,6 +932,20 @@ export interface SealFulfillmentLinesTable {
   requested_qty: string;
   picked_qty: Generated<string>;
   packed: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export interface SealDispatchRequestsTable {
+  id: Generated<string>;
+  tenant_id: string;
+  lot_id: string;
+  requested_by_org_id: string;
+  qty_requested: string;
+  note: string | null;
+  status: Generated<string>; // PENDING | APPROVED | REJECTED
+  decided_by: string | null;
+  decided_at: Date | null;
+  fulfillment_order_id: string | null;
   created_at: Generated<Date>;
 }
 
@@ -2923,7 +2989,10 @@ export interface SupportMessagesTable {
   direction: MessageDirection;
   author_id: string;
   author_name: string;
-  author_type: 'OFFICER' | 'CUSTOMER' | 'SYSTEM';
+  /** No CHECK constraint on this VARCHAR(50) column — 'ORG' added for the
+   *  org-portal reply route (org.routes.ts), same free-form column CUSTOMER
+   *  already used. */
+  author_type: 'OFFICER' | 'CUSTOMER' | 'SYSTEM' | 'ORG';
   content: string;
   external_ref: string | null;
   created_at: Generated<Date>;
@@ -2939,17 +3008,6 @@ export interface CustomerAssetsTable {
   metadata: any | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
-}
-
-export interface CustomerDocumentsTable {
-  id: Generated<string>;
-  tenant_id: string;
-  customer_id: string;
-  filename: string;
-  storage_key: string;
-  size: Generated<number>;
-  uploaded_by: string | null;
-  created_at: Generated<Date>;
 }
 
 export interface KbCategoriesTable {
@@ -3126,7 +3184,6 @@ export interface Database {
   support_views: SupportViewsTable;
   support_rules: SupportRulesTable;
   customer_assets: CustomerAssetsTable;
-  customer_documents: CustomerDocumentsTable;
   kb_categories: KbCategoriesTable;
   knowledge_base: KnowledgeBaseTable;
   live_chat_sessions: LiveChatSessionsTable;
@@ -3137,6 +3194,9 @@ export interface Database {
   locations: LocationsTable;
   users: UsersTable;
   customers: CustomersTable;
+  organizations: OrganizationsTable;
+  organization_users: OrganizationUsersTable;
+  customer_claim_codes: CustomerClaimCodesTable;
   leads: LeadsTable;
   shipment_cases: ShipmentCasesTable;
   stage_history: StageHistoryTable;
@@ -3181,6 +3241,7 @@ export interface Database {
   seal_automation_runs: SealAutomationRunsTable;
   seal_fulfillment_orders: SealFulfillmentOrdersTable;
   seal_fulfillment_lines: SealFulfillmentLinesTable;
+  seal_dispatch_requests: SealDispatchRequestsTable;
   shipment_listeners: ShipmentListenersTable;
   chat_channels: ChatChannelsTable;
   chat_channel_members: ChatChannelMembersTable;
@@ -5274,6 +5335,8 @@ export interface CloudFilesTable {
   storage_key: string | null;
   mime_type:   string | null;
   share_token: string | null;
+  entity_type: string | null;
+  entity_id:   string | null;
   created_at:  Generated<Date>;
   updated_at:  Generated<Date>;
 }
@@ -5284,6 +5347,12 @@ export interface CloudFileSharesTable {
   person_name: string;
   role:        Generated<string>; // 'Viewer' | 'Editor'
   created_at:  Generated<Date>;
+  // Real, checkable identity behind a share (migration 233) — null for
+  // legacy/free-text-only shares, which stay display-only forever. Only
+  // 'customer' | 'organization' are ever enforced by a route; a share with
+  // no principal (including any principal_type='user') stays informational.
+  principal_type: string | null;
+  principal_id:   string | null;
 }
 
 export interface CloudDrivesTable {
