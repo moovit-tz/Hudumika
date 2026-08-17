@@ -246,6 +246,7 @@ export async function financeRoutes(fastify: FastifyInstance) {
         .selectFrom('shipment_cases')
         .select(['ref_number', 'stage', 'customer_id', 'bl_number', 'awb_number', 'port_of_loading', 'port_of_discharge', 'type'])
         .where('id', '=', id)
+        .where('tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
 
       if (!shipment) {

@@ -4,6 +4,7 @@ import { NexusHRService } from '../services/nexushr.service.js';
 import { requireRole } from '../middleware/rbac.js';
 import { withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { CloudSync } from '../services/cloud-sync.service.js';
 
 export async function nexusHRRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -168,7 +169,7 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
         const up = await MinioIntegration.uploadHrDocument(
           user.tenant_id, userId ?? 'unattached', data.filename || name, buffer);
 
-        return await withTenant(user.tenant_id, trx =>
+        const row = await withTenant(user.tenant_id, trx =>
           trx.insertInto('hr_documents').values({
             tenant_id: user.tenant_id,
             user_id: userId,
@@ -179,6 +180,14 @@ export async function nexusHRRoutes(fastify: FastifyInstance) {
             // saying otherwise would make the verify step meaningless.
             status: 'PENDING',
           }).returningAll().executeTakeFirstOrThrow());
+
+        // Mirror into Employees ▸ <name> in Cloud — a no-op when userId is
+        // null (an unattached policy/template has nothing to link to).
+        CloudSync.syncEmployeeDoc(user.tenant_id, {
+          userId, filename: data.filename || name, buffer, mime: data.mimetype,
+        }).catch(err => console.error('[Cloud] employee document sync failed:', err.message));
+
+        return row;
       } catch (err: any) {
         return reply.status(500).send({ error: err.message });
       }

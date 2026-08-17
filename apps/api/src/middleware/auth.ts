@@ -44,6 +44,7 @@ const ORG_ALLOWED_ROUTES: { method: string; url: string }[] = [
   { method: 'GET', url: '/v1/org/invoices' },
   { method: 'GET', url: '/v1/org/documents' },
   { method: 'GET', url: '/v1/org/documents/:id/download' },
+  { method: 'PUT', url: '/v1/org/documents/:id/share' },
   { method: 'GET', url: '/v1/org/tickets' },
   { method: 'POST', url: '/v1/org/tickets' },
   { method: 'GET', url: '/v1/org/tickets/:id' },

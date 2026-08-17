@@ -1,6 +1,70 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { requireEntitlement, requireAnyEntitlement } from '../middleware/entitlement.js';
 import { freightBookingService } from '../services/freightBooking.service.js';
+
+const carrierCreateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  mode: z.string().min(1).max(30),
+  scac_or_iata: z.string().max(20).optional(),
+  contact_name: z.string().max(200).optional(),
+  contact_email: z.string().email().max(320).optional(),
+  contact_phone: z.string().max(30).optional(),
+});
+const carrierPatchSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  mode: z.string().min(1).max(30).optional(),
+  scac_or_iata: z.string().max(20).nullable().optional(),
+  contact_name: z.string().max(200).nullable().optional(),
+  contact_email: z.string().email().max(320).nullable().optional(),
+  contact_phone: z.string().max(30).nullable().optional(),
+  active: z.boolean().optional(),
+});
+const rateCardCreateSchema = z.object({
+  carrier_id: z.string().uuid(),
+  mode: z.string().min(1).max(30),
+  origin_port: z.string().min(1).max(100),
+  destination_port: z.string().min(1).max(100),
+  cost_rate: z.number().min(0),
+  sell_rate: z.number().min(0),
+  currency: z.string().max(10).optional(),
+  valid_from: z.string().optional(),
+  valid_to: z.string().optional(),
+  notes: z.string().max(2000).optional(),
+});
+const rateCardPatchSchema = z.object({
+  cost_rate: z.number().min(0).optional(),
+  sell_rate: z.number().min(0).optional(),
+  currency: z.string().max(10).optional(),
+  valid_from: z.string().nullable().optional(),
+  valid_to: z.string().nullable().optional(),
+  notes: z.string().max(2000).nullable().optional(),
+  active: z.boolean().optional(),
+});
+const bookingCreateSchema = z.object({
+  customer_id: z.string().uuid(),
+  mode: z.string().min(1).max(30),
+  origin_port: z.string().min(1).max(100),
+  destination_port: z.string().min(1).max(100),
+  cargo_desc: z.string().max(2000).optional(),
+  quantity: z.number().int().positive().optional(),
+  requested_ship_date: z.string().optional(),
+});
+const bookingQuoteSchema = z.object({
+  rate_card_id: z.string().uuid().optional(),
+  carrier_id: z.string().uuid().optional(),
+  quoted_cost: z.number().min(0),
+  quoted_sell: z.number().min(0),
+  currency: z.string().max(10).optional(),
+});
+const bookingConfirmSchema = z.object({
+  vessel_name: z.string().trim().min(1).max(200),
+  voyage_number: z.string().max(50).optional(),
+  carrier_booking_ref: z.string().max(100).optional(),
+  bl_number: z.string().max(100).optional(),
+  awb_number: z.string().max(100).optional(),
+  eta: z.string().optional(),
+});
 
 export async function freightBookingRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -19,15 +83,15 @@ export async function freightBookingRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/carriers', { preHandler: carrierGate }, async (request, reply) => {
-    const body = request.body as { name: string; mode: string; scac_or_iata?: string; contact_name?: string; contact_email?: string; contact_phone?: string };
-    if (!body.name || !body.mode) return reply.status(400).send({ error: 'name and mode are required' });
+    const body = carrierCreateSchema.parse(request.body);
     const carrier = await freightBookingService.createCarrier(request.user.tenant_id, body);
     return reply.status(201).send(carrier);
   });
 
   fastify.patch('/carriers/:id', { preHandler: carrierGate }, async (request) => {
     const { id } = request.params as { id: string };
-    return freightBookingService.updateCarrier(request.user.tenant_id, id, request.body as any);
+    const body = carrierPatchSchema.parse(request.body);
+    return freightBookingService.updateCarrier(request.user.tenant_id, id, body);
   });
 
   // ── Rate cards ───────────────────────────────────────────────────────────
@@ -39,17 +103,15 @@ export async function freightBookingRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/rate-cards', async (request, reply) => {
-    const body = request.body as { carrier_id: string; mode: string; origin_port: string; destination_port: string; cost_rate: number; sell_rate: number; currency?: string; valid_from?: string; valid_to?: string; notes?: string };
-    if (!body.carrier_id || !body.mode || !body.origin_port || !body.destination_port || body.cost_rate == null || body.sell_rate == null) {
-      return reply.status(400).send({ error: 'carrier_id, mode, origin_port, destination_port, cost_rate and sell_rate are required' });
-    }
+    const body = rateCardCreateSchema.parse(request.body);
     const card = await freightBookingService.createRateCard(request.user.tenant_id, body);
     return reply.status(201).send(card);
   });
 
   fastify.patch('/rate-cards/:id', async (request) => {
     const { id } = request.params as { id: string };
-    return freightBookingService.updateRateCard(request.user.tenant_id, id, request.body as any);
+    const body = rateCardPatchSchema.parse(request.body);
+    return freightBookingService.updateRateCard(request.user.tenant_id, id, body);
   });
 
   // ── Bookings ─────────────────────────────────────────────────────────────
@@ -70,20 +132,14 @@ export async function freightBookingRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/bookings', async (request, reply) => {
-    const body = request.body as { customer_id: string; mode: string; origin_port: string; destination_port: string; cargo_desc?: string; quantity?: number; requested_ship_date?: string };
-    if (!body.customer_id || !body.mode || !body.origin_port || !body.destination_port) {
-      return reply.status(400).send({ error: 'customer_id, mode, origin_port and destination_port are required' });
-    }
+    const body = bookingCreateSchema.parse(request.body);
     const booking = await freightBookingService.createBooking(request.user.tenant_id, request.user.sub, body);
     return reply.status(201).send(booking);
   });
 
   fastify.patch('/bookings/:id/quote', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = request.body as { rate_card_id?: string; carrier_id?: string; quoted_cost: number; quoted_sell: number; currency?: string };
-    if (body.quoted_cost == null || body.quoted_sell == null) {
-      return reply.status(400).send({ error: 'quoted_cost and quoted_sell are required' });
-    }
+    const body = bookingQuoteSchema.parse(request.body);
     try {
       return await freightBookingService.quoteBooking(request.user.tenant_id, id, body);
     } catch (err: any) {
@@ -93,8 +149,7 @@ export async function freightBookingRoutes(fastify: FastifyInstance) {
 
   fastify.patch('/bookings/:id/confirm', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = request.body as { vessel_name: string; voyage_number?: string; carrier_booking_ref?: string; bl_number?: string; awb_number?: string; eta?: string };
-    if (!body.vessel_name) return reply.status(400).send({ error: 'vessel_name is required' });
+    const body = bookingConfirmSchema.parse(request.body);
     try {
       const result = await freightBookingService.confirmBooking(request.user.tenant_id, id, request.user.sub, body);
       return result;

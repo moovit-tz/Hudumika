@@ -27,7 +27,7 @@ export async function sealLedgerAnchorRoutes(fastify: FastifyInstance) {
     try {
       const rows = await withTenant(request.user.tenant_id, trx =>
         trx.selectFrom('seal_ledger_anchors').selectAll()
-          .where('compartment_id', '=', request.params.id)
+          .where('compartment_id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
           .orderBy('created_at', 'desc')
           .execute()
       );
@@ -74,7 +74,7 @@ export async function sealLedgerAnchorRoutes(fastify: FastifyInstance) {
     try {
       const anchor = await withTenant(request.user.tenant_id, trx =>
         trx.selectFrom('seal_ledger_anchors').select(['ots_proof', 'ots_proof_upgraded', 'checkpoint_hash'])
-          .where('id', '=', request.params.id).executeTakeFirst()
+          .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id).executeTakeFirst()
       );
       if (!anchor) return reply.status(404).send({ error: 'Anchor not found' });
       const bytes = anchor.ots_proof_upgraded ?? anchor.ots_proof;

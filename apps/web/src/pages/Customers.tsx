@@ -342,6 +342,12 @@ export const Customers: React.FC = () => {
   const [linkedFiles, setLinkedFiles] = useState<any[]>([]);
   const [filesLoading, setFilesLoading] = useState(false);
   const [defaultDriveId, setDefaultDriveId] = useState<string | null>(null);
+  // This customer's real "Customers ▸ <name>" folder in Drive — resolved
+  // (and auto-created if missing) on demand, per customer, so uploads and
+  // "Open Drive" land inside the actual folder rather than just tagging a
+  // file flat at the drive root. Keyed to avoid re-resolving on every click.
+  const [customerFolder, setCustomerFolder] = useState<{ customerId: string; id: string; drive_id: string; name: string; parent: { id: string; name: string } | null } | null>(null);
+  const [resolvingFolder, setResolvingFolder] = useState(false);
   const [fileUploading, setFileUploading] = useState(false);
   const [showLinkFileModal, setShowLinkFileModal] = useState(false);
   const [fileSearch, setFileSearch] = useState('');
@@ -458,18 +464,6 @@ export const Customers: React.FC = () => {
     if (selected && mainTab === 'seal') loadSealLots(selected.id);
   }, [selected, mainTab, loadSealLots]);
 
-  const loadLinkedFiles = useCallback(async (customerId: string) => {
-    setFilesLoading(true);
-    try {
-      const res = await apiFetch(`/v1/files?entity_type=customer&entity_id=${customerId}`).catch(() => []);
-      setLinkedFiles(Array.isArray(res) ? res : []);
-    } catch { /* empty */ } finally { setFilesLoading(false); }
-  }, []);
-
-  useEffect(() => {
-    if (selected && mainTab === 'documents') loadLinkedFiles(selected.id);
-  }, [selected, mainTab, loadLinkedFiles]);
-
   // The tenant's default drive to upload straight-from-this-page files into —
   // fetched once per profile visit, lazily, the first time it's actually
   // needed (Drive auto-creates "My Drive" on first GET if none exist yet).
@@ -480,6 +474,55 @@ export const Customers: React.FC = () => {
     setDefaultDriveId(id);
     return id;
   }, [defaultDriveId]);
+
+  // This customer's real Drive folder. GET /v1/files/customer-folder/:id
+  // does more than just resolve an id — it creates the folder if missing
+  // and retroactively tags any of the customer's own or their shipments'
+  // documents that were uploaded before entity-tagging existed, so this
+  // doubles as a self-healing sync. Cached per customerId so repeat calls
+  // (tab load, then Open Drive, then Upload) don't re-resolve it each time.
+  // `silent` skips the error alert for the automatic tab-load call below —
+  // a background sync failing shouldn't interrupt someone just viewing the tab.
+  const resolveCustomerFolder = useCallback(async (customerId: string, opts?: { silent?: boolean }) => {
+    if (customerFolder?.customerId === customerId) return customerFolder;
+    setResolvingFolder(true);
+    try {
+      const res = await apiFetch(`/v1/files/customer-folder/${customerId}`);
+      const next = { customerId, id: res.id, drive_id: res.drive_id, name: res.name, parent: res.parent ?? null };
+      setCustomerFolder(next);
+      return next;
+    } catch (err: any) {
+      if (!opts?.silent) showAlert(err.message || "Could not open this customer's Drive folder");
+      return null;
+    } finally {
+      setResolvingFolder(false);
+    }
+  }, [customerFolder]);
+
+  const loadLinkedFiles = useCallback(async (customerId: string) => {
+    setFilesLoading(true);
+    try {
+      // Self-heals this customer's Drive folder + shipment-folder tagging on
+      // every open — no manual "Resync" click needed for a customer/shipment
+      // (or a file dropped straight into Drive) that predates entity-tagging.
+      await resolveCustomerFolder(customerId, { silent: true });
+      const res = await apiFetch(`/v1/files?entity_type=customer&entity_id=${customerId}`).catch(() => []);
+      setLinkedFiles(Array.isArray(res) ? res : []);
+    } catch { /* empty */ } finally { setFilesLoading(false); }
+  }, [resolveCustomerFolder]);
+
+  useEffect(() => {
+    if (selected && mainTab === 'documents') loadLinkedFiles(selected.id);
+  }, [selected, mainTab, loadLinkedFiles]);
+
+  async function openCustomerDrive() {
+    if (!selected) return;
+    const folder = await resolveCustomerFolder(selected.id);
+    if (!folder) return;
+    const qs = new URLSearchParams({ drive: folder.drive_id, folder: folder.id, name: folder.name });
+    if (folder.parent) { qs.set('parentId', folder.parent.id); qs.set('parentName', folder.parent.name); }
+    window.open(`/cloud?${qs.toString()}`, '_blank', 'noopener');
+  }
 
   // Debounced search across the tenant's Drive files, for the "Link existing
   // file" picker — mirrors EntityPicker's search(q) shape without pulling in
@@ -529,12 +572,19 @@ export const Customers: React.FC = () => {
     if (!selected || !files.length) return;
     setFileUploading(true);
     try {
-      const driveId = await ensureDefaultDrive();
+      // Upload straight into the customer's real "Customers ▸ <name>"
+      // folder (parent_id), not just tagged flat at the drive root — the
+      // entity_type/entity_id tag is still passed explicitly too, so the
+      // file stays reliably queryable even if it's later moved elsewhere.
+      const folder = await resolveCustomerFolder(selected.id);
+      const driveId = folder?.drive_id ?? await ensureDefaultDrive();
       if (!driveId) throw new Error('No Drive available to upload into');
       for (const f of files) {
         const fd = new FormData();
         fd.append('file', f);
-        await apiFetch(`/v1/files/upload?drive_id=${driveId}&entity_type=customer&entity_id=${selected.id}`, {
+        const qs = new URLSearchParams({ drive_id: driveId, entity_type: 'customer', entity_id: selected.id });
+        if (folder) qs.set('parent_id', folder.id);
+        await apiFetch(`/v1/files/upload?${qs.toString()}`, {
           method: 'POST', body: fd,
         });
       }
@@ -1867,10 +1917,10 @@ export const Customers: React.FC = () => {
               <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: 2 }}>Files linked from Drive — the same storage as the Drive app, filtered to this customer.</div>
             </div>
             <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <Link to="/cloud" target="_blank" rel="noreferrer"
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font)', textDecoration: 'none' }}>
-                <Icon name="externalLink" size={13} /> Open Drive
-              </Link>
+              <button type="button" onClick={openCustomerDrive} disabled={resolvingFolder}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, fontFamily: 'var(--font)', cursor: resolvingFolder ? 'default' : 'pointer', opacity: resolvingFolder ? 0.6 : 1 }}>
+                <Icon name="externalLink" size={13} /> {resolvingFolder ? 'Opening…' : 'Open Drive'}
+              </button>
               <button type="button" onClick={() => setShowLinkFileModal(true)}
                 style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', border: '1px solid var(--border)', borderRadius: 9, background: 'var(--white)', color: 'var(--ink2)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
                 <Icon name="link" size={13} /> Link Existing File
@@ -1890,7 +1940,7 @@ export const Customers: React.FC = () => {
 
           {/* Drop zone */}
           <div
-            style={{ border: '2px dashed var(--border)', borderRadius: 9, padding: '28px 24px', textAlign: 'center', color: 'var(--ink3)', margin: '18px 0', background: 'var(--bg)' }}
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', border: '2px dashed var(--border)', borderRadius: 9, padding: '28px 24px', textAlign: 'center', color: 'var(--ink3)', margin: '18px 0', background: 'var(--bg)' }}
             onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--teal)'; e.currentTarget.style.background = 'var(--teal-l)'; }}
             onDragLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg)'; }}
             onDrop={async e => {

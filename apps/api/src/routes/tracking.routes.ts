@@ -1,12 +1,58 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { sql } from 'kysely';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { gpswoxService } from '../services/gpswox.service.js';
 import { toDateParam } from '../utils/dates.js';
+import { pick } from '../lib/pick.js';
 
 const FLEET_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR'] as const;
+
+const vehicleFieldsSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  plate_number: z.string().max(30).optional(),
+  type: z.string().max(30).optional(),
+  driver_name: z.string().max(200).optional(),
+  driver_phone: z.string().max(30).optional(),
+  device_id: z.string().max(100),
+  fuel_type: z.string().max(30).optional(),
+  group_name: z.string().max(100).optional(),
+  vin: z.string().max(50).optional(),
+  year: z.number().int().min(1900).max(2100).optional(),
+  make: z.string().max(100).optional(),
+  model: z.string().max(100).optional(),
+  trim: z.string().max(100).optional(),
+  color: z.string().max(50).optional(),
+  ownership: z.string().max(30).optional(),
+  mileage_km: z.number().min(0).optional(),
+  photo_url: z.string().max(1000).optional(),
+  purchase_vendor: z.string().max(200).optional(),
+  purchase_date: z.string().max(30).optional(),
+  purchase_price: z.number().min(0).optional(),
+  initial_odometer: z.number().min(0).optional(),
+  financing_type: z.string().max(30).optional(),
+  in_service_date: z.string().max(30).optional(),
+  in_service_odometer: z.number().min(0).optional(),
+  est_life_months: z.number().min(0).optional(),
+  est_life_meter: z.number().min(0).optional(),
+  est_resale_value: z.number().min(0).optional(),
+  out_of_service_date: z.string().max(30).optional(),
+  out_of_service_odometer: z.number().min(0).optional(),
+  lifecycle_notes: z.string().max(2000).optional(),
+  status: z.string().max(30).optional(),
+});
+const vehiclePatchSchema = vehicleFieldsSchema.partial();
+
+const geofenceCreateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  center_lat: z.number().min(-90).max(90),
+  center_lon: z.number().min(-180).max(180),
+  radius_km: z.number().positive(),
+  zone_type: z.string().max(30).optional(),
+});
+const geofencePatchSchema = geofenceCreateSchema.partial().extend({ active: z.boolean().optional() });
 
 // Simple in-memory cache for NHTSA vPIC lookups (apps/api/src/routes/tracking.routes.ts
 // getVehicleMakes/getVehicleModels) — make/model reference data is effectively
@@ -209,19 +255,7 @@ export async function trackingRoutes(fastify: FastifyInstance) {
 
   fastify.post('/vehicles', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
-    const body = req.body as {
-      name: string; plate_number?: string; type?: string;
-      driver_name?: string; driver_phone?: string; device_id: string;
-      fuel_type?: string; group_name?: string;
-      vin?: string; year?: number; make?: string; model?: string; trim?: string;
-      color?: string; ownership?: string; mileage_km?: number;
-      purchase_vendor?: string; purchase_date?: string; purchase_price?: number;
-      initial_odometer?: number; financing_type?: string;
-      in_service_date?: string; in_service_odometer?: number;
-      est_life_months?: number; est_life_meter?: number; est_resale_value?: number;
-      out_of_service_date?: string; out_of_service_odometer?: number;
-      lifecycle_notes?: string; status?: string;
-    };
+    const body = vehicleFieldsSchema.parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       return trx.insertInto('vehicles').values({
         tenant_id: user.tenant_id,
@@ -262,21 +296,17 @@ export async function trackingRoutes(fastify: FastifyInstance) {
   fastify.patch('/vehicles/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    const body = req.body as Partial<{
-      name: string; plate_number: string; type: string;
-      driver_name: string; driver_phone: string; status: string;
-      vin: string; year: number; make: string; model: string; trim: string;
-      color: string; ownership: string; mileage_km: number; photo_url: string;
-      fuel_type: string; group_name: string;
-      purchase_vendor: string; purchase_date: string; purchase_price: number;
-      initial_odometer: number; financing_type: string;
-      in_service_date: string; in_service_odometer: number;
-      est_life_months: number; est_life_meter: number; est_resale_value: number;
-      out_of_service_date: string; out_of_service_odometer: number;
-      lifecycle_notes: string;
-    }>;
+    const body = vehiclePatchSchema.parse(req.body);
+    const patch = pick(body, [
+      'name', 'plate_number', 'type', 'driver_name', 'driver_phone', 'status',
+      'vin', 'year', 'make', 'model', 'trim', 'color', 'ownership', 'mileage_km', 'photo_url',
+      'fuel_type', 'group_name', 'purchase_vendor', 'purchase_date', 'purchase_price',
+      'initial_odometer', 'financing_type', 'in_service_date', 'in_service_odometer',
+      'est_life_months', 'est_life_meter', 'est_resale_value', 'out_of_service_date',
+      'out_of_service_odometer', 'lifecycle_notes',
+    ]);
     return withTenant(user.tenant_id, async (trx) => {
-      return trx.updateTable('vehicles').set({ ...body, updated_at: new Date() } as any)
+      return trx.updateTable('vehicles').set({ ...patch, updated_at: new Date() } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow();
     });
@@ -312,14 +342,16 @@ export async function trackingRoutes(fastify: FastifyInstance) {
 
   fastify.post('/positions/ingest', async (req, reply) => {
     const user = req.user;
-    const body = req.body as {
-      device_id: string; lat: number; lng: number;
-      speed?: number; heading?: number; timestamp?: string;
-      battery_pct?: number; ignition?: 'ON' | 'OFF';
-    };
-    if (!body.device_id || typeof body.lat !== 'number' || typeof body.lng !== 'number') {
-      return reply.status(400).send({ error: 'device_id, lat, lng are required' });
-    }
+    const body = z.object({
+      device_id: z.string().min(1).max(100),
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+      speed: z.number().min(0).optional(),
+      heading: z.number().min(0).max(360).optional(),
+      timestamp: z.string().optional(),
+      battery_pct: z.number().min(0).max(100).optional(),
+      ignition: z.enum(['ON', 'OFF']).optional(),
+    }).parse(req.body);
 
     return withTenant(user.tenant_id, async (trx) => {
       const vehicle = await trx.selectFrom('vehicles').selectAll()
@@ -370,7 +402,7 @@ export async function trackingRoutes(fastify: FastifyInstance) {
 
   fastify.post('/geofences', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
-    const body = req.body as { name: string; center_lat: number; center_lon: number; radius_km: number; zone_type?: string };
+    const body = geofenceCreateSchema.parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       return trx.insertInto('geofences').values({
         tenant_id: user.tenant_id, name: body.name,
@@ -383,11 +415,10 @@ export async function trackingRoutes(fastify: FastifyInstance) {
   fastify.patch('/geofences/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    const body = req.body as Partial<{
-      name: string; center_lat: number; center_lon: number; radius_km: number; zone_type: string; active: boolean;
-    }>;
+    const body = geofencePatchSchema.parse(req.body);
+    const patch = pick(body, ['name', 'center_lat', 'center_lon', 'radius_km', 'zone_type', 'active']);
     return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('geofences').set({ ...body, updated_at: new Date() } as any)
+      trx.updateTable('geofences').set({ ...patch, updated_at: new Date() } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow()
     );

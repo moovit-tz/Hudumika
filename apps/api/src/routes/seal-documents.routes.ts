@@ -2,6 +2,7 @@ import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
 import { withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { CloudSync } from '../services/cloud-sync.service.js';
 
 // SEAL's document vault (spec §deferred from Increment 3). Deliberately
 // entity_type/entity_id generalized rather than N dedicated FK columns —
@@ -64,6 +65,15 @@ export async function sealDocumentRoutes(fastify: FastifyInstance) {
           uploaded_by: request.user.sub,
         }).returningAll().executeTakeFirstOrThrow()
       );
+
+      // Mirror into Customers ▸ <owner> ▸ SEAL ▸ <label> in Cloud — a no-op
+      // for customs_entry/compartment (no customer owner to link to).
+      if (entityType === 'lot' || entityType === 'consignment' || entityType === 'container') {
+        CloudSync.syncSealDoc(request.user.tenant_id, {
+          sealType: entityType, sealId: entityId, filename: data.filename, buffer: fileBuffer, mime: data.mimetype,
+        }).catch(err => console.error('[Cloud] SEAL document sync failed:', err.message));
+      }
+
       return row;
     } catch (err: any) {
       return reply.status(500).send({ error: err.message || 'File upload failed' });
@@ -73,7 +83,9 @@ export async function sealDocumentRoutes(fastify: FastifyInstance) {
   fastify.get('/documents/:id/download', async (request: any, reply) => {
     try {
       const doc = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_documents').selectAll().where('id', '=', request.params.id).executeTakeFirst()
+        trx.selectFrom('seal_documents').selectAll()
+          .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
+          .executeTakeFirst()
       );
       if (!doc) return reply.status(404).send({ error: 'Document not found' });
 
@@ -97,7 +109,8 @@ export async function sealDocumentRoutes(fastify: FastifyInstance) {
           status: b.status, notes: b.notes ?? undefined,
           verified_by: b.status === 'VERIFIED' ? request.user.sub : undefined,
           verified_at: b.status === 'VERIFIED' ? new Date() : undefined,
-        }).where('id', '=', request.params.id).returningAll().executeTakeFirstOrThrow()
+        }).where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
+          .returningAll().executeTakeFirstOrThrow()
       );
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
@@ -107,11 +120,14 @@ export async function sealDocumentRoutes(fastify: FastifyInstance) {
   fastify.delete('/documents/:id', async (request: any, reply) => {
     try {
       const doc = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_documents').selectAll().where('id', '=', request.params.id).executeTakeFirst()
+        trx.selectFrom('seal_documents').selectAll()
+          .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
+          .executeTakeFirst()
       );
       if (!doc) return reply.status(404).send({ error: 'Document not found' });
       await MinioIntegration.deleteDocument(request.user.tenant_id, doc.storage_key);
-      await withTenant(request.user.tenant_id, trx => trx.deleteFrom('seal_documents').where('id', '=', request.params.id).execute());
+      await withTenant(request.user.tenant_id, trx => trx.deleteFrom('seal_documents')
+        .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id).execute());
       return { success: true };
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });

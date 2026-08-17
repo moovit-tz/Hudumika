@@ -170,6 +170,14 @@ export async function quotationRoutes(app: FastifyInstance) {
     const tenantId = user.tenant_id;
 
     return withTenant(tenantId, async (trx) => {
+      // quotation_lines has no tenant_id column of its own — deleting by
+      // quotation_id alone (as this used to) would delete another tenant's
+      // line items for any quotation UUID a caller knew, since nothing
+      // confirmed the quotation itself belongs to this tenant first.
+      const quotation = await trx.selectFrom('quotations').select('id')
+        .where('id', '=', id).where('tenant_id', '=', tenantId).executeTakeFirst();
+      if (!quotation) return reply.code(404).send({ error: 'Quotation not found' });
+
       await trx
         .deleteFrom('quotation_lines')
         .where('quotation_id', '=', id)

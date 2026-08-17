@@ -1,5 +1,6 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { db, withTenant } from '../db/client.js';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
 import { ShipmentService } from '../services/shipment.service.js';
@@ -9,12 +10,168 @@ import { requireRole } from '../middleware/rbac.js';
 import { CHARGE_HEADS } from '../services/intelligence.service.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
-import { EmailIntegration } from '../integrations/email.js';
+import { MailService } from '../services/mail.service.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { NotificationService } from '../services/notification.service.js';
 import type { CreateShipmentInput, AdvanceStageInput } from '@hudumika/types';
 import { buildMockResult, trackViaShipsGo, trackViaShip24 } from './tracker.routes.js';
 import { sql } from 'kysely';
+
+// Real values — packages/types/src/core.ts.
+const SHIPMENT_TYPES = ['SEA_FCL', 'SEA_LCL', 'AIR', 'ROAD', 'RAIL', 'BULK'] as const;
+const RISK_FLAG_TYPES = ['DEMURRAGE', 'SLA_BREACH', 'PENALTY', 'MISSING_DOC', 'OVERSPEND'] as const;
+const RISK_SEVERITIES = ['HIGH', 'MEDIUM', 'LOW'] as const;
+// Real values — ShipmentDetail.tsx's own InternalTask['priority'] / TaskStatus
+// (backend vocabulary: 'not_started'→'open', 'awaiting_feedback'→'blocked').
+const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
+const TASK_STATUSES = ['open', 'in_progress', 'testing', 'blocked', 'complete'] as const;
+
+const containerSchema = z.object({
+  number: z.string().max(30),
+  size: z.enum(['20FT', '40FT', '40HC', 'OTHER']),
+  seal_number: z.string().max(30).optional(),
+  weight_kg: z.number().optional(),
+}).passthrough();
+const createShipmentSchema = z.object({
+  customer_id: z.string().min(1),
+  type: z.enum(SHIPMENT_TYPES),
+  goods_desc: z.string().trim().min(1).max(2000),
+  hs_code: z.string().max(50).optional(),
+  containers: z.array(containerSchema).optional(),
+  bl_number: z.string().max(100).optional(),
+  awb_number: z.string().max(100).optional(),
+  vessel: z.string().max(200).optional(),
+  origin_port: z.string().max(200).optional(),
+  dest_port: z.string().max(200).optional(),
+  eta: z.string().optional(),
+  assigned_to: z.string().optional(),
+  location_id: z.string().optional(),
+  free_time_end: z.string().optional(),
+  workflow_id: z.string().nullable().optional(),
+});
+const bulkImportRowSchema = z.object({
+  tansad_number: z.string().max(100).optional(),
+  bl_number: z.string().max(100).optional(),
+  awb_number: z.string().max(100).optional(),
+  client_name: z.string().trim().min(1).max(300),
+  shipping_line: z.string().max(200).optional(),
+  num_containers: z.number().optional(),
+  port: z.string().max(100).optional(),
+  port_status: z.string().max(100).optional(),
+  shipping_status: z.string().max(100).optional(),
+  goods_desc: z.string().max(2000).optional(),
+  container_deposit: z.boolean().optional(),
+  container_deposit_paid: z.boolean().optional(),
+}).passthrough();
+const bulkImportSchema = z.object({ rows: z.array(bulkImportRowSchema).min(1) });
+// `stage` can be a ClearanceStage literal OR a workflow_steps.id (custom
+// workflow) — ShipmentService.advanceStage resolves which, so this only
+// guards the shape, not the value.
+const advanceStageSchema = z.object({
+  stage: z.string().min(1),
+  note: z.string().max(2000).optional(),
+  blocker: z.string().max(2000).optional(),
+});
+const workflowSwitchSchema = z.object({
+  workflow_id: z.string().nullable(),
+  step_id: z.string().optional(),
+});
+const shipmentPatchSchema = z.object({
+  bl_number: z.string().max(100).optional(),
+  awb_number: z.string().max(100).optional(),
+  tansad_number: z.string().max(100).optional(),
+  vessel: z.string().max(200).optional(),
+  goods_desc: z.string().max(2000).optional(),
+  hs_code: z.string().max(50).optional(),
+  origin_port: z.string().max(200).optional(),
+  port_of_loading: z.string().max(200).optional(),
+  dest_port: z.string().max(200).optional(),
+  port_of_discharge: z.string().max(200).optional(),
+  eta: z.string().nullable().optional(),
+  free_time_end: z.string().nullable().optional(),
+  sla_deadline: z.string().nullable().optional(),
+  assigned_to: z.string().nullable().optional(),
+  gross_weight_kg: z.number().nullable().optional(),
+  cif_value_usd: z.number().nullable().optional(),
+  container_numbers: z.array(z.string()).optional(),
+  internal_notes: z.string().max(10000).nullable().optional(),
+  whatsapp_bot_active: z.boolean().optional(),
+  due_date: z.string().nullable().optional(),
+  created_at: z.string().nullable().optional(),
+});
+const flagCreateSchema = z.object({
+  type: z.enum(RISK_FLAG_TYPES),
+  severity: z.enum(RISK_SEVERITIES).optional(),
+  message: z.string().trim().min(1).max(1000),
+});
+const taskCreateSchema = z.object({
+  title: z.string().trim().min(1).max(300),
+  priority: z.enum(TASK_PRIORITIES).optional(),
+  assigned_to: z.string().optional(),
+  due_date: z.string().optional(),
+  note: z.string().max(5000).optional(),
+  product_id: z.string().optional(),
+});
+const taskPatchSchema = z.object({
+  title: z.string().trim().min(1).max(300).optional(),
+  status: z.enum(TASK_STATUSES).optional(),
+  priority: z.enum(TASK_PRIORITIES).optional(),
+  assigned_to: z.string().nullable().optional(),
+  due_date: z.string().nullable().optional(),
+  note: z.string().max(5000).nullable().optional(),
+  description: z.string().max(10000).nullable().optional(),
+  labels: z.array(z.any()).optional(),
+  cover_color: z.string().max(30).nullable().optional(),
+  product_id: z.string().nullable().optional(),
+});
+const listenersCreateSchema = z.object({
+  type: z.enum(['internal', 'customer']),
+  people: z.array(z.object({
+    id: z.string().optional(),
+    name: z.string().trim().min(1).max(200),
+    role: z.string().max(100).optional(),
+  })).min(1),
+  channels: z.array(z.string()).optional(),
+});
+const channelsPatchSchema = z.object({ channels: z.array(z.string()) });
+const taskCommentSchema = z.object({
+  content: z.string().trim().min(1).max(5000),
+  mentions: z.array(z.object({ user_id: z.string(), name: z.string() })).optional(),
+});
+const checklistCreateSchema = z.object({ title: z.string().trim().max(200).optional() });
+const checklistItemCreateSchema = z.object({ title: z.string().trim().min(1).max(500) });
+const checklistItemPatchSchema = z.object({
+  title: z.string().trim().min(1).max(500).optional(),
+  completed: z.boolean().optional(),
+  assigned_to: z.string().nullable().optional(),
+  due_date: z.string().nullable().optional(),
+});
+const timeEntrySchema = z.object({
+  member: z.string().max(200).optional(),
+  task_ref: z.string().max(200).optional(),
+  hours: z.number().positive(),
+  note: z.string().max(2000).optional(),
+  log_date: z.string().optional(),
+  product_id: z.string().optional(),
+});
+const ledgerEntrySchema = z.object({
+  description: z.string().trim().min(1).max(500),
+  amount: z.number(),
+  currency: z.string().max(10).optional(),
+  type: z.string().max(30).optional(),
+  category: z.string().max(50).optional(),
+  ref: z.string().max(200).optional(),
+  charge_head: z.string().max(50).optional(),
+});
+const contentSchema = z.object({ content: z.string().trim().min(1).max(10000) });
+const tagSchema = z.object({ tag: z.string().trim().min(1).max(100) });
+const participantCustomerSchema = z.object({ customer_id: z.string().min(1) });
+const waEnabledSchema = z.object({ wa_enabled: z.boolean() });
+const feedbackSchema = z.object({
+  nps_score: z.number().int().min(0).max(10).optional(),
+  csat_score: z.number().int().min(1).max(5).optional(),
+  feedback_text: z.string().max(5000).optional(),
+});
 
 /** JSONB arrives as a string from some drivers and an object from others. */
 function parseJsonCol<T>(val: unknown, fallback: T): T {
@@ -317,10 +474,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
       container_deposit_paid?: boolean;
     }
 
-    const { rows } = request.body as { rows: BulkRow[] };
-    if (!Array.isArray(rows) || rows.length === 0) {
-      return reply.status(400).send({ error: 'rows array is required and must not be empty' });
-    }
+    const { rows } = bulkImportSchema.parse(request.body) as { rows: BulkRow[] };
 
     const imported: string[] = [];
     const skipped: { row: number; reason: string }[] = [];
@@ -446,7 +600,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
-    const input = request.body as CreateShipmentInput;
+    const input = createShipmentSchema.parse(request.body) as CreateShipmentInput;
 
     try {
       // Resolve assigned_to: prefer explicit input, fall back to current user, validate the UUID exists
@@ -551,11 +705,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id/stage', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { stage, note, blocker } = request.body as AdvanceStageInput & { stage: string };
-
-    if (!stage) {
-      return reply.status(400).send({ error: 'Missing target stage parameter' });
-    }
+    const { stage, note, blocker } = advanceStageSchema.parse(request.body);
 
     try {
       const result = await ShipmentService.advanceStage(
@@ -600,7 +750,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/workflow', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { workflow_id, step_id } = request.body as { workflow_id: string | null; step_id?: string };
+    const { workflow_id, step_id } = workflowSwitchSchema.parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
       const shipment = await trx.selectFrom('shipment_cases')
@@ -681,7 +831,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const body = request.body as Record<string, any>;
+    const body = shipmentPatchSchema.parse(request.body) as Record<string, any>;
 
     const allowed = [
       'bl_number', 'awb_number', 'tansad_number', 'vessel', 'goods_desc', 'hs_code',
@@ -770,13 +920,12 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
 
   /**
    * POST /v1/shipments/:id/flags  — add a label/flag
-   * body: { type: string, severity?: 'LOW'|'MEDIUM'|'HIGH' }
+   * body: { type: string, severity?: 'LOW'|'MEDIUM'|'HIGH', message: string }
    */
   fastify.post('/:id/flags', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { type, severity } = request.body as { type: string; severity?: string };
-    if (!type) return reply.status(400).send({ error: 'type is required' });
+    const { type, severity, message } = flagCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       // idempotent — if already active, return existing
       const trxAny2 = trx as any;
@@ -784,9 +933,12 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         .where('shipment_id', '=', id).where('tenant_id', '=', user.tenant_id).where('type', '=', type).where('resolved', '=', false)
         .executeTakeFirst();
       if (existing) return existing;
+      // message is NOT NULL on risk_flags (migration 003) — this insert never
+      // set it, so this endpoint 500'd on every real call. Never reached from
+      // the frontend, which is exactly why it went unnoticed.
       const flag = await trx.insertInto('risk_flags').values({
         tenant_id: user.tenant_id, shipment_id: id,
-        type: type as any, severity: (severity || 'MEDIUM') as any, resolved: false,
+        type: type as any, severity: (severity || 'MEDIUM') as any, message, resolved: false,
       } as any).returningAll().executeTakeFirst();
       return reply.status(201).send(flag);
     });
@@ -917,8 +1069,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/tasks', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { title, priority, assigned_to, due_date, note, product_id } = request.body as any;
-    if (!title) return reply.status(400).send({ error: 'title is required' });
+    const { title, priority, assigned_to, due_date, note, product_id } = taskCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const snapshot = await snapshotProduct(trx, user.tenant_id, product_id);
       const task = await trx.insertInto('shipment_tasks').values({
@@ -993,9 +1144,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/listeners', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { type, people, channels } = request.body as { type: 'internal' | 'customer'; people: { id?: string; name: string; role?: string }[]; channels: string[] };
-    if (type !== 'internal' && type !== 'customer') return reply.status(400).send({ error: 'type must be internal or customer' });
-    if (!Array.isArray(people) || people.length === 0) return reply.status(400).send({ error: 'people is required' });
+    const { type, people, channels } = listenersCreateSchema.parse(request.body);
     const isUuid = (val?: string) => !!val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
     return withTenant(user.tenant_id, async (trx) => {
       const rows = await trx.insertInto('shipment_listeners').values(
@@ -1016,8 +1165,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id/listeners/:listenerId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER') }, async (request, reply) => {
     const user = request.user;
     const { id, listenerId } = request.params as { id: string; listenerId: string };
-    const { channels } = request.body as { channels: string[] };
-    if (!Array.isArray(channels)) return reply.status(400).send({ error: 'channels must be an array' });
+    const { channels } = channelsPatchSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const row = await trx.updateTable('shipment_listeners')
         .set({ channels: JSON.stringify(channels) })
@@ -1034,7 +1182,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id/tasks/:taskId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { taskId } = request.params as { id: string; taskId: string };
-    const body = request.body as any;
+    const body = taskPatchSchema.parse(request.body) as Record<string, any>;
     const patch: Record<string, any> = { updated_at: new Date() };
     for (const k of ['title', 'status', 'priority', 'assigned_to', 'due_date', 'note', 'description', 'labels', 'cover_color']) {
       if (k in body) patch[k] = k === 'labels' ? JSON.stringify(body[k]) : body[k];
@@ -1156,8 +1304,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/tasks/:taskId/comments', async (request, reply) => {
     const user = request.user;
     const { id: shipmentId, taskId } = request.params as { id: string; taskId: string };
-    const { content, mentions = [] } = request.body as { content: string; mentions: { user_id: string; name: string }[] };
-    if (!content?.trim()) return reply.status(400).send({ error: 'content is required' });
+    const { content, mentions = [] } = taskCommentSchema.parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
       const comment = await trx
@@ -1266,7 +1413,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/tasks/:taskId/checklists', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { taskId } = request.params as { id: string; taskId: string };
-    const { title = 'Checklist' } = request.body as any;
+    const { title = 'Checklist' } = checklistCreateSchema.parse(request.body ?? {});
     return withTenant(user.tenant_id, async (trx) => {
       const count = await trx.selectFrom('task_checklists').select(trx.fn.countAll().as('n')).where('task_id', '=', taskId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       const position = Number((count as any)?.n ?? 0);
@@ -1295,8 +1442,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/tasks/:taskId/checklists/:checklistId/items', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { taskId, checklistId } = request.params as any;
-    const { title } = request.body as any;
-    if (!title?.trim()) return reply.status(400).send({ error: 'title is required' });
+    const { title } = checklistItemCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       // task_checklist_items carries no tenant_id of its own — it inherits
       // scope from its checklist, so the checklist is what gets checked.
@@ -1321,7 +1467,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id/tasks/:taskId/checklists/:checklistId/items/:itemId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { itemId } = request.params as any;
-    const body = request.body as any;
+    const body = checklistItemPatchSchema.parse(request.body) as Record<string, any>;
     const patch: Record<string, any> = { updated_at: new Date() };
     if ('title' in body) patch.title = body.title;
     if ('completed' in body) {
@@ -1375,8 +1521,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/time-entries', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { member, task_ref, hours, note, log_date, product_id } = request.body as any;
-    if (!hours) return reply.status(400).send({ error: 'hours is required' });
+    const { member, task_ref, hours, note, log_date, product_id } = timeEntrySchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const snapshot = await snapshotProduct(trx, user.tenant_id, product_id);
       const entry = await trx.insertInto('shipment_time_entries').values({
@@ -1411,8 +1556,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/ledger', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'FINANCE') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { description, amount, currency, type, category, ref, charge_head } = request.body as any;
-    if (!description || !amount) return reply.status(400).send({ error: 'description and amount are required' });
+    const { description, amount, type, category, charge_head } = ledgerEntrySchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const entry = await trx.insertInto('expenses').values({
         tenant_id: user.tenant_id, shipment_id: id,
@@ -1424,7 +1568,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         // than stored as given: variance is only computable while actuals and
         // estimates share one vocabulary, and a free-text head would quietly
         // create a bucket nothing is ever compared against.
-        charge_head: CHARGE_HEADS.includes(charge_head) ? charge_head : null,
+        charge_head: charge_head && (CHARGE_HEADS as readonly string[]).includes(charge_head) ? charge_head : null,
         recorded_by: user.sub,
       }).returningAll().executeTakeFirstOrThrow();
 
@@ -1482,11 +1626,13 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/messages', async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { content, channel } = request.body as { content: string; channel: string };
-
-    if (!content) {
-      return reply.status(400).send({ error: 'Message content is required' });
-    }
+    // Reachable by CUSTOMER (no role gate on this route beyond the 'clearos'
+    // entitlement) — the only shape check before this was a bare truthiness
+    // test on content, with channel passed through unchecked.
+    const { content, channel } = z.object({
+      content: z.string().trim().min(1).max(10_000),
+      channel: z.enum(['WHATSAPP', 'EMAIL', 'IN_APP', 'SMS', 'SYSTEM']).optional(),
+    }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
       const shipment = await trx
@@ -1549,12 +1695,9 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         if (cleanCh === 'WHATSAPP' && customer?.phone_wa) {
           await WhatsAppIntegration.sendMessage(customer.phone_wa, content);
         } else if (cleanCh === 'EMAIL' && customer?.email) {
-          await EmailIntegration.sendEmail({
-            to: customer.email,
-            subject: `Support Ticket Response - Shipment Case #${shipment.ref_number}`,
-            bodyHtml: `<p>${content.replace(/\n/g, '<br>')}</p>`,
-            tenantId: user.tenant_id,
-          });
+          await MailService.enqueueTemplated(user.tenant_id, 'clearos.shipment_message', customer.email, {
+            refNumber: shipment.ref_number, content: content.replace(/\n/g, '<br>'),
+          }, 'clearos');
         }
       }
 
@@ -1594,8 +1737,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/notes', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { content } = request.body as { content: string };
-    if (!content?.trim()) return reply.status(400).send({ error: 'content is required' });
+    const { content } = contentSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const note = await trx.insertInto('shipment_notes').values({
         tenant_id: user.tenant_id,
@@ -1613,8 +1755,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id/notes/:noteId', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { id, noteId } = request.params as { id: string; noteId: string };
-    const { content } = request.body as { content: string };
-    if (!content?.trim()) return reply.status(400).send({ error: 'content is required' });
+    const { content } = contentSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('shipment_notes').select(['id', 'author_id'])
         .where('id', '=', noteId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
@@ -1664,8 +1805,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/tags', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { tag } = request.body as { tag: string };
-    if (!tag?.trim()) return reply.status(400).send({ error: 'tag is required' });
+    const { tag } = tagSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const row = await trx.selectFrom('shipment_cases').select(['tags'])
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
@@ -1706,6 +1846,10 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         .innerJoin('customers as c', 'c.id', 'spc.customer_id')
         .select(['spc.id', 'spc.customer_id', 'spc.wa_enabled', 'spc.created_at', 'c.name', 'c.phone_wa', 'c.email', 'c.phone'])
         .where('spc.shipment_id', '=', id)
+        // Without this, any authenticated user of ANY tenant who knew or
+        // guessed another tenant's shipment id got that tenant's customer
+        // names/phones/emails back — shipment_id alone was never enough.
+        .where('spc.tenant_id', '=', user.tenant_id)
         .orderBy('spc.created_at', 'asc')
         .execute();
       return { data: rows };
@@ -1715,9 +1859,14 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/participant-customers', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { customer_id } = request.body as { customer_id: string };
-    if (!customer_id) return reply.status(400).send({ error: 'customer_id is required' });
+    const { customer_id } = participantCustomerSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
+      // customer_id is client-supplied — without this check it could name any
+      // tenant's customer row, creating a cross-tenant reference.
+      const customer = await trx.selectFrom('customers').select('id')
+        .where('id', '=', customer_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!customer) return reply.status(404).send({ error: 'Customer not found' });
+
       await trx.insertInto('shipment_participant_customers').values({
         tenant_id: user.tenant_id,
         shipment_id: id,
@@ -1731,6 +1880,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
         .innerJoin('customers as c', 'c.id', 'spc.customer_id')
         .select(['spc.id', 'spc.customer_id', 'spc.wa_enabled', 'spc.created_at', 'c.name', 'c.phone_wa', 'c.email', 'c.phone'])
         .where('spc.shipment_id', '=', id)
+        .where('spc.tenant_id', '=', user.tenant_id)
         .orderBy('spc.created_at', 'asc')
         .execute();
       return { data: rows };
@@ -1740,7 +1890,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id/participant-customers/:customerId/wa', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER') }, async (request, reply) => {
     const user = request.user;
     const { id, customerId } = request.params as { id: string; customerId: string };
-    const { wa_enabled } = request.body as { wa_enabled: boolean };
+    const { wa_enabled } = waEnabledSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       await trx.updateTable('shipment_participant_customers')
         .set({ wa_enabled })
@@ -1894,7 +2044,7 @@ export async function shipmentRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id/feedback', async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { nps_score, csat_score, feedback_text } = request.body as { nps_score?: number; csat_score?: number; feedback_text?: string };
+    const { nps_score, csat_score, feedback_text } = feedbackSchema.parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx

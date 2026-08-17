@@ -1,5 +1,6 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { sql } from 'kysely';
 import { GoogleGenAI } from '@google/genai';
 import { ComplyService } from '../services/comply.service.js';
@@ -7,6 +8,30 @@ import { AGENCY_ADAPTERS } from '../integrations/comply-agencies.js';
 import { withTenant, db } from '../db/client.js';
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
+
+const renewalCreateSchema = z.object({
+  cert_id: z.string().min(1),
+  trigger: z.enum(['automatic', 'manual']).optional(),
+});
+const agencySyncSchema = z.object({ tin: z.string().trim().min(1) });
+// Shape-guarded only — ComplyService.scanObligations does the real per-field
+// business validation of everything besides the one required trigger field.
+const obligationScanSchema = z.object({ sector: z.string().trim().min(1) }).catchall(z.any());
+// Real values — ComplyBrelaSearch.tsx's own objectType state.
+const brelaSearchSchema = z.object({
+  objectType: z.enum(['Company', 'Business name']).optional(),
+  incNumber: z.string().max(100).optional(),
+  companyName: z.string().max(300).optional(),
+});
+const traExtractSchema = z.object({
+  tin: z.string().trim().min(1),
+  username: z.string().trim().min(1),
+  password: z.string().min(1),
+});
+const tausiImportSchema = z.object({
+  image_base64: z.string().min(1),
+  media_type: z.string().max(100).optional(),
+});
 
 // Same superadmin-configurable key lookup as ocr.routes.ts / comply-ocr.routes.ts
 // (Platform Settings → OCR / Document Scanning) — one key covers all three.
@@ -240,8 +265,8 @@ export async function complyRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/renewals', async (request: any, reply) => {
+    const { cert_id, trigger } = renewalCreateSchema.parse(request.body);
     try {
-      const { cert_id, trigger } = request.body as { cert_id: string; trigger?: 'automatic' | 'manual' };
       return reply.status(201).send(
         await ComplyService.startRenewal(request.user.tenant_id, cert_id, trigger ?? 'manual'),
       );
@@ -262,10 +287,9 @@ export async function complyRoutes(fastify: FastifyInstance) {
 
   // ── Agency Sync ──────────────────────────────────────────────────────────────
   fastify.post('/sync/:agencyCode', async (request: any, reply) => {
+    const { tin } = agencySyncSchema.parse(request.body);
     try {
       const { agencyCode } = request.params as { agencyCode: string };
-      const { tin } = request.body as { tin: string };
-      if (!tin) return reply.status(400).send({ error: 'tin is required' });
       return await ComplyService.syncAgency(request.user.tenant_id, agencyCode, tin);
     } catch (err: any) {
       return reply.status(500).send({ error: err.message });
@@ -343,11 +367,10 @@ export async function complyRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/obligation-scan', async (request: any, reply) => {
+    const body = obligationScanSchema.parse(request.body);
     try {
-      const { sector } = request.body as { sector?: string };
-      if (!sector) return reply.status(400).send({ error: 'sector is required' });
       return reply.status(201).send(
-        await ComplyService.scanObligations(request.user.tenant_id, request.body),
+        await ComplyService.scanObligations(request.user.tenant_id, body),
       );
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -366,13 +389,8 @@ export async function complyRoutes(fastify: FastifyInstance) {
   // ordered list of field names and each `Records` entry is a parallel value
   // array (not {field: value} pairs) — zip them per row before reading fields.
   fastify.post('/brela-search', async (request: any, reply) => {
+    const { objectType, incNumber, companyName } = brelaSearchSchema.parse(request.body);
     try {
-      const { objectType, incNumber, companyName } = request.body as {
-        objectType?: string;
-        incNumber?: string;
-        companyName?: string;
-      };
-
       const isCompany = objectType !== 'Business name';
       const jsonUrl = 'https://ors.brela.go.tz/orsreg/list/search/businesspublic.json';
       const searchPageUrl = 'https://ors.brela.go.tz/orsreg/searchbusinesspublic';
@@ -539,11 +557,8 @@ export async function complyRoutes(fastify: FastifyInstance) {
 
   // ── TRA Taxpayer Portal Extraction Agent ──────────────────────────────────────
   fastify.post('/tra-extract', async (request: any, reply) => {
+    const { tin } = traExtractSchema.parse(request.body);
     try {
-      const { tin, username, password } = request.body as any;
-      if (!tin || !username || !password) {
-        return reply.status(400).send({ error: 'TIN, username, and password are required' });
-      }
 
       // Simulate a realistic tax profile based on the TIN
       return {
@@ -591,13 +606,7 @@ export async function complyRoutes(fastify: FastifyInstance) {
   // extracts the real data from that upload — it does not log into or scrape
   // the portal itself.
   fastify.post('/tausi-import', async (request: any, reply) => {
-    const { image_base64, media_type = 'image/jpeg' } = request.body as {
-      image_base64: string;
-      media_type?: string;
-    };
-    if (!image_base64) {
-      return reply.status(400).send({ error: 'image_base64 is required' });
-    }
+    const { image_base64, media_type = 'image/jpeg' } = tausiImportSchema.parse(request.body);
 
     const apiKey = await getGeminiApiKey();
     let extracted: any;

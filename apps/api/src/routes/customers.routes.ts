@@ -1,10 +1,11 @@
 import type { FastifyInstance } from 'fastify';
 import crypto from 'crypto';
+import { z } from 'zod';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
-import { EmailIntegration } from '../integrations/email.js';
+import { MailService } from '../services/mail.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import type { CreateCustomerInput, CustomerAnalytics } from '@hudumika/types';
 import { parse } from 'csv-parse/sync';
@@ -293,16 +294,8 @@ export async function customerRoutes(fastify: FastifyInstance) {
       }).execute();
 
       if (customer.email) {
-        await EmailIntegration.sendEmail({
-          to: customer.email,
-          subject: 'Your Hudumika organization link code',
-          bodyHtml: `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
-            <p>Use this code to link <strong>${customer.name}</strong> to your organization's Hudumika account:</p>
-            <p style="font-size: 22px; font-weight: 700; letter-spacing: 2px;">${token}</p>
-            <p>Enter it under "Link an Agent" in your organization portal. This code expires in 7 days and can only be used once.</p>
-          </div>`,
-          tenantId: user.tenant_id,
-        }).catch(() => { /* claim code exists regardless; staff can read/share it manually below */ });
+        await MailService.enqueueTemplated(user.tenant_id, 'customers.claim_code', customer.email, { customerName: customer.name, token }, 'customers')
+          .catch(() => { /* claim code exists regardless; staff can read/share it manually below */ });
       }
       if (customer.phone_wa) {
         await WhatsAppIntegration.sendMessage(
@@ -380,6 +373,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
         .selectFrom('shipment_cases')
         .selectAll()
         .where('customer_id', '=', id)
+        .where('tenant_id', '=', user.tenant_id)
         .orderBy('created_at', 'desc')
         .execute();
 
@@ -405,6 +399,7 @@ export async function customerRoutes(fastify: FastifyInstance) {
         .selectFrom('shipment_cases')
         .selectAll()
         .where('customer_id', '=', id)
+        .where('tenant_id', '=', user.tenant_id)
         .execute();
 
       const total_shipments = shipments.length;
@@ -553,10 +548,16 @@ export async function customerRoutes(fastify: FastifyInstance) {
    * partner, so the partners page starts empty. Re-typing fifty companies to
    * populate it would be absurd; this promotes the ones that already exist.
    */
-  fastify.patch('/:id/partner', async (request, reply) => {
+  // Same role list as PATCH /:id above — no role gate here at all until now
+  // meant a CUSTOMER login (only `fastify.authenticate` applies file-wide)
+  // could flip the partner flag on any customer record in its own tenant.
+  fastify.patch('/:id/partner', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const body = (request.body ?? {}) as any;
+    const body = z.object({
+      is_partner: z.boolean().optional(),
+      partner_role: z.string().max(100).nullable().optional(),
+    }).parse(request.body ?? {});
     const isPartner = body.is_partner !== false;
 
     return withTenant(user.tenant_id, async (trx) => {
@@ -579,10 +580,19 @@ export async function customerRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/partners', async (request, reply) => {
+  // Same reasoning as PATCH /:id/partner above — no role gate at all
+  // previously meant any authenticated login, CUSTOMER included, could
+  // create arbitrary customer/partner rows in its own tenant.
+  fastify.post('/partners', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'SENIOR', 'JUNIOR', 'OFFICER', 'SALES') }, async (request, reply) => {
     const user = request.user;
-    const body = request.body as any;
-    if (!body.name) return reply.status(400).send({ error: 'Partner name is required' });
+    const body = z.object({
+      name: z.string().trim().min(1).max(200),
+      contactName: z.string().max(200).optional(),
+      email: z.string().email().max(320).optional().or(z.literal('')),
+      phone: z.string().max(30).optional(),
+      isCustomer: z.boolean().optional(),
+      partnerRole: z.string().max(100).optional(),
+    }).parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
       const created = await trx

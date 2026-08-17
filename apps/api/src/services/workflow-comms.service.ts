@@ -1,6 +1,6 @@
 import { withTenant, db } from '../db/client.js';
-import { formatTemplate } from '../config/notification-matrix.js';
-import { EmailIntegration } from '../integrations/email.js';
+import { formatTemplate } from '../lib/template.js';
+import { MailService } from './mail.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
 import { NotificationService } from './notification.service.js';
 import { attachCommOutcomes, settleQueuedComm, type CommOutcome } from './workflow-runs.service.js';
@@ -187,7 +187,13 @@ export async function sendOneComm(tenantId: string, shipmentId: string, comm: Au
   switch (comm.channel) {
     case 'email': {
       if (!toEmail) return { success: false, error: 'No email address available for recipient' };
-      const result = await EmailIntegration.sendEmail({ to: toEmail, subject, bodyHtml: `<p>${body}</p>`, tenantId });
+      // Raw, not templated — subject/body are already tenant-authored via
+      // formatTemplate() in resolveComm() above (Workflow Studio's own
+      // per-step editor), so there's no email_templates lookup to do here.
+      // Sent synchronously so this function's own {success,error} contract
+      // (already relied on by dispatchAutoComms' run-outcome journal) keeps
+      // meaning what it always meant.
+      const result = await MailService.sendNow(tenantId, { to: toEmail, subject, bodyHtml: `<p>${body}</p>`, sourceApp: 'workflow-comms' });
       return { success: result.success, error: result.error };
     }
     case 'whatsapp': {

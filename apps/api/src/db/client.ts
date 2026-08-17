@@ -2077,7 +2077,11 @@ export interface SalesInvoicesTable {
   bl_number: string | null;
   origin: string | null;
   destination: string | null;
-  mode: Generated<string>;
+  // Migration 183 dropped the 'SEA' default and made NULL a real, meaningful
+  // value ("not applicable" for a non-freight invoice) — this type had been
+  // left declaring the column as always a string, silently out of sync with
+  // what the database has actually allowed since that migration.
+  mode: Generated<string | null>;
   bill_date: DateOnlyNull;
   due_date: DateOnlyNull;
   sale_agent: string | null;
@@ -2727,6 +2731,7 @@ export interface PackagesTable {
   price_per_seat: number | null;      // USD/user/month — NULL only for the custom-pricing (enterprise) tier
   monthly_item_limit: number | null;  // billable items/month across the whole platform — NULL = unlimited
   trade_wizard_monthly_searches: number | null;  // Trade Compliance Wizard runs/month — NULL = unlimited
+  storage_limit_bytes: string | null; // BIGINT, comes back from pg as a string — NULL = unlimited (Cloud storage quota)
   features: string[];           // JSONB — auto-parsed to a native array by the pg driver
   color: string | null;
   popular: Generated<boolean>;
@@ -3392,6 +3397,8 @@ export interface Database {
   accounting_integrations: AccountingIntegrationsTable;
   accounting_marketplace_requests: AccountingMarketplaceRequestsTable;
   email_messages: EmailMessagesTable;
+  email_templates: EmailTemplatesTable;
+  email_outbox: EmailOutboxTable;
   accounting_sync_logs: AccountingSyncLogsTable;
   user_totp: UserTotpTable;
   workflow_studio_apps: WorkflowStudioAppsTable;
@@ -3532,6 +3539,8 @@ export interface Database {
   // Cloud / Drive File Manager
   cloud_files: CloudFilesTable;
   cloud_file_shares: CloudFileSharesTable;
+  cloud_file_comments: CloudFileCommentsTable;
+  cloud_file_versions: CloudFileVersionsTable;
   cloud_storage_connections: CloudStorageConnectionsTable;
   cloud_external_files: CloudExternalFilesTable;
   cloud_drives: CloudDrivesTable;
@@ -4405,7 +4414,40 @@ export interface EmailMessagesTable {
   starred: Generated<boolean>;
   labels: Generated<any>;
   has_attachment: Generated<boolean>;
+  outbox_id: string | null;
   created_at: Generated<Date>;
+}
+
+export interface EmailTemplatesTable {
+  id:           Generated<string>;
+  tenant_id:    string;
+  template_key: string;
+  category:     string; // 'transactional' | 'support' | 'account'
+  subject:      string;
+  body_html:    string;
+  updated_by:   string | null;
+  created_at:   Generated<Date>;
+  updated_at:   Generated<Date>;
+}
+
+export interface EmailOutboxTable {
+  id:              Generated<string>;
+  tenant_id:       string;
+  to_address:      string;
+  cc_addresses:    any | null;
+  from_name:       string | null;
+  from_address:    string | null;
+  subject:         string;
+  body_html:       string;
+  template_key:    string | null;
+  source_app:      string | null;
+  status:          Generated<'pending' | 'sending' | 'sent' | 'failed'>;
+  attempts:        Generated<number>;
+  max_attempts:    Generated<number>;
+  last_error:      string | null;
+  next_attempt_at: Generated<Date>;
+  created_at:      Generated<Date>;
+  sent_at:         Date | null;
 }
 
 export interface UserTotpTable {
@@ -5353,6 +5395,29 @@ export interface CloudFileSharesTable {
   // no principal (including any principal_type='user') stays informational.
   principal_type: string | null;
   principal_id:   string | null;
+}
+
+export interface CloudFileCommentsTable {
+  id:          Generated<string>;
+  tenant_id:   string;
+  file_id:     string;
+  author_id:   string;
+  author_name: string;
+  content:     string;
+  created_at:  Generated<Date>;
+  updated_at:  Generated<Date>;
+}
+
+export interface CloudFileVersionsTable {
+  id:               Generated<string>;
+  tenant_id:        string;
+  file_id:          string;
+  storage_key:      string;
+  size:             number | null;
+  mime_type:        string | null;
+  uploaded_by_id:   string | null;
+  uploaded_by_name: Generated<string>;
+  created_at:       Generated<Date>;
 }
 
 export interface CloudDrivesTable {

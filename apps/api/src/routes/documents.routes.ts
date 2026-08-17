@@ -23,6 +23,7 @@ export async function documentRoutes(fastify: FastifyInstance) {
         .selectFrom('case_documents')
         .selectAll()
         .where('shipment_id', '=', id)
+        .where('tenant_id', '=', user.tenant_id)
         .orderBy('created_at', 'desc')
         .execute();
 
@@ -53,6 +54,7 @@ export async function documentRoutes(fastify: FastifyInstance) {
         trx.selectFrom('shipment_cases')
           .select(['id', 'customer_id', 'bl_number', 'awb_number', 'ref_number'])
           .where('id', '=', id)
+          .where('tenant_id', '=', user.tenant_id)
           .executeTakeFirst()
       );
       if (!shipment) return reply.status(404).send({ error: 'Shipment not found' });
@@ -75,6 +77,7 @@ export async function documentRoutes(fastify: FastifyInstance) {
           .selectAll()
           .where('shipment_id', '=', id)
           .where('type', '=', docType)
+          .where('tenant_id', '=', user.tenant_id)
           .executeTakeFirst();
 
         if (existingDoc) {
@@ -127,7 +130,7 @@ export async function documentRoutes(fastify: FastifyInstance) {
 
     return withTenant(user.tenant_id, async (trx) => {
       const doc = await trx.selectFrom('case_documents').selectAll()
-        .where('shipment_id', '=', id).where('id', '=', docId)
+        .where('shipment_id', '=', id).where('id', '=', docId).where('tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
 
       if (!doc || !doc.storage_key) return reply.status(404).send({ error: 'Document not found' });
@@ -163,7 +166,7 @@ export async function documentRoutes(fastify: FastifyInstance) {
 
     return withTenant(user.tenant_id, async (trx) => {
       const doc = await trx.selectFrom('case_documents').selectAll()
-        .where('shipment_id', '=', id).where('id', '=', docId)
+        .where('shipment_id', '=', id).where('id', '=', docId).where('tenant_id', '=', user.tenant_id)
         .executeTakeFirst();
 
       if (!doc || !doc.storage_key) return reply.status(404).send({ error: 'Document not found' });
@@ -184,7 +187,7 @@ export async function documentRoutes(fastify: FastifyInstance) {
 
       return withTenant(user.tenant_id, async (trx) => {
         const doc = await trx.selectFrom('case_documents').selectAll()
-          .where('shipment_id', '=', id).where('id', '=', docId)
+          .where('shipment_id', '=', id).where('id', '=', docId).where('tenant_id', '=', user.tenant_id)
           .executeTakeFirst();
 
         if (!doc) return reply.status(404).send({ error: 'Document not found' });
@@ -193,7 +196,7 @@ export async function documentRoutes(fastify: FastifyInstance) {
           await MinioIntegration.deleteDocument(user.tenant_id, doc.storage_key);
         }
 
-        await trx.deleteFrom('case_documents').where('id', '=', docId).execute();
+        await trx.deleteFrom('case_documents').where('id', '=', docId).where('tenant_id', '=', user.tenant_id).execute();
         return reply.status(204).send();
       });
     }

@@ -1,4 +1,5 @@
 import { withTenant } from '../db/client.js';
+import { pick } from '../lib/pick.js';
 
 export const freightBookingService = {
   // ── Carriers ─────────────────────────────────────────────────────────────
@@ -28,8 +29,9 @@ export const freightBookingService = {
 
   async updateCarrier(tenantId: string, carrierId: string, data: Partial<{ name: string; mode: string; scac_or_iata: string | null; contact_name: string | null; contact_email: string | null; contact_phone: string | null; active: boolean }>) {
     return withTenant(tenantId, async (trx) => {
+      const patch = pick(data, ['name', 'mode', 'scac_or_iata', 'contact_name', 'contact_email', 'contact_phone', 'active']);
       return trx.updateTable('carriers')
-        .set({ ...data, updated_at: new Date() })
+        .set({ ...patch, updated_at: new Date() })
         .where('id', '=', carrierId)
         .where('tenant_id', '=', tenantId)
         .returningAll()
@@ -85,7 +87,8 @@ export const freightBookingService = {
 
   async updateRateCard(tenantId: string, rateCardId: string, data: Partial<{ cost_rate: number; sell_rate: number; currency: string; valid_from: string | null; valid_to: string | null; notes: string | null; active: boolean }>) {
     return withTenant(tenantId, async (trx) => {
-      const { valid_from, valid_to, ...rest } = data;
+      const { valid_from, valid_to } = data;
+      const rest = pick(data, ['cost_rate', 'sell_rate', 'currency', 'notes', 'active']);
       return trx.updateTable('freight_rate_cards')
         .set({
           ...rest,

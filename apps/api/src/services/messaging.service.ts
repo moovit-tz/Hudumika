@@ -1,5 +1,5 @@
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
-import { EmailIntegration } from '../integrations/email.js';
+import { MailService } from './mail.service.js';
 import { SmsIntegration } from '../integrations/sms.js';
 import { db } from '../db/client.js';
 import type { MessageChannel, MessageDirection } from '@hudumika/types';
@@ -28,14 +28,11 @@ export class MessagingService {
         externalRef = res.messageId;
       }
     } else if (channel === 'EMAIL' && customerEmail) {
-      const res = await EmailIntegration.sendEmail({
-        to: customerEmail,
-        subject: `Support Ticket Update (Ref: ${ticketId.split('-')[0]})`,
-        bodyHtml: `<p>${content.replace(/\n/g, '<br/>')}</p>`,
-        tenantId,
-      });
+      const res = await MailService.sendNowTemplated(tenantId, 'support.ticket_update', customerEmail, {
+        ticketRef: ticketId.split('-')[0], content: content.replace(/\n/g, '<br/>'),
+      }, 'support');
       if (res.success) {
-        externalRef = `email-${Date.now()}`;
+        externalRef = res.outboxId;
       }
     } else if (channel === 'SMS' && customerPhone) {
       const res = await SmsIntegration.sendSms(tenantId, customerPhone, content);

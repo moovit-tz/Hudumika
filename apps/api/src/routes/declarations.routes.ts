@@ -4,6 +4,7 @@ import { DeclarationService } from '../services/declaration.service.js';
 import { requireRole } from '../middleware/rbac.js';
 import { withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { CloudSync } from '../services/cloud-sync.service.js';
 import type {
   CreateDeclarationInput,
   CreateDeclarationItemInput,
@@ -463,7 +464,7 @@ export async function declarationRoutes(fastify: FastifyInstance) {
           .select(trx.fn.count('id').as('cnt')).where('declaration_id', '=', id).executeTakeFirst();
         const documentNo = Number(countRow?.cnt ?? 0) + 1;
 
-        return trx.insertInto('declaration_attachments').values({
+        const row = await trx.insertInto('declaration_attachments').values({
           declaration_id: id,
           document_no: documentNo,
           document_type: documentType,
@@ -471,6 +472,27 @@ export async function declarationRoutes(fastify: FastifyInstance) {
           filename: data.filename,
           storage_key: uploadRes.storageKey,
         }).returningAll().executeTakeFirstOrThrow();
+
+        // Mirror into the same "Customers ▸ <customer> ▸ <BL>" Cloud folder
+        // shipment documents already land in — a declaration always belongs
+        // to exactly one shipment (declarations.shipment_id is NOT NULL), so
+        // this needs no new entity kind, just the existing shipment sync.
+        const declaration = await trx.selectFrom('declarations').select('shipment_id')
+          .where('id', '=', id).executeTakeFirst();
+        const shipment = declaration
+          ? await trx.selectFrom('shipment_cases')
+              .select(['customer_id', 'bl_number', 'awb_number', 'ref_number'])
+              .where('id', '=', declaration.shipment_id).executeTakeFirst()
+          : null;
+        if (shipment) {
+          const folderName = shipment.bl_number || shipment.awb_number || shipment.ref_number || declaration!.shipment_id;
+          CloudSync.syncShipmentDoc(user.tenant_id, {
+            customerId: shipment.customer_id, shipmentId: declaration!.shipment_id, blRef: folderName,
+            filename: data.filename, buffer: fileBuffer, mime: data.mimetype,
+          }).catch(err => console.error('[Cloud] declaration attachment sync failed:', err.message));
+        }
+
+        return row;
       });
 
       reply.status(201);

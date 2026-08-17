@@ -1,6 +1,49 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { db, withTenant } from '../db/client.js';
+
+const BILL_STATUS = ['DRAFT', 'POSTED', 'PAID', 'PARTIAL', 'VOID'] as const;
+const recurringBillSchema = z.object({
+  name: z.string().max(200).optional(),
+  supplier_id: z.string().optional(),
+  supplier_name: z.string().max(300).optional(),
+  frequency: z.enum(['WEEKLY', 'MONTHLY', 'QUARTERLY', 'ANNUAL']).optional(),
+  currency: z.string().max(10).optional(),
+  amount: z.number().min(0).optional(),
+  tax_code_id: z.string().optional(),
+  tax_rate: z.number().min(0).max(100).optional(),
+  category: z.string().max(50).optional(),
+  description: z.string().max(2000).optional(),
+  payment_terms: z.string().max(200).optional(),
+  next_due: z.string().optional(),
+  end_date: z.string().optional(),
+  state: z.enum(['ACTIVE', 'PAUSED', 'ENDED']).optional(),
+  bills_generated: z.number().int().min(0).optional(),
+  total_spend: z.number().min(0).optional(),
+});
+const billLineSchema = z.object({
+  description: z.string().max(500).optional(),
+  account_id: z.string().optional(),
+  quantity: z.number().optional(),
+  unit_cost: z.number().optional(),
+  amount: z.number().optional(),
+  tax_code_id: z.string().optional(),
+}).passthrough(); // buildBillLines does its own detailed validation on each line — this just guards the shape isn't a non-object/non-array.
+const billCreateSchema = z.object({
+  items: z.array(billLineSchema).optional(),
+  bill_number: z.string().max(100).optional(),
+  supplier_id: z.string().optional(),
+  supplier_name: z.string().max(300).optional(),
+  shipment_ref: z.string().max(100).optional(),
+  po_number: z.string().max(100).optional(),
+  bill_date: z.string().optional(),
+  due_date: z.string().optional(),
+  status: z.enum(BILL_STATUS).optional(),
+  currency: z.string().max(10).optional(),
+  recurring_id: z.string().uuid().optional(),
+  notes: z.string().max(5000).optional(),
+});
 import { requireRole } from '../middleware/rbac.js';
 import { GLService } from '../services/gl.service.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
@@ -188,7 +231,7 @@ export async function billRoutes(fastify: FastifyInstance) {
   // POST /v1/bills/recurring
   fastify.post('/recurring', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
-    const body = request.body as any;
+    const body = recurringBillSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       // The treatment is validated here rather than when a bill is generated —
       // a template carrying a code from another workspace, or a sales-only code,
@@ -228,14 +271,15 @@ export async function billRoutes(fastify: FastifyInstance) {
   fastify.patch('/recurring/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const body = request.body as any;
+    const body = recurringBillSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('recurring_bills').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Recurring bill not found' });
       const updates: any = { updated_at: new Date() };
       const fields = ['name', 'supplier_id', 'supplier_name', 'frequency', 'currency', 'amount', 'category', 'description', 'payment_terms', 'next_due', 'end_date', 'state', 'bills_generated', 'total_spend'];
+      const b = body as Record<string, unknown>;
       for (const f of fields) {
-        if (body[f] !== undefined) updates[f] = body[f];
+        if (b[f] !== undefined) updates[f] = b[f];
       }
       // Rate and treatment move together, or they drift apart.
       if (body.tax_code_id !== undefined || body.tax_rate !== undefined) {
@@ -313,7 +357,7 @@ export async function billRoutes(fastify: FastifyInstance) {
   // POST /v1/bills
   fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
-    const body = request.body as any;
+    const body = billCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const items: any[] = Array.isArray(body.items) ? body.items : [];
       // Resolved before the header insert — an early 400 from inside withTenant
@@ -396,7 +440,7 @@ export async function billRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const body = request.body as any;
+    const body = billCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('supplier_bills').select(['id', 'bill_date'])
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
@@ -413,8 +457,9 @@ export async function billRoutes(fastify: FastifyInstance) {
 
       const updates: any = { updated_at: new Date() };
       const fields = ['bill_number', 'supplier_id', 'supplier_name', 'shipment_ref', 'po_number', 'bill_date', 'due_date', 'status', 'currency', 'notes', 'recurring_id'];
+      const b = body as Record<string, unknown>;
       for (const f of fields) {
-        if (body[f] !== undefined) updates[f] = body[f];
+        if (b[f] !== undefined) updates[f] = b[f];
       }
 
       // Resolved before the line delete below — the delete is a write, and a
@@ -566,7 +611,14 @@ export async function billRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/payment', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { amount, currency, payment_date, method, reference, note } = request.body as any;
+    const { amount, currency, payment_date, method, reference, note } = z.object({
+      amount: z.number().positive(),
+      currency: z.string().max(10).optional(),
+      payment_date: z.string().optional(),
+      method: z.string().max(50).optional(),
+      reference: z.string().max(200).optional(),
+      note: z.string().max(2000).optional(),
+    }).parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const bill = await trx.selectFrom('supplier_bills').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!bill) return reply.status(404).send({ error: 'Bill not found' });

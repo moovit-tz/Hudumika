@@ -1,5 +1,6 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 
 // Reefer monitoring + yard slotting (spec, deferred from Increment 2).
@@ -10,6 +11,18 @@ import { withTenant } from '../db/client.js';
 
 const REEFER_TOLERANCE_C = 2; // ± setpoint, a simple fixed band rather than a per-commodity table
 
+const reeferReadingSchema = z.object({
+  temperatureC: z.number(),
+  note: z.string().max(2000).optional(),
+});
+const yardSlotCreateSchema = z.object({
+  compartmentId: z.string().min(1),
+  code: z.string().trim().min(1).max(50),
+  capacityTeu: z.number().int().positive().optional(),
+});
+const yardSlotAssignSchema = z.object({ yardSlotId: z.string().nullable().optional() });
+const vehicleAssignSchema = z.object({ vehicleId: z.string().nullable().optional() });
+
 export async function sealWarehouseOpsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
   fastify.addHook('preHandler', requireEntitlement('seal'));
@@ -19,7 +32,8 @@ export async function sealWarehouseOpsRoutes(fastify: FastifyInstance) {
     try {
       const rows = await withTenant(request.user.tenant_id, trx =>
         trx.selectFrom('seal_reefer_readings').selectAll()
-          .where('lot_id', '=', request.params.id).orderBy('recorded_at', 'desc').execute()
+          .where('lot_id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
+          .orderBy('recorded_at', 'desc').execute()
       );
       return rows.map(r => ({
         id: r.id, lotId: r.lot_id, recordedAt: r.recorded_at, temperatureC: Number(r.temperature_c),
@@ -31,11 +45,12 @@ export async function sealWarehouseOpsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/lots/:id/reefer-readings', async (request: any, reply) => {
+    const b = reeferReadingSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (b.temperatureC == null) return reply.status(400).send({ error: 'temperatureC is required' });
       const lot = await withTenant(request.user.tenant_id, trx =>
-        trx.selectFrom('seal_lots').select(['id', 'reefer_setpoint_c']).where('id', '=', request.params.id).executeTakeFirst()
+        trx.selectFrom('seal_lots').select(['id', 'reefer_setpoint_c'])
+          .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
+          .executeTakeFirst()
       );
       if (!lot) return reply.status(404).send({ error: 'Lot not found' });
       const setpoint = lot.reefer_setpoint_c != null ? Number(lot.reefer_setpoint_c) : null;
@@ -81,9 +96,8 @@ export async function sealWarehouseOpsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/yard-slots', async (request: any, reply) => {
+    const b = yardSlotCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.compartmentId || !b.code) return reply.status(400).send({ error: 'compartmentId and code are required' });
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.insertInto('seal_yard_slots').values({
           tenant_id: request.user.tenant_id, compartment_id: b.compartmentId,
@@ -97,8 +111,8 @@ export async function sealWarehouseOpsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/containers/:id/yard-slot', async (request: any, reply) => {
+    const b = yardSlotAssignSchema.parse(request.body);
     try {
-      const b = request.body as any;
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_containers').set({ yard_slot_id: b.yardSlotId ?? null })
           .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
@@ -129,8 +143,8 @@ export async function sealWarehouseOpsRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/containers/:id/vehicle', async (request: any, reply) => {
+    const b = vehicleAssignSchema.parse(request.body);
     try {
-      const b = request.body as any;
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_containers').set({ vehicle_id: b.vehicleId ?? null })
           .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)

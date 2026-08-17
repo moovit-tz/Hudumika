@@ -11,6 +11,7 @@ import { requireEntitlement } from '../middleware/entitlement.js';
  */
 
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import {
   searchHsCodes,
   getHsCode,
@@ -61,6 +62,46 @@ function parseContainerLots(raw: any): ContainerLot[] | undefined {
   }
   return out.length > 0 ? out : undefined;
 }
+
+// Real values — calculatePenalty()'s own violation_type union
+// (services/customs.service.ts) and 036_hs_customs.sql's status comment.
+const VIOLATION_TYPES = ['under_declaration', 'misclassification', 'late_payment', 'no_pvoc', 'no_di', 'prohibited_goods'] as const;
+const PENALTY_STATUSES = ['open', 'paid', 'appealing', 'waived'] as const;
+
+// .catchall(z.any()) rather than .passthrough(): passthrough types every
+// undeclared key as `unknown` in the parsed output, which breaks every
+// downstream `body.someOptionalField` access below (they all become
+// unknown/{} instead of any) — catchall(z.any()) keeps the same "accept
+// anything extra" runtime behavior but types those keys as `any`.
+const hsSuggestSchema = z.object({
+  items: z.array(z.any()).min(1),
+  per_item: z.number().optional(),
+}).catchall(z.any());
+const hsSuggestAiPickSchema = z.object({
+  items: z.array(z.any()).min(1),
+}).catchall(z.any());
+// Shape-guarded only for the two required fields — every optional numeric
+// field already runs through parseFloat/parseInt with NaN-safe fallbacks at
+// the point of use below, which z.coerce would duplicate without adding
+// protection this calculator doesn't already have.
+const landedCostSchema = z.object({
+  hs_code: z.string().trim().min(1),
+  cif_usd: z.union([z.string(), z.number()]).refine(v => Number.isFinite(parseFloat(String(v))) && parseFloat(String(v)) > 0, 'cif_usd must be a positive number'),
+}).catchall(z.any());
+const landedCostMultiSchema = z.object({
+  items: z.array(z.any()).min(1),
+}).catchall(z.any());
+const complianceCheckSchema = z.object({
+  hs_code: z.string().trim().min(1),
+  origin_country: z.string().trim().min(1),
+}).catchall(z.any());
+const penaltyCalcSchema = z.object({
+  violation_type: z.enum(VIOLATION_TYPES),
+}).catchall(z.any());
+const penaltyPatchSchema = z.object({
+  status: z.enum(PENALTY_STATUSES).optional(),
+  notes: z.string().max(5000).optional(),
+});
 
 export async function customsRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -144,10 +185,7 @@ export async function customsRoutes(fastify: FastifyInstance) {
   // is never written to a line by the server, and the UI requires a human to
   // accept each one, because a wrong HS code is a misclassification.
   fastify.post('/hs-suggest', async (request, reply) => {
-    const body = request.body as any;
-    if (!Array.isArray(body?.items) || body.items.length === 0) {
-      return reply.status(400).send({ error: 'items[] is required' });
-    }
+    const body = hsSuggestSchema.parse(request.body);
     if (body.items.length > 500) {
       return reply.status(413).send({ error: 'Too many lines in one request — send at most 500.' });
     }
@@ -192,10 +230,7 @@ export async function customsRoutes(fastify: FastifyInstance) {
   // the user still accepts by hand.
   fastify.post('/hs-suggest/ai-pick', async (request, reply) => {
     const user = request.user;
-    const body = request.body as any;
-    if (!Array.isArray(body?.items) || body.items.length === 0) {
-      return reply.status(400).send({ error: 'items[] is required' });
-    }
+    const body = hsSuggestAiPickSchema.parse(request.body);
     if (body.items.length > 40) {
       return reply.status(413).send({ error: 'Too many lines for one AI review — send at most 40.' });
     }
@@ -361,15 +396,11 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
   // Full landed cost calculator with live HS rates and FX rate
   fastify.post('/landed-cost', async (request, reply) => {
     const user = request.user as any;
-    const body = request.body as any;
-
-    if (!body.hs_code || !body.cif_usd) {
-      return reply.status(400).send({ error: 'hs_code and cif_usd are required' });
-    }
+    const body = landedCostSchema.parse(request.body);
 
     const result = await calculateLandedCost({
       hs_code: body.hs_code,
-      cif_usd: parseFloat(body.cif_usd),
+      cif_usd: parseFloat(String(body.cif_usd)),
       qty: parseInt(body.qty ?? '1'),
       icd_per_container: body.icd_per_container ? parseFloat(body.icd_per_container) : undefined,
       num_containers: body.num_containers ? parseInt(body.num_containers) : undefined,
@@ -542,11 +573,7 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
   // across lines by FOB value share.
   fastify.post('/landed-cost/multi-item', async (request, reply) => {
     const user = request.user as any;
-    const body = request.body as any;
-
-    if (!Array.isArray(body.items) || body.items.length === 0) {
-      return reply.status(400).send({ error: 'items[] is required' });
-    }
+    const body = landedCostMultiSchema.parse(request.body);
 
     let result;
     try {
@@ -605,10 +632,7 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
   // Check compliance requirements for an import
   fastify.post('/compliance-check', async (request, reply) => {
     const user = request.user as any;
-    const body = request.body as any;
-    if (!body.hs_code || !body.origin_country) {
-      return reply.status(400).send({ error: 'hs_code and origin_country are required' });
-    }
+    const body = complianceCheckSchema.parse(request.body);
 
     const checks = await checkCompliance({
       hs_code: body.hs_code,
@@ -664,11 +688,7 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
   // Calculate customs penalties under CEMA CAP 403
   fastify.post('/penalty-calc', async (request, reply) => {
     const user = request.user as any;
-    const body = request.body as any;
-
-    if (!body.violation_type) {
-      return reply.status(400).send({ error: 'violation_type is required' });
-    }
+    const body = penaltyCalcSchema.parse(request.body);
 
     const result = await calculatePenalty({
       violation_type: body.violation_type,
@@ -721,7 +741,7 @@ ${items.map((i: any) => `- id ${i.id} | goods: "${i.text}"\n  candidates:\n${i.c
   fastify.patch('/penalties/:id', async (request) => {
     const user = request.user as any;
     const { id } = request.params as { id: string };
-    const { status, notes } = request.body as any;
+    const { status, notes } = penaltyPatchSchema.parse(request.body);
 
     return db.updateTable('customs_penalties')
       .set({ status: status ?? undefined, notes: notes ?? undefined, updated_at: new Date() })

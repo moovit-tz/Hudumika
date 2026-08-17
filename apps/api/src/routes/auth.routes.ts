@@ -1,16 +1,46 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { issueTokens, durationSeconds } from '../services/token.service.js';
 import crypto from 'crypto';
 import { db, withTenant } from '../db/client.js';
-import { hashPassword, verifyPassword } from '../lib/password.js';
+import { hashPassword, verifyPassword, needsRehash } from '../lib/password.js';
 import { verifyTotp } from '../lib/totp.js';
-import { EmailIntegration } from '../integrations/email.js';
+import { MailService } from '../services/mail.service.js';
 import { env } from '../config/env.js';
 import { PlatformAdminService } from '../services/platform-admin.service.js';
 import type { LoginInput, CustomerOTPInput, CustomerVerifyInput, SafeUser, JWTPayload, OrgLoginInput, SafeOrgUser } from '@hudumika/types';
 
 // Simple in-memory storage for customer OTPs in dev
 const OTP_STORE = new Map<string, { otp: string; expiresAt: number }>();
+
+// Every schema below guards a fully unauthenticated route — no JWT stands
+// between the internet and these handlers, so a malformed/malicious body
+// (wrong type, missing field, absurd length) previously reached DB queries
+// and bcrypt-equivalent hashing with zero shape checking at all.
+const loginSchema = z.object({
+  email: z.string().trim().email().max(320),
+  password: z.string().min(1).max(200),
+  totp: z.string().max(20).optional(),
+});
+const acceptInviteSchema = z.object({
+  token: z.string().min(1).max(500),
+  name: z.string().trim().min(1).max(200),
+  password: z.string().min(8).max(200),
+});
+const forgotPasswordSchema = z.object({ email: z.string().trim().email().max(320) });
+const resetPasswordSchema = z.object({
+  token: z.string().min(1).max(500),
+  password: z.string().min(8).max(200),
+});
+const customerOtpSchema = z.object({ phone_wa: z.string().trim().min(5).max(30) });
+const customerVerifySchema = z.object({
+  phone_wa: z.string().trim().min(5).max(30),
+  otp: z.string().trim().min(1).max(20),
+});
+const orgLoginSchema = z.object({
+  email: z.string().trim().email().max(320),
+  password: z.string().min(1).max(200),
+});
 
 function parseDevice(userAgent: string): { label: string; type: string } {
   const ua = userAgent || '';
@@ -66,13 +96,46 @@ async function recordLogin(tenantId: string, userId: string, status: 'SUCCESS' |
   return null;
 }
 
+// Gives an impersonation session the same hr_devices row a real login gets,
+// so it can /auth/refresh past its first hour and be revoked early from
+// Workspace ▸ Security — see AccessClaims.device_id's own doc comment.
+// Deliberately narrower than recordLogin(): it never touches
+// hr_login_history or users.last_login_at, since the person who actually
+// signed in was the SuperAdmin, not the target — those must keep telling
+// the truth about when the target themself last logged in.
+// Only ever called with a real users.id — the legacy customer-OTP shape
+// (sub = customers.id) has no such row, and hr_devices.user_id is a hard FK
+// to users(id), so that branch stays device-less, exactly as a real legacy
+// customer login already is (see POST /auth/customer/verify above, which
+// never calls recordLogin either).
+async function registerImpersonationDevice(tenantId: string, userId: string, actorName: string, userAgent: string): Promise<string | null> {
+  try {
+    const ua = userAgent || 'unknown-client';
+    const label = `Impersonated by ${actorName || 'SuperAdmin'}`;
+    const existing = await db.selectFrom('hr_devices').select('id')
+      .where('user_id', '=', userId).where('user_agent', '=', ua).executeTakeFirst();
+    if (existing) {
+      await db.updateTable('hr_devices').set({ last_used_at: new Date(), revoked_at: null }).where('id', '=', existing.id).execute();
+      return existing.id;
+    }
+    const created = await db.insertInto('hr_devices').values({
+      tenant_id: tenantId, user_id: userId, device_label: label, device_type: 'Desktop', user_agent: ua, trusted: false,
+    }).returning('id').executeTakeFirst();
+    return created?.id ?? null;
+  } catch { return null; } // device tracking must never block impersonation
+}
+
 export async function authRoutes(fastify: FastifyInstance) {
   /**
    * POST /auth/login
    * Login for staff members (ADMIN, MANAGER, OFFICER, FINANCE)
    */
-  fastify.post('/login', async (request, reply) => {
-    const { email, password, totp } = request.body as LoginInput;
+  // The plugin-wide limiter (1200/min per IP, registered in index.ts) is sized
+  // for normal app traffic, not a credential-stuffing deterrent — at that
+  // ceiling an attacker gets 20 guesses/second against one account. Login and
+  // OTP endpoints get their own much tighter per-IP ceiling on top of it.
+  fastify.post('/login', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const { email, password, totp } = loginSchema.parse(request.body) as LoginInput;
 
     const user = await db
       .selectFrom('users')
@@ -113,6 +176,15 @@ export async function authRoutes(fastify: FastifyInstance) {
     if (!isMatch) {
       await recordLogin(user.tenant_id, user.id, 'FAILED', ip, userAgent);
       return reply.status(401).send({ error: 'Invalid email or password' });
+    }
+
+    // Transparent rehash-on-login: the password is already known-good (it
+    // just matched), so this is the one safe moment to silently replace a
+    // hash created under a weaker/older iteration count with a current one —
+    // no forced reset, no bulk migration, every account upgrades itself the
+    // next time its owner actually signs in.
+    if (needsRehash(user.password_hash)) {
+      await db.updateTable('users').set({ password_hash: hashPassword(password) }).where('id', '=', user.id).execute();
     }
 
     // Second factor — only gates login once the user has actually completed
@@ -167,10 +239,7 @@ export async function authRoutes(fastify: FastifyInstance) {
    * Completes an HR invitation: creates the real user and logs them in.
    */
   fastify.post('/accept-invite', async (request, reply) => {
-    const { token, name, password } = request.body as { token: string; name: string; password: string };
-    if (!token || !name || !password) {
-      return reply.status(400).send({ error: 'token, name, and password are required' });
-    }
+    const { token, name, password } = acceptInviteSchema.parse(request.body);
 
     const invite = await db.selectFrom('hr_invitations').selectAll()
       .where('token', '=', token).executeTakeFirst();
@@ -210,9 +279,8 @@ export async function authRoutes(fastify: FastifyInstance) {
    * Sends a reset link if the email matches an active account. Always
    * returns a generic success message so callers can't enumerate accounts.
    */
-  fastify.post('/forgot-password', async (request, reply) => {
-    const { email } = request.body as { email: string };
-    if (!email) return reply.status(400).send({ error: 'email is required' });
+  fastify.post('/forgot-password', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const { email } = forgotPasswordSchema.parse(request.body);
 
     const user = await db.selectFrom('users').selectAll()
       .where('email', '=', email).where('active', '=', true).executeTakeFirst();
@@ -223,16 +291,8 @@ export async function authRoutes(fastify: FastifyInstance) {
       await db.insertInto('password_reset_tokens').values({ user_id: user.id, token, expires_at: expiresAt }).execute();
 
       const resetUrl = `${env.OPS_BOARD_URL}/auth/reset-password?token=${token}`;
-      await EmailIntegration.sendEmail({
-        to: user.email,
-        subject: 'Reset your Hudumika password',
-        bodyHtml: `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
-          <p>We received a request to reset your password.</p>
-          <p><a href="${resetUrl}">Reset your password</a>. This link expires in 1 hour.</p>
-          <p>If you didn't request this, you can safely ignore this email.</p>
-        </div>`,
-        tenantId: user.tenant_id,
-      }).catch(() => { /* token still exists; user can retry */ });
+      await MailService.enqueueTemplated(user.tenant_id, 'auth.password_reset', user.email, { resetUrl }, 'auth')
+        .catch(() => { /* token still exists; user can retry */ });
     }
 
     return { ok: true, message: 'If that email is registered, a reset link has been sent.' };
@@ -242,10 +302,8 @@ export async function authRoutes(fastify: FastifyInstance) {
    * POST /auth/reset-password
    * Completes a password reset from a token issued by /forgot-password.
    */
-  fastify.post('/reset-password', async (request, reply) => {
-    const { token, password } = request.body as { token: string; password: string };
-    if (!token || !password) return reply.status(400).send({ error: 'token and password are required' });
-    if (password.length < 8) return reply.status(400).send({ error: 'Password must be at least 8 characters' });
+  fastify.post('/reset-password', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const { token, password } = resetPasswordSchema.parse(request.body);
 
     const row = await db.selectFrom('password_reset_tokens').selectAll()
       .where('token', '=', token).executeTakeFirst();
@@ -264,8 +322,8 @@ export async function authRoutes(fastify: FastifyInstance) {
    * POST /auth/customer-otp
    * Request OTP login for customers
    */
-  fastify.post('/customer-otp', async (request, reply) => {
-    const { phone_wa } = request.body as CustomerOTPInput;
+  fastify.post('/customer-otp', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const { phone_wa } = customerOtpSchema.parse(request.body) as CustomerOTPInput;
 
     // Check if customer exists
     const customer = await db
@@ -300,15 +358,23 @@ export async function authRoutes(fastify: FastifyInstance) {
    * POST /auth/customer/verify
    * Verify OTP code and login customer
    */
-  fastify.post('/customer/verify', async (request, reply) => {
-    const { phone_wa, otp } = request.body as CustomerVerifyInput;
+  fastify.post('/customer/verify', { config: { rateLimit: { max: 5, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const { phone_wa, otp } = customerVerifySchema.parse(request.body);
 
-    if (otp === '123456' && !OTP_STORE.has(phone_wa)) {
+    // Dev-only bypass: real OTP delivery via WhatsApp isn't wired up yet (see
+    // the comment on /customer-otp above), so local/staging testing needs a
+    // fixed code that always works. This was previously unconditional — in
+    // any environment, POSTing {phone_wa, otp:"123456"} for any phone number
+    // with an active `customers` row (no prior /customer-otp call needed)
+    // returned a real, valid session JWT for that customer. A live,
+    // unauthenticated authentication-bypass endpoint, gated on nothing.
+    if (env.APP_ENV !== 'production' && otp === '123456' && !OTP_STORE.has(phone_wa)) {
       OTP_STORE.set(phone_wa, { otp: '123456', expiresAt: Date.now() + 5 * 60 * 1000 });
     }
 
     const record = OTP_STORE.get(phone_wa);
-    if (!record || record.expiresAt < Date.now() || (record.otp !== otp && otp !== '123456')) {
+    const devBypassOk = env.APP_ENV !== 'production' && otp === '123456';
+    if (!record || record.expiresAt < Date.now() || (record.otp !== otp && !devBypassOk)) {
       return reply.status(400).send({ error: 'Invalid or expired OTP' });
     }
 
@@ -360,8 +426,8 @@ export async function authRoutes(fastify: FastifyInstance) {
    * No tenant_id in the issued token at all — see OrgJWTPayload and the
    * ORG_ALLOWED_ROUTES gate in middleware/auth.ts.
    */
-  fastify.post('/org-login', async (request, reply) => {
-    const { email, password } = request.body as OrgLoginInput;
+  fastify.post('/org-login', { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }, async (request, reply) => {
+    const { email, password } = orgLoginSchema.parse(request.body) as OrgLoginInput;
 
     const orgUser = await db
       .selectFrom('organization_users')
@@ -372,6 +438,10 @@ export async function authRoutes(fastify: FastifyInstance) {
 
     if (!orgUser || !verifyPassword(password, orgUser.password_hash)) {
       return reply.status(401).send({ error: 'Invalid email or password' });
+    }
+
+    if (needsRehash(orgUser.password_hash)) {
+      await db.updateTable('organization_users').set({ password_hash: hashPassword(password) }).where('id', '=', orgUser.id).execute();
     }
 
     const payload = {
@@ -424,12 +494,17 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.status(404).send({ error: 'No active admin found for this tenant' });
     }
 
+    const deviceId = await registerImpersonationDevice(
+      target.tenant_id, target.id, actor.name || actor.email, String(request.headers['user-agent'] || ''),
+    );
+
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
       sub: target.id,
       tenant_id: target.tenant_id,
       role: target.role,
       email: target.email,
       name: target.name,
+      ...(deviceId ? { device_id: deviceId } : {}),
       impersonated_by: actor.sub,
       impersonated_by_name: actor.name,
     };
@@ -492,10 +567,18 @@ export async function authRoutes(fastify: FastifyInstance) {
       .where('role', '=', 'CUSTOMER').where('active', '=', true)
       .orderBy('created_at', 'asc').executeTakeFirst();
 
+    // Only the modern shape has a real users.id to hang a device on — the
+    // legacy shape below stays device-less, same as a real legacy customer
+    // login (see registerImpersonationDevice's own doc comment).
+    const deviceId = linkedUser
+      ? await registerImpersonationDevice(linkedUser.tenant_id, linkedUser.id, actor.name || actor.email, String(request.headers['user-agent'] || ''))
+      : null;
+
     const payload: Omit<JWTPayload, 'iat' | 'exp'> = linkedUser
       ? {
           sub: linkedUser.id, tenant_id: linkedUser.tenant_id, role: 'CUSTOMER',
           email: linkedUser.email, name: linkedUser.name,
+          ...(deviceId ? { device_id: deviceId } : {}),
           impersonated_by: actor.sub, impersonated_by_name: actor.name,
         }
       : {

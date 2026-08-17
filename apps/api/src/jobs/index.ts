@@ -15,6 +15,9 @@ import { runDeclarationLedgerAnchorJob, runDeclarationLedgerAnchorConfirmationSw
 import { runOnsiteDeploymentSyncJob } from './onsite-deployment-sync.job.js';
 import { runOnsiteUptimeJob, runOnsiteSslSweepJob } from './onsite-uptime.job.js';
 import { runWorkflowLearningJob } from './workflow-learning.job.js';
+import { runCloudTrashExpiryJob } from './cloud-trash-expiry.job.js';
+import { runMailOutboxJob } from './mail-outbox.job.js';
+import { runImapTicketIngestJob } from './imap-ticket-ingest.job.js';
 
 let redisConnection: Redis | null = null;
 let riskQueue: Queue | null = null;
@@ -23,6 +26,8 @@ let gpswoxQueue: Queue | null = null;
 let workflowCommQueue: Queue | null = null;
 let sealAnchorQueue: Queue | null = null;
 let declarationAnchorQueue: Queue | null = null;
+let mailOutboxQueue: Queue | null = null;
+let imapTicketQueue: Queue | null = null;
 
 /**
  * Initializes BullMQ or falls back to in-memory intervals if Redis is not running
@@ -124,6 +129,8 @@ function startBullMQ(): void {
     workflowCommQueue = track(new Queue('workflow-comms', { connection: redisConnection as any }));
     sealAnchorQueue = track(new Queue('seal-ledger-anchor', { connection: redisConnection as any }));
     declarationAnchorQueue = track(new Queue('declaration-ledger-anchor', { connection: redisConnection as any }));
+    mailOutboxQueue = track(new Queue('mail-outbox', { connection: redisConnection as any }));
+    imapTicketQueue = track(new Queue('imap-ticket-ingest', { connection: redisConnection as any }));
 
     // Worker for risk scans
     track(new Worker(
@@ -157,6 +164,8 @@ function startBullMQ(): void {
           await runSupportRulesJob();
         } else if (job.name === 'workflow-learning') {
           await runWorkflowLearningJob();
+        } else if (job.name === 'cloud-trash-expiry') {
+          await runCloudTrashExpiryJob();
         }
       },
       { connection: redisConnection as any }
@@ -215,6 +224,33 @@ function startBullMQ(): void {
       { connection: redisConnection as any }
     ));
 
+    // Worker for the mail outbox sweep — its own queue since it polls far
+    // more frequently (1 min, mail needs to go out promptly) than the
+    // reminders queue's daily-cadence group.
+    track(new Worker(
+      'mail-outbox',
+      async (job) => {
+        if (job.name === 'sweep') {
+          await runMailOutboxJob();
+        }
+      },
+      { connection: redisConnection as any }
+    ));
+
+    // Worker for IMAP-to-ticket ingestion — its own queue, 3 min cadence:
+    // less frequent than GPSWOX's 2-min device polling, far more frequent
+    // than the daily-cron group (a support reply sitting unread for a day
+    // would be a real regression from every other channel's latency).
+    track(new Worker(
+      'imap-ticket-ingest',
+      async (job) => {
+        if (job.name === 'sweep') {
+          await runImapTicketIngestJob();
+        }
+      },
+      { connection: redisConnection as any }
+    ));
+
     // Schedule repeatable jobs
     riskQueue.add('scan', {}, {
       repeat: { every: 15 * 60 * 1000 } // Every 15 minutes
@@ -251,6 +287,10 @@ function startBullMQ(): void {
       repeat: { pattern: '0 8 * * *' } // Daily at 8:00 AM — 90-day/30-day permit expiry notices
     }).catch(console.error);
 
+    reminderQueue.add('cloud-trash-expiry', {}, {
+      repeat: { pattern: '0 2 * * *' } // Daily at 2:00 AM — permanently delete Cloud Trash items past 30 days
+    }).catch(console.error);
+
     // TRA Z-Report: run at midnight (00:05) every day
     reminderQueue.add('tra-zreport', {}, {
       repeat: { pattern: '5 0 * * *' } // Every day at 00:05 AM
@@ -280,6 +320,14 @@ function startBullMQ(): void {
       repeat: { every: 60 * 60 * 1000 } // Every hour — re-check pending anchors for Bitcoin confirmation
     }).catch(console.error);
 
+    mailOutboxQueue.add('sweep', {}, {
+      repeat: { every: 60 * 1000 } // Every 1 minute — mail needs to go out promptly, not on a daily cadence
+    }).catch(console.error);
+
+    imapTicketQueue.add('sweep', {}, {
+      repeat: { every: 3 * 60 * 1000 } // Every 3 minutes — inbound support replies via email
+    }).catch(console.error);
+
     console.log('🚀 BullMQ Workers and repeat schedules initialized.');
   } catch (err) {
     console.error('❌ Failed to start BullMQ:', err);
@@ -302,6 +350,7 @@ function startIntervalFallback(): void {
   runSupportRulesJob().catch(console.error);
   runGpswoxSyncJob().catch(console.error);
   runWorkflowCommQueueJob().catch(console.error);
+  runMailOutboxJob().catch(console.error);
 
   // Set interval timers
   fallbackTimer = setInterval(() => {
@@ -322,6 +371,7 @@ function startIntervalFallback(): void {
     runComplyRenewalJob().catch(console.error);
     runComplyExpiryReminderJob().catch(console.error);
     runTRAZReportJob().catch(console.error);
+    runCloudTrashExpiryJob().catch(console.error);
   }, 24 * 60 * 60 * 1000);
 
   // GPSWOX device sync — every 2 minutes, its own timer since it's far more
@@ -390,4 +440,21 @@ function startIntervalFallback(): void {
   setInterval(() => {
     runWorkflowLearningJob().catch(console.error);
   }, 24 * 60 * 60 * 1000);
+
+  // Mail outbox sweep — every minute. Safe to also run immediately on
+  // startup (above): each row is processed exactly once and marked sent/
+  // failed, so re-running the sweep on every tsx-watch restart just drains
+  // whatever's already due faster, unlike the ledger-anchor jobs' external/
+  // irreversible actions.
+  setInterval(() => {
+    runMailOutboxJob().catch(console.error);
+  }, 60 * 1000);
+
+  // IMAP-to-ticket ingest — every 3 minutes. Safe on startup too: a message
+  // only gets marked \Seen after it's been processed, so a quick tsx-watch
+  // restart can't double-process or double-create a ticket from the same
+  // message.
+  setInterval(() => {
+    runImapTicketIngestJob().catch(console.error);
+  }, 3 * 60 * 1000);
 }

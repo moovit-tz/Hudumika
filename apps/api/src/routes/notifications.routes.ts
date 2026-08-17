@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
 
 /**
@@ -157,27 +158,31 @@ export async function notificationRoutes(fastify: FastifyInstance) {
 
   /**
    * POST /v1/notifications
-   * Create an in-app notification.
-   * Body: { user_id, tenant_id?, type?, title, message?, link?, metadata? }
-   * tenant_id defaults to the requesting user's tenant.
+   * Create an in-app notification for another user in the caller's own tenant.
+   * Body: { user_id, type?, title, message?, link?, metadata? }
+   *
+   * tenant_id is never taken from the body — any authenticated user (no role
+   * gate on this route) could set it to an arbitrary tenant and inject a
+   * spoofed notification (attacker-chosen title/message/link) into a
+   * completely different tenant's user's feed. It is always the caller's own
+   * tenant now; the real caller (CreateShipmentPage.tsx) never sent one.
    */
   fastify.post('/', async (request, reply) => {
     const user = request.user;
-    const body = request.body as {
-      user_id: string;
-      tenant_id?: string;
-      app?: string;
-      type?: string;
-      title: string;
-      message?: string;
-      link?: string;
-      metadata?: any;
-      entity_type?: string;
-      entity_id?: string;
-      entity_label?: string;
-    };
+    const body = z.object({
+      user_id: z.string().uuid(),
+      app: z.string().max(50).optional(),
+      type: z.string().max(50).optional(),
+      title: z.string().trim().min(1).max(300),
+      message: z.string().max(2000).optional(),
+      link: z.string().max(500).optional(),
+      metadata: z.record(z.any()).optional(),
+      entity_type: z.string().max(50).optional(),
+      entity_id: z.string().max(100).optional(),
+      entity_label: z.string().max(200).optional(),
+    }).parse(request.body);
 
-    const tenant_id = body.tenant_id ?? user.tenant_id;
+    const tenant_id = user.tenant_id;
 
     return withTenant(tenant_id, async (trx) => {
       const [row] = await trx

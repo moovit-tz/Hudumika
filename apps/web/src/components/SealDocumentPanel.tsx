@@ -25,18 +25,39 @@ const DOC_TYPE_LABELS: Record<string, string> = {
 
 /** Document vault panel, embedded in a lot/consignment/declaration detail
  *  page — documents belong to a specific entity, so there's no global list
- *  first (spec's deferred document-vault scope, Increment 4). */
+ *  first (spec's deferred document-vault scope, Increment 4).
+ *
+ *  Every upload here is also mirrored into Cloud (Customers ▸ owner ▸ SEAL ▸
+ *  label — see CloudSync.syncSealDoc), for lot/consignment/container only:
+ *  customs_entry/compartment have no customer owner to link to, so "Open
+ *  Drive" is hidden for those rather than resolving nothing. */
 export function SealDocumentPanel({ entityType, entityId }: { entityType: 'lot' | 'consignment' | 'container' | 'customs_entry' | 'compartment'; entityId: string }) {
   const [docs, setDocs] = useState<SealDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [docType, setDocType] = useState('other');
   const [uploading, setUploading] = useState(false);
+  const [resolvingFolder, setResolvingFolder] = useState(false);
+  const cloudLinked = entityType === 'lot' || entityType === 'consignment' || entityType === 'container';
 
   const load = useCallback(() => {
     setLoading(true);
     apiFetch(`/v1/seal/documents?entity_type=${entityType}&entity_id=${entityId}`).then(setDocs).finally(() => setLoading(false));
   }, [entityType, entityId]);
   useEffect(() => { load(); }, [load]);
+
+  async function openCloudFolder() {
+    setResolvingFolder(true);
+    try {
+      const folder = await apiFetch(`/v1/files/seal-folder/${entityType}/${entityId}`);
+      const qs = new URLSearchParams({ drive: folder.drive_id, folder: folder.id, name: folder.name });
+      if (folder.parent) { qs.set('parentId', folder.parent.id); qs.set('parentName', folder.parent.name); }
+      window.open(`/cloud?${qs.toString()}`, '_blank', 'noopener');
+    } catch (err: any) {
+      showAlert(err.message || "Could not open this record's Drive folder");
+    } finally {
+      setResolvingFolder(false);
+    }
+  }
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -78,8 +99,21 @@ export function SealDocumentPanel({ entityType, entityId }: { entityType: 'lot' 
 
   return (
     <div className="seal-card">
-      <div className="seal-card-hdr"><h2 className="seal-card-title">Documents</h2></div>
+      <div className="seal-card-hdr">
+        <h2 className="seal-card-title">Documents</h2>
+        {cloudLinked && (
+          <button type="button" className="btn btn-secondary" disabled={resolvingFolder} onClick={openCloudFolder}>
+            <Icon name="externalLink" size={13} />
+            <span>{resolvingFolder ? 'Opening…' : 'Open Drive'}</span>
+          </button>
+        )}
+      </div>
       <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {cloudLinked && (
+          <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: -4 }}>
+            Uploaded documents are automatically mirrored into this record's own Drive folder.
+          </div>
+        )}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
           <Select value={docType} onValueChange={setDocType}>
             <SelectTrigger className="input-field" style={{ width: 220 }}><SelectValue /></SelectTrigger>

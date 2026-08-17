@@ -1,6 +1,66 @@
 import { env } from '../config/env.js';
 import nodemailer from 'nodemailer';
 import { db } from '../db/client.js';
+import { encryptSecret, decryptSecret } from '../services/onsite-secrets.service.js';
+
+/**
+ * Builds a plain SMTP nodemailer transporter from a host/port/user/pass/enc
+ * config — the one implementation POST /v1/settings/email/test and
+ * EmailIntegration.sendEmail's smtp branch both use, instead of the two
+ * separately-maintained copies that used to exist (settings.routes.ts had
+ * its own, missing the connectionTimeout/socketTimeout this one carries —
+ * without them a bad host could hang the SMTP send indefinitely).
+ */
+export function buildSmtpTransporter(config: { host: string; port?: string | number; user?: string; pass?: string; enc?: string }): nodemailer.Transporter {
+  const port = Number(config.port) || (config.enc === 'ssl' ? 465 : 587);
+  const secure = config.enc === 'ssl';
+  const requireTLS = !secure && config.enc === 'tls';
+  return nodemailer.createTransport({
+    host: config.host,
+    port,
+    secure,
+    requireTLS,
+    auth: { user: config.user, pass: config.pass },
+    connectionTimeout: 15_000,
+    socketTimeout: 20_000,
+    tls: { rejectUnauthorized: false },
+  } as any);
+}
+
+/** onsite-secrets.service's ciphertext format is "<iv_hex>:<authTag_hex>:
+ *  <cipher_hex>" — three hex segments. Anything else is legacy plaintext
+ *  saved before pass was encrypted at rest; returned as-is rather than
+ *  thrown on, so an existing tenant's SMTP config doesn't break the moment
+ *  this ships. */
+function decryptIfEncrypted(value: string | undefined): string | undefined {
+  if (!value) return value;
+  const parts = value.split(':');
+  const looksEncrypted = parts.length === 3 && parts.every(p => /^[0-9a-f]+$/i.test(p));
+  if (!looksEncrypted) return value;
+  try { return decryptSecret(value); } catch { return value; }
+}
+
+/** nodemailer's OAuth2 auth type auto-refreshes the access token from the
+ *  refresh token when it's expired, but only holds the new one in memory —
+ *  it never persists it anywhere. Without this, every send after the first
+ *  access-token expiry (~1hr) re-refreshes needlessly instead of reusing a
+ *  still-valid token mail-oauth.routes.ts already stored. */
+async function persistRefreshedToken(tenantId: string, provider: 'outlook' | 'gmail', tokenInfo: { accessToken: string; expires?: number }): Promise<void> {
+  const row = await db.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', tenantId).executeTakeFirst();
+  if (!row) return;
+  const settings = typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings;
+  const emailConfig = settings.email ?? {};
+  const updated = {
+    ...settings,
+    email: {
+      ...emailConfig,
+      [`${provider}AccessToken`]: encryptSecret(tokenInfo.accessToken),
+      [`${provider}TokenExpiresAt`]: tokenInfo.expires ? new Date(tokenInfo.expires).toISOString() : emailConfig[`${provider}TokenExpiresAt`],
+    },
+  };
+  await db.updateTable('tenant_settings').set({ settings: JSON.stringify(updated), updated_at: new Date() })
+    .where('tenant_id', '=', tenantId).execute();
+}
 
 export class EmailIntegration {
   /**
@@ -11,6 +71,7 @@ export class EmailIntegration {
     subject: string;
     bodyHtml: string;
     tenantId?: string;
+    cc?: string[];
   }): Promise<{ success: boolean; messageId?: string; error?: string; simulated?: boolean }> {
     try {
       let emailConfig: any = null;
@@ -40,21 +101,10 @@ export class EmailIntegration {
       // 2. Instantiate the correct transporter based on the protocol
       if (protocol === 'smtp' && emailConfig?.host) {
         // --- SMTP Protocol ---
-        const port = Number(emailConfig.port) || (emailConfig.enc === 'ssl' ? 465 : 587);
-        const secure = emailConfig.enc === 'ssl';
-        const requireTLS = !secure && emailConfig.enc === 'tls';
-
-        transporter = nodemailer.createTransport({
-          host: emailConfig.host,
-          port,
-          secure,
-          requireTLS,
-          auth: {
-            user: emailConfig.user,
-            pass: emailConfig.pass,
-          },
-          tls: { rejectUnauthorized: false }
-        } as any);
+        transporter = buildSmtpTransporter({
+          host: emailConfig.host, port: emailConfig.port, user: emailConfig.user,
+          pass: decryptIfEncrypted(emailConfig.pass), enc: emailConfig.enc,
+        });
       } else if (protocol === 'sendmail') {
         // --- Sendmail Protocol (No SMTP required) ---
         transporter = nodemailer.createTransport({
@@ -62,6 +112,33 @@ export class EmailIntegration {
           path: emailConfig?.sendmail_path || '/usr/sbin/sendmail',
           newline: 'unix'
         });
+      } else if ((protocol === 'outlook' || protocol === 'gmail') && emailConfig?.[`${protocol}RefreshToken`]) {
+        // --- Outlook / Gmail OAuth2 --- nodemailer has built-in XOAUTH2
+        // support, so this reuses the exact same transporter/sendMail path
+        // as every other protocol — mail-oauth.routes.ts's job is only ever
+        // to obtain the tokens, never to send anything itself.
+        transporter = nodemailer.createTransport({
+          ...(protocol === 'outlook'
+            ? { host: 'smtp.office365.com', port: 587, secure: false, requireTLS: true }
+            : { service: 'gmail' }),
+          auth: {
+            type: 'OAuth2',
+            user: emailConfig.fromEmail || emailConfig.user,
+            clientId: emailConfig[`${protocol}ClientId`],
+            clientSecret: decryptIfEncrypted(emailConfig[`${protocol}ClientSecret`]),
+            refreshToken: decryptIfEncrypted(emailConfig[`${protocol}RefreshToken`]),
+            accessToken: decryptIfEncrypted(emailConfig[`${protocol}AccessToken`]),
+            expires: emailConfig[`${protocol}TokenExpiresAt`] ? new Date(emailConfig[`${protocol}TokenExpiresAt`]).getTime() : undefined,
+          },
+        } as any);
+
+        if (input.tenantId) {
+          const tenantId = input.tenantId;
+          transporter.on('token', (tokenInfo: { accessToken: string; expires?: number }) => {
+            persistRefreshedToken(tenantId, protocol, tokenInfo).catch(err =>
+              console.error(`[EmailIntegration] failed to persist refreshed ${protocol} token:`, err.message));
+          });
+        }
       } else {
         // --- Mail Protocol (System Default / Fallback) ---
         // If the system default is not set or is still the placeholder, we simulate delivery in development
@@ -94,6 +171,7 @@ export class EmailIntegration {
       const info = await transporter.sendMail({
         from: `"${fromName}" <${fromAddress}>`,
         to: input.to,
+        cc: input.cc?.length ? input.cc.join(',') : undefined,
         subject: input.subject,
         html: input.bodyHtml,
       });

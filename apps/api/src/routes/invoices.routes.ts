@@ -2,7 +2,62 @@ import { requireAnyEntitlement } from '../middleware/entitlement.js';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { db, withTenant } from '../db/client.js';
+
+// Real values — Billing.tsx's own `Status` type.
+const INVOICE_STATUS = ['Draft', 'Partial', 'Paid', 'Credited', 'Unpaid', 'Overdue'] as const;
+const invoiceLineSchema = z.object({
+  description: z.string().max(500).optional(),
+  account_id: z.string().optional(),
+  quantity: z.number().optional(),
+  unit_price: z.number().optional(),
+  amount: z.number().optional(),
+  tax_code_id: z.string().optional(),
+}).passthrough(); // resolveItemTaxCodes/buildInvoiceLines do their own per-line validation — this only guards the shape isn't a non-object.
+const invoiceCreateSchema = z.object({
+  items: z.array(invoiceLineSchema).optional(),
+  invoice_number: z.string().max(100).optional(),
+  shipment_ref: z.string().max(100).optional(),
+  customer_id: z.string().uuid().optional(),
+  client_name: z.string().max(300).optional(),
+  client_address: z.array(z.string()).optional(),
+  bl_number: z.string().max(100).optional(),
+  origin: z.string().max(200).optional(),
+  destination: z.string().max(200).optional(),
+  mode: z.string().max(30).optional(),
+  bill_date: z.string().optional(),
+  due_date: z.string().optional(),
+  sale_agent: z.string().max(200).optional(),
+  payment_terms: z.string().max(200).optional(),
+  exchange_rate: z.number().positive().optional(),
+  status: z.enum(INVOICE_STATUS).optional(),
+  ref_code: z.string().max(100).optional(),
+  notes: z.string().max(5000).optional(),
+  currency: z.string().max(10).optional(),
+  version: z.number().int().positive().optional(),
+});
+const invoiceNoteSchema = z.object({ content: z.string().trim().min(1).max(5000) });
+const invoiceTaskCreateSchema = z.object({
+  description: z.string().trim().min(1).max(500),
+  assignee: z.string().max(200).optional(),
+  due_date: z.string().optional(),
+});
+const invoiceTaskPatchSchema = z.object({
+  description: z.string().trim().min(1).max(500).optional(),
+  assignee: z.string().max(200).optional(),
+  due_date: z.string().optional(),
+  done: z.boolean().optional(),
+});
+const invoiceReminderCreateSchema = z.object({
+  remind_date: z.string().min(1),
+  message: z.string().trim().min(1).max(2000),
+});
+const invoiceReminderPatchSchema = z.object({
+  remind_date: z.string().min(1).optional(),
+  message: z.string().trim().min(1).max(2000).optional(),
+  done: z.boolean().optional(),
+});
 import { requireRole } from '../middleware/rbac.js';
 import { sql, type SqlBool } from 'kysely';
 import { GLService } from '../services/gl.service.js';
@@ -454,7 +509,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   // POST /v1/invoices
   fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
-    const body = request.body as any;
+    const body = invoiceCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       // Before the header is written — see resolveItemTaxCodes on why an early
       // return after a write commits the partial state.
@@ -541,7 +596,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const body = request.body as any;
+    const body = invoiceCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('sales_invoices').select(['id', 'bill_date', 'currency'])
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
@@ -570,8 +625,9 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
 
       const updates: any = { updated_at: new Date() };
       const fields = ['invoice_number', 'customer_id', 'client_name', 'client_address', 'shipment_ref', 'bl_number', 'origin', 'destination', 'mode', 'bill_date', 'due_date', 'sale_agent', 'payment_terms', 'exchange_rate', 'status', 'notes', 'ref_code', 'version'];
+      const b = body as Record<string, unknown>;
       for (const f of fields) {
-        if (body[f] !== undefined) updates[f] = f === 'client_address' ? JSON.stringify(body[f]) : body[f];
+        if (b[f] !== undefined) updates[f] = f === 'client_address' ? JSON.stringify(b[f]) : b[f];
       }
       await trx.updateTable('sales_invoices').set(updates).where('id', '=', id).execute();
       
@@ -639,10 +695,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/void', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'FINANCE') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { reason } = (request.body ?? {}) as { reason?: string };
-    if (!String(reason ?? '').trim()) {
-      return reply.status(400).send({ error: 'A reason is required to void a posted invoice.' });
-    }
+    const { reason } = z.object({ reason: z.string().trim().min(1) }).parse(request.body ?? {});
     return withTenant(user.tenant_id, async (trx) => {
       const inv = await trx.selectFrom('sales_invoices')
         .select(['id', 'status', 'invoice_number', 'bill_date'])
@@ -709,7 +762,12 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/payment', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { amount, method, payment_date, note } = request.body as any;
+    const { amount, method, payment_date, note } = z.object({
+      amount: z.number().positive(),
+      method: z.string().max(50).optional(),
+      payment_date: z.string().optional(),
+      note: z.string().max(2000).optional(),
+    }).parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const inv = await trx.selectFrom('sales_invoices').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!inv) return reply.status(404).send({ error: 'Invoice not found' });
@@ -851,7 +909,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
       const notes = await trx.selectFrom('invoice_notes').selectAll()
-        .where('invoice_id', '=', id).orderBy('created_at', 'desc').execute();
+        .where('invoice_id', '=', id).where('tenant_id', '=', user.tenant_id).orderBy('created_at', 'desc').execute();
       return { data: notes };
     });
   });
@@ -859,9 +917,10 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/notes', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { content } = request.body as { content: string };
-    if (!content?.trim()) return reply.status(400).send({ error: 'content is required' });
+    const { content } = invoiceNoteSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
+      const invoice = await trx.selectFrom('sales_invoices').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!invoice) return reply.status(404).send({ error: 'Invoice not found' });
       const note = await trx.insertInto('invoice_notes').values({
         tenant_id: user.tenant_id,
         invoice_id: id,
@@ -902,7 +961,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
       const tasks = await trx.selectFrom('invoice_tasks').selectAll()
-        .where('invoice_id', '=', id).orderBy('created_at', 'asc').execute();
+        .where('invoice_id', '=', id).where('tenant_id', '=', user.tenant_id).orderBy('created_at', 'asc').execute();
       return { data: tasks };
     });
   });
@@ -910,9 +969,10 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/tasks', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { description, assignee, due_date } = request.body as any;
-    if (!description?.trim()) return reply.status(400).send({ error: 'description is required' });
+    const { description, assignee, due_date } = invoiceTaskCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
+      const invoice = await trx.selectFrom('sales_invoices').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!invoice) return reply.status(404).send({ error: 'Invoice not found' });
       const task = await trx.insertInto('invoice_tasks').values({
         tenant_id: user.tenant_id, invoice_id: id,
         description: description.trim(), assignee: assignee || null, due_date: due_date || null,
@@ -929,10 +989,11 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id/tasks/:taskId', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { id, taskId } = request.params as { id: string; taskId: string };
-    const body = request.body as any;
+    const body = invoiceTaskPatchSchema.parse(request.body);
+    const b = body as Record<string, unknown>;
     const patch: Record<string, any> = {};
     for (const k of ['description', 'assignee', 'due_date', 'done']) {
-      if (k in body) patch[k] = body[k];
+      if (k in b) patch[k] = b[k];
     }
     return withTenant(user.tenant_id, async (trx) => {
       const t = await trx.updateTable('invoice_tasks').set(patch)
@@ -968,7 +1029,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
       const reminders = await trx.selectFrom('invoice_reminders').selectAll()
-        .where('invoice_id', '=', id).orderBy('remind_date', 'asc').execute();
+        .where('invoice_id', '=', id).where('tenant_id', '=', user.tenant_id).orderBy('remind_date', 'asc').execute();
       return { data: reminders };
     });
   });
@@ -976,9 +1037,10 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.post('/:id/reminders', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { remind_date, message } = request.body as any;
-    if (!remind_date || !message?.trim()) return reply.status(400).send({ error: 'remind_date and message are required' });
+    const { remind_date, message } = invoiceReminderCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
+      const invoice = await trx.selectFrom('sales_invoices').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!invoice) return reply.status(404).send({ error: 'Invoice not found' });
       const rem = await trx.insertInto('invoice_reminders').values({
         tenant_id: user.tenant_id, invoice_id: id,
         remind_date, message: message.trim(), done: false, created_at: new Date(),
@@ -994,10 +1056,11 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id/reminders/:reminderId', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { reminderId } = request.params as { id: string; reminderId: string };
-    const body = request.body as any;
+    const body = invoiceReminderPatchSchema.parse(request.body);
+    const b = body as Record<string, unknown>;
     const patch: Record<string, any> = {};
     for (const k of ['remind_date', 'message', 'done']) {
-      if (k in body) patch[k] = body[k];
+      if (k in b) patch[k] = b[k];
     }
     return withTenant(user.tenant_id, async (trx) => {
       const r = await trx.updateTable('invoice_reminders').set(patch)
@@ -1027,7 +1090,7 @@ export async function invoiceRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
     return withTenant(user.tenant_id, async (trx) => {
       const log = await trx.selectFrom('invoice_activity_log').selectAll()
-        .where('invoice_id', '=', id).orderBy('created_at', 'desc').execute();
+        .where('invoice_id', '=', id).where('tenant_id', '=', user.tenant_id).orderBy('created_at', 'desc').execute();
       return { data: log };
     });
   });

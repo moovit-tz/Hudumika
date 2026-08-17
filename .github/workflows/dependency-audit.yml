@@ -1,0 +1,44 @@
+name: Dependency audit
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - '**/package.json'
+      - 'package-lock.json'
+  pull_request:
+    paths:
+      - '**/package.json'
+      - 'package-lock.json'
+  schedule:
+    # Weekly, independent of any push — catches newly-disclosed CVEs in
+    # dependencies that haven't changed, not just audits triggered by edits.
+    - cron: '0 6 * * 1'
+  workflow_dispatch: {}
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Reports rather than blocks for now: this repo has real pre-existing
+      # high/critical findings (fast-jwt, @fastify/static path-traversal,
+      # brace-expansion DoS, among others) whose only available fix is a
+      # --force major-version bump of fastify/@fastify/jwt/vite — each a
+      # breaking change needing its own dedicated, tested upgrade, not
+      # something to force through a CI gate. continue-on-error keeps this
+      # check informative (visible in every run, findings surface in logs)
+      # without turning every PR red over debt this job didn't create.
+      # Flip to a hard failure once that backlog has a real owner/plan.
+      - name: npm audit (high + critical)
+        run: npm audit --audit-level=high
+        continue-on-error: true

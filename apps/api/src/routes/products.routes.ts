@@ -1,11 +1,38 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { isTaxCodeUserError, resolveLineTax } from '../services/tax-code.service.js';
 import crypto from 'crypto';
 
 const FIN_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES'] as const;
+
+// Real values — ProductsServices.tsx's own Product type / StatusPill toggle.
+const productCreateSchema = z.object({
+  id: z.string().max(50).optional(),
+  code: z.string().max(50).optional(),
+  name: z.string().trim().min(1).max(300),
+  type: z.enum(['product', 'service']).optional(),
+  description: z.string().max(2000).optional(),
+  category: z.string().max(100).optional(),
+  unit: z.string().max(30).optional(),
+  sale_price: z.number().optional(),
+  purchase_price: z.number().optional(),
+  currency: z.string().max(10).optional(),
+  status: z.enum(['active', 'inactive']).optional(),
+  tax_code_id: z.string().optional(),
+  tax_rate: z.number().optional(),
+});
+const productPatchSchema = productCreateSchema.partial();
+const customerPricesSchema = z.object({
+  prices: z.array(z.object({
+    customer_id: z.string().min(1),
+    price: z.number(),
+    currency: z.string().max(10).optional(),
+    note: z.string().max(2000).optional(),
+  })).optional(),
+});
 
 export async function productRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -65,8 +92,7 @@ export async function productRoutes(fastify: FastifyInstance) {
   // POST /v1/products
   fastify.post('/', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
     const user = request.user;
-    const body = request.body as any;
-    if (!body.name?.trim()) return reply.status(400).send({ error: 'name is required' });
+    const body = productCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       // A tax code, when given, decides the rate — so the two can never
       // disagree on the same row.
@@ -102,14 +128,15 @@ export async function productRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const body = request.body as any;
+    const body = productPatchSchema.parse(request.body);
+    const b = body as Record<string, unknown>;
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('products').select(['id', 'tax_rate', 'tax_code_id'])
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!existing) return reply.status(404).send({ error: 'Product not found' });
       const updates: any = { updated_at: new Date() };
       const fields = ['code', 'name', 'type', 'description', 'category', 'unit', 'sale_price', 'purchase_price', 'currency', 'status'];
-      for (const f of fields) if (body[f] !== undefined) updates[f] = body[f];
+      for (const f of fields) if (b[f] !== undefined) updates[f] = b[f];
 
       // tax_rate and tax_code_id move together or not at all — patching one
       // without the other is how they drift apart.
@@ -173,7 +200,7 @@ export async function productRoutes(fastify: FastifyInstance) {
   fastify.put('/:id/customer-prices', { preHandler: requireRole(...FIN_ROLES) }, async (request, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const body = request.body as { prices?: Array<{ customer_id: string; price: number; currency?: string; note?: string }> };
+    const body = customerPricesSchema.parse(request.body);
     const incoming = Array.isArray(body.prices) ? body.prices : [];
     return withTenant(user.tenant_id, async (trx) => {
       const product = await trx.selectFrom('products').select('id')

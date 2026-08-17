@@ -33,6 +33,9 @@ interface Email {
   starred: boolean;
   labels: Label[];
   hasAttachment?: boolean;
+  /** Real delivery status for a Sent-folder row, joined from email_outbox —
+   *  null for every other folder and for rows sent before this existed. */
+  deliveryStatus?: 'pending' | 'sending' | 'sent' | 'failed' | null;
 }
 
 interface ComposeData {
@@ -307,6 +310,7 @@ export const EmailApp: React.FC = () => {
         starred: Boolean(e.starred),
         labels: Array.isArray(e.labels) ? e.labels : [],
         hasAttachment: Boolean(e.hasAttachment),
+        deliveryStatus: e.deliveryStatus ?? null,
       })) : []);
     } catch (err: any) {
       showAlert(err.message || 'Failed to load emails');
@@ -744,6 +748,18 @@ export const EmailApp: React.FC = () => {
                   {email.labels.length > 0 && !isMobile && (
                     <span className="em-row-label" style={{ background: `color-mix(in srgb, ${LABEL_COLORS[email.labels[0]]} 14%, transparent)`, color: LABEL_COLORS[email.labels[0]] }}>
                       {email.labels[0]}
+                    </span>
+                  )}
+                  {(email.deliveryStatus === 'pending' || email.deliveryStatus === 'sending' || email.deliveryStatus === 'failed') && (
+                    <span
+                      className="em-row-label"
+                      title={email.deliveryStatus === 'failed' ? 'Delivery failed — will retry automatically' : 'Queued for delivery'}
+                      style={{
+                        background: email.deliveryStatus === 'failed' ? 'var(--red-l, #fef2f2)' : 'var(--gold-l, #fffbeb)',
+                        color: email.deliveryStatus === 'failed' ? 'var(--red, #dc2626)' : 'var(--gold, #b45309)',
+                      }}
+                    >
+                      {email.deliveryStatus === 'failed' ? 'Failed' : 'Pending'}
                     </span>
                   )}
                   {email.hasAttachment && <Icon name="paperclip" size={13} color="var(--ink3)" style={{ marginLeft: 6, flexShrink: 0 }} />}

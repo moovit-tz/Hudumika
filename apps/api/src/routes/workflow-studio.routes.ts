@@ -22,6 +22,48 @@ const TargetingSchema = z.object({
   destinationCountries: z.array(z.string()).optional(),
 }).strict();
 
+// Real values — WorkflowList.tsx's status filter options.
+const WORKFLOW_STATUSES = ['DRAFT', 'ACTIVE', 'PAUSED'] as const;
+const templateInstallSchema = z.object({ name: z.string().trim().max(200).optional() });
+// nodes/edges/trigger_config carry the Studio canvas's own free-form node
+// graph — shape-guarded as arrays/records here, not modeled field-by-field;
+// TargetingSchema above already does the one field with a real fixed shape.
+const workflowAppCreateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  icon: z.string().max(50).optional(),
+  color: z.string().max(20).optional(),
+  status: z.enum(WORKFLOW_STATUSES).optional(),
+  trigger_event: z.string().trim().min(1).max(200),
+  trigger_config: z.record(z.string(), z.any()).optional(),
+  nodes: z.array(z.any()).optional(),
+  edges: z.array(z.any()).optional(),
+  targeting: z.record(z.string(), z.any()).optional(),
+});
+const workflowAppPatchSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  description: z.string().max(2000).nullable().optional(),
+  icon: z.string().max(50).optional(),
+  color: z.string().max(20).optional(),
+  status: z.enum(WORKFLOW_STATUSES).optional(),
+  trigger_event: z.string().trim().min(1).max(200).optional(),
+  trigger_config: z.record(z.string(), z.any()).optional(),
+  nodes: z.array(z.any()).optional(),
+  edges: z.array(z.any()).optional(),
+  targeting: z.record(z.string(), z.any()).optional(),
+});
+const workflowRunSchema = z.object({
+  payload: z.record(z.string(), z.any()).optional(),
+  simulate: z.boolean().optional(),
+  entityId: z.string().nullable().optional(),
+});
+const triggerEventSchema = z.object({
+  event: z.string().trim().min(1).max(200),
+  payload: z.record(z.string(), z.any()).optional(),
+  entityId: z.string().nullable().optional(),
+  simulate: z.boolean().optional(),
+});
+
 /** JSONB columns arrive as strings from some drivers and objects from others. */
 function hydrate(row: any) {
   const parse = (v: unknown) => (typeof v === 'string' ? JSON.parse(v) : v);
@@ -199,7 +241,7 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
       return reply.status(409).send({ error: 'DEAD_TRIGGER', message: `This template's trigger "${tpl.triggerEvent}" is not registered, so it could never run.` });
     }
 
-    const name = (request.body as any)?.name || tpl.name;
+    const name = templateInstallSchema.parse(request.body ?? {}).name || tpl.name;
     const created = await withTenant(tenantId, trx => trx.insertInto('workflow_studio_apps').values({
       tenant_id: tenantId,
       name,
@@ -245,11 +287,7 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
   // ── POST /v1/workflow-studio/apps ────────────────────────────────────────────
   server.post('/apps', async (request: FastifyRequest, reply: FastifyReply) => {
     const tenantId = request.user.tenant_id;
-    const body = request.body as any;
-
-    if (!body.name || !body.trigger_event) {
-      return reply.status(400).send({ error: 'BAD_REQUEST', message: 'Name and trigger_event are required' });
-    }
+    const body = workflowAppCreateSchema.parse(request.body);
 
     const targetingParsed = TargetingSchema.safeParse(body.targeting ?? {});
     if (!targetingParsed.success) {
@@ -316,7 +354,7 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
   server.patch('/apps/:id', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const tenantId = request.user.tenant_id;
     const { id } = request.params;
-    const body = request.body as any;
+    const body = workflowAppPatchSchema.parse(request.body);
 
     const updateData: any = {
       updated_at: new Date(),
@@ -381,7 +419,8 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
   server.post('/apps/:id/run', async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
     const tenantId = request.user.tenant_id;
     const { id } = request.params;
-    const payload = (request.body as any)?.payload || {};
+    const runBody = workflowRunSchema.parse(request.body ?? {});
+    const payload = runBody.payload || {};
 
     const app = await withTenant(tenantId, async (trx) => {
       return await trx
@@ -399,13 +438,13 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
     // Manual runs default to a dry run. Executing real actions — opening a
     // ticket, booking an expense, releasing bonded cargo — from a "Run Test"
     // button is not a safe default; the caller has to ask for it.
-    const simulate = (request.body as any)?.simulate !== false;
+    const simulate = runBody.simulate !== false;
 
     const outcome = await executeAndRecord({
       tenantId,
       workflow: app,
       payload,
-      entityId: (request.body as any)?.entityId ?? null,
+      entityId: runBody.entityId ?? null,
       domainEventId: null,          // manual runs are always allowed to repeat
       simulate,
       triggerSource: simulate ? 'manual_dry_run' : 'manual_run',
@@ -493,12 +532,9 @@ export async function workflowStudioRoutes(server: FastifyInstance) {
   // name should not silently open tickets or move bonded cargo.
   server.post('/trigger-event', async (request: FastifyRequest, reply: FastifyReply) => {
     const tenantId = request.user.tenant_id;
-    const { event, payload, entityId } = request.body as any;
-    const simulate = (request.body as any)?.simulate !== false;
+    const { event, payload, entityId, simulate: simulateInput } = triggerEventSchema.parse(request.body);
+    const simulate = simulateInput !== false;
 
-    if (!event) {
-      return reply.status(400).send({ error: 'BAD_REQUEST', message: 'Event name is required' });
-    }
     if (!TRIGGERS.some(t => t.id === event)) {
       return reply.status(400).send({
         error: 'UNKNOWN_TRIGGER',

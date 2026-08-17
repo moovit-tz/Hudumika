@@ -1,10 +1,33 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+import { pick } from '../lib/pick.js';
 
 const FLEET_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR'] as const;
+
+const vendorCreateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  vendor_type: z.string().max(50).optional(),
+  phone: z.string().max(30).optional(),
+  email: z.string().email().max(320).optional(),
+  address: z.string().max(500).optional(),
+  notes: z.string().max(2000).optional(),
+});
+const vendorPatchSchema = vendorCreateSchema.partial().extend({ active: z.boolean().optional() });
+
+const partCreateSchema = z.object({
+  part_name: z.string().trim().min(1).max(200),
+  part_number: z.string().max(100).optional(),
+  category: z.string().max(100).optional(),
+  quantity: z.number().int().min(0).optional(),
+  unit_cost: z.number().min(0).optional(),
+  reorder_level: z.number().int().min(0).optional(),
+  vendor_id: z.string().uuid().optional(),
+});
+const partPatchSchema = partCreateSchema.partial();
 
 // Postgres NUMERIC columns come back from node-postgres as strings — coerce
 // before returning to the frontend, or arithmetic like `.toFixed()`/
@@ -268,9 +291,7 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
 
   fastify.post('/vendors', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
-    const body = req.body as {
-      name: string; vendor_type?: string; phone?: string; email?: string; address?: string; notes?: string;
-    };
+    const body = vendorCreateSchema.parse(req.body);
     return withTenant(user.tenant_id, async (trx) =>
       trx.insertInto('vehicle_vendors').values({
         tenant_id: user.tenant_id,
@@ -287,11 +308,10 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
   fastify.patch('/vendors/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    const body = req.body as Partial<{
-      name: string; vendor_type: string; phone: string; email: string; address: string; notes: string; active: boolean;
-    }>;
+    const body = vendorPatchSchema.parse(req.body);
+    const patch = pick(body, ['name', 'vendor_type', 'phone', 'email', 'address', 'notes', 'active']);
     return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('vehicle_vendors').set({ ...body, updated_at: new Date() } as any)
+      trx.updateTable('vehicle_vendors').set({ ...patch, updated_at: new Date() } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow()
     );
@@ -497,10 +517,7 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
 
   fastify.post('/parts', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
-    const body = req.body as {
-      part_name: string; part_number?: string; category?: string;
-      quantity?: number; unit_cost?: number; reorder_level?: number; vendor_id?: string;
-    };
+    const body = partCreateSchema.parse(req.body);
     return withTenant(user.tenant_id, async (trx) =>
       trx.insertInto('parts_stock').values({
         tenant_id: user.tenant_id,
@@ -518,12 +535,10 @@ export async function fleetOpsRoutes(fastify: FastifyInstance) {
   fastify.patch('/parts/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    const body = req.body as Partial<{
-      part_name: string; part_number: string; category: string;
-      quantity: number; unit_cost: number; reorder_level: number; vendor_id: string;
-    }>;
+    const body = partPatchSchema.parse(req.body);
+    const patch = pick(body, ['part_name', 'part_number', 'category', 'quantity', 'unit_cost', 'reorder_level', 'vendor_id']);
     return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('parts_stock').set({ ...body, updated_at: new Date() } as any)
+      trx.updateTable('parts_stock').set({ ...patch, updated_at: new Date() } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow()
     );

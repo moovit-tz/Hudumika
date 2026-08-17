@@ -1,6 +1,51 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
+
+// Real values — InventoryWarehouses.tsx's LOCATION_TYPES, InventoryItems.tsx's ITEM_TYPES.
+const INVENTORY_LOCATION_TYPES = ['bin', 'shelf', 'floor', 'staging'] as const;
+const INVENTORY_ITEM_TYPES = ['raw_material', 'finished_good', 'retail', 'consumable'] as const;
+
+const warehouseCreateSchema = z.object({
+  code: z.string().trim().min(1).max(50),
+  name: z.string().trim().min(1).max(200),
+  address: z.string().max(500).optional(),
+});
+const warehousePatchSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  address: z.string().max(500).nullable().optional(),
+  active: z.boolean().optional(),
+});
+const locationCreateSchema = z.object({
+  warehouseId: z.string().min(1),
+  code: z.string().trim().min(1).max(50),
+  name: z.string().trim().min(1).max(200),
+  locationType: z.enum(INVENTORY_LOCATION_TYPES).optional(),
+});
+const itemCreateSchema = z.object({
+  sku: z.string().trim().min(1).max(100),
+  name: z.string().trim().min(1).max(300),
+  productId: z.string().nullable().optional(),
+  baseUom: z.string().max(20).optional(),
+  itemType: z.enum(INVENTORY_ITEM_TYPES).optional(),
+  isBatchTracked: z.boolean().optional(),
+  reorderPoint: z.number().nullable().optional(),
+  reorderQty: z.number().nullable().optional(),
+});
+const itemPatchSchema = z.object({
+  name: z.string().trim().min(1).max(300).optional(),
+  productId: z.string().nullable().optional(),
+  itemType: z.enum(INVENTORY_ITEM_TYPES).optional(),
+  isBatchTracked: z.boolean().optional(),
+  reorderPoint: z.number().nullable().optional(),
+  reorderQty: z.number().nullable().optional(),
+  active: z.boolean().optional(),
+});
+const uomCreateSchema = z.object({
+  uomCode: z.string().trim().min(1).max(20),
+  conversionFactor: z.number().positive(),
+});
 
 // Inventory Control — Phase 1 (app scaffold): warehouses, locations, items,
 // and per-item UOM conversions. A brand-new, standalone app deliberately
@@ -56,9 +101,8 @@ export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/warehouses', async (request: any, reply) => {
+    const b = warehouseCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.code?.trim() || !b.name?.trim()) return reply.status(400).send({ error: 'code and name are required' });
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.insertInto('inventory_warehouses').values({
           tenant_id: request.user.tenant_id, code: b.code.trim(), name: b.name.trim(), address: b.address ?? null,
@@ -71,8 +115,8 @@ export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/warehouses/:id', async (request: any, reply) => {
+    const b = warehousePatchSchema.parse(request.body);
     try {
-      const b = request.body as any;
       const patch: any = { updated_at: new Date() };
       if (b.name !== undefined) patch.name = b.name;
       if (b.address !== undefined) patch.address = b.address;
@@ -113,11 +157,8 @@ export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/locations', async (request: any, reply) => {
+    const b = locationCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.warehouseId || !b.code?.trim() || !b.name?.trim()) {
-        return reply.status(400).send({ error: 'warehouseId, code and name are required' });
-      }
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.insertInto('inventory_locations').values({
           tenant_id: request.user.tenant_id, warehouse_id: b.warehouseId, code: b.code.trim(), name: b.name.trim(),
@@ -158,9 +199,8 @@ export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/items', async (request: any, reply) => {
+    const b = itemCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.sku?.trim() || !b.name?.trim()) return reply.status(400).send({ error: 'sku and name are required' });
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.insertInto('inventory_items').values({
           tenant_id: request.user.tenant_id, sku: b.sku.trim(), name: b.name.trim(),
@@ -177,8 +217,8 @@ export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/items/:id', async (request: any, reply) => {
+    const b = itemPatchSchema.parse(request.body);
     try {
-      const b = request.body as any;
       const patch: any = { updated_at: new Date() };
       if (b.name !== undefined) patch.name = b.name;
       if (b.productId !== undefined) patch.product_id = b.productId;
@@ -215,11 +255,8 @@ export async function inventoryCatalogRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/items/:id/uoms', async (request: any, reply) => {
+    const b = uomCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.uomCode?.trim() || !b.conversionFactor || Number(b.conversionFactor) <= 0) {
-        return reply.status(400).send({ error: 'uomCode and a positive conversionFactor are required' });
-      }
       const row = await withTenant(request.user.tenant_id, trx =>
         trx.insertInto('inventory_item_uoms').values({
           tenant_id: request.user.tenant_id, item_id: request.params.id,

@@ -4,6 +4,7 @@ import { AppSidebar } from '../components/AppSidebar.js';
 import type { SidebarSection } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
 import { EmailApp } from '../pages/EmailApp.js';
+import { EmailTemplates } from '../pages/EmailTemplates.js';
 import { Icon } from '../components/Icon.js';
 
 const NAV: SidebarSection[] = [
@@ -16,6 +17,12 @@ const NAV: SidebarSection[] = [
       { label: 'Drafts',  icon: 'fileText',    path: '/email/drafts'                },
       { label: 'Spam',    icon: 'alertCircle', path: '/email/spam'                  },
       { label: 'Trash',   icon: 'trash',       path: '/email/trash'                 },
+    ],
+  },
+  {
+    title: 'MANAGE',
+    items: [
+      { label: 'Templates', icon: 'layers', path: '/email/templates' },
     ],
   },
 ];
@@ -55,6 +62,7 @@ export function EmailShell() {
               <Route path="drafts"   element={<EmailApp />} />
               <Route path="spam"     element={<EmailApp />} />
               <Route path="trash"    element={<EmailApp />} />
+              <Route path="templates" element={<EmailTemplates />} />
               <Route path="*"        element={<Navigate to="/email" replace />} />
             </Routes>
           </div>

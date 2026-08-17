@@ -1,5 +1,6 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { AI_TOOL_DEFINITIONS, runAiTool } from '../services/ai-tools.service.js';
 import {
@@ -19,6 +20,26 @@ const MAX_TOOL_ROUNDS = 4;
  *  internal error, and the client has no business seeing a database code. */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID_RE.test(v);
+
+const testKeySchema = z.object({
+  apiKey: z.string().trim().min(1),
+  model: z.string().max(100).optional(),
+  provider: z.string().max(50).optional(),
+});
+const searchSchema = z.object({
+  query: z.string().trim().min(1),
+  context: z.enum(['shipments', 'customers', 'tasks', 'leads']).optional(),
+});
+const summariseSchema = z.object({
+  text: z.string().trim().min(1),
+  mode: z.enum(['brief', 'detailed']).optional(),
+});
+const automationGenerateSchema = z.object({ prompt: z.string().trim().min(1) });
+const chatSchema = z.object({
+  message: z.string().optional(),
+  conversation_id: z.string().nullable().optional(),
+  messages: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string() })).optional(),
+});
 
 interface ChatToolCallLog { name: string; input: Record<string, any>; result: any }
 
@@ -132,8 +153,7 @@ export async function aiRoutes(fastify: FastifyInstance) {
    * Test API key connectivity
    */
   fastify.post('/test', async (request, reply) => {
-    const { apiKey, model, provider } = request.body as any;
-    if (!apiKey) return reply.status(400).send({ error: 'apiKey is required' });
+    const { apiKey, model, provider } = testKeySchema.parse(request.body);
     try {
       const text = await callAI(apiKey, model || 'claude-haiku-4-5-20251001', provider || 'anthropic',
         [{ role: 'user', content: 'Reply with only: "Connection successful"' }], 20);
@@ -150,8 +170,7 @@ export async function aiRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/search', async (request, reply) => {
     const user = request.user;
-    const { query, context = 'shipments' } = request.body as any;
-    if (!query?.trim()) return reply.status(400).send({ error: 'query is required' });
+    const { query, context = 'shipments' } = searchSchema.parse(request.body);
 
     const settings = await withTenant(user.tenant_id, async (trx) => {
       const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
@@ -200,8 +219,7 @@ Respond ONLY with a valid JSON object matching the appropriate structure. Nothin
    */
   fastify.post('/summarise', async (request, reply) => {
     const user = request.user;
-    const { text, mode = 'brief' } = request.body as any;
-    if (!text?.trim()) return reply.status(400).send({ error: 'text is required' });
+    const { text, mode = 'brief' } = summariseSchema.parse(request.body);
 
     const settings = await withTenant(user.tenant_id, async (trx) => {
       const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
@@ -232,8 +250,7 @@ Respond ONLY with a valid JSON object matching the appropriate structure. Nothin
    */
   fastify.post('/automations/generate', async (request, reply) => {
     const user = request.user;
-    const { prompt } = request.body as any;
-    if (!prompt?.trim()) return reply.status(400).send({ error: 'prompt is required' });
+    const { prompt } = automationGenerateSchema.parse(request.body);
 
     const settings = await withTenant(user.tenant_id, async (trx) => {
       const row = await trx.selectFrom('tenant_settings').select('settings').where('tenant_id', '=', user.tenant_id).executeTakeFirst();
@@ -295,11 +312,7 @@ Limit to at most 6 steps.`;
    */
   fastify.post('/chat', async (request, reply) => {
     const user = request.user;
-    const body = request.body as {
-      message?: string;
-      conversation_id?: string | null;
-      messages?: { role: 'user' | 'assistant'; content: string }[];
-    };
+    const body = chatSchema.parse(request.body);
 
     const incoming = (body.message ?? [...(body.messages ?? [])].reverse().find(m => m.role === 'user')?.content ?? '').trim();
     if (!incoming) return reply.status(400).send({ error: 'message is required' });

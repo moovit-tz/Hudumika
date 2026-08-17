@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import { sql } from 'kysely';
 import { requireRole } from '../middleware/rbac.js';
 import { db } from '../db/client.js';
-import { EmailIntegration } from '../integrations/email.js';
+import { MailService } from '../services/mail.service.js';
 import { ALLOWED_TABLES } from '../services/queryBuilderSchema.js';
 import { runVisualQuery, runRawQuery, type VisualQueryParams } from '../services/queryBuilder.service.js';
 
@@ -59,11 +59,14 @@ export async function queryBuilderRoutes(fastify: FastifyInstance) {
     const actor = request.user;
     const code = String(crypto.randomInt(100000, 999999));
     RAW_SQL_OTP_STORE.set(actor.sub, { code, expiresAt: Date.now() + 5 * 60 * 1000 });
-    await EmailIntegration.sendEmail({
-      to: actor.email,
-      subject: 'Hudumika — code to enable raw SQL mode',
-      bodyHtml: `<p>Your code to enable raw SQL access in the Query Builder is:</p><h2>${code}</h2><p>This code expires in 5 minutes. If you didn't request this, you can ignore it — raw SQL mode stays off.</p>`,
-    });
+    // tenantId was previously omitted here, so this always fell through to
+    // the global system-default mailer regardless of the actor's own
+    // tenant's SMTP config — fixed as part of routing this through the
+    // shared template system. Sent synchronously (not the async outbox):
+    // this is a 5-minute-expiry OTP, so a queue's ~60s poll latency eats a
+    // real chunk of that window, and a durable retry is worthless once the
+    // code is already stale — the user just requests a new one instead.
+    await MailService.sendNowTemplated(actor.tenant_id, 'admin.raw_sql_otp', actor.email, { code }, 'query-builder');
     return { success: true };
   });
 

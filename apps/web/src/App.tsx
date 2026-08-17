@@ -28,7 +28,7 @@ import { SharedLandedCostReport } from './pages/SharedLandedCostReport.js';
 import { UserProfile }    from './pages/UserProfile.js';
 import { Support }        from './pages/Support.js';
 import { SupportOverview }from './pages/SupportOverview.js';
-import { FileManager }    from './pages/FileManager.js';
+import { FileBrowser }    from './pages/cloud/FileBrowser.js';
 import { Escalations }    from './pages/Escalations.js';
 import { Chat }           from './pages/Chat.js';
 import { ToolsOverview }  from './pages/ToolsOverview.js';
@@ -419,7 +419,7 @@ const AppContent: React.FC = () => {
             <Route path="/penalty"       element={<RequireRoles roles={OPS_ROLES}><PenaltyPage /></RequireRoles>} />
 
             {/* Tools — all staff */}
-            <Route path="/documents"        element={<FileManager />} />
+            <Route path="/documents"        element={<FileBrowser />} />
             <Route path="/support/overview" element={<SupportOverview />} />
             <Route path="/support/tickets"  element={<Support />} />
             <Route path="/support"          element={<SupportOverview />} />

@@ -117,7 +117,8 @@ export async function sealEquipmentRoutes(fastify: FastifyInstance) {
     try {
       const rows = await withTenant(request.user.tenant_id, trx =>
         trx.selectFrom('seal_equipment_maintenance_records').selectAll()
-          .where('equipment_id', '=', request.params.id).orderBy('performed_at', 'desc').execute()
+          .where('equipment_id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
+          .orderBy('performed_at', 'desc').execute()
       );
       return rows.map(mapMaintenanceRecord);
     } catch (err: any) {

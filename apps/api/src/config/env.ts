@@ -45,6 +45,17 @@ const envSchema = z.object({
   META_PHONE_NUMBER_ID: z.string().default('your-phone-number-id'),
   META_VERIFY_TOKEN: z.string().default('your-webhook-verify-token'),
   META_API_VERSION: z.string().default('v21.0'),
+  /** Meta app secret used to verify the X-Hub-Signature-256 HMAC on inbound
+   *  WhatsApp webhook deliveries. Optional: unset in dev/until a real Meta
+   *  app is configured, in which case the signature check is skipped rather
+   *  than rejecting every webhook against a secret that doesn't exist yet. */
+  META_APP_SECRET: z.string().optional(),
+  /** Shared secret GPSWOX must send back (as ?token=) on every webhook call —
+   *  GPSWOX has no HMAC-signature scheme of its own, so this is the simplest
+   *  proof the request actually came from the configured GPSWOX account and
+   *  not an internet client that guessed a real vehicle IMEI. Optional for
+   *  the same reason as META_APP_SECRET above. */
+  GPSWOX_WEBHOOK_SECRET: z.string().optional(),
   
   SMTP_HOST: z.string().default('smtp.gmail.com'),
   SMTP_PORT: z.coerce.number().default(587),
@@ -97,6 +108,8 @@ export const env = parsed.data;
 const PUBLISHED_DEFAULTS: [key: string, value: string, why: string][] = [
   ['JWT_SECRET', 'change-this-in-production-min-32-characters-long',
    'anyone with this repository could sign a valid token for any user in any tenant'],
+  ['DATABASE_URL', 'postgresql://clearos:clearos_pass@localhost:5432/clearos',
+   'the primary read-write database would be reachable with a published password — a strictly bigger exposure than the read-only role below'],
   ['DATABASE_URL_READONLY', 'postgresql://hudumika_readonly:hudumika_readonly_pass@localhost:5432/clearos',
    'the Query Builder\'s raw-SQL role would be reachable with a published password'],
   ['ONSITE_SECRETS_KEY', '6f6e73697465646576656c6f706d656e746b65796e6f74666f7270726f6475637469'.slice(0, 64),

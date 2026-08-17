@@ -1,10 +1,42 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { requireRole } from '../middleware/rbac.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { CostPostingService } from '../services/cost-posting.service.js';
 import { GLService } from '../services/gl.service.js';
 import { db } from '../db/client.js';
 import { toDateParam } from '../utils/dates.js';
+
+const ACCOUNT_TYPES = ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'] as const;
+const accountCreateSchema = z.object({
+  code: z.string().trim().min(1).max(20),
+  name: z.string().trim().min(1).max(200),
+  type: z.enum(ACCOUNT_TYPES),
+  subtype: z.string().max(50).optional(),
+  parent_id: z.string().uuid().nullable().optional(),
+  description: z.string().max(2000).optional(),
+  normal_balance: z.enum(['DEBIT', 'CREDIT']).optional(),
+});
+// GLService.post() already enforces the real business rule (debits must
+// equal credits, account codes resolved tenant-scoped) — this is only the
+// shape guard in front of it, so a non-array `lines` fails with a clean
+// 400 instead of the service's own reduce() throwing a raw TypeError.
+const journalEntrySchema = z.object({
+  entryDate: z.string(),
+  description: z.string().trim().min(1).max(500),
+  reference: z.string().max(200).optional(),
+  sourceModule: z.enum(['AR', 'AP', 'EXPENSE', 'MANUAL', 'PAYROLL']),
+  sourceId: z.string().optional(),
+  lines: z.array(z.object({
+    accountCode: z.string().min(1),
+    debit: z.number().min(0),
+    credit: z.number().min(0),
+    description: z.string().max(500).optional(),
+    currency: z.string().max(10).optional(),
+    exchangeRate: z.number().optional(),
+    dimensions: z.record(z.string()).optional(),
+  })).min(1),
+});
 
 export async function glRoutes(fastify: FastifyInstance) {
   // Ensure user is authenticated for all GL routes
@@ -55,15 +87,14 @@ export async function glRoutes(fastify: FastifyInstance) {
   // POST /v1/finance/chart-of-accounts — create a new account
   fastify.post('/chart-of-accounts', { preHandler: requireRole(...COA_WRITE_ROLES) }, async (request: any, reply) => {
     const tenantId = request.user.tenant_id;
-    const b = request.body as { code: string; name: string; type: string; subtype?: string; parent_id?: string | null; description?: string; normal_balance?: 'DEBIT' | 'CREDIT' };
-    if (!b.code || !b.name || !b.type) return reply.status(400).send({ error: 'code, name, and type are required' });
+    const b = accountCreateSchema.parse(request.body);
 
     try {
       const account = await db.insertInto('chart_of_accounts').values({
         tenant_id: tenantId,
         code: b.code,
         name: b.name,
-        type: b.type as any,
+        type: b.type,
         subtype: b.subtype ?? null,
         parent_id: b.parent_id || null,
         description: b.description ?? null,
@@ -145,8 +176,9 @@ export async function glRoutes(fastify: FastifyInstance) {
   fastify.post('/journal-entries', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
     try {
       const tenantId = request.user.tenant_id;
+      const body = journalEntrySchema.parse(request.body);
       const entryId = await GLService.post(tenantId, {
-        ...request.body,
+        ...body,
         createdBy: request.user.sub
       });
       return { id: entryId, success: true };

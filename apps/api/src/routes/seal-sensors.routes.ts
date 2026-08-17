@@ -95,7 +95,8 @@ export async function sealSensorsRoutes(fastify: FastifyInstance) {
     try {
       const rows = await withTenant(request.user.tenant_id, trx =>
         trx.selectFrom('seal_sensor_readings').selectAll()
-          .where('device_id', '=', request.params.id).orderBy('recorded_at', 'desc').limit(100).execute()
+          .where('device_id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
+          .orderBy('recorded_at', 'desc').limit(100).execute()
       );
       return rows.map(r => ({ id: r.id, readingType: r.reading_type, value: Number(r.value), recordedAt: r.recorded_at }));
     } catch (err: any) {

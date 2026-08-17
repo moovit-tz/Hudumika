@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import crypto from 'crypto';
 import { db, withTenant } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { applyAutoAssignRules, fireNotificationTrigger } from './support.routes.js';
@@ -39,6 +40,32 @@ function getLinkedTenants(orgId: string) {
     .select(['customers.tenant_id', 'customers.id as customer_id', 'tenants.name as tenant_name'])
     .where('customers.organization_id', '=', orgId)
     .execute();
+}
+
+/** This customer's SEAL lot/consignment/container ids, within one linked
+ *  tenant — same shape as files.routes.ts's own sealEntityIds(), duplicated
+ *  rather than shared since this file already computes shipmentIds the same
+ *  independent way per linked tenant. A container has no owner_id of its
+ *  own; its owner comes via its consignment. */
+async function sealEntityIds(trx: any, tenantId: string, customerId: string) {
+  const lots = await trx.selectFrom('seal_lots').select('id')
+    .where('tenant_id', '=', tenantId).where('owner_id', '=', customerId).execute();
+  const consignments = await trx.selectFrom('seal_consignments').select('id')
+    .where('tenant_id', '=', tenantId).where('owner_id', '=', customerId).execute();
+  const consignmentIds = consignments.map((c: any) => c.id);
+  const containers = consignmentIds.length > 0
+    ? await trx.selectFrom('seal_containers').select('id')
+        .where('tenant_id', '=', tenantId).where('consignment_id', 'in', consignmentIds).execute()
+    : [];
+  return { lotIds: lots.map((l: any) => l.id), consignmentIds, containerIds: containers.map((c: any) => c.id) };
+}
+
+function sealOrClauses(eb: any, sealIds: { lotIds: string[]; consignmentIds: string[]; containerIds: string[] }) {
+  return [
+    ...(sealIds.lotIds.length > 0 ? [eb.and([eb('entity_type', '=', 'seal_lot'), eb('entity_id', 'in', sealIds.lotIds)])] : []),
+    ...(sealIds.consignmentIds.length > 0 ? [eb.and([eb('entity_type', '=', 'seal_consignment'), eb('entity_id', 'in', sealIds.consignmentIds)])] : []),
+    ...(sealIds.containerIds.length > 0 ? [eb.and([eb('entity_type', '=', 'seal_container'), eb('entity_id', 'in', sealIds.containerIds)])] : []),
+  ];
 }
 
 export async function orgRoutes(fastify: FastifyInstance) {
@@ -174,6 +201,11 @@ export async function orgRoutes(fastify: FastifyInstance) {
   // includes files linked to that customer's own shipments, same reasoning
   // as the direct-customer-login fix in files.routes.ts GET / — an org is
   // the same underlying customer, just viewed cross-tenant.
+  //
+  // Each row also carries `shared` (who else has access, mirroring
+  // files.routes.ts's attachShares()) and `can_manage_sharing` — true only
+  // when this org itself holds an Editor-level share on that exact file, the
+  // same access level PUT /documents/:id/share below requires to edit it.
   fastify.get('/documents', async (req) => {
     const user = orgUser(req);
     const links = await getLinkedTenants(user.org_id);
@@ -183,24 +215,83 @@ export async function orgRoutes(fastify: FastifyInstance) {
       withTenant(link.tenant_id, async trx => {
         const shipmentIds = (await trx.selectFrom('shipment_cases').select('id')
           .where('tenant_id', '=', link.tenant_id).where('customer_id', '=', link.customer_id).execute()).map(s => s.id);
-        return trx.selectFrom('cloud_files').selectAll()
+        const sealIds = await sealEntityIds(trx, link.tenant_id, link.customer_id);
+        const rows = await trx.selectFrom('cloud_files').selectAll()
           .where('tenant_id', '=', link.tenant_id)
           .where('is_trash', '=', false)
           .where(eb => eb.or([
             eb.and([eb('entity_type', '=', 'customer'), eb('entity_id', '=', link.customer_id)]),
             ...(shipmentIds.length > 0 ? [eb.and([eb('entity_type', '=', 'shipment'), eb('entity_id', 'in', shipmentIds)])] : []),
-            // A file explicitly shared with this organization (migration
-            // 233) — read-only; the org portal never gets share-editing
-            // rights, only files.routes.ts (direct customer + staff) does.
+            ...sealOrClauses(eb, sealIds),
+            // A file explicitly shared with this organization (migration 233).
             eb('id', 'in', eb.selectFrom('cloud_file_shares').select('file_id')
               .where('principal_type', '=', 'organization').where('principal_id', '=', user.org_id)),
           ]))
           .orderBy('created_at', 'desc')
           .execute();
+        if (rows.length === 0) return [];
+        const shares = await trx.selectFrom('cloud_file_shares').selectAll()
+          .where('file_id', 'in', rows.map(r => r.id)).execute();
+        const byFile = new Map<string, typeof shares>();
+        for (const s of shares) byFile.set(s.file_id, [...(byFile.get(s.file_id) ?? []), s]);
+        return rows.map(r => {
+          const fileShares = byFile.get(r.id) ?? [];
+          return {
+            ...r,
+            shared: fileShares.map(s => ({ name: s.person_name, role: s.role, principal_type: s.principal_type, principal_id: s.principal_id })),
+            can_manage_sharing: fileShares.some(s => s.principal_type === 'organization' && s.principal_id === user.org_id && s.role === 'Editor'),
+          };
+        });
       }).then(rows => rows.map(r => ({ ...r, tenant_id: link.tenant_id, tenant_name: link.tenant_name })))
     ));
 
     return { data: perTenant.flat() };
+  });
+
+  // PUT /v1/org/documents/:id/share?tenant_id= — an org may edit the share
+  // list on a file it already has Editor-level access to. Unlike a customer
+  // (who implicitly gets Editor on anything entity-linked directly to them —
+  // it's fundamentally theirs), an org never owns a cloud_files row itself;
+  // there is no entity_type='organization'. So Editor access here can only
+  // ever come from an existing share, never an implicit link. Same
+  // full-replace semantics as the customer/staff PUT /:id/share in
+  // files.routes.ts — nothing new invented, just who may call it and from
+  // where (tenant_id required and cross-checked, like every other org route).
+  fastify.put('/documents/:id/share', async (req, reply) => {
+    const user = orgUser(req);
+    const { id } = req.params as { id: string };
+    const { tenant_id } = req.query as { tenant_id?: string };
+    if (!tenant_id) return reply.status(400).send({ error: 'tenant_id is required' });
+    const { shared } = req.body as { shared: { name: string; role: 'Viewer' | 'Editor'; principal_type?: string; principal_id?: string }[] };
+
+    const links = await getLinkedTenants(user.org_id);
+    const link = links.find(l => l.tenant_id === tenant_id);
+    if (!link) return reply.status(404).send({ error: 'Not found' });
+
+    return withTenant(tenant_id, async trx => {
+      const file = await trx.selectFrom('cloud_files').select(['id', 'share_token'])
+        .where('id', '=', id).where('tenant_id', '=', tenant_id).executeTakeFirst();
+      if (!file) return reply.status(404).send({ error: 'Not found' });
+
+      const isEditor = await trx.selectFrom('cloud_file_shares').select('id')
+        .where('file_id', '=', id).where('principal_type', '=', 'organization').where('principal_id', '=', user.org_id)
+        .where('role', '=', 'Editor').executeTakeFirst();
+      if (!isEditor) return reply.status(403).send({ error: 'Not available for this account type' });
+
+      await trx.deleteFrom('cloud_file_shares').where('file_id', '=', id).execute();
+      if (shared?.length) {
+        await trx.insertInto('cloud_file_shares').values(
+          shared.map(s => ({
+            file_id: id, person_name: s.name, role: s.role,
+            principal_type: s.principal_type ?? null, principal_id: s.principal_id ?? null,
+          }))
+        ).execute();
+      }
+      const shareToken = shared?.length ? (file.share_token ?? crypto.randomUUID()) : null;
+      await trx.updateTable('cloud_files').set({ updated_at: new Date(), share_token: shareToken })
+        .where('id', '=', id).where('tenant_id', '=', tenant_id).execute();
+      return { shared: shared ?? [], share_token: shareToken };
+    });
   });
 
   // GET /v1/org/documents/:id/download?tenant_id= — tenant_id is required

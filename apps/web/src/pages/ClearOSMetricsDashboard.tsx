@@ -301,7 +301,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', background: 'var(--white)' }}>
 
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 12, minHeight: 60, padding: '10px 24px',
+        display: 'flex', alignItems: 'center', gap: 12, minHeight: 60, padding: '10px 0',
         borderBottom: '1px solid var(--border)', flexShrink: 0,
       }}>
         <div style={{ width: 34, height: 34, borderRadius: 9, background: 'var(--teal-l)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -327,7 +327,7 @@ export const ClearOSMetricsDashboard: React.FC = () => {
         </Button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 0 24px' }}>
         <div style={{ padding: 0 }}>
         {error && (
           <div style={{ padding: 16, background: 'var(--red-l)', border: '1px solid var(--red)', color: 'var(--red)', borderRadius: 6, marginBottom: 20 }}>

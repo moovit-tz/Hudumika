@@ -1,6 +1,6 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
-import { EmailIntegration } from '../integrations/email.js';
+import { MailService } from '../services/mail.service.js';
 import { db, withTenant } from '../db/client.js';
 
 type Folder = 'inbox' | 'sent' | 'drafts' | 'spam' | 'trash';
@@ -104,13 +104,16 @@ export async function emailRoutes(fastify: FastifyInstance) {
         }
       }
 
-      let q = trx.selectFrom('email_messages').selectAll().where('user_id', '=', user.sub);
+      let q = trx.selectFrom('email_messages as m')
+        .leftJoin('email_outbox as o', 'o.id', 'm.outbox_id')
+        .selectAll('m').select('o.status as delivery_status')
+        .where('m.user_id', '=', user.sub);
       if (folder === 'starred') {
-        q = q.where('starred', '=', true).where('folder', '!=', 'trash');
+        q = q.where('m.starred', '=', true).where('m.folder', '!=', 'trash');
       } else if (folder) {
-        q = q.where('folder', '=', folder as Folder);
+        q = q.where('m.folder', '=', folder as Folder);
       }
-      let rows = await q.orderBy('created_at', 'desc').execute();
+      let rows = await q.orderBy('m.created_at', 'desc').execute();
 
       if (search) {
         const s = search.toLowerCase();
@@ -135,6 +138,10 @@ export async function emailRoutes(fastify: FastifyInstance) {
         starred: r.starred,
         labels: r.labels,
         hasAttachment: r.has_attachment,
+        // Real delivery status for a Sent-folder row (pending/sending/sent/
+        // failed), joined from email_outbox — null for every other folder,
+        // and for pre-migration rows sent before outbox_id existed.
+        deliveryStatus: (r as any).delivery_status ?? null,
       }));
     });
   });
@@ -194,8 +201,12 @@ export async function emailSendRoutes(fastify: FastifyInstance) {
     const tenantId = user.tenant_id;
 
     const bodyHtml = `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333; line-height: 1.6; white-space: pre-wrap;">${body}</div>`;
+    const ccList = (cc || '').split(',').map(a => a.trim()).filter(Boolean);
 
-    const result = await EmailIntegration.sendEmail({ to, subject, bodyHtml, tenantId });
+    // Sent synchronously, not enqueued — someone actively composing needs to
+    // know right now whether it went out, not find out from a queue up to a
+    // minute later with no UI feedback in the meantime.
+    const result = await MailService.sendNow(tenantId, { to, cc: ccList, subject, bodyHtml, sourceApp: 'email' });
 
     if (!result.success) {
       return reply.status(500).send({ success: false, error: result.error });
@@ -222,9 +233,10 @@ export async function emailSendRoutes(fastify: FastifyInstance) {
         starred: false,
         labels: JSON.stringify([]),
         has_attachment: false,
+        outbox_id: result.outboxId,
       }).execute();
     });
 
-    return { success: true, messageId: result.messageId };
+    return { success: true, outboxId: result.outboxId };
   });
 }

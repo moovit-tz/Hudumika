@@ -1,9 +1,10 @@
 import { withTenant } from '../db/client.js';
 import type { Database } from '../db/client.js';
 import type { Transaction } from 'kysely';
-import { NOTIFICATION_MATRIX, formatTemplate } from '../config/notification-matrix.js';
+import { NOTIFICATION_MATRIX } from '../config/notification-matrix.js';
+import { formatTemplate } from '../lib/template.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
-import { EmailIntegration } from '../integrations/email.js';
+import { MailService } from './mail.service.js';
 import type { NotificationTrigger, MessageChannel } from '@hudumika/types';
 import { env } from '../config/env.js';
 
@@ -202,13 +203,17 @@ export class NotificationService {
       // which is the one thing someone reads that log to find out.
       deliveryStatus = !result.success ? 'FAILED' : result.simulated ? 'SIMULATED' : 'SENT';
     } else if (channel === 'EMAIL' && target.email) {
-      const result = await EmailIntegration.sendEmail({
-        to: target.email,
-        subject: `Msomi Freight Notification - Shipment ${refNumber}`,
-        bodyHtml: `<p>${bodyContent}</p>`,
-        tenantId: tenantId,
-      });
-      deliveryStatus = !result.success ? 'FAILED' : (result as any).simulated ? 'SIMULATED' : 'SENT';
+      // Was hardcoded to "Msomi Freight Notification" for every tenant
+      // regardless of the tenant's actual name — fixed by resolving the
+      // real tenant name as a template var instead of a literal string.
+      const tenant = await trx.selectFrom('tenants').select('name').where('id', '=', tenantId).executeTakeFirst();
+      const result = await MailService.sendNowTemplated(tenantId, 'notification.generic', target.email, {
+        tenantName: tenant?.name || 'Hudumika', refNumber, bodyContent,
+      }, 'notification');
+      // A synchronous send failure still leaves a 'failed' outbox row
+      // mail-outbox.job.ts will retry on its own next poll — sendNowTemplated
+      // isn't "no retry," it's "also try once immediately."
+      deliveryStatus = !result.success ? 'FAILED' : result.simulated ? 'SIMULATED' : 'SENT';
     } else if (channel === 'IN_APP') {
       deliveryStatus = 'SENT';
     } else {

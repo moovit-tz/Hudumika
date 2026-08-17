@@ -1,4 +1,5 @@
 import fastify from 'fastify';
+import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
@@ -66,6 +67,7 @@ import { cargoLoadingRoutes } from './routes/cargoLoading.routes.js';
 import { vehicleDetailRoutes } from './routes/vehicleDetail.routes.js';
 import { billRoutes }     from './routes/bills.routes.js';
 import { settingsRoutes } from './routes/settings.routes.js';
+import { mailOAuthRoutes } from './routes/mail-oauth.routes.js';
 import { reportsRoutes } from './routes/reports.routes.js';
 import { aiRoutes } from './routes/ai.routes.js';
 import { trackerRoutes, trackerPublicRoutes } from './routes/tracker.routes.js';
@@ -79,6 +81,7 @@ import { nexusHRRoutes } from './routes/nexushr.routes.js';
 import { contactsRoutes } from './routes/contacts.routes.js';
 import { contactsSyncRoutes } from './routes/contacts-sync.routes.js';
 import { emailRoutes, emailSendRoutes } from './routes/email.routes.js';
+import { emailTemplatesRoutes } from './routes/email-templates.routes.js';
 import { complyRoutes } from './routes/comply.routes.js';
 import { sealRoutes } from './routes/seal.routes.js';
 import { sealDocumentRoutes } from './routes/seal-documents.routes.js';
@@ -147,6 +150,18 @@ const server = fastify({
 async function main() {
   try {
     // 1. Plugins
+
+    // Security headers on every response. CSP is left off for now rather than
+    // guessed at — this server also hosts Swagger UI at /docs (inline
+    // scripts/styles), and a wrong CSP would silently break the docs page
+    // with no error anywhere but the browser console. nosniff/frameguard/HSTS
+    // carry real value with zero compatibility risk; CSP is a follow-up once
+    // it's been tuned against /docs specifically.
+    await server.register(helmet, {
+      contentSecurityPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' }, // the SPA on a different origin fetches this API directly
+    });
+
     await server.register(cors, {
       origin: env.CORS_ORIGINS.split(','),
       credentials: true,
@@ -186,6 +201,23 @@ async function main() {
       max: async (request: any) => (request.apiKeyScopes ? 300 : 1200), // partner API keys: 300/min; internal app sessions: 1200/min
       timeWindow: '1 minute',
       keyGenerator: (request: any) => request.headers['x-api-key'] || request.ip,
+    });
+
+    // A route validating its body/params with a zod schema throws ZodError on
+    // bad input — without this handler Fastify's default catch-all treats it
+    // as an unhandled 500 (wrong status code, and in dev mode leaks the raw
+    // Zod issue structure/stack). One handler here means every route that
+    // adopts zod gets a clean 400 for free, rather than each call site
+    // needing its own try/catch around .parse().
+    server.setErrorHandler((error, request, reply) => {
+      if (error.name === 'ZodError') {
+        const zodError = error as unknown as { issues: { path: (string | number)[]; message: string }[] };
+        return reply.status(400).send({
+          error: 'Validation failed',
+          details: zodError.issues.map(i => ({ field: i.path.join('.'), message: i.message })),
+        });
+      }
+      return reply.send(error);
     });
 
     // 2. Decorators & Middlewares
@@ -301,6 +333,7 @@ async function main() {
     await server.register(vehicleDetailRoutes, { prefix: '/v1/tracking' });
     await server.register(billRoutes,     { prefix: '/v1/bills' });
     await server.register(settingsRoutes, { prefix: '/v1/settings' });
+    await server.register(mailOAuthRoutes, { prefix: '/v1/settings/email' });
     await server.register(reportsRoutes, { prefix: '/v1/reports' });
     await server.register(aiRoutes, { prefix: '/v1/ai' });
     await server.register(trackerRoutes, { prefix: '/v1/tracker' });
@@ -316,6 +349,7 @@ async function main() {
     await server.register(contactsSyncRoutes, { prefix: '/v1/contacts' });
     await server.register(emailRoutes, { prefix: '/v1/emails' });
     await server.register(emailSendRoutes, { prefix: '/v1/email' });
+    await server.register(emailTemplatesRoutes, { prefix: '/v1/email-templates' });
     await server.register(complyRoutes, { prefix: '/v1/comply' });
     await server.register(sealRoutes, { prefix: '/v1/seal' });
     await server.register(sealDocumentRoutes, { prefix: '/v1/seal' });

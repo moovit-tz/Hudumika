@@ -29,6 +29,13 @@ interface OrgShipment {
   created_at: string;
 }
 
+interface OrgShareEntry {
+  name: string;
+  role: 'Viewer' | 'Editor';
+  principal_type?: string | null;
+  principal_id?: string | null;
+}
+
 interface OrgDocument {
   id: string;
   name: string;
@@ -37,6 +44,8 @@ interface OrgDocument {
   created_at: string;
   tenant_id: string;
   tenant_name: string;
+  shared?: OrgShareEntry[];
+  can_manage_sharing?: boolean;
 }
 
 interface OrgMessage {
@@ -205,6 +214,9 @@ export const OrgShell: React.FC = () => {
   const [claimCode, setClaimCode]         = useState('');
   const [claimingCode, setClaimingCode]   = useState(false);
 
+  const [shareDoc, setShareDoc]     = useState<OrgDocument | null>(null);
+  const [shareBusy, setShareBusy]   = useState(false);
+
   async function submitClaimCode() {
     const code = claimCode.trim();
     if (!code || claimingCode) return;
@@ -346,6 +358,29 @@ export const OrgShell: React.FC = () => {
       document.body.removeChild(a); URL.revokeObjectURL(url);
     } catch (err: any) {
       showAlert(err.message || 'Download failed');
+    }
+  }
+
+  // Editor-level sharing edit — only shown for a doc where can_manage_sharing
+  // is true (this org itself holds Editor access via cloud_file_shares).
+  // Kept to the one safe action of removing a share, matching this
+  // codebase's existing "no open-ended picker" discipline for org/customer
+  // sharing UI — there's no safe cross-tenant search surface to pick a new
+  // principal to add from here.
+  async function removeShare(index: number) {
+    if (!shareDoc || shareBusy) return;
+    setShareBusy(true);
+    try {
+      const nextShared = (shareDoc.shared ?? []).filter((_, i) => i !== index);
+      await orgApiFetch(`/v1/org/documents/${shareDoc.id}/share?tenant_id=${shareDoc.tenant_id}`, {
+        method: 'PUT', body: JSON.stringify({ shared: nextShared }),
+      });
+      setShareDoc(prev => prev ? { ...prev, shared: nextShared } : prev);
+      setDocuments(prev => prev.map(d => d.id === shareDoc.id ? { ...d, shared: nextShared } : d));
+    } catch (err: any) {
+      showAlert(err.message || 'Could not update sharing — please try again.');
+    } finally {
+      setShareBusy(false);
     }
   }
 
@@ -602,6 +637,12 @@ export const OrgShell: React.FC = () => {
                         <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink2)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 20, padding: '3px 10px', whiteSpace: 'nowrap' }}>
                           {d.tenant_name}
                         </span>
+                        {d.can_manage_sharing && (
+                          <button type="button" title="Manage sharing" onClick={() => setShareDoc(d)}
+                            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'var(--bg)', border: 'none', borderRadius: 8, color: 'var(--ink2)', cursor: 'pointer', flexShrink: 0 }}>
+                            <Icon name="users" size={15} />
+                          </button>
+                        )}
                         <button type="button" title="Download" onClick={() => downloadDoc(d)}
                           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, background: 'var(--bg)', border: 'none', borderRadius: 8, color: 'var(--teal)', cursor: 'pointer', flexShrink: 0 }}>
                           <Icon name="download" size={15} />
@@ -785,6 +826,47 @@ export const OrgShell: React.FC = () => {
                 {submittingDispatch ? 'Sending…' : 'Send Request'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Manage sharing modal — only reachable from a doc where this org
+          holds Editor-level access (can_manage_sharing), scoped to removing
+          an existing share; see removeShare()'s own comment for why there's
+          no "add" picker here. */}
+      {shareDoc && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          onClick={e => { if (e.target === e.currentTarget) setShareDoc(null); }}>
+          <div style={{ background: 'var(--white)', borderRadius: 12, padding: 24, width: '100%', maxWidth: 420 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Manage Sharing</span>
+              <button type="button" onClick={() => setShareDoc(null)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+                <Icon name="x" size={18} color="var(--ink3)" />
+              </button>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--ink2)', marginTop: 0, marginBottom: 16, lineHeight: 1.5 }}>
+              Who has access to <strong>{shareDoc.name}</strong>.
+            </p>
+            {(shareDoc.shared ?? []).length === 0 ? (
+              <div style={{ fontSize: 13, color: 'var(--ink3)', padding: '16px 0', textAlign: 'center' }}>No one else has access.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {(shareDoc.shared ?? []).map((s, i) => (
+                  <div key={`${s.name}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 9 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.name}</div>
+                    </div>
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink3)', background: 'var(--bg)', borderRadius: 20, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+                      {s.role}
+                    </span>
+                    <button type="button" title="Remove access" disabled={shareBusy} onClick={() => removeShare(i)}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 26, background: 'none', border: 'none', borderRadius: 6, color: 'var(--red)', cursor: shareBusy ? 'default' : 'pointer', flexShrink: 0, opacity: shareBusy ? 0.5 : 1 }}>
+                      <Icon name="x" size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

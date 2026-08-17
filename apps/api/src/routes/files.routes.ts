@@ -7,6 +7,14 @@ import { withTenant, db } from '../db/client.js';
 import { MinioIntegration } from '../integrations/minio.js';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
 import { isPlatformSuperAdmin } from '../middleware/rbac.js';
+import { CloudSync } from '../services/cloud-sync.service.js';
+import { getStorageQuota, wouldExceedStorageQuota } from '../lib/storage-quota.js';
+import { emitDomainEvent } from '../services/domain-events.service.js';
+import { resolveServedContentType } from '../lib/safe-file-serving.js';
+
+function fmtGB(bytes: number): string {
+  return `${(bytes / 1_073_741_824).toFixed(1)} GB`;
+}
 
 function extOf(name: string) {
   return name.split('.').pop()?.toLowerCase() || 'txt';
@@ -104,6 +112,63 @@ async function attachShares(trx: Transaction<Database>, files: any[]) {
   const byFile: Record<string, { name: string; role: string; principal_type: string | null; principal_id: string | null }[]> = {};
   for (const s of shares) (byFile[s.file_id] ??= []).push({ name: s.person_name, role: s.role, principal_type: s.principal_type, principal_id: s.principal_id });
   return files.map(f => serialize(f, byFile[f.id] ?? []));
+}
+
+/** This customer's SEAL lot/consignment/container ids — the same shape as
+ *  the shipmentIds fan-out below, so a customer/org's visibility also
+ *  reaches SEAL documents CloudSync.syncSealDoc mirrored in (§B3/B4). A
+ *  container has no owner_id of its own; its owner comes via its
+ *  consignment, same as sealOwnerAndLabel() on the write side. */
+async function sealEntityIds(trx: Transaction<Database>, tenantId: string, customerId: string) {
+  const lots = await trx.selectFrom('seal_lots').select('id')
+    .where('tenant_id', '=', tenantId).where('owner_id', '=', customerId).execute();
+  const consignments = await trx.selectFrom('seal_consignments').select('id')
+    .where('tenant_id', '=', tenantId).where('owner_id', '=', customerId).execute();
+  const consignmentIds = consignments.map(c => c.id);
+  const containers = consignmentIds.length > 0
+    ? await trx.selectFrom('seal_containers').select('id')
+        .where('tenant_id', '=', tenantId).where('consignment_id', 'in', consignmentIds).execute()
+    : [];
+  return { lotIds: lots.map(l => l.id), consignmentIds, containerIds: containers.map(c => c.id) };
+}
+
+function sealOrClauses(eb: any, sealIds: { lotIds: string[]; consignmentIds: string[]; containerIds: string[] }) {
+  return [
+    ...(sealIds.lotIds.length > 0 ? [eb.and([eb('entity_type', '=', 'seal_lot'), eb('entity_id', 'in', sealIds.lotIds)])] : []),
+    ...(sealIds.consignmentIds.length > 0 ? [eb.and([eb('entity_type', '=', 'seal_consignment'), eb('entity_id', 'in', sealIds.consignmentIds)])] : []),
+    ...(sealIds.containerIds.length > 0 ? [eb.and([eb('entity_type', '=', 'seal_container'), eb('entity_id', 'in', sealIds.containerIds)])] : []),
+  ];
+}
+
+/** Whether a CUSTOMER-role caller may read this file's bytes — the same
+ *  rule the GET / CUSTOMER list branch already grants (own directly-tagged
+ *  files, their shipments' documents, their SEAL lots/consignments/
+ *  containers' documents per §B4, or anything explicitly shared with them).
+ *  Shared by GET /:id/download and GET /:id/preview so the two can never
+ *  quietly drift apart on who's allowed to read what — this closes a real
+ *  gap where the list already included SEAL-linked files but the download
+ *  route's own ownership check had never been extended to match. */
+async function canCustomerAccessFile(
+  trx: Transaction<Database>, tenantId: string, cid: string | null,
+  file: { entity_type: string | null; entity_id: string | null; id: string },
+): Promise<boolean> {
+  if (!cid) return false;
+  if (file.entity_type === 'customer' && file.entity_id === cid) return true;
+  if (file.entity_type === 'shipment') {
+    const own = await trx.selectFrom('shipment_cases').select('id')
+      .where('id', '=', file.entity_id!).where('tenant_id', '=', tenantId).where('customer_id', '=', cid).executeTakeFirst();
+    if (own) return true;
+  }
+  if (file.entity_type === 'seal_lot' || file.entity_type === 'seal_consignment' || file.entity_type === 'seal_container') {
+    const sealIds = await sealEntityIds(trx, tenantId, cid);
+    const idSet = file.entity_type === 'seal_lot' ? sealIds.lotIds
+      : file.entity_type === 'seal_consignment' ? sealIds.consignmentIds
+      : sealIds.containerIds;
+    if (idSet.includes(file.entity_id!)) return true;
+  }
+  const shared = await trx.selectFrom('cloud_file_shares').select('id')
+    .where('file_id', '=', file.id).where('principal_type', '=', 'customer').where('principal_id', '=', cid).executeTakeFirst();
+  return !!shared;
 }
 
 async function bumpParentCount(trx: Transaction<Database>, parentId: string, tenantId: string, countDelta: number, sizeDelta: number) {
@@ -248,6 +313,125 @@ export async function filesRoutes(fastify: FastifyInstance) {
     });
   });
 
+  // GET /customer-folder/:customerId — resolves (creating if it doesn't
+  // exist yet) this customer's own "Customers ▸ <name>" Drive folder, so a
+  // caller like the Customers profile page can deep-link straight into the
+  // real folder — and upload/create things nested inside it — rather than
+  // only tagging files flat at the drive root. Runs CloudSync.
+  // backfillCustomer (not just ensureCustomerFolder) every call — cheap for
+  // one customer, and it also retroactively tags any of their own or their
+  // shipments' documents that predate entity-tagging, so simply opening the
+  // Documents tab keeps this customer's Drive view in sync with no manual
+  // "Resync" click needed.
+  fastify.get('/customer-folder/:customerId', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    const { customerId } = req.params as { customerId: string };
+    try {
+      const customer = await withTenant(user.tenant_id, trx =>
+        trx.selectFrom('customers').select(['id', 'name'])
+          .where('id', '=', customerId).where('tenant_id', '=', user.tenant_id).executeTakeFirst()
+      );
+      if (!customer) return reply.status(404).send({ error: 'Customer not found' });
+
+      await CloudSync.backfillCustomer(user.tenant_id, customer.id);
+
+      return await withTenant(user.tenant_id, async (trx) => {
+        const folder = await trx.selectFrom('cloud_files').selectAll()
+          .where('tenant_id', '=', user.tenant_id).where('type', '=', 'folder')
+          .where('entity_type', '=', 'customer').where('entity_id', '=', customer.id)
+          .executeTakeFirst();
+        if (!folder) return reply.status(500).send({ error: "Could not resolve this customer's Drive folder" });
+        const parent = folder.parent_id
+          ? await trx.selectFrom('cloud_files').select(['id', 'name']).where('id', '=', folder.parent_id).executeTakeFirst()
+          : null;
+        return { id: folder.id, drive_id: folder.drive_id, name: folder.name, parent: parent ?? null };
+      });
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  // GET /employee-folder/:userId — same shape and role as GET
+  // /customer-folder/:customerId above, for a staff member's own "Employees
+  // ▸ <name>" folder — resolves/creates it and self-heals any untagged
+  // document already sitting in it via CloudSync.backfillEmployee.
+  fastify.get('/employee-folder/:userId', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    const { userId } = req.params as { userId: string };
+    try {
+      const employee = await withTenant(user.tenant_id, trx =>
+        trx.selectFrom('users').select(['id', 'name'])
+          .where('id', '=', userId).where('tenant_id', '=', user.tenant_id).executeTakeFirst()
+      );
+      if (!employee) return reply.status(404).send({ error: 'Employee not found' });
+
+      await CloudSync.backfillEmployee(user.tenant_id, employee.id);
+
+      return await withTenant(user.tenant_id, async (trx) => {
+        const folder = await trx.selectFrom('cloud_files').selectAll()
+          .where('tenant_id', '=', user.tenant_id).where('type', '=', 'folder')
+          .where('entity_type', '=', 'employee').where('entity_id', '=', employee.id)
+          .executeTakeFirst();
+        if (!folder) return reply.status(500).send({ error: "Could not resolve this employee's Drive folder" });
+        const parent = folder.parent_id
+          ? await trx.selectFrom('cloud_files').select(['id', 'name']).where('id', '=', folder.parent_id).executeTakeFirst()
+          : null;
+        return { id: folder.id, drive_id: folder.drive_id, name: folder.name, parent: parent ?? null };
+      });
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  // GET /seal-folder/:sealType/:sealId — same shape and role as GET
+  // /customer-folder/:customerId and /employee-folder/:userId above, for one
+  // SEAL lot/consignment/container's own "Customers ▸ owner ▸ SEAL ▸ label"
+  // folder. 404s (rather than resolving nothing) for customs_entry/
+  // compartment — those have no customer owner, so there is no folder to
+  // resolve, matching CloudSync.backfillSeal's own scoping.
+  fastify.get('/seal-folder/:sealType/:sealId', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    const { sealType, sealId } = req.params as { sealType: string; sealId: string };
+    if (!['lot', 'consignment', 'container'].includes(sealType)) {
+      return reply.status(400).send({ error: 'sealType must be lot, consignment, or container' });
+    }
+    try {
+      await CloudSync.backfillSeal(user.tenant_id, sealType as 'lot' | 'consignment' | 'container', sealId);
+
+      return await withTenant(user.tenant_id, async (trx) => {
+        const folder = await trx.selectFrom('cloud_files').selectAll()
+          .where('tenant_id', '=', user.tenant_id).where('type', '=', 'folder')
+          .where('entity_type', '=', `seal_${sealType}`).where('entity_id', '=', sealId)
+          .executeTakeFirst();
+        if (!folder) return reply.status(404).send({ error: 'Could not resolve a Drive folder for this record' });
+        const parent = folder.parent_id
+          ? await trx.selectFrom('cloud_files').select(['id', 'name']).where('id', '=', folder.parent_id).executeTakeFirst()
+          : null;
+        return { id: folder.id, drive_id: folder.drive_id, name: folder.name, parent: parent ?? null };
+      });
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  // GET /storage-usage — real per-tenant Cloud quota (packages.
+  // storage_limit_bytes, migration 234), hooked into the same tenants.plan
+  // → packages tier system the monthly item-count metering already uses.
+  // limit_bytes: null means unlimited (enterprise tier, or a legacy plan
+  // code with no matching package row).
+  fastify.get('/storage-usage', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    try {
+      return await getStorageQuota(user.tenant_id);
+    } catch (err: any) {
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
   // GET / — three modes:
   //  - ?entity_type=&entity_id= — every file linked to a business entity
   //    (e.g. a customer profile's Documents tab), across all of the
@@ -276,12 +460,14 @@ export async function filesRoutes(fastify: FastifyInstance) {
             ? (await trx.selectFrom('shipment_cases').select('id')
                 .where('tenant_id', '=', user.tenant_id).where('customer_id', '=', cid).execute()).map(s => s.id)
             : [];
+          const sealIds = cid ? await sealEntityIds(trx, user.tenant_id, cid) : { lotIds: [], consignmentIds: [], containerIds: [] };
           const rows = await trx.selectFrom('cloud_files').selectAll()
             .where('tenant_id', '=', user.tenant_id)
             .where('is_trash', '=', false)
             .where(eb => eb.or([
               eb.and([eb('entity_type', '=', 'customer'), eb('entity_id', '=', cid ?? NIL_UUID)]),
               ...(shipmentIds.length > 0 ? [eb.and([eb('entity_type', '=', 'shipment'), eb('entity_id', 'in', shipmentIds)])] : []),
+              ...sealOrClauses(eb, sealIds),
               // A file explicitly shared with this customer (migration 233)
               // is visible even with no entity link to them at all — a share
               // only ever adds visibility, never removes what entity-linking
@@ -303,6 +489,28 @@ export async function filesRoutes(fastify: FastifyInstance) {
     if (entity_type && entity_id) {
       try {
         return await withTenant(user.tenant_id, async (trx) => {
+          // 'customer' also fans out to that customer's own shipment-linked
+          // documents (same reasoning as the CUSTOMER-role GET / branch
+          // above and org.routes.ts GET /documents) and excludes the
+          // customer's own Drive folder row itself — every caller of this
+          // shape today (the Customers profile page) renders a flat document
+          // list, not a folder browser.
+          if (entity_type === 'customer') {
+            const shipmentIds = (await trx.selectFrom('shipment_cases').select('id')
+              .where('tenant_id', '=', user.tenant_id).where('customer_id', '=', entity_id).execute()).map(s => s.id);
+            const sealIds = await sealEntityIds(trx, user.tenant_id, entity_id);
+            const rows = await trx.selectFrom('cloud_files').selectAll()
+              .where('tenant_id', '=', user.tenant_id)
+              .where('is_trash', '=', false)
+              .where('type', '!=', 'folder')
+              .where(eb => eb.or([
+                eb.and([eb('entity_type', '=', 'customer'), eb('entity_id', '=', entity_id)]),
+                ...(shipmentIds.length > 0 ? [eb.and([eb('entity_type', '=', 'shipment'), eb('entity_id', 'in', shipmentIds)])] : []),
+                ...sealOrClauses(eb, sealIds),
+              ]))
+              .orderBy('created_at', 'desc').execute();
+            return attachShares(trx, rows);
+          }
           const rows = await trx.selectFrom('cloud_files').selectAll()
             .where('tenant_id', '=', user.tenant_id)
             .where('entity_type', '=', entity_type).where('entity_id', '=', entity_id)
@@ -433,6 +641,16 @@ export async function filesRoutes(fastify: FastifyInstance) {
 
     try {
       const buffer = await data.toBuffer();
+
+      const quota = await wouldExceedStorageQuota(user.tenant_id, buffer.length);
+      if (quota.exceeded) {
+        return reply.status(402).send({
+          error: 'STORAGE_LIMIT_EXCEEDED',
+          message: `This upload would exceed your plan's storage limit (${fmtGB(quota.limit_bytes!)}). Upgrade your plan or free up space.`,
+          used_bytes: quota.used_bytes, limit_bytes: quota.limit_bytes,
+        });
+      }
+
       return await withTenant(user.tenant_id, async (trx) => {
         if (isCustomer) driveId = await ensureDefaultDrive(trx, user.tenant_id);
 
@@ -475,6 +693,13 @@ export async function filesRoutes(fastify: FastifyInstance) {
           .where('id', '=', row.id).returningAll().executeTakeFirstOrThrow();
 
         if (parentId) await bumpParentCount(trx, parentId, user.tenant_id, 1, buffer.length);
+
+        emitDomainEvent(trx, user.tenant_id, {
+          type: 'file.uploaded', sourceApp: 'cloud', entityType: 'document', entityId: updated.id,
+          payload: { name: updated.name, size: buffer.length, type: updated.type },
+          actorId: isCustomer ? null : user.sub,
+        }).catch(err => console.error('[Cloud] file.uploaded emit failed:', err.message));
+
         return serialize(updated);
       });
     } catch (err: any) {
@@ -482,7 +707,8 @@ export async function filesRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // GET /:id/download — serve the real file bytes
+  // GET /:id/download — serve the real file bytes, forcing a save-as
+  // (Content-Disposition: attachment) regardless of type.
   fastify.get('/:id/download', async (req, reply) => {
     const user = req.user;
     const { id } = req.params as { id: string };
@@ -492,17 +718,42 @@ export async function filesRoutes(fastify: FastifyInstance) {
       if (!file || !file.storage_key) return reply.status(404).send({ error: 'File content not available' });
       if (user.role === 'CUSTOMER') {
         const cid = await resolveCustomerId(user);
-        const isOwnFile = file.entity_type === 'customer' && file.entity_id === cid;
-        const isOwnShipmentDoc = file.entity_type === 'shipment' && cid && await trx.selectFrom('shipment_cases').select('id')
-          .where('id', '=', file.entity_id!).where('tenant_id', '=', user.tenant_id).where('customer_id', '=', cid).executeTakeFirst();
-        const isSharedWithMe = cid && await trx.selectFrom('cloud_file_shares').select('id')
-          .where('file_id', '=', id).where('principal_type', '=', 'customer').where('principal_id', '=', cid).executeTakeFirst();
-        if (!isOwnFile && !isOwnShipmentDoc && !isSharedWithMe) return reply.status(403).send({ error: 'Not found' });
+        if (!(await canCustomerAccessFile(trx, user.tenant_id, cid, file))) return reply.status(403).send({ error: 'Not found' });
       }
       const buf = MinioIntegration.readFile(file.storage_key);
       if (!buf) return reply.status(404).send({ error: 'File content not found' });
-      reply.header('Content-Disposition', `attachment; filename="${file.name.replace(/"/g, '')}"`);
-      reply.header('Content-Type', file.mime_type || 'application/octet-stream');
+      const { contentType } = resolveServedContentType(file.type);
+      reply.header('Content-Disposition', `attachment; filename="${file.name.replace(/["\r\n]/g, '')}"`);
+      reply.header('Content-Type', contentType);
+      return reply.send(buf);
+    });
+  });
+
+  // GET /:id/preview — same bytes, same ownership rule as /:id/download,
+  // but Content-Disposition: inline so a browser renders an image/PDF/video
+  // directly instead of forcing a save-as. This is what actually makes
+  // in-app viewing possible — previously the ONLY inline-capable route in
+  // this whole file was the unauthenticated public share-link download.
+  fastify.get('/:id/preview', async (req, reply) => {
+    const user = req.user;
+    const { id } = req.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const file = await trx.selectFrom('cloud_files').selectAll()
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!file || !file.storage_key) return reply.status(404).send({ error: 'File content not available' });
+      if (user.role === 'CUSTOMER') {
+        const cid = await resolveCustomerId(user);
+        if (!(await canCustomerAccessFile(trx, user.tenant_id, cid, file))) return reply.status(403).send({ error: 'Not found' });
+      }
+      const buf = MinioIntegration.readFile(file.storage_key);
+      if (!buf) return reply.status(404).send({ error: 'File content not found' });
+      // Never trust the stored mime_type for what the browser is told to
+      // execute — it's whatever the uploader's request claimed. Only a fixed
+      // image/pdf/video/audio allowlist may render inline; everything else
+      // downgrades to a forced download instead of risking inline HTML/SVG.
+      const { contentType, inlineAllowed } = resolveServedContentType(file.type);
+      reply.header('Content-Disposition', `${inlineAllowed ? 'inline' : 'attachment'}; filename="${file.name.replace(/["\r\n]/g, '')}"`);
+      reply.header('Content-Type', contentType);
       return reply.send(buf);
     });
   });
@@ -524,6 +775,22 @@ export async function filesRoutes(fastify: FastifyInstance) {
         const row = await trx.updateTable('cloud_files').set(update)
           .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
           .returningAll().executeTakeFirstOrThrow();
+
+        // This route doubles as rename/recolor/describe/star/link — only the
+        // two the UI actually drives (rename, star) get an activity entry,
+        // matching the plan's explicit event list.
+        if (body.name !== undefined) {
+          emitDomainEvent(trx, user.tenant_id, {
+            type: 'file.renamed', sourceApp: 'cloud', entityType: 'document', entityId: row.id,
+            payload: { name: row.name }, actorId: user.sub,
+          }).catch(err => console.error('[Cloud] file.renamed emit failed:', err.message));
+        } else if (body.starred !== undefined) {
+          emitDomainEvent(trx, user.tenant_id, {
+            type: 'file.starred', sourceApp: 'cloud', entityType: 'document', entityId: row.id,
+            payload: { name: row.name, starred: row.starred }, actorId: user.sub,
+          }).catch(err => console.error('[Cloud] file.starred emit failed:', err.message));
+        }
+
         return serialize(row);
       });
     } catch (err: any) {
@@ -544,17 +811,39 @@ export async function filesRoutes(fastify: FastifyInstance) {
         if (!item) return reply.status(404).send({ error: 'Not found' });
         if (item.parent_id === parent_id) return serialize(item);
 
+        // An untagged item dragged into an already entity-tagged folder
+        // inherits that tag — same single-level lookup POST /folder and
+        // POST /upload already do at creation time. Only ever touches an
+        // item with NO tag of its own: one that already carries any tag
+        // (auto-inherited earlier, or an explicit PATCH /:id link) is left
+        // exactly as it is, so a move can never silently clobber a link
+        // someone set on purpose.
+        let inheritedEntityType: string | null = null;
+        let inheritedEntityId: string | null = null;
+        let target: { drive_id: string } | undefined;
         if (parent_id) {
-          const target = await trx.selectFrom('cloud_files').select(['drive_id'])
+          target = await trx.selectFrom('cloud_files').select(['drive_id', 'entity_type', 'entity_id'])
             .where('id', '=', parent_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
           if (!target || target.drive_id !== item.drive_id) return reply.status(400).send({ error: 'Cannot move an item into a different drive' });
+          if (!item.entity_type && !item.entity_id && (target as any).entity_type && (target as any).entity_id) {
+            inheritedEntityType = (target as any).entity_type;
+            inheritedEntityId = (target as any).entity_id;
+          }
         }
 
         if (item.parent_id) await bumpParentCount(trx, item.parent_id, user.tenant_id, -1, -(Number(item.size) || 0));
         if (parent_id) await bumpParentCount(trx, parent_id, user.tenant_id, 1, Number(item.size) || 0);
 
-        const row = await trx.updateTable('cloud_files').set({ parent_id, updated_at: new Date() })
-          .where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+        const row = await trx.updateTable('cloud_files').set({
+          parent_id, updated_at: new Date(),
+          ...(inheritedEntityType ? { entity_type: inheritedEntityType, entity_id: inheritedEntityId } : {}),
+        }).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+
+        emitDomainEvent(trx, user.tenant_id, {
+          type: 'file.moved', sourceApp: 'cloud', entityType: 'document', entityId: row.id,
+          payload: { name: row.name, to_parent_id: parent_id }, actorId: user.sub,
+        }).catch(err => console.error('[Cloud] file.moved emit failed:', err.message));
+
         return serialize(row);
       });
     } catch (err: any) {
@@ -573,6 +862,12 @@ export async function filesRoutes(fastify: FastifyInstance) {
           .set({ is_trash: true, trashed_at: new Date(), updated_at: new Date() })
           .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
           .returningAll().executeTakeFirstOrThrow();
+
+        emitDomainEvent(trx, user.tenant_id, {
+          type: 'file.trashed', sourceApp: 'cloud', entityType: 'document', entityId: row.id,
+          payload: { name: row.name }, actorId: user.sub,
+        }).catch(err => console.error('[Cloud] file.trashed emit failed:', err.message));
+
         return serialize(row);
       });
     } catch (err: any) {
@@ -591,6 +886,12 @@ export async function filesRoutes(fastify: FastifyInstance) {
           .set({ is_trash: false, trashed_at: null, updated_at: new Date() })
           .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
           .returningAll().executeTakeFirstOrThrow();
+
+        emitDomainEvent(trx, user.tenant_id, {
+          type: 'file.restored', sourceApp: 'cloud', entityType: 'document', entityId: row.id,
+          payload: { name: row.name }, actorId: user.sub,
+        }).catch(err => console.error('[Cloud] file.restored emit failed:', err.message));
+
         return serialize(row);
       });
     } catch (err: any) {
@@ -641,6 +942,15 @@ export async function filesRoutes(fastify: FastifyInstance) {
         if (item.storage_key) await MinioIntegration.deleteDocument(user.tenant_id, item.storage_key);
         if (item.parent_id) await bumpParentCount(trx, item.parent_id, user.tenant_id, -1, -(Number(item.size) || 0));
         await trx.deleteFrom('cloud_files').where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+
+        // entity_id has no FK on domain_events (deliberately, per the
+        // polymorphic-tagging convention this platform already uses) so it's
+        // safe to keep pointing at the now-deleted row's id here.
+        emitDomainEvent(trx, user.tenant_id, {
+          type: 'file.permanently_deleted', sourceApp: 'cloud', entityType: 'document', entityId: item.id,
+          payload: { name: item.name }, actorId: user.role === 'CUSTOMER' ? null : user.sub,
+        }).catch(err => console.error('[Cloud] file.permanently_deleted emit failed:', err.message));
+
         return { ok: true };
       });
     } catch (err: any) {
@@ -691,7 +1001,263 @@ export async function filesRoutes(fastify: FastifyInstance) {
           ? (file.share_token ?? crypto.randomUUID())
           : null;
         await trx.updateTable('cloud_files').set({ updated_at: new Date(), share_token: shareToken }).where('id', '=', id).where('tenant_id', '=', user.tenant_id).execute();
+
+        emitDomainEvent(trx, user.tenant_id, {
+          type: 'file.shared', sourceApp: 'cloud', entityType: 'document', entityId: id,
+          payload: { shared: (shared ?? []).map(s => ({ name: s.name, role: s.role })) },
+          actorId: user.role === 'CUSTOMER' ? null : user.sub,
+        }).catch(err => console.error('[Cloud] file.shared emit failed:', err.message));
+
         return { shared: shared ?? [], share_token: shareToken };
+      });
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  // ── Comments — a flat, timestamped note log per file, same table shape and
+  // author-or-admin edit/delete rule as shipments.routes.ts's shipment_notes
+  // (the codebase's own precedent for exactly this). Who may POST/PATCH/
+  // DELETE deliberately does NOT copy that route's role allowlist though —
+  // that list predates MANAGER/FINANCE/SALES as first-class roles and was
+  // scoped to clearing-ops-specific notes. Cloud is cross-app (Finance,
+  // NexusHR, ComplyOS and SEAL documents all sync in here), so this matches
+  // every other write route in *this* file instead: block CUSTOMER, allow
+  // every other role. A CUSTOMER login never reaches the Cloud browser/
+  // PreviewPanel this feeds anyway (see the CUSTOMER branch of GET / above)
+  // — the check below is defense in depth, not the only thing stopping it. ──
+
+  fastify.get('/:id/comments', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    const { id } = req.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const comments = await trx.selectFrom('cloud_file_comments').selectAll()
+        .where('file_id', '=', id).where('tenant_id', '=', user.tenant_id).orderBy('created_at', 'asc').execute();
+      return { data: comments };
+    });
+  });
+
+  fastify.post('/:id/comments', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    const { id } = req.params as { id: string };
+    const { content } = req.body as { content?: string };
+    if (!content?.trim()) return reply.status(400).send({ error: 'content is required' });
+    try {
+      return await withTenant(user.tenant_id, async (trx) => {
+        const file = await trx.selectFrom('cloud_files').select('id')
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!file) return reply.status(404).send({ error: 'Not found' });
+
+        const comment = await trx.insertInto('cloud_file_comments').values({
+          tenant_id: user.tenant_id,
+          file_id: id,
+          author_id: user.sub,
+          author_name: user.name || user.email,
+          content: content.trim(),
+        }).returningAll().executeTakeFirstOrThrow();
+
+        emitDomainEvent(trx, user.tenant_id, {
+          type: 'file.commented', sourceApp: 'cloud', entityType: 'document', entityId: id,
+          payload: { comment_id: comment.id }, actorId: user.sub,
+        }).catch(err => console.error('[Cloud] file.commented emit failed:', err.message));
+
+        return comment;
+      });
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.patch('/:id/comments/:commentId', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    const { commentId } = req.params as { id: string; commentId: string };
+    const { content } = req.body as { content?: string };
+    if (!content?.trim()) return reply.status(400).send({ error: 'content is required' });
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('cloud_file_comments').select(['id', 'author_id'])
+        .where('id', '=', commentId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Comment not found' });
+      const canEdit = existing.author_id === user.sub || ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user.role);
+      if (!canEdit) return reply.status(403).send({ error: 'Forbidden' });
+      const updated = await trx.updateTable('cloud_file_comments')
+        .set({ content: content.trim(), updated_at: new Date() })
+        .where('id', '=', commentId).where('tenant_id', '=', user.tenant_id)
+        .returningAll().executeTakeFirst();
+      return updated;
+    });
+  });
+
+  fastify.delete('/:id/comments/:commentId', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    const { commentId } = req.params as { id: string; commentId: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const existing = await trx.selectFrom('cloud_file_comments').select(['id', 'author_id'])
+        .where('id', '=', commentId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!existing) return reply.status(404).send({ error: 'Comment not found' });
+      const canDelete = existing.author_id === user.sub || ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN'].includes(user.role);
+      if (!canDelete) return reply.status(403).send({ error: 'Forbidden' });
+      await trx.deleteFrom('cloud_file_comments').where('id', '=', commentId).where('tenant_id', '=', user.tenant_id).execute();
+      return reply.status(204).send();
+    });
+  });
+
+  // ── Version history — explicit only, never automatic on a same-name
+  // re-upload (POST /upload always inserts a new sibling row on a name
+  // collision today; changing that here would silently alter existing
+  // upload behavior for every caller of that route). storage_key is a flat
+  // "tenants/{t}/cloud/{fileId}/{filename}" path (MinioIntegration.
+  // uploadCloudFile) with nothing unique per upload, so simply re-uploading
+  // under the same fileId would physically overwrite the very bytes a
+  // version row was about to preserve — every write below archives the
+  // about-to-be-replaced content to its own "versions/{archiveId}"
+  // subfolder BEFORE touching the live path, so a version's storage_key
+  // always stays valid even after the file moves on. Content only: a
+  // version swaps storage_key/size/mime_type, never cloud_files.name — the
+  // display name is a property of the file, not of one version of it. ──
+
+  fastify.post('/:id/versions', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    const { id } = req.params as { id: string };
+    const data = await req.file();
+    if (!data) return reply.status(400).send({ error: 'No file uploaded' });
+    try {
+      const buffer = await data.toBuffer();
+      const quota = await wouldExceedStorageQuota(user.tenant_id, buffer.length);
+      if (quota.exceeded) {
+        return reply.status(402).send({
+          error: 'STORAGE_LIMIT_EXCEEDED',
+          message: `This upload would exceed your plan's storage limit (${fmtGB(quota.limit_bytes!)}). Upgrade your plan or free up space.`,
+          used_bytes: quota.used_bytes, limit_bytes: quota.limit_bytes,
+        });
+      }
+
+      return await withTenant(user.tenant_id, async (trx) => {
+        const file = await trx.selectFrom('cloud_files').selectAll()
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!file) return reply.status(404).send({ error: 'Not found' });
+        if (file.type === 'folder') return reply.status(400).send({ error: 'Folders have no version history' });
+
+        if (file.storage_key) {
+          const oldBytes = MinioIntegration.readFile(file.storage_key);
+          if (oldBytes) {
+            const archiveId = crypto.randomUUID();
+            const { storageKey: archivedKey } = await MinioIntegration.uploadCloudFile(user.tenant_id, `${id}/versions/${archiveId}`, file.name, oldBytes);
+            await trx.insertInto('cloud_file_versions').values({
+              tenant_id: user.tenant_id, file_id: id,
+              storage_key: archivedKey, size: file.size, mime_type: file.mime_type,
+              uploaded_by_id: file.owner_id, uploaded_by_name: file.owner_name,
+              created_at: file.updated_at,
+            }).execute();
+          }
+          await MinioIntegration.deleteDocument(user.tenant_id, file.storage_key);
+        }
+
+        const { storageKey } = await MinioIntegration.uploadCloudFile(user.tenant_id, id, file.name, buffer);
+        const sizeDelta = buffer.length - (Number(file.size) || 0);
+        const updated = await trx.updateTable('cloud_files').set({
+          storage_key: storageKey, size: buffer.length, mime_type: data.mimetype, updated_at: new Date(),
+        }).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+
+        if (file.parent_id) await bumpParentCount(trx, file.parent_id, user.tenant_id, 0, sizeDelta);
+
+        emitDomainEvent(trx, user.tenant_id, {
+          type: 'file.version_uploaded', sourceApp: 'cloud', entityType: 'document', entityId: id,
+          payload: { name: updated.name, size: buffer.length }, actorId: user.sub,
+        }).catch(err => console.error('[Cloud] file.version_uploaded emit failed:', err.message));
+
+        return serialize(updated);
+      });
+    } catch (err: any) {
+      return reply.status(400).send({ error: err.message });
+    }
+  });
+
+  fastify.get('/:id/versions', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    const { id } = req.params as { id: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const file = await trx.selectFrom('cloud_files').select('id')
+        .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!file) return reply.status(404).send({ error: 'Not found' });
+      const rows = await trx.selectFrom('cloud_file_versions').selectAll()
+        .where('file_id', '=', id).where('tenant_id', '=', user.tenant_id)
+        .orderBy('created_at', 'desc').execute();
+      return { data: rows.map(r => ({ ...r, size: r.size != null ? Number(r.size) : null })) };
+    });
+  });
+
+  fastify.get('/:id/versions/:versionId/download', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    const { id, versionId } = req.params as { id: string; versionId: string };
+    return withTenant(user.tenant_id, async (trx) => {
+      const version = await trx.selectFrom('cloud_file_versions').selectAll()
+        .where('id', '=', versionId).where('file_id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!version) return reply.status(404).send({ error: 'Version not found' });
+      const buf = MinioIntegration.readFile(version.storage_key);
+      if (!buf) return reply.status(404).send({ error: 'File content not found' });
+      const file = await trx.selectFrom('cloud_files').select(['name', 'type']).where('id', '=', id).executeTakeFirst();
+      const { contentType } = resolveServedContentType(file?.type ?? '');
+      reply.header('Content-Disposition', `attachment; filename="${(file?.name ?? 'file').replace(/["\r\n]/g, '')}"`);
+      reply.header('Content-Type', contentType);
+      return reply.send(buf);
+    });
+  });
+
+  fastify.post('/:id/versions/:versionId/restore', async (req, reply) => {
+    const user = req.user;
+    if (user.role === 'CUSTOMER') return reply.status(403).send({ error: 'Not available for customer accounts' });
+    const { id, versionId } = req.params as { id: string; versionId: string };
+    try {
+      return await withTenant(user.tenant_id, async (trx) => {
+        const file = await trx.selectFrom('cloud_files').selectAll()
+          .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!file) return reply.status(404).send({ error: 'Not found' });
+        const version = await trx.selectFrom('cloud_file_versions').selectAll()
+          .where('id', '=', versionId).where('file_id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!version) return reply.status(404).send({ error: 'Version not found' });
+
+        // The about-to-be-replaced current content is archived too — restoring
+        // is non-destructive, and never costs you the version you restored from.
+        if (file.storage_key) {
+          const currentBytes = MinioIntegration.readFile(file.storage_key);
+          if (currentBytes) {
+            const archiveId = crypto.randomUUID();
+            const { storageKey: archivedKey } = await MinioIntegration.uploadCloudFile(user.tenant_id, `${id}/versions/${archiveId}`, file.name, currentBytes);
+            await trx.insertInto('cloud_file_versions').values({
+              tenant_id: user.tenant_id, file_id: id,
+              storage_key: archivedKey, size: file.size, mime_type: file.mime_type,
+              uploaded_by_id: file.owner_id, uploaded_by_name: file.owner_name,
+              created_at: file.updated_at,
+            }).execute();
+          }
+        }
+
+        // Copy the target version's bytes onto the canonical live path
+        // (cloud_files.name is unchanged by a restore, only its content is).
+        const versionBytes = MinioIntegration.readFile(version.storage_key);
+        if (!versionBytes) return reply.status(404).send({ error: 'This version\'s content is no longer available' });
+        const { storageKey } = await MinioIntegration.uploadCloudFile(user.tenant_id, id, file.name, versionBytes);
+
+        const sizeDelta = (Number(version.size) || 0) - (Number(file.size) || 0);
+        const updated = await trx.updateTable('cloud_files').set({
+          storage_key: storageKey, size: version.size, mime_type: version.mime_type, updated_at: new Date(),
+        }).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+
+        if (file.parent_id) await bumpParentCount(trx, file.parent_id, user.tenant_id, 0, sizeDelta);
+
+        emitDomainEvent(trx, user.tenant_id, {
+          type: 'file.version_restored', sourceApp: 'cloud', entityType: 'document', entityId: id,
+          payload: { name: updated.name, restored_version_id: versionId }, actorId: user.sub,
+        }).catch(err => console.error('[Cloud] file.version_restored emit failed:', err.message));
+
+        return serialize(updated);
       });
     } catch (err: any) {
       return reply.status(400).send({ error: err.message });
@@ -853,8 +1419,12 @@ export async function filesPublicRoutes(fastify: FastifyInstance) {
     if (!file.storage_key) return reply.status(404).send({ error: 'File content not available' });
     const buf = MinioIntegration.readFile(file.storage_key);
     if (!buf) return reply.status(404).send({ error: 'File content not found' });
-    reply.header('Content-Disposition', `inline; filename="${file.name.replace(/"/g, '')}"`);
-    reply.header('Content-Type', file.mime_type || 'application/octet-stream');
+    // Highest-stakes spot for this check: unauthenticated, so anyone who
+    // opens a shared link is exposed — never the stored (client-claimed)
+    // mime_type here, same reasoning as GET /:id/preview above.
+    const { contentType, inlineAllowed } = resolveServedContentType(file.type);
+    reply.header('Content-Disposition', `${inlineAllowed ? 'inline' : 'attachment'}; filename="${file.name.replace(/["\r\n]/g, '')}"`);
+    reply.header('Content-Type', contentType);
     return reply.send(buf);
   });
 }

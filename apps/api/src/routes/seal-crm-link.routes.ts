@@ -21,7 +21,7 @@ export async function sealCrmLinkRoutes(fastify: FastifyInstance) {
             'id', 'description', 'customs_status', 'qty_on_hand', 'uom', 'entry_reference',
             'duty_at_risk', 'tax_at_risk', 'currency', 'warehoused_on', 'expires_on',
           ])
-          .where('owner_id', '=', owner_id)
+          .where('owner_id', '=', owner_id).where('tenant_id', '=', request.user.tenant_id)
           .orderBy('created_at', 'desc')
           .execute()
       );

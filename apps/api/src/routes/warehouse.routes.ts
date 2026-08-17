@@ -1,12 +1,22 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import type { Database } from '../db/client.js';
 import type { Transaction } from 'kysely';
 import { requireRole } from '../middleware/rbac.js';
 import { callAI } from './ai.routes.js';
+import { pick } from '../lib/pick.js';
 
 const FLEET_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR'] as const;
+
+const locationCreateSchema = z.object({
+  code: z.string().trim().min(1).max(50),
+  name: z.string().trim().min(1).max(200),
+  zone: z.string().max(100).optional(),
+  capacity_units: z.number().int().min(0).optional(),
+});
+const locationPatchSchema = locationCreateSchema.partial().extend({ active: z.boolean().optional() });
 
 interface OccupancyLocation {
   id: string; code: string; name: string;
@@ -61,7 +71,7 @@ export async function warehouseRoutes(fastify: FastifyInstance) {
 
   fastify.post('/warehouse/locations', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
-    const body = req.body as { code: string; name: string; zone?: string; capacity_units?: number };
+    const body = locationCreateSchema.parse(req.body);
     return withTenant(user.tenant_id, async (trx) =>
       trx.insertInto('warehouse_locations').values({
         tenant_id: user.tenant_id, code: body.code, name: body.name,
@@ -73,9 +83,10 @@ export async function warehouseRoutes(fastify: FastifyInstance) {
   fastify.patch('/warehouse/locations/:id', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
     const { id } = req.params as { id: string };
-    const body = req.body as Partial<{ code: string; name: string; zone: string; capacity_units: number; active: boolean }>;
+    const body = locationPatchSchema.parse(req.body);
+    const patch = pick(body, ['code', 'name', 'zone', 'capacity_units', 'active']);
     return withTenant(user.tenant_id, async (trx) =>
-      trx.updateTable('warehouse_locations').set({ ...body, updated_at: new Date() } as any)
+      trx.updateTable('warehouse_locations').set({ ...patch, updated_at: new Date() } as any)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow()
     );
@@ -102,10 +113,14 @@ export async function warehouseRoutes(fastify: FastifyInstance) {
 
   fastify.post('/warehouse/dock-appointments', { preHandler: requireRole(...FLEET_ROLES) }, async (req) => {
     const user = req.user;
-    const body = req.body as {
-      dock_number: string; appointment_type: 'INBOUND' | 'OUTBOUND';
-      vehicle_id?: string; reference?: string; scheduled_at: string; notes?: string;
-    };
+    const body = z.object({
+      dock_number: z.string().trim().min(1).max(50),
+      appointment_type: z.enum(['INBOUND', 'OUTBOUND']),
+      vehicle_id: z.string().uuid().optional(),
+      reference: z.string().max(200).optional(),
+      scheduled_at: z.string().min(1),
+      notes: z.string().max(2000).optional(),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) =>
       trx.insertInto('warehouse_dock_appointments').values({
         tenant_id: user.tenant_id, dock_number: body.dock_number,

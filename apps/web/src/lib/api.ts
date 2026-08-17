@@ -165,3 +165,40 @@ export async function apiViewBlob(path: string) {
   // Give the new tab time to load the resource before releasing it.
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
+
+/**
+ * Multipart upload with real per-file byte progress. plain fetch() has no
+ * upload-progress event at all — XMLHttpRequest is the only web platform API
+ * that exposes one, so this is a deliberate, narrow exception to the
+ * fetch()-based helpers above, used only where a caller actually renders a
+ * percentage (see cloud-context.tsx's uploadFiles/uploadFolder).
+ */
+export function apiUploadWithProgress(path: string, form: FormData, onProgress: (pct: number) => void): { promise: Promise<any>; abort: () => void } {
+  const xhr = new XMLHttpRequest();
+  const promise = new Promise<any>((resolve, reject) => {
+    xhr.open('POST', `${BASE_URL}${path}`);
+    const token = localStorage.getItem('hudumika_token');
+    if (token) xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+
+    xhr.onload = () => {
+      let body: any = null;
+      try { body = xhr.responseText ? JSON.parse(xhr.responseText) : null; } catch { /* non-JSON body */ }
+      if (xhr.status >= 200 && xhr.status < 300) {
+        resolve(body);
+      } else {
+        if (xhr.status === 401) handleUnauthorized();
+        reject(new Error(body?.message || body?.error || `Upload failed with status ${xhr.status}`));
+      }
+    };
+    xhr.onerror = () => reject(new Error('Upload failed — network error'));
+    xhr.onabort = () => reject(new Error('Upload cancelled'));
+
+    xhr.send(form);
+  });
+
+  return { promise, abort: () => xhr.abort() };
+}

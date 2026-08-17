@@ -5,7 +5,7 @@
 import { db, withTenant } from './client.js';
 import type { ClearanceStage, ShipmentType } from '@hudumika/types';
 
-function typeFromMode(mode: string): ShipmentType {
+function typeFromMode(mode: string | null): ShipmentType {
   if (mode === 'AIR') return 'AIR';
   if (mode === 'ROAD') return 'ROAD';
   return 'SEA_FCL';

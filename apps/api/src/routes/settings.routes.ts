@@ -4,10 +4,24 @@ import nodeCrypto from 'node:crypto';
 import { sql } from 'kysely';
 import { requireRole } from '../middleware/rbac.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
-import nodemailer from 'nodemailer';
 import { getDocSequence, setDocSequence, type DocType } from '../lib/doc-numbering.js';
+import { buildSmtpTransporter } from '../integrations/email.js';
+import { encryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
 
 const DOC_TYPES: DocType[] = ['invoice', 'quotation', 'purchase_order'];
+
+/** Secrets under each of these top-level settings keys that get masked on
+ *  read / encrypted on write — settings.email's SMTP password + each OAuth
+ *  provider's client secret, and settings.ticketImap's mailbox password. */
+const SECRET_FIELDS_BY_KEY: Record<string, readonly string[]> = {
+  email: ['pass', 'outlookClientSecret', 'gmailClientSecret'],
+  ticketImap: ['pass'],
+  'int-google': ['rcSecret', 'oauthSecret'],
+};
+/** OAuth tokens under settings.email — never sent to the browser at all
+ *  (not even masked); only mail-oauth.routes.ts's callback ever writes
+ *  these, directly, bypassing PATCH /v1/settings entirely. */
+const EMAIL_TOKEN_FIELDS = ['outlookAccessToken', 'outlookRefreshToken', 'gmailAccessToken', 'gmailRefreshToken'] as const;
 
 /**
  * How a settings PATCH combines with what is already stored.
@@ -58,6 +72,24 @@ export async function settingsRoutes(fastify: FastifyInstance) {
     return withTenant(user.tenant_id, async (trx) => {
       const row = await trx.selectFrom('tenant_settings').selectAll().where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       const settings = row ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {};
+      // Every secret listed in SECRET_FIELDS_BY_KEY is encrypted at rest —
+      // never send the ciphertext to the browser either. A masked sentinel
+      // round-trips through PATCH /v1/settings as "leave this unchanged"
+      // (see applySettingsPatch below); an empty/unconfigured field stays
+      // empty rather than showing a mask for nothing. OAuth access/refresh
+      // tokens are never shown at all (not even masked) — the UI only ever
+      // needs outlookStatus/gmailStatus to know whether a connection is live.
+      for (const [key, fields] of Object.entries(SECRET_FIELDS_BY_KEY)) {
+        if (!settings[key]) continue;
+        const section = { ...settings[key] };
+        for (const field of fields) if (section[field]) section[field] = MASKED_VALUE;
+        settings[key] = section;
+      }
+      if (settings.email) {
+        const email = { ...settings.email };
+        for (const key of EMAIL_TOKEN_FIELDS) delete email[key];
+        settings.email = email;
+      }
       const tenant = await trx.selectFrom('tenants')
         // organizations has no tenant_id (platform-level, migration 230) and
         // no RLS — a plain left join, just for the display name of whichever
@@ -174,6 +206,25 @@ export async function settingsRoutes(fastify: FastifyInstance) {
     /** Who is making the change, for the activity trail. */
     actorId?: string,
   ) {
+    // Every secret in SECRET_FIELDS_BY_KEY round-trips through the browser
+    // as a masked sentinel (see GET / above) — one still holding that value
+    // came back unchanged, so it's dropped from the patch and mergeSettings
+    // preserves the real encrypted value already stored, instead of
+    // encrypting the literal mask string. A genuinely new value gets
+    // encrypted here, once, before it ever reaches the database. OAuth
+    // tokens are never part of this patch at all — only mail-oauth.
+    // routes.ts's callback ever writes them, straight to the DB, bypassing
+    // this generic endpoint entirely.
+    for (const [key, fields] of Object.entries(SECRET_FIELDS_BY_KEY)) {
+      if (!updates[key] || typeof updates[key] !== 'object') continue;
+      const section = { ...updates[key] };
+      for (const field of fields) {
+        if (section[field] === MASKED_VALUE) delete section[field];
+        else if (section[field]) section[field] = encryptSecret(section[field]);
+      }
+      updates = { ...updates, [key]: section };
+    }
+
     // FOR UPDATE: a read-modify-write needs the row held for the transaction, or
     // two admins saving different sections at the same moment can each merge onto
     // a snapshot taken before the other's write and silently drop it.
@@ -334,21 +385,10 @@ export async function settingsRoutes(fastify: FastifyInstance) {
       enc?: string; fromName?: string; fromEmail?: string;
     };
     if (!host || !user || !pass) return reply.status(400).send({ ok: false, error: 'Fill in SMTP host, username and password first.' });
+    if (pass === MASKED_VALUE) return reply.status(400).send({ ok: false, error: 'Re-enter the password to test — the saved value is masked here for display, not sent back to the browser.' });
 
     const smtpPort = Number(port) || (enc === 'ssl' ? 465 : 587);
-    const secure   = enc === 'ssl';          // true only for port 465 SSL
-    const requireTLS = !secure && enc === 'tls'; // STARTTLS upgrade for port 587
-
-    const transport = nodemailer.createTransport({
-      host,
-      port:        smtpPort,
-      secure,
-      requireTLS,
-      auth:        { user, pass },
-      connectionTimeout: 15_000,
-      socketTimeout:     20_000,
-      tls:         { rejectUnauthorized: false },
-    } as any);
+    const transport = buildSmtpTransporter({ host, port, user, pass, enc });
 
     try {
       await transport.verify();

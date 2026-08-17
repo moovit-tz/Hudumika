@@ -1,7 +1,23 @@
 import type { FastifyInstance } from 'fastify';
+import crypto from 'crypto';
 import { db, withTenant } from '../db/client.js';
 import { env } from '../config/env.js';
 import { NotificationService } from '../services/notification.service.js';
+
+/** Verifies Meta's X-Hub-Signature-256 HMAC over the exact raw request bytes
+ *  — must run before JSON.parse touches the body, since re-serializing would
+ *  not byte-for-byte match what Meta actually signed. Returns true (allow)
+ *  when META_APP_SECRET isn't configured yet, since there's nothing to check
+ *  a signature against; once a real secret is set this starts enforcing. */
+function verifyMetaSignature(rawBody: Buffer, header: string | undefined): boolean {
+  if (!env.META_APP_SECRET) return true;
+  if (!header || !header.startsWith('sha256=')) return false;
+  const expected = crypto.createHmac('sha256', env.META_APP_SECRET).update(rawBody).digest('hex');
+  const provided = header.slice('sha256='.length);
+  const a = Buffer.from(expected, 'hex');
+  const b = Buffer.from(provided, 'hex');
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
 const FLEET_MGMT_ROLES = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'] as const;
 
@@ -21,12 +37,36 @@ async function notifyFleetManagers(tenantId: string, title: string, message: str
 }
 
 export async function webhookRoutes(fastify: FastifyInstance) {
+  // Scoped to this plugin only (Fastify encapsulation) — stashes the raw
+  // bytes on the request before parsing, since verifyMetaSignature needs the
+  // exact wire bytes Meta signed, not a reserialized copy of the parsed JSON.
+  fastify.addContentTypeParser('application/json', { parseAs: 'buffer' }, (req, body, done) => {
+    (req as any).rawBody = body;
+    if (!body.length) return done(null, {});
+    try {
+      done(null, JSON.parse(body.toString('utf8')));
+    } catch (err) {
+      done(err as Error, undefined);
+    }
+  });
+
   /**
    * POST /v1/webhooks/gpswox
    * Webhook endpoint for GPSWOX to push live tracking and alerts
    */
   fastify.post('/gpswox', async (request, reply) => {
     try {
+      // GPSWOX has no request-signing scheme of its own — a shared secret
+      // sent back as ?token= is the simplest proof this came from the
+      // configured GPSWOX account, not an internet client that guessed a
+      // real vehicle IMEI. Skipped (open) until a real secret is configured.
+      if (env.GPSWOX_WEBHOOK_SECRET) {
+        const token = (request.query as any)?.token;
+        if (token !== env.GPSWOX_WEBHOOK_SECRET) {
+          return reply.status(401).send({ error: 'Invalid webhook token' });
+        }
+      }
+
       const payload = request.body as any;
       console.log('📥 GPSWOX Webhook Received:', payload);
 
@@ -116,8 +156,13 @@ export async function webhookRoutes(fastify: FastifyInstance) {
    * Inbound WhatsApp message receiver. Finds customer, resolves case, logs message.
    */
   fastify.post('/whatsapp', async (request, reply) => {
+    const signature = request.headers['x-hub-signature-256'] as string | undefined;
+    if (!verifyMetaSignature((request as any).rawBody, signature)) {
+      return reply.status(401).send({ error: 'Invalid webhook signature' });
+    }
+
     const payload = request.body as any;
-    
+
     // Parse message details
     const entry = payload.entry?.[0];
     const change = entry?.changes?.[0];

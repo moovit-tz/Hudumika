@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 
 // Tasks + Calendar backend. Both are personal (per-user), not tenant-shared —
@@ -8,6 +9,82 @@ import { withTenant } from '../db/client.js';
 // create, so optimistic local updates never need id reconciliation.
 
 const DEFAULT_LIST_COLOR = '#0d7a6b';
+
+// id/list_id/task_id are real UUID PRIMARY KEY / FK columns (migration 079)
+// — a non-UUID string used to reach the DB uncaught and 500 with a raw
+// Postgres "invalid input syntax for type uuid" error.
+const uuidSchema = z.string().uuid();
+// Real values — calendarStore.ts's own TaskStatus / category / calendarDefaultView types.
+const TASK_STATUSES = ['none', 'in_progress', 'in_review', 'waiting', 'completed'] as const;
+const EVENT_CATEGORIES = ['work', 'personal', 'customs', 'todo'] as const;
+const CALENDAR_VIEWS = ['month', 'week', 'day', 'agenda'] as const;
+
+const listCreateSchema = z.object({
+  id: uuidSchema,
+  name: z.string().trim().min(1).max(200),
+  color: z.string().max(30).optional(),
+});
+const listPatchSchema = z.object({
+  name: z.string().trim().min(1).max(200).optional(),
+  color: z.string().max(30).optional(),
+  sort_order: z.number().int().optional(),
+});
+const taskCreateSchema = z.object({
+  id: uuidSchema,
+  title: z.string().trim().min(1).max(500),
+  listId: uuidSchema,
+  notes: z.string().max(10000).optional(),
+  due: z.string().optional(),
+  starred: z.boolean().optional(),
+  someday: z.boolean().optional(),
+  status: z.enum(TASK_STATUSES).optional(),
+  tags: z.array(z.string()).optional(),
+});
+const taskPatchSchema = z.object({
+  title: z.string().trim().min(1).max(500).optional(),
+  notes: z.string().max(10000).nullable().optional(),
+  due: z.string().nullable().optional(),
+  starred: z.boolean().optional(),
+  someday: z.boolean().optional(),
+  status: z.enum(TASK_STATUSES).optional(),
+  tags: z.array(z.string()).optional(),
+  completed: z.boolean().optional(),
+  sortOrder: z.number().int().optional(),
+  listId: uuidSchema.optional(),
+  deletedAt: z.string().nullable().optional(),
+});
+const subtaskCreateSchema = z.object({
+  id: uuidSchema,
+  title: z.string().trim().min(1).max(500),
+});
+const subtaskPatchSchema = z.object({
+  title: z.string().trim().min(1).max(500).optional(),
+  completed: z.boolean().optional(),
+});
+const eventCreateSchema = z.object({
+  id: uuidSchema,
+  title: z.string().trim().min(1).max(500),
+  start: z.string().min(1),
+  end: z.string().min(1),
+  description: z.string().max(10000).optional(),
+  location: z.string().max(500).optional(),
+  category: z.enum(EVENT_CATEGORIES).optional(),
+  guests: z.array(z.string()).optional(),
+});
+const eventPatchSchema = z.object({
+  title: z.string().trim().min(1).max(500).optional(),
+  start: z.string().min(1).optional(),
+  end: z.string().min(1).optional(),
+  description: z.string().max(10000).nullable().optional(),
+  location: z.string().max(500).nullable().optional(),
+  category: z.enum(EVENT_CATEGORIES).optional(),
+  guests: z.array(z.string()).optional(),
+});
+const appSettingsPatchSchema = z.object({
+  calendarDefaultView: z.enum(CALENDAR_VIEWS).optional(),
+  weekStartsMonday: z.boolean().optional(),
+  tasksDefaultView: z.string().max(50).optional(),
+});
 
 export async function tasksRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -33,8 +110,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
 
   fastify.post('/lists', async (request, reply) => {
     const user = request.user;
-    const body = request.body as { id: string; name: string; color?: string };
-    if (!body.id || !body.name?.trim()) return reply.status(400).send({ error: 'id and name are required' });
+    const body = listCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const row = await trx.insertInto('task_lists').values({
         id: body.id, tenant_id: user.tenant_id, user_id: user.sub,
@@ -47,7 +123,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
 
   fastify.patch<{ Params: { id: string } }>('/lists/:id', async (request, reply) => {
     const user = request.user;
-    const body = request.body as { name?: string; color?: string; sort_order?: number };
+    const body = listPatchSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const updates: Record<string, unknown> = {};
       if (body.name !== undefined) updates.name = body.name.trim();
@@ -107,8 +183,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
 
   fastify.post('/items', async (request, reply) => {
     const user = request.user;
-    const body = request.body as { id: string; title: string; listId: string; notes?: string; due?: string; starred?: boolean; someday?: boolean; status?: string; tags?: string[] };
-    if (!body.id || !body.title?.trim() || !body.listId) return reply.status(400).send({ error: 'id, title and listId are required' });
+    const body = taskCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const siblingCount = await trx.selectFrom('tasks').select(({ fn }) => fn.countAll<number>().as('count'))
         .where('list_id', '=', body.listId).where('user_id', '=', user.sub).where('deleted_at', 'is', null).executeTakeFirst();
@@ -126,10 +201,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
 
   fastify.patch<{ Params: { id: string } }>('/items/:id', async (request, reply) => {
     const user = request.user;
-    const body = request.body as Partial<{
-      title: string; notes: string | null; due: string | null; starred: boolean; someday: boolean;
-      status: string; tags: string[]; completed: boolean; sortOrder: number; listId: string; deletedAt: string | null;
-    }>;
+    const body = taskPatchSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const updates: Record<string, unknown> = { updated_at: new Date() };
       if (body.title !== undefined) updates.title = body.title.trim();
@@ -174,8 +246,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
 
   fastify.post<{ Params: { id: string } }>('/items/:id/subtasks', async (request, reply) => {
     const user = request.user;
-    const body = request.body as { id: string; title: string };
-    if (!body.id || !body.title?.trim()) return reply.status(400).send({ error: 'id and title are required' });
+    const body = subtaskCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const parent = await trx.selectFrom('tasks').select('id').where('id', '=', request.params.id).where('user_id', '=', user.sub).executeTakeFirst();
       if (!parent) return reply.status(404).send({ error: 'Task not found' });
@@ -189,7 +260,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
 
   fastify.patch<{ Params: { id: string; subId: string } }>('/items/:id/subtasks/:subId', async (request, reply) => {
     const user = request.user;
-    const body = request.body as Partial<{ title: string; completed: boolean }>;
+    const body = subtaskPatchSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const updates: Record<string, unknown> = {};
       if (body.title !== undefined) updates.title = body.title.trim();
@@ -249,8 +320,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
 
   fastify.post('/events', async (request, reply) => {
     const user = request.user;
-    const body = request.body as { id: string; title: string; start: string; end: string; description?: string; location?: string; category?: string; guests?: string[] };
-    if (!body.id || !body.title?.trim() || !body.start || !body.end) return reply.status(400).send({ error: 'id, title, start and end are required' });
+    const body = eventCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const row = await trx.insertInto('calendar_events').values({
         id: body.id, tenant_id: user.tenant_id, user_id: user.sub, title: body.title.trim(),
@@ -265,7 +335,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
 
   fastify.patch<{ Params: { id: string } }>('/events/:id', async (request, reply) => {
     const user = request.user;
-    const body = request.body as Partial<{ title: string; start: string; end: string; description: string | null; location: string | null; category: string; guests: string[] }>;
+    const body = eventPatchSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const updates: Record<string, unknown> = {};
       if (body.title !== undefined) updates.title = body.title.trim();
@@ -306,7 +376,7 @@ export async function tasksRoutes(fastify: FastifyInstance) {
 
   fastify.patch('/settings', async (request) => {
     const user = request.user;
-    const body = request.body as Partial<{ calendarDefaultView: string; weekStartsMonday: boolean; tasksDefaultView: string }>;
+    const body = appSettingsPatchSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const updates: Record<string, unknown> = { updated_at: new Date() };
       if (body.calendarDefaultView !== undefined) updates.calendar_default_view = body.calendarDefaultView;

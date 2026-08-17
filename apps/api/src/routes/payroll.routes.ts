@@ -18,7 +18,7 @@ import { withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { overtimeAmount } from '../services/attendance.service.js';
-import { EmailIntegration } from '../integrations/email.js';
+import { MailService } from '../services/mail.service.js';
 import {
   computePayslip, summariseRun,
   type TaxBand, type ContributionScheme, type PayslipResult, type Residency,
@@ -502,18 +502,16 @@ export async function payrollRoutes(fastify: FastifyInstance) {
       const failures: string[] = [];
       for (const s of slips) {
         if (!s.email) { skipped++; failures.push(`${s.name} (no email on file)`); continue; }
-        const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#111;max-width:520px">
-          <h2 style="margin:0 0 4px">Your payslip</h2>
-          <div style="color:#666;font-size:13px;margin-bottom:16px">${run.name}</div>
-          <table style="width:100%;border-collapse:collapse;font-size:13px">
+        const payslipTable = `<table style="width:100%;border-collapse:collapse;font-size:13px">
             <tr><td style="padding:6px 0;color:#666">Gross pay</td><td style="padding:6px 0;text-align:right;font-weight:700">${money(s.gross_pay)}</td></tr>
             <tr><td style="padding:6px 0;color:#666">Income tax (PAYE)</td><td style="padding:6px 0;text-align:right;color:#b91c1c">-${money(s.income_tax)}</td></tr>
             <tr><td style="padding:6px 0;color:#666">Total deductions</td><td style="padding:6px 0;text-align:right;color:#b91c1c">-${money(s.total_deductions)}</td></tr>
             <tr><td style="padding:10px 0;font-weight:800;border-top:2px solid #111">Net pay</td><td style="padding:10px 0;text-align:right;font-weight:800;border-top:2px solid #111;color:#047857">${money(s.net_pay)}</td></tr>
-          </table>
-          <p style="color:#888;font-size:12px;margin-top:18px">The full breakdown is available under My Payslips in NexusHR. This payslip is computer-generated.</p>
-        </div>`;
-        const r = await EmailIntegration.sendEmail({ to: s.email, subject: `Your payslip — ${run.name}`, bodyHtml: html, tenantId: user.tenant_id });
+          </table>`;
+        // Sent synchronously (not via the outbox) — this route's own
+        // sent/skipped counts below are a real per-recipient result the
+        // finance admin reads immediately, not a "queued" count.
+        const r = await MailService.sendNowTemplated(user.tenant_id, 'payroll.payslip', s.email, { runName: run.name, employeeName: s.name, payslipTable }, 'payroll');
         if (r.success) sent++; else { skipped++; failures.push(`${s.name} (${r.error || 'send failed'})`); }
       }
       return { ok: true, total: slips.length, sent, skipped, failures };

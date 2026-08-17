@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { requireRole } from '../middleware/rbac.js';
 import { db } from '../db/client.js';
 import { sql } from 'kysely';
@@ -8,6 +9,34 @@ import { PlatformAdminService } from '../services/platform-admin.service.js';
 import { CloudSync } from '../services/cloud-sync.service.js';
 
 const GLOBAL_TENANT_ID = '00000000-0000-0000-0000-000000000000';
+
+// Real values — SuperAdmin.tsx's own PlanId type / packages catalog codes.
+const TENANT_PLANS = ['starter', 'growth', 'scale', 'enterprise'] as const;
+const tenantCreateSchema = z.object({
+  name: z.string().trim().min(1).max(300),
+  slug: z.string().trim().max(100).optional(),
+  plan: z.enum(TENANT_PLANS).optional(),
+  active: z.boolean().optional(),
+  logo_url: z.string().max(1000).optional(),
+  primary_color: z.string().max(30).optional(),
+});
+const tenantPatchSchema = z.object({
+  name: z.string().trim().min(1).max(300).optional(),
+  slug: z.string().trim().max(100).optional(),
+  plan: z.enum(TENANT_PLANS).optional(),
+  active: z.boolean().optional(),
+  logo_url: z.string().max(1000).nullable().optional(),
+  primary_color: z.string().max(30).nullable().optional(),
+});
+const tenantAppsPatchSchema = z.object({
+  enabledApps: z.record(z.string(), z.boolean()),
+});
+// Platform settings is a genuinely free-form JSONB blob (branding, SMTP,
+// feature flags, ...), so this only guards it's a plain object — Object.keys()
+// below would throw on null/an array, and the merge would silently corrupt
+// the settings row if body weren't a real object.
+const platformSettingsSchema = z.record(z.string(), z.any());
+const ocrTestSchema = z.object({ geminiApiKey: z.string().trim().min(1) });
 
 export async function superAdminRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -283,7 +312,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
 
   // 3. POST /v1/superadmin/tenants
   fastify.post('/tenants', async (request, reply) => {
-    const body = request.body as any;
+    const body = tenantCreateSchema.parse(request.body);
     const now = new Date();
     const result = await db.insertInto('tenants')
       .values({
@@ -315,7 +344,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
   // 4. PATCH /v1/superadmin/tenants/:id
   fastify.patch('/tenants/:id', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const body = request.body as any;
+    const body = tenantPatchSchema.parse(request.body);
     const before = await db.selectFrom('tenants').select(['name', 'plan', 'active'])
       .where('id', '=', id).executeTakeFirst();
     const updates: any = { updated_at: new Date() };
@@ -386,7 +415,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
   // 5c. PATCH /v1/superadmin/tenants/:id/apps — enable/disable specific apps for this tenant
   fastify.patch('/tenants/:id/apps', async (request, reply) => {
     const { id } = request.params as { id: string };
-    const { enabledApps } = request.body as { enabledApps: Record<string, boolean> };
+    const { enabledApps } = tenantAppsPatchSchema.parse(request.body);
 
     const existing = await db.selectFrom('tenant_settings').select('id').where('tenant_id', '=', id).executeTakeFirst();
     const patch = JSON.stringify({ 'enabled-apps': enabledApps });
@@ -455,7 +484,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
 
   // 7. POST /v1/superadmin/settings
   fastify.post('/settings', async (request, reply) => {
-    const body = request.body as Record<string, any>;
+    const body = platformSettingsSchema.parse(request.body);
     const existing = await db.selectFrom('tenant_settings')
       .select('id')
       .where('tenant_id', '=', GLOBAL_TENANT_ID)
@@ -500,8 +529,7 @@ export async function superAdminRoutes(fastify: FastifyInstance) {
 
   // 8b. POST /v1/superadmin/ocr-test — verify a Gemini API key actually works
   fastify.post('/ocr-test', async (request, reply) => {
-    const { geminiApiKey } = request.body as { geminiApiKey?: string };
-    if (!geminiApiKey) return reply.status(400).send({ error: 'geminiApiKey is required' });
+    const { geminiApiKey } = ocrTestSchema.parse(request.body);
 
     try {
       const { GoogleGenAI } = await import('@google/genai');

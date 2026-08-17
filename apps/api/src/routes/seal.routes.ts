@@ -1,11 +1,184 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { withTenant } from '../db/client.js';
 import { SealService, IllegalCustomsTransition, BondHeadroomExceeded, DgSegregationViolation, LotNotFound } from '../services/seal.service.js';
 import { toDateParam } from '../utils/dates.js';
 import {
-  CUSTOMS_STATUS_ENTRY_POINTS, legalNextCustomsStatuses, validateContainerNumber, type CustomsStatus,
+  CUSTOMS_STATUS_ENTRY_POINTS, CUSTOMS_STATUSES, legalNextCustomsStatuses, validateContainerNumber, type CustomsStatus,
 } from '@hudumika/types';
+
+// Real values — DB CHECK constraints (106_seal_bonded_warehouse.sql,
+// 107_seal_gate_and_bond.sql, 120/121_seal_sorting/fulfillment_centre.sql).
+const WAREHOUSE_TYPES = [
+  'public_bonded', 'private_bonded', 'cfs', 'icd', 'virtual_icd',
+  'free_zone', 'duty_free_retail', 'excise', 'sorting_centre', 'fulfillment_centre',
+] as const;
+const ZONE_TYPES = ['receiving', 'bulk', 'pick', 'vas', 'quarantine', 'outbound', 'yard', 'sort_lane'] as const;
+const LOCATION_TYPES = ['rack', 'floor', 'yard_slot', 'tank', 'dock', 'staging'] as const;
+const MOVEMENT_TYPES = ['receipt', 'putaway', 'pick', 'transfer', 'adjust', 'release', 'destroy', 'status_change'] as const;
+const DISCREPANCY_TYPES = ['shortage', 'overage', 'damage', 'misdescription', 'weight_variance'] as const;
+const DISCREPANCY_SEVERITIES = ['minor', 'fiscal_relevant'] as const;
+const DISCREPANCY_STATUSES = ['raised', 'investigating', 'resolved'] as const;
+const APPOINTMENT_TYPES = ['INBOUND', 'OUTBOUND'] as const;
+
+const compartmentCreateSchema = z.object({
+  code: z.string().trim().min(1).max(50),
+  name: z.string().trim().min(1).max(200),
+  warehouseType: z.enum(WAREHOUSE_TYPES).optional(),
+  licenceNumber: z.string().max(100).optional(),
+  licenceExpiry: z.string().optional(),
+  customsOfficeCode: z.string().max(50).optional(),
+  jurisdiction: z.string().max(10).optional(),
+  defaultStorageDays: z.number().optional(),
+  active: z.boolean().optional(),
+});
+const compartmentPatchSchema = z.object({
+  code: z.string().trim().min(1).max(50).optional(),
+  name: z.string().trim().min(1).max(200).optional(),
+  warehouseType: z.enum(WAREHOUSE_TYPES).optional(),
+  licenceNumber: z.string().max(100).nullable().optional(),
+  licenceExpiry: z.string().nullable().optional(),
+  customsOfficeCode: z.string().max(50).nullable().optional(),
+  jurisdiction: z.string().max(10).optional(),
+  defaultStorageDays: z.number().optional(),
+  guaranteeId: z.string().nullable().optional(),
+  storageFeePerDay: z.number().optional(),
+  storageFeeCurrency: z.string().max(10).optional(),
+  handlingFeeFlat: z.number().optional(),
+  storageFeePerCbmPerDay: z.number().optional(),
+  billingMethod: z.string().max(50).optional(),
+  geofenceId: z.string().nullable().optional(),
+  active: z.boolean().optional(),
+  logoUrl: z.string().nullable().optional(),
+});
+const zoneCreateSchema = z.object({
+  compartmentId: z.string().min(1),
+  code: z.string().trim().min(1).max(50),
+  name: z.string().trim().min(1).max(200),
+  zoneType: z.enum(ZONE_TYPES).optional(),
+});
+const locationCreateSchema = z.object({
+  compartmentId: z.string().min(1),
+  zoneId: z.string().min(1),
+  code: z.string().trim().min(1).max(50),
+  locationType: z.enum(LOCATION_TYPES).optional(),
+  capacityUnits: z.number().optional(),
+  floorLevel: z.number().optional(),
+  maxStackTiers: z.number().optional(),
+  gridRow: z.number().nullable().optional(),
+  gridCol: z.number().nullable().optional(),
+  lengthM: z.number().nullable().optional(),
+  widthM: z.number().nullable().optional(),
+  heightM: z.number().nullable().optional(),
+});
+const locationPatchSchema = z.object({
+  floorLevel: z.number().optional(),
+  maxStackTiers: z.number().optional(),
+  gridRow: z.number().nullable().optional(),
+  gridCol: z.number().nullable().optional(),
+  capacityUnits: z.number().optional(),
+  lengthM: z.number().nullable().optional(),
+  widthM: z.number().nullable().optional(),
+  heightM: z.number().nullable().optional(),
+});
+const lotCreateSchema = z.object({
+  compartmentId: z.string().min(1),
+  ownerId: z.string().min(1),
+  description: z.string().trim().min(1).max(2000),
+  customsStatus: z.enum(CUSTOMS_STATUSES as unknown as readonly [CustomsStatus, ...CustomsStatus[]]),
+  qty: z.number(),
+  uom: z.string().min(1).max(20),
+  hsCode: z.string().max(20).optional(),
+  countryOfOrigin: z.string().max(2).optional(),
+  entryReference: z.string().max(200).optional(),
+  locationId: z.string().optional(),
+  customsValue: z.number().optional(),
+  currency: z.string().max(10).optional(),
+  warehousedOn: z.string().optional(),
+  expiresOn: z.string().optional(),
+  batch: z.string().max(100).optional(),
+  dutyAtRisk: z.number().optional(),
+  taxAtRisk: z.number().optional(),
+  bondOverrideReason: z.string().max(1000).optional(),
+  isDangerousGoods: z.boolean().optional(),
+  unNumber: z.string().max(20).optional(),
+  imdgClass: z.string().max(20).optional(),
+  requiresReefer: z.boolean().optional(),
+  reeferSetpointC: z.number().optional(),
+  stackTier: z.number().optional(),
+  volumeCbm: z.number().nullable().optional(),
+  grossWeightKg: z.number().nullable().optional(),
+  destinationLabel: z.string().max(200).nullable().optional(),
+});
+const movementCreateSchema = z.object({
+  movementType: z.enum(MOVEMENT_TYPES).optional(),
+  toLocationId: z.string().optional(),
+  stackTier: z.number().optional(),
+  qtyDelta: z.number().optional(),
+  toCustomsStatus: z.enum(CUSTOMS_STATUSES as unknown as readonly [CustomsStatus, ...CustomsStatus[]]).optional(),
+  entryReference: z.string().max(200).optional(),
+  reasonCode: z.string().max(100).optional(),
+  reference: z.string().max(200).optional(),
+});
+const guaranteeCreateSchema = z.object({
+  reference: z.string().trim().min(1).max(200),
+  faceValue: z.number(),
+  currency: z.string().min(1).max(10),
+  effectiveFrom: z.string().min(1),
+  expiresOn: z.string().min(1),
+  instrumentType: z.string().max(50).optional(),
+  issuer: z.string().max(200).optional(),
+});
+const consignmentCreateSchema = z.object({
+  compartmentId: z.string().min(1),
+  ownerId: z.string().min(1),
+  transportDocType: z.string().max(20).optional(),
+  transportDocNumber: z.string().max(100).optional(),
+  expectedArrival: z.string().optional(),
+  goodsDescription: z.string().max(2000).optional(),
+});
+const containerCreateSchema = z.object({
+  containerNumber: z.string().trim().min(1).max(20),
+  containerSize: z.string().max(20).optional(),
+});
+const gateInSchema = z.object({
+  grossWeightKg: z.number().nullable().optional(),
+  tareWeightKg: z.number().nullable().optional(),
+  vgmWeightKg: z.number().nullable().optional(),
+  sealNumber: z.string().max(50).optional(),
+});
+// Per-line shape only — SealService.receiveLot does the real per-line
+// validation (bond headroom, DG segregation, legal customs-status entry).
+const devanTallyLineSchema = z.object({
+  discrepancy: z.any().optional(),
+  discrepancyType: z.enum(DISCREPANCY_TYPES).optional(),
+  description: z.string().max(2000).optional(),
+  hsCode: z.string().max(20).optional(),
+  countryOfOrigin: z.string().max(2).optional(),
+  customsStatus: z.enum(CUSTOMS_STATUSES as unknown as readonly [CustomsStatus, ...CustomsStatus[]]).optional(),
+  entryReference: z.string().max(200).optional(),
+  locationId: z.string().optional(),
+  qty: z.number().optional(),
+  uom: z.string().max(20).optional(),
+  customsValue: z.number().optional(),
+  currency: z.string().max(10).optional(),
+  dutyAtRisk: z.number().optional(),
+  taxAtRisk: z.number().optional(),
+  bondOverrideReason: z.string().max(1000).optional(),
+}).passthrough();
+const devanTallySchema = z.object({ lines: z.array(devanTallyLineSchema).min(1) });
+const discrepancyPatchSchema = z.object({
+  status: z.enum(DISCREPANCY_STATUSES),
+  resolutionNote: z.string().max(2000).optional(),
+});
+const appointmentCreateSchema = z.object({
+  compartmentId: z.string().min(1),
+  appointmentType: z.enum(APPOINTMENT_TYPES),
+  scheduledAt: z.string().min(1),
+  consignmentId: z.string().optional(),
+  reference: z.string().max(200).optional(),
+});
 
 export function bondHeadroomResponse(err: BondHeadroomExceeded) {
   return {
@@ -474,9 +647,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/compartments', async (request: any, reply) => {
+    const b = compartmentCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.code || !b.name) return reply.status(400).send({ error: 'code and name are required' });
       return await withTenant(request.user.tenant_id, trx =>
         trx.insertInto('seal_compartments').values({
           tenant_id: request.user.tenant_id,
@@ -496,8 +668,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/compartments/:id', async (request: any, reply) => {
+    const b = compartmentPatchSchema.parse(request.body) as Record<string, any>;
     try {
-      const b = request.body as any;
       return await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_compartments').set({
           code: b.code === undefined ? undefined : b.code,
@@ -622,9 +794,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/zones', async (request: any, reply) => {
+    const b = zoneCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.compartmentId || !b.code || !b.name) return reply.status(400).send({ error: 'compartmentId, code and name are required' });
       return await withTenant(request.user.tenant_id, trx =>
         trx.insertInto('seal_zones').values({
           tenant_id: request.user.tenant_id,
@@ -653,9 +824,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/locations', async (request: any, reply) => {
+    const b = locationCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.compartmentId || !b.zoneId || !b.code) return reply.status(400).send({ error: 'compartmentId, zoneId and code are required' });
       return await withTenant(request.user.tenant_id, trx =>
         trx.insertInto('seal_locations').values({
           tenant_id: request.user.tenant_id,
@@ -679,8 +849,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
   // Layout planning: reposition a location on the floor grid, change its
   // floor/mezzanine level, or adjust how many vertical tiers it holds.
   fastify.patch('/locations/:id', async (request: any, reply) => {
+    const b = locationPatchSchema.parse(request.body);
     try {
-      const b = request.body as any;
       const patch: any = {};
       if (b.floorLevel !== undefined) patch.floor_level = b.floorLevel;
       if (b.maxStackTiers !== undefined) patch.max_stack_tiers = b.maxStackTiers;
@@ -983,11 +1153,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/lots', async (request: any, reply) => {
+    const b = lotCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.compartmentId || !b.ownerId || !b.description || !b.customsStatus || !b.qty || !b.uom) {
-        return reply.status(400).send({ error: 'compartmentId, ownerId, description, customsStatus, qty and uom are required' });
-      }
       if (!CUSTOMS_STATUS_ENTRY_POINTS.includes(b.customsStatus)) {
         return reply.status(422).send({ error: `A lot cannot be received directly into ${b.customsStatus}. Valid entry statuses: ${CUSTOMS_STATUS_ENTRY_POINTS.join(', ')}` });
       }
@@ -1050,8 +1217,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/lots/:id/movements', async (request: any, reply) => {
+    const b = movementCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
       const movement = await withTenant(request.user.tenant_id, trx =>
         SealService.recordMovement(trx, request.user.tenant_id, {
           actorId: request.user.sub,
@@ -1110,11 +1277,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/guarantees', async (request: any, reply) => {
+    const b = guaranteeCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.reference || !b.faceValue || !b.currency || !b.effectiveFrom || !b.expiresOn) {
-        return reply.status(400).send({ error: 'reference, faceValue, currency, effectiveFrom and expiresOn are required' });
-      }
       return await withTenant(request.user.tenant_id, trx =>
         trx.insertInto('seal_guarantees').values({
           tenant_id: request.user.tenant_id,
@@ -1165,9 +1329,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/consignments', async (request: any, reply) => {
+    const b = consignmentCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.compartmentId || !b.ownerId) return reply.status(400).send({ error: 'compartmentId and ownerId are required' });
       return await withTenant(request.user.tenant_id, trx =>
         trx.insertInto('seal_consignments').values({
           tenant_id: request.user.tenant_id,
@@ -1206,8 +1369,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
 
   // ── Containers: add to a consignment, gate-in, gate-out, devan/tally ───
   fastify.post('/consignments/:id/containers', async (request: any, reply) => {
+    const b = containerCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
       const check = validateContainerNumber(b.containerNumber || '');
       if (!check.valid) {
         return reply.status(422).send({ error: `Invalid container number: ${check.reason}`, expectedCheckDigit: check.expectedCheckDigit });
@@ -1232,8 +1395,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
   // Built as a normal online page — see 107_seal_gate_and_bond.sql's header
   // note on why true offline mode (spec M2.9) isn't attempted this pass.
   fastify.post('/containers/:id/gate-in', async (request: any, reply) => {
+    const b = gateInSchema.parse(request.body);
     try {
-      const b = request.body as any;
       const container = await withTenant(request.user.tenant_id, trx =>
         trx.selectFrom('seal_containers').selectAll().where('tenant_id', '=', request.user.tenant_id).where('id', '=', request.params.id).executeTakeFirst()
       );
@@ -1274,10 +1437,9 @@ export async function sealRoutes(fastify: FastifyInstance) {
   // (post-redesign); /devan is kept as an alias so any other caller of the
   // original contract doesn't silently 404.
   async function handleDevanTally(request: any, reply: any) {
+    const b = devanTallySchema.parse(request.body);
     try {
-      const b = request.body as any;
-      const lines = Array.isArray(b.lines) ? b.lines : [];
-      if (lines.length === 0) return reply.status(400).send({ error: 'At least one tally line is required' });
+      const lines = b.lines;
 
       const container = await withTenant(request.user.tenant_id, trx =>
         trx.selectFrom('seal_containers').selectAll().where('tenant_id', '=', request.user.tenant_id).where('id', '=', request.params.id).executeTakeFirst()
@@ -1312,7 +1474,9 @@ export async function sealRoutes(fastify: FastifyInstance) {
           const lot = await withTenant(request.user.tenant_id, trx =>
             SealService.receiveLot(trx, request.user.tenant_id, request.user.sub, {
               compartmentId: consignment.compartment_id, ownerId: consignment.owner_id,
-              description: line.description, hsCode: line.hsCode, countryOfOrigin: line.countryOfOrigin,
+              // seal_lots.description is NOT NULL — a tally line with no text
+              // description previously reached the DB as undefined and 500'd.
+              description: line.description || 'Devanned item', hsCode: line.hsCode, countryOfOrigin: line.countryOfOrigin,
               customsStatus: line.customsStatus ?? 'FOREIGN_DUTY_SUSPENDED',
               entryReference: line.entryReference, locationId: line.locationId,
               qty: Number(line.qty), uom: line.uom ?? 'PCS',
@@ -1366,8 +1530,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
   });
 
   fastify.patch('/discrepancies/:id', async (request: any, reply) => {
+    const b = discrepancyPatchSchema.parse(request.body);
     try {
-      const b = request.body as any;
       return await withTenant(request.user.tenant_id, trx =>
         trx.updateTable('seal_discrepancies').set({
           status: b.status, resolution_note: b.resolutionNote ?? null,
@@ -1391,11 +1555,8 @@ export async function sealRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/appointments', async (request: any, reply) => {
+    const b = appointmentCreateSchema.parse(request.body);
     try {
-      const b = request.body as any;
-      if (!b.compartmentId || !b.appointmentType || !b.scheduledAt) {
-        return reply.status(400).send({ error: 'compartmentId, appointmentType and scheduledAt are required' });
-      }
       return await withTenant(request.user.tenant_id, trx =>
         trx.insertInto('seal_appointments').values({
           tenant_id: request.user.tenant_id,

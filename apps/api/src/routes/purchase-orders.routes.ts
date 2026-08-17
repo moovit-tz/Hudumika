@@ -1,11 +1,40 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
 import { getNextDocNumber } from '../lib/doc-numbering.js';
 import { isTaxCodeUserError, resolveTaxCode } from '../services/tax-code.service.js';
 import type { Transaction } from 'kysely';
 import type { Database } from '../db/client.js';
+
+// Wire format is uppercase (PurchaseOrders.tsx's toApiStatus does
+// POStatus.toUpperCase() before sending) even though the frontend's own
+// display type is title-case ('Draft'|'Sent'|...).
+const PO_STATUS = ['DRAFT', 'SENT', 'PARTIAL', 'RECEIVED', 'CANCELLED'] as const;
+const poLineSchema = z.object({
+  description: z.string().max(500).optional(),
+  category: z.string().max(100).optional(),
+  qty: z.number().optional(),
+  unit_price: z.number().optional(),
+  tax_rate: z.number().optional(),
+  tax_code_id: z.string().optional(),
+  received_qty: z.number().optional(),
+}).passthrough(); // buildPoLines does its own per-line validation — this only guards the shape isn't a non-object.
+const poCreateSchema = z.object({
+  lines: z.array(poLineSchema).optional(),
+  po_number: z.string().max(100).optional(),
+  supplier_id: z.string().optional(),
+  supplier_name: z.string().max(300).optional(),
+  status: z.enum(PO_STATUS).optional(),
+  order_date: z.string().optional(),
+  expected_date: z.string().optional(),
+  currency: z.string().max(10).optional(),
+  notes: z.string().max(5000).optional(),
+  warehouse_id: z.string().optional(),
+  warehouse_name: z.string().max(200).optional(),
+  payment_terms: z.string().max(200).optional(),
+});
 
 
 /**
@@ -87,7 +116,7 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
   // POST /v1/purchase-orders
   fastify.post('/', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
     const user = request.user;
-    const body = request.body as any;
+    const body = poCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const items = Array.isArray(body.lines) ? body.lines : [];
       const built = await buildPoLines(trx, user.tenant_id, '', items);
@@ -160,7 +189,7 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const body = request.body as any;
+    const body = poCreateSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx
         .selectFrom('purchase_orders')
@@ -173,9 +202,10 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
 
       const updates: any = { updated_at: new Date() };
       const fields = ['po_number', 'supplier_id', 'supplier_name', 'status', 'order_date', 'expected_date', 'currency', 'notes', 'warehouse_id', 'warehouse_name', 'payment_terms'];
+      const b = body as Record<string, unknown>;
       for (const f of fields) {
-        if (body[f] !== undefined) {
-          updates[f] = (f === 'order_date' || f === 'expected_date') && body[f] ? new Date(body[f]) : body[f];
+        if (b[f] !== undefined) {
+          updates[f] = (f === 'order_date' || f === 'expected_date') && b[f] ? new Date(b[f] as string) : b[f];
         }
       }
 
@@ -209,7 +239,7 @@ export async function purchaseOrderRoutes(fastify: FastifyInstance) {
   fastify.patch('/:id/status', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') }, async (request: any, reply) => {
     const user = request.user;
     const { id } = request.params as { id: string };
-    const { status } = request.body as { status: string };
+    const { status } = z.object({ status: z.enum(PO_STATUS) }).parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
       await trx
         .updateTable('purchase_orders')

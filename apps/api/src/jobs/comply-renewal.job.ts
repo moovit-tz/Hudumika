@@ -2,7 +2,7 @@ import { db, withTenant } from '../db/client.js';
 import { emitDomainEvent } from '../services/domain-events.service.js';
 import { NotificationService } from '../services/notification.service.js';
 import { WhatsAppIntegration } from '../integrations/whatsapp.js';
-import { EmailIntegration } from '../integrations/email.js';
+import { MailService } from '../services/mail.service.js';
 import { toISODate, toEpochMs, toDateParam } from '../utils/dates.js';
 
 const RENEWAL_LEAD_DAYS = 30;
@@ -33,11 +33,8 @@ async function notifyComplyManagers(tenantId: string, title: string, message: st
     if (m.phone) {
       await WhatsAppIntegration.sendMessage(m.phone, `${title}\n${message}`).catch(() => {});
     }
-    await EmailIntegration.sendEmail({
-      to: m.email, subject: title,
-      bodyHtml: `<p>${message}</p><p><a href="${link}">View in ComplyOS</a></p>`,
-      tenantId,
-    }).catch(() => {});
+    await MailService.enqueueTemplated(tenantId, 'complyos.renewal_alert', m.email, { title, message, link }, 'complyos')
+      .catch(() => {});
   }));
 }
 

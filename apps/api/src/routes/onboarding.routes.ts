@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
-import type { OnboardingCompleteInput, SubdomainCheckResponse, EmailCheckResponse } from '@hudumika/types';
+import { z } from 'zod';
+import type { SubdomainCheckResponse, EmailCheckResponse } from '@hudumika/types';
 import {
   OnboardingService,
   OnboardingError,
@@ -7,6 +8,45 @@ import {
   isSubdomainAvailable,
   isEmailAvailable,
 } from '../services/onboarding.service.js';
+
+// The one genuinely public, unauthenticated route in this file that writes
+// real data (a whole new tenant) — the route previously only checked that a
+// handful of fields were *present*, not that they were the right *type*.
+// completeOnboarding() (onboarding.service.ts) already re-validates the
+// subdomain's format/availability and the email's availability as real
+// business rules, so this schema isn't duplicating that — it's the type/shape
+// gate in front of it, catching e.g. a non-string company.name or a missing
+// `configuration` block before either ever reaches the service.
+const onboardingCompleteSchema = z.object({
+  account: z.object({
+    name: z.string().trim().min(1).max(200),
+    email: z.string().trim().email().max(320),
+    password: z.string().min(8).max(200),
+  }),
+  company: z.object({
+    name: z.string().trim().min(1).max(200),
+    industry: z.string().max(100).optional(),
+    country: z.string().max(100).optional(),
+  }),
+  package_code: z.string().min(1).max(50),
+  billing_cycle: z.enum(['monthly', 'annual']),
+  subdomain: z.string().min(1).max(63),
+  payment: z.object({
+    method: z.enum(['card', 'mpesa']),
+    card_number: z.string().max(30).optional(),
+    card_holder: z.string().max(200).optional(),
+    card_expiry: z.string().max(10).optional(),
+    card_cvc: z.string().max(10).optional(),
+    mobile_number: z.string().max(30).optional(),
+    mobile_provider: z.string().max(50).optional(),
+  }),
+  configuration: z.object({
+    timezone: z.string().min(1).max(100),
+    currency: z.string().min(1).max(10),
+    hq_city: z.string().max(100).optional(),
+    hq_country: z.string().max(100).optional(),
+  }),
+});
 
 export async function onboardingRoutes(fastify: FastifyInstance) {
   /**
@@ -46,14 +86,9 @@ export async function onboardingRoutes(fastify: FastifyInstance) {
    * payment + settings atomically, and returns a login-compatible session.
    */
   fastify.post('/complete', async (request, reply) => {
-    const input = request.body as OnboardingCompleteInput;
-
-    if (!input?.account?.email || !input?.account?.password || !input?.company?.name || !input?.subdomain || !input?.package_code) {
-      return reply.status(400).send({ error: 'Missing required onboarding fields' });
-    }
-    if (input.account.password.length < 8) {
-      return reply.status(400).send({ error: 'Password must be at least 8 characters' });
-    }
+    // Throws ZodError on a bad shape — caught by the global error handler
+    // (index.ts) and turned into a clean 400 with per-field messages.
+    const input = onboardingCompleteSchema.parse(request.body);
 
     try {
       const result = await OnboardingService.completeOnboarding(fastify, input);

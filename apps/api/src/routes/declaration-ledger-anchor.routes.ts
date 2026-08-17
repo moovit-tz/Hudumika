@@ -75,7 +75,8 @@ export async function declarationLedgerAnchorRoutes(fastify: FastifyInstance) {
     try {
       const anchor = await withTenant(request.user.tenant_id, trx =>
         trx.selectFrom('declaration_ledger_anchors').select(['ots_proof', 'ots_proof_upgraded', 'checkpoint_hash'])
-          .where('id', '=', request.params.id).executeTakeFirst()
+          .where('id', '=', request.params.id).where('tenant_id', '=', request.user.tenant_id)
+          .executeTakeFirst()
       );
       if (!anchor) return reply.status(404).send({ error: 'Anchor not found' });
       const bytes = anchor.ots_proof_upgraded ?? anchor.ots_proof;

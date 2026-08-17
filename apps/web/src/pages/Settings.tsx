@@ -13,6 +13,7 @@ import { useLocale } from '../hooks/useLocale.js';
 import type { SupportedLocale } from '../i18n/index.js';
 import './Settings.css';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../components/ui/select.js';
+import { Badge } from '../components/ui/badge.js';
 import { EntityPicker } from '../components/EntityPicker.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
@@ -377,27 +378,68 @@ const LocalizationSection: React.FC = () => {
 };
 
 // -- section: Email ----------------------------------------------------------
+const OAUTH_PROVIDER_LABEL: Record<string, string> = { outlook: 'Microsoft Outlook', gmail: 'Gmail' };
+
 const EmailSection: React.FC = () => {
   const [protocol, setProtocol] = useState('smtp');
-  const [f, set] = useSettingsFields('email', { host: '', port: '587', user: '', pass: '', enc: 'tls', fromName: 'Hudumika', fromEmail: '', sig: '' });
-  const [preview, setPreview] = useState(true);
+  const [f, set] = useSettingsFields('email', {
+    host: '', port: '587', user: '', pass: '', enc: 'tls', fromName: 'Hudumika', fromEmail: '', sig: '',
+    outlookClientId: '', outlookClientSecret: '', outlookStatus: '',
+    gmailClientId: '', gmailClientSecret: '', gmailStatus: '',
+  });
+  const [imap, setImap] = useSettingsFields('ticketImap', {
+    host: '', port: '993', encryption: 'ssl', user: '', pass: '', targetDepartment: '', ticketType: 'general',
+  });
+  const [imapEnabled, setImapEnabled] = useState(false);
+  const [imapMarkAsRead, setImapMarkAsRead] = useState(true);
   const { s, save } = useContext(SettingsCtx);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [connecting, setConnecting] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [oauthNotice, setOauthNotice] = useState<{ ok: boolean; msg: string } | null>(null);
   const hydratedExtra = useRef(false);
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
     if (hydratedExtra.current) return;
     if (s.email) {
       setProtocol(s.email.protocol ?? 'smtp');
-      setPreview(s.email.preview ?? true);
       hydratedExtra.current = true;
+    }
+    if (s.ticketImap) {
+      setImapEnabled(!!s.ticketImap.enabled);
+      setImapMarkAsRead(s.ticketImap.markAsRead ?? true);
     }
   }, [s]);
 
-  async function handleSave() { setSaving(true); try { await save('email', { protocol, ...f, preview }); setSaved(true); setTimeout(() => setSaved(false), 2000); } catch {} finally { setSaving(false); } }
+  // Landed here fresh off an OAuth callback redirect (mail-oauth.routes.ts)
+  // — show what happened once, then strip the query params so a page
+  // refresh doesn't re-show a stale result.
+  useEffect(() => {
+    const oauth = searchParams.get('oauth');
+    if (!oauth) return;
+    const provider = searchParams.get('provider') ?? '';
+    const msg = searchParams.get('msg');
+    const label = OAUTH_PROVIDER_LABEL[provider] ?? provider;
+    setOauthNotice({
+      ok: oauth === 'success',
+      msg: oauth === 'success' ? `${label} connected successfully.` : (msg || `Failed to connect ${label}.`),
+    });
+    const next = new URLSearchParams(searchParams);
+    next.delete('oauth'); next.delete('provider'); next.delete('msg');
+    setSearchParams(next, { replace: true });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      await save('email', { protocol, ...f });
+      await save('ticketImap', { ...imap, enabled: imapEnabled, markAsRead: imapMarkAsRead });
+      setSaved(true); setTimeout(() => setSaved(false), 2000);
+    } catch {} finally { setSaving(false); }
+  }
 
   async function handleTestEmail() {
     setTesting(true); setTestResult(null);
@@ -414,18 +456,45 @@ const EmailSection: React.FC = () => {
       setTimeout(() => setTestResult(null), 5000);
     }
   }
+
+  // Save first (so the Client ID/Secret the user just typed actually exist
+  // server-side), then fetch the real authorize URL via an authenticated
+  // apiFetch call, and only then navigate the browser there — a plain
+  // window.location.href straight to our own API would carry no
+  // Authorization header (this app's JWT lives in localStorage, not a
+  // cookie) and 401 before ever reaching Microsoft/Google.
+  async function handleConnect(provider: 'outlook' | 'gmail') {
+    setConnecting(provider);
+    try {
+      await save('email', { protocol, ...f });
+      const { url } = await apiFetch(`/v1/settings/email/${provider}/authorize`);
+      window.location.href = url;
+    } catch (err: any) {
+      setOauthNotice({ ok: false, msg: err?.message || `Failed to start ${OAUTH_PROVIDER_LABEL[provider]} authorization.` });
+      setConnecting(null);
+    }
+  }
+
   return (
     <>
+      {oauthNotice && (
+        <div style={{
+          padding: '10px 14px', borderRadius: 'var(--r-sm)', marginBottom: 12, fontSize: 13, fontWeight: 600,
+          background: oauthNotice.ok ? 'var(--green-l, #ecfdf5)' : 'var(--red-l, #fef2f2)',
+          color: oauthNotice.ok ? 'var(--green, #059669)' : 'var(--red, #dc2626)',
+        }}>
+          {oauthNotice.msg}
+        </div>
+      )}
       <Card title="Email Protocol">
         <Field label="Protocol">
           <Select value={protocol} onValueChange={setProtocol}>
             <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="smtp">SMTP</SelectItem>
-              <SelectItem value="phpmail">PHP Mail</SelectItem>
-              <SelectItem value="sendgrid">SendGrid API</SelectItem>
-              <SelectItem value="mailgun">Mailgun API</SelectItem>
-              <SelectItem value="ses">Amazon SES</SelectItem>
+              <SelectItem value="mail">Mail (Hudumika's own server)</SelectItem>
+              <SelectItem value="outlook">Microsoft Outlook</SelectItem>
+              <SelectItem value="gmail">Gmail</SelectItem>
             </SelectContent>
           </Select>
         </Field>
@@ -435,7 +504,9 @@ const EmailSection: React.FC = () => {
           <Field label="SMTP Host"><input className="input-field" placeholder="mail.example.com" value={f.host} onChange={e => set('host', e.target.value)} /></Field>
           <Field label="Port"><input className="input-field" type="number" value={f.port} onChange={e => set('port', e.target.value)} /></Field>
           <Field label="Username"><input className="input-field" placeholder="your@email.com" value={f.user} onChange={e => set('user', e.target.value)} /></Field>
-          <Field label="Password"><input className="input-field" type="password" value={f.pass} onChange={e => set('pass', e.target.value)} /></Field>
+          <Field label="Password" hint={f.pass === '••••••••' ? 'A password is already saved — re-enter it only if you want to change it.' : undefined}>
+            <input className="input-field" type="password" value={f.pass} onChange={e => set('pass', e.target.value)} />
+          </Field>
           <Field label="Encryption">
             <Select value={f.enc || '__none__'} onValueChange={v => set('enc', v === '__none__' ? '' : v)}>
               <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
@@ -448,26 +519,87 @@ const EmailSection: React.FC = () => {
           </Field>
         </Card>
       )}
+      {protocol === 'mail' && (
+        <Card title="Mail (system default)">
+          <p style={{ fontSize: 13, color: 'var(--ink3)', margin: 0 }}>
+            Sends through Hudumika's own outgoing mail server — no setup needed. Switch to SMTP, Outlook or Gmail above if you'd rather send from your own domain/mailbox.
+          </p>
+        </Card>
+      )}
+      {(protocol === 'outlook' || protocol === 'gmail') && (
+        <Card title={`${OAUTH_PROVIDER_LABEL[protocol]} Connection`}>
+          <Field label="Client ID">
+            <input className="input-field" value={protocol === 'outlook' ? f.outlookClientId : f.gmailClientId}
+              onChange={e => set(protocol === 'outlook' ? 'outlookClientId' : 'gmailClientId', e.target.value)} />
+          </Field>
+          <Field label="Client Secret"
+            hint={(protocol === 'outlook' ? f.outlookClientSecret : f.gmailClientSecret) === '••••••••' ? 'A secret is already saved — re-enter it only if you want to change it.' : undefined}>
+            <input className="input-field" type="password" value={protocol === 'outlook' ? f.outlookClientSecret : f.gmailClientSecret}
+              onChange={e => set(protocol === 'outlook' ? 'outlookClientSecret' : 'gmailClientSecret', e.target.value)} />
+          </Field>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+            <Badge variant={(protocol === 'outlook' ? f.outlookStatus : f.gmailStatus) === 'authorized' ? 'success' : 'gray'}>
+              {(protocol === 'outlook' ? f.outlookStatus : f.gmailStatus) === 'authorized' ? 'Authorized' : 'Unauthorized'}
+            </Badge>
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => handleConnect(protocol as 'outlook' | 'gmail')} disabled={connecting === protocol}>
+              {connecting === protocol ? 'Connecting…' : 'Save & Authorize'}
+            </button>
+          </div>
+        </Card>
+      )}
       <Card title="Sender Identity">
         <Field label="From Name"><input className="input-field" value={f.fromName} onChange={e => set('fromName', e.target.value)} /></Field>
         <Field label="From Email"><input className="input-field" type="email" value={f.fromEmail} onChange={e => set('fromEmail', e.target.value)} /></Field>
-        <ToggleRow label="Email Preview" hint="Allow in-browser preview when testing emails" value={preview} onChange={setPreview} />
         <Field label="Email Signature" full>
-          <textarea className="input-field s-resize-v s-font-mono" rows={4} value={f.sig} onChange={e => set('sig', e.target.value)} placeholder="HTML signature appended to outgoing emails�" />
+          <textarea className="input-field s-resize-v s-font-mono" rows={4} value={f.sig} onChange={e => set('sig', e.target.value)} placeholder="HTML signature appended to outgoing emails" />
         </Field>
+      </Card>
+      <Card title="Inbound Mail (Support Tickets)">
+        <ToggleRow
+          label="Convert incoming email into support tickets"
+          hint="Polls this mailbox every few minutes — a reply referencing an existing ticket is appended to it; anything else from a known customer opens a new one."
+          value={imapEnabled} onChange={setImapEnabled}
+        />
+        {imapEnabled && (
+          <>
+            <Field label="IMAP Host"><input className="input-field" placeholder="imap.example.com" value={imap.host} onChange={e => setImap('host', e.target.value)} /></Field>
+            <Field label="Port"><input className="input-field" type="number" value={imap.port} onChange={e => setImap('port', e.target.value)} /></Field>
+            <Field label="Encryption">
+              <Select value={imap.encryption || '__none__'} onValueChange={v => setImap('encryption', v === '__none__' ? '' : v)}>
+                <SelectTrigger className="input-field"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">None</SelectItem>
+                  <SelectItem value="ssl">SSL/TLS (Recommended)</SelectItem>
+                  <SelectItem value="tls">STARTTLS</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label="Username"><input className="input-field" placeholder="tickets@example.com" value={imap.user} onChange={e => setImap('user', e.target.value)} /></Field>
+            <Field label="Password" hint={imap.pass === '••••••••' ? 'A password is already saved — re-enter it only if you want to change it.' : undefined}>
+              <input className="input-field" type="password" value={imap.pass} onChange={e => setImap('pass', e.target.value)} />
+            </Field>
+            <Field label="Default Department" hint="Free text — matched against whatever department names this tenant already uses.">
+              <input className="input-field" value={imap.targetDepartment} onChange={e => setImap('targetDepartment', e.target.value)} />
+            </Field>
+            <Field label="Default Ticket Category"><input className="input-field" value={imap.ticketType} onChange={e => setImap('ticketType', e.target.value)} /></Field>
+            <ToggleRow label="Mark imported emails as read" value={imapMarkAsRead} onChange={setImapMarkAsRead} />
+          </>
+        )}
       </Card>
       <SaveRow
         extra={
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <button type="button" className="btn btn-secondary" onClick={handleTestEmail} disabled={testing}>
-              {testing ? 'Sending…' : 'Send Test Email'}
-            </button>
-            {testResult && (
-              <span style={{ fontSize: 12, fontWeight: 600, color: testResult.ok ? 'var(--green, #059669)' : 'var(--red, #dc2626)' }}>
-                {testResult.ok ? 'Sent' : testResult.msg}
-              </span>
-            )}
-          </div>
+          protocol === 'smtp' ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button type="button" className="btn btn-secondary" onClick={handleTestEmail} disabled={testing}>
+                {testing ? 'Sending…' : 'Send Test Email'}
+              </button>
+              {testResult && (
+                <span style={{ fontSize: 12, fontWeight: 600, color: testResult.ok ? 'var(--green, #059669)' : 'var(--red, #dc2626)' }}>
+                  {testResult.ok ? 'Sent' : testResult.msg}
+                </span>
+              )}
+            </div>
+          ) : undefined
         }
         saving={saving} saved={saved} onSave={handleSave}
       />

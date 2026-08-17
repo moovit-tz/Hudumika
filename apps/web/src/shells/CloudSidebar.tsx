@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/Icon.js';
 import type { IconName } from '../components/Icon.js';
 import { useCloud, CloudView, CloudDrive, DriveType } from './cloud-context.js';
@@ -7,40 +8,30 @@ import { DriveMembersModal } from './DriveMembersModal.js';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '../components/ui/dropdown-menu.js';
 import { showAlert } from '../lib/alert.js';
 import { showConfirm } from '../lib/confirm.js';
+import { fmtSize } from '../pages/cloud/lib/format.js';
+import { CATEGORY_EXT, categorizeBytes } from '../pages/cloud/lib/categories.js';
+import { CreateFolderModal } from '../pages/cloud/modals/CreateFolderModal.js';
 
-const GD_BLUE  = '#1a73e8';
-const GD_BLUE_L = '#e8f0fe';
-const GD_HOVER  = '#f1f3f4';
-
-const STORAGE_TOTAL = 100 * 1_073_741_824;
-
-function fmtSize(b?: number | null): string {
-  if (!b) return '0 GB';
-  if (b >= 1_073_741_824) return `${(b / 1_073_741_824).toFixed(1)} GB`;
-  if (b >= 1_048_576)     return `${(b / 1_048_576).toFixed(1)} MB`;
-  if (b >= 1024)          return `${(b / 1024).toFixed(0)} KB`;
-  return `${b} B`;
-}
-
-const DOC_EXT   = ['pdf','docx','doc','xlsx','xls','csv','pptx','txt','xml'];
-const IMAGE_EXT = ['png','jpg','jpeg','gif','webp'];
-const MEDIA_EXT = ['mp4','mp3','mov','avi','wav'];
-
-const FOLDER_COLORS = ['#f59e0b','#3b82f6','#22c55e','#a855f7','#0891b2','#ef4444','#f97316','#6366f1'];
+/** Same colour-per-category mapping StorageOverviewCards uses on Home, so
+ *  the sidebar widget and the Home dashboard never disagree about which
+ *  colour means Documents/Images/Media. */
+const CATEGORY_COLOR: Record<'documents' | 'images' | 'media' | 'other', string> = {
+  documents: 'var(--green)', images: 'var(--teal)', media: 'var(--blue)', other: 'var(--ink3)',
+};
 
 export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
   const {
     files, currentView, currentFolderId, goToView,
     createFolder, uploadFiles, uploadFolder, connections, loadConnections,
     drives, currentDriveId, currentDrive, switchDrive, createDrive, renameDrive, deleteDrive,
+    storageQuota,
   } = useCloud();
+  const navigate = useNavigate();
 
   useEffect(() => { loadConnections(); }, [loadConnections]);
 
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [showConnectedApps, setShowConnectedApps] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
-  const [newFolderColor, setNewFolderColor] = useState(FOLDER_COLORS[0]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
 
@@ -77,39 +68,33 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
   const trashed = files.filter(f => f.is_trash);
 
   const navItems: { view: CloudView; icon: IconName; label: string }[] = [
-    { view: 'all',    icon: 'folder', label: currentDrive?.name ?? 'My Drive' },
-    { view: 'recent', icon: 'clock',  label: 'Recent' },
-    { view: 'starred', icon: 'star',  label: 'Starred' },
-    { view: 'shared', icon: 'users',  label: 'Shared with Me' },
-    { view: 'trash',  icon: 'trash',  label: 'Trash' },
+    { view: 'all',     icon: 'folder', label: 'My Files' },
+    { view: 'recent',  icon: 'clock',  label: 'Recent' },
+    { view: 'images',  icon: 'camera', label: 'Photos' },
+    { view: 'shared',  icon: 'users',  label: 'Shared' },
+    { view: 'trash',   icon: 'trash',  label: 'Recycle bin' },
   ];
-  const catItems: { view: CloudView; icon: IconName; label: string; ext: string[] }[] = [
-    { view: 'documents', icon: 'fileText', label: 'Documents', ext: DOC_EXT },
-    { view: 'images',    icon: 'camera',   label: 'Images',    ext: IMAGE_EXT },
-    { view: 'media',     icon: 'monitor',  label: 'Media',     ext: MEDIA_EXT },
+  const catItems: { view: CloudView; icon: IconName; label: string; ext: readonly string[] }[] = [
+    { view: 'documents', icon: 'fileText', label: 'Documents', ext: CATEGORY_EXT.documents },
+    { view: 'images',    icon: 'camera',   label: 'Images',    ext: CATEGORY_EXT.images },
+    { view: 'media',     icon: 'monitor',  label: 'Media',     ext: CATEGORY_EXT.media },
   ];
 
-  const used = active.filter(f => f.type !== 'folder').reduce((sum, f) => sum + (f.size || 0), 0);
-  const docSize   = active.filter(f => DOC_EXT.includes(f.type)).reduce((s, f) => s + (f.size || 0), 0);
-  const imgSize   = active.filter(f => IMAGE_EXT.includes(f.type)).reduce((s, f) => s + (f.size || 0), 0);
-  const mediaSize = active.filter(f => MEDIA_EXT.includes(f.type)).reduce((s, f) => s + (f.size || 0), 0);
-  const otherSize = Math.max(0, used - docSize - imgSize - mediaSize);
+  const breakdown = categorizeBytes(active);
+  const used = breakdown.documents.bytes + breakdown.images.bytes + breakdown.media.bytes + breakdown.other.bytes;
   const pct = (n: number) => used > 0 ? Math.round((n / used) * 100) : 0;
   const cats = [
-    { label: 'Documents', pct: pct(docSize),   color: GD_BLUE },
-    { label: 'Images',    pct: pct(imgSize),   color: '#a855f7' },
-    { label: 'Media',     pct: pct(mediaSize), color: '#f97316' },
-    { label: 'Other',     pct: pct(otherSize), color: 'var(--ink3)' },
+    { label: 'Documents', pct: pct(breakdown.documents.bytes), color: CATEGORY_COLOR.documents },
+    { label: 'Images',    pct: pct(breakdown.images.bytes),    color: CATEGORY_COLOR.images },
+    { label: 'Media',     pct: pct(breakdown.media.bytes),     color: CATEGORY_COLOR.media },
+    { label: 'Other',     pct: pct(breakdown.other.bytes),     color: CATEGORY_COLOR.other },
   ];
-  const usedPct = Math.min(100, Math.round((used / STORAGE_TOTAL) * 100));
-
-  function handleCreateFolder() {
-    if (!newFolderName.trim()) return;
-    createFolder(newFolderName.trim(), currentFolderId, newFolderColor);
-    setNewFolderName('');
-    setNewFolderColor(FOLDER_COLORS[0]);
-    setShowCreateFolder(false);
-  }
+  // Real per-tenant quota (packages.storage_limit_bytes) — unlike `used`
+  // above (this drive's own category breakdown), storageQuota.used_bytes is
+  // computed server-side across every drive in the tenant.
+  const quotaPct = storageQuota?.limit_bytes
+    ? Math.min(100, Math.round((storageQuota.used_bytes / storageQuota.limit_bytes) * 100))
+    : 0;
 
   // Spacing matches the platform's standard sidebar item (.app-sb-item, e.g. OnePI):
   // 44px row height, 2px vertical / 8px horizontal margin, 14px internal padding.
@@ -117,8 +102,8 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
     display: 'flex', alignItems: 'center', gap: 10,
     height: 44, margin: '2px 8px', padding: '0 14px', boxSizing: 'border-box',
     borderRadius: 'var(--r)', cursor: 'pointer',
-    color: isActive ? GD_BLUE : 'var(--ink2)', fontWeight: isActive ? 600 : 400,
-    background: isActive ? GD_BLUE_L : 'transparent', fontSize:'var(--text-base)', transition: 'background .1s, color .1s',
+    color: isActive ? 'var(--teal)' : 'var(--ink2)', fontWeight: isActive ? 600 : 400,
+    background: isActive ? 'var(--teal-l)' : 'transparent', fontSize: 'var(--text-base)', transition: 'background .1s, color .1s',
     userSelect: 'none',
   });
 
@@ -137,7 +122,7 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
                 fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--ink)',
               }}
             >
-              <Icon name={currentDrive?.type === 'shared' ? 'users' : 'folder'} size={15} color={GD_BLUE} />
+              <Icon name={currentDrive?.type === 'shared' ? 'users' : 'folder'} size={15} color="var(--teal)" />
               {!collapsed && <span style={{ flex: 1, minWidth: 0, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{currentDrive?.name ?? 'My Drive'}</span>}
               {!collapsed && <Icon name="chevronDown" size={13} color="var(--ink3)" />}
             </button>
@@ -147,7 +132,7 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
             {personalDrives.map(d => (
               <DropdownMenuItem key={d.id} onClick={() => switchDrive(d.id)}
                 className={d.id === currentDriveId ? 'bg-accent text-accent-foreground' : ''}>
-                <Icon name="folder" size={14} color={d.id === currentDriveId ? GD_BLUE : 'var(--ink3)'} />
+                <Icon name="folder" size={14} color={d.id === currentDriveId ? 'var(--teal)' : 'var(--ink3)'} />
                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -182,7 +167,7 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
             {sharedDrives.map(d => (
               <DropdownMenuItem key={d.id} onClick={() => switchDrive(d.id)}
                 className={d.id === currentDriveId ? 'bg-accent text-accent-foreground' : ''}>
-                <Icon name="users" size={14} color={d.id === currentDriveId ? GD_BLUE : 'var(--ink3)'} />
+                <Icon name="users" size={14} color={d.id === currentDriveId ? 'var(--teal)' : 'var(--ink3)'} />
                 <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.name}</span>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -212,7 +197,7 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
 
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => setShowCreateDrive(true)} className="text-primary font-semibold">
-              <Icon name="plus" size={14} color={GD_BLUE} /> Create workspace
+              <Icon name="plus" size={14} color="var(--teal)" /> Create workspace
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -231,7 +216,7 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
                 fontSize:'var(--text-md)', fontWeight: 600, color: 'var(--ink)',
               }}
             >
-              <Icon name="plus" size={18} color={GD_BLUE} /> {!collapsed && <>New <Icon name="chevronDown" size={13} color="var(--ink3)" /></>}
+              <Icon name="plus" size={18} color="var(--teal)" /> {!collapsed && <>New <Icon name="chevronDown" size={13} color="var(--ink3)" /></>}
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-56">
@@ -239,10 +224,10 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
               <Icon name="folder" size={15} color="#f59e0b" /> New folder
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => fileInputRef.current?.click()}>
-              <Icon name="upload" size={15} color={GD_BLUE} /> File upload
+              <Icon name="upload" size={15} color="var(--teal)" /> File upload
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => folderInputRef.current?.click()}>
-              <Icon name="folder" size={15} color={GD_BLUE} /> Folder upload
+              <Icon name="folder" size={15} color="var(--teal)" /> Folder upload
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -272,11 +257,11 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
           <div key={n.view}
             style={sidebarItemStyle(currentView === n.view)}
             title={collapsed ? n.label : undefined}
-            onClick={() => goToView(n.view)}
-            onMouseEnter={e => { if (currentView !== n.view) e.currentTarget.style.background = GD_HOVER; }}
+            onClick={() => { navigate('/cloud'); goToView(n.view); }}
+            onMouseEnter={e => { if (currentView !== n.view) e.currentTarget.style.background = 'var(--bg)'; }}
             onMouseLeave={e => { if (currentView !== n.view) e.currentTarget.style.background = 'transparent'; }}
           >
-            <Icon name={n.icon} size={15} color={currentView === n.view ? GD_BLUE : 'var(--ink3)'} />
+            <Icon name={n.icon} size={15} color={currentView === n.view ? 'var(--teal)' : 'var(--ink3)'} />
             {!collapsed && <span>{n.label}</span>}
             {!collapsed && n.view === 'trash' && trashed.length > 0 && <span style={{ marginLeft: 'auto', fontSize:'var(--text-xs)', color: 'var(--ink3)' }}>{trashed.length}</span>}
           </div>
@@ -295,11 +280,11 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
             <div key={p.id}
               style={sidebarItemStyle(isActive)}
               title={collapsed ? p.name : undefined}
-              onClick={() => goToView(p.id)}
-              onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = GD_HOVER; }}
+              onClick={() => { navigate('/cloud'); goToView(p.id); }}
+              onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg)'; }}
               onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
             >
-              <Icon name={p.icon} size={15} color={isActive ? GD_BLUE : p.color} />
+              <Icon name={p.icon} size={15} color={isActive ? 'var(--teal)' : p.color} />
               {!collapsed && <span>{p.name}</span>}
               {!collapsed && (
                 <span style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius:'var(--badge-radius)', background: isConnected ? '#188038' : 'var(--border)' }} />
@@ -311,7 +296,7 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
           style={sidebarItemStyle(false)}
           title={collapsed ? 'Connected Apps' : undefined}
           onClick={() => setShowConnectedApps(true)}
-          onMouseEnter={e => (e.currentTarget.style.background = GD_HOVER)}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg)')}
           onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
         >
           <Icon name="puzzle" size={15} color="var(--ink3)" />
@@ -329,11 +314,11 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
             {catItems.map(c => (
               <div key={c.view}
                 style={sidebarItemStyle(currentView === c.view)}
-                onClick={() => goToView(c.view)}
-                onMouseEnter={e => { if (currentView !== c.view) e.currentTarget.style.background = GD_HOVER; }}
+                onClick={() => { navigate('/cloud'); goToView(c.view); }}
+                onMouseEnter={e => { if (currentView !== c.view) e.currentTarget.style.background = 'var(--bg)'; }}
                 onMouseLeave={e => { if (currentView !== c.view) e.currentTarget.style.background = 'transparent'; }}
               >
-                <Icon name={c.icon} size={15} color={currentView === c.view ? GD_BLUE : 'var(--ink3)'} />
+                <Icon name={c.icon} size={15} color={currentView === c.view ? 'var(--teal)' : 'var(--ink3)'} />
                 <span>{c.label}</span>
                 <span style={{ marginLeft: 'auto', fontSize:'var(--text-xs)', color: 'var(--ink3)' }}>
                   {active.filter(i => c.ext.includes(i.type)).length}
@@ -342,15 +327,17 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
             ))}
           </div>
 
-          {/* Storage bar */}
+          {/* Storage bar — real per-tenant quota, not a fabricated total */}
           <div style={{ padding: '14px 16px', borderTop: '1px solid var(--border)', marginTop: 'auto' }}>
             <div style={{ fontSize:'var(--text-sm)', fontWeight: 600, color: 'var(--ink)', marginBottom: 10 }}>Storage Used</div>
-            <div style={{ height: 6, borderRadius:'var(--badge-radius)', background: 'var(--border)', overflow: 'hidden', marginBottom: 8 }}>
-              <div style={{ width: `${usedPct}%`, height: '100%', background: GD_BLUE, borderRadius:'var(--badge-radius)', transition: 'width .3s' }} />
-            </div>
+            {storageQuota?.limit_bytes != null && (
+              <div style={{ height: 6, borderRadius:'var(--badge-radius)', background: 'var(--border)', overflow: 'hidden', marginBottom: 8 }}>
+                <div style={{ width: `${quotaPct}%`, height: '100%', background: quotaPct >= 90 ? 'var(--red)' : 'var(--teal)', borderRadius:'var(--badge-radius)', transition: 'width .3s' }} />
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize:'var(--text-xs)', color: 'var(--ink3)', marginBottom: 12 }}>
-              <span>{fmtSize(used)} used</span>
-              <span>{fmtSize(STORAGE_TOTAL)} total</span>
+              <span>{storageQuota ? fmtSize(storageQuota.used_bytes) : '—'} used</span>
+              <span>{storageQuota?.limit_bytes != null ? fmtSize(storageQuota.limit_bytes) : 'Unlimited'}</span>
             </div>
             {used > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -369,38 +356,10 @@ export function CloudSidebarContent({ collapsed }: { collapsed: boolean }) {
 
       {/* Create Folder Modal */}
       {showCreateFolder && (
-        <div className="modal-overlay" onClick={() => setShowCreateFolder(false)}>
-          <div className="card" style={{ width: 400, padding: 24 }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <span style={{ fontSize:'var(--text-lg)', fontWeight: 700, color: 'var(--ink)' }}>New Folder</span>
-              <button onClick={() => setShowCreateFolder(false)} className="dp-close"><Icon name="close" size={16} /></button>
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize:'var(--text-sm)', fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 6 }}>Folder Name *</label>
-              <input
-                autoFocus
-                value={newFolderName}
-                onChange={e => setNewFolderName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') handleCreateFolder(); }}
-                placeholder="Enter folder name…"
-                className="input-field"
-                style={{ width: '100%' }}
-              />
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ fontSize:'var(--text-sm)', fontWeight: 600, color: 'var(--ink2)', display: 'block', marginBottom: 8 }}>Color</label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {FOLDER_COLORS.map(c => (
-                  <button key={c} onClick={() => setNewFolderColor(c)} style={{ width: 26, height: 26, borderRadius:'var(--badge-radius)', background: c, border: newFolderColor === c ? '3px solid var(--ink)' : '2px solid transparent', cursor: 'pointer', transition: 'border .1s', outline: 'none' }} />
-                ))}
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowCreateFolder(false)} className="btn btn-secondary btn-sm">Cancel</button>
-              <button onClick={handleCreateFolder} className="btn btn-primary btn-sm" disabled={!newFolderName.trim()}>Create Folder</button>
-            </div>
-          </div>
-        </div>
+        <CreateFolderModal
+          onClose={() => setShowCreateFolder(false)}
+          onCreate={(name, color) => { createFolder(name, currentFolderId, color); setShowCreateFolder(false); }}
+        />
       )}
 
       {/* Create Workspace (Drive) Modal */}

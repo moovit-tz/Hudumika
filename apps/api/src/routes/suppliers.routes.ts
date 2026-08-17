@@ -1,7 +1,27 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
+
+// Real values from FinanceVendors.tsx's own CATEGORIES/STATUSES/TERMS arrays.
+const supplierSchema = z.object({
+  name: z.string().trim().min(1).max(300).optional(),
+  contact_name: z.string().max(200).optional(),
+  email: z.string().email().max(320).optional().or(z.literal('')),
+  phone: z.string().max(30).optional(),
+  address: z.string().max(500).optional(),
+  city: z.string().max(100).optional(),
+  country: z.string().max(100).optional(),
+  tax_id: z.string().max(50).optional(),
+  category: z.enum(['port_services', 'customs', 'freight', 'warehouse', 'transport', 'consulting', 'utility', 'other']).optional(),
+  currency: z.string().max(10).optional(),
+  payment_terms: z.enum(['cod', 'net_15', 'net_30', 'net_60', 'net_90', 'prepaid']).optional(),
+  status: z.enum(['active', 'inactive', 'blocked']).optional(),
+  bank_name: z.string().max(200).optional(),
+  bank_account: z.string().max(100).optional(),
+  notes: z.string().max(5000).optional(),
+});
 
 export async function supplierRoutes(fastify: FastifyInstance) {
   fastify.addHook('preHandler', fastify.authenticate);
@@ -51,11 +71,7 @@ export async function supplierRoutes(fastify: FastifyInstance) {
     { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'FINANCE', 'SALES') },
     async (request, reply) => {
       const user = request.user;
-      const body = request.body as Record<string, any>;
-
-      if (!body.name || !String(body.name).trim()) {
-        return reply.status(400).send({ error: 'name is required' });
-      }
+      const body = supplierSchema.extend({ name: z.string().trim().min(1).max(300) }).parse(request.body);
 
       return withTenant(user.tenant_id, async (trx) => {
         const supplier = await trx
@@ -96,13 +112,13 @@ export async function supplierRoutes(fastify: FastifyInstance) {
     async (request, reply) => {
       const user = request.user;
       const { id } = request.params as { id: string };
-      const body = request.body as Record<string, any>;
+      const body = supplierSchema.parse(request.body);
 
       const allowed = [
         'name', 'contact_name', 'email', 'phone', 'address', 'city', 'country',
         'tax_id', 'category', 'currency', 'payment_terms', 'status', 'bank_name',
         'bank_account', 'notes',
-      ];
+      ] as const;
       const patch: Record<string, any> = { updated_at: new Date() };
       for (const key of allowed) {
         if (key in body) patch[key] = body[key];

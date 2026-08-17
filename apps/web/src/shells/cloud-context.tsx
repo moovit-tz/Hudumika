@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { apiFetch, apiDownload } from '../lib/api.js';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { apiFetch, apiDownload, apiUploadWithProgress } from '../lib/api.js';
 import { useAuth } from '../hooks/useAuth.js';
 
 // ── Shared types ───────────────────────────────────────────────────────────
@@ -40,6 +41,16 @@ export type StorageProvider = 'box' | 'dropbox' | 'mega' | 'onedrive';
 export type CloudView = 'all' | 'recent' | 'starred' | 'shared' | 'trash' | 'documents' | 'images' | 'media' | StorageProvider;
 
 export interface Crumb { id: string | null; name: string }
+
+export interface StorageQuota { used_bytes: number; limit_bytes: number | null }
+
+export interface UploadingFile {
+  id: string;
+  name: string;
+  size: number;
+  progress: number;
+  status: 'uploading' | 'completed' | 'error';
+}
 
 export interface StorageConnection {
   provider: StorageProvider;
@@ -103,15 +114,30 @@ export interface CloudCtxValue {
   openFolder: (item: CloudFile) => void;
   navToBreadcrumb: (idx: number) => void;
 
+  /** Real per-tenant Cloud storage quota (packages.storage_limit_bytes) —
+   *  null while loading, limit_bytes: null within it means unlimited. */
+  storageQuota: StorageQuota | null;
+  loadStorageQuota: () => Promise<void>;
+
   previewItemId: string | null;
   setPreviewItemId: (id: string | null) => void;
 
   search: string;
   setSearch: (q: string) => void;
+  /** Real server-side search (GET /v1/files?q=) across every non-trashed
+   *  file in the tenant — not just whatever's already loaded for the
+   *  current drive/folder. null when there's no active search term. */
+  searchResults: CloudFile[] | null;
+  searching: boolean;
 
   createFolder: (name: string, parentId: string | null, color?: string) => Promise<void>;
   uploadFiles: (fileList: File[], parentId: string | null) => Promise<void>;
   uploadFolder: (fileList: File[], parentId: string | null) => Promise<void>;
+  /** Real per-file byte progress (XMLHttpRequest upload.onprogress) for
+   *  whichever uploadFiles/uploadFolder call is in flight — replaced at the
+   *  start of each new batch, dismissible per-file via removeUploadingFile. */
+  uploadingFiles: UploadingFile[];
+  removeUploadingFile: (id: string) => void;
   renameItem: (id: string, name: string) => Promise<void>;
   starItem: (id: string, starred: boolean) => Promise<void>;
   moveItem: (id: string, parentId: string | null) => Promise<void>;
@@ -166,12 +192,18 @@ export const CloudCtx = createContext<CloudCtxValue>({
   goToView: noop,
   openFolder: noop,
   navToBreadcrumb: noop,
+  storageQuota: null,
+  loadStorageQuota: noopAsync,
   previewItemId: null,
   setPreviewItemId: noop,
   search: '',
   setSearch: noop,
+  searchResults: null,
+  searching: false,
   createFolder: noopAsync,
   uploadFiles: noopAsync,
+  uploadingFiles: [],
+  removeUploadingFile: noop,
   uploadFolder: noopAsync,
   renameItem: noopAsync,
   starItem: noopAsync,
@@ -200,6 +232,8 @@ export function useCloud() {
 export function CloudProvider({ children }: { children: React.ReactNode }) {
   const { user, isImpersonating } = useAuth();
   const canPermanentlyDelete = user?.role === 'SUPER_ADMIN' || isImpersonating;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const appliedDeepLinkRef = useRef(false);
 
   const [files, setFiles]         = useState<CloudFile[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -219,6 +253,38 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
   const [previewItemId, setPreviewItemId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
+  // Real cross-drive search (GET /v1/files?q=), debounced — replaces the
+  // old client-side-only filter over whatever files happened to already be
+  // loaded for the current drive/folder.
+  const [searchResults, setSearchResults] = useState<CloudFile[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  useEffect(() => {
+    const q = search.trim();
+    if (!q) { setSearchResults(null); setSearching(false); return; }
+    setSearching(true);
+    const t = setTimeout(() => {
+      apiFetch(`/v1/files?q=${encodeURIComponent(q)}`)
+        .then(data => setSearchResults(Array.isArray(data) ? data : []))
+        .catch(() => setSearchResults([]))
+        .finally(() => setSearching(false));
+    }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  const [uploadingFiles, setUploadingFiles] = useState<UploadingFile[]>([]);
+  const removeUploadingFile = useCallback((id: string) => {
+    setUploadingFiles(prev => prev.filter(f => f.id !== id));
+  }, []);
+
+  const [storageQuota, setStorageQuota] = useState<StorageQuota | null>(null);
+  const loadStorageQuota = useCallback(async () => {
+    try {
+      const data = await apiFetch('/v1/files/storage-usage');
+      setStorageQuota({ used_bytes: Number(data.used_bytes) || 0, limit_bytes: data.limit_bytes != null ? Number(data.limit_bytes) : null });
+    } catch { /* quota is a nice-to-have display, never blocks the app */ }
+  }, []);
+  useEffect(() => { loadStorageQuota(); }, [loadStorageQuota]);
+
   const loadDrives = useCallback(async () => {
     try {
       setDrivesLoading(true);
@@ -234,6 +300,40 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => { loadDrives(); }, [loadDrives]);
+
+  // Deep-link support: a caller like the Customers profile page's "Open
+  // Drive" button links here with ?folder=&drive=&name=(&parentId=&
+  // parentName=) so it opens straight into a specific real folder — e.g. a
+  // customer's own "Customers ▸ <name>" folder — instead of always landing
+  // on the drive root. Applied once (appliedDeepLinkRef), overriding
+  // loadDrives()'s own "pick the first drive" default, then the params are
+  // cleared so normal in-app navigation (breadcrumb clicks, switching
+  // drives) isn't fighting a stale URL on every render.
+  useEffect(() => {
+    if (appliedDeepLinkRef.current || drivesLoading || drives.length === 0) return;
+    const folderParam = searchParams.get('folder');
+    const driveParam = searchParams.get('drive');
+    if (!folderParam || !driveParam) return;
+    appliedDeepLinkRef.current = true;
+    const drive = drives.find(d => d.id === driveParam);
+    if (!drive) { setSearchParams({}, { replace: true }); return; }
+
+    const nameParam = searchParams.get('name');
+    const parentIdParam = searchParams.get('parentId');
+    const parentNameParam = searchParams.get('parentName');
+
+    setCurrentDriveId(driveParam);
+    setCurrentView('all');
+    setCurrentFolderId(folderParam);
+    setPreviewItemId(null);
+    setSearch('');
+    setBreadcrumb([
+      { id: null, name: drive.name },
+      ...(parentIdParam ? [{ id: parentIdParam, name: parentNameParam || 'Folder' }] : []),
+      { id: folderParam, name: nameParam || 'Folder' },
+    ]);
+    setSearchParams({}, { replace: true });
+  }, [drives, drivesLoading, searchParams, setSearchParams]);
 
   const loadData = useCallback(async () => {
     if (!currentDriveId) return;
@@ -373,6 +473,7 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
     try {
       await action();
       await loadData();
+      loadStorageQuota(); // fire-and-forget — a display refresh, never blocks the action itself
     } catch (err: any) {
       setError(err.message || 'Action failed');
       throw err;
@@ -383,15 +484,32 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
     run(() => apiFetch('/v1/files/folder', { method: 'POST', body: JSON.stringify({ name, parent_id: parentId, color, drive_id: currentDriveId }) })),
   [loadData, currentDriveId]);
 
+  // Real per-file byte progress via XMLHttpRequest — plain fetch() (used
+  // everywhere else in this file) has no upload-progress event at all. The
+  // uploadingFiles list is replaced (not appended) at the start of each
+  // batch so a stale "completed" chip from a previous folder never bleeds
+  // into a dropzone opened somewhere else in the app.
   const uploadFiles = useCallback((fileList: File[], parentId: string | null) =>
     run(async () => {
-      for (const f of fileList) {
+      const qs = new URLSearchParams();
+      if (parentId) qs.set('parent_id', parentId);
+      if (currentDriveId) qs.set('drive_id', currentDriveId);
+
+      const batch = fileList.map(f => ({ id: crypto.randomUUID(), file: f }));
+      setUploadingFiles(batch.map(({ id, file }) => ({ id, name: file.name, size: file.size, progress: 0, status: 'uploading' as const })));
+
+      for (const { id, file } of batch) {
         const form = new FormData();
-        form.append('file', f);
-        const qs = new URLSearchParams();
-        if (parentId) qs.set('parent_id', parentId);
-        if (currentDriveId) qs.set('drive_id', currentDriveId);
-        await apiFetch(`/v1/files/upload?${qs.toString()}`, { method: 'POST', body: form });
+        form.append('file', file);
+        const { promise } = apiUploadWithProgress(`/v1/files/upload?${qs.toString()}`, form, pct =>
+          setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, progress: pct } : u)));
+        try {
+          await promise;
+          setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, progress: 100, status: 'completed' } : u));
+        } catch (err) {
+          setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, status: 'error' } : u));
+          throw err;
+        }
       }
     }),
   [loadData, currentDriveId]);
@@ -414,16 +532,27 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
         return folder.id;
       }
 
-      for (const f of fileList) {
-        const rel = (f as any).webkitRelativePath as string | undefined;
-        const parts = rel ? rel.split('/').filter(Boolean) : [f.name];
+      const batch = fileList.map(f => ({ id: crypto.randomUUID(), file: f }));
+      setUploadingFiles(batch.map(({ id, file }) => ({ id, name: file.name, size: file.size, progress: 0, status: 'uploading' as const })));
+
+      for (const { id, file } of batch) {
+        const rel = (file as any).webkitRelativePath as string | undefined;
+        const parts = rel ? rel.split('/').filter(Boolean) : [file.name];
         const targetParentId = await ensureFolder(parts.slice(0, -1));
         const form = new FormData();
-        form.append('file', f);
+        form.append('file', file);
         const qs = new URLSearchParams();
         if (targetParentId) qs.set('parent_id', targetParentId);
         if (currentDriveId) qs.set('drive_id', currentDriveId);
-        await apiFetch(`/v1/files/upload?${qs.toString()}`, { method: 'POST', body: form });
+        const { promise } = apiUploadWithProgress(`/v1/files/upload?${qs.toString()}`, form, pct =>
+          setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, progress: pct } : u)));
+        try {
+          await promise;
+          setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, progress: 100, status: 'completed' } : u));
+        } catch (err) {
+          setUploadingFiles(prev => prev.map(u => u.id === id ? { ...u, status: 'error' } : u));
+          throw err;
+        }
       }
     }),
   [loadData, currentDriveId]);
@@ -532,11 +661,12 @@ export function CloudProvider({ children }: { children: React.ReactNode }) {
       files, loading, error, dismissError, loadData,
       drives, drivesLoading, currentDriveId, currentDrive, loadDrives, switchDrive, createDrive, renameDrive, deleteDrive,
       driveMembers, driveMembersLoading, loadDriveMembers, addDriveMember, updateDriveMemberRole, removeDriveMember,
+      storageQuota, loadStorageQuota,
       currentView, currentFolderId, breadcrumb,
       goToView, openFolder, navToBreadcrumb,
       previewItemId, setPreviewItemId,
-      search, setSearch,
-      createFolder, uploadFiles, uploadFolder, renameItem, starItem, moveItem,
+      search, setSearch, searchResults, searching,
+      createFolder, uploadFiles, uploadFolder, uploadingFiles, removeUploadingFile, renameItem, starItem, moveItem,
       trashItem, restoreItem, permanentlyDelete, emptyTrash, shareItem, downloadItem, canPermanentlyDelete,
       connections, connectionsLoading, loadConnections, connectProvider, disconnectProvider, syncProvider,
     }}>

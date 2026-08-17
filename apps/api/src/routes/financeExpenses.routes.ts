@@ -148,7 +148,7 @@ export async function financeExpensesRoutes(fastify: FastifyInstance) {
     const { id } = request.params as { id: string };
 
     return withTenant(user.tenant_id, async (trx) => {
-      const row = await trx.selectFrom('finance_expenses').selectAll().where('id', '=', id).executeTakeFirst();
+      const row = await trx.selectFrom('finance_expenses').selectAll().where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!row) return reply.status(404).send({ error: 'Expense not found' });
       return row;
     });

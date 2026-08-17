@@ -1,6 +1,7 @@
 import { db, withTenant } from '../db/client.js';
 import { getAdapter } from '../integrations/comply-agencies.js';
 import { MinioIntegration } from '../integrations/minio.js';
+import { CloudSync } from './cloud-sync.service.js';
 import { toISODate, toEpochMs, toDateParam } from '../utils/dates.js';
 import type {
   CompDashboardStats,
@@ -914,6 +915,12 @@ export class ComplyService {
           .executeTakeFirstOrThrow();
 
         MinioIntegration.ensureCustomerFolder(tenantId, customerRow.id, customerRow.name);
+        // BRELA-imported customers skipped the Cloud folder every other
+        // customer-creation path already gets (customers.routes.ts) — this
+        // was a raw Minio folder with no cloud_files row behind it, so it
+        // never showed up in Drive or this customer's own Documents tab.
+        CloudSync.ensureCustomerFolder(tenantId, customerRow.id, customerRow.name)
+          .catch(err => console.error('[Cloud] BRELA customer folder sync failed:', err.message));
       }
 
       const certificate = await this.insertCertificateRow(trx, tenantId, {

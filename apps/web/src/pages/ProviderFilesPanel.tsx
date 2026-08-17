@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon.js';
+import { FeaturedIcon } from '../components/ui/featured-icon.js';
 import { apiFetch } from '../lib/api.js';
 import { useCloud, StorageProvider } from '../shells/cloud-context.js';
 import { STORAGE_PROVIDERS } from '../shells/ConnectedAppsModal.js';
-import { fmtSize, fmtDate, tcfg } from './FileManager.js';
+import { fmtSize, fmtDate } from './cloud/lib/format.js';
+import { fileTypeStyle } from './cloud/lib/fileTypeStyle.js';
 
 interface ExternalFile {
   id: string;
@@ -209,16 +211,14 @@ export function ProviderFilesPanel({ provider }: { provider: StorageProvider }) 
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
               {filesOnly.map(item => {
-                const cfg = tcfg(item.type);
+                const cfg = fileTypeStyle(item.type);
                 return (
                   <div
                     key={item.id}
                     style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius:'var(--r)', padding: '14px 16px' }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius:'var(--r)', background: cfg.bg }}>
-                        <Icon name={cfg.icon} size={20} color={cfg.color} />
-                      </span>
+                      <FeaturedIcon variant={cfg.variant} size="md"><Icon name={cfg.icon} size={20} /></FeaturedIcon>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize:'var(--text-sm)', fontWeight: 600, color: 'var(--ink)', wordBreak: 'break-all', lineHeight: 1.3 }}>{item.name}</div>
                         <div style={{ fontSize:'var(--text-xs)', color: 'var(--ink3)', marginTop: 2 }}>{cfg.label}</div>

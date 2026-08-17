@@ -274,7 +274,7 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
   }
 
   return (
-    <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '14px 16px 16px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+    <div style={{ flex: 1, overflowX: 'auto', overflowY: 'hidden', padding: '14px 0 16px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
       {columns.map(col => {
         const ships = byStage.get(col.key) || [];
         const color = col.color;
@@ -305,8 +305,10 @@ function KanbanBoard({ groups, refresh, sortBy }: { groups: any[], refresh: () =
               </div>
             </div>
 
-            {/* ── Card list ── */}
-            <div style={{ overflowY: 'auto', padding: '8px 8px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* ── Card list — horizontal padding matches the column header's
+                (12px) so a card's left/right edge lines up with the column
+                title above it, not sit 4px inboard of it. ── */}
+            <div style={{ overflowY: 'auto', padding: '8px 12px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {ships.map((ship: any) => {
                 const risks = (ship.active_risk_types || []) as string[];
                 const urgent = risks.some(r => RISK_META[r]?.urgent);
@@ -716,7 +718,7 @@ export const CommandCenter: React.FC = () => {
       <div className="cc-main">
 
         {/* ── Enterprise Page Header ── */}
-        <div className="cc-page-header" style={{ padding: '1.25rem 1.25rem 12px 1.25rem', borderBottom: expanded ? 'none' : '1px solid var(--border)' }}>
+        <div className="cc-page-header" style={{ padding: '1.25rem 0 12px 0', borderBottom: expanded ? 'none' : '1px solid var(--border)' }}>
           <div className="cc-page-header-left">
             <div className="cc-breadcrumb">
               <span className="cc-breadcrumb-root">Dashboard</span>
@@ -770,13 +772,13 @@ export const CommandCenter: React.FC = () => {
             no `metric` (penalty exposure, on-time rate, this month) are
             informational only. Always visible, independent of the collapsible
             toolbar below, since these are the primary at-a-glance numbers. */}
-        <div className="cc-pipeline" style={{ marginLeft: '1.25rem', marginRight: '1.25rem' }}>
+        <div className="cc-pipeline" style={{ marginLeft: 0, marginRight: 0 }}>
           {kpiCells.map(kpiCell)}
         </div>
 
         {/* Collapsible Ops Summary & Filters — one row, wraps as a unit on narrow screens */}
         {expanded && (
-          <div className="cc-toolbar-row" style={{ paddingLeft: '1.25rem', paddingRight: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', width: '100%' }}>
+          <div className="cc-toolbar-row" style={{ paddingLeft: 0, paddingRight: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', width: '100%' }}>
               <div className="ds-tabs-list" data-variant="segmented" style={{ flexShrink: 0, overflowX: 'auto', maxWidth: '100%' }}>
                 {opsSummary && (
                   <>

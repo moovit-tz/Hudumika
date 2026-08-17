@@ -1,9 +1,10 @@
 import { requireEntitlement } from '../middleware/entitlement.js';
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import crypto from 'crypto';
 import { db, withTenant } from '../db/client.js';
 import { requireRole } from '../middleware/rbac.js';
-import { EmailIntegration } from '../integrations/email.js';
+import { MailService } from '../services/mail.service.js';
 import { emitDomainEvent, emitDomainEventStandalone } from '../services/domain-events.service.js';
 import { HolidaysService } from '../services/holidays.service.js';
 import { workingDaysBetween } from '../services/holiday-calendar.service.js';
@@ -212,7 +213,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   fastify.post('/departments', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
-    const body = req.body as any;
+    const body = z.object({
+      name: z.string().trim().min(1).max(200),
+      head_user_id: z.string().uuid().optional(),
+      status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       return trx.insertInto('hr_departments').values({
         tenant_id: user.tenant_id,
@@ -226,7 +231,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.patch('/departments/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
-    const body = req.body as any;
+    const body = z.object({
+      name: z.string().trim().min(1).max(200).optional(),
+      head_user_id: z.string().uuid().nullable().optional(),
+      status: z.enum(['ACTIVE', 'INACTIVE']).optional(),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       const allowed: Record<string, any> = {};
       if (body.name !== undefined)         allowed.name = body.name;
@@ -266,7 +275,10 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   fastify.post('/designations', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
-    const body = req.body as any;
+    const body = z.object({
+      title: z.string().trim().min(1).max(200),
+      department_id: z.string().uuid().optional(),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       return trx.insertInto('hr_designations').values({
         tenant_id: user.tenant_id,
@@ -279,7 +291,10 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.patch('/designations/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
-    const body = req.body as any;
+    const body = z.object({
+      title: z.string().trim().min(1).max(200).optional(),
+      department_id: z.string().uuid().nullable().optional(),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       const allowed: Record<string, any> = {};
       if (body.title         !== undefined) allowed.title         = body.title;
@@ -316,14 +331,20 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   fastify.post('/shifts', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
-    const body = req.body as any;
+    const body = z.object({
+      name: z.string().trim().min(1).max(100),
+      start_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, 'start_time must be HH:MM'),
+      end_time: z.string().regex(/^\d{2}:\d{2}(:\d{2})?$/, 'end_time must be HH:MM'),
+      break_minutes: z.number().int().min(0).optional(),
+      color: z.string().max(20).optional(),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       return trx.insertInto('hr_shifts').values({
         tenant_id: user.tenant_id,
         name: body.name,
         start_time: body.start_time,
         end_time: body.end_time,
-        break_minutes: Number(body.break_minutes) || 0,
+        break_minutes: body.break_minutes ?? 0,
         color: body.color || '#0891b2',
       }).returningAll().executeTakeFirstOrThrow();
     });
@@ -361,10 +382,22 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/shift-assignments', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') }, async (req) => {
+  fastify.post('/shift-assignments', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') }, async (req, reply) => {
     const user = req.user;
-    const body = req.body as any;
+    const body = z.object({
+      user_id: z.string().uuid(),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD'),
+      shift_id: z.string().uuid().optional(),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
+      if (body.shift_id) {
+        const [target, shift] = await Promise.all([
+          trx.selectFrom('users').select('id').where('id', '=', body.user_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
+          trx.selectFrom('hr_shifts').select('id').where('id', '=', body.shift_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst(),
+        ]);
+        if (!target) return reply.status(404).send({ error: 'Employee not found' });
+        if (!shift) return reply.status(404).send({ error: 'Shift not found' });
+      }
       await trx.deleteFrom('hr_shift_assignments')
         .where('tenant_id', '=', user.tenant_id)
         .where('user_id', '=', body.user_id)
@@ -405,7 +438,14 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   fastify.post('/attendance', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') }, async (req) => {
     const user = req.user;
-    const body = req.body as any;
+    const body = z.object({
+      user_id: z.string().uuid(),
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD'),
+      status: z.enum(['PRESENT', 'ABSENT', 'LATE', 'HALF_DAY', 'ON_LEAVE']).optional(),
+      clock_in: z.string().optional().nullable(),
+      clock_out: z.string().optional().nullable(),
+      notes: z.string().max(2000).optional().nullable(),
+    }).parse(req.body);
     const dateStr: string = body.date;
     return withTenant(user.tenant_id, async (trx) => {
       const existing = await trx.selectFrom('hr_attendance')
@@ -440,7 +480,15 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   fastify.post('/attendance/bulk', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') }, async (req) => {
     const user = req.user;
-    const body = req.body as any;
+    const body = z.object({
+      user_ids: z.array(z.string().uuid()).min(1),
+      from_date: z.string(),
+      to_date: z.string(),
+      status: z.enum(['PRESENT', 'ABSENT', 'LATE', 'HALF_DAY', 'ON_LEAVE']).optional(),
+      clock_in: z.string().optional().nullable(),
+      clock_out: z.string().optional().nullable(),
+    }).parse(req.body);
+    const status = body.status ?? 'PRESENT';
     return withTenant(user.tenant_id, async (trx) => {
       const userIds: string[] = body.user_ids;
       const from = new Date(body.from_date);
@@ -456,13 +504,13 @@ export async function hrRoutes(fastify: FastifyInstance) {
             .executeTakeFirst();
           if (existing) {
             await trx.updateTable('hr_attendance').set({
-              status: body.status, clock_in: body.clock_in || null,
+              status, clock_in: body.clock_in || null,
               clock_out: body.clock_out || null, recorded_by: user.sub, updated_at: new Date(),
             }).where('id', '=', existing.id).execute();
           } else {
             await trx.insertInto('hr_attendance').values({
               tenant_id: user.tenant_id, user_id: uid, date: dateStr,
-              status: body.status, clock_in: body.clock_in || null,
+              status, clock_in: body.clock_in || null,
               clock_out: body.clock_out || null, recorded_by: user.sub,
             }).execute();
           }
@@ -829,11 +877,15 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   fastify.post('/clock-in/manual', async (req, reply) => {
     const user = req.user;
-    const body = req.body as any;
-
-    if (!body.date || !body.clock_in || !body.clock_out) {
-      return reply.status(400).send({ error: 'date, clock_in, and clock_out are required' });
-    }
+    const body = z.object({
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD'),
+      clock_in: z.string().regex(/^\d{1,2}:\d{2}$/, 'clock_in must be HH:MM'),
+      clock_out: z.string().regex(/^\d{1,2}:\d{2}$/, 'clock_out must be HH:MM'),
+      user_id: z.string().uuid().optional(),
+      break_minutes: z.number().min(0).optional(),
+      project_name: z.string().max(200).optional(),
+      status: z.enum(['PRESENT', 'ABSENT', 'LATE', 'HALF_DAY', 'ON_LEAVE']).optional(),
+    }).parse(req.body);
 
     const targetUserId = body.user_id || user.sub;
     // Same guard as /weekly: a user records their own time freely, but only a
@@ -845,6 +897,10 @@ export async function hrRoutes(fastify: FastifyInstance) {
     }
 
     return withTenant(user.tenant_id, async (trx) => {
+      if (targetUserId !== user.sub) {
+        const target = await trx.selectFrom('users').select('id').where('id', '=', targetUserId).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+        if (!target) return reply.status(404).send({ error: 'Employee not found' });
+      }
       const dateStr = body.date;
 
       const inParts = body.clock_in.split(':');
@@ -914,10 +970,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
   // are snapshotted now so a later session edit can't change what was approved.
   fastify.post('/clock-in/timesheet/submit', async (req, reply) => {
     const user = req.user;
-    const body = (req.body as any) || {};
-    if (!body.period_start || !body.period_end) {
-      return reply.status(400).send({ error: 'period_start and period_end are required' });
-    }
+    const body = z.object({
+      period_start: z.string(),
+      period_end: z.string(),
+      user_id: z.string().uuid().optional(),
+    }).parse(req.body);
     const targetUserId = body.user_id || user.sub;
     if (targetUserId !== user.sub && !TS_MANAGER_ROLES.includes(user.role)) {
       return reply.status(403).send({ error: 'You can only submit your own timesheet' });
@@ -1023,11 +1080,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
     async (req, reply) => {
       const user = req.user;
       const { id } = req.params as any;
-      const body = (req.body as any) || {};
+      const body = z.object({
+        action: z.enum(['approve', 'reject']),
+        note: z.string().max(2000).optional(),
+      }).parse(req.body);
       const action = body.action;
-      if (action !== 'approve' && action !== 'reject') {
-        return reply.status(400).send({ error: "action must be 'approve' or 'reject'" });
-      }
       return withTenant(user.tenant_id, async (trx) => {
         const row = await trx.selectFrom('hr_timesheet_approvals').selectAll()
           .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
@@ -1177,7 +1234,16 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   fastify.post('/leaves', async (req, reply) => {
     const user = req.user;
-    const body = req.body as any;
+    // hr_leaves.type is NOT NULL — previously unvalidated, an omitted type
+    // would have failed with a raw DB constraint error instead of a clean 400.
+    const body = z.object({
+      from_date: z.string(),
+      to_date: z.string(),
+      user_id: z.string().uuid().optional(),
+      leave_type_id: z.string().uuid().optional(),
+      type: z.string().trim().min(1).max(50),
+      reason: z.string().max(2000).optional(),
+    }).parse(req.body);
     const from = isoDate(body.from_date), to = isoDate(body.to_date);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(from) || !/^\d{4}-\d{2}-\d{2}$/.test(to)) {
       return reply.status(400).send({ error: 'from_date and to_date are required, as YYYY-MM-DD' });
@@ -1278,7 +1344,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.patch('/leaves/:id/status', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN', 'SENIOR') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
-    const body = req.body as any;
+    const body = z.object({ status: z.enum(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED']) }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       const updated = await trx.updateTable('hr_leaves').set({
         status: body.status,
@@ -1344,34 +1410,50 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/payroll', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/payroll', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
-    const body = req.body as any;
+    // user_id previously wasn't checked against this tenant at all — a
+    // payroll row could be created against any user_id, including one in a
+    // different tenant (hr_payroll.user_id has no CHECK tying it to
+    // tenant_id, only a bare FK to users(id)).
+    const body = z.object({
+      user_id: z.string().uuid(),
+      period_month: z.number().int().min(1).max(12),
+      period_year: z.number().int().min(2000).max(2200),
+      basic_pay: z.number().min(0),
+      allowances: z.number().min(0).optional(),
+      deductions: z.number().min(0).optional(),
+      status: z.enum(['PENDING', 'PROCESSING', 'PAID']).optional(),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
+      const target = await trx.selectFrom('users').select('id')
+        .where('id', '=', body.user_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!target) return reply.status(404).send({ error: 'Employee not found' });
+
       const existing = await trx.selectFrom('hr_payroll').select('id')
         .where('tenant_id', '=', user.tenant_id)
         .where('user_id', '=', body.user_id)
-        .where('period_month', '=', Number(body.period_month))
-        .where('period_year',  '=', Number(body.period_year))
+        .where('period_month', '=', body.period_month)
+        .where('period_year',  '=', body.period_year)
         .executeTakeFirst();
       if (existing) {
         return trx.updateTable('hr_payroll').set({
-          basic_pay: Number(body.basic_pay),
-          allowances: Number(body.allowances) || 0,
-          deductions: Number(body.deductions) || 0,
-          status: body.status || 'PENDING',
+          basic_pay: body.basic_pay,
+          allowances: body.allowances ?? 0,
+          deductions: body.deductions ?? 0,
+          status: body.status ?? 'PENDING',
           updated_at: new Date(),
         }).where('id', '=', existing.id).returningAll().executeTakeFirstOrThrow();
       }
       return trx.insertInto('hr_payroll').values({
         tenant_id: user.tenant_id,
         user_id: body.user_id,
-        period_month: Number(body.period_month),
-        period_year:  Number(body.period_year),
-        basic_pay:    Number(body.basic_pay),
-        allowances:   Number(body.allowances) || 0,
-        deductions:   Number(body.deductions) || 0,
-        status: body.status || 'PENDING',
+        period_month: body.period_month,
+        period_year:  body.period_year,
+        basic_pay:    body.basic_pay,
+        allowances:   body.allowances ?? 0,
+        deductions:   body.deductions ?? 0,
+        status: body.status ?? 'PENDING',
         created_by: user.sub,
       }).returningAll().executeTakeFirstOrThrow();
     });
@@ -1380,16 +1462,21 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.patch('/payroll/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
-    const body = req.body as any;
+    const body = z.object({
+      status: z.enum(['PENDING', 'PROCESSING', 'PAID']).optional(),
+      basic_pay: z.number().min(0).optional(),
+      allowances: z.number().min(0).optional(),
+      deductions: z.number().min(0).optional(),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       const upd: Record<string, any> = { updated_at: new Date() };
       if (body.status !== undefined) {
         upd.status = body.status;
         if (body.status === 'PAID') upd.paid_at = new Date();
       }
-      if (body.basic_pay  !== undefined) upd.basic_pay  = Number(body.basic_pay);
-      if (body.allowances !== undefined) upd.allowances = Number(body.allowances);
-      if (body.deductions !== undefined) upd.deductions = Number(body.deductions);
+      if (body.basic_pay  !== undefined) upd.basic_pay  = body.basic_pay;
+      if (body.allowances !== undefined) upd.allowances = body.allowances;
+      if (body.deductions !== undefined) upd.deductions = body.deductions;
       const updated = await trx.updateTable('hr_payroll').set(upd)
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
         .returningAll().executeTakeFirstOrThrow();
@@ -1687,7 +1774,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   fastify.post('/announcements', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
-    const body = req.body as any;
+    const body = z.object({
+      title: z.string().trim().min(1).max(300),
+      body: z.string().trim().min(1).max(10_000),
+      category: z.string().max(50).optional(),
+      audience: z.string().max(50).optional(),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       return trx.insertInto('hr_announcements').values({
         tenant_id: user.tenant_id,
@@ -1703,7 +1795,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.patch('/announcements/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
-    const body = req.body as any;
+    const body = z.object({
+      title: z.string().trim().min(1).max(300).optional(),
+      body: z.string().trim().min(1).max(10_000).optional(),
+      category: z.string().max(50).optional(),
+      audience: z.string().max(50).optional(),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       const upd: Record<string, any> = { updated_at: new Date() };
       if (body.title    !== undefined) upd.title    = body.title;
@@ -1741,7 +1838,11 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   fastify.post('/holidays', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
-    const body = req.body as any;
+    const body = z.object({
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD'),
+      name: z.string().trim().min(1).max(200),
+      type: z.enum(['Public', 'Company']).optional(),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       return trx.insertInto('hr_holidays').values({
         tenant_id: user.tenant_id,
@@ -1818,7 +1919,12 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   fastify.post('/tasks', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
-    const body = req.body as any;
+    const body = z.object({
+      name: z.string().trim().min(1).max(200),
+      category: z.string().max(50).optional(),
+      is_billable: z.boolean().optional(),
+      color: z.string().max(20).optional(),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       return trx.insertInto('hr_tasks').values({
         tenant_id: user.tenant_id,
@@ -1833,7 +1939,13 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.patch('/tasks/:id', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
-    const body = req.body as any;
+    const body = z.object({
+      name: z.string().trim().min(1).max(200).optional(),
+      category: z.string().max(50).optional(),
+      is_billable: z.boolean().optional(),
+      color: z.string().max(20).optional(),
+      active: z.boolean().optional(),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       const allowed: Record<string, any> = {};
       if (body.name        !== undefined) allowed.name        = body.name;
@@ -1893,7 +2005,15 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   fastify.post('/time/start', async (req) => {
     const user = req.user;
-    const body = req.body as any;
+    const body = z.object({
+      task_id: z.string().uuid().optional(),
+      task_name: z.string().max(200).optional(),
+      is_billable: z.boolean().optional(),
+      entry_type: z.string().max(30).optional(),
+      is_full_day: z.boolean().optional(),
+      project_id: z.string().uuid().optional(),
+      project_ref: z.string().max(100).optional(),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       const today = new Date().toISOString().split('T')[0];
       // Close any open entries first
@@ -2226,10 +2346,21 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.patch('/staff/:id/role', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.patch('/staff/:id/role', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as any;
-    const { role } = req.body as any;
+    // CUSTOMER/ORG excluded — those have their own creation paths and a
+    // fundamentally different auth shape (CUSTOMER ties to a customers.id,
+    // ORG carries no tenant_id claim at all), not something to hand-set here.
+    const { role } = z.object({
+      role: z.enum(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR', 'JUNIOR', 'TENANT_ADMIN', 'OFFICER']),
+    }).parse(req.body);
+    // An unvalidated role here previously let an ADMIN/TENANT_ADMIN (both
+    // allowed to call this route) set SUPER_ADMIN on anyone in their own
+    // tenant — platform-wide access self-granted from a single-tenant role.
+    if (role === 'SUPER_ADMIN' && user.role !== 'SUPER_ADMIN') {
+      return reply.status(403).send({ error: 'Only a SUPER_ADMIN can grant SUPER_ADMIN' });
+    }
     return withTenant(user.tenant_id, async (trx) => {
       const updated = await trx.updateTable('users').set({ role, updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
@@ -2250,7 +2381,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.patch('/staff/:id/status', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
-    const { active } = req.body as any;
+    const { active } = z.object({ active: z.boolean() }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       const updated = await trx.updateTable('users').set({ active, updated_at: new Date() })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)
@@ -2745,7 +2876,10 @@ export async function hrRoutes(fastify: FastifyInstance) {
 
   fastify.post('/teams', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
-    const body = req.body as any;
+    const body = z.object({
+      name: z.string().trim().min(1).max(200),
+      lead_user_id: z.string().uuid().optional(),
+    }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       const team = await trx.insertInto('hr_teams').values({
         tenant_id: user.tenant_id, name: body.name, lead_user_id: body.lead_user_id || null,
@@ -2755,13 +2889,18 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/teams/:id/members', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/teams/:id/members', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
     const { id } = req.params as any;
-    const { user_id } = req.body as any;
+    const { user_id } = z.object({ user_id: z.string().uuid() }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       const team = await trx.selectFrom('hr_teams').select('id').where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!team) throw Object.assign(new Error('Team not found'), { statusCode: 404 });
+      // user_id previously wasn't checked against this tenant — hr_team_members
+      // has no tenant_id of its own, only team_id, so an unvalidated user_id
+      // could attach a completely unrelated tenant's user to this team.
+      const member = await trx.selectFrom('users').select('id').where('id', '=', user_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!member) return reply.status(404).send({ error: 'User not found' });
       return trx.insertInto('hr_team_members').values({ team_id: id, user_id })
         .onConflict(oc => oc.columns(['team_id', 'user_id']).doNothing())
         .returningAll().executeTakeFirst();
@@ -2793,9 +2932,20 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/invitations', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/invitations', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
-    const body = req.body as { email: string; role: string };
+    // Same reasoning as PATCH /staff/:id/role above: this route is reachable
+    // by MANAGER/ADMIN/TENANT_ADMIN, not just SUPER_ADMIN, and the invite's
+    // role becomes the real role the moment it's accepted (accept-invite
+    // reads it straight off this row) — an unvalidated role here was just as
+    // real a SUPER_ADMIN-self-grant path as the direct role-change endpoint.
+    const body = z.object({
+      email: z.string().trim().email().max(320),
+      role: z.enum(['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'FINANCE', 'SALES', 'SENIOR', 'JUNIOR', 'TENANT_ADMIN', 'OFFICER']),
+    }).parse(req.body);
+    if (body.role === 'SUPER_ADMIN' && user.role !== 'SUPER_ADMIN') {
+      return reply.status(403).send({ error: 'Only a SUPER_ADMIN can invite a SUPER_ADMIN' });
+    }
     return withTenant(user.tenant_id, async (trx) => {
       const token = crypto.randomBytes(24).toString('hex');
       const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
@@ -2805,15 +2955,8 @@ export async function hrRoutes(fastify: FastifyInstance) {
       }).returningAll().executeTakeFirstOrThrow();
 
       const acceptUrl = `${env.OPS_BOARD_URL}/accept-invite?token=${token}`;
-      await EmailIntegration.sendEmail({
-        to: body.email,
-        subject: "You're invited to join Hudumika",
-        bodyHtml: `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
-          <p>You've been invited to join Hudumika as <strong>${body.role}</strong>.</p>
-          <p><a href="${acceptUrl}">Accept the invitation</a> to set up your account. This link expires in 7 days.</p>
-        </div>`,
-        tenantId: user.tenant_id,
-      }).catch(() => { /* invite row exists regardless; resend is available */ });
+      await MailService.enqueueTemplated(user.tenant_id, 'hr.staff_invitation', body.email, { role: body.role, acceptUrl }, 'hr')
+        .catch(() => { /* invite row exists regardless; resend is available */ });
 
       await logActivity(trx, user.tenant_id, user.sub, `Invited ${body.email} as ${body.role}`);
       /**
@@ -2840,14 +2983,8 @@ export async function hrRoutes(fastify: FastifyInstance) {
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
       if (!invite) throw Object.assign(new Error('Invitation not found'), { statusCode: 404 });
       const acceptUrl = `${env.OPS_BOARD_URL}/accept-invite?token=${invite.token}`;
-      await EmailIntegration.sendEmail({
-        to: invite.email,
-        subject: "Reminder: you're invited to join Hudumika",
-        bodyHtml: `<div style="font-family: Arial, sans-serif; font-size: 14px; color: #333;">
-          <p><a href="${acceptUrl}">Accept the invitation</a> to set up your account.</p>
-        </div>`,
-        tenantId: user.tenant_id,
-      }).catch(() => {});
+      await MailService.enqueueTemplated(user.tenant_id, 'hr.staff_invitation_reminder', invite.email, { acceptUrl }, 'hr')
+        .catch(() => {});
       return { ok: true };
     });
   });
@@ -2877,10 +3014,13 @@ export async function hrRoutes(fastify: FastifyInstance) {
     });
   });
 
-  fastify.post('/delete-requests', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
+  fastify.post('/delete-requests', { preHandler: requireRole('SUPER_ADMIN', 'MANAGER', 'ADMIN', 'TENANT_ADMIN') }, async (req, reply) => {
     const user = req.user;
-    const body = req.body as { user_id: string; reason?: string };
+    const body = z.object({ user_id: z.string().uuid(), reason: z.string().max(2000).optional() }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
+      // user_id previously wasn't checked against this tenant before insert.
+      const target = await trx.selectFrom('users').select('id').where('id', '=', body.user_id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
+      if (!target) return reply.status(404).send({ error: 'Employee not found' });
       return trx.insertInto('hr_delete_requests').values({
         tenant_id: user.tenant_id, user_id: body.user_id, requested_by: user.sub, reason: body.reason || null,
       }).returningAll().executeTakeFirstOrThrow();
@@ -2890,7 +3030,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.patch('/delete-requests/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
-    const { status } = req.body as { status: 'APPROVED' | 'REJECTED' };
+    const { status } = z.object({ status: z.enum(['APPROVED', 'REJECTED']) }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       const reqRow = await trx.selectFrom('hr_delete_requests').selectAll()
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id).executeTakeFirst();
@@ -2939,7 +3079,7 @@ export async function hrRoutes(fastify: FastifyInstance) {
   fastify.patch('/devices/:id', { preHandler: requireRole('SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN') }, async (req) => {
     const user = req.user;
     const { id } = req.params as any;
-    const { trusted } = req.body as { trusted: boolean };
+    const { trusted } = z.object({ trusted: z.boolean() }).parse(req.body);
     return withTenant(user.tenant_id, async (trx) => {
       return trx.updateTable('hr_devices').set({ trusted })
         .where('id', '=', id).where('tenant_id', '=', user.tenant_id)

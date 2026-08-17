@@ -508,6 +508,25 @@ export const StaffDetail: React.FC = () => {
    */
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [resolvingFolder, setResolvingFolder] = useState(false);
+
+  // "Open Drive" — resolves (creating if needed) this person's real
+  // "Employees ▸ <name>" Cloud folder and deep-links straight into it, same
+  // pattern as the Customers profile page's own Open Drive button.
+  const openEmployeeDrive = async () => {
+    if (!id) return;
+    setResolvingFolder(true);
+    try {
+      const folder = await apiFetch(`/v1/files/employee-folder/${id}`);
+      const qs = new URLSearchParams({ drive: folder.drive_id, folder: folder.id, name: folder.name });
+      if (folder.parent) { qs.set('parentId', folder.parent.id); qs.set('parentName', folder.parent.name); }
+      window.open(`/cloud?${qs.toString()}`, '_blank', 'noopener');
+    } catch (e: any) {
+      showAlert(e?.message || "Could not open this person's Drive folder");
+    } finally {
+      setResolvingFolder(false);
+    }
+  };
 
   const uploadDocument = async (file: File) => {
     if (!id) return;
@@ -1030,7 +1049,15 @@ export const StaffDetail: React.FC = () => {
 
         {tab === 'Documents' && !tabDenied && (
           <div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginBottom: 12 }}>
+              <button
+                type="button"
+                onClick={openEmployeeDrive}
+                disabled={resolvingFolder}
+                className="btn btn-secondary btn-sm"
+              >
+                {resolvingFolder ? 'Opening…' : 'Open Drive'}
+              </button>
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -1040,6 +1067,9 @@ export const StaffDetail: React.FC = () => {
               >
                 {uploading ? 'Uploading…' : 'Upload document'}
               </button>
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--ink3)', marginTop: -6, marginBottom: 12 }}>
+              Uploaded documents are automatically mirrored into this person's own Drive folder.
             </div>
             <TabTable
               loading={tabLoading}

@@ -1,11 +1,11 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import '../pages/Cloud.css';
 import { WorkspaceApp } from './WorkspaceApp.js';
 import { AppSidebar } from '../components/AppSidebar.js';
 import { AppHeader } from '../components/AppHeader.js';
 import { PageLayout } from '../components/PageLayout.js';
-import { FileManager } from '../pages/FileManager.js';
+import { FileBrowser } from '../pages/cloud/FileBrowser.js';
+import { CloudHome } from '../pages/cloud/CloudHome.js';
 import { CloudProvider, useCloud } from './cloud-context.js';
 import { CloudSidebarContent } from './CloudSidebar.js';
 
@@ -36,11 +36,12 @@ export function CloudShell() {
               <Routes>
                 
                 <Route element={<PageLayout />}>
-                  <Route index           element={<FileManager />} />
+                  <Route index           element={<FileBrowser />} />
+                  <Route path="home"     element={<Navigate to="/cloud" replace />} />
                   <Route path="files"    element={<Navigate to="/cloud" replace />} />
-                  <Route path="shared"   element={<FileManager />} />
-                  <Route path="recent"   element={<FileManager />} />
-                  <Route path="trash"    element={<FileManager />} />
+                  <Route path="shared"   element={<FileBrowser />} />
+                  <Route path="recent"   element={<FileBrowser />} />
+                  <Route path="trash"    element={<FileBrowser />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/cloud" replace />} />
               </Routes>

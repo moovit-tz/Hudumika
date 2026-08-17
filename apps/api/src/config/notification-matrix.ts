@@ -88,14 +88,3 @@ export const NOTIFICATION_MATRIX: NotificationRule[] = [
     priority: 'NORMAL',
   },
 ];
-
-/**
- * Formats a template string by replacing placeholders with variables
- */
-export function formatTemplate(template: string, variables: Record<string, string>): string {
-  let result = template;
-  for (const [key, value] of Object.entries(variables)) {
-    result = result.replace(new RegExp(`{{\\s*${key}\\s*}}`, 'g'), value);
-  }
-  return result;
-}

@@ -1,12 +1,7 @@
-import crypto from 'crypto';
 import { db, withTenant } from './client.js';
 import { MinioIntegration } from '../integrations/minio.js';
-
-function hashPassword(password: string): string {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex');
-  return `${salt}:${hash}`;
-}
+import { hashPassword } from '../lib/password.js';
+import { env } from '../config/env.js';
 
 function daysAgo(d: number): Date {
   return new Date(Date.now() - d * 86400000);
@@ -19,6 +14,14 @@ function hoursAgo(h: number): Date {
 }
 
 async function runSeed() {
+  // Every account below gets the well-known password "password123", printed
+  // in this file and to the console on every run — fine for a dev/demo
+  // database, an account-takeover fixture list if ever pointed at a real one.
+  if (env.APP_ENV === 'production') {
+    console.error('❌ Refusing to seed a production database — every account this script creates uses the well-known password "password123".');
+    process.exit(1);
+  }
+
   console.log('🌱 Starting Hudumika database seeding...');
 
   try {

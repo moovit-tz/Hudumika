@@ -1,10 +1,26 @@
 import type { FastifyInstance } from 'fastify';
 import type { Transaction } from 'kysely';
+import { z } from 'zod';
 import { db, withTenant, type Database } from '../db/client.js';
 import { MessagingService } from '../services/messaging.service.js';
 import { requireRole } from '../middleware/rbac.js';
 import { resolveCustomerId } from '../services/customer-identity.service.js';
 import type { MessageChannel, TicketPriority, TicketStatus, UserRole } from '@hudumika/types';
+
+// The two endpoints CUSTOMER_ALLOWED_ROUTES below actually lets a CUSTOMER
+// login reach (create ticket, reply) — the only ones in this file where the
+// caller isn't a vetted staff role, so runtime shape-checking matters most
+// here. Fastify's `post<{ Body: ... }>()` generics only type-check at
+// compile time; a customer-submitted body was never actually validated.
+const createTicketSchema = z.object({
+  customer_id: z.string().uuid().optional(), // ignored for CUSTOMER logins (see below), required for staff
+  subject: z.string().trim().min(1).max(300),
+  description: z.string().max(10_000).optional(),
+  channel: z.enum(['WHATSAPP', 'EMAIL', 'IN_APP', 'SMS', 'SYSTEM']).optional(),
+  priority: z.enum(['LOW', 'NORMAL', 'MEDIUM', 'HIGH', 'URGENT']),
+  category: z.string().trim().min(1).max(100),
+});
+const customerReplySchema = z.object({ content: z.string().trim().min(1).max(10_000) });
 
 const MGMT_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER'];
 const AGENT_ROLES: UserRole[] = ['SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'MANAGER', 'SENIOR', 'JUNIOR', 'OFFICER'];
@@ -76,6 +92,44 @@ export async function applyAutoAssignRules(trx: Transaction<Database>, tenantId:
     await trx.updateTable('support_tickets').set({ assigned_to: chosenId }).where('id', '=', ticket.id).execute();
   }
   return chosenId;
+}
+
+/**
+ * The actual support_tickets insert + auto-assign + new_ticket notification
+ * — extracted out of POST /tickets so imap-ticket-ingest.job.ts can create a
+ * real ticket the same way a human filing one through the UI does, rather
+ * than a second, drifting copy of this logic with no rules/notifications
+ * wired to it.
+ */
+export async function createTicketRow(
+  trx: Transaction<Database>,
+  tenantId: string,
+  input: { customerId: string; subject: string; description?: string | null; channel: MessageChannel; priority: TicketPriority; category: string },
+) {
+  const slaDeadline = new Date(Date.now() + SLA_HOURS[input.priority] * 3600_000);
+  let ticket = await trx
+    .insertInto('support_tickets')
+    .values({
+      tenant_id: tenantId,
+      customer_id: input.customerId,
+      ref_number: `SUP-${Math.floor(1000 + Math.random() * 9000)}`,
+      subject: input.subject,
+      description: input.description || null,
+      channel: input.channel,
+      priority: input.priority,
+      category: input.category,
+      status: 'OPEN',
+      tags: JSON.stringify([]),
+      sla_deadline: slaDeadline,
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow();
+
+  const assignedTo = await applyAutoAssignRules(trx, tenantId, ticket);
+  if (assignedTo) ticket = { ...ticket, assigned_to: assignedTo };
+
+  await fireNotificationTrigger(trx, tenantId, 'new_ticket', ticket);
+  return ticket;
 }
 
 // ── Rules engine — notification triggers ────────────────────────
@@ -186,18 +240,20 @@ export default async function supportRoutes(fastify: FastifyInstance) {
     Body: { customer_id: string; subject: string; description?: string; channel: MessageChannel; priority: TicketPriority; category: string }
   }>('/tickets', async (request, reply) => {
     const user = request.user;
+    const b = createTicketSchema.parse(request.body);
     return withTenant(user.tenant_id, async (trx) => {
-      const b = request.body;
-
       // A CUSTOMER login can only ever open a ticket for themself — whatever
       // customer_id the body carries is ignored, not merely validated,
       // otherwise any customer could open (and later read, via the ticket id)
       // a ticket filed under another customer's name.
-      let customerId = b.customer_id;
+      let customerId: string;
       if (user.role === 'CUSTOMER') {
         const cid = await resolveCustomerId(user);
         if (!cid) { reply.status(403); return { error: 'Account is not linked to a customer' }; }
         customerId = cid;
+      } else {
+        if (!b.customer_id) { reply.status(400); return { error: 'customer_id is required' }; }
+        customerId = b.customer_id;
       }
 
       const customer = await trx.selectFrom('customers').select('id')
@@ -207,29 +263,14 @@ export default async function supportRoutes(fastify: FastifyInstance) {
         return { error: 'Customer not found' };
       }
 
-      const slaDeadline = new Date(Date.now() + SLA_HOURS[b.priority] * 3600_000);
-      let ticket = await trx
-        .insertInto('support_tickets')
-        .values({
-          tenant_id: user.tenant_id,
-          customer_id: customerId,
-          ref_number: `SUP-${Math.floor(1000 + Math.random() * 9000)}`,
-          subject: b.subject,
-          description: b.description || null,
-          channel: user.role === 'CUSTOMER' ? 'IN_APP' : b.channel,
-          priority: b.priority,
-          category: b.category,
-          status: 'OPEN',
-          tags: JSON.stringify([]),
-          sla_deadline: slaDeadline,
-        })
-        .returningAll()
-        .executeTakeFirstOrThrow();
-
-      const assignedTo = await applyAutoAssignRules(trx, user.tenant_id, ticket);
-      if (assignedTo) ticket = { ...ticket, assigned_to: assignedTo };
-
-      await fireNotificationTrigger(trx, user.tenant_id, 'new_ticket', ticket);
+      const ticket = await createTicketRow(trx, user.tenant_id, {
+        customerId,
+        subject: b.subject,
+        description: b.description,
+        channel: user.role === 'CUSTOMER' ? 'IN_APP' : (b.channel ?? 'IN_APP'),
+        priority: b.priority,
+        category: b.category,
+      });
 
       reply.status(201);
       return ticket;
@@ -404,8 +445,7 @@ export default async function supportRoutes(fastify: FastifyInstance) {
   // allowlist above) and only against a ticket the caller owns.
   fastify.post<{ Params: { id: string }; Body: { content: string } }>('/tickets/:id/customer-reply', async (request, reply) => {
     const user = request.user;
-    const content = request.body.content?.trim();
-    if (!content) { reply.status(400); return { error: 'Message is required' }; }
+    const { content } = customerReplySchema.parse(request.body);
 
     return withTenant(user.tenant_id, async (trx) => {
       const cid = await resolveCustomerId(user);

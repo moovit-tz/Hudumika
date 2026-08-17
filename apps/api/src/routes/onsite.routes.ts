@@ -1,4 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { z } from 'zod';
 import { db } from '../db/client.js';
 import { requireEntitlement } from '../middleware/entitlement.js';
 import { encryptSecret, decryptSecret, MASKED_VALUE } from '../services/onsite-secrets.service.js';
@@ -10,6 +11,97 @@ import {
   validateRecord, deletionImpact, toZoneFile, parseZoneFile, planImport, DNS_TEMPLATES,
 } from '../services/onsite-dns.service.js';
 import { sql } from 'kysely';
+
+const ONSITE_RUNTIMES = ['static', 'nodejs', 'python', 'php', 'ruby', 'go', 'rust', 'container', 'custom'] as const;
+
+const projectCreateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  description: z.string().max(2000).optional(),
+  color: z.string().max(20).optional(),
+});
+const domainCreateSchema = z.object({
+  domain: z.string().trim().min(1).max(255),
+  project_id: z.string().optional(),
+  registrar: z.string().max(100).optional(),
+  auto_renew: z.boolean().optional(),
+});
+// Shape guard only — validateRecord() does the real per-type/value validation
+// (A/AAAA/CNAME/MX/TXT/etc, and that an MX carries a priority).
+const dnsRecordCreateSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  type: z.string().trim().min(1).max(20),
+  value: z.string().trim().min(1).max(2000),
+  ttl: z.number().int().positive().optional(),
+  priority: z.number().int().optional(),
+}).passthrough();
+const dnsImportSchema = z.object({
+  zone_file: z.string().min(1),
+  apply: z.boolean().optional(),
+});
+const dnsPropagationCheckSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  type: z.string().trim().min(1).max(20),
+  expected: z.string().trim().min(1).max(2000),
+});
+const applicationCreateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  runtime: z.enum(ONSITE_RUNTIMES).optional(),
+  project_id: z.string().optional(),
+  domain_id: z.string().optional(),
+  repo_url: z.string().max(500).optional(),
+  default_branch: z.string().max(200).optional(),
+  build_command: z.string().max(1000).optional(),
+  start_command: z.string().max(1000).optional(),
+  output_dir: z.string().max(500).optional(),
+  port: z.number().int().positive().optional(),
+});
+const secretCreateSchema = z.object({
+  key: z.string().trim().min(1).max(200),
+  value: z.string(),
+  is_secret: z.boolean().optional(),
+});
+const deploySchema = z.object({
+  environment_id: z.string().optional(),
+  branch: z.string().max(200).optional(),
+  commit_message: z.string().max(2000).optional(),
+});
+const serverCreateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  provider: z.string().max(100).optional(),
+  region: z.string().max(100).optional(),
+  ip_address: z.string().max(100).optional(),
+  os: z.string().max(200).optional(),
+  cpu_count: z.number().int().positive().optional(),
+  ram_mb: z.number().int().positive().optional(),
+  disk_gb: z.number().int().positive().optional(),
+});
+const healthCheckCreateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  url: z.string().trim().min(1).max(2000),
+  method: z.string().max(10).optional(),
+  expected_status: z.number().int().positive().optional(),
+  interval_s: z.number().int().positive().optional(),
+});
+const providerConnectionCreateSchema = z.object({
+  provider: z.string().trim().min(1).max(100),
+  name: z.string().trim().min(1).max(200),
+  token: z.string().optional(),
+  access_token: z.string().optional(),
+  external_id: z.string().max(200).optional(),
+  external_name: z.string().max(200).optional(),
+});
+const websiteCreateSchema = z.object({
+  name: z.string().trim().min(1).max(200),
+  type: z.string().max(50).optional(),
+  url: z.string().max(2000).optional(),
+  project_id: z.string().optional(),
+  domain_id: z.string().optional(),
+  hosting_provider: z.string().max(100).optional(),
+});
+const domainTransferSchema = z.object({
+  domain: z.string().trim().min(1).max(255),
+  eppCode: z.string().max(200).optional(),
+});
 
 
 /**
@@ -135,8 +227,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/projects', async (request: FastifyRequest, reply: FastifyReply) => {
-    const body = request.body as { name: string; description?: string; color?: string };
-    if (!body.name) return reply.status(400).send({ error: 'Project name is required' });
+    const body = projectCreateSchema.parse(request.body);
 
     const created = await db.insertInto('onsite_projects')
       .values({
@@ -186,13 +277,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/domains', async (request: FastifyRequest, reply: FastifyReply) => {
-    const body = request.body as {
-      domain: string;
-      project_id?: string;
-      registrar?: string;
-      auto_renew?: boolean;
-    };
-    if (!body.domain) return reply.status(400).send({ error: 'Domain name is required' });
+    const body = domainCreateSchema.parse(request.body);
 
     const cleanDomain = body.domain.trim().toLowerCase();
 
@@ -329,17 +414,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
   fastify.post('/domains/:domainId/dns', async (request: FastifyRequest, reply: FastifyReply) => {
     const { domainId } = request.params as { domainId: string };
-    const body = request.body as {
-      name: string;
-      type: string;
-      value: string;
-      ttl?: number;
-      priority?: number;
-    };
-
-    if (!body.name || !body.type || !body.value) {
-      return reply.status(400).send({ error: 'Name, type, and value are required' });
-    }
+    const body = dnsRecordCreateSchema.parse(request.body);
 
     /**
      * Checked here rather than at the CHECK constraint.
@@ -456,8 +531,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
    */
   fastify.post('/domains/:domainId/dns/import', async (request: FastifyRequest, reply: FastifyReply) => {
     const { domainId } = request.params as { domainId: string };
-    const body = request.body as { zone_file?: string; apply?: boolean };
-    if (!body?.zone_file?.trim()) return reply.status(400).send({ error: 'zone_file is required' });
+    const body = dnsImportSchema.parse(request.body);
 
     const zone = await db.selectFrom('onsite_dns_zones as z')
       .innerJoin('onsite_domains as d', 'd.id', 'z.domain_id')
@@ -559,10 +633,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
   fastify.post('/domains/:domainId/dns/check-propagation', async (request: FastifyRequest, reply: FastifyReply) => {
     const { domainId } = request.params as { domainId: string };
-    const body = request.body as { name: string; type: string; expected: string };
-    if (!body.name || !body.type || !body.expected) {
-      return reply.status(400).send({ error: 'Name, type, and expected value are required' });
-    }
+    const body = dnsPropagationCheckSchema.parse(request.body);
 
     const domain = await db.selectFrom('onsite_domains')
       .select('domain')
@@ -588,35 +659,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/applications', async (request: FastifyRequest, reply: FastifyReply) => {
-    const body = request.body as {
-      name: string;
-      runtime?: string;
-      project_id?: string;
-      domain_id?: string;
-      repo_url?: string;
-      default_branch?: string;
-      build_command?: string;
-      start_command?: string;
-      output_dir?: string;
-      port?: number;
-    };
-    if (!body.name) return reply.status(400).send({ error: 'Application name is required' });
-
-    /**
-     * Checked here rather than left to the CHECK constraint.
-     *
-     * An unsupported runtime came back as a raw 500 carrying Postgres error
-     * code 23514 and the constraint's own text — which tells the caller
-     * nothing about which runtimes exist, and reads as the platform being
-     * broken rather than the request being wrong. The list is the constraint's
-     * list; keep the two together if either changes.
-     */
-    const RUNTIMES = ['static', 'nodejs', 'python', 'php', 'ruby', 'go', 'rust', 'container', 'custom'];
-    if (body.runtime && !RUNTIMES.includes(body.runtime)) {
-      return reply.status(400).send({
-        error: `"${body.runtime}" is not a runtime Onsite can host. Choose one of: ${RUNTIMES.join(', ')}.`,
-      });
-    }
+    const body = applicationCreateSchema.parse(request.body);
 
     const createdApp = await db.insertInto('onsite_applications')
       .values({
@@ -710,11 +753,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
   fastify.post('/environments/:envId/secrets', async (request: FastifyRequest, reply: FastifyReply) => {
     const { envId } = request.params as { envId: string };
-    const body = request.body as { key: string; value: string; is_secret?: boolean };
-
-    if (!body.key || body.value === undefined) {
-      return reply.status(400).send({ error: 'Secret key and value are required' });
-    }
+    const body = secretCreateSchema.parse(request.body);
 
     const valueCipher = encryptSecret(body.value);
 
@@ -771,7 +810,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
   fastify.post('/applications/:appId/deploy', async (request: FastifyRequest, reply: FastifyReply) => {
     const { appId } = request.params as { appId: string };
-    const body = request.body as { environment_id?: string; branch?: string; commit_message?: string };
+    const body = deploySchema.parse(request.body);
 
     const app = await db.selectFrom('onsite_applications')
       .selectAll()
@@ -876,18 +915,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/servers', async (request: FastifyRequest, reply: FastifyReply) => {
-    const body = request.body as {
-      name: string;
-      provider?: string;
-      region?: string;
-      ip_address?: string;
-      os?: string;
-      cpu_count?: number;
-      ram_mb?: number;
-      disk_gb?: number;
-    };
-
-    if (!body.name) return reply.status(400).send({ error: 'Server name is required' });
+    const body = serverCreateSchema.parse(request.body);
 
     const server = await db.insertInto('onsite_servers')
       .values({
@@ -931,17 +959,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/health-checks', async (request: FastifyRequest, reply: FastifyReply) => {
-    const body = request.body as {
-      name: string;
-      url: string;
-      method?: string;
-      expected_status?: number;
-      interval_s?: number;
-    };
-
-    if (!body.name || !body.url) {
-      return reply.status(400).send({ error: 'Check name and URL are required' });
-    }
+    const body = healthCheckCreateSchema.parse(request.body);
 
     const check = await db.insertInto('onsite_health_checks')
       .values({
@@ -1093,20 +1111,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/provider-connections', async (request: FastifyRequest, reply: FastifyReply) => {
-    const body = request.body as {
-      provider: string;
-      name: string;
-      /** `token` is the older spelling; both are accepted so existing callers keep working. */
-      token?: string;
-      access_token?: string;
-      /** The provider's own handle for the thing being connected — a CircleCI project slug, say. */
-      external_id?: string;
-      external_name?: string;
-    };
-
-    if (!body.provider || !body.name) {
-      return reply.status(400).send({ error: 'Provider and name are required' });
-    }
+    const body = providerConnectionCreateSchema.parse(request.body);
 
     const token = (body.access_token ?? body.token ?? '').trim();
     if (!token) {
@@ -1183,16 +1188,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/websites', async (request: FastifyRequest, reply: FastifyReply) => {
-    const body = request.body as {
-      name: string;
-      type?: string;
-      url?: string;
-      project_id?: string;
-      domain_id?: string;
-      hosting_provider?: string;
-    };
-
-    if (!body.name) return reply.status(400).send({ error: 'Website name is required' });
+    const body = websiteCreateSchema.parse(request.body);
 
     const created = await db.insertInto('onsite_websites')
       .values({
@@ -1265,8 +1261,7 @@ export async function onsiteRoutes(fastify: FastifyInstance) {
 
   // ─── Domain Transfers (Hostinger style) ────────────────────────
   fastify.post('/domains/transfer', async (request: FastifyRequest, reply: FastifyReply) => {
-    const body = request.body as { domain: string; eppCode?: string };
-    if (!body.domain) return reply.status(400).send({ error: 'Domain name is required for transfer' });
+    const body = domainTransferSchema.parse(request.body);
 
     const cleanDomain = body.domain.trim().toLowerCase();
 
